@@ -1,4 +1,7 @@
 import { Server as SocketServer, type Socket } from 'socket.io';
+import { readdirSync } from 'node:fs';
+import path from 'node:path';
+import type { HttpOwnerDeclaration } from './ownedRoutes';
 import type { Server, IncomingMessage, RequestListener } from 'node:http';
 import type { Socket as NetworkSocket } from 'node:net';
 import { randomBytes } from 'node:crypto';
@@ -9,6 +12,28 @@ import { authorizeProgressRoom } from '../../progress/authorization';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { hasActivePersistenceWork, runAcceptedPersistenceWork } from '../../persistence/runtime';
 import { HttpFailure, writeHttpError } from '../fastify/errorBoundary';
+export const progressSocketPath = '/portal-socket.io';
+/** Socket.IO serves its packaged client files before Engine.IO's Origin guard.
+ * Describe that same order for an unselected protocol owner; no protocol action
+ * or static root is installed by these selection declarations. */
+export function progressSocketHttpOwners(canonicalOrigin: string): readonly HttpOwnerDeclaration[] {
+  const clientFiles = readdirSync(path.join(path.dirname(require.resolve('socket.io/package.json')), 'client-dist'));
+  return [
+    ...clientFiles.map(file => ({
+      route: { method: 'all', path: progressSocketPath + '/' + file },
+      csrf: 'none' as const,
+      actorRequired: false,
+      rawTarget: true,
+    })),
+    {
+      route: { method: 'all', path: progressSocketPath + '/*transportPath' },
+      csrf: 'none',
+      actorRequired: false,
+      rawTarget: true,
+      canonicalOrigin,
+    },
+  ];
+}
 export interface ProgressCredential {
   sessionId?: string;
   authorization?: string;

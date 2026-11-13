@@ -253,10 +253,14 @@ function collectInventory() {
     'packages/sails-ng-common/src/siem.model.ts',
   ]);
   // Imports are the current production manifests, including browser aliases.
-  const collections = [
+  const importedCollections = [
     ...declarationImports(http + 'apiManifest.ts'),
     ...declarationImports(http + 'ownedRoutes.ts').filter(item => item.export !== 'ownedHttpDeclarations'),
   ];
+  // A declaration collection can also be imported for ownership metadata.
+  // Inventory each exact source export once; duplicate declarations within it
+  // still fail the stable-identity/registry assertions below.
+  const collections = [...new Map(importedCollections.map(item => [item.file + ':' + item.export, item])).values()];
   const api = fromSource(prefix + 'api-routes/route-registry.ts').registerCoreApiRoutes();
   const apiReferences = new Map();
   for (const filename of [...trackedSources]
@@ -368,6 +372,9 @@ function collectInventory() {
     'application/portal/mutationHttpPlan.ts',
   ])
     inputs.add(prefix + file);
+  const assetFactories = Object.values(fromSource(prefix + 'http/controllers/AssetControllers.ts')).filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
   const browserFactories = [
     ...Object.values(fromSource(prefix + 'http/controllers/BrowserControllers.ts')),
     ...Object.values(fromSource(prefix + 'http/controllers/PageController.ts')),
@@ -375,6 +382,12 @@ function collectInventory() {
     value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
   );
   for (const file of [
+    'http/assetRoutes.ts',
+    'http/controllers/AssetControllers.ts',
+    'http/fastify/assets.ts',
+    'http/fastify/assetCookies.ts',
+    'pages/brandingDelivery.ts',
+    'pages/dynamicAssets.ts',
     'http/pageRoutes.ts',
     'http/authenticationRoutes.ts',
     'http/controllers/BrowserControllers.ts',
@@ -401,6 +414,21 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-031') {
+        const matches = assetFactories.filter(
+          factory => factory.name === route.controller && factory.actions.includes(route.action)
+        );
+        assert.equal(matches.length, 1, 'Exactly one FM-031 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: matches[0].name,
+          action: route.action,
+          file: prefix + 'http/controllers/AssetControllers.ts',
+          productionBinding: prefix + 'application/portal/installation.ts',
+          differential: test('http/fastify/AssetDifferentialMongo.test.ts'),
+          migratedBy: 'FM-031',
+        };
+      }
       if (owners[collection.export][0] === 'FM-030') {
         const factoryName = route.controller ?? 'PageRootController';
         const action = route.action ?? 'redirect';

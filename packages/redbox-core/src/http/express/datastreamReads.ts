@@ -17,6 +17,7 @@ export const datastreamReadRoutes = [
     path: '/:branding/:portal/' + prefix + '/:oid/attach/:attachId',
     controller: 'RecordController',
     action: 'doAttachment',
+    headBehavior: 'fallthrough' as const,
   })),
   {
     method: 'get' as const,
@@ -51,7 +52,7 @@ export function mountDatastreamReadRoutes(
       route.path.endsWith('datastream*') ? route.path.replace('datastream*', 'datastream{*tail}') : route.path,
       ...policies,
       httpAction(async (req, res, next) => {
-        if (route.action === 'doAttachment' && req.method === 'HEAD') {
+        if ('headBehavior' in route && route.headBehavior === 'fallthrough' && req.method === 'HEAD') {
           next();
           return;
         }
@@ -89,7 +90,11 @@ export function mountDatastreamReadRoutes(
           // Authorize the record before validating or disclosing its stored membership.
           const id = req.params.datastreamId ?? req.params.attachId ?? req.query.datastreamId;
           if (!['getAttachments', 'listDatastreams'].includes(route.action)) {
-            if (typeof id !== 'string' || !id.trim() || (req.query.fileName != null && typeof req.query.fileName !== 'string')) {
+            if (
+              typeof id !== 'string' ||
+              !id.trim() ||
+              (req.query.fileName != null && typeof req.query.fileName !== 'string')
+            ) {
               sendApiErrors(req, res, 400, [{ detail: 'Invalid datastream identifier or filename' }]);
               return;
             }
@@ -138,7 +143,10 @@ export function mountDatastreamReadRoutes(
             throw error;
           }
           pendingReadstream = response.readstream;
-          if (res.destroyed) { releasePendingStream(); return; }
+          if (res.destroyed) {
+            releasePendingStream();
+            return;
+          }
           const fileName =
             typeof req.query.fileName === 'string' && req.query.fileName
               ? req.query.fileName

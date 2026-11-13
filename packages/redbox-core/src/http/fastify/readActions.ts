@@ -10,6 +10,7 @@ import { invalidSchemaRead } from '../actions/recordSchemaReads';
 import { sendReadStream } from './readStreams';
 import { inheritRequestPreparation } from '../actions/requestPreparation';
 import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
+import { requestPathname } from './router';
 /** Derive action facts from the live request; hook replacements must remain visible. */
 export function readRequest(request: FastifyRequest): ReferenceRequest {
   const facts: ReferenceRequest = {
@@ -67,7 +68,7 @@ export async function readAction(
 export function schemaReadPrelude(request: FastifyRequest, reply: FastifyReply) {
   const input = readRequest(request);
   if (!validateApiRouteRequest(input, resolvedRequestContract(request)).valid) {
-    const result = invalidSchemaRead({ ...input, path: request.url.split('?')[0] });
+    const result = invalidSchemaRead({ ...input, path: requestPathname(request.raw.url ?? request.url)! });
     return sendSerializedJson(request, reply, { ...result, json: JSON.stringify(result.body) });
   }
 }

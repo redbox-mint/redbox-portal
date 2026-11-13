@@ -37,6 +37,22 @@ export function httpReplySubmitted(reply: FastifyReply): boolean {
 export function registerHttpReplyView(reply: FastifyReply, view: FastifyReply): void {
   sends.set(view, httpSendState(reply));
 }
+const assetFailures = new WeakSet<object>();
+/** Qualified public file delivery retains representation headers on public
+ * refusals too. Opaque provider faults still remove every buffered header. */
+export function preserveAssetFailureHeaders(reply: FastifyReply): void {
+  assetFailures.add(httpSendState(reply));
+}
+const assetFailureHeaders = new Set([
+  'accept-ranges',
+  'content-range',
+  'last-modified',
+  'content-language',
+  'content-encoding',
+  'content-location',
+  'content-md5',
+  'content-length',
+]);
 export function beginHttpErrorHandler(reply: FastifyReply) {
   const state = httpSendState(reply);
   state.generation++;
@@ -134,7 +150,10 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
       const deletion =
         name.toLowerCase() === 'set-cookie' &&
         (Array.isArray(value) ? value : [value]).every(item => typeof item === 'string' && /^[\w.-]+=;/.test(item));
-      if (!preserve || (!publicHeaders.has(name.toLowerCase()) && !deletion)) reply.removeHeader(name);
+      const publicHeader =
+        publicHeaders.has(name.toLowerCase()) ||
+        (assetFailures.has(httpSendState(reply)) && assetFailureHeaders.has(name.toLowerCase()));
+      if (!preserve || (!publicHeader && !deletion)) reply.removeHeader(name);
     }
     // Reconstruct only the fixed drain instruction, never a buffered value.
     if (close) reply.header('Connection', 'close');

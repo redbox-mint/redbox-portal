@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { defineController } from '../controllers';
 import { readAction } from '../fastify/readActions';
 import { resolvedRequestContract } from '../fastify/validation';
+import { requestPathname } from '../fastify/router';
 import * as r from '../actions/recordReads';
 import * as q from '../actions/queryReads';
 import * as s from '../actions/recordSchemaReads';
@@ -541,7 +542,11 @@ export class ApiRecordSchemaReadController {
       request,
       reply,
       (facts, valid) =>
-        s.create(this.input, { ...facts, path: request.url.split('?')[0] }, resolvedRequestContract(request)),
+        s.create(
+          this.input,
+          { ...facts, path: requestPathname(request.raw.url ?? request.url)! },
+          resolvedRequestContract(request)
+        ),
       undefined,
       true
     );
@@ -551,7 +556,11 @@ export class ApiRecordSchemaReadController {
       request,
       reply,
       (facts, valid) =>
-        s.update(this.input, { ...facts, path: request.url.split('?')[0] }, resolvedRequestContract(request)),
+        s.update(
+          this.input,
+          { ...facts, path: requestPathname(request.raw.url ?? request.url)! },
+          resolvedRequestContract(request)
+        ),
       undefined,
       true
     );
@@ -561,7 +570,11 @@ export class ApiRecordSchemaReadController {
       request,
       reply,
       (facts, valid) =>
-        s.immutable(this.input, { ...facts, path: request.url.split('?')[0] }, resolvedRequestContract(request)),
+        s.immutable(
+          this.input,
+          { ...facts, path: requestPathname(request.raw.url ?? request.url)! },
+          resolvedRequestContract(request)
+        ),
       undefined,
       true
     );

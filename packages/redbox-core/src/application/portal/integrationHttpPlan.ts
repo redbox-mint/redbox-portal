@@ -1,3 +1,4 @@
+import { brandingAssetController } from '../../http/controllers/AssetControllers';
 import { combineBrowserInput } from './pageHttpPlan';
 import * as browserControllers from '../../http/controllers/BrowserControllers';
 import type { BrowserPageBinding } from '../../http/controllers/BrowserControllers';
@@ -84,7 +85,8 @@ export function portalIntegrationControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
   cache: BrandingDeliveryCache,
-  browser?: BrowserPageBinding
+  browser?: BrowserPageBinding,
+  delivery?: { readonly delivery: import('../../pages/brandingDelivery').BrandingDelivery }
 ) {
   const input = portalIntegrationHttpInputs(portal),
     combine = combineHttpInputs;
@@ -96,7 +98,9 @@ export function portalIntegrationControllers(
       : bindControllerFactory(c.vocabularyController, vocabulary),
     bindControllerFactory(c.apiBrandingController, input.branding),
     bindControllerFactory(c.brandingAppController, input.branding),
-    bindControllerFactory(c.brandingController, input.branding),
+    delivery
+      ? bindControllerFactory(brandingAssetController, combine(input.branding, delivery))
+      : bindControllerFactory(c.brandingController, input.branding),
     bindControllerFactory(c.apiFigshareCrosswalkController, input.figshare),
     bindControllerFactory(c.apiFigshareVocabularyController, input.figshare),
     bindControllerFactory(c.apiSearchController, combine(portalReadHttpInputs(portal).queries, input.operations)),

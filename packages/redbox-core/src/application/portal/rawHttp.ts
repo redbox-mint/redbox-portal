@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import type { ApplicationModule } from '../Application';
 import type { PortalApplicationContext } from './application';
 import { StreamingMultipart } from '../../http/express/multipart';
-import { ProgressSockets, type ProgressCredential } from '../../http/express/progressSockets';
+import { ProgressSockets, progressSocketPath, type ProgressCredential } from '../../http/express/progressSockets';
 import type { AuthenticatedActor } from '../../http/express/identity';
 import { CompanionUploads, companionOptions } from '../../http/integrations/companion/uploads';
 
@@ -30,7 +30,7 @@ export class PortalRawHttp implements ApplicationModule {
     if (this.progress)
       this.sockets = new ProgressSockets({
         owner,
-        path: config.server.rootContext + '/portal-socket.io',
+        path: config.server.rootContext + progressSocketPath,
         origins: [new URL(config.server.publicUrl).origin],
         records: data.records.get(),
         progress: data.progress.get(),

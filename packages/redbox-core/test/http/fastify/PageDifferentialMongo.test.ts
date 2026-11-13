@@ -203,6 +203,7 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
   this.timeout(900000);
   before(async () => {
     const retained = await retainedPageExpress();
+    const assetMisses = new Map<string, ReturnType<typeof normalized>>();
     try {
       for (const profile of selectedProfiles)
         for (const mode of modes) {
@@ -341,22 +342,30 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
             }
           );
           try {
-            if (mode === 'fastify') {
-              // Page rendering must not reopen the reserved FM-018 namespaces
-              // or treat a non-boundary root-context prefix as a portal URL.
+            {
+              // FM-031 now owns static misses: retain their actual Express
+              // representation while preserving the host's root-context boundary.
               for (const pathname of [
-                ...(f.portal.config.server.rootContext ? ['/portalx/default/rdmp/absent'] : []),
+                ...(mode === 'fastify' && f.portal.config.server.rootContext ? ['/portalx/default/rdmp/absent'] : []),
                 f.portal.config.server.rootContext + '/js/missing.js',
                 f.portal.config.server.rootContext + '/angular/missing.js',
               ]) {
                 for (const method of ['GET', 'HEAD']) {
                   const denied = await pageWire(new URL(f.url).origin + pathname, method);
                   assert.equal(denied.status, 404);
-                  if (method === 'GET') assert.deepEqual(JSON.parse(denied.text), { error: 'not-found' }, pathname);
-                  else assert.equal(denied.text, '');
+                  if (pathname.startsWith('/portalx/')) {
+                    if (method === 'GET') assert.deepEqual(JSON.parse(denied.text), { error: 'not-found' }, pathname);
+                  } else {
+                    const key = profile + ':' + method + ':' + pathname;
+                    if (mode === 'retained') assetMisses.set(key, normalized(denied));
+                    else assert.deepEqual(normalized(denied), assetMisses.get(key), key);
+                  }
+                  if (method === 'HEAD') assert.equal(denied.text, '');
                   assert.equal(denied.headers['content-security-policy'], undefined);
-                  const absolute = await pageWire(f.url, method, {}, '', 'http://request.invalid' + pathname);
-                  assert.deepEqual(normalized(absolute), normalized(denied), pathname);
+                  if (mode === 'fastify') {
+                    const absolute = await pageWire(f.url, method, {}, '', 'http://request.invalid' + pathname);
+                    assert.deepEqual(normalized(absolute), normalized(denied), pathname);
+                  }
                 }
               }
             }

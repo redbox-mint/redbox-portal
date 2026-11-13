@@ -9,9 +9,11 @@ const source = file => require(path.join(root, 'packages/redbox-core/src', file)
 const { coreRouteName, expressRuntimePath } = source('http/fastify/routes');
 const { pageRoutes } = source('http/pageRoutes');
 const { authenticationRoutes } = source('http/authenticationRoutes');
+const { brandingDeliveryRoutes, fontDeliveryRoute, dynamicAssetRoutes } = source('http/assetRoutes');
+const assetDeclarations = [...brandingDeliveryRoutes, fontDeliveryRoute, ...dynamicAssetRoutes];
 const { pageRootRoute } = source('http/express/pages');
 const { resolveEffectivePolicies } = source('http/express/policies');
-const declarations = [...pageRoutes, ...authenticationRoutes, pageRootRoute];
+const declarations = [...pageRoutes, ...authenticationRoutes, pageRootRoute, ...assetDeclarations];
 const offlineApplication = () => previous.offlineApplication(previous.migratedDeclarations, true);
 function reconcile(installation, runtime) {
   const rows = inventory.routes
@@ -27,7 +29,9 @@ function reconcile(installation, runtime) {
       };
       if (!resolved.length) {
         if (row.source.export === 'csrfTokenRoute') {
-          if (runtime) assert(runtime.some(route => route.path === '/portal' + row.path && route.method === 'GET'));
+          if (runtime)
+            for (const method of ['GET', 'HEAD'])
+              assert(runtime.some(route => route.path === '/portal' + row.path && route.method === method));
           return {
             ...base,
             classification: 'migrated',
@@ -35,16 +39,12 @@ function reconcile(installation, runtime) {
             runtime: { kind: 'native session/CSRF owner', csrf: row.csrf.effective },
           };
         }
-        assert(
-          ['FM-031', 'FM-033', 'FM-034', 'FM-035'].includes(row.ownerTask),
-          'Missing browser binding: ' + row.name
-        );
+        assert(['FM-033', 'FM-034', 'FM-035'].includes(row.ownerTask), 'Missing browser binding: ' + row.name);
         return {
           ...base,
           classification: 'owned-by-later-task',
           owner: row.ownerTask,
           reason: {
-            'FM-031': 'Static/dynamic assets, form/bundle delivery and Angular initialization',
             'FM-033': 'Datastream/attachment read and conditional streaming',
             'FM-034': 'Multipart/staging/TUS upload and fallthrough',
             'FM-035': 'Progress/socket/Companion protocol completion',
@@ -72,6 +72,25 @@ function reconcile(installation, runtime) {
           assert.deepEqual(route.effectivePolicies, [
             ...new Set([...mandatory, ...resolveEffectivePolicies(original, installation.policyConfiguration)]),
           ]);
+        } else if (assetDeclarations.includes(original)) {
+          const mandatory =
+            original === fontDeliveryRoute
+              ? []
+              : dynamicAssetRoutes.includes(original)
+                ? [
+                    'nocache',
+                    'brandingandportal',
+                    'browseractor',
+                    ...(original.action === 'get' ? [] : ['browserauthenticated', 'brandactor']),
+                    'checkauth',
+                  ]
+                : ['brandingandportal', 'browseractor', 'checkauth'];
+          assert.deepEqual(
+            route.effectivePolicies,
+            original === fontDeliveryRoute
+              ? []
+              : [...new Set([...mandatory, ...resolveEffectivePolicies(original, installation.policyConfiguration)])]
+          );
         } else assert.deepEqual(route.effectivePolicies, row.access.effectivePolicies);
       } else {
         const declaration = previous.migratedDeclarations.find(
@@ -122,7 +141,7 @@ function reconcile(installation, runtime) {
       return {
         ...base,
         classification: 'migrated',
-        owner: original ? 'FM-030' : (row.nativeBinding?.migratedBy ?? row.ownerTask),
+        owner: original ? row.ownerTask : (row.nativeBinding?.migratedBy ?? row.ownerTask),
         runtime: {
           controller: route.declaration.controller,
           action: route.declaration.action,
@@ -150,9 +169,11 @@ function reconcile(installation, runtime) {
         name: row.name,
         owner: row.ownerTask,
         classification:
-          row.ownerTask === 'FM-030'
-            ? 'migrated: shared branded page-not-found behind reserved namespaces'
-            : 'owned-by-later-task',
+          row.ownerTask === 'FM-031'
+            ? 'migrated: contained static assets after declared routes, before fallback'
+            : row.ownerTask === 'FM-030'
+              ? 'migrated: shared branded page-not-found behind reserved namespaces'
+              : 'owned-by-later-task',
       })),
     rows,
   };

@@ -1,3 +1,4 @@
+import { bindAssetRequestView } from './assetCookies';
 import { isOwnedReadStream } from './readStreams';
 import { bindMultipartRequestView } from './rawMultipart';
 import { bindCompanionRequestView } from '../integrations/companion/fastify';
@@ -188,6 +189,7 @@ export function requestOwnership(owner: PersistenceOwner) {
     publicObjects.set(target, view);
     publicObjects.set(view, view);
     nativeObjects.set(view, target);
+    if (kind === 'request') bindAssetRequestView(target, view);
     if (kind === 'reply') registerHttpReplyView(target as FastifyReply, view);
     return view;
   }

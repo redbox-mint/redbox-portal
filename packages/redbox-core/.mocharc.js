@@ -15,6 +15,7 @@ module.exports = {
     'test/http/fastify/G3Mongo.test.ts',
     'test/http/fastify/PageDifferentialMongo.test.ts',
     'test/http/fastify/BrowserDifferentialMongo.test.ts',
+    'test/http/fastify/AssetDifferentialMongo.test.ts',
     'test/http/fastify/G3BrunoMongo.test.ts',
     'test/http/fastify/MetadataDifferentialMongo.test.ts',
     'test/http/fastify/ReferenceDifferentialMongo.test.ts',

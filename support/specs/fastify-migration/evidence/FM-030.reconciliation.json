@@ -2,15 +2,15 @@
   "formatVersion": 1,
   "counts": {
     "browserAndIntegration": 183,
-    "migrated": 150,
+    "migrated": 165,
     "intentionalOverrides": 0,
-    "later": 33
+    "later": 18
   },
   "boundaries": [
     {
       "name": "core-static-artifacts",
       "owner": "FM-031",
-      "classification": "owned-by-later-task"
+      "classification": "migrated: contained static assets after declared routes, before fallback"
     },
     {
       "name": "core-page-not-found",
@@ -8829,239 +8829,919 @@
       "method": "get",
       "path": "/:branding/:portal/styles/theme.css",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 0
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderCss",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/styles/theme.css",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/styles/theme.css",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-c90585f484c0a31c",
       "method": "get",
       "path": "/:branding/:portal/preview/:token.css",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 1
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderPreviewCss",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/preview/:token([\\s\\S]+\\.[cC][sS][sS])",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/preview/:token([\\s\\S]+\\.[cC][sS][sS])",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-all-a0f7c9195c9ca251",
       "method": "all",
       "path": "/:branding/:portal/images/logo",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 2
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderImage",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "ACL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "BIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "CHECKOUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "CONNECT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "COPY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "LINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "LOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "M-SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "MERGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "MKACTIVITY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "MKCALENDAR",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "MKCOL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "MOVE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "NOTIFY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "OPTIONS",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "PATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "PROPFIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "PROPPATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "PURGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "QUERY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "REBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "REPORT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "SOURCE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "SUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "TRACE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "UNBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "UNLINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "UNLOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          },
+          {
+            "method": "UNSUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/logo",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-all-1466936000aff39f",
       "method": "all",
       "path": "/:branding/:portal/images/favicon",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 3
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderFavicon",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "ACL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "BIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "CHECKOUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "CONNECT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "COPY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "LINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "LOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "M-SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "MERGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "MKACTIVITY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "MKCALENDAR",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "MKCOL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "MOVE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "NOTIFY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "OPTIONS",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "PATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "PROPFIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "PROPPATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "PURGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "QUERY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "REBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "REPORT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "SOURCE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "SUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "TRACE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "UNBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "UNLINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "UNLOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          },
+          {
+            "method": "UNSUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/images/favicon",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-4a8796199759b99e",
       "method": "get",
       "path": "/:branding/:portal/api-docs.apib",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 4
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderApiB",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api-docs.apib",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api-docs.apib",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-cb6dc58c31a3923a",
       "method": "get",
       "path": "/:branding/:portal/api-docs.json",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 5
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderSwaggerJSON",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api-docs.json",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api-docs.json",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-b0f5314d4369b23c",
       "method": "get",
       "path": "/:branding/:portal/api-docs.yaml",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 6
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderSwaggerYAML",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api-docs.yaml",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api-docs.yaml",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-ef55c834128bda1f",
       "method": "get",
       "path": "/:branding/:portal/admin/api-docs/openapi.json",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "brandingDeliveryRoutes",
-        "line": 19,
+        "line": 1,
         "index": 7
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderSwaggerJSON",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "protect except GET/HEAD/OPTIONS",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/admin/api-docs/openapi.json",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/admin/api-docs/openapi.json",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-16c9edd7443be1e6",
       "method": "get",
       "path": "/fonts/branding/:branding/:sha256.woff2",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "fontDeliveryRoute",
-        "line": 36
+        "line": 18
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingController",
+        "action": "renderFont",
+        "factory": "BrandingController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/fonts/branding/:branding((?!(?:[vV][oO][cC][aA][bB]|[dD][aA][sS][hH][bB][oO][aA][rR][dD]-[vV][iI][eE][wW]|[dD][aA][sS][hH][bB][oO][aA][rR][dD])$)[\\s\\S]+)/:sha256([\\s\\S]+\\.[wW][oO][fF][fF]2)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/fonts/branding/:branding((?!(?:[vV][oO][cC][aA][bB]|[dD][aA][sS][hH][bB][oO][aA][rR][dD]-[vV][iI][eE][wW]|[dD][aA][sS][hH][bB][oO][aA][rR][dD])$)[\\s\\S]+)/:sha256([\\s\\S]+\\.[wW][oO][fF][fF]2)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-933a5dfd6b8fbfa2",
       "method": "get",
       "path": "/dynamic/:asset",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "dynamicAssetRoutes",
-        "line": 42,
+        "line": 24,
         "index": 0
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "DynamicAssetController",
+        "action": "get",
+        "factory": "DynamicAssetController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/dynamic/:asset([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/dynamic/:asset([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-718cddecf2cc3caa",
       "method": "get",
       "path": "/:branding/:portal/dynamic/:asset",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "dynamicAssetRoutes",
-        "line": 42,
+        "line": 24,
         "index": 1
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "DynamicAssetController",
+        "action": "get",
+        "factory": "DynamicAssetController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "browseractor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamic/:asset([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamic/:asset([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-308505cd4cdd38b0",
       "method": "get",
       "path": "/:branding/:portal/dynamicAsset/formCompiledItems/:recordType{/:oid}",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "dynamicAssetRoutes",
-        "line": 42,
+        "line": 24,
         "index": 2
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "DynamicAssetController",
+        "action": "getFormCompiledItems",
+        "factory": "DynamicAssetController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "browseractor",
+          "browserauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/formCompiledItems/:recordType([\\s\\S]+)/:oid([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/formCompiledItems/:recordType([\\s\\S]+)/:oid([\\s\\S]+)",
+            "kind": "implicit-head"
+          },
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/formCompiledItems/:recordType([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/formCompiledItems/:recordType([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-e7e70353b8d57362",
       "method": "get",
       "path": "/:branding/:portal/dynamicAsset/adminReportTemplates/:reportName",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "dynamicAssetRoutes",
-        "line": 42,
+        "line": 24,
         "index": 3
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "DynamicAssetController",
+        "action": "getAdminReportTemplates",
+        "factory": "DynamicAssetController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "browseractor",
+          "browserauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/adminReportTemplates/:reportName([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/adminReportTemplates/:reportName([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-2b80bf21c3729fcd",
       "method": "get",
       "path": "/:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "dynamicAssetRoutes",
-        "line": 42,
+        "line": 24,
         "index": 4
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "DynamicAssetController",
+        "action": "getRecordDashboardTemplates",
+        "factory": "DynamicAssetController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "browseractor",
+          "browserauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/recordDashboardTemplates/:recordType([\\s\\S]+)/:workflowStage([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/recordDashboardTemplates/:recordType([\\s\\S]+)/:workflowStage([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-8d999e8d9b3109e2",
       "method": "get",
       "path": "/:branding/:portal/dynamicAsset/dashboardViewTemplates/:dashboardView/:stepName",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "file": "packages/redbox-core/src/http/assetRoutes.ts",
         "export": "dynamicAssetRoutes",
-        "line": 42,
+        "line": 24,
         "index": 5
       },
       "originalOwner": "FM-031",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-031",
-      "reason": "Static/dynamic assets, form/bundle delivery and Angular initialization",
-      "runtime": null
+      "runtime": {
+        "controller": "DynamicAssetController",
+        "action": "getDashboardViewTemplates",
+        "factory": "DynamicAssetController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "browseractor",
+          "browserauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/dashboardViewTemplates/:dashboardView([\\s\\S]+)/:stepName([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/dynamicAsset/dashboardViewTemplates/:dashboardView([\\s\\S]+)/:stepName([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     }
   ]
 }

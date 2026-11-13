@@ -17,7 +17,7 @@ import { resolveEffectivePolicies } from '../express/policies';
 import { sendApiErrors } from './responses';
 import { httpReplySubmitted } from './errorBoundary';
 import { adminApiRoutes } from '../../api-routes/groups/admin';
-import { assertPortalRouter, createNativeRouter, routerConstraints, routerUrl } from './router';
+import { assertPortalRouter, createNativeRouter, requestPathname, routerConstraints, routerUrl } from './router';
 import { HttpTargetNamespace, assertPublicHttpName, automaticOptionsTarget, automaticHeadTarget } from './targetNames';
 export { createPortalRouter, portalRouterOptions } from './router';
 export { coreRoutePrecedence } from './precedence';
@@ -968,7 +968,7 @@ export async function composeRoutes(
               if (path.wildcard) {
                 // find-my-way trims the optional trailing slash before lookup. It
                 // belongs to a wildcard key, even when the final segment is empty.
-                const tail = params['*'] + ((request.raw.url ?? '').split('?')[0].endsWith('/') ? '/' : '');
+                const tail = params['*'] + (requestPathname(request.raw.url ?? '/')?.endsWith('/') ? '/' : '');
                 if (path.wildcard.required && !tail) return reply.callNotFound();
                 delete params['*'];
                 if (tail) params[path.wildcard.name] = tail;

@@ -7,6 +7,7 @@ import { httpReplySubmitted } from './errorBoundary';
 import { resolveCompanionConfiguration } from '../../config/companionDefaults';
 import { requestStageHook } from './hooks';
 import { HttpTargetNamespace, nativeHttpTarget } from './targetNames';
+import type { StaticOwnershipTable } from './staticOwnership';
 
 export interface RegisteredHttpRoute {
   readonly name: string;
@@ -61,6 +62,7 @@ export function coreFallbackReservedPrefixes(configuration: CoreNamespaceConfigu
 
 /** One host-owned registry. No routes, callbacks, Fastify objects or probe results escape its snapshots. */
 export class HttpRouteRegistry {
+  ownership?: StaticOwnershipTable;
   private readonly routes: RegisteredHttpRoute[] = [];
   private readonly paths = createNativeRouter();
   private readonly methods = new Set<string>();
@@ -202,6 +204,7 @@ export class HttpRouteRegistry {
         this.targets.reference(entry.name);
       }
       this.routes.push(entry);
+      if (entry.kind === 'native') this.ownership?.captureNative(entry.name, entry.method, entry.path);
       if (entry.kind !== 'automatic-options') {
         this.methods.add(entry.method);
         const index = (path: string, mountRoot = false) => {

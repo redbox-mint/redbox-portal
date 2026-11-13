@@ -1,3 +1,4 @@
+import { serveStaticAsset } from '../../http/fastify/assets';
 import { sendPageError } from '../../http/fastify/pages';
 import { httpReplySubmitted } from '../../http/fastify/errorBoundary';
 import { requestContext } from '../../http/context';
@@ -134,6 +135,7 @@ export async function createPortalFastifyHost(
     bindings: resolved.bindings,
     moduleNames: resolved.moduleNames,
     composition: resolved,
+    ownership: resolved.ownership,
     rawUploadRoutes: resolved.httpOwners.uploads,
     rawUploadInput: resolved.httpOwners.uploads.length ? () => resolved.raw!.uploadInput() : undefined,
     prepareIntegrations: async server => {
@@ -146,10 +148,25 @@ export async function createPortalFastifyHost(
     namespaceConfiguration: resolved.namespaceConfiguration,
     routing: resolved.routing,
     actionPreparation: resolved.actionPreparation,
+    staticAsset: resolved.pages
+      ? (request, reply, beforeSend) =>
+          serveStaticAsset(
+            request,
+            reply,
+            resolved.pages!.artifacts,
+            rootContext,
+            {
+              publicUrl: portal.config.server.publicUrl,
+              sessionMaxAgeMs: portal.config.redboxSession.cookie?.maxAge,
+              noCache: resolved.pages!.noCache,
+            },
+            beforeSend
+          )
+      : undefined,
     pageNotFound: resolved.pages
       ? async (request, reply) => {
           const raw = requestPathname(request.raw.url ?? '/');
-          if (raw === undefined || !['GET', 'HEAD'].includes(request.method) || resolved.registry.protects(raw)) return;
+          if (raw === undefined || !['GET', 'HEAD'].includes(request.method)) return;
           if (
             rootContext &&
             (raw.slice(0, rootContext.length).toLowerCase() !== rootContext.toLowerCase() ||
@@ -157,15 +174,19 @@ export async function createPortalFastifyHost(
           )
             return;
           const relative = raw.slice(rootContext.length);
-          const match = /^\/([A-Za-z0-9_-]{1,100})\/([A-Za-z0-9_-]{1,100})(?:\/[^%\\]*)?$/.exec(relative);
-          if (
-            !match ||
-            relative.includes('//') ||
-            [...relative].some(character => character.charCodeAt(0) <= 32 || character.charCodeAt(0) === 127) ||
-            relative.split('/').some(part => part === '.' || part === '..')
-          )
-            return;
-          request.params = { branding: match[1], portal: match[2] };
+          const assetNamespace = /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)(?:\/|$)/.test(
+            relative
+          );
+          if (resolved.registry.protects(raw) && !assetNamespace) return;
+          // Retained final page policies validate the two decoded tenant segments
+          // even on a static miss. The tail never selects a filesystem artifact.
+          const match = /^\/([^/]+)\/([^/]+)(?:\/.*)?$/.exec(relative);
+          if (!match) return;
+          try {
+            request.params = { branding: decodeURIComponent(match[1]), portal: decodeURIComponent(match[2]) };
+          } catch {
+            return reply.code(400).send();
+          }
           for (const name of ['nocache', 'brandingandportal', 'browseractor', 'checkauth']) {
             await policies[name]!(request, reply);
             if (httpReplySubmitted(reply)) return;
@@ -190,7 +211,18 @@ export async function createPortalFastifyHost(
       csrf,
       observers: { observe: undefined, log: undefined },
       // Selected policies resolve brand/actor; raw owners prepare their context separately.
-      resolveContext: undefined,
+      resolveContext: resolved.pages
+        ? async (binding, request) => {
+            if (
+              binding.route.declaration.controller === 'DynamicAssetController' &&
+              binding.route.declaration.path === '/dynamic/:asset'
+            )
+              Object.assign(request.params as object, {
+                branding: request.session.branding ?? portal.config.auth.defaultBrand,
+                portal: request.session.portal ?? portal.config.auth.defaultPortal,
+              });
+          }
+        : undefined,
       parsers: {
         parserExclusions: [],
         flatFormPrefixes: resolved.raw?.companion ? [rootContext + portal.config.companion.route] : [],

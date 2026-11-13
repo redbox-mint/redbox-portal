@@ -148,6 +148,28 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     };
   }
 
+  for (const method of ['GET', 'HEAD'])
+    it(`does not redispatch matched ${method} callNotFound to static assets or fallback`, async () => {
+      let staticCalls = 0;
+      const f = await fixture(
+        {
+          routes: [{ ...route, declaration: { ...route.declaration, head: undefined } }],
+          fallbacks: [reg(fallback())],
+          staticAsset: async (_request, reply, beforeSend) => {
+            staticCalls++;
+            await beforeSend();
+            return reply.send('public asset');
+          },
+        },
+        (_request, reply) => reply.callNotFound()
+      );
+      const response = await exchange(await f.start(), '/known', method);
+      assert.equal(response.status, 404);
+      assert.equal(staticCalls, 0);
+      assert(!f.trace.includes('fallback'));
+      assert(!response.text.includes('public asset'));
+    });
+
   it('prepares aliases once after hooks and validates their prepared live values', async () => {
     const trace: string[] = [];
     const f = await fixture(

@@ -143,6 +143,10 @@ export function productionCompositionInputCases() {
         );
         assert.strictEqual(resolve.firstCall.args[0][1], (await load.firstCall.returnValue).providers[0]);
         inputs<ResolvedPortalInstallation>(resolved, {
+          ownership: value => {
+            assert(value && typeof value === 'object' && 'declarations' in value && 'configuration' in value);
+            assert.strictEqual(value.configuration, resolved.policyConfiguration);
+          },
           raw: same(undefined),
           pages: same(undefined),
           pageDeclaration: same(undefined),
@@ -301,6 +305,7 @@ export function productionCompositionInputCases() {
           assert(resolved.registry.namespaces().some(entry => entry.path === '/composition' + path));
         }
         inputs<ControllerHostOptions>(composed, {
+          ownership: same(resolved.ownership),
           hostname: same(configuration.server.hostname),
           port: same(configuration.server.port),
           stopDeadlineMs: same(configuration.server.stopDeadlineMs),
@@ -323,6 +328,7 @@ export function productionCompositionInputCases() {
           routing: same(resolved.routing),
           guards: callable,
           pageNotFound: same(undefined),
+          staticAsset: same(undefined),
           actionPreparation: same(resolved.actionPreparation),
           security: same(security),
         });

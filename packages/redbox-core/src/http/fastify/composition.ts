@@ -1,3 +1,4 @@
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import {
   prepareDatastreamUploads,
   createDatastreamUploadBoundary,
@@ -20,9 +21,18 @@ import { composeHttpHooks } from './hooks';
 import { composeHttpFallbacks } from './fallbacks';
 import { validateRouteRequest } from './validation';
 import { HttpRouteRegistry, type CoreNamespaceConfiguration } from './registry';
+import { StaticOwnershipTable } from './staticOwnership';
+import type { HttpOwnerDeclaration } from '../express/ownedRoutes';
+import type { PoliciesConfig } from '../../config/policies.config';
+import { requestContext } from '../context';
+import { sendApiErrors } from './responses';
 
 /** Internal prototype inputs, not an extension loader or production host selector. */
 export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare'> {
+  readonly ownership?: {
+    readonly declarations: readonly HttpOwnerDeclaration[];
+    readonly configuration: PoliciesConfig;
+  };
   /** An already validated installation; no second selection/composition occurs. */
   readonly rawUploadRoutes?: readonly ResolvedHttpRoute[];
   /** Canonical production ports; controller replacement cannot replace the host guard. */
@@ -44,6 +54,12 @@ export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare
   readonly routing: Parameters<typeof composeRoutes>[1];
   /** Additional action preludes; native route security always runs first. */
   readonly guards?: RouteGuards;
+  /** Core artifact delivery after declared routes and before unmatched dispatch. */
+  readonly staticAsset?: (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    beforeSend: () => Promise<unknown>
+  ) => unknown | Promise<unknown>;
   /** Core page error renderer, after reserved method/asset boundaries and API2 fallbacks. */
   readonly pageNotFound?: (
     request: import('fastify').FastifyRequest,
@@ -85,11 +101,13 @@ export async function createControllerHost(
     guards,
     actionPreparation,
     pageNotFound,
+    staticAsset,
     security,
     hooks = [],
     fallbacks = [],
     fallbackReservedPrefixes,
     namespaceConfiguration,
+    ownership,
     ...hostOptions
   } = options;
   const routePlan = composition?.routePlan ?? (await composeRoutes(routes, routing));
@@ -101,6 +119,16 @@ export async function createControllerHost(
     new HttpRouteRegistry(routing.rootContext, fallbackReservedPrefixes, namespaceConfiguration, routePlan.targets);
   const fallbackPlan = composition?.fallbackPlan ?? composeHttpFallbacks(fallbacks, routePlan, routing, registry);
   const allRoutes = [...routePlan.routes, ...fallbackPlan.routes];
+  const ownershipTable =
+    ownership &&
+    new StaticOwnershipTable(
+      ownership.declarations,
+      ownership.configuration,
+      routing.rootContext ?? '',
+      routePlan,
+      fallbackPlan.routes
+    );
+  if (ownershipTable) registry.ownership = ownershipTable;
   const hookPlan = composition?.hookPlan ?? composeHttpHooks(hooks, routePlan.targets);
   if (
     !security &&
@@ -112,7 +140,13 @@ export async function createControllerHost(
     )
   )
     throw new TypeError('Protected controller routes require native security bindings.');
-  const securityGuard = security && bindNativeRouteSecurity({ routes: allRoutes }, security.policies, security.csrf);
+  const securityGuard =
+    security &&
+    bindNativeRouteSecurity(
+      { routes: [...allRoutes, ...(ownershipTable?.routes ?? [])] },
+      security.policies,
+      security.csrf
+    );
   const controllerPlan =
     composition?.controllerPlan ??
     composeControllers(
@@ -213,7 +247,34 @@ export async function createControllerHost(
           const prepareUnmatched = async (request: Parameters<RouteGuards>[1], reply: Parameters<RouteGuards>[2]) => {
             if (names.has(request) || unmatched.has(request)) return;
             unmatched.add(request);
-            const selected = fallbackPlan.select(request);
+            // Every declared method keeps its policy/CSRF boundary ahead of
+            // static, even when its protocol action is outside conversion scope.
+            let entered = false;
+            for (const owner of ownershipTable?.select(request) ?? []) {
+              request.params = owner.params;
+              if (owner.canonicalOrigin && request.headers.origin !== owner.canonicalOrigin)
+                return sendApiErrors(request, reply, 403, [{ detail: 'Access Denied' }]);
+              if (!entered)
+                await afterAuthentication(owner.binding.route.declaration.name, owner.binding, request, reply);
+              entered = true;
+              if (httpReplySubmitted(reply)) return reply;
+              await securityGuard?.(owner.binding, request, reply);
+              if (httpReplySubmitted(reply)) return reply;
+              if (owner.fallsThrough) continue;
+              if (ownershipTable!.requiresActor(owner.binding.route) && !requestContext(request).actor)
+                return sendApiErrors(request, reply, 401, [{ detail: 'Authentication required' }]);
+              // No deferred action is executed and no public file can impersonate it.
+              return sendApiErrors(request, reply, 501, [{ detail: 'Not implemented' }]);
+            }
+            // Public artifacts precede after-routes fallbacks. Only a found
+            // artifact runs its application hook prelude; misses retain the
+            // fallback's normal context, scoped hooks and security pipeline.
+            if (staticAsset) {
+              await staticAsset(request, reply, () => hookPlan.run('afterAuthentication', undefined, request, reply));
+              if (httpReplySubmitted(reply)) return reply;
+            }
+            const selected =
+              !ownershipTable || ownershipTable.hasFallback(request) ? fallbackPlan.select(request) : undefined;
             selections.set(request, selected);
             if (selected)
               return afterAuthentication(selected.binding.route.declaration.name, selected.binding, request, reply);

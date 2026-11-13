@@ -306,6 +306,13 @@ export function sealPreparation(
         // Clone arrays so neither native method normalization nor caller mutation
         // changes a shared registration after the ownership wrapper runs.
         const snapshot = { ...options };
+        if (
+          snapshot.method === 'GET' &&
+          snapshot.exposeHeadRoute === undefined &&
+          typeof snapshot.url === 'string' &&
+          registry.ownership?.implicitHead(snapshot.url)
+        )
+          snapshot.exposeHeadRoute = true;
         if (Array.isArray(snapshot.method)) snapshot.method = [...snapshot.method];
         for (const name of requestHooks) if (Array.isArray(snapshot[name])) snapshot[name] = [...snapshot[name]];
         if (snapshot.constraints) {

@@ -22,17 +22,30 @@ export function sendSerializedJson(
   }
 ) {
   reply.headers(result.headers).code(result.status);
-  if (
-    (request.method === 'GET' || request.method === 'HEAD') &&
-    ((result.status >= 200 && result.status < 300) || result.status === 304) &&
-    fresh(request.headers, reply.getHeaders())
-  ) {
-    reply.removeHeader('Content-Type').removeHeader('Content-Length').removeHeader('Transfer-Encoding');
-    return reply.code(304).send();
-  }
+  if (sendFreshResponse(request, reply, result.status)) return reply;
   return reply
     .type(result.headers['Content-Type'] ?? 'application/json; charset=utf-8')
     .send(result.bytes ?? (result.json === undefined ? undefined : Buffer.from(result.json)));
+}
+
+/** One conditional GET/HEAD decision for pages, JSON and static artifacts. */
+export function sendFreshResponse(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  status: number,
+  beforeSend?: () => void
+): boolean {
+  if (
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    ((status >= 200 && status < 300) || status === 304) &&
+    fresh(request.headers, reply.getHeaders())
+  ) {
+    beforeSend?.();
+    reply.removeHeader('Content-Type').removeHeader('Content-Length').removeHeader('Transfer-Encoding');
+    reply.code(304).send();
+    return true;
+  }
+  return false;
 }
 
 export const requestAccepts = (request: FastifyRequest) =>

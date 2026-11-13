@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import { ObjectId } from 'mongodb';
 import { stringify } from 'qs';
 import { of, throwError } from 'rxjs';
-import { recordQueryReadDeclarations, queryReadRoutes } from '../../../src/http/readRoutes';
+import { recordQueryReadDeclarations, queryReadRoutes, recordSchemaReadRoutes } from '../../../src/http/readRoutes';
 import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
@@ -446,11 +446,21 @@ function forRoute(route: Route): Scenario[] {
   ].filter(s => !process.env.FM027_BODY_SWEEP || s.name.startsWith('body-'));
 }
 const key = (route: Route, s: Pick<Scenario, 'name'>) => coreRouteName(route.method, route.path) + ':' + s.name;
-async function wire(url: string, method: string, headers: Record<string, string> = {}, body = ''): Promise<Wire> {
+async function wire(
+  url: string,
+  method: string,
+  headers: Record<string, string> = {},
+  body = '',
+  target?: string
+): Promise<Wire> {
   return new Promise((resolve, reject) => {
     const req = request(
       url,
-      { method, headers: { ...headers, ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}) } },
+      {
+        method,
+        ...(target ? { path: target } : {}),
+        headers: { ...headers, ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}) },
+      },
       res => {
         const chunks: Buffer[] = [];
         res.on('data', chunk => chunks.push(chunk));
@@ -1217,4 +1227,125 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
     assert.deepEqual(state.get('express'), state.get('retained'));
     assert.deepEqual(state.get('fastify'), state.get('retained'));
   });
+});
+
+/** Exact instances are part of the public problem contract: never sanitize them. */
+describe('FM-031 schema request-target problem instances', function () {
+  this.timeout(600000);
+  for (const rootContext of ['/portal', ''])
+    for (const reduced of [false, true]) {
+      const cases = recordSchemaReadRoutes.flatMap(route =>
+        ['action', 'validation', 'anonymous'].flatMap(kind =>
+          ['GET', 'HEAD'].flatMap(method =>
+            [false, true].map(absolute => {
+              const relative = route.path
+                .replace(':branding', 'default')
+                .replace(':portal', 'rdmp')
+                .replace(':recordType', 'missing-type')
+                .replace(':oid', 'reference-record')
+                .replace(':digest', kind === 'validation' ? 'invalid-digest' : 'a'.repeat(64));
+              const pathname = rootContext + relative;
+              const query =
+                kind === 'validation' && route.action !== 'immutable'
+                  ? '?operation[]=unsupported&probe=http://query.invalid/'
+                  : '?probe=http://query.invalid/';
+              return {
+                route,
+                kind,
+                method,
+                absolute,
+                relative,
+                pathname,
+                target: (absolute ? 'http://attacker-controlled.invalid' : '') + pathname + query,
+              };
+            })
+          )
+        )
+      );
+      describe(`root=${rootContext || '/'} reduced=${reduced}`, () => {
+        const observations: Wire[][] = [[], [], []];
+        before(async () => {
+          const retained = await retainedReadExpress();
+          try {
+            for (const mode of modes) {
+              const policies = portalHttpPolicies();
+              if (reduced) policies['webservice/RecordSchemaController'] = ['noCache', 'brandingAndPortal'];
+              const f = await referenceProductionFixture(
+                mode === 'fastify',
+                policies,
+                mode === 'retained' ? retained.install : undefined,
+                { declarations: recordQueryReadDeclarations, rootContext }
+              );
+              try {
+                for (const c of cases) {
+                  const value = await normalized(
+                    f,
+                    await wire(
+                      f.url,
+                      c.method,
+                      {
+                        Accept: 'application/json',
+                        ...(c.kind === 'anonymous' ? {} : auth),
+                        ...(c.kind === 'validation' ? { 'If-None-Match': 'invalid' } : {}),
+                      },
+                      '',
+                      c.target
+                    )
+                  );
+                  observations[modes.indexOf(mode)].push(value);
+                }
+              } finally {
+                await f.close();
+                assert.equal(persistenceStatus(f.owner).pools, 0);
+              }
+            }
+          } finally {
+            await retained.close();
+          }
+          if (process.env.FM031_RESULTS)
+            await writeFile(
+              process.env.FM031_RESULTS + `/schema-targets-${rootContext ? 'portal' : 'root'}-${reduced}.json`,
+              JSON.stringify({ cases, observations }, null, 2)
+            );
+        });
+        cases.forEach((c, index) =>
+          it(`${c.route.action} ${c.kind} ${c.method} absolute=${c.absolute}`, () => {
+            const values = observations.map(host => host[index]);
+            assert.deepEqual(values[1], values[0], 'shared Express vs retained');
+            assert.deepEqual(values[2], values[0], 'native problem and framing match retained exactly');
+            const response = values[2];
+            assert.equal(
+              response.status,
+              c.kind === 'validation'
+                ? 400
+                : c.kind === 'anonymous' || reduced
+                  ? 401
+                  : c.route.action === 'update'
+                    ? 409
+                    : 404
+            );
+            const get =
+              observations[2][
+                cases.findIndex(
+                  item =>
+                    item.route === c.route &&
+                    item.kind === c.kind &&
+                    item.absolute === c.absolute &&
+                    item.method === 'GET'
+                )
+              ];
+            assert.equal(response.headers['content-length'], get.headers['content-length']);
+            if (c.method === 'HEAD') assert.equal(response.text, '');
+            else {
+              assert.equal(
+                JSON.parse(response.text).instance,
+                c.kind === 'anonymous' && !reduced ? c.relative : c.pathname
+              );
+              assert(!response.text.includes('attacker-controlled.invalid'));
+              assert(!response.text.includes('query.invalid'));
+            }
+          })
+        );
+      });
+    }
 });

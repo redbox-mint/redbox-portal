@@ -129,7 +129,7 @@ export class PortalHttp implements ApplicationModule {
     this.sockets = this.own(
       new http.ProgressSockets({
         owner,
-        path: config.server.rootContext + '/portal-socket.io',
+        path: config.server.rootContext + http.progressSocketPath,
         origins: [this.origin],
         records: data.records.get(),
         progress: data.progress.get(),

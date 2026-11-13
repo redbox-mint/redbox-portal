@@ -1,3 +1,4 @@
+import { isImmutableAsset } from './assetCookies';
 import { createHmac } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import proxyAddr from '@fastify/proxy-addr';
@@ -461,62 +462,66 @@ export async function commitNativeSessionForCompanion(request: FastifyRequest): 
  */
 export function nativeSessionSend(options: NativeSessionOptions, trust: PeerTrust) {
   return async function (request: FastifyRequest, reply: FastifyReply, payload: unknown) {
-    const session = request.session;
-    const name = options.cookieName!;
-    const initial = requests.get(request);
-    if (!session?.sessionId) return payload;
-    // Fastify can rerun onSend for an error response; a failed automatic write must not be
-    // retried implicitly or emit credentials for the failed action.
-    if (initial?.automaticFailed || options.store.isRevoked(session)) return payload;
-    if (!initial) return payload;
-    const modified = initial.id !== session.sessionId || initial.hash !== dataHash(session);
-    const sameCookie = initial.persisted && initial.id === session.sessionId;
-    const saved =
-      initial.id === session.sessionId &&
-      initial.savedId === session.sessionId &&
-      initial.savedHash === dataHash(session);
-    const shouldSave = !options.saveUninitialized && !saved && !sameCookie ? modified : !saved;
-    session.touch();
     try {
-      if (shouldSave) {
-        await session.save();
-      } else if (sameCookie) {
-        await new Promise<void>((resolve, reject) =>
-          options.store.touch(session.sessionStoreId, session, error => (error ? reject(error) : resolve()))
-        );
+      const session = request.session;
+      const name = options.cookieName!;
+      const initial = requests.get(request);
+      if (!session?.sessionId) return payload;
+      // Fastify can rerun onSend for an error response; a failed automatic write must not be
+      // retried implicitly or emit credentials for the failed action.
+      if (initial?.automaticFailed || options.store.isRevoked(session)) return payload;
+      if (!initial) return payload;
+      const modified = initial.id !== session.sessionId || initial.hash !== dataHash(session);
+      const sameCookie = initial.persisted && initial.id === session.sessionId;
+      const saved =
+        initial.id === session.sessionId &&
+        initial.savedId === session.sessionId &&
+        initial.savedHash === dataHash(session);
+      const shouldSave = !options.saveUninitialized && !saved && !sameCookie ? modified : !saved;
+      session.touch();
+      try {
+        if (shouldSave) {
+          await session.save();
+        } else if (sameCookie) {
+          await new Promise<void>((resolve, reject) =>
+            options.store.touch(session.sessionStoreId, session, error => (error ? reject(error) : resolve()))
+          );
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          initial.automaticFailed = true;
+          throw error;
+        }
+        // A concurrent rotation/logout wins; never issue its stale credentials.
+        reply.clearCookie(name, { path: options.cookie?.path || '/', domain: options.cookie?.domain });
+        return payload;
       }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        initial.automaticFailed = true;
-        throw error;
+      // connect-mongo removes its transient lastModified marker while saving.
+      // Express evaluates renewal after that synchronous store dispatch, so a
+      // resave can change the data hash even when the handler made no mutation.
+      const renewModified = initial.id !== session.sessionId || initial.hash !== dataHash(session);
+      const renew = !sameCookie
+        ? options.saveUninitialized || renewModified
+        : options.rolling || (session.cookie.expires != null && renewModified);
+      const value = (options.cookiePrefix ?? '') + session.encryptedSessionId;
+      if (session.cookie.secure !== true || secure(request, options.proxy, trust)) {
+        if (renew)
+          reply.setCookie(name, value, {
+            encode: encodeURIComponent,
+            expires: session.cookie.expires ?? undefined,
+            path: session.cookie.path,
+            domain: session.cookie.domain,
+            secure: session.cookie.secure,
+            sameSite: session.cookie.sameSite,
+            httpOnly: session.cookie.httpOnly,
+            partitioned: Reflect.get(session.cookie, 'partitioned'),
+            priority: Reflect.get(session.cookie, 'priority'),
+          });
       }
-      // A concurrent rotation/logout wins; never issue its stale credentials.
-      reply.clearCookie(name, { path: options.cookie?.path || '/', domain: options.cookie?.domain });
       return payload;
+    } finally {
+      if (isImmutableAsset(request)) reply.removeHeader('Set-Cookie');
     }
-    // connect-mongo removes its transient lastModified marker while saving.
-    // Express evaluates renewal after that synchronous store dispatch, so a
-    // resave can change the data hash even when the handler made no mutation.
-    const renewModified = initial.id !== session.sessionId || initial.hash !== dataHash(session);
-    const renew = !sameCookie
-      ? options.saveUninitialized || renewModified
-      : options.rolling || (session.cookie.expires != null && renewModified);
-    const value = (options.cookiePrefix ?? '') + session.encryptedSessionId;
-    if (session.cookie.secure !== true || secure(request, options.proxy, trust)) {
-      if (renew)
-        reply.setCookie(name, value, {
-          encode: encodeURIComponent,
-          expires: session.cookie.expires ?? undefined,
-          path: session.cookie.path,
-          domain: session.cookie.domain,
-          secure: session.cookie.secure,
-          sameSite: session.cookie.sameSite,
-          httpOnly: session.cookie.httpOnly,
-          partitioned: Reflect.get(session.cookie, 'partitioned'),
-          priority: Reflect.get(session.cookie, 'priority'),
-        });
-    }
-    return payload;
   };
 }
 

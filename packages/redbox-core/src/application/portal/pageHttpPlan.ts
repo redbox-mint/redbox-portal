@@ -1,3 +1,9 @@
+import { BrandingDelivery } from '../../pages/brandingDelivery';
+import { Services as Logos } from '../../branding/BrandingLogo';
+import { Services as Templates } from '../../pages/Templates';
+import { getBrandingRepository } from '../../persistence/branding/runtime';
+import { mongoDatabase } from '../../persistence/runtime';
+import type { DynamicPageAssetsInput } from '../../pages/dynamicAssets';
 import path from 'node:path';
 import type { ApplicationModule } from '../Application';
 import type { PortalApplicationContext } from './application';
@@ -66,13 +72,17 @@ export function portalPageRenderingInput(portal: PortalApplicationContext, artif
 export class PortalPages implements ApplicationModule {
   csrfToken!: (request: import('fastify').FastifyRequest) => string;
   artifacts!: PageArtifacts;
+  delivery!: BrandingDelivery;
+  dynamic!: DynamicPageAssetsInput;
+  private logos?: Logos.BrandingLogo;
   rendering!: BrowserPageInput;
   authentication!: import('../../http/fastify/authentication').NativeAuthenticationActions;
   constructor(
     private readonly portal: PortalApplicationContext,
     private readonly appPath: string,
     private readonly roots: { readonly views: readonly string[]; readonly assets: readonly string[] },
-    private readonly options: PortalPageOptions
+    private readonly options: PortalPageOptions,
+    private readonly assetCache: import('../../http/brandingDeliveryCache').BrandingDeliveryCache
   ) {}
   get noCache() {
     return this.portal.config.page.noCache;
@@ -88,8 +98,51 @@ export class PortalPages implements ApplicationModule {
     );
     await this.artifacts.initialize();
     this.rendering = portalPageRenderingInput(this.portal, this.artifacts);
+    const { data, config, owner, log } = this.portal;
+    const ref = data.reference;
+    this.logos = new Logos.BrandingLogo({
+      repository: getBrandingRepository(owner),
+      disk: () => data.disks.get().primaryDisk(),
+      legacyDatabase: () => mongoDatabase(owner, 'mongodb'),
+      sanitize: (...args) => ref.sanitizer.get().sanitize(...args),
+      config: config.branding,
+      log,
+    });
+    this.delivery = new BrandingDelivery({
+      cache: this.assetCache,
+      repository: () => getBrandingRepository(owner),
+      branding: ref.branding.get(),
+      theme: ref.theme,
+      typeface: ref.typeface.get(),
+      logos: this.logos,
+      log,
+      staticAssets: config.static_assets,
+      apiConfiguration: config,
+      sendAsset: async (response, name) => {
+        const file = this.artifacts.find(this.artifacts.assets, name);
+        if (!file) return response.status(404).end();
+        // Native response carries only the declared file operation, never paths to callers.
+        return response.file!(file);
+      },
+    });
+    this.dynamic = {
+      artifacts: this.artifacts,
+      config: { ...config, appUrl: new URL(config.server.publicUrl).origin },
+      defaultBrand: config.auth.defaultBrand,
+      defaultPortal: config.auth.defaultPortal,
+      forms: ref.forms.get(),
+      dashboards: ref.dashboards.get(),
+      reports: ref.reports.get(),
+      templates: new Templates.Template(log),
+      loadRecord: this.rendering.loadRecord,
+      canCreate: this.rendering.canCreate,
+    };
+  }
+  quiesce() {
+    this.logos?.quiesce();
   }
   async close() {
+    await this.logos?.close();
     await this.artifacts?.close();
   }
 }

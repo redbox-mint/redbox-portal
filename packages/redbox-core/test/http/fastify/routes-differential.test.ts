@@ -25,6 +25,7 @@ import {
   type RoutePrecedence,
 } from '../../../dist/http/fastify/routes';
 import { routerConstraints, routerUrl } from '../../../dist/http/fastify/router';
+import { wildcardRequestTargets } from './wildcardRequestTargets';
 
 const root = path.resolve(__dirname, '../../../../..');
 const paths = [...new Set(inventory.routes.map(row => expressRuntimePath(row.original.path)))];
@@ -231,12 +232,16 @@ async function exchange(dispatch: RequestListener, url: string, method: HTTPMeth
     { url: '/raw-target', method }
   );
 }
-function visibleParams(params: Record<string, unknown>, routePath: string): Record<string, unknown> {
+function visibleParams(
+  params: Record<string, unknown>,
+  routePath: string,
+  includeIgnoredTail = false
+): Record<string, unknown> {
   const result = Object.fromEntries(
     Object.entries(params).map(([name, value]) => [name, Array.isArray(value) ? value.join('/') : value])
   );
   // FM-003 explicitly treats datastream's ignored tail/array shape as incidental.
-  if (routePath.endsWith('datastream{*tail}')) delete result.tail;
+  if (!includeIgnoredTail && routePath.endsWith('datastream{*tail}')) delete result.tail;
   return result;
 }
 
@@ -276,7 +281,9 @@ async function fixture(
   prefix = '',
   getOwners: ReadonlyMap<string, RouteRegistration> = new Map(),
   legacyOrder = false,
-  intended: readonly RoutePrecedence[] = []
+  intended: readonly RoutePrecedence[] = [],
+  includeIgnoredTail = false,
+  allowActionProbes = false
 ) {
   const registrations = typeof input === 'string' ? [registration(input)] : input;
   const describeAction = (route: RouteRegistration, method: string) =>
@@ -284,7 +291,7 @@ async function fixture(
     route;
   const result = (route: RouteRegistration, params: Record<string, unknown>, query: unknown, url: string) => ({
     ...(typeof input === 'string' ? {} : { route: route.declaration.name }),
-    params: visibleParams(params, expressRuntimePath(route.declaration.path)),
+    params: visibleParams(params, expressRuntimePath(route.declaration.path), includeIgnoredTail),
     query,
     url,
   });
@@ -321,7 +328,7 @@ async function fixture(
     router[route.declaration.method](expressRuntimePath(route.declaration.path), (request, reply) => {
       expressGuard = route.declaration.name;
       expressGuardCalls++;
-      if (route.declaration.access.kind !== 'public') {
+      if (!allowActionProbes && route.declaration.access.kind !== 'public') {
         reply.status(403).end();
         return;
       }
@@ -360,7 +367,7 @@ async function fixture(
     async (binding, _request, reply) => {
       fastifyGuard = binding.route.declaration.name;
       fastifyGuardCalls++;
-      if (binding.route.declaration.access.kind !== 'public') reply.code(403).send();
+      if (!allowActionProbes && binding.route.declaration.access.kind !== 'public') reply.code(403).send();
     }
   );
   await current.ready();
@@ -1513,4 +1520,61 @@ describe('FM-010 round-6 narrowed composition regressions', () => {
     it(`rejects non-inventoried pattern construct ${unsupported}`, async () => {
       await assert.rejects(composeRoutes([registration(unsupported)], { policyNames: [] }), /Unsupported/);
     });
+});
+
+// Exercise every inventoried wildcard identity, including the deferred datastream
+// owner. Unlike the older broad corpus, this gate includes its ignored tail.
+describe('FM-031 wildcard request-target differential', function () {
+  this.timeout(30000);
+  const rows = inventory.routes.filter(row => row.original.path.includes('*'));
+  assert.equal(rows.length, 5, 'All source wildcard declarations must be qualified');
+  const registrations: RouteRegistration[] = rows.map(inventoryRegistration);
+  registrations.push(
+    {
+      ...registration('/custom/*key'),
+      declaration: { ...registration('/custom/*key').declaration, name: 'hook-required-wildcard' },
+    },
+    {
+      ...registration('/custom/datastream{*tail}'),
+      declaration: { ...registration('/custom/datastream{*tail}').declaration, name: 'hook-optional-wildcard' },
+    }
+  );
+  for (const route of registrations)
+    for (const rootContext of ['/portal', '']) {
+      describe(`${route.declaration.name} root=${rootContext || '<empty>'}`, () => {
+        let f: Awaited<ReturnType<typeof fixture>>;
+        before(async () => {
+          f = await fixture([route], rootContext, new Map(), false, [], true, true);
+        });
+        after(async () => f?.close());
+        const runtime = expressRuntimePath(route.declaration.path);
+        const optional = runtime.endsWith('datastream{*tail}');
+        const stem = runtime.replace(/\{\*tail\}$|\*key$/, '').replace(/:[A-Za-z_][A-Za-z0-9_]*/g, 'Value');
+        const methods = route.declaration.method === 'get' ? ['GET', 'HEAD'] : [route.declaration.method.toUpperCase()];
+        for (const form of ['origin', 'absolute'])
+          for (const test of wildcardRequestTargets)
+            for (const method of methods)
+              it(`${method} ${form} ${test.suffix}`, async () => {
+                const target =
+                  (form === 'absolute' ? 'http://evil.invalid' : '') +
+                  rootContext +
+                  stem +
+                  (optional ? '/' : '') +
+                  test.suffix;
+                const original = await f.original(target, method as HTTPMethods);
+                const migrated = await f.migrated(target, method as HTTPMethods);
+                assert.equal(original.statusCode, 200, target + ': ' + original.body);
+                assert.equal(migrated.statusCode, original.statusCode, target);
+                assert.equal(migrated.body, original.body, target);
+                assert.equal(f.calls().fastifyRoute, route.declaration.name, target);
+                assert.equal(f.calls().expressRoute, route.declaration.name, target);
+                if (method !== 'HEAD') {
+                  const key = (original.json() as { params: Record<string, unknown> }).params[
+                    optional ? 'tail' : 'key'
+                  ];
+                  assert.equal(key, (optional ? '/' : '') + test.key, target);
+                }
+              });
+      });
+    }
 });

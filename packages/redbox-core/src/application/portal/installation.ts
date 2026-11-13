@@ -1,3 +1,5 @@
+import { brandingDeliveryRoutes, fontDeliveryRoute, dynamicAssetRoutes } from '../../http/assetRoutes';
+import { dynamicAssetController } from '../../http/controllers/AssetControllers';
 import { pageRoutes } from '../../http/pageRoutes';
 import { authenticationRoutes } from '../../http/authenticationRoutes';
 import { namedQueryPageController, reportsPageController } from '../../http/controllers/BrowserControllers';
@@ -34,6 +36,8 @@ import { portalHttpPlan, portalHttpSettings } from './httpPlan';
 import { portalReferenceControllers } from './referenceHttpPlan';
 import { coreFallbackReservedPrefixes } from '../../http/fastify/registry';
 import { z } from 'zod';
+import { portalHttpOwnerDeclarations } from '../../http/express/ownedRoutes';
+import { progressSocketHttpOwners } from '../../http/express/progressSockets';
 import type {
   ProductionApiRouteOptions,
   ProductionExtensionResolutionOptions,
@@ -84,6 +88,9 @@ export async function resolvePortalInstallation(
           context.data.reference.dashboards.declaration.name,
           context.data.reference.reports.declaration.name,
           context.data.records.declaration.name,
+          context.data.disks.declaration.name,
+          context.data.reference.sanitizer.declaration.name,
+          context.data.reference.typeface.declaration.name,
         ],
         create: () => pages!,
       }
@@ -176,7 +183,7 @@ export async function resolvePortalInstallation(
   if (browser) {
     for (const name of ['RecordController', 'AppConfigController', 'DashboardConfigController', 'ReportController'])
       mutationTargets.add(name);
-    for (const name of ['UserController', 'VocabularyController']) integrationTargets.add(name);
+    for (const name of ['UserController', 'VocabularyController', 'BrandingController']) integrationTargets.add(name);
     identityTargets.add('AdminController');
     for (const name of ['ExportController', 'RecordAuditController']) readTargets.add(name);
   }
@@ -188,7 +195,19 @@ export async function resolvePortalInstallation(
     assetCache,
     browser
   );
-  const integrations = portalIntegrationControllers(context, integrationTargets, assetCache, browser);
+  const integrations = portalIntegrationControllers(
+    context,
+    integrationTargets,
+    assetCache,
+    browser,
+    input.pages
+      ? {
+          get delivery() {
+            return pages!.delivery;
+          },
+        }
+      : undefined
+  );
   const reads = portalReadControllers(
     context,
     new Set(
@@ -259,6 +278,37 @@ export async function resolvePortalInstallation(
     })),
     ...(input.pages
       ? [
+          ...[...brandingDeliveryRoutes, fontDeliveryRoute, ...dynamicAssetRoutes].map(route => {
+            const mandatory =
+              route === fontDeliveryRoute
+                ? []
+                : dynamicAssetRoutes.includes(route as (typeof dynamicAssetRoutes)[number])
+                  ? [
+                      'nocache',
+                      'brandingandportal',
+                      'browseractor',
+                      ...(route.action === 'get' ? [] : ['browserauthenticated', 'brandactor']),
+                      'checkauth',
+                    ]
+                  : ['brandingandportal', 'browseractor', 'checkauth'];
+            return {
+              provider: '@researchdatabox/redbox-core',
+              declaration: {
+                ...route,
+                name: coreRouteName(route.method, route.path),
+                access: mandatory.length
+                  ? { kind: 'policies' as const, names: mandatory as [string, ...string[]] }
+                  : { kind: 'public' as const },
+              },
+              effectivePolicies:
+                route === fontDeliveryRoute
+                  ? []
+                  : [...new Set([...mandatory, ...resolveEffectivePolicies(route, plan.policyConfiguration)])],
+              effectiveCsrf: brandingDeliveryRoutes.includes(route as (typeof brandingDeliveryRoutes)[number])
+                ? 'protect except GET/HEAD/OPTIONS'
+                : 'none',
+            };
+          }),
           ...authenticationRoutes.map(route => ({
             provider: '@researchdatabox/redbox-core',
             declaration: {
@@ -356,6 +406,11 @@ export async function resolvePortalInstallation(
       : []),
     ...(input.pages
       ? [
+          bindControllerFactory(dynamicAssetController, {
+            get dynamic() {
+              return pages!.dynamic;
+            },
+          }),
           bindControllerFactory(pageController, pageInput),
           bindControllerFactory(namedQueryPageController, { browser: browser! }),
           bindControllerFactory(reportsPageController, { browser: browser! }),
@@ -403,7 +458,13 @@ export async function resolvePortalInstallation(
           ],
           controllers: [
             ...(input.pages
-              ? [pageController, pageRootController, namedQueryPageController, reportsPageController]
+              ? [
+                  pageController,
+                  pageRootController,
+                  namedQueryPageController,
+                  reportsPageController,
+                  dynamicAssetController,
+                ]
               : []),
             ...(metadataOnly ? [recordFactory] : []),
             ...reads.controllers,
@@ -456,7 +517,7 @@ export async function resolvePortalInstallation(
     integrations: Object.freeze([...new Set(integrationDeclarations.flatMap(routesFor))]),
     identities: Object.freeze([...new Set(identityAdministrationDeclarations.flatMap(routesFor))]),
   });
-  if (input.pages) pages = new PortalPages(context, appPath, resolved, input.pages);
+  if (input.pages) pages = new PortalPages(context, appPath, resolved, input.pages, assetCache);
   if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
   // Seal declaration/plan data in place to retain exact factory identities.
   // Class instances (Zod schemas and the request registry) own their runtime state;
@@ -481,6 +542,22 @@ export async function resolvePortalInstallation(
   seal(namespaceConfiguration);
   return Object.freeze({
     ...resolved,
+    ownership: {
+      declarations: portalHttpOwnerDeclarations(context.config, [
+        ...progressSocketHttpOwners(new URL(context.config.server.publicUrl).origin),
+        ...(context.config.companion.enabled
+          ? [
+              {
+                route: { method: 'all', path: context.config.companion.server.path + '/*transportPath' },
+                csrf: 'none' as const,
+                actorRequired: false,
+                rawTarget: true,
+              },
+            ]
+          : []),
+      ]),
+      configuration: plan.policyConfiguration,
+    },
     raw,
     pages,
     pageDeclaration,

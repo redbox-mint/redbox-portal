@@ -64,3 +64,12 @@ export { prepareNativePage, sendPageResponse, sendPageError } from './fastify/pa
 export { PageArtifacts } from '../pages/Artifacts';
 
 export * from './controllers/BrowserControllers';
+
+export {
+  BrandingAssetController,
+  brandingAssetController,
+  DynamicAssetController,
+  dynamicAssetController,
+  type BrandingAssetControllerInput,
+  type DynamicAssetControllerInput,
+} from './controllers/AssetControllers';

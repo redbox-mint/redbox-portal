@@ -257,7 +257,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: browser route inventory reconciles; unauthorized/cross-brand cases
     and session/redirect transitions retain expected behavior.
 
-- [ ] **FM-031 — Migrate static and dynamic assets.**
+- [x] **FM-031 — Migrate static and dynamic assets.**
   - Dependencies: FM-029.
   - Work: port asset roots, extension overrides, dynamic bundles/form delivery and
     embedded Angular initialization, including root-context behavior.
