@@ -36,7 +36,7 @@ preIndex: {
 }
 ```
 
-This version accepts identifier-style source path segments only (`metadata.details.note`), with no arrays or ambiguous dots inside a stored key. A mapped GraphQL name such as `dc:title` is still selectable but cannot be given index capabilities by this adapter. Targets must be safe non-reserved index names. The mapping must have exactly one matching copy source. The indexer snapshots the original scalar and restores that copy after templates and flattening; objects, arrays and null are omitted. Mapping an existing derived search field changes that destination's meaning to the original scalar, so use dedicated grid fields. Live Solr schema classes and properties, rather than name conventions, determine capabilities.
+This version accepts identifier-style source path segments, including colons (`metadata.details.note`, `metadata.dc:identifier`), with no arrays or ambiguous dots inside a stored key. The ID `metadata:/dc:identifier` names one literal metadata key, not a nested `dc.identifier` path. Targets must be safe non-reserved index names. The mapping must have exactly one matching copy source. The indexer snapshots the original scalar and restores that copy after templates and flattening; objects, arrays and null are omitted. Mapping an existing derived search field changes that destination's meaning to the original scalar, so use dedicated grid fields. Live Solr schema classes and properties, rather than name conventions, determine capabilities.
 
 ## Discover columns and capabilities
 
@@ -143,11 +143,12 @@ Only non-repeating scalar fields are grid columns. Nested scalar leaves are supp
 
 ## Filters and sorting
 
-Filters are an AND-only list. Each input has `field` and exactly one operator. `eq`, `in`, `gt`, `lt`, and `between` take typed values containing exactly one of `text`, `number`, `boolean`, or `dateTime`. `contains` takes a literal string; `exists` takes a boolean. Never send null as a typed value; use `exists: false` for missing/null indexed values.
+Filters are an AND-only list. Each input has `field` and exactly one operator. `eq`, `in`, `gt`, `lt`, and `between` take typed values containing exactly one of `text`, `number`, `boolean`, or `dateTime`. `contains` and `iprefix` take literal strings; `exists` takes a boolean. Never send null as a typed value; use `exists: false` for missing/null indexed values.
 
 | Verified index type | Metadata type | Operators | Sort |
 | --- | --- | --- | --- |
 | `StrField` | STRING | EQ, CONTAINS, IN, EXISTS | Single-valued + DocValues |
+| `StrField` with verified opt-in companion below | STRING | Also IPREFIX | Raw binding's sort capability is unchanged |
 | `BoolField` | BOOLEAN | EQ, IN, EXISTS | Single-valued + DocValues |
 | Numeric point fields | NUMBER / INTEGER | EQ, IN, GT, LT, BETWEEN, EXISTS | Single-valued + DocValues |
 | `DatePointField` | STRING / DATETIME (catalogue reports DATETIME) | EQ, IN, GT, LT, BETWEEN, EXISTS | Single-valued + DocValues |
@@ -160,6 +161,53 @@ Timestamp inputs require RFC 3339 with seconds, a timezone and at most three fra
 The protected index copies omit null/missing/non-scalar values. `exists: true` tests indexed presence; `exists: false` tests absence. Empty strings are values for exact string fields. An analyzed text field may produce no terms for an empty or stopword-only value; its EXISTS describes indexed terms, not storage-key presence. Other comparisons exclude missing values. Sorting follows the live Solr field's missing-value rules (`sortMissingFirst`/`sortMissingLast`, or the field type's default); clients must not infer SQL null ordering. Ascending strings use Solr's exact lexicographic ordering. Explicit sorts accept ASC/DESC, and the unique index key is always appended ascending as a deterministic tie-breaker. With no explicit sort the server uses OID ascending, then unique key ascending.
 
 Unknown IDs, unknown input properties, unsupported operators/sorts, repeated sort fields, invalid types and oversize values return errors. No requested operation is silently ignored. A readable field can remain a column while having `filterable: false` and `sortable: false`.
+
+### Literal prefix with ASCII case folding
+
+`{field: "metadata:/dc:identifier", iprefix: "uOn-"}` matches the start of the full stored string, ignoring **ASCII A–Z case only**. For stored string S and prefix P, the contract is `foldAsciiCase(S).startsWith(foldAsciiCase(P))`; the fold replaces A–Z with a–z one code unit at a time. Every other UTF-16 code unit is unchanged. There is no trimming, tokenization, accent removal, Unicode case folding or Unicode normalization. For example, `UON-ΟΣΑ` matches `uon-ΟΣ` but not `uon-οσ` or `uon-ος`; `École` matches `É` but not `é` or decomposed `E\u0301`. Turkish İ/ı, ß/ẞ and fullwidth letters retain their exact distinctions. Spaces, punctuation, controls and supplementary characters are literal text.
+
+Queries must be nonempty, well-formed UTF-16 strings of at most 256 UTF-8 bytes; empty, null, malformed or oversized values return `INVALID_FILTER_VALUE` before searching. Non-ASCII text is accepted, including ordinary successful no-match results. A one-character prefix is valid. The backend passes the folded value as a separate parameter to Solr's `prefix` parser: `*`, `?`, backslashes, quotes, brackets, `OR *:*` and local-parameter-looking text are literal characters. Clients must not escape them or add wildcards. CONTAINS keeps its existing case-sensitive substring semantics.
+
+Merge these additions into the actual search core used by the record type, retaining existing schema and pre-index rules:
+
+```javascript
+recordGraphqlFields: { 'metadata:/dc:identifier': 'uon_grid_project_id' },
+recordGraphqlCaseInsensitivePrefixFields: {
+  'metadata:/dc:identifier': 'uon_grid_project_id_iprefix_v1'
+},
+schema: {
+  'add-field': [
+    { name: 'uon_grid_project_id', type: 'string',
+      indexed: true, stored: true, multiValued: false, docValues: true },
+    { name: 'uon_grid_project_id_iprefix_v1', type: 'string',
+      indexed: true, stored: false, multiValued: false, docValues: false, required: false }
+  ]
+},
+preIndex: {
+  copy: [{ source: 'metadata.dc:identifier', dest: 'uon_grid_project_id' }]
+}
+```
+
+Use a fresh versioned companion field. Do not add a `preIndex.copy` or Solr `copyField` to populate the companion, and do not use a lowercase TextField analyzer. The core indexer derives it from the original string using the same fold as the query planner and restores it after configurable transformations. Every source string is accepted, including empty strings and Unicode/control-containing strings; missing/null/non-string sources omit only the companion. No character-domain preflight or index-time character rejection is introduced. Displayed metadata and the raw index copy retain their original value.
+
+Discovery adds IPREFIX only for a readable non-repeating STRING present in every selected variant, with an unambiguous primary scalar copy and a distinct, unshared, safe companion. The companion must be explicitly configured and verified live as an indexed single-valued `StrField` with the configured type, **non-required** (`required` omitted or `false`) and **no default value** in both configuration and the live schema. Solr defaults would manufacture indexed terms for missing/null/non-string sources; `required: true` would reject their entire documents, including unrelated record types sharing that core. Dynamic-only fields, analyzed fields, shared/reserved destinations and incoming exact or wildcard Solr copy rules do not qualify. Ordinary string bindings without the opt-in retain their existing operators. Unsupported bindings return `UNSUPPORTED_FILTER`; the adapter never falls back to CONTAINS or filters a loaded page.
+
+Capability rejection does not repair a live required field: explicitly replace that field with a non-required definition, verify the live schema, and retry rejected indexing jobs. Do not invent placeholder companion values. After repairing a defaulted field, reindex affected documents to remove previously manufactured terms before enabling the lookup. The visual explorer currently uses its existing operator list; author this filter in GraphQL mode until visual IPREFIX authoring is implemented.
+
+Deployment order and rollback:
+
+1. Build/deploy this core layer after the GraphQL/explorer dependencies and rebuild any hook consuming its config types. Use the hook's normal `registerRedboxConfig`/loader registration for institutional configuration; no new shim or service registration is required by this operator.
+2. Add the primary mapping/copy if absent and append the new companion definition/map in the effective per-core hook or environment overlay. Reconcile the schema, inspect effective live field required/default settings and copy rules, and verify discovery. Schema verification certifies the binding, **not reindex completion**.
+3. Index-only reprocess the selected existing records through the deployed SolrSearchService. The authenticated `POST /:branding/:portal/api/search/index?oid=<OID>` queues one existing record; wait for successful queue completion. It does not require saving metadata or changing workflow/ACLs. Do not delete/recreate source records or clear the whole index. The broader `indexAll` route queues all visible records and is unnecessary for a selected fixture set.
+4. Verify the companion values/counts in Solr, discovery IPREFIX and actual mixed-case/prefix/literal queries with admin and ordinary authorized callers. Merely adding the schema/map leaves old documents without companions. Enable the named-query/form reference only after reindex completion and these checks; existing grid version `1` does not certify companion backfill. Runtime record ACL, stage/form checks and existing scan/time/page bounds still apply.
+5. Roll back by disabling the new lookup/form reference and companion mapping, then deploying the previous application if needed. Leave raw metadata, primary mappings, records and index fields intact; the unused fresh companion can remain. Changed indexing semantics require a new versioned companion and another reindex.
+
+For an institutional deployment, inspect the environment's runtime overlay as well
+as hook configuration. Generic development Compose files may not own the target.
+Preserve effective mappings and per-core copy rules. Map lookup labels from the
+searched project ID and identifiers from `oid`; retain title separately in metadata.
+Title search needs its own companion and lookup. Deployment, backfill and ordinary-user
+verification are operational steps, not effects of merely installing the operator.
 
 ## Pagination, permissions and consistency
 
@@ -175,7 +223,7 @@ Pagination is not a snapshot. On an unchanged index the unique tie-breaker makes
 
 In addition to the page and candidate limits: at most 10 filters, 3 explicit sort fields, 20 IN values, 256 UTF-8 bytes per filter value, 20 distinct stages, 50 requested catalogue IDs, and 8 KiB per cursor. One operation can include at most one collection and one catalogue, with five root record operations in total. Existing limits remain: 64 KiB request JSON, 2,000 parser tokens, 200 expanded fields, depth 12, 2,000 selection steps, 10,000 execution work units, 256 KiB response and five-second execution deadline. Storage reads are request-local cached by OID, including single-record aliases and collection lookahead. Solr schema/search calls have bounded response bytes and deadline-based aborts. Generated search parameters use a form-encoded POST body capped at 256 KiB, so the effective configured stage scope does not depend on URL length limits. Reduce selected columns if selection, work or response limits are reached.
 
-Useful `errors[].extensions.code` values include `UNKNOWN_FIELD`, `UNKNOWN_RECORD_TYPE`, `UNKNOWN_WORKFLOW_STAGE`, `UNSUPPORTED_FILTER`, `INVALID_FILTER_VALUE`, `UNSUPPORTED_SORT`, `INVALID_PAGE_SIZE`, `INVALID_CURSOR`, `REINDEX_REQUIRED`, `UNSUPPORTED_SEARCH_INDEX`, `COLLECTION_UNAVAILABLE`, `COLLECTION_LIMIT`, `SEARCH_UNAVAILABLE`, `STORAGE_UNAVAILABLE`, `QUERY_LIMIT` and `QUERY_TIMEOUT`. GraphQL validation also rejects unknown fields/operators/input properties. Check errors before displaying page metadata. Authentication/route failures still happen before GraphQL execution; the disabled endpoint returns 503.
+Useful `errors[].extensions.code` values include `UNKNOWN_FIELD`, `UNKNOWN_RECORD_TYPE`, `UNKNOWN_WORKFLOW_STAGE`, `UNSUPPORTED_FILTER`, `INVALID_FILTER_VALUE`, `UNSUPPORTED_SORT`, `INVALID_PAGE_SIZE`, `INVALID_CURSOR`, `REINDEX_REQUIRED`, `UNSUPPORTED_SEARCH_INDEX`, `COLLECTION_UNAVAILABLE`, `COLLECTION_LIMIT`, `SEARCH_UNAVAILABLE`, `STORAGE_UNAVAILABLE`, `QUERY_LIMIT` and `QUERY_TIMEOUT`. GraphQL validation also rejects unknown fields/operators/input properties. Check errors before displaying page metadata. Authentication/route failures still happen before GraphQL execution; the disabled endpoint returns 503 with GRAPHQL_DISABLED; unexpected service unavailability returns safe UNAVAILABLE/503.
 
 ## Saved grid shape
 
@@ -200,3 +248,5 @@ On load, refresh the catalogue for that scope. Resolve every column/filter/sort 
 Core regression tests: `npm --prefix packages/redbox-core run test:record-graphql`. Docker HTTP tests use `RBPORTAL_MOCHA_TEST_PATHS` with `test/integration/services/RecordGraphqlService.test.ts` and `test/integration/services/RecordGraphqlGrid.test.ts` through `npm run test:mocha:mount`. Grid HTTP fixtures add synthetic scalar fields to the title-only publication draft stub and exercise real Solr, MongoDB, bearer authentication and route policies. They are not institution-specific production form coverage.
 
 See [Configuring Solr](Configuring-Solr), [Record Schema Contract Contributors](Record-Schema-Contract-Contributors), [Solr cursor pagination](https://solr.apache.org/guide/solr/latest/query-guide/pagination-of-results.html), [Solr query parsers](https://solr.apache.org/guide/solr/latest/query-guide/other-parsers.html) and [Solr field properties](https://solr.apache.org/guide/solr/latest/indexing-guide/field-type-definitions-and-properties.html).
+
+GraphQL-backed reusable definitions and detached explorer promotion are documented in [Configuring Named Queries](Configuring-Named-Queries#graphql-source). Form lookups expose only the first25 suggestions with unknown totals; this does not add GraphQL reports or CSV export.

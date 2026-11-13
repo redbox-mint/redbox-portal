@@ -1,0 +1,54 @@
+meta {
+  name: Reject Previous Revision Confirmation
+  type: http
+  seq: 5.1
+}
+
+put {
+  url: {{host}}/default/rdmp/api/named-query/bruno-test-query
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  X-ReDBox-Named-Query-Confirmation: {{queryUpdateConfirmation}}
+}
+
+body:json {
+  {
+    "name": "bruno-test-query",
+    "collectionName": "record",
+    "mongoQuery": {
+      "metaMetadata.type": "rdmp"
+    },
+    "queryParams": {
+      "status": {
+        "type": "string",
+        "path": "metaMetadata.status",
+        "queryType": "contains",
+        "whenUndefined": "ignore"
+      }
+    },
+    "resultObjectMapping": {
+      "oid": "{{record.redboxOid}}",
+      "title": "{{record.metadata.title}}"
+    },
+    "brandIdFieldPath": "metaMetadata.brandId",
+    "sort": [
+      {
+        "lastSaveDate": "DESC"
+      }
+    ],
+    "expandRelations": false,
+    "relatedRecordFilters": []
+  }
+}
+
+tests {
+  test("An acknowledgement for a previous saved revision cannot restore its old contract", () => {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody().errors[0].code).to.equal("NAMED_QUERY_CONFIRMATION_REQUIRED");
+  });
+}

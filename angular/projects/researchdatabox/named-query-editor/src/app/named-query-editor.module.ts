@@ -1,3 +1,6 @@
+import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
+import { GraphqlSchemaComponent } from './graphql-schema.component';
+import { GraphqlJsonInputComponent } from './graphql-json-input.component';
 import { QueryAssistanceModule } from './query-assistance.module';
 import { FieldTreeComponent, SchemaTargetSelectorComponent } from '@researchdatabox/portal-ng-common';
 import { NgModule } from '@angular/core';
@@ -30,6 +33,9 @@ import { RelatedFilterEditorComponent } from './related-filter-editor/related-fi
   ],
   imports: [
     BrowserModule,
+    GraphqlDraftEditorComponent,
+    GraphqlSchemaComponent,
+    GraphqlJsonInputComponent,
     A11yModule,
     FormsModule,
     RedboxPortalCoreModule,

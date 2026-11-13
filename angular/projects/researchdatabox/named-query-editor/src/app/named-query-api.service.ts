@@ -6,49 +6,25 @@ import type {
   NamedQueryDraftRequest,
   NamedQueryPreviewRequest,
   NamedQueryValidation,
-  NamedQueryDescription,
-  NamedQueryPreview,
+  NamedQuerySourceDescription,
+  NamedQuerySourcePreview,
+  NamedQueryDefinition as SharedNamedQueryDefinition,
+  DatabaseNamedQueryDefinition,
+  NamedQueryCatalogueEntry,
+  NamedQueryConsumer,
+  NamedQueryUpdateReview,
   NamedQueryFieldDescription,
   NamedQueryGuidance,
   SchemaTarget,
 } from '@researchdatabox/sails-ng-common';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
 
-export interface NamedQueryParam {
-  type: string;
-  path: string;
-  queryType?: string;
-  whenUndefined: string;
-  defaultValue?: unknown;
-  format?: string;
-  template?: string;
-}
-
-export interface RelatedRecordFilterDefinition {
-  collectionName: string;
-  mongoQuery: Record<string, unknown>;
-  localField: string;
-  foreignField: string;
-}
-
-export interface NamedQueryConsumer {
-  type: 'report' | 'dashboard' | 'vocabulary' | 'form' | 'configuration';
-  name: string;
-  path: string;
-}
-
-export interface NamedQueryDefinition {
-  usedBy?: NamedQueryConsumer[];
-  name?: string;
-  collectionName: string;
-  brandIdFieldPath?: string;
-  resultObjectMapping: Record<string, string>;
-  mongoQuery: Record<string, unknown>;
-  sort?: Array<Record<string, 'ASC' | 'DESC'>>;
-  expandRelations?: boolean;
-  relatedRecordFilters?: RelatedRecordFilterDefinition[];
-  queryParams: Record<string, NamedQueryParam>;
-}
+export type {
+  NamedQueryParam, RelatedRecordFilterDefinition, NamedQueryConsumer, NamedQueryUpdateReview,
+} from '@researchdatabox/sails-ng-common';
+export type NamedQueryDefinition = SharedNamedQueryDefinition & { usedBy?: NamedQueryConsumer[] };
+export type NamedQueryDatabaseDefinition = DatabaseNamedQueryDefinition & { usedBy?: NamedQueryConsumer[] };
+export type NamedQueryCatalogueRow = NamedQueryCatalogueEntry & { usedBy?: NamedQueryConsumer[] };
 
 type ApiResponse<T> = { data: T };
 type JsonRequestOptions = { responseType: 'json'; observe: 'body'; context: HttpContext };
@@ -94,6 +70,13 @@ export class NamedQueryApiService extends HttpClientService {
     return `${this.brandingAndPortalUrl}/api/named-query${path}`;
   }
 
+  async graphqlSchema(): Promise<{ sdl: string }> {
+    return this.unwrap(await firstValueFrom(this.http.get<{ sdl: string }>(this.apiUrl('/editor/graphql-schema'), this.getJsonRequestOptions())));
+  }
+  async reviewUpdate(name: string, definition: NamedQueryDefinition): Promise<NamedQueryUpdateReview> {
+    return this.unwrap(await firstValueFrom(this.http.post<NamedQueryUpdateReview>(this.apiUrl(`/${encodeURIComponent(name)}/review-update`), { definition }, this.getJsonRequestOptions())));
+  }
+
   async schemaTargets(): Promise<{ recordTypes: SchemaTarget[] }> {
     return this.unwrap(
       await firstValueFrom(
@@ -127,25 +110,25 @@ export class NamedQueryApiService extends HttpClientService {
     );
   }
 
-  async describe(request: NamedQueryDraftRequest): Promise<NamedQueryDescription> {
+  async describe(request: NamedQueryDraftRequest): Promise<NamedQuerySourceDescription> {
     return this.unwrap(
       await firstValueFrom(
-        this.http.post<NamedQueryDescription>(this.apiUrl('/editor/describe'), request, this.getJsonRequestOptions())
+        this.http.post<NamedQuerySourceDescription>(this.apiUrl('/editor/describe'), request, this.getJsonRequestOptions())
       )
     );
   }
 
-  async preview(request: NamedQueryPreviewRequest): Promise<NamedQueryPreview> {
+  async preview(request: NamedQueryPreviewRequest): Promise<NamedQuerySourcePreview> {
     return this.unwrap(
       await firstValueFrom(
-        this.http.post<NamedQueryPreview>(this.apiUrl('/editor/preview'), request, this.getJsonRequestOptions())
+        this.http.post<NamedQuerySourcePreview>(this.apiUrl('/editor/preview'), request, this.getJsonRequestOptions())
       )
     );
   }
 
-  async list(): Promise<NamedQueryDefinition[]> {
+  async list(): Promise<NamedQueryCatalogueRow[]> {
     const response = await firstValueFrom(
-      this.http.get<ApiResponse<NamedQueryDefinition[]>>(this.apiUrl(''), this.getJsonRequestOptions())
+      this.http.get<ApiResponse<NamedQueryCatalogueRow[]>>(this.apiUrl(''), this.getJsonRequestOptions())
     );
     return this.unwrap(response);
   }
@@ -175,12 +158,12 @@ export class NamedQueryApiService extends HttpClientService {
     return this.unwrap(response);
   }
 
-  async update(name: string, data: NamedQueryDefinition): Promise<{ name: string }> {
+  async update(name: string, data: NamedQueryDefinition, confirmation?: string): Promise<{ name: string }> {
     const response = await firstValueFrom(
       this.http.put<ApiResponse<{ name: string }>>(
         this.apiUrl(`/${encodeURIComponent(name)}`),
         data,
-        this.getJsonRequestOptions()
+        { ...this.getJsonRequestOptions(), ...(confirmation ? { headers: { 'X-ReDBox-Named-Query-Confirmation': confirmation } } : {}) }
       )
     );
     return this.unwrap(response);

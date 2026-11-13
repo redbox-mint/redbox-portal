@@ -1,6 +1,10 @@
 <% let appName = 'data-grids'; %>
+<%
+const promotionBrand = BrandingService.getBrand(req.session.branding);
+const canCreateNamedQuery = req.isAuthenticated() && NamedQueryEditorService.canCreate(promotionBrand, req.session.portal, req.user);
+%>
 <%- include('layout/start.ejs') %>
-    <data-grids <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <data-grids can-create-named-query="<%= canCreateNamedQuery ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <div class="col-xs-12">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg"
              alt="<%= TranslationService.t('loading-alt-text') %>">

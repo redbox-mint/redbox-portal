@@ -10,7 +10,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform, NO_ERRORS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NqDetailComponent } from './nq-detail.component';
-import { NamedQueryDefinition } from '../named-query-api.service';
+import { NamedQueryDatabaseDefinition as NamedQueryDefinition } from '../named-query-api.service';
 
 @Pipe({ name: 'i18next', standalone: false })
 class I18NextPipeStub implements PipeTransform {

@@ -1,3 +1,4 @@
+import type { EditorDiagnostic } from "../../schema-assist.model";
 import {
     FieldComponentConfigFrameKindType,
     FieldComponentConfigKindType,
@@ -92,6 +93,8 @@ export interface TypeaheadInputFieldComponentConfigCommonFrame extends FieldComp
     noResultsMessageKey?: string;
     readOnlyAfterSelect?: boolean;
     historicalVocabMode?: HistoricalVocabMode;
+    /** Server inspection output. Recomputed from the scoped alias, never trusted for execution. */
+    lookupDiagnostics?: EditorDiagnostic[];
 }
 
 export interface TypeaheadStaticSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {

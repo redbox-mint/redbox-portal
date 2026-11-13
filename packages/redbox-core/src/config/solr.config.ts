@@ -20,6 +20,8 @@ export interface SolrFieldDefinition {
     multiValued?: boolean;
     required?: boolean;
     docValues?: boolean;
+    /** Applied by Solr when omitted; prefix companions must not define a default. */
+    default?: string | number | boolean;
 }
 
 export interface SolrCopyFieldDefinition {
@@ -76,6 +78,13 @@ export interface SolrCoreSchema {
 export interface SolrCoreConfig {
     /** Stable metadata field IDs to indexed fields, backed by explicit preIndex.copy rules. */
     recordGraphqlFields?: Record<string, string>;
+    /**
+     * Opt-in metadata IDs to dedicated, explicit single-valued StrField companions.
+     * Companions must be non-required and have no default value.
+     * IPREFIX folds ASCII A-Z only, preserving all other UTF-16 code units exactly.
+     * Requires the primary scalar copy, schema reconciliation and a complete reindex.
+     */
+    recordGraphqlCaseInsensitivePrefixFields?: Record<string, string>;
     options: SolrCoreOptions;
     schema: SolrCoreSchema;
     preIndex?: SolrPreIndexConfig;

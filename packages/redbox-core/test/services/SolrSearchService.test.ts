@@ -984,6 +984,75 @@ describe('SolrSearchService', function () {
       await SolrSearchService.processDynamicImports();
     });
 
+    function configurePrefix() {
+      const core = mockSails.config.solr.cores.default;
+      core.recordGraphqlFields = { 'metadata:/dc:identifier': 'grid_project_id' };
+      core.recordGraphqlCaseInsensitivePrefixFields = { 'metadata:/dc:identifier': 'grid_project_id_iprefix_v1' };
+      core.schema['add-field'] = [
+        { name: 'grid_project_id', type: 'string', indexed: true, stored: true, multiValued: false },
+        { name: 'grid_project_id_iprefix_v1', type: 'string', indexed: true, stored: false, multiValued: false },
+      ];
+      core.preIndex.copy.push({source: 'metadata.dc:identifier', dest: 'grid_project_id'});
+      // Both metadata collisions and later transforms must lose to the trusted snapshot.
+      core.preIndex.template = [
+        {source: 'metadata', dest: 'ignored', template: '<% data["dc:identifier"]="tampered" %>done'},
+        {dest: 'grid_project_id_iprefix_v1', template: 'spoof'},
+      ];
+    }
+
+    it('indexes unrestricted string companions from original metadata after all transforms', function () {
+      configurePrefix();
+      const vectors = [
+        ['UON-AbC', 'uon-abc'], ['ΟΣΑ', 'ΟΣΑ'], ['UON-ΟΣΑ', 'uon-ΟΣΑ'],
+        ['École', 'École'], ['İSTANBUL', 'İstanbul'], ['ı-ß-ẞ-SS', 'ı-ß-ẞ-ss'],
+        ['E\u0301cole', 'e\u0301cole'], ['ＡBC—\u00a0\t\n\0\x7f😀', 'Ａbc—\u00a0\t\n\0\x7f😀'],
+        ['\ud800A\udfff', '\ud800a\udfff'], ['', ''],
+      ];
+      for (const [source, expected] of vectors) {
+        const result = SolrSearchService.preIndex({
+          metadata: {'dc:identifier': source, title: 'Unchanged title', grid_project_id_iprefix_v1: 'collision'},
+        });
+        assert.equal(result.grid_project_id_iprefix_v1, expected);
+        assert.equal(result.grid_project_id, source);
+        assert.equal(result.title, 'Unchanged title');
+      }
+    });
+
+    it('omits only the companion for missing/null/non-string sources, including transform collisions', function () {
+      configurePrefix();
+      for (const value of [undefined, null, 42, false, [], ['text'], {title: 'text'}]) {
+        const result = SolrSearchService.preIndex({metadata: {'dc:identifier': value, title: 'Retained'}});
+        assert.ok(!Object.hasOwn(result, 'grid_project_id_iprefix_v1'));
+        assert.equal(result.title, 'Retained');
+      }
+      mockSails.config.solr.cores.default.preIndex.template = [{dest: 'grid_project_id_iprefix_v1', template: 'spoof'}];
+      assert.ok(!Object.hasOwn(SolrSearchService.preIndex({}), 'grid_project_id_iprefix_v1'));
+    });
+
+    it('still submits the whole document when a free-text project ID contains en dash, NBSP or controls', async function () {
+      configurePrefix();
+      sinon.stub(SolrSearchService, 'ensureInitialized').resolves();
+      sinon.stub(SolrSearchService, 'requireIndexSchema').resolves();
+      sinon.stub(SolrSearchService, 'clientSleep').resolves();
+      const add = sinon.stub().resolves();
+      const commit = sinon.stub().resolves();
+      SolrSearchService.clients.default = {add, commit};
+      mockSails.config.recordGraphql = {enabled: true, cursorSecret: 'prefix-test-secret-at-least-32-characters'};
+      await SolrSearchService.solrAddOrUpdate({attrs: {data: {
+        id: 'prefix-storage-id', redboxOid: 'prefix-oid', metadata: {
+          'dc:identifier': 'UON–A\u00a0B\t\n\0', title: 'Retained title',
+        }, metaMetadata: {brandId: 'brand', type: 'rdmp', form: 'draft', searchCore: 'default'},
+        workflow: {stage: 'draft'}, authorization: {view: ['owner']},
+      }}});
+      assert.equal(add.callCount, 1);
+      assert.equal(commit.callCount, 1);
+      assert.equal(add.firstCall.args[0].grid_project_id_iprefix_v1, 'uon–a\u00a0b\t\n\0');
+      assert.equal(add.firstCall.args[0].title, 'Retained title');
+      assert.equal(add.firstCall.args[0].redbox_grid_oid, 'prefix-oid');
+      assert.equal(add.firstCall.args[0].redbox_grid_type, 'rdmp');
+      assert.deepEqual(add.firstCall.args[0].redbox_acl2_view, ['owner']);
+    });
+
     it('flattens and moves metadata while copying the storage identifier', function () {
       const result = SolrSearchService.preIndex({
         redboxOid: 'record-123',

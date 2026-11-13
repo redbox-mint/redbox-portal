@@ -12,7 +12,7 @@ import {
   type GridOperator,
   type GridSelection,
 } from './grid-types';
-import { gridIndexBindings } from './index-bindings';
+import { gridIndexBindings, gridPrefixIndexBindings } from './index-bindings';
 import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
 
 export function gridError(code: string, message: string): never {
@@ -53,6 +53,7 @@ const recordFields = [
 export interface CatalogueSnapshot {
   catalogue: GridCatalogue;
   bindings: Map<string, SolrFieldDefinition>;
+  prefixBindings: Map<string, SolrFieldDefinition>;
 }
 
 export function scopedContracts(
@@ -290,6 +291,8 @@ export function buildCatalogue(
     visit(readShape, [], false);
   }
   const bindings = new Map<string, SolrFieldDefinition>();
+  const prefixBindings = new Map<string, SolrFieldDefinition>();
+  const prefixTargets = gridPrefixIndexBindings(environment.config);
   for (const field of fields.values()) {
     field.availableInAllVariants =
       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
@@ -323,6 +326,30 @@ export function buildCatalogue(
       ops = ['EQ', 'IN', 'GT', 'LT', 'BETWEEN', 'EXISTS'];
     }
     if (kind === 'TextField' && field.scalarType === 'STRING') ops = ['EXISTS'];
+    const prefixTarget = prefixTargets.get(field.id)?.field;
+    // Explicit companions only: dynamic fields and analyzers cannot certify this representation.
+    const prefix = prefixTarget ? environment.schema.fields.find(item => item.name === prefixTarget) : undefined;
+    const configuredPrefix = prefixTarget
+      ? environment.config.schema['add-field']?.find(item => item.name === prefixTarget)
+      : undefined;
+    if (
+      kind === 'StrField' &&
+      field.scalarType === 'STRING' &&
+      prefix &&
+      prefix.name !== environment.schema.uniqueKey &&
+      prefix.indexed === true &&
+      prefix.multiValued === false &&
+      // Omitted sources must not make Solr reject this or unrelated record types.
+      prefix.required !== true &&
+      // Defaults manufacture terms for omitted sources, violating the original-value contract.
+      prefix.default === undefined &&
+      prefix.type === configuredPrefix?.type &&
+      indexClass(environment, prefix) === 'StrField' &&
+      !environment.schema.copyFields?.some(copy => matchesField(copy.dest, prefix.name))
+    ) {
+      ops.push('IPREFIX');
+      prefixBindings.set(field.id, prefix);
+    }
     field.operators = ops;
     field.filterable = ops.length > 0;
     field.sortable =
@@ -348,5 +375,5 @@ export function buildCatalogue(
   });
   if (!revision) gridError('CATALOGUE_LIMIT', 'Field catalogue fingerprint exceeds its bound.');
   catalogue.revision = revision;
-  return { catalogue, bindings };
+  return { catalogue, bindings, prefixBindings };
 }

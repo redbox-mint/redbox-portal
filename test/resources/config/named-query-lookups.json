@@ -1,0 +1,17 @@
+{
+  "recordGraphql": {
+    "enabled": true,
+    "cacheEntries": 16,
+    "maxVariants": 100,
+    "cursorSecret": "isolated-t07-bruno-cursor-secret"
+  },
+  "vocab": {
+    "queries": {
+      "t07GraphqlLookup": {
+        "querySource": "database",
+        "databaseQuery": { "queryName": "t07_bruno_lookup" },
+        "queryField": { "property": "search", "type": "text" }
+      }
+    }
+  }
+}

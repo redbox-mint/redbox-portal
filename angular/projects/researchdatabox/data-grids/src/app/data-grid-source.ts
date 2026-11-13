@@ -1,3 +1,4 @@
+import type { NamedQueryPromotionDraft } from '@researchdatabox/sails-ng-common';
 import { InjectionToken } from '@angular/core';
 import type {
   GridCatalogue,
@@ -11,6 +12,7 @@ import type {
 
 /** Authenticated discovery, collection and optional persistence boundary. */
 export interface DataGridSource {
+  prepareNamedQuery?(definition: SavedQuery): Promise<NamedQueryPromotionDraft>;
   schema?(): Promise<string>;
   raw?(document: string, variables: object): Promise<Record<string, unknown>>;
   generate?(request: GridQuery): Promise<{ query: string; variables: object }>;

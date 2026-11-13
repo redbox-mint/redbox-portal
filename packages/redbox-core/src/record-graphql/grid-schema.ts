@@ -42,6 +42,11 @@ const FilterInput = new GraphQLInputObjectType({
     field: { type: new GraphQLNonNull(GraphQLID) },
     eq: { type: ValueInput },
     contains: { type: GraphQLString },
+    iprefix: {
+      type: GraphQLString,
+      description:
+        'Literal prefix ignoring ASCII A-Z case only; all other characters match exactly without Unicode normalization. Requires a verified companion binding. Nonempty, well-formed UTF-16, at most 256 UTF-8 bytes.',
+    },
     in: { type: new GraphQLList(new GraphQLNonNull(ValueInput)) },
     gt: { type: ValueInput },
     lt: { type: ValueInput },

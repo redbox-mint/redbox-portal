@@ -1,8 +1,12 @@
+import { savedGridContext } from '../SavedGridController';
+import { SavedGridError } from '../../services/SavedGridService';
+import { NamedQueryUpdateConfirmationError, NamedQueryUpdateConflictError } from '../../services/named-query/update-review';
 import { NamedQueryInUseError } from '../../services/named-query/usage';
 import type {
   NamedQueryDraftRequest,
   NamedQueryPreviewRequest,
   NamedQueryGuidance,
+  EditorDiagnostic,
 } from '@researchdatabox/sails-ng-common';
 import type { FormRecordAccessContext } from '../../services/FormsService';
 import {
@@ -12,12 +16,17 @@ import {
 } from '../../utilities/NamedQueryPreview';
 import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 import { Controllers as controllers } from '../../CoreController';
-import type { NamedQueryDefinition } from '../../config/namedQuery.config';
+import { NamedQueryDefinitionError } from '../../services/named-query/definition';
+import { GraphqlNamedQueryExecutionError } from '../../services/named-query/graphql-execution';
+import { GraphqlNamedQueryInputError } from '../../services/named-query/graphql-input';
+import { GraphqlNamedQueryValidationError, graphqlDiagnostic } from '../../services/named-query/graphql-validation';
+import type { ReadCaller } from '../../record-graphql/read-record';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
 export namespace Controllers {
   export class NamedQuery extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [
+      'preparePromotion',
       'listQueries',
       'getCollections',
       'getQuery',
@@ -25,6 +34,8 @@ export namespace Controllers {
       'updateQuery',
       'deleteQuery',
       'schemaTargets',
+      'graphqlSchema',
+      'reviewUpdate',
       'describeFields',
       'validateDraft',
       'describeDraft',
@@ -56,23 +67,76 @@ export namespace Controllers {
         });
       } catch (error) {
         const code =
-          error instanceof NamedQueryAssistanceError || error instanceof FieldDescriptionError
+          error instanceof NamedQueryAssistanceError ||
+          error instanceof GraphqlNamedQueryExecutionError ||
+          error instanceof FieldDescriptionError ||
+          error instanceof GraphqlNamedQueryInputError ||
+          error instanceof GraphqlNamedQueryValidationError
             ? error.code
             : 'ASSISTANCE_UNAVAILABLE';
         const status =
-          error instanceof NamedQueryAssistanceError
+          error instanceof NamedQueryAssistanceError || error instanceof GraphqlNamedQueryExecutionError
             ? error.status
-            : error instanceof FieldDescriptionError
-              ? error.code === 'FORBIDDEN'
-                ? 403
-                : 400
-              : 500;
+            : error instanceof GraphqlNamedQueryValidationError
+              ? 422
+              : error instanceof GraphqlNamedQueryInputError
+                ? 400
+                : error instanceof FieldDescriptionError
+                  ? error.code === 'FORBIDDEN'
+                    ? 403
+                    : 400
+                  : 500;
+        const diagnostics =
+          error instanceof GraphqlNamedQueryValidationError
+            ? error.diagnostics
+            : error instanceof GraphqlNamedQueryInputError
+              ? [graphqlDiagnostic(error.code, error.field, 'Provide a value that satisfies the declared input type.')]
+              : undefined;
         return this.sendResp(req, res, {
           status,
-          displayErrors: [{ code, status: String(status) }],
+          displayErrors: [
+            {
+              code,
+              status: String(status),
+              ...(diagnostics ? { detail: this.graphqlDiagnosticDetail(diagnostics) } : {}),
+            },
+          ],
+          ...(diagnostics ? { meta: { diagnostics } } : {}),
           headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' },
         });
       }
+    }
+
+    public async preparePromotion(req: Sails.Req, res: Sails.Res) {
+      try {
+        const { caller } = savedGridContext(req);
+        const body = req.body as { exploration?: unknown };
+        const data = await NamedQueryEditorService.preparePromotion(body?.exploration, caller);
+        return this.sendResp(req, res, { data, headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
+      } catch (error) {
+        const status = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.status : 500;
+        const code = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.code : 'PROMOTION_UNAVAILABLE';
+        if (status === 500) {
+          // Never log the exception, its message, request body, document or values.
+          const errorClass = error instanceof TypeError ? 'TypeError' : error instanceof RangeError ? 'RangeError' :
+            error instanceof SyntaxError ? 'SyntaxError' : error instanceof Error ? 'Error' : 'UnknownError';
+          sails.log.error('Named-query promotion preparation failed', { code: 'PROMOTION_UNAVAILABLE', errorClass });
+        }
+        return this.sendResp(req, res, { status, displayErrors: [{ code, title: code, status: String(status) }], headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
+      }
+    }
+
+    public graphqlSchema(req: Sails.Req, res: Sails.Res) {
+      return this.assistance(req, res, (brand, portal, caller) => NamedQueryEditorService.graphqlSchema(brand, portal, caller));
+    }
+    public async reviewUpdate(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = this.resolveBrand(req);
+        const name = String(req.param('name'));
+        return this.sendResp(req, res, { data: await NamedQueryService.reviewUpdate(brand, name,
+          (req.body as NamedQueryDraftRequest).definition, this.validationCaller(req, brand)),
+          headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
+      } catch (error) { return this.sendError(req, res, error); }
     }
 
     public schemaTargets(req: Sails.Req, res: Sails.Res) {
@@ -127,6 +191,7 @@ export namespace Controllers {
 
     private statusForError(error: unknown): number {
       if (error instanceof NamedQueryInUseError) return 409;
+      if (error instanceof NamedQueryDefinitionError || error instanceof GraphqlNamedQueryValidationError) return 400;
       const message = this.asError(error).message;
       if (/Named query .*not found/i.test(message)) {
         return 404;
@@ -140,12 +205,56 @@ export namespace Controllers {
       return 500;
     }
 
+    private validationCaller(req: Sails.Req, brand: BrandingModel): ReadCaller | undefined {
+      if (!req.isAuthenticated?.() || !req.user?.username) return undefined;
+      return {
+        brand,
+        portal: String(req.param('portal') ?? ''),
+        user: req.user,
+        roles: Array.isArray(req.user.roles)
+          ? req.user.roles.filter((role): role is object => role !== null && typeof role === 'object')
+          : [],
+      };
+    }
+
+    private graphqlDiagnosticDetail(diagnostics: readonly EditorDiagnostic[]): string {
+      const diagnostic = diagnostics[0];
+      // These diagnostics contain curated correction text, never GraphQL's raw
+      // input errors. Keep one bounded description for the v1 error envelope.
+      return diagnostic
+        ? `${diagnostic.field.slice(0, 256)}: ${diagnostic.reason.slice(0, 512)}`
+        : 'Repair the GraphQL named query definition using current schema assistance.';
+    }
+
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      if (error instanceof NamedQueryUpdateConfirmationError || error instanceof NamedQueryUpdateConflictError) {
+        return this.sendResp(req, res, { status: 409,
+          ...(error instanceof NamedQueryUpdateConfirmationError ? { meta: { review: error.review } } : {}),
+          displayErrors: [{ code: error.code, detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
+      }
+      if (error instanceof GraphqlNamedQueryValidationError) {
+        return this.sendResp(req, res, {
+          status: 400,
+          meta: { diagnostics: error.diagnostics },
+          displayErrors: [{ code: error.code, detail: this.graphqlDiagnosticDetail(error.diagnostics), status: '400' }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
       if (error instanceof NamedQueryInUseError) {
         return this.sendResp(req, res, { status: 409, meta: { usedBy: error.consumers },
           displayErrors: [{ detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
       }
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      const status = this.statusForError(error);
+      const detail = error instanceof NamedQueryDefinitionError
+        ? error.message
+        : status === 404 ? 'Named query not found'
+          : status === 409 ? 'Named query already exists' : undefined;
+      return this.sendResp(req, res, { status,
+        ...(detail
+          ? { displayErrors: [{ detail, status: String(status) }] }
+          : { errors: [this.asError(error)], ...(status < 500
+            ? { displayErrors: [{ detail: 'Invalid named query request', status: String(status) }] } : {}) }),
+        headers: this.getNoCacheHeaders() });
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {
@@ -201,6 +310,9 @@ export namespace Controllers {
     public async createQuery(req: Sails.Req, res: Sails.Res) {
       try {
         const brand = this.resolveBrand(req);
+        if (!req.isAuthenticated?.() || !NamedQueryEditorService.canCreate(brand, String(req.param('portal') ?? ''), req.user)) {
+          return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'NAMED_QUERY_CREATE_FORBIDDEN', status: '403' }], headers: this.getNoCacheHeaders() });
+        }
         const body = (req.body as Record<string, unknown>) || {};
         const name = body['name'] as string;
         if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {
@@ -217,7 +329,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.create(brand, name, body as unknown as NamedQueryDefinition);
+        await NamedQueryService.create(brand, name, body, this.validationCaller(req, brand));
         return this.sendResp(req, res, { status: 201, data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
@@ -243,7 +355,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.update(brand, name, body as unknown as NamedQueryDefinition);
+        await NamedQueryService.update(brand, name, body, this.validationCaller(req, brand), req.get?.('X-ReDBox-Named-Query-Confirmation') || undefined);
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
