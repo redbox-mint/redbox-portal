@@ -67,10 +67,16 @@ export class GenerationRunClass {
   @Attr({ type: 'string' }) public errorCode?: string;
   @Attr({ type: 'string' }) public errorSummary?: string;
   @Attr({ type: 'boolean', defaultsTo: false }) public retryable!: boolean;
+  @Attr({ type: 'boolean', defaultsTo: false }) public admissionPending!: boolean;
   @Attr({ type: 'string' }) public queuedAt?: string;
   @Attr({ type: 'string' }) public startedAt?: string;
   @Attr({ type: 'string' }) public completedAt?: string;
   @Attr({ type: 'string' }) public committedAt?: string;
+  @Attr({ type: 'string' }) public commitToken?: string;
+  @Attr({ type: 'string' }) public commitLeaseExpiresAt?: string;
+  @Attr({ type: 'string' }) public commitStartedAt?: string;
+  @Attr({ type: 'json' }) public commitReviewedFieldIds?: string[];
+  @Attr({ type: 'json' }) public commitAppliedFieldIds?: string[];
   @Attr({ type: 'string' }) public lastHeartbeatAt?: string;
   @Attr({ type: 'string', required: true }) public artifactExpiresAt!: string;
   @Attr({ type: 'number', defaultsTo: 0 }) public diagnosticRetentionDays!: number;
@@ -83,8 +89,9 @@ export interface GenerationRunAttributes extends Sails.WaterlineAttributes {
   phase: GenerationRunPhase; attemptCount: number; queueJobId?: string; cancelRequestedAt?: string; inputDigest?: string;
   candidateDigest?: string; candidateSummary?: Record<string, number>; requestedProvider?: string; requestedModel?: string;
   actualProvider?: string; actualModel?: string; routerMetadata?: Record<string, unknown>; usage?: Record<string, number>;
-  errorCode?: string; errorSummary?: string; retryable: boolean; queuedAt?: string; startedAt?: string; completedAt?: string;
-  committedAt?: string; lastHeartbeatAt?: string; artifactExpiresAt: string; diagnosticRetentionDays: number;
+  errorCode?: string; errorSummary?: string; retryable: boolean; admissionPending?: boolean; queuedAt?: string; startedAt?: string; completedAt?: string;
+  committedAt?: string; commitToken?: string; commitLeaseExpiresAt?: string; commitStartedAt?: string;
+  commitReviewedFieldIds?: string[]; commitAppliedFieldIds?: string[]; lastHeartbeatAt?: string; artifactExpiresAt: string; diagnosticRetentionDays: number;
 }
 export interface GenerationRunWaterlineModel extends Sails.Model<GenerationRunAttributes> { attributes: GenerationRunAttributes; }
 declare global { const GenerationRun: GenerationRunWaterlineModel; }

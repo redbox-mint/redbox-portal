@@ -1266,19 +1266,22 @@ export namespace Controllers {
               formName: form?.name ?? formParam,
               mode: editMode ? 'edit' : 'view',
             });
-          } else if (typeof req.query.generationRunId === 'string' && req.query.generationRunId.trim()) {
-            runtimeMeta.generationSession = await generationBindingService.resolveTargetSession(
-              generationActor,
-              req.query.generationRunId.trim(),
-              recordType,
-              form?.name ?? formParam,
-            );
-          } else if (editMode) {
-            runtimeMeta.generationLaunches = await generationBindingService.resolveCreateLaunches(
-              generationActor,
-              recordType,
-              form?.name ?? formParam,
-            );
+          } else {
+            if (typeof req.query.generationRunId === 'string' && req.query.generationRunId.trim()) {
+              runtimeMeta.generationSession = await generationBindingService.resolveTargetSession(
+                generationActor,
+                req.query.generationRunId.trim(),
+                recordType,
+                form?.name ?? formParam,
+              );
+            }
+            if (editMode) {
+              runtimeMeta.generationLaunches = await generationBindingService.resolveCreateLaunches(
+                generationActor,
+                recordType,
+                form?.name ?? formParam,
+              );
+            }
           }
         }
 

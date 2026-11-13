@@ -1,9 +1,9 @@
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { EMPTY, Subject } from 'rxjs';
-import { GenerationQuestion, GenerationRunView } from '@researchdatabox/sails-ng-common';
+import { GenerationCandidatePatch, GenerationFieldProvenanceView, GenerationQuestion, GenerationRunView } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import {
   createFormSaveSuccessEvent,
@@ -19,6 +19,9 @@ describe('GenerationSidePanelComponent', () => {
   let component: GenerationSidePanelComponent;
   let api: jasmine.SpyObj<GenerationApiService>;
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
+  let applier: jasmine.SpyObj<GenerationPatchApplierService>;
+  let provenance: jasmine.SpyObj<GenerationProvenanceStoreService>;
+  let provenanceFields: WritableSignal<Record<string, GenerationFieldProvenanceView>>;
   let saveSuccess$: Subject<ReturnType<typeof createFormSaveSuccessEvent>>;
 
   const question: GenerationQuestion = {
@@ -55,11 +58,13 @@ describe('GenerationSidePanelComponent', () => {
     eventBus.select$.and.callFake(((eventType: string) => (
       eventType === FormComponentEventType.FORM_SAVE_SUCCESS ? saveSuccess$.asObservable() : EMPTY
     )) as typeof eventBus.select$);
-    const applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
-    const provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>(
+    applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
+    applier.apply.and.returnValue({ changedFieldIds: [], conflictFieldIds: [] });
+    provenanceFields = signal<Record<string, GenerationFieldProvenanceView>>({});
+    provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>(
       'GenerationProvenanceStoreService',
       ['clear', 'setPending', 'markReviewed', 'markEdited', 'load'],
-      { byPointer: signal({}) },
+      { byPointer: provenanceFields },
     );
     const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
     store.selectSignal.and.returnValue(signal(true));
@@ -139,6 +144,7 @@ describe('GenerationSidePanelComponent', () => {
     expect(api.commit).toHaveBeenCalledOnceWith('candidate-run', {
       targetOid: 'record-1',
       candidateDigest: 'candidate-digest',
+      appliedFieldIds: [],
       reviewedFieldIds: [],
     });
   });
@@ -243,4 +249,255 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.effectiveSession()).toBeNull();
     expect(component.documents()).toEqual([]);
   });
+  it('creates pending provenance only for applied fields while retaining the original commit candidate', async () => {
+    const patch = {
+      runId: 'provenance-run', candidateDigest: 'original-digest', baseTargetDigest: 'base',
+      items: ['applied', 'conflicted'].map((fieldId) => ({
+        fieldId, metadataPointer: `/${fieldId}`, value: `Generated ${fieldId}`, operation: 'fill' as const,
+        valueHash: `hash-${fieldId}`, groundingState: 'sourceBacked' as const,
+        reviewRequired: false, rationale: 'Evidence', evidence: [],
+      })),
+    };
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    component.run.set(run(patch.runId, 'draft', []));
+    applier.apply.and.returnValue({ changedFieldIds: ['applied'], conflictFieldIds: ['conflicted'] });
+    api.execute.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch });
+
+    await component.generate();
+
+    expect(provenance.setPending).toHaveBeenCalledOnceWith({ ...patch, items: [patch.items[0]] });
+    expect(component.candidate()).toBe(patch);
+    expect(component.candidate()?.candidateDigest).toBe('original-digest');
+    expect(component.conflicts()).toEqual(['conflicted']);
+  });
+
+  it('commits only applied fields, retains edited applied fields, and never infers review from missing provenance', async () => {
+    const patch: GenerationCandidatePatch = {
+      runId: 'receipt-run', candidateDigest: 'original-digest', baseTargetDigest: 'base',
+      items: ['applied', 'edited', 'missing', 'conflicted'].map((fieldId) => ({
+        fieldId, metadataPointer: `/${fieldId}`, value: `Generated ${fieldId}`, operation: 'fill',
+        valueHash: `hash-${fieldId}`, groundingState: 'requiresReview',
+        reviewRequired: true, rationale: 'Evidence', evidence: [],
+      })),
+    };
+    const form = new FormGroup({ edited: new FormControl('Generated edited') });
+    fixture.componentRef.setInput('form', form);
+    fixture.detectChanges();
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    component.run.set(run(patch.runId, 'draft', []));
+    applier.apply.and.returnValue({ changedFieldIds: ['applied', 'edited', 'missing'], conflictFieldIds: ['conflicted'] });
+    api.execute.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch });
+    api.commit.and.resolveTo({ runId: patch.runId, targetOid: 'saved-record', committed: true, provenanceCount: 3 });
+
+    await component.generate();
+    form.get('edited')?.setValue('Researcher edited after generation');
+    provenanceFields.set(Object.fromEntries(patch.items.slice(0, 2).map((item) => [item.metadataPointer, {
+      id: `pending:${patch.runId}:${item.fieldId}`, runId: patch.runId,
+      profileFieldId: item.fieldId, metadataPointer: item.metadataPointer,
+      displayState: item.fieldId === 'edited' ? 'edited' : 'generated',
+      groundingState: item.groundingState, reviewRequired: false,
+      rationale: item.rationale, evidence: item.evidence, generatedAt: '2026-11-13T00:00:00Z',
+    } satisfies GenerationFieldProvenanceView])));
+    component.close();
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    await fixture.whenStable();
+
+    expect(api.commit).toHaveBeenCalledOnceWith(patch.runId, {
+      targetOid: 'saved-record', candidateDigest: 'original-digest',
+      appliedFieldIds: ['applied', 'edited', 'missing'], reviewedFieldIds: ['applied', 'edited'],
+    });
+    expect(component.candidate()).toBe(patch);
+    expect(form.get('edited')?.value).toBe('Researcher edited after generation');
+  });
+
+  it('applies a candidate returned directly by a fast execution', async () => {
+    const form = component.form();
+    if (!form) throw new Error('Expected a test form');
+    const candidate = { runId: 'fast-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+    component.activeSession.set({ runId: 'fast-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run('fast-run', 'draft', []));
+    api.execute.and.resolveTo({ ...run('fast-run', 'completed', []), result: candidate });
+
+    await component.generate();
+
+    expect(applier.apply).toHaveBeenCalledOnceWith(candidate, form, { researchActivity: 'activity-1' }, eventBus, []);
+    expect(component.candidate()).toEqual(candidate);
+    expect(api.getRun).not.toHaveBeenCalled();
+  });
+
+  for (const status of ['queued', 'running', 'validating'] as const) {
+    it(`resumes a reopened ${status} run and applies its completed candidate`, async () => {
+      const form = component.form();
+      if (!form) throw new Error('Expected a test form');
+      const candidate = { runId: 'resumed-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+      api.getRun.and.returnValues(
+        Promise.resolve(run('resumed-run', status, [])),
+        Promise.resolve({ ...run('resumed-run', 'completed', []), result: candidate }),
+      );
+      fixture.componentRef.setInput('session', { runId: 'resumed-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+      fixture.detectChanges();
+      await new Promise<void>((resolve) => setTimeout(resolve, 800));
+
+      expect(api.getRun).toHaveBeenCalledTimes(2);
+      expect(applier.apply).toHaveBeenCalledOnceWith(candidate, form, { researchActivity: 'activity-1' }, eventBus, []);
+      expect(component.completed()).toBeTrue();
+      expect(component.busy()).toBeFalse();
+      expect(api.execute).not.toHaveBeenCalled();
+    });
+  }
+
+  it('ignores a polled result after the component is destroyed', async () => {
+    const candidate = { runId: 'resumed-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+    let finish!: (value: GenerationRunView) => void;
+    const polled = new Promise<GenerationRunView>((resolve) => { finish = resolve; });
+    api.getRun.and.returnValues(Promise.resolve(run('resumed-run', 'running', [])), polled);
+    fixture.componentRef.setInput('session', { runId: 'resumed-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    fixture.detectChanges();
+    // Allow initialization and its first poll to enter the deferred API request.
+    await new Promise<void>((resolve) => setTimeout(resolve, 800));
+    expect(component.busy()).toBeTrue();
+    expect(api.getRun).toHaveBeenCalledTimes(2);
+    await component.generate();
+    expect(api.execute).not.toHaveBeenCalled();
+    fixture.destroy();
+    finish({ ...run('resumed-run', 'completed', []), result: candidate });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(applier.apply).not.toHaveBeenCalled();
+    expect(component.candidate()).toBeNull();
+  });
+
+  it('clears a scheduled poll when the component is destroyed', async () => {
+    api.getRun.and.resolveTo(run('resumed-run', 'queued', []));
+    fixture.componentRef.setInput('session', { runId: 'resumed-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(component.busy()).toBeTrue();
+    fixture.destroy();
+    await new Promise<void>((resolve) => setTimeout(resolve, 800));
+
+    expect(api.getRun).toHaveBeenCalledTimes(1);
+    expect(applier.apply).not.toHaveBeenCalled();
+  });
+
+  it('does not apply a pending poll to a replacement form or reuse its old session', async () => {
+    const candidate = { runId: 'old-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+    let finish!: (value: GenerationRunView) => void;
+    api.getRun.and.returnValues(
+      Promise.resolve(run('old-run', 'running', [])),
+      new Promise<GenerationRunView>((resolve) => { finish = resolve; }),
+    );
+    fixture.componentRef.setInput('session', { runId: 'old-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve, 800));
+    const replacement = new FormGroup({ title: new FormControl('Replacement record') });
+    fixture.componentRef.setInput('form', replacement);
+    fixture.detectChanges();
+    finish({ ...run('old-run', 'completed', []), result: candidate });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await component.generate();
+
+    expect(applier.apply).not.toHaveBeenCalled();
+    expect(replacement.getRawValue()).toEqual({ title: 'Replacement record' });
+    expect(component.effectiveSession()).toBeNull();
+    expect(component.candidate()).toBeNull();
+    expect(component.run()).toBeNull();
+    expect(api.execute).not.toHaveBeenCalled();
+  });
+
+  it('clears inline session state when external session inputs are cleared during a poll', async () => {
+    const candidate = { runId: 'old-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+    let finish!: (value: GenerationRunView) => void;
+    api.getRun.and.returnValues(
+      Promise.resolve(run('old-run', 'running', [])),
+      new Promise<GenerationRunView>((resolve) => { finish = resolve; }),
+    );
+    const session = { runId: 'old-run', bindingKey: 'documents', autoOpen: true, initialValues: [] };
+    fixture.componentRef.setInput('session', session);
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve, 800));
+    component.activeSession.set(session);
+    const clearsBeforeReset = (component.provenance.clear as jasmine.Spy).calls.count();
+    fixture.componentRef.setInput('session', null);
+    fixture.detectChanges();
+    finish({ ...run('old-run', 'completed', []), result: candidate });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(applier.apply).not.toHaveBeenCalled();
+    expect(component.effectiveSession()).toBeNull();
+    expect(component.run()).toBeNull();
+    expect(component.candidate()).toBeNull();
+    expect(component.provenance.clear).toHaveBeenCalledTimes(clearsBeforeReset);
+  });
+
+  it('ignores a completed execution after the form is replaced', async () => {
+    const candidate = { runId: 'old-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+    component.activeSession.set({ runId: 'old-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run('old-run', 'draft', []));
+    let finish!: (value: GenerationRunView) => void;
+    api.execute.and.returnValue(new Promise<GenerationRunView>((resolve) => { finish = resolve; }));
+    const generating = component.generate();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    fixture.componentRef.setInput('form', new FormGroup({ title: new FormControl('New record') }));
+    fixture.detectChanges();
+    finish({ ...run('old-run', 'completed', []), result: candidate });
+    await generating;
+
+    expect(applier.apply).not.toHaveBeenCalled();
+    expect(component.effectiveSession()).toBeNull();
+    expect(component.run()).toBeNull();
+  });
+
+  it('does not reactivate a document launch after its form is replaced', async () => {
+    fixture.componentRef.setInput('launches', [{ bindingKey: 'documents', allowDocumentsOnly: true }]);
+    let finish!: (value: { runId: string; targetUrl: string }) => void;
+    api.launch.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const starting = component.startWithDocuments();
+    fixture.componentRef.setInput('form', new FormGroup({ title: new FormControl('New record') }));
+    fixture.detectChanges();
+    finish({ runId: 'old-run', targetUrl: '/unused' });
+    await starting;
+
+    expect(api.getRun).not.toHaveBeenCalled();
+    expect(component.effectiveSession()).toBeNull();
+    expect(component.run()).toBeNull();
+  });
+
+  it('ignores an old cancellation response after a replacement session opens', async () => {
+    component.activeSession.set({ runId: 'old-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run('old-run', 'draft', []));
+    let finish!: (value: GenerationRunView) => void;
+    api.cancel.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const cancelling = component.cancel();
+    api.getRun.and.resolveTo(run('new-run', 'draft', []));
+    fixture.componentRef.setInput('session', { runId: 'new-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    finish(run('old-run', 'cancelled', []));
+    await cancelling;
+
+    expect(component.effectiveSession()?.runId).toBe('new-run');
+    expect(component.run()?.runId).toBe('new-run');
+  });
+
+  it('ignores an old document response after the form is replaced', async () => {
+    component.activeSession.set({ runId: 'old-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set({ ...run('old-run', 'draft', []), documentPolicy: {
+      formats: ['txt'], maxFiles: 1, maxFileBytes: 1000, maxTextBytes: 1000,
+    } });
+    const input = document.createElement('input');
+    Object.defineProperty(input, 'files', { value: [new File(['Project'], 'project.txt')] });
+    let finish!: (value: GenerationRunView) => void;
+    api.addDocument.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const uploading = component.uploadDocument({ target: input } as unknown as Event);
+    fixture.componentRef.setInput('form', new FormGroup({ title: new FormControl('New record') }));
+    fixture.detectChanges();
+    finish({ ...run('old-run', 'draft', []), documents: [{ id: 'document-1', name: 'project.txt', contentHash: 'hash', passages: [] }] });
+    await uploading;
+
+    expect(component.run()).toBeNull();
+    expect(component.documents()).toEqual([]);
+    expect(component.effectiveSession()).toBeNull();
+  });
+
 });

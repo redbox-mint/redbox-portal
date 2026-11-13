@@ -170,13 +170,15 @@ export namespace Controllers {
     public async commit(req: Sails.Req, res: Sails.Res) {
       return this.respondGeneration(req, res, async (actor, user, brand) => {
         const body = asObject(req.body);
-        if (!Array.isArray(body.reviewedFieldIds) || body.reviewedFieldIds.some((id) => typeof id !== 'string')) {
+        if (!Array.isArray(body.appliedFieldIds) || body.appliedFieldIds.some((id) => typeof id !== 'string') ||
+          !Array.isArray(body.reviewedFieldIds) || body.reviewedFieldIds.some((id) => typeof id !== 'string')) {
           throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation commit request is invalid');
         }
         return {
           data: await this.runService.commit(actor, user, brand, requiredString(req.param('id'), 'run id'), {
             targetOid: requiredString(body.targetOid, 'targetOid'),
             candidateDigest: requiredString(body.candidateDigest, 'candidateDigest'),
+            appliedFieldIds: body.appliedFieldIds as string[],
             reviewedFieldIds: body.reviewedFieldIds as string[],
           }),
         };

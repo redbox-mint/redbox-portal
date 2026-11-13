@@ -16,7 +16,7 @@ import { buildEvidenceAliases } from './GenerationSchemaService';
 import { requireService } from './generation/require-service';
 
 interface PersistenceLike {
-  transitionRun(brandId: string, runId: string, expected: string | string[], next: string, changes?: Record<string, unknown>): Promise<GenerationRunAttributes>;
+  transitionRun(brandId: string, runId: string, expected: string | string[], next: string, changes?: Record<string, unknown>, expectedAttemptCount?: number): Promise<GenerationRunAttributes>;
 }
 interface CryptoLike {
   decrypt<T>(brandId: string, runId: string, envelope: GenerationEncryptedEnvelope): Promise<T>;
@@ -48,12 +48,18 @@ export namespace Services {
       if (!brandId || !runId) return;
       const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
       let state: 'running' | 'validating' = 'running';
+      let claimedAttempt: number | undefined;
       try {
         const current = await GenerationRun.findOne({ id: runId, brandId });
+        if (current?.status === 'cancelRequested') {
+          await persistence.transitionRun(brandId, runId, 'cancelRequested', 'cancelled', { phase: current.phase }, current.attemptCount);
+          return;
+        }
         if (!current || current.status !== 'queued') return;
         const run = await persistence.transitionRun(brandId, runId, 'queued', 'running', {
           phase: 'provider', startedAt: new Date().toISOString(), lastHeartbeatAt: new Date().toISOString(),
-        });
+        }, current.attemptCount);
+        claimedAttempt = run.attemptCount;
         await this.reauthorize(run);
         const profile = await GenerationProfileVersion.findOne({ id: run.profileVersionId, brandId });
         const deployment = await GenerationModelDeployment.findOne({ id: run.modelDeploymentId, brandId });
@@ -85,7 +91,7 @@ export namespace Services {
         const providerRequest = promptService.build({
           correlationId: runId, definition: profile.definition, frozenInput: payload.frozenInput, knowledge,
           evidenceAliases, responseSchema,
-          connection: { endpoint: connection.endpoint, secret, timeoutMs: connection.timeoutMs, nonSecretHeaders: connection.nonSecretHeaders },
+          connection: { endpoint: connection.endpoint, timeoutMs: connection.timeoutMs, nonSecretHeaders: connection.nonSecretHeaders },
           deployment: deploymentConfig,
         });
         const registry = requireService<RegistryLike>('generationproviderregistryservice', ['get']);
@@ -95,13 +101,17 @@ export namespace Services {
           throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Generation deployment lacks required capabilities');
         }
         const abortController = new AbortController();
-        const response = await adapter.invoke(providerRequest, abortController.signal);
+        const response = await adapter.invoke({
+          ...providerRequest, connection: { ...providerRequest.connection, secret },
+        }, abortController.signal);
         const afterProvider = await GenerationRun.findOne({ id: runId, brandId });
-        if (afterProvider?.status === 'cancelRequested') {
-          await persistence.transitionRun(brandId, runId, 'cancelRequested', 'cancelled', { phase: 'provider' });
+        if (!afterProvider || afterProvider.attemptCount !== claimedAttempt) return;
+        if (afterProvider.status === 'cancelRequested') {
+          await persistence.transitionRun(brandId, runId, 'cancelRequested', 'cancelled', { phase: 'provider' }, claimedAttempt);
           return;
         }
-        await persistence.transitionRun(brandId, runId, 'running', 'validating', { phase: 'validation', lastHeartbeatAt: new Date().toISOString() });
+        if (afterProvider.status !== 'running') return;
+        await persistence.transitionRun(brandId, runId, 'running', 'validating', { phase: 'validation', lastHeartbeatAt: new Date().toISOString() }, claimedAttempt);
         state = 'validating';
         const candidate = schemaService.validateCandidate({
           runId, rawContent: response.content, definition: profile.definition, evidence, evidenceAliases,
@@ -111,10 +121,11 @@ export namespace Services {
         const envelope = await crypto.encrypt(brandId, runId, {
           ...payload, knowledge, providerRequest, rawResponse: response.content, candidate,
         } satisfies GenerationArtifactPayload & { questions?: unknown[] });
-        await GenerationRunArtifact.updateOne({ id: artifact.id, brandId, runId }).set({
+        const saved = await GenerationRunArtifact.updateOne({ id: artifact.id, brandId, runId, ciphertext: artifact.ciphertext }).set({
           ...envelope,
           contentKinds: ['frozenInput', 'knowledge', 'providerRequest', 'rawResponse', 'candidate', 'completionValues', ...(payload.documents?.length ? ['documents'] : [])],
         });
+        if (!saved) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation artifact changed concurrently');
         await persistence.transitionRun(brandId, runId, 'validating', 'completed', {
           phase: 'population', candidateDigest: candidate.candidateDigest,
           candidateSummary: {
@@ -125,19 +136,22 @@ export namespace Services {
           actualProvider: response.actualProvider, actualModel: response.actualModel,
           routerMetadata: response.routerMetadata, usage: response.usage,
           completedAt: new Date().toISOString(), retryable: false,
-        });
+        }, claimedAttempt);
       } catch (error) {
+        // A losing delivery must never settle the run owned by the winning worker.
+        if (claimedAttempt === undefined) return;
         const safe = asGenerationError(error);
         const current = await GenerationRun.findOne({ id: runId, brandId });
-        if (current?.status === 'cancelRequested') {
-          await persistence.transitionRun(brandId, runId, 'cancelRequested', 'cancelled', { phase: current.phase });
+        if (!current || current.attemptCount !== claimedAttempt) return;
+        if (current.status === 'cancelRequested') {
+          await persistence.transitionRun(brandId, runId, 'cancelRequested', 'cancelled', { phase: current.phase }, claimedAttempt);
           return;
         }
         if (current && (current.status === 'running' || current.status === 'validating')) {
           await persistence.transitionRun(brandId, runId, current.status, 'failed', {
             phase: state === 'running' ? 'provider' : 'validation', errorCode: safe.code,
             errorSummary: safe.message.slice(0, 300), retryable: safe.retryable,
-          });
+          }, claimedAttempt);
         }
       }
     }

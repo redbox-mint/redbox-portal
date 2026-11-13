@@ -36,10 +36,9 @@ describe('GenerationApiService', () => {
   afterEach(() => http.verify());
 
   async function settleRequest(): Promise<void> {
-    // generationBaseUrl() and waitForInit() are both asynchronous boundaries.
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    // Let the complete initialization chain settle before asserting the request.
+    // Counting Promise turns depends on the Zone/compiler implementation.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
 
   function expectRequest(url: string, method: string, body: unknown, response: unknown): void {
@@ -83,7 +82,7 @@ describe('GenerationApiService', () => {
     });
     expect((await cancelPromise).status).toBe('cancelRequested');
 
-    const commitBody = { targetOid: 'target-1', candidateDigest: 'digest', reviewedFieldIds: ['sharing'] };
+    const commitBody = { targetOid: 'target-1', candidateDigest: 'digest', appliedFieldIds: ['sharing'], reviewedFieldIds: ['sharing'] };
     const commitPromise = service.commit('run-1', commitBody);
     await settleRequest();
     expectRequest('/generation/runs/run-1/commit', 'POST', commitBody, {

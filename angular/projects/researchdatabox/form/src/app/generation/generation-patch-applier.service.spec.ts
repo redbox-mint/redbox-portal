@@ -30,7 +30,7 @@ describe('GenerationPatchApplierService', () => {
     service = new GenerationPatchApplierService();
     form = new FormGroup({
       plan: new FormGroup({
-        summary: new FormControl('Original summary'),
+        summary: new FormControl(''),
         sharing: new FormControl('User changed sharing'),
       }),
     });
@@ -39,7 +39,7 @@ describe('GenerationPatchApplierService', () => {
 
   it('applies unchanged snapshot fields and reports user-edit conflicts without overwriting them', () => {
     const result = service.apply(candidate(), form, {
-      plan: { summary: 'Original summary', sharing: 'Original sharing' },
+      plan: { summary: '', sharing: 'Original sharing' },
     }, eventBus);
 
     expect(result).toEqual({ changedFieldIds: ['summary'], conflictFieldIds: ['sharing'] });
@@ -51,12 +51,45 @@ describe('GenerationPatchApplierService', () => {
     const events = eventBus.publish.calls.allArgs().map(([event]) => event);
     expect(events[0]).toEqual(jasmine.objectContaining({
       type: 'field.value.changed', fieldId: 'summary', origin: 'generation', correlationId: 'run-1',
-      value: 'Generated summary', previousValue: 'Original summary',
+      value: 'Generated summary', previousValue: '',
     }));
     expect(events[1]).toEqual(jasmine.objectContaining({
       type: 'generation.patch.applied', changedFieldIds: ['summary'], conflictFieldIds: ['sharing'],
       origin: 'generation', correlationId: 'run-1',
     }));
+  });
+
+  for (const existing of ['Original summary', false, 0, { selected: 'researcher choice' }, ['researcher choice']]) {
+    it(`preserves non-empty fill targets that match the execution snapshot: ${JSON.stringify(existing)}`, () => {
+      const target = new FormGroup({ summary: new FormControl<unknown>(structuredClone(existing)) });
+      const patch = { ...candidate(), items: [{ ...candidate().items[0], metadataPointer: '/summary' }] };
+      const result = service.apply(patch, target, { summary: structuredClone(existing) }, eventBus);
+
+      expect(target.get('summary')?.value).toEqual(existing);
+      expect(result).toEqual({ changedFieldIds: [], conflictFieldIds: ['summary'] });
+      expect(eventBus.publish).not.toHaveBeenCalledWith(jasmine.objectContaining({ type: 'field.value.changed' }));
+    });
+  }
+
+  for (const empty of [null, undefined, '', [], {}]) {
+    it(`fills an empty unchanged target: ${JSON.stringify(empty)}`, () => {
+      const target = new FormGroup({ summary: new FormControl<unknown>(empty) });
+      const baseline = { summary: target.getRawValue().summary };
+      const patch = { ...candidate(), items: [{ ...candidate().items[0], metadataPointer: '/summary' }] };
+      const result = service.apply(patch, target, baseline, eventBus);
+
+      expect(target.get('summary')?.value).toBe('Generated summary');
+      expect(result).toEqual({ changedFieldIds: ['summary'], conflictFieldIds: [] });
+    });
+  }
+
+  it('does not fill a target cleared by the researcher after execution began', () => {
+    const target = new FormGroup({ summary: new FormControl('') });
+    const patch = { ...candidate(), items: [{ ...candidate().items[0], metadataPointer: '/summary' }] };
+    const result = service.apply(patch, target, { summary: 'Removed by researcher' }, eventBus);
+
+    expect(target.get('summary')?.value).toBe('');
+    expect(result).toEqual({ changedFieldIds: [], conflictFieldIds: ['summary'] });
   });
 
   it('applies a configuration-path target to its flat runtime form control', () => {

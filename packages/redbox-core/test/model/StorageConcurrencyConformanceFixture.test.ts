@@ -1,10 +1,12 @@
 import {
   RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
-  STORAGE_CONCURRENCY_CONFORMANCE_CHECKS,
   StorageMutationResponse,
   type RecordStorageMutationOptions,
-  type StorageConcurrencyConformanceHarness,
 } from '../../src';
+import {
+  STORAGE_CONCURRENCY_CONFORMANCE_CHECKS,
+  type StorageConcurrencyConformanceHarness,
+} from '../../src/testing/storageConcurrencyConformance';
 
 type Store = Map<string, Record<string, unknown>>;
 

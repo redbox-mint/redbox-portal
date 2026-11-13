@@ -16,6 +16,7 @@ const validate = (record: Record<string, unknown>, callback: (error?: Error) => 
     callback(buildInvalidNewRecordError('Generation artifact expiresAt must be in the future'));
     return;
   }
+  if (record.expiresAt !== undefined) record.expiresAtDate = new Date(expiresAt);
   callback();
 };
 const validateCreate = (record: Record<string, unknown>, callback: (error?: Error) => void) => validate(record, callback, false);
@@ -26,13 +27,14 @@ const validateUpdate = (record: Record<string, unknown>, callback: (error?: Erro
 @Entity('generationrunartifact', {
   indexes: [
     { attributes: { brandId: 1, runId: 1 }, unique: true },
-    { attributes: { expiresAt: 1 }, expireAfterSeconds: 0 },
+    { attributes: { expiresAtDate: 1 }, expireAfterSeconds: 0 },
   ],
 })
 export class GenerationRunArtifactClass {
   @Attr({ type: 'string', required: true }) public brandId!: string;
   @Attr({ type: 'string', required: true }) public runId!: string;
-  @Attr({ type: 'string', columnType: 'datetime', required: true }) public expiresAt!: string;
+  @Attr({ type: 'string', required: true }) public expiresAt!: string;
+  @Attr({ type: 'ref' }) public expiresAtDate?: Date;
   @Attr({ type: 'string', required: true }) public encryptionKeyId!: string;
   @Attr({ type: 'string', required: true }) public iv!: string;
   @Attr({ type: 'string', required: true }) public authTag!: string;
@@ -42,7 +44,7 @@ export class GenerationRunArtifactClass {
 }
 export const GenerationRunArtifactWLDef = toWaterlineModelDef(GenerationRunArtifactClass);
 export interface GenerationRunArtifactAttributes extends Sails.WaterlineAttributes {
-  brandId: string; runId: string; expiresAt: string; encryptionKeyId: string; iv: string;
+  brandId: string; runId: string; expiresAt: string; expiresAtDate?: Date; encryptionKeyId: string; iv: string;
   authTag: string; ciphertext: string; payloadVersion: number; contentKinds: string[];
 }
 export interface GenerationRunArtifactWaterlineModel extends Sails.Model<GenerationRunArtifactAttributes> { attributes: GenerationRunArtifactAttributes; }

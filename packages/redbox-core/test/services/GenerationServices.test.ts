@@ -221,6 +221,7 @@ describe('Generation core primitives and services', () => {
                 config: {
                   componentDefinitions: [{
                     name: 'title',
+                    model: { class: 'SimpleInputModel', config: {} },
                     component: { class: 'SimpleInputComponent', config: {} },
                   }],
                 },
@@ -237,6 +238,7 @@ describe('Generation core primitives and services', () => {
                       config: {
                         componentDefinitions: [{
                           name: 'notes',
+                          model: { class: 'TextAreaModel', config: {} },
                           component: { class: 'TextAreaComponent', config: { readonly: true } },
                         }],
                       },
@@ -251,13 +253,13 @@ describe('Generation core primitives and services', () => {
     };
 
     const targets = service.resolveFormTargets(form);
-    expect(targets.get('/mainTab/project/title')).to.deep.equal({
-      metadataPointer: '/mainTab/project/title',
+    expect(targets.get('/title')).to.deep.equal({
+      metadataPointer: '/title',
       componentClass: 'SimpleInputComponent',
       disabled: false,
     });
-    expect(targets.get('/mainTab/review/restricted/notes')).to.deep.equal({
-      metadataPointer: '/mainTab/review/restricted/notes',
+    expect(targets.get('/notes')).to.deep.equal({
+      metadataPointer: '/notes',
       componentClass: 'TextAreaComponent',
       disabled: true,
     });
@@ -265,20 +267,20 @@ describe('Generation core primitives and services', () => {
     const nestedDefinition = profileDefinition();
     nestedDefinition.targetFields = [{
       id: 'title',
-      metadataPointer: '/mainTab/project/title',
+      metadataPointer: '/title',
       expectedComponentClasses: ['SimpleInputComponent'],
       output: { kind: 'string', maxLength: 250 },
       operation: 'fill',
       grounding: 'sourceRequired',
     }];
-    expect(service.validateTargets(nestedDefinition, form).get('/mainTab/project/title')).to.deep.equal(
-      targets.get('/mainTab/project/title'),
+    expect(service.validateTargets(nestedDefinition, form).get('/title')).to.deep.equal(
+      targets.get('/title'),
     );
 
     nestedDefinition.targetFields[0] = {
       ...nestedDefinition.targetFields[0],
       id: 'notes',
-      metadataPointer: '/mainTab/review/restricted/notes',
+      metadataPointer: '/notes',
       expectedComponentClasses: ['TextAreaComponent'],
     };
     expect(() => service.validateTargets(nestedDefinition, form)).to.throw(

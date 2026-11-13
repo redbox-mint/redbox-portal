@@ -44,7 +44,10 @@ export class GenerationProvenanceStoreService {
     const revision = ++this.revision;
     const response = await this.api.provenance(oid);
     if (revision !== this.revision) return;
-    this.byPointerState.set(Object.fromEntries(response.fields.map((field) => [field.metadataPointer, field])));
+    this.byPointerState.set(Object.fromEntries(response.fields.map((field) => [
+      field.metadataPointer,
+      field.displayState === 'edited' ? { ...field, reviewRequired: false } : field,
+    ])));
   }
 
   public async markReviewed(pointer: string): Promise<void> {
@@ -61,11 +64,16 @@ export class GenerationProvenanceStoreService {
     }));
   }
 
-  public markEdited(pointer: string, _value: unknown): void {
+  public markEdited(pointer: string, value: unknown): void {
     if (!this.byPointerState()[pointer]) return;
+    this.revision++;
     this.byPointerState.update((current) => {
       const next = { ...current };
-      delete next[pointer];
+      if (value === undefined || value === null || value === '') {
+        delete next[pointer];
+      } else {
+        next[pointer] = { ...current[pointer], displayState: 'edited', reviewRequired: false };
+      }
       return next;
     });
   }

@@ -42,7 +42,7 @@ export class GenerationProvenanceBadgeComponent {
   readonly metadataPointer = input.required<string>();
   readonly field = computed(() => {
     const field = this.store.byPointer()[this.metadataPointer()];
-    return field?.displayState === 'generated' ? field : undefined;
+    return field?.displayState === 'removed' ? undefined : field;
   });
 
   constructor(private readonly store: GenerationProvenanceStoreService) {}

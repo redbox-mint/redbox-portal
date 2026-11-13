@@ -890,6 +890,7 @@ Request:
 {
   "targetOid": "new-record-oid",
   "candidateDigest": "sha256...",
+  "appliedFieldIds": ["sharing.plan"],
   "reviewedFieldIds": ["sharing.plan"]
 }
 ```
@@ -1034,7 +1035,7 @@ Methods:
 - `getRun(runId)`;
 - `execute(runId, answers, targetForm, targetDraft)`;
 - `cancel(runId)`;
-- `commit(runId, targetOid, candidateDigest, reviewedFieldIds)`;
+- `commit(runId, targetOid, candidateDigest, appliedFieldIds, reviewedFieldIds)`;
 - `getProvenance(oid)`;
 - `reviewProvenance(id)`.
 

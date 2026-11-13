@@ -1,4 +1,4 @@
-import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormPathHelper, type FormComponentDefinitionOutline, type FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import type { GenerationCandidatePatch, GenerationCandidatePatchItem, GenerationGroundingState } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import {
@@ -80,12 +80,14 @@ export namespace Services {
           if (!raw || typeof raw !== 'object') continue;
           const item = raw as Record<string, unknown>;
           const name = String(item.name ?? '').trim();
-          const lineage = name ? [...parents, name] : parents;
+          const metadataTokens = FormPathHelper.metadataTokensForComponent(raw as FormComponentDefinitionOutline);
+          const lineage = [...parents, ...metadataTokens];
           const component = (item.component ?? {}) as Record<string, unknown>;
           const config = (component.config ?? {}) as Record<string, unknown>;
-          if (name && component.class) {
-            result.set(`/${lineage.map((part) => part.replaceAll('~', '~0').replaceAll('/', '~1')).join('/')}`, {
-              metadataPointer: `/${lineage.join('/')}`,
+          if (name && metadataTokens.length && component.class) {
+            const pointer = `/${lineage.map((part) => part.replaceAll('~', '~0').replaceAll('/', '~1')).join('/')}`;
+            result.set(pointer, {
+              metadataPointer: pointer,
               componentClass: String(component.class),
               disabled: config.disabled === true || config.readonly === true || config.editMode === false,
             });

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { authorizeRun } from './generation/authorize-run';
 import type {
   GenerationCommitRequest,
@@ -8,6 +9,7 @@ import type {
 import { Services as services } from '../CoreService';
 import type { BrandingModel, UserModel } from '../model';
 import { canonicalHash, GenerationActorContext, GenerationArtifactPayload, GenerationError, getJsonPointer } from '../model/generation';
+import type { GenerationRunAttributes } from '../waterline-models/GenerationRun';
 import type { GenerationFieldProvenanceAttributes } from '../waterline-models/GenerationFieldProvenance';
 import type { GenerationEncryptedEnvelope } from './GenerationCryptoService';
 import { envelopeFromArtifact } from './GenerationRunService';
@@ -23,9 +25,6 @@ interface CryptoLike {
   decrypt<T>(brandId: string, runId: string, envelope: GenerationEncryptedEnvelope): Promise<T>;
   encrypt(brandId: string, runId: string, payload: unknown): Promise<GenerationEncryptedEnvelope>;
 }
-interface PersistenceLike {
-  transitionRun(brandId: string, runId: string, expected: string | string[], next: string, changes?: Record<string, unknown>): Promise<unknown>;
-}
 
 export namespace Services {
   export class GenerationProvenanceService extends services.Core.Service {
@@ -38,16 +37,29 @@ export namespace Services {
       runId: string,
       request: GenerationCommitRequest,
     ): Promise<GenerationCommitResult> {
+      if (!Array.isArray(request.appliedFieldIds) || request.appliedFieldIds.some(id => typeof id !== 'string') ||
+        new Set(request.appliedFieldIds).size !== request.appliedFieldIds.length ||
+        !Array.isArray(request.reviewedFieldIds) || request.reviewedFieldIds.some(id => typeof id !== 'string') ||
+        new Set(request.reviewedFieldIds).size !== request.reviewedFieldIds.length) {
+        throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation field receipt is invalid');
+      }
       const run = await GenerationRun.findOne({ id: runId, brandId: actor.brandId, initiatedByUserId: actor.userId });
       if (!run) throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation run was not found');
+      const sameIds = (left: string[], right: string[]) => left.length === right.length && left.every(id => right.includes(id));
+      if ((run.commitAppliedFieldIds && !sameIds(run.commitAppliedFieldIds, request.appliedFieldIds)) ||
+        (run.commitReviewedFieldIds && !sameIds(run.commitReviewedFieldIds, request.reviewedFieldIds))) {
+        throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation field receipt does not match its prior commit');
+      }
       if (run.status === 'committed') {
-        if (run.targetDescriptor.targetOid !== request.targetOid || run.candidateDigest !== request.candidateDigest) {
+        if (!run.commitAppliedFieldIds || run.targetDescriptor.targetOid !== request.targetOid || run.candidateDigest !== request.candidateDigest) {
           throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation receipt does not match its prior commit');
         }
+        await this.cleanupArtifact(run);
         const count = await GenerationFieldProvenance.count({ brandId: actor.brandId, runId });
         return { runId, targetOid: request.targetOid, committed: true, provenanceCount: count };
       }
-      if (run.status !== 'completed' || run.candidateDigest !== request.candidateDigest) {
+      if (!['completed', 'committing'].includes(run.status) || run.candidateDigest !== request.candidateDigest ||
+        (run.targetDescriptor.targetOid && run.targetDescriptor.targetOid !== request.targetOid)) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation receipt is not ready or its digest is invalid');
       }
       const records = requireService<RecordsLike>('recordsservice', ['getMeta', 'hasViewAccess', 'hasEditAccess']);
@@ -75,20 +87,45 @@ export namespace Services {
         payload.candidate.items.some((item) => canonicalHash(item.value) !== item.valueHash)) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation candidate hashes are invalid');
       }
-      for (const item of payload.candidate.items) {
+      const candidateIds = new Set(payload.candidate.items.map(item => item.fieldId));
+      if (request.appliedFieldIds.some(id => !candidateIds.has(id))) {
+        throw new GenerationError('GENERATION_COMMIT_INVALID', 'Applied generation fields are invalid');
+      }
+      const appliedIds = new Set(request.appliedFieldIds);
+      const appliedItems = payload.candidate.items.filter(item => appliedIds.has(item.fieldId));
+      for (const item of appliedItems) {
         const savedValue = getJsonPointer(record.metadata ?? {}, item.metadataPointer);
         if (savedValue !== undefined) canonicalHash(savedValue);
       }
-      const validReviewIds = new Set(payload.candidate.items.filter((item) => item.reviewRequired).map((item) => item.fieldId));
-      if (request.reviewedFieldIds.some((id) => !validReviewIds.has(id))) {
+      const validReviewIds = new Set(appliedItems.filter(item => item.reviewRequired).map(item => item.fieldId));
+      if (request.reviewedFieldIds.some(id => !validReviewIds.has(id))) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Reviewed generation fields are invalid');
       }
-      const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
-      await persistence.transitionRun(actor.brandId, runId, 'completed', 'committing', { phase: 'saveCommit' });
+      const now = new Date().toISOString();
+      if (run.status === 'committing' && run.commitLeaseExpiresAt && run.commitLeaseExpiresAt > now) {
+        throw new GenerationError('GENERATION_INVALID_STATE', 'Generation commit is already in progress', true);
+      }
+      const token = randomUUID();
+      const owner = { id: runId, brandId: actor.brandId, status: 'committing', commitToken: token };
+      const claimed = await GenerationRun.updateOne({
+        id: runId, brandId: actor.brandId, status: run.status,
+        commitToken: run.commitToken ?? null, commitLeaseExpiresAt: run.commitLeaseExpiresAt ?? null,
+      }).set({
+        status: 'committing', phase: 'saveCommit', commitToken: token,
+        commitLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        commitStartedAt: run.commitStartedAt || now,
+        commitReviewedFieldIds: run.commitReviewedFieldIds ?? request.reviewedFieldIds,
+        commitAppliedFieldIds: run.commitAppliedFieldIds ?? request.appliedFieldIds,
+        targetDescriptor: { ...run.targetDescriptor, targetOid: request.targetOid },
+      });
+      if (!claimed) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation commit changed concurrently', true);
       try {
-        const now = new Date().toISOString();
-        for (const item of payload.candidate.items) {
-          const reviewed = request.reviewedFieldIds.includes(item.fieldId);
+        for (const item of appliedItems) {
+          const renewed = await GenerationRun.updateOne(owner).set({
+            commitLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+          });
+          if (!renewed) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation commit ownership changed', true);
+          const reviewed = claimed.commitReviewedFieldIds?.includes(item.fieldId) ?? false;
           const values = {
             brandId: actor.brandId, runId, targetRecordOid: request.targetOid,
             profileFieldId: item.fieldId, metadataPointer: item.metadataPointer,
@@ -96,30 +133,58 @@ export namespace Services {
             evidenceRefs: item.evidence.map((evidence) => ({ id: evidence.id, label: evidence.label, kind: evidence.kind })),
             rationale: item.rationale.slice(0, 500), groundingState: item.groundingState,
             reviewRequired: item.reviewRequired && !reviewed, reviewReasonCode: item.reviewReasonCode,
-            reviewedBy: reviewed ? actor.userId : undefined, reviewedAt: reviewed ? now : undefined,
-            generatedAt: run.completedAt ?? now, committedAt: now,
+            reviewedBy: reviewed ? actor.userId : undefined, reviewedAt: reviewed ? claimed.commitStartedAt : undefined,
+            generatedAt: run.completedAt ?? claimed.commitStartedAt, committedAt: claimed.commitStartedAt,
           };
-          const existing = await GenerationFieldProvenance.findOne({ brandId: actor.brandId, runId, profileFieldId: item.fieldId });
-          if (existing) await GenerationFieldProvenance.updateOne({ id: existing.id, brandId: actor.brandId }).set(values);
-          else await GenerationFieldProvenance.create(values).fetch();
+          // Immutable upserts are safe even if a slow database write outlives its lease.
+          // Retries must not overwrite a human review made after a partial commit.
+          const criteria = { brandId: actor.brandId, runId, profileFieldId: item.fieldId };
+          let existing = await GenerationFieldProvenance.findOne(criteria);
+          if (!existing) {
+            try { await GenerationFieldProvenance.create(values).fetch(); }
+            catch (error) {
+              existing = await GenerationFieldProvenance.findOne(criteria);
+              if (!existing) throw error; // Unique index may have admitted the replacement owner.
+            }
+          }
+          if (existing && (existing.targetRecordOid !== request.targetOid || existing.candidateDigest !== request.candidateDigest)) {
+            throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation provenance conflicts with its receipt');
+          }
         }
-        await persistence.transitionRun(actor.brandId, runId, 'committing', 'committed', {
-          committedAt: now, targetDescriptor: { ...run.targetDescriptor, targetOid: request.targetOid },
+        const committed = await GenerationRun.updateOne(owner).set({
+          status: 'committed', committedAt: new Date().toISOString(),
         });
-        if (run.diagnosticRetentionDays === 0) {
-          await GenerationRunArtifact.destroy({ id: artifact.id, brandId: actor.brandId });
-        } else {
-          const expiresAt = new Date(Date.now() + Math.min(run.diagnosticRetentionDays, 30) * 86_400_000).toISOString();
-          const diagnostic = await crypto.encrypt(actor.brandId, runId, { candidate: payload.candidate });
-          await GenerationRunArtifact.updateOne({ id: artifact.id, brandId: actor.brandId }).set({
-            ...diagnostic, expiresAt, contentKinds: ['candidate'],
-          });
-        }
-        return { runId, targetOid: request.targetOid, committed: true, provenanceCount: payload.candidate.items.length };
+        if (!committed) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation commit ownership changed', true);
+        await this.cleanupArtifact(committed);
+        return { runId, targetOid: request.targetOid, committed: true, provenanceCount: appliedItems.length };
       } catch (error) {
-        const committing = await GenerationRun.findOne({ id: runId, brandId: actor.brandId, status: 'committing' });
-        if (committing) await persistence.transitionRun(actor.brandId, runId, 'committing', 'completed', { phase: 'population' });
+        // Only this owner can release its claim. The pinned receipt survives retry.
+        await GenerationRun.updateOne(owner).set({ status: 'completed', phase: 'population' });
         throw error;
+      }
+    }
+
+    private async cleanupArtifact(run: GenerationRunAttributes): Promise<void> {
+      const artifact = await GenerationRunArtifact.findOne({ brandId: run.brandId, runId: run.id });
+      if (!artifact) return;
+      const criteria = { id: artifact.id, brandId: run.brandId, runId: run.id, ciphertext: artifact.ciphertext };
+      const expiresAt = new Date(Date.parse(run.committedAt ?? '') + Math.min(run.diagnosticRetentionDays, 30) * 86_400_000);
+      if (run.diagnosticRetentionDays === 0 || !Number.isFinite(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+        await GenerationRunArtifact.destroy(criteria);
+        return;
+      }
+      if (artifact.contentKinds.length === 1 && artifact.contentKinds[0] === 'candidate') return;
+      const crypto = requireService<CryptoLike>('generationcryptoservice', ['encrypt', 'decrypt']);
+      const payload = await crypto.decrypt<GenerationArtifactPayload>(run.brandId, run.id, envelopeFromArtifact(artifact));
+      const diagnostic = await crypto.encrypt(run.brandId, run.id, { candidate: payload.candidate });
+      const updated = await GenerationRunArtifact.updateOne(criteria).set({
+        ...diagnostic, expiresAt: expiresAt.toISOString(), contentKinds: ['candidate'],
+      });
+      if (!updated) {
+        const current = await GenerationRunArtifact.findOne({ brandId: run.brandId, runId: run.id });
+        if (current && !(current.contentKinds.length === 1 && current.contentKinds[0] === 'candidate')) {
+          throw new GenerationError('GENERATION_INVALID_STATE', 'Generation artifact cleanup changed concurrently', true);
+        }
       }
     }
 
