@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 reporting_demo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-reporting_demo_dns="$(tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')"
-reporting_demo_url="${1:-https://${reporting_demo_dns}:8443}"
-node "$reporting_demo_dir/prepare.js" "$reporting_demo_url"
-reporting_demo_port="$(node -e 'console.log(new URL(process.argv[1]).port || "443")' "$reporting_demo_url")"
-if [[ "$reporting_demo_port" == 443 ]]; then
-  echo 'Use a dedicated HTTPS port such as 8443 to preserve the shared T3 endpoint.' >&2
-  exit 1
+if [[ -n "${1:-}" ]]; then
+  reporting_demo_url="$1"
+else
+  reporting_demo_dns="$(tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')"
+  reporting_demo_url="https://${reporting_demo_dns}:8443"
 fi
+reporting_demo_port="$(node -e '
+  const url = new URL(process.argv[1]);
+  if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash)
+    throw new Error("Provide the HTTPS Tailscale origin, including a dedicated port");
+  const port = url.port || "443";
+  if (port === "443" || port === "0")
+    throw new Error("Use a dedicated HTTPS port such as 8443 to preserve the shared T3 endpoint");
+  console.log(port);
+' "$reporting_demo_url")"
+node "$reporting_demo_dir/prepare.js" "$reporting_demo_url"
 docker compose --env-file "$reporting_demo_dir/.dev/demo.env" -f "$reporting_demo_dir/docker-compose.yml" up -d
 sudo tailscale serve --bg --https="$reporting_demo_port" http://127.0.0.1:18080
 

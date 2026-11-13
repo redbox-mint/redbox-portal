@@ -145,7 +145,7 @@ An administrator can use `explain('executionStats')` against a pipeline produced
 
 For a ready-to-run Tailscale environment with a local Keycloak OAuth realm, fictional RDMPs and ChatGPT Work connection instructions, see [the reporting demo guide](../development/mcp-reporting/README.md).
 
-Compile server packages with `npm run compile:server` (or core, MCP and storage independently). `npm run test:reporting` runs isolated Mongo and the core/MCP conformance suites using the built test image. Build that image with `docker build --target test -t redbox-portal:test .`, then set `RBPORTAL_IMAGE=redbox-portal:test`. CI runs this target in the existing Mocha job.
+Compile server packages with `npm run compile:server` (or core, MCP and storage independently). `npm run test:reporting` runs isolated Mongo and the core/MCP conformance suites using the built test image. Build that image from the current checkout with `docker build --target test -t redbox-portal:test .`, then run `RBPORTAL_IMAGE=redbox-portal:test npm run test:reporting`. Rebuild it after implementation changes: the suite mounts checkout tests, while implementation and compiled packages come from the image. `RBPORTAL_IMAGE` is required and Compose never pulls the reporting test image, preventing an implicit fallback to the published `develop` image. CI already supplies `RBPORTAL_IMAGE=redbox-portal:test` and runs this target in the existing Mocha job.
 
 For an already available isolated Mongo endpoint:
 

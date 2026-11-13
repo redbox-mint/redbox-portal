@@ -123,6 +123,7 @@ class Solr {
 export namespace Services {
   type SolrFacetFields = Record<string, Array<string | number>>;
   type SolrResponse = {
+    responseHeader?: { partialResults?: boolean | 'true' | 'false' | 'omitted' };
     response: { numFound: number; docs: Array<Record<string, unknown>> };
     facet_counts?: { facet_fields: SolrFacetFields };
   };
@@ -474,6 +475,10 @@ export namespace Services {
       const response = await axios.get(`${this.getBaseUrl(core.options)}${core.options.core}/select`, {
         params, timeout: 6000,
       }).then((response: { data: SolrResponse }) => response.data);
+      // A time-limited page cannot establish either its contents or pagination safely.
+      if (response.responseHeader?.partialResults && response.responseHeader.partialResults !== 'false') {
+        throw new ReportingError('UNAVAILABLE');
+      }
       return response.response.docs.flatMap((doc: Record<string, unknown>) => {
         // storage_id is Mongo's internal document ID; RecordsService resolves the public ReDBox OID.
         const oid = Array.isArray(doc.redboxOid) ? doc.redboxOid[0] : doc.redboxOid;

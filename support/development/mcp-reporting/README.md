@@ -87,7 +87,7 @@ node support/development/mcp-reporting/verify.js
 
 Verification uses the official MCP client and OAuth implementation to exercise discovery, authorization code/PKCE, refresh tokens, issuer binding, audience, scope, seven tools, schema discovery, yearly counts, faculty/stage grouping, monthly histograms, sensitivity filters, bounded search/list output, record projection, hidden/other-brand rejection, and hostile field rejection. Tokens, codes, and PKCE verifiers remain in memory. The dummy password is read from the private local credentials file.
 
-`prepare.js` creates random development credentials and a Keycloak realm import under the ignored `.dev/` directory. Credentials persist across repeated preparation. Keycloak imports the realm on its first run; editing the realm import alone does not reconfigure a previously imported realm. Keep the same origin when restarting this environment. The seed is idempotent and reindexes its known OIDs on startup. The startup script preserves the existing T3 Tailscale listener and permits only this demo's Docker bridge to fetch OIDC/JWKS over its own Tailscale TLS port.
+`prepare.js` creates random development credentials and a Keycloak realm import under the ignored `.dev/` directory. Credentials persist across repeated preparation. Keycloak imports the realm on its first run; editing the realm import alone does not reconfigure a previously imported realm. Keep the same origin when restarting this environment. The seed is idempotent and reindexes its known OIDs on startup. The startup script validates the HTTPS origin and rejects port 443 (including the implicit HTTPS default) before preparing or overwriting `.dev/` files. Shutdown validates the saved origin again before changing any listener, firewall rule, or container. Both scripts require a dedicated nonzero HTTPS port, preserving the existing T3 Tailscale listener. Startup permits only this demo's Docker bridge to fetch OIDC/JWKS over its own Tailscale TLS port.
 
 Use the **Openid Connect Credentials** option on the portal's login page to browse as the same researcher. Normal REST reporting routes also invoke the same service: `GET /default/rdmp/api/reporting/schema/rdmp` and `POST /default/rdmp/api/reporting/query`, with an authenticated ReDBox identity and normal CSRF/version handling.
 
@@ -98,3 +98,11 @@ bash support/development/mcp-reporting/stop.sh
 ```
 
 This removes only the demo's Tailscale listener, scoped firewall rule, and Compose services. Named volumes and generated credentials remain for restart. The Keycloak development server and dummy accounts are intended for this isolated demonstration.
+
+Run the script safety regression tests without starting services:
+
+```bash
+node --test support/development/mcp-reporting/scripts.test.js
+```
+
+These tests use temporary script copies and stub Docker, Tailscale, iptables, and sudo.

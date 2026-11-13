@@ -364,4 +364,88 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
     }
   });
+  for (const framing of ['chunked', 'content-length'] as const) {
+    it(`returns a complete 413 response while an oversized ${framing} upload is still streaming`, async () => {
+      invocations = [];
+      const server = createServer();
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+      const port = (server.address() as AddressInfo).port;
+      const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp` };
+      const auth = new McpAuthenticator(local, async () => principal, keys);
+      const events: Record<string, unknown>[] = [];
+      const handler = reportingMcpHttpHandler(local, reporting, auth, event => events.push(event));
+      server.on('request', (req, res) => {
+        void handler(req, res);
+      });
+      const localToken = await new SignJWT({ scope: config.scope })
+        .setProtectedHeader({ alg: 'RS256', typ: 'at+jwt', kid: 'test-key' })
+        .setIssuer(config.issuer)
+        .setAudience(local.resourceUrl)
+        .setSubject('alice')
+        .setIssuedAt()
+        .setExpirationTime('5m')
+        .sign(privateKey);
+      try {
+        const result = await new Promise<{ status: number | undefined; body: string; sent: number }>(
+          (resolve, reject) => {
+            const chunk = Buffer.alloc(4096, 'x');
+            const total = 512 * chunk.length;
+            let sent = 0;
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            const call = request(
+              `http://127.0.0.1:${port}/mcp`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${localToken}`,
+                  'Content-Type': 'application/json',
+                  ...(framing === 'content-length' ? { 'Content-Length': total } : {}),
+                },
+              },
+              response => {
+                clearTimeout(timer);
+                let body = '';
+                response.setEncoding('utf8');
+                response.on('data', chunk => {
+                  body += chunk;
+                });
+                response.on('error', reject);
+                response.on('end', () => {
+                  resolve({ status: response.statusCode, body, sent });
+                  call.destroy();
+                });
+              }
+            );
+            call.on('error', error => {
+              clearTimeout(timer);
+              reject(error);
+            });
+            call.setTimeout(3000, () => {
+              call.destroy(new Error('No HTTP response to oversized upload'));
+            });
+            const write = () => {
+              sent += chunk.length;
+              call.write(chunk);
+              if (sent < total) timer = setTimeout(write, 5);
+              else call.end();
+            };
+            write();
+          }
+        );
+        assert.equal(result.status, 413);
+        assert.deepEqual(JSON.parse(result.body), { error: 'invalid_request' });
+        assert.ok(result.sent > local.maxRequestBytes);
+        assert.ok(result.sent < 512 * 4096, 'must reject before the upload finishes');
+        assert.equal(invocations.length, 0);
+        assert.equal(events.length, 1);
+        assert.equal(events[0].event, 'mcp-request');
+        assert.equal(events[0].success, false);
+        assert.equal(events[0].code, 'invalid_request');
+        assert.ok(!JSON.stringify(events).includes(localToken));
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+      }
+    });
+  }
 });

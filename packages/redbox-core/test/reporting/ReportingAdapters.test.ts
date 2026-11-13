@@ -124,4 +124,38 @@ describe('Reporting REST and Solr adapters', () => {
     }
     expect(get.calledOnce).to.equal(true);
   });
+  for (const partialResults of [true, 'true', 'omitted']) {
+    it(`rejects incomplete Solr reporting pages when partialResults is ${JSON.stringify(partialResults)}`, async () => {
+      sails.config = { ...sails.config, solr: structuredClone(solr) };
+      sinon.stub(axios, 'get').resolves({
+        data: {
+          responseHeader: { partialResults, details: 'private Solr query details' },
+          response: { numFound: 42, docs: [{ redboxOid: 'incomplete-record' }] },
+        },
+      });
+      const service = new Services.SolrSearchService();
+      let failure: unknown;
+      try {
+        await service.searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).to.be.instanceOf(ReportingError);
+      expect(failure).to.have.property('code', 'UNAVAILABLE');
+      expect(failure).to.have.property('message', 'UNAVAILABLE');
+      expect(JSON.stringify(failure)).not.to.include('private');
+    });
+  }
+  it('accepts a complete Solr reporting page with an explicit false partial-results flag', async () => {
+    sails.config = { ...sails.config, solr: structuredClone(solr) };
+    sinon.stub(axios, 'get').resolves({
+      data: {
+        responseHeader: { partialResults: false },
+        response: { numFound: 1, docs: [{ redboxOid: 'complete-record' }] },
+      },
+    });
+    expect(
+      await new Services.SolrSearchService().searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21)
+    ).to.deep.equal(['complete-record']);
+  });
 });

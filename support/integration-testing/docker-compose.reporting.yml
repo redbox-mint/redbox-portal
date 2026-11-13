@@ -1,6 +1,7 @@
 services:
   reporting-tests:
-    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    image: ${RBPORTAL_IMAGE:?Set RBPORTAL_IMAGE to a test image built from this checkout (docker build --target test -t redbox-portal:test .)}
+    pull_policy: never
     init: true
     working_dir: /opt/redbox-portal
     environment:
