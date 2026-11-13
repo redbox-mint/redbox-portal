@@ -1,0 +1,584 @@
+--- a/packages/redbox-core/src/record-contract/record-contract-compiler.ts
++++ b/packages/redbox-core/src/record-contract/record-contract-compiler.ts
+@@ -9,7 +9,7 @@
+ } from '@researchdatabox/sails-ng-common';
+ import { FormOverride, nothingLogger } from '@researchdatabox/sails-ng-common';
+ import { performance } from 'perf_hooks';
+-import { mergeReadNodes } from './read-visibility';
++import { hasWriteOnlyFields, mergeReadNodes } from './read-visibility';
+ 
+ import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
+ import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
+@@ -80,6 +80,8 @@
+ 
+ interface CompilerState {
+   readonly readMode: boolean;
++  readonly projectionOwners: ReadonlySet<string> | null;
++  hasViewProjections: boolean;
+   readonly definitions: Record<string, ContractNode>;
+   readonly diagnostics: RecordContractDiagnostic[];
+   readonly fieldOwners: Record<string, ContractOwner>;
+@@ -92,6 +94,8 @@
+ function forkCompilerState(state: CompilerState): CompilerState {
+   return {
+     readMode: state.readMode,
++    projectionOwners: state.projectionOwners,
++    hasViewProjections: state.hasViewProjections,
+     definitions: { ...state.definitions },
+     diagnostics: [...state.diagnostics],
+     fieldOwners: { ...state.fieldOwners },
+@@ -118,6 +122,7 @@
+   source.activeDefinitions.forEach(definition => target.activeDefinitions.add(definition));
+   target.propertyCount = source.propertyCount;
+   target.partial = source.partial;
++  target.hasViewProjections = source.hasViewProjections;
+ }
+ 
+ function asRecord(value: unknown): UnknownRecord {
+@@ -437,8 +442,10 @@
+   ) {}
+ 
+   public async compile(request: RecordContractCompileRequest): Promise<RecordContractCompileResult> {
+-    const state: CompilerState = {
++    const createState = (projectionOwners: ReadonlySet<string> | null): CompilerState => ({
+       readMode: request.fieldMode === 'read',
++      projectionOwners,
++      hasViewProjections: false,
+       definitions: {},
+       diagnostics: [],
+       fieldOwners: {},
+@@ -446,18 +453,32 @@
+       activeDefinitions: new Set<string>(),
+       propertyCount: 0,
+       partial: false,
+-    };
++    });
++    let state = createState(null);
+ 
+     try {
+       const snapshot = snapshotCompileRequest(request);
+       this.assertDepth(0, recordContractPointer(''));
+-      const root = await this.compileChildren(
++      let root = await this.compileChildren(
+         snapshot.form.componentDefinitions ?? [],
+         recordContractPointer(''),
+         0,
+         snapshot,
+         state
+       );
++      if (snapshot.fieldMode === 'read' && state.hasViewProjections) {
++        // Resolve ownership through the same bounded compiler, including reusable
++        // expansion, transparent containers and name overrides. Only exact owners
++        // from non-projection declarations can suppress a view Content projection.
++        state = createState(new Set(Object.keys(state.fieldOwners)));
++        root = await this.compileChildren(
++          snapshot.form.componentDefinitions ?? [],
++          recordContractPointer(''),
++          0,
++          snapshot,
++          state
++        );
++      }
+       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
+       if (snapshot.fieldMode === 'read' && containsPermissiveNode(root)) state.partial = true;
+       this.validateNodeBounds(root, 0, recordContractPointer(''));
+@@ -565,6 +586,18 @@
+     }
+ 
+     component = this.applyEditModeName(component);
++
++    const viewProjection =
++      request.fieldMode === 'read' &&
++      component.constraints?.allowModes?.length === 1 &&
++      component.constraints.allowModes[0] === 'view' &&
++      component.overrides?.formModeClasses?.view?.component === 'ContentComponent';
++    if (viewProjection) {
++      state.hasViewProjections = true;
++      // The authority pass omits projections. The final pass always invokes their
++      // contributors before deciding whether their storage shape is redundant.
++      if (state.projectionOwners === null) return [];
++    }
+ 
+     const componentType = component.component?.class;
+     if (typeof componentType !== 'string' || componentType.trim() === '') {
+@@ -696,6 +729,12 @@
+         componentType,
+         contributor: identity,
+       });
++    }
++    // Privacy is part of the contributor contract, even for display projections.
++    // Keep privacy-bearing nodes in the normal deny-wins merge (including nested
++    // and incompatible shapes); only privacy-free redundant shapes may be omitted.
++    if (viewProjection && state.projectionOwners?.has(pointer) && !hasWriteOnlyFields(contribution.node)) {
++      return [];
+     }
+     this.claimProperty(pointer, componentType, identity, contributionState);
+     for (const owned of contributor.ownedPointers) {
+--- a/packages/redbox-core/src/record-graphql/catalogue.ts
++++ b/packages/redbox-core/src/record-graphql/catalogue.ts
+@@ -120,7 +120,9 @@
+ function selection(contract: RecordContract, tokens: readonly (string | null)[], shape: ReadShape): GridSelection {
+   const names = tokens.filter((token): token is string => token !== null);
+   const aliases = names.map((_, index) => `g_${hash(JSON.stringify([contract.context, names.slice(0, index + 1)]))}`);
+-  let result = shape.kind === 'array' ? (declaredSelection(shape) ?? '') : '';
++  // Keep whole-object results separate from aliases used by selected child columns.
++  if (shape.kind === 'object') aliases[aliases.length - 1] += '_object';
++  let result = shape.kind === 'array' || shape.kind === 'object' ? (declaredSelection(shape) ?? '') : '';
+   for (let index = names.length - 1; index >= 0; index--)
+     result = `${aliases[index]}: ${fieldName(names[index])}${result ? ` { ${result} }` : ''}`;
+   return {
+@@ -249,7 +251,9 @@
+           existing.repeating ||= repeating;
+           existing.selectable &&=
+             !tokens.includes(null) &&
+-            (shape.kind === 'array' ? declaredSelection(shape) !== null : !['OBJECT', 'JSON'].includes(type));
++            (shape.kind === 'array' || shape.kind === 'object'
++              ? declaredSelection(shape) !== null
++              : !['OBJECT', 'JSON'].includes(type));
+           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
+           existing.selections.push(selection(contract, tokens, shape));
+           existing.choices.push(...(hint?.choices ?? []).map(value => ({ label: String(value), value })));
+@@ -263,7 +267,9 @@
+             availableInAllVariants: false,
+             selectable:
+               !tokens.includes(null) &&
+-              (shape.kind === 'array' ? declaredSelection(shape) !== null : !['OBJECT', 'JSON'].includes(type)),
++              (shape.kind === 'array' || shape.kind === 'object'
++                ? declaredSelection(shape) !== null
++                : !['OBJECT', 'JSON'].includes(type)),
+             nullable: true,
+             nested: tokens.length > 1,
+             repeating,
+@@ -289,7 +295,7 @@
+       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
+     field.choices = [...new Map(field.choices.map(choice => [JSON.stringify(choice.value), choice])).values()];
+     if (field.scalarType === 'MIXED') field.selectable = false;
+-    if (!field.selectable || field.repeating) {
++    if (!field.selectable || field.repeating || field.scalarType === 'OBJECT') {
+       field.unavailableReason = field.repeating ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
+       continue;
+     }
+--- a/packages/redbox-core/test/unit/record-graphql/read-variants.test.ts
++++ b/packages/redbox-core/test/unit/record-graphql/read-variants.test.ts
+@@ -5,6 +5,8 @@
+   SimpleInputFormComponentDefinitionFrame,
+   GroupFormComponentDefinitionFrame,
+   RepeatableFormComponentDefinitionFrame,
++  TabContentFormComponentDefinitionFrame,
++  ReusableFormComponentDefinitionFrame,
+ } from '@researchdatabox/sails-ng-common';
+ import {
+   RecordContractCompiler,
+@@ -44,7 +46,8 @@
+ async function compile(
+   definitions: readonly FormComponentDefinitionFrame[],
+   fieldMode: 'edit' | 'read' = 'read',
+-  maxProperties = 10_000
++  maxProperties = 10_000,
++  reusableFormDefinitions?: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>
+ ) {
+   const compiler = new RecordContractCompiler(
+     new RecordContractContributorRegistry(
+@@ -56,6 +59,7 @@
+     form: { name: 'read-variants', type: 'publication', componentDefinitions: definitions },
+     context,
+     fieldMode,
++    reusableFormDefinitions,
+   });
+ }
+ 
+@@ -82,6 +86,128 @@
+         assert.equal(fromTree(result.contract.root.properties.related_url).kind, 'string');
+       }
+     }
++  });
++  it('excludes view Content projections only when the resolved path has another owner', async () => {
++    const person = { ...group('Researcher', [simple('name'), simple('email')]), name: 'contributor_ci' };
++    const view = {
++      ...simple('contributor_ci'),
++      constraints: { allowModes: ['view' as const] },
++      overrides: {
++        formModeClasses: { view: { component: 'ContentComponent' as const, template: '{{content.name}}' } },
++      },
++    };
++    for (const mode of ['read', 'edit'] as const) {
++      const result = await compile([person, view], mode);
++      assert.equal(result.kind, 'compiled', JSON.stringify(result));
++      if (result.kind !== 'compiled') continue;
++      const shape = fromTree(result.contract.root.properties.contributor_ci);
++      assert.equal(shape.kind, 'object');
++      if (shape.kind === 'object') assert.deepEqual(Object.keys(shape.properties), ['email', 'name']);
++    }
++    // A real scalar edit declaration still conflicts: hidden fields are not globally ignored.
++    const conflict = await compile([
++      person,
++      { ...simple('contributor_ci'), constraints: { allowModes: ['edit'] } },
++      view,
++    ]);
++    assert.equal(conflict.kind, 'compiled');
++    if (conflict.kind === 'compiled')
++      assert.equal(fromTree(conflict.contract.root.properties.contributor_ci).kind, 'json');
++    const viewOnly = await compile([view]);
++    assert.equal(viewOnly.kind, 'compiled');
++    if (viewOnly.kind === 'compiled')
++      assert.equal(fromTree(viewOnly.contract.root.properties.contributor_ci).kind, 'string');
++  });
++  it('preserves standalone view-only workflow fields and does not match names at different paths', async () => {
++    const view = {
++      ...simple('external_reference'),
++      constraints: { allowModes: ['view' as const] },
++      overrides: { formModeClasses: { view: { component: 'ContentComponent' as const, template: '{{content}}' } } },
++    };
++    for (const definitions of [[view], [group('Researcher', [simple('external_reference')]), view]]) {
++      const result = await compile(definitions);
++      assert.equal(result.kind, 'compiled', JSON.stringify(result));
++      if (result.kind !== 'compiled') continue;
++      assert.equal(fromTree(result.contract.root.properties.external_reference).kind, 'string');
++      assert.equal(result.contract.completeness, 'complete');
++    }
++    const edit = await compile([view], 'edit');
++    assert.equal(edit.kind, 'compiled');
++    if (edit.kind === 'compiled') assert.deepEqual(edit.contract.root.properties, {});
++  });
++  it('resolves projection ownership across reusable renames and transparent containers in either order', async () => {
++    const view = {
++      ...simple('display_name'),
++      constraints: { allowModes: ['view' as const] },
++      overrides: {
++        replaceName: 'contributor_ci',
++        formModeClasses: { view: { component: 'ContentComponent' as const, template: '{{content.name}}' } },
++      },
++    };
++    const person = {
++      ...group('Researcher', [simple('name'), simple('email')]),
++      overrides: { replaceName: 'contributor_ci' },
++    };
++    const reusable = (name: string): ReusableFormComponentDefinitionFrame => ({
++      name,
++      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
++      overrides: { reusableFormName: name },
++    });
++    for (const order of [
++      [reusable('person'), reusable('display')],
++      [reusable('display'), reusable('person')],
++    ]) {
++      const tabs: TabContentFormComponentDefinitionFrame[] = order.map((child, index) => ({
++        name: 'tab' + index,
++        component: { class: 'TabContentComponent', config: { componentDefinitions: [child] } },
++      }));
++      const result = await compile(tabs, 'read', 10_000, { person: [person], display: [view] });
++      assert.equal(result.kind, 'compiled', JSON.stringify(result));
++      if (result.kind !== 'compiled') continue;
++      const node = result.contract.root.properties.contributor_ci;
++      assert.equal(node.kind, 'object');
++      if (node.kind === 'object') assert.deepEqual(Object.keys(node.properties), ['email', 'name']);
++      assert.equal(result.contract.root.properties.display_name, undefined);
++    }
++    const standalone = await compile([reusable('display')], 'read', 10_000, { display: [view] });
++    assert.equal(standalone.kind, 'compiled');
++    if (standalone.kind === 'compiled')
++      assert.equal(fromTree(standalone.contract.root.properties.contributor_ci).kind, 'string');
++  });
++  it('discovers reusable person children and translated labels through replaceName', async () => {
++    const result = await compile(
++      [
++        {
++          name: 'person',
++          component: { class: 'ReusableComponent', config: {} },
++          overrides: { reusableFormName: 'personGroup' },
++        },
++      ],
++      'read',
++      10_000,
++      {
++        personGroup: [
++          {
++            ...group('Researcher', [
++              {
++                name: 'personFields',
++                component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
++                overrides: { reusableFormName: 'personFields' },
++              },
++            ]),
++            overrides: { replaceName: 'contributor_ci' },
++            layout: { class: 'DefaultLayout', config: { label: '@chief-investigator' } },
++          },
++        ],
++        personFields: [simple('name'), simple('email')],
++      }
++    );
++    assert.equal(result.kind, 'compiled', JSON.stringify(result));
++    if (result.kind !== 'compiled') return;
++    const node = result.contract.root.properties.contributor_ci;
++    assert.equal(node.kind, 'object');
++    if (node.kind === 'object') assert.deepEqual(Object.keys(node.properties), ['email', 'name']);
++    assert.equal(node.annotations?.extensions?.['x-redbox-label'], '@chief-investigator');
+   });
+   it('merges nested fields across role variants while preserving first-variant write semantics', async () => {
+     const definitions = [
+--- a/packages/redbox-core/test/unit/record-graphql/grid.test.ts
++++ b/packages/redbox-core/test/unit/record-graphql/grid.test.ts
+@@ -66,6 +66,75 @@
+     assert.equal(result.body.data!.records!.hasNextPage, true);
+     const rejected = await h.query(
+       '{records(recordType:"grid-fixture",filters:[{field:"metadata:/people",exists:true}]){nodes{oid}}}'
++    );
++    assert.ok(rejected.body.errors?.length);
++  });
++  it('projects declared person objects with private children excluded and no scalar operations', async () => {
++    const h = gridHarness(['a', 'b']);
++    const contracts = gridContracts().map(contract => ({
++      ...contract,
++      root: {
++        ...contract.root,
++        properties: {
++          ...contract.root.properties,
++          person: {
++            kind: 'object' as const,
++            nullable: true,
++            unknownProperties: 'allow' as const,
++            properties: {
++              name: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
++              email: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
++              private: {
++                kind: 'scalar' as const,
++                scalarType: 'string' as const,
++                nullable: true,
++                annotations: { writeOnly: true },
++              },
++            },
++          },
++        },
++      },
++    }));
++    const catalogue = buildCatalogue(contracts, 'grid-fixture', [], h.environment).catalogue;
++    const person = catalogue.fields.find(f => f.id === 'metadata:/person')!;
++    const name = catalogue.fields.find(f => f.id === 'metadata:/person/name')!;
++    assert.equal(person.selectable, true);
++    assert.equal(person.repeating, false);
++    assert.equal(person.filterable, false);
++    assert.equal(person.sortable, false);
++    assert.deepEqual(person.operators, []);
++    assert.ok(!person.selections[0].selection.includes('private'));
++    assert.equal(
++      catalogue.fields.find(f => f.id === 'metadata:/person/private'),
++      undefined
++    );
++    h.records.get('a')!.metadata.person = { name: 'One', email: null, private: 'secret', undeclared: 'secret' };
++    h.records.get('b')!.metadata.person = null;
++    const { yoga } = createRecordYoga(
++      contracts,
++      { getRecord: async oid => h.records.get(oid), hasViewAccess: () => true },
++      { getGridEnvironment: async () => h.environment }
++    );
++    const response = await yoga.fetch(
++      'http://redbox/graphql',
++      {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({
++          query: `{records(recordType:"grid-fixture", first:2){nodes{oid metadata{__typename ${[...person.selections, ...name.selections].map(s => s.selection).join(' ')}}} hasNextPage}}`,
++        }),
++      },
++      { caller: gridCaller }
++    );
++    const result = await response.json();
++    assert.equal(result.errors, undefined);
++    const key = person.selections[0].responsePath[1];
++    assert.deepEqual(
++      result.data.records.nodes.map((row: { metadata: Record<string, unknown> }) => row.metadata[key]),
++      [{ name: 'One', email: null }, null]
++    );
++    const rejected = await h.query(
++      '{records(recordType:"grid-fixture",filters:[{field:"metadata:/details",exists:true}]){nodes{oid}}}'
+     );
+     assert.ok(rejected.body.errors?.length);
+   });
+--- a/packages/redbox-core/test/unit/record-graphql/read-privacy.test.ts
++++ b/packages/redbox-core/test/unit/record-graphql/read-privacy.test.ts
+@@ -1,3 +1,4 @@
++import type { FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
+ import assert from 'node:assert/strict';
+ import { printSchema } from 'graphql';
+ import {
+@@ -42,7 +43,13 @@
+ });
+ 
+ // Synthetic hook contributions pass through the actual contributor compiler.
+-async function harness(left: ContractNode, right: ContractNode | undefined, stored: unknown) {
++async function harness(
++  left: ContractNode,
++  right: ContractNode | undefined,
++  stored: unknown,
++  viewProjection = false,
++  privateProjection?: { owner: ContractNode; reverse: boolean; reusable: boolean }
++) {
+   const contributor: RecordContractComponentContributor = {
+     kind: 'component',
+     key: 'graphql.conditional-privacy-fixture',
+@@ -55,23 +62,74 @@
+       node: right ? conditional(left, right) : left,
+     }),
+   };
++  const title = { name: 'title', component: { class: 'SimpleInputComponent' } };
++  let definitions: FormComponentDefinitionFrame[] = [
++    title,
++    { name: 'payload', component: { class: 'PrivacyHookComponent' } },
++  ];
++  let reusableFormDefinitions: Record<string, FormComponentDefinitionFrame[]> | undefined;
++  if (privateProjection) {
++    const projection: FormComponentDefinitionFrame = {
++      name: privateProjection.reusable ? 'display_payload' : 'payload',
++      component: { class: 'PrivacyHookComponent' },
++      constraints: { allowModes: ['view'] },
++      overrides: {
++        ...(privateProjection.reusable ? { replaceName: 'payload' } : {}),
++        formModeClasses: { view: { component: 'ContentComponent', template: '{{content}}' } },
++      },
++    };
++    const owner = {
++      name: 'payload',
++      component: { class: privateProjection.reusable ? 'OwnerHookComponent' : 'SimpleInputComponent' },
++    };
++    const entries = privateProjection.reverse ? [projection, owner] : [owner, projection];
++    if (privateProjection.reusable) {
++      reusableFormDefinitions = Object.fromEntries(entries.map((entry, index) => ['variant' + index, [entry]]));
++      definitions = [
++        title,
++        ...entries.map((_, index) => ({
++          name: 'variant' + index,
++          component: { class: 'ReusableComponent', config: {} },
++          overrides: { reusableFormName: 'variant' + index },
++        })),
++      ];
++    } else definitions = [title, ...entries];
++  } else if (viewProjection)
++    definitions.push({
++      name: 'payload',
++      component: { class: 'SimpleInputComponent' },
++      constraints: { allowModes: ['view'] },
++      overrides: { formModeClasses: { view: { component: 'ContentComponent', template: '{{content}}' } } },
++    });
+   const compiler = new RecordContractCompiler(
+     new RecordContractContributorRegistry([
+       ...createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' as const })),
+       { contributor, source: 'hook', packageName: '@example/graphql-privacy' },
++      ...(privateProjection
++        ? [
++            {
++              contributor: {
++                ...contributor,
++                key: 'graphql.public-owner',
++                componentType: 'OwnerHookComponent',
++                compile: () => ({ kind: 'node' as const, node: privateProjection.owner }),
++              },
++              source: 'hook' as const,
++              packageName: '@example/graphql-privacy',
++            },
++          ]
++        : []),
+     ]),
+     recordSchema.limits
+   );
+   const result = await compiler.compile({
+     fieldMode: 'read',
++    reusableFormDefinitions,
+     context: gridContracts()[0].context,
+     form: {
+       name: 'draft-form',
+       type: 'grid-fixture',
+-      componentDefinitions: [
+-        { name: 'title', component: { class: 'SimpleInputComponent' } },
+-        { name: 'payload', component: { class: 'PrivacyHookComponent' } },
+-      ],
++      componentDefinitions: definitions,
+     },
+   });
+   assert.equal(result.kind, 'compiled', JSON.stringify(result));
+@@ -127,6 +185,86 @@
+ }
+ 
+ describe('Conditional hook read privacy', () => {
++  it('retains private parent and child boundaries when excluding a redundant view projection', async () => {
++    const hidden = await harness(scalar(true), undefined, 'private-value', true);
++    assert.ok(
++      !(await hidden.discover()).body.data?.recordFields?.fields.some(field => field.id === 'metadata:/payload')
++    );
++    const denied = await hidden.query('payload');
++    assert.equal(denied.status, 400);
++    assert.equal(denied.reads, 0);
++    const mixed = await harness(
++      object({ public: scalar(), secret: scalar(true) }),
++      undefined,
++      { public: 'visible', secret: 'private-value' },
++      true
++    );
++    const response = await mixed.query('payload { public }');
++    assert.equal(response.body.errors, undefined);
++    assert.deepEqual(response.body.data?.record?.metadata, { payload: { public: 'visible' } });
++    assert.doesNotMatch(printSchema(mixed.schema), /\bsecret\b/);
++    const childDenied = await mixed.query('payload { secret }');
++    assert.equal(childDenied.status, 400);
++    assert.equal(childDenied.reads, 0);
++  });
++  for (const reverse of [false, true]) {
++    for (const scenario of [
++      {
++        name: 'scalar',
++        projection: scalar(true),
++        owner: scalar(),
++        stored: 'private-value',
++        publicSelection: null,
++        privateSelection: 'payload',
++      },
++      {
++        name: 'object',
++        projection: object({ secret: scalar(true) }),
++        owner: object({ public: scalar(), secret: scalar() }),
++        stored: { public: 'visible', secret: 'private-value' },
++        publicSelection: 'payload { public }',
++        privateSelection: 'payload { secret }',
++      },
++      {
++        name: 'array',
++        projection: array(object({ secret: scalar(true) })),
++        owner: array(object({ public: scalar(), secret: scalar() })),
++        stored: [{ public: 'visible', secret: 'private-value' }],
++        publicSelection: 'payload { public }',
++        privateSelection: 'payload { secret }',
++      },
++      {
++        name: 'incompatible',
++        projection: object({ secret: scalar(true) }),
++        owner: scalar(),
++        stored: { secret: 'private-value' },
++        publicSelection: null,
++        privateSelection: 'payload',
++      },
++    ]) {
++      it(`preserves private ${scenario.name} projection restrictions with public owner, reverse ${reverse}`, async () => {
++        const h = await harness(scenario.projection, undefined, scenario.stored, false, {
++          owner: scenario.owner,
++          reverse,
++          reusable: scenario.name !== 'scalar',
++        });
++        const fields = (await h.discover()).body.data?.recordFields?.fields;
++        assert.ok(fields && !fields.some(field => field.id.includes('secret')));
++        if (!scenario.publicSelection) assert.ok(!fields.some(field => field.id === 'metadata:/payload'));
++        else {
++          const visible = await h.query(scenario.publicSelection);
++          assert.equal(visible.body.errors, undefined, JSON.stringify(visible.body));
++          assert.ok(JSON.stringify(visible.body).includes('visible'));
++          assert.ok(!JSON.stringify(visible.body).includes('private-value'));
++        }
++        const denied = await h.query(scenario.privateSelection);
++        assert.equal(denied.status, 400);
++        assert.equal(denied.reads, 0);
++        assert.ok(!JSON.stringify(denied.body).includes('private-value'));
++        assert.doesNotMatch(printSchema(h.schema), /\bsecret\b/);
++      });
++    }
++  }
+   for (const reverse of [false, true]) {
+     it(`keeps typed private paths excluded across branch order ${reverse}`, async () => {
+       const branch = (privateFields: boolean) =>

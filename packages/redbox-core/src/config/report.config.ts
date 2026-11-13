@@ -16,6 +16,8 @@ export interface ReportFilterConfig {
 }
 
 export interface ReportColumnConfig {
+    format?: 'text' | 'date' | 'datetime';
+    valueLabels?: { value: string; label: string }[];
     label: string;
     property: string;
     template?: string;
@@ -25,6 +27,7 @@ export interface ReportColumnConfig {
 
 export interface ReportDatabaseQuery {
     queryName: string;
+    queryVersion?: string;
 }
 
 export interface ReportSolrQuery {

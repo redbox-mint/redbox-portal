@@ -1375,6 +1375,7 @@ workflows:
                 - admin-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
+                - data-grids
                 - manage-roles
                 - form
                 - app-config
@@ -1549,6 +1550,7 @@ workflows:
                 - admin-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
+                - data-grids
                 - manage-roles
                 - form
                 - app-config
@@ -1703,6 +1705,7 @@ workflows:
                 - admin-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
+                - data-grids
                 - manage-roles
                 - form
                 - app-config

@@ -1,3 +1,8 @@
+import type { SavedExplorerQueryPage } from '@researchdatabox/sails-ng-common';
+import { savedGridId, savedGridRevision, SavedGridError, type SavedGridListOptions } from './SavedGridService';
+import { explorerRecordType, explorerRecordTypeLabel, publishedExplorations } from './named-query/explorer-links';
+import { prepareExplorerNamedQuery } from './named-query/explorer-promotion';
+import { printSchema } from 'graphql';
 import * as Handlebars from 'handlebars';
 import {
   lookupPath,
@@ -10,19 +15,26 @@ import {
   type ContextSchemaField,
   type EditorDiagnostic,
   type FieldDescription,
-  type NamedQueryDescription,
+  type NamedQuerySourceDescription,
+  type GraphqlNamedQueryBinding,
   type NamedQueryDraftRequest,
   type NamedQueryFieldDescription,
   type NamedQueryGuidance,
   type NamedQueryPreview,
+  type NamedQuerySourcePreview,
   type NamedQueryPreviewRequest,
   type NamedQueryValidation,
 } from '@researchdatabox/sails-ng-common';
+import { assertNamedQueryDefinition, requireDatabaseNamedQuery } from './named-query/definition';
+import { inspectGraphqlNamedQuery } from './named-query/graphql-validation';
+import { executeGraphqlNamedQuery, GRAPHQL_NAMED_QUERY_ROWS, type GraphqlNamedQueryRecord } from './named-query/graphql-execution';
+import { QUERY_LIMITS } from '../record-graphql/schema';
+import { GRID_LIMITS } from '../record-graphql/grid-types';
+import type { ReadCaller } from '../record-graphql/read-record';
 import { Services as CoreServices } from '../CoreService';
 import type { BrandingModel } from '../model';
 import type { FormRecordAccessContext } from './FormsService';
 import { Services as FieldServices } from './FieldDescriptionsService';
-import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { NamedQueryResponseRecord } from './NamedQueryService';
 import {
   checkDraftBudget,
@@ -256,13 +268,57 @@ function templateAdvice(
 export namespace Services {
   export class NamedQueryEditor extends CoreServices.Core.Service {
     protected override _exportedMethods = [
+      'canCreate',
+      'preparePromotion',
+      'savedExplorations',
+      'prepareSavedExploration',
       'schemaTargets',
+      'graphqlSchema',
       'describeFields',
       'validateDraft',
       'describeDraft',
       'describeSaved',
       'previewDraft',
     ];
+
+    public canCreate(brand: BrandingModel, portal: string, user: Record<string, unknown> | undefined): boolean {
+      if (!brand?.id || !portal || !user?.username || !Array.isArray(user.roles)) return false;
+      const roles = user.roles.filter((role): role is { id: string } => !!role && typeof role === 'object' && typeof role.id === 'string');
+      const path = `${BrandingService.getRootContext()}/${brand.name}/${portal}/api/named-query`;
+      const rules = PathRulesService.getRulesFromPath(path, brand);
+      return !!rules?.length && PathRulesService.canWrite(rules, roles, brand.name);
+    }
+
+    public preparePromotion(input: unknown, caller: ReadCaller) {
+      if (!this.canCreate(caller?.brand, caller?.portal, caller?.user))
+        throw new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403);
+      return prepareExplorerNamedQuery(input, caller);
+    }
+
+    public async savedExplorations(caller: ReadCaller, after?: string, options: SavedGridListOptions = {}): Promise<SavedExplorerQueryPage> {
+      const scope = { brandId: String(caller.brand.id), portal: caller.portal };
+      const page = await SavedGridService.list(scope, after, options);
+      const grids = await publishedExplorations(scope, page.grids);
+      return { grids: grids.map(grid => {
+        const recordType = explorerRecordType(grid);
+        return { id: grid.id, revision: grid.revision, name: grid.name, mode: grid.mode ?? 'visual',
+          recordType, recordTypeLabel: explorerRecordTypeLabel(recordType),
+          updatedAt: grid.updatedAt, updatedBy: grid.updatedBy, publishedAs: grid.publishedAs };
+      }), next: page.next };
+    }
+
+    public async prepareSavedExploration(input: unknown, caller: ReadCaller) {
+      if (!this.canCreate(caller?.brand, caller?.portal, caller?.user))
+        throw new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403);
+      if (!input || typeof input !== 'object' || Array.isArray(input) ||
+        Object.keys(input).some(key => !['id', 'revision'].includes(key))) throw new SavedGridError(400, 'invalid-definition');
+      const id = Reflect.get(input, 'id'), revision = Reflect.get(input, 'revision');
+      if (!savedGridId.safeParse(id).success || !savedGridRevision.safeParse(revision).success)
+        throw new SavedGridError(400, 'invalid-definition');
+      const grid = await SavedGridService.read({ brandId: String(caller.brand.id), portal: caller.portal }, String(id));
+      if (grid.revision !== revision) throw new SavedGridError(409, 'revision-conflict');
+      return this.preparePromotion(grid, caller);
+    }
 
     private fieldService(): FieldServices.FieldDescriptions {
       return (
@@ -274,6 +330,21 @@ export namespace Services {
     private caller(brand: BrandingModel, caller: FormRecordAccessContext): void {
       if (!caller?.user?.username || String(caller.brand?.id) !== String(brand.id))
         throw new NamedQueryAssistanceError('FORBIDDEN', 403);
+    }
+
+    private graphqlCaller(brand: BrandingModel, portal: string, caller: FormRecordAccessContext): ReadCaller | undefined {
+      if (!Array.isArray(caller.user?.roles)) return;
+      return { brand, portal, user: caller.user, roles: caller.user.roles };
+    }
+
+    public async graphqlSchema(brand: BrandingModel, portal: string, caller: FormRecordAccessContext) {
+      this.caller(brand, caller);
+      const context = this.graphqlCaller(brand, portal, caller);
+      if (!context?.user?.username || !context.portal) throw new NamedQueryAssistanceError('FORBIDDEN', 403);
+      const schema = await RecordGraphqlService.getReadSchema(context);
+      const sdl = printSchema(schema);
+      if (Buffer.byteLength(sdl) > QUERY_LIMITS.responseBytes) throw new NamedQueryAssistanceError('RESPONSE_LIMIT', 413);
+      return { sdl };
     }
 
     public async schemaTargets(brand: BrandingModel, caller: FormRecordAccessContext) {
@@ -334,8 +405,8 @@ export namespace Services {
       caller: FormRecordAccessContext,
       request: NamedQueryDraftRequest
     ): Promise<NamedQueryValidation> {
-      const { valid, diagnostics } = await this.inspectDraft(brand, portal, caller, request);
-      return { valid, diagnostics };
+      const { previewBlocked: _blocked, ...validation } = await this.inspectDraft(brand, portal, caller, request);
+      return validation;
     }
 
     private async inspectDraft(
@@ -357,6 +428,13 @@ export namespace Services {
             diagnostic('INVALID_DEFINITION', 'definition', 'A query definition object is required.', 'error'),
           ],
         };
+      if (definition.source === 'graphql') {
+        const { validation } = await inspectGraphqlNamedQuery(
+          definition, this.graphqlCaller(brand, portal, caller), String(brand.id)
+        );
+        return { ...validation, previewBlocked: !validation.valid };
+      }
+      requireDatabaseNamedQuery(definition);
       const collection = definition.collectionName;
       try {
         if (typeof collection !== 'string') throw new Error('collection');
@@ -472,9 +550,34 @@ export namespace Services {
       portal: string,
       caller: FormRecordAccessContext,
       request: NamedQueryDraftRequest
-    ): Promise<NamedQueryDescription> {
-      const validation = await this.validateDraft(brand, portal, caller, request);
+    ): Promise<NamedQuerySourceDescription> {
+      this.caller(brand, caller);
+      checkDraftBudget(request);
       const definition = object(request.definition) ? request.definition : {};
+      if (definition.source === 'graphql') {
+        let parameters: Array<GraphqlNamedQueryBinding & { variable: string }> = [];
+        let operationName: string | undefined;
+        const inspected = await inspectGraphqlNamedQuery(definition, this.graphqlCaller(brand, portal, caller), String(brand.id));
+        try {
+          assertNamedQueryDefinition(definition);
+          if (definition.source === 'graphql') {
+            parameters = Object.entries(definition.graphql.variables).flatMap(([variable, binding]) =>
+              binding.ownership === 'consumer' ? [{ ...binding, variable,
+                ...inspected.operationVariables?.find(item => item.variable === variable) }] : []
+            );
+            operationName = definition.graphql.operationName;
+          }
+        } catch {
+          // Malformed/stale stored records remain describable and editable.
+        }
+        return {
+          ...inspected.validation,
+          source: 'graphql',
+          ...(typeof definition.name === 'string' ? { name: definition.name } : {}),
+          operationName, parameters, operationVariables: inspected.operationVariables ?? [], result: unavailable(),
+        };
+      }
+      const validation = await this.validateDraft(brand, portal, caller, request);
       const collectionName = typeof definition.collectionName === 'string' ? definition.collectionName : '';
       const source = await this.guidance(
         brand,
@@ -486,6 +589,7 @@ export namespace Services {
       const stored = collectionName === 'record' ? storedRecordFields(source.fields) : [];
       return {
         ...validation,
+        source: definition.source === 'database' ? 'database' : undefined,
         ...(typeof definition.name === 'string' ? { name: definition.name } : {}),
         collectionName,
         parameters: entries(definition.queryParams).map(([key, value]) => {
@@ -526,7 +630,7 @@ export namespace Services {
       caller: FormRecordAccessContext,
       name: string,
       guidance?: NamedQueryDraftRequest['guidance']
-    ): Promise<NamedQueryDescription> {
+    ): Promise<NamedQuerySourceDescription> {
       this.caller(brand, caller);
       const definition = await NamedQueryService.getNamedQueryConfig(brand, name);
       if (!definition) throw new NamedQueryAssistanceError('QUERY_NOT_FOUND', 404);
@@ -539,7 +643,23 @@ export namespace Services {
       caller: FormRecordAccessContext,
       request: NamedQueryPreviewRequest,
       budget = new NamedQueryExecutionBudget()
-    ): Promise<NamedQueryPreview<NamedQueryResponseRecord>> {
+    ): Promise<NamedQuerySourcePreview<NamedQueryResponseRecord | GraphqlNamedQueryRecord>> {
+      if (object(request.definition) && request.definition.source === 'graphql') {
+        this.caller(brand, caller);
+        checkDraftBudget(request);
+        const result = await executeGraphqlNamedQuery(
+          request.definition, request.parameters ?? {}, brand, 0, GRAPHQL_NAMED_QUERY_ROWS,
+          this.graphqlCaller(brand, portal, caller), budget, false
+        );
+        return {
+          ...result, valid: true, diagnostics: [],
+          truncated: result.pagination.hasNextPage,
+          truncationReasons: result.pagination.hasNextPage ? ['rows'] : [],
+          limits: { ...NAMED_QUERY_PREVIEW_LIMITS, inputBytes: QUERY_LIMITS.bytes,
+            depth: QUERY_LIMITS.depth, rows: GRAPHQL_NAMED_QUERY_ROWS,
+            responseBytes: QUERY_LIMITS.responseBytes, scanRows: GRID_LIMITS.candidates },
+        };
+      }
       const validation = await budget.wait(this.inspectDraft(brand, portal, caller, request, budget));
       const diagnostics = [...validation.diagnostics];
       let previewBlocked = validation.previewBlocked;
@@ -638,7 +758,7 @@ export namespace Services {
       // Only this service creates the budget. No draft property can opt out or raise a limit.
       const result = await budget.wait(
         NamedQueryService.performNamedQueryFromConfig(
-          definition as unknown as NamedQueryDefinition,
+          definition,
           request.parameters ?? {},
           brand,
           0,
@@ -647,6 +767,7 @@ export namespace Services {
           budget
         )
       );
+      if (result.source === 'graphql') throw new NamedQueryAssistanceError('UNSUPPORTED_QUERY_SOURCE', 422);
       response.summary = { numFound: result.summary.numFound, start: 0, page: 1 };
       if (result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows) response.truncationReasons.push('rows');
       if (budget.outputTruncated) response.truncationReasons.push('bytes');

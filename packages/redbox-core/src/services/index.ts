@@ -1,4 +1,6 @@
 import * as ReportingServiceModule from './ReportingService';
+import * as SavedGridServiceModule from './SavedGridService';
+export { SavedGridServiceModule as SavedGridService };
 import * as PartyImportServiceModule from './PartyImportService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
@@ -46,6 +48,7 @@ import * as RDMPServiceModule from './RDMPService';
 import * as RecordsServiceModule from './RecordsService';
 import * as RecordTypesServiceModule from './RecordTypesService';
 import * as RecordSchemaServiceModule from './RecordSchemaService';
+import * as RecordGraphqlServiceModule from './RecordGraphqlService';
 import * as RecordValidationServiceModule from './RecordValidationService';
 import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
@@ -123,6 +126,7 @@ export { RDMPServiceModule as RDMPService };
 export { RecordsServiceModule as RecordsService };
 export { RecordTypesServiceModule as RecordTypesService };
 export { RecordSchemaServiceModule as RecordSchemaService };
+export { RecordGraphqlServiceModule as RecordGraphqlService };
 export { RecordValidationServiceModule as RecordValidationService };
 export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
@@ -216,6 +220,7 @@ export const ServiceExports = {
   get ReportingService() {
     return getOrCreateService('ReportingService', () => new ReportingServiceModule.Services.Reporting().exports());
   },
+  get SavedGridService() { return getOrCreateService('SavedGridService', () => new SavedGridServiceModule.Services.SavedGrids().exports()); },
   get ExportService() {
     return getOrCreateService('ExportService', () => new ExportServiceModule.Services.Export().exports());
   },
@@ -276,10 +281,14 @@ export const ServiceExports = {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
   },
   get EmailTemplateAdminService() {
-    return getOrCreateService('EmailTemplateAdminService', () => new EmailTemplateAdminServiceModule.Services.EmailTemplateAdmin().exports());
+    return getOrCreateService('EmailTemplateAdminService', () =>
+      new EmailTemplateAdminServiceModule.Services.EmailTemplateAdmin().exports()
+    );
   },
   get EmailTemplateService() {
-    return getOrCreateService('EmailTemplateService', () => new EmailTemplateServiceModule.Services.EmailTemplates().exports());
+    return getOrCreateService('EmailTemplateService', () =>
+      new EmailTemplateServiceModule.Services.EmailTemplates().exports()
+    );
   },
   get EmailService() {
     return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());
@@ -371,6 +380,11 @@ export const ServiceExports = {
       new FieldDescriptionsServiceModule.Services.FieldDescriptions().exports()
     );
   },
+  get RecordGraphqlService() {
+    return getOrCreateService('RecordGraphqlService', () =>
+      new RecordGraphqlServiceModule.Services.RecordGraphql(recordSchemaContributorDependencies).exports()
+    );
+  },
   get RecordSchemaService() {
     return getOrCreateService('RecordSchemaService', () =>
       new RecordSchemaServiceModule.Services.RecordSchema(recordSchemaContributorDependencies).exports()
@@ -424,7 +438,11 @@ export const ServiceExports = {
       new VocabularyServiceModule.Services.VocabularyService().exports()
     );
   },
-  get PartyImportService() { return getOrCreateService('PartyImportService', () => new PartyImportServiceModule.Services.PartyImport().exports()); },
+  get PartyImportService() {
+    return getOrCreateService('PartyImportService', () =>
+      new PartyImportServiceModule.Services.PartyImport().exports()
+    );
+  },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },

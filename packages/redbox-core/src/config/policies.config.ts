@@ -66,13 +66,21 @@ export function buildContractApiPolicies(
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
       [route.action]:
-        route.controller === 'webservice/NamedQueryController' &&
-        ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
-          ? namedQueryMutationPolicies
-          : route.controller === 'webservice/ReportController' &&
-              ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action)
-            ? namedQueryMutationPolicies
-            : noCachePlusApiValidationPolicies,
+        route.controller === 'webservice/RecordGraphqlController'
+          ? noCachePlusApiValidationPolicies.map(policy => (policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy))
+          : route.controller === 'webservice/NamedQueryController' &&
+              ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
+            ? [
+                ...(route.method === 'get' ? [] : (['namedQueryMutationCsrf'] as PolicyName[])),
+                ...noCachePlusApiValidationPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'),
+              ]
+            : route.controller === 'webservice/NamedQueryController' &&
+                ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
+              ? namedQueryMutationPolicies
+              : route.controller === 'webservice/ReportController' &&
+                  ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action)
+                ? namedQueryMutationPolicies
+                : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);
@@ -102,6 +110,15 @@ const contractApiPolicies = buildContractApiPolicies();
 const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSchemaController'] as ControllerPolicies;
 
 export const policies: PoliciesConfig = {
+  // Saved definitions are a browser-admin surface. Do not promote bearer credentials
+  // after the CSRF policy has decided whether this is a session mutation.
+  SavedGridController: {
+    '*': [
+      'noCache',
+      'namedQueryMutationCsrf',
+      ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'),
+    ],
+  },
   EmailTemplateAdminController: {
     '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],
     // The page follows the portal's normal sign-in flow (checkAuth redirects to login);

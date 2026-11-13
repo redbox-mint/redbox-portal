@@ -5,7 +5,7 @@ import type {
   NamedQuerySchemaSelection,
 } from '@researchdatabox/sails-ng-common';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { NamedQueryDefinition } from '../named-query-api.service';
+import { NamedQueryDatabaseDefinition as NamedQueryDefinition } from '../named-query-api.service';
 
 export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
 
@@ -18,6 +18,7 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
 export class NqDetailComponent {
   @Input() brandingAndPortalUrl = '';
   @Input() draft!: NamedQueryDefinition;
+  @Input() attempted = false;
   @Input() isNew = false;
   @Input() collections: string[] = [];
 

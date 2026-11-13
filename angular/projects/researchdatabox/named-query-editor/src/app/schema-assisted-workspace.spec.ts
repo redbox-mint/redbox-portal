@@ -1,3 +1,15 @@
+import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { SavedQueryChooserComponent } from './saved-query-chooser.component';
+import {
+  NamedQueryNameFieldComponent,
+  NamedQueryBasicsSectionComponent,
+  NamedQueryParametersSectionComponent,
+  NamedQueryLookupSectionComponent,
+  NamedQueryPreviewSectionComponent,
+} from '@researchdatabox/portal-ng-common';
+import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
+import { GraphqlSchemaComponent } from './graphql-schema.component';
+import { GraphqlJsonInputComponent } from './graphql-json-input.component';
 import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
@@ -23,7 +35,7 @@ import {
   storedRecordFields,
 } from '@researchdatabox/sails-ng-common';
 import { NamedQueryEditorComponent } from './named-query-editor.component';
-import { NamedQueryApiService, NamedQueryDefinition } from './named-query-api.service';
+import { NamedQueryApiService, NamedQueryDatabaseDefinition as NamedQueryDefinition } from './named-query-api.service';
 import { NqListComponent } from './nq-list/nq-list.component';
 import { NqDetailComponent } from './nq-detail/nq-detail.component';
 import { MongoQueryEditorComponent } from './mongo-query-editor/mongo-query-editor.component';
@@ -135,6 +147,9 @@ class ApiStub {
   get = jasmine.createSpy('get').and.callFake(async (name: string) => definition(name));
   create = jasmine.createSpy('create').and.resolveTo({ name: 'query' });
   update = jasmine.createSpy('update').and.resolveTo({ name: 'query' });
+  reviewUpdate = jasmine
+    .createSpy('reviewUpdate')
+    .and.resolveTo({ required: false, changes: [], usedBy: [], usageComplete: false });
   schemaTargets = jasmine.createSpy('targets').and.resolveTo({
     recordTypes: [{ id: 'rdmp', label: 'Plan', stages: [{ id: 'draft', label: 'Draft', starting: true }] }],
   });
@@ -166,7 +181,25 @@ describe('Schema-assisted named query workspace behaviours', () => {
         RelatedFilterEditorComponent,
         TranslationPipe,
       ],
-      imports: [AdminTabsDirective, AdminCountPipe, FormsModule, A11yModule, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent],
+      imports: [
+        SavedQueryChooserComponent,
+        NamedQueryNameFieldComponent,
+        NamedQueryBasicsSectionComponent,
+        NamedQueryParametersSectionComponent,
+        NamedQueryLookupSectionComponent,
+        NamedQueryPreviewSectionComponent,
+        GraphqlDraftEditorComponent,
+        GraphqlSchemaComponent,
+        GraphqlJsonInputComponent,
+        AdminTabsDirective,
+        AdminCountPipe,
+        AdminModalDirective,
+        FormsModule,
+        A11yModule,
+        QueryAssistanceModule,
+        FieldTreeComponent,
+        SchemaTargetSelectorComponent,
+      ],
       providers: [
         LoggerService,
         { provide: NamedQueryApiService, useValue: api },
@@ -225,12 +258,12 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('adds the displayed type constraint explicitly while preserving complex existing predicates', () => {
-    component.draft.mongoQuery = {
+    component.activeDatabaseBuffer.mongoQuery = {
       $or: [{ x: { $elemMatch: { score: { $gte: 3 } } } }, { 'metaMetadata.type': 'other' }],
     };
-    const previous = JSON.parse(JSON.stringify(component.draft.mongoQuery));
+    const previous = JSON.parse(JSON.stringify(component.activeDatabaseBuffer.mongoQuery));
     component.addTypeConstraint();
-    expect(component.draft.mongoQuery).toEqual({ $and: [previous, { 'metaMetadata.type': 'rdmp' }] });
+    expect(component.activeDatabaseBuffer.mongoQuery).toEqual({ $and: [previous, { 'metaMetadata.type': 'rdmp' }] });
     expect(component.dirty).toBeTrue();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('named-query-scope-notice');
@@ -254,12 +287,12 @@ describe('Schema-assisted named query workspace behaviours', () => {
     mongo.newPath = storedPath.insertion(node)!;
     mongo.newValue = 'Two';
     mongo.addEntry();
-    expect(component.draft.mongoQuery['metadata.title']).toBe('Two');
-    param.onFieldChange(param.entries[0], 'path', storedPath.insertion(node));
+    expect(component.activeDatabaseBuffer.mongoQuery['metadata.title']).toBe('Two');
+    param.onFieldChange(param.entries[0], 'path', storedPath.insertion(node)!);
     sort.newField = storedPath.insertion(node)!;
     sort.addEntry();
-    expect(component.draft.queryParams['title'].path).toBe('metadata.title');
-    expect(component.draft.sort?.at(-1)).toEqual({ 'metadata.title': 'ASC' });
+    expect(component.activeDatabaseBuffer.queryParams['title'].path).toBe('metadata.title');
+    expect(component.activeDatabaseBuffer.sort?.at(-1)).toEqual({ 'metadata.title': 'ASC' });
     const mappingControl = fixture.debugElement.query(By.directive(QueryMappingValueComponent))
       .componentInstance as QueryMappingValueComponent;
     const direct = new QueryPathInputComponent();
@@ -304,11 +337,11 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(input.operators(input.selected!)).toContain('$regex');
     input.value = 'metadata.contributors';
     expect(input.selected?.isArray).toBeTrue();
-    expect(component.draft.mongoQuery['metadata.contributors']).toBeUndefined();
+    expect(component.activeDatabaseBuffer.mongoQuery['metadata.contributors']).toBeUndefined();
   });
 
   it('keeps foreign guidance separate and uses foreign and local join paths', async () => {
-    component.draft.relatedRecordFilters = [
+    component.activeDatabaseBuffer.relatedRecordFilters = [
       { collectionName: 'record', mongoQuery: {}, localField: 'metadata.title', foreignField: 'metadata.title' },
     ];
     await component.foreignContextChanged({ index: 0, collectionName: 'record', selection: { recordType: 'project' } });
@@ -320,11 +353,12 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(related.foreignFields['0'].some(f => f.path === 'metadata.title')).toBeTrue();
     related.onFieldChange(related.filters[0], 'localField', 'redboxOid');
     related.onFieldChange(related.filters[0], 'foreignField', 'metadata.title');
-    expect(component.draft.relatedRecordFilters[0].localField).toBe('redboxOid');
-    expect(component.draft.relatedRecordFilters[0].foreignField).toBe('metadata.title');
+    expect(component.activeDatabaseBuffer.relatedRecordFilters[0].localField).toBe('redboxOid');
+    expect(component.activeDatabaseBuffer.relatedRecordFilters[0].foreignField).toBe('metadata.title');
   });
 
   it('places warnings/errors and suggested corrections beside the affected entry and template', async () => {
+    api.reviewUpdate.and.resolveTo({ required: false, changes: [], usedBy: [], usageComplete: false });
     api.validate.and.resolveTo({
       valid: false,
       diagnostics: [
@@ -340,9 +374,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
     const mapping = fixture.debugElement.query(By.directive(ResultMappingEditorComponent));
     expect(mongo.nativeElement.querySelector('.rb-ws-diagnostic-warning').textContent).toContain('metadata.title');
     expect(param.nativeElement.querySelector('[data-location="queryParams.title.type"]')).toBeTruthy();
-    expect(mapping.nativeElement.querySelector('.nq-diagnostic-error').textContent).toContain('named-query-blocking');
+    expect(mapping.nativeElement.querySelector('.nq-diagnostic-error').textContent).toContain('Check this field');
     expect(component.canSave).toBeFalse();
-    expect(component.draft.mongoQuery['metadata.title']).toBe('One');
+    expect(component.activeDatabaseBuffer.mongoQuery['metadata.title']).toBe('One');
   });
 
   it('keeps advisory schema warnings nonblocking', async () => {
@@ -492,14 +526,14 @@ describe('Schema-assisted named query workspace behaviours', () => {
     editor.toggleRawJson();
     editor.rawJsonText = JSON.stringify(complex);
     editor.toggleRawJson();
-    expect(component.draft.mongoQuery).toEqual(complex);
+    expect(component.activeDatabaseBuffer.mongoQuery).toEqual(complex);
     editor.newPath = 'metadata.title';
     editor.newValue = 'New';
     editor.addEntry();
     editor.toggleRawJson();
     editor.toggleRawJson();
-    expect(component.draft.mongoQuery['$or']).toEqual(complex.$or);
-    expect(component.draft.mongoQuery['$expr']).toEqual(complex.$expr);
+    expect(component.activeDatabaseBuffer.mongoQuery['$or']).toEqual(complex.$or);
+    expect(component.activeDatabaseBuffer.mongoQuery['$expr']).toEqual(complex.$expr);
   });
 
   it('retains invalid raw text across section changes and prevents saving or previewing the old query', () => {
@@ -562,7 +596,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('never attaches record fields to a user collection and retains manual paths/templates', async () => {
-    component.draft.collectionName = 'user';
+    component.activeDatabaseBuffer.collectionName = 'user';
     await component.collectionChanged();
     await component.chooseGuidance({ recordType: 'rdmp' });
     fixture.detectChanges();
@@ -570,7 +604,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(component.fields).toEqual([]);
     expect(component.mappingFields.some(f => f.path.startsWith('record.metadata'))).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain('named-query-manual-collection');
-    expect(component.draft.resultObjectMapping['projectTitle']).toBe('record.metadata.title');
+    expect(component.activeDatabaseBuffer.resultObjectMapping['projectTitle']).toBe('record.metadata.title');
     expect(api.fields.calls.mostRecent().args[0]).toEqual({ collectionName: 'user' });
   });
 
@@ -582,7 +616,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(component.assistanceError).toContain('Manual editing');
   });
   it('rejects late foreign fields after removing a related filter', async () => {
-    component.draft.relatedRecordFilters = [
+    component.activeDatabaseBuffer.relatedRecordFilters = [
       { collectionName: 'record', mongoQuery: {}, localField: '', foreignField: '' },
     ];
     const slow = deferred<NamedQueryFieldDescription>();
@@ -592,7 +626,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
       collectionName: 'record',
       selection: { recordType: 'project' },
     });
-    component.draft.relatedRecordFilters = [];
+    component.activeDatabaseBuffer.relatedRecordFilters = [];
     await component.foreignContextChanged({ index: -1, collectionName: '' });
     slow.resolve(fields());
     await pending;
@@ -629,7 +663,11 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('keeps invalid test JSON visible and prevents preview until corrected', () => {
-    component.draft.queryParams['options'] = { path: 'metadata.options', type: 'object', whenUndefined: 'ignore' };
+    component.activeDatabaseBuffer.queryParams['options'] = {
+      path: 'metadata.options',
+      type: 'object',
+      whenUndefined: 'ignore',
+    };
     fixture.detectChanges();
     const controls = fixture.debugElement.queryAll(By.directive(QueryTypedValueComponent));
     const testValue = controls
@@ -651,7 +689,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     editor.rawJsonText = '{"$expr":{"$eq":["$a","$b"]}}';
     editor.toggleRawJson();
     editor.onValueChange(editor.entries[0], '{ incomplete');
-    expect(component.draft.mongoQuery).toEqual({ $expr: { $eq: ['$a', '$b'] } });
+    expect(component.activeDatabaseBuffer.mongoQuery).toEqual({ $expr: { $eq: ['$a', '$b'] } });
     expect(component.pendingInput).toBeTrue();
   });
 
@@ -667,17 +705,17 @@ describe('Schema-assisted named query workspace behaviours', () => {
     const slow = deferred<{ valid: boolean; diagnostics: EditorDiagnostic[] }>();
     api.validate.and.returnValue(slow.promise);
     const pending = component.save();
-    component.draft.mongoQuery = { changed: true };
+    component.activeDatabaseBuffer.mongoQuery = { changed: true };
     component.draftChanged();
     slow.resolve({ valid: true, diagnostics: [] });
     await pending;
     expect(api.update).not.toHaveBeenCalled();
-    expect(component.draft.mongoQuery).toEqual({ changed: true });
+    expect(component.activeDatabaseBuffer.mongoQuery).toEqual({ changed: true });
     expect(component.dirty).toBeTrue();
   });
   it('retains invalid typed default text when another parameter is added', () => {
-    component.draft.queryParams = {
-      ...component.draft.queryParams,
+    component.activeDatabaseBuffer.queryParams = {
+      ...component.activeDatabaseBuffer.queryParams,
       options: {
         type: 'object',
         path: 'metadata.options',
@@ -735,14 +773,15 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(api.update).not.toHaveBeenCalled();
     expect(api.preview).not.toHaveBeenCalled();
     editor.onValueChange(entry, '{"$eq":["$a","$c"]}');
-    expect(component.draft.mongoQuery).toEqual({
-      $expr: { $eq: ['$a', '$c'] }, 'metadata.status': 'active',
+    expect(component.activeDatabaseBuffer.mongoQuery).toEqual({
+      $expr: { $eq: ['$a', '$c'] },
+      'metadata.status': 'active',
     });
     expect(component.canSave).toBeTrue();
   });
 
   it('serializes a cleared string default as an explicit empty string', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       title: { type: 'string', path: 'metadata.title', whenUndefined: 'defaultValue', defaultValue: 'old' },
     };
     fixture.detectChanges();
@@ -755,7 +794,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('offers an explicit unset default action independent of clearing a string', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       title: { type: 'string', path: 'metadata.title', whenUndefined: 'defaultValue', defaultValue: 'old' },
     };
     fixture.detectChanges();
@@ -770,7 +809,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('previews raw scalar input before an object parameter template is evaluated', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       person: { type: 'object', path: 'metadata.person', whenUndefined: 'ignore', template: '{"name":"{{value}}"}' },
     };
     fixture.detectChanges();
@@ -784,10 +823,13 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('saves a raw scalar default for an object parameter template', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       person: {
-        type: 'object', path: 'metadata.person', whenUndefined: 'defaultValue',
-        defaultValue: 'Bob', template: '{"name":"{{value}}"}',
+        type: 'object',
+        path: 'metadata.person',
+        whenUndefined: 'defaultValue',
+        defaultValue: 'Bob',
+        template: '{"name":"{{value}}"}',
       },
     };
     fixture.detectChanges();
@@ -801,7 +843,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('removes obsolete invalid test state without clearing another invalid parameter', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       first: { type: 'object', path: 'metadata.first', whenUndefined: 'ignore' },
       second: { type: 'object', path: 'metadata.second', whenUndefined: 'ignore' },
     };
@@ -821,11 +863,12 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('recovers Preview after an invalid object test parameter becomes a string', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       options: { type: 'object', path: 'metadata.options', whenUndefined: 'ignore' },
     };
     fixture.detectChanges();
-    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+    fixture.debugElement
+      .query(By.css('.nq-test-parameters textarea'))
       .triggerEventHandler('ngModelChange', '{ unfinished');
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
       .componentInstance as QueryParamEditorComponent;
@@ -837,8 +880,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('names mapping sources in both modes and uniquely associates template labels', () => {
-    component.draft.resultObjectMapping = {
-      ...component.draft.resultObjectMapping, otherTitle: 'record.metadata.title',
+    component.activeDatabaseBuffer.resultObjectMapping = {
+      ...component.activeDatabaseBuffer.resultObjectMapping,
+      otherTitle: 'record.metadata.title',
     };
     fixture.detectChanges();
     const mappings = fixture.debugElement.query(By.directive(ResultMappingEditorComponent));
@@ -849,7 +893,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
       (source.componentInstance as QueryMappingValueComponent).template = true;
     });
     fixture.detectChanges();
-    const areas = sources.slice(0, 2).map(source => source.nativeElement.querySelector('textarea') as HTMLTextAreaElement);
+    const areas = sources
+      .slice(0, 2)
+      .map(source => source.nativeElement.querySelector('textarea') as HTMLTextAreaElement);
     expect(areas[0].id).toBeTruthy();
     expect(areas[1].id).toBeTruthy();
     expect(areas[0].id).not.toBe(areas[1].id);
@@ -864,11 +910,12 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('retains invalid JSON when changing only a parameter operator', () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       options: { type: 'object', path: 'metadata.options', whenUndefined: 'defaultValue' },
     };
     fixture.detectChanges();
-    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+    fixture.debugElement
+      .query(By.css('.nq-test-parameters textarea'))
       .triggerEventHandler('ngModelChange', '{ unfinished test');
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
     const typed = params.query(By.directive(QueryTypedValueComponent)).componentInstance as QueryTypedValueComponent;
@@ -883,11 +930,12 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('recovers invalid test input when a template override is added', async () => {
-    component.draft.queryParams = {
+    component.activeDatabaseBuffer.queryParams = {
       options: { type: 'object', path: 'metadata.options', whenUndefined: 'ignore' },
     };
     fixture.detectChanges();
-    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+    fixture.debugElement
+      .query(By.css('.nq-test-parameters textarea'))
       .triggerEventHandler('ngModelChange', '{ unfinished');
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
       .componentInstance as QueryParamEditorComponent;
@@ -911,19 +959,18 @@ describe('Schema-assisted named query workspace behaviours', () => {
     params.query(By.css('nq-typed-value textarea')).triggerEventHandler('ngModelChange', '{ unfinished');
     fixture.detectChanges();
     expect(component.canSave).toBeFalse();
-    params.query(By.css('textarea[id$="-template-new"]'))
-      .triggerEventHandler('ngModelChange', '{"name":"{{value}}"}');
+    params.query(By.css('textarea[id$="-template-new"]')).triggerEventHandler('ngModelChange', '{"name":"{{value}}"}');
     fixture.detectChanges();
     params.query(By.css('nq-typed-value input')).triggerEventHandler('ngModelChange', 'Alice');
     editor.addParam();
     fixture.detectChanges();
     expect(component.canSave).toBeTrue();
-    expect(component.draft.queryParams['person'].defaultValue).toBe('Alice');
+    expect(component.activeDatabaseBuffer.queryParams['person'].defaultValue).toBe('Alice');
   });
 
   it('names existing and new typed defaults and associates parameter template labels', () => {
-    component.draft.queryParams = {
-      title: { ...component.draft.queryParams['title'], whenUndefined: 'defaultValue' },
+    component.activeDatabaseBuffer.queryParams = {
+      title: { ...component.activeDatabaseBuffer.queryParams['title'], whenUndefined: 'defaultValue' },
     };
     fixture.detectChanges();
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
@@ -941,8 +988,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(new Set(areas.map(a => a.id)).size).toBe(areas.length);
     for (const area of areas) {
       expect(area.id).toBeTruthy();
-      const label = Array.from(params.nativeElement.querySelectorAll('label') as NodeListOf<HTMLLabelElement>)
-        .find(l => l.htmlFor === area.id);
+      const label = Array.from(params.nativeElement.querySelectorAll('label') as NodeListOf<HTMLLabelElement>).find(
+        l => l.htmlFor === area.id
+      );
       expect(label?.textContent).toContain('named-query-param-template');
     }
   });

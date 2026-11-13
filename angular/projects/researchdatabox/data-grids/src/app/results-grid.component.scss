@@ -1,0 +1,9 @@
+:host,
+ag-grid-angular {
+  display: block;
+  width: 100%;
+}
+
+ag-grid-angular {
+  height: clamp(280px, 48vh, 480px);
+}

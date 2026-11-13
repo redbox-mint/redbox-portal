@@ -4,7 +4,15 @@ import { NgModule } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
-import { AutocompleteComponent, RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import {
+  AdminSidePanelComponent,
+  AdminSourceCardComponent,
+  ColumnsPanelComponent,
+  AdminOverflowDirective,
+  AutocompleteComponent,
+  RedboxPortalCoreModule,
+  trimLastSlashFromUrl,
+} from '@researchdatabox/portal-ng-common';
 import { ReportDiagnosticsComponent, ReportTemplateInputComponent } from './report-assistance.component';
 import { ReportConfigComponent } from './report-config.component';
 import { ReportConfigService } from './report-config.service';
@@ -17,6 +25,10 @@ import { ReportConfigService } from './report-config.service';
     FormsModule,
     HttpClientModule,
     RedboxPortalCoreModule,
+    AdminSidePanelComponent,
+    AdminSourceCardComponent,
+    ColumnsPanelComponent,
+    AdminOverflowDirective,
     AutocompleteComponent,
     ReportDiagnosticsComponent,
     ReportTemplateInputComponent,

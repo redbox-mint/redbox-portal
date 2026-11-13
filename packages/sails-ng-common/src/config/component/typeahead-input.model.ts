@@ -1,3 +1,4 @@
+import type { EditorDiagnostic } from "../../schema-assist.model";
 import { FieldModelConfig, FieldModelDefinition } from "../field-model.model";
 import { FormComponentDefinition } from "../form-component.model";
 import { FormConfigVisitorOutline } from "../visitor/base.outline";
@@ -54,6 +55,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     noResultsMessageKey = TypeaheadInputDefaultNoResultsMessageKey;
     readOnlyAfterSelect?: boolean;
     historicalVocabMode?: HistoricalVocabMode;
+    lookupDiagnostics?: EditorDiagnostic[];
 
     constructor() {
         super();

@@ -1,0 +1,60 @@
+meta {
+  name: GraphQL First Page Preview
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": {
+      "source": "graphql",
+      "graphql": {
+        "document": "query($search:String!,$first:Int=50,$after:String){ records(recordType:\"dataPublication\",workflowStages:[\"draft\"],filters:[{field:\"record:oid\",contains:$search}],first:$first,after:$after){ nodes{oid workflowStep} hasNextPage endCursor } }",
+        "variables": {
+          "search": { "ownership": "consumer", "parameter": "search", "inputType": "String!", "required": true }
+        },
+        "resultPath": ["records", "nodes"],
+        "mappings": { "oid": ["oid"], "title": ["workflowStep"] },
+        "lookup": {
+          "mode": "firstPage",
+          "collectionPath": ["records"],
+          "hasNextPagePath": ["records", "hasNextPage"],
+          "endCursorPath": ["records", "endCursor"],
+          "firstVariable": "first",
+          "afterVariable": "after",
+          "searchParameter": "search"
+        }
+      }
+    },
+    "parameters": { "search": "bruno-no-matches-t05" }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Authenticated GraphQL preview has bounded first-page metadata and no invented total", () => {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.source).to.equal("graphql");
+    expect(data.valid).to.equal(true);
+    expect(data.summary.numFound).to.equal(null);
+    expect(data.pagination).to.deep.equal({ mode: "firstPage", hasNextPage: false });
+    expect(data.records).to.deep.equal([]);
+    expect(data.limits.rows).to.equal(25);
+  });
+}

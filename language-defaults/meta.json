@@ -909,6 +909,21 @@
     "description": "Global navigation link label for logout",
     "contentFormat": "plain"
   },
+  "menu-navigation-label": {
+    "category": "menu",
+    "description": "Accessible name for the global main navigation landmark",
+    "contentFormat": "plain"
+  },
+  "admin-sidebar-navigation-label": {
+    "category": "admin",
+    "description": "Accessible name for the admin settings sidebar navigation landmark",
+    "contentFormat": "plain"
+  },
+  "admin-page-actions-label": {
+    "category": "admin",
+    "description": "Accessible name for the admin home page actions navigation landmark",
+    "contentFormat": "plain"
+  },
   "menu-toggle": {
     "category": "menu",
     "description": "Global navigation button label for expanding or collapsing the menu",
@@ -9677,6 +9692,2953 @@
   "email-templates-helper-unique-example": {
     "category": "email-templates",
     "description": "Email editor example guidance for the unique helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "data-grids-title": {
+    "category": "data-grids",
+    "description": "Data grid admin: title",
+    "contentFormat": "plain"
+  },
+  "data-grids-breadcrumbs": {
+    "category": "data-grids",
+    "description": "Data grid admin: breadcrumbs",
+    "contentFormat": "plain"
+  },
+  "data-grids-intro": {
+    "category": "data-grids",
+    "description": "Data grid admin: intro",
+    "contentFormat": "plain"
+  },
+  "data-grids-new": {
+    "category": "data-grids",
+    "description": "Data grid admin: new",
+    "contentFormat": "plain"
+  },
+  "data-grids-loading": {
+    "category": "data-grids",
+    "description": "Data grid admin: loading",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-heading": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable heading",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-load-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: load failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-retry": {
+    "category": "data-grids",
+    "description": "Data grid admin: retry",
+    "contentFormat": "plain"
+  },
+  "data-grids-persistence-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: persistence unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-scopes": {
+    "category": "data-grids",
+    "description": "Data grid admin: no scopes",
+    "contentFormat": "plain"
+  },
+  "data-grids-find-grid": {
+    "category": "data-grids",
+    "description": "Data grid admin: find grid",
+    "contentFormat": "plain"
+  },
+  "data-grids-name": {
+    "category": "data-grids",
+    "description": "Data grid admin: name",
+    "contentFormat": "plain"
+  },
+  "data-grids-scope": {
+    "category": "data-grids",
+    "description": "Data grid admin: scope",
+    "contentFormat": "plain"
+  },
+  "data-grids-status": {
+    "category": "data-grids",
+    "description": "Data grid admin: status",
+    "contentFormat": "plain"
+  },
+  "data-grids-actions": {
+    "category": "data-grids",
+    "description": "Data grid admin: actions",
+    "contentFormat": "plain"
+  },
+  "data-grids-all-stages": {
+    "category": "data-grids",
+    "description": "Data grid admin: all stages",
+    "contentFormat": "plain"
+  },
+  "data-grids-saved-config": {
+    "category": "data-grids",
+    "description": "Data grid admin: saved config",
+    "contentFormat": "plain"
+  },
+  "data-grids-edit": {
+    "category": "data-grids",
+    "description": "Data grid admin: edit",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-matches": {
+    "category": "data-grids",
+    "description": "Data grid admin: no matches",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-grids": {
+    "category": "data-grids",
+    "description": "Data grid admin: no grids",
+    "contentFormat": "plain"
+  },
+  "data-grids-unsaved-only": {
+    "category": "data-grids",
+    "description": "Data grid admin: unsaved only",
+    "contentFormat": "plain"
+  },
+  "data-grids-back": {
+    "category": "data-grids",
+    "description": "Data grid admin: back",
+    "contentFormat": "plain"
+  },
+  "data-grids-unsaved": {
+    "category": "data-grids",
+    "description": "Data grid admin: unsaved",
+    "contentFormat": "plain"
+  },
+  "data-grids-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-filters": {
+    "category": "data-grids",
+    "description": "Data grid admin: filters",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-scope": {
+    "category": "data-grids",
+    "description": "Data grid admin: choose scope",
+    "contentFormat": "plain"
+  },
+  "data-grids-scope-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: scope help",
+    "contentFormat": "plain"
+  },
+  "data-grids-available-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: available fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-find-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: find field",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-text": {
+    "category": "data-grids",
+    "description": "Data grid admin: type text",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-number": {
+    "category": "data-grids",
+    "description": "Data grid admin: type number",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-boolean": {
+    "category": "data-grids",
+    "description": "Data grid admin: type boolean",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-choice": {
+    "category": "data-grids",
+    "description": "Data grid admin: type choice",
+    "contentFormat": "plain"
+  },
+  "data-grids-repeating": {
+    "category": "data-grids",
+    "description": "Data grid admin: repeating",
+    "contentFormat": "plain"
+  },
+  "data-grids-filterable": {
+    "category": "data-grids",
+    "description": "Data grid admin: filterable",
+    "contentFormat": "plain"
+  },
+  "data-grids-display-only": {
+    "category": "data-grids",
+    "description": "Data grid admin: display only",
+    "contentFormat": "plain"
+  },
+  "data-grids-sortable": {
+    "category": "data-grids",
+    "description": "Data grid admin: sortable",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: no fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-selected-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: selected columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-column-order-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: column order help",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable field",
+    "contentFormat": "plain"
+  },
+  "data-grids-move-up": {
+    "category": "data-grids",
+    "description": "Data grid admin: move up",
+    "contentFormat": "plain"
+  },
+  "data-grids-move-down": {
+    "category": "data-grids",
+    "description": "Data grid admin: move down",
+    "contentFormat": "plain"
+  },
+  "data-grids-remove-column": {
+    "category": "data-grids",
+    "description": "Data grid admin: remove column",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: choose columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-match-all": {
+    "category": "data-grids",
+    "description": "Data grid admin: match all",
+    "contentFormat": "plain"
+  },
+  "data-grids-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: field",
+    "contentFormat": "plain"
+  },
+  "data-grids-condition": {
+    "category": "data-grids",
+    "description": "Data grid admin: condition",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-eq": {
+    "category": "data-grids",
+    "description": "Data grid admin: op eq",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-contains": {
+    "category": "data-grids",
+    "description": "Data grid admin: op contains",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-gt": {
+    "category": "data-grids",
+    "description": "Data grid admin: op gt",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-lt": {
+    "category": "data-grids",
+    "description": "Data grid admin: op lt",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-between": {
+    "category": "data-grids",
+    "description": "Data grid admin: op between",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-in": {
+    "category": "data-grids",
+    "description": "Data grid admin: op in",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-exists": {
+    "category": "data-grids",
+    "description": "Data grid admin: op exists",
+    "contentFormat": "plain"
+  },
+  "data-grids-list-values": {
+    "category": "data-grids",
+    "description": "Data grid admin: list values",
+    "contentFormat": "plain"
+  },
+  "data-grids-from": {
+    "category": "data-grids",
+    "description": "Data grid admin: from",
+    "contentFormat": "plain"
+  },
+  "data-grids-to": {
+    "category": "data-grids",
+    "description": "Data grid admin: to",
+    "contentFormat": "plain"
+  },
+  "data-grids-value": {
+    "category": "data-grids",
+    "description": "Data grid admin: value",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-value": {
+    "category": "data-grids",
+    "description": "Data grid admin: choose value",
+    "contentFormat": "plain"
+  },
+  "data-grids-yes": {
+    "category": "data-grids",
+    "description": "Data grid admin: yes",
+    "contentFormat": "plain"
+  },
+  "data-grids-no": {
+    "category": "data-grids",
+    "description": "Data grid admin: no",
+    "contentFormat": "plain"
+  },
+  "data-grids-remove-filter": {
+    "category": "data-grids",
+    "description": "Data grid admin: remove filter",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-filters": {
+    "category": "data-grids",
+    "description": "Data grid admin: no filters",
+    "contentFormat": "plain"
+  },
+  "data-grids-add-filter": {
+    "category": "data-grids",
+    "description": "Data grid admin: add filter",
+    "contentFormat": "plain"
+  },
+  "data-grids-sorting": {
+    "category": "data-grids",
+    "description": "Data grid admin: sorting",
+    "contentFormat": "plain"
+  },
+  "data-grids-sort-by": {
+    "category": "data-grids",
+    "description": "Data grid admin: sort by",
+    "contentFormat": "plain"
+  },
+  "data-grids-default-order": {
+    "category": "data-grids",
+    "description": "Data grid admin: default order",
+    "contentFormat": "plain"
+  },
+  "data-grids-direction": {
+    "category": "data-grids",
+    "description": "Data grid admin: direction",
+    "contentFormat": "plain"
+  },
+  "data-grids-ascending": {
+    "category": "data-grids",
+    "description": "Data grid admin: ascending",
+    "contentFormat": "plain"
+  },
+  "data-grids-descending": {
+    "category": "data-grids",
+    "description": "Data grid admin: descending",
+    "contentFormat": "plain"
+  },
+  "data-grids-rows-per-page": {
+    "category": "data-grids",
+    "description": "Data grid admin: rows per page",
+    "contentFormat": "plain"
+  },
+  "data-grids-results": {
+    "category": "data-grids",
+    "description": "Record explorer results heading",
+    "contentFormat": "plain"
+  },
+  "data-grids-refresh": {
+    "category": "data-grids",
+    "description": "Data grid admin: refresh",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview help",
+    "contentFormat": "plain"
+  },
+  "data-grids-loading-results": {
+    "category": "data-grids",
+    "description": "Data grid admin: loading results",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-results": {
+    "category": "data-grids",
+    "description": "Data grid admin: no results",
+    "contentFormat": "plain"
+  },
+  "data-grids-page": {
+    "category": "data-grids",
+    "description": "Data grid admin: page",
+    "contentFormat": "plain"
+  },
+  "data-grids-rows-shown": {
+    "category": "data-grids",
+    "description": "Data grid admin: rows shown",
+    "contentFormat": "plain"
+  },
+  "data-grids-previous": {
+    "category": "data-grids",
+    "description": "Data grid admin: previous",
+    "contentFormat": "plain"
+  },
+  "data-grids-next": {
+    "category": "data-grids",
+    "description": "Data grid admin: next",
+    "contentFormat": "plain"
+  },
+  "data-grids-run-preview": {
+    "category": "data-grids",
+    "description": "Data grid admin: run preview",
+    "contentFormat": "plain"
+  },
+  "data-grids-check-configuration": {
+    "category": "data-grids",
+    "description": "Data grid admin: check configuration",
+    "contentFormat": "plain"
+  },
+  "data-grids-name-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: name required",
+    "contentFormat": "plain"
+  },
+  "data-grids-scope-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: scope required",
+    "contentFormat": "plain"
+  },
+  "data-grids-columns-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: columns required",
+    "contentFormat": "plain"
+  },
+  "data-grids-duplicate-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: duplicate columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-column": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable column",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-page-size": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid page size",
+    "contentFormat": "plain"
+  },
+  "data-grids-too-many-filters": {
+    "category": "data-grids",
+    "description": "Data grid admin: too many filters",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-filter": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable filter",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-filter-value": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid filter value",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-sort": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable sort",
+    "contentFormat": "plain"
+  },
+  "data-grids-saving": {
+    "category": "data-grids",
+    "description": "Data grid admin: saving",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-changes": {
+    "category": "data-grids",
+    "description": "Data grid admin: no changes",
+    "contentFormat": "plain"
+  },
+  "data-grids-cancel": {
+    "category": "data-grids",
+    "description": "Data grid admin: cancel",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview-results": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview results",
+    "contentFormat": "plain"
+  },
+  "data-grids-save": {
+    "category": "data-grids",
+    "description": "Data grid admin: save",
+    "contentFormat": "plain"
+  },
+  "data-grids-saved": {
+    "category": "data-grids",
+    "description": "Data grid admin: saved",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: save failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-discard-confirm": {
+    "category": "data-grids",
+    "description": "Data grid admin: discard confirm",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-datetime": {
+    "category": "data-grids",
+    "description": "Data grid admin: type datetime",
+    "contentFormat": "plain"
+  },
+  "data-grids-refresh-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: refresh fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-loading-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: loading fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-fields-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: fields failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-datetime-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: datetime help",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: schema changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-response": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid response",
+    "contentFormat": "plain"
+  },
+  "data-grids-auth-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: auth required",
+    "contentFormat": "plain"
+  },
+  "data-grids-cursor-expired": {
+    "category": "data-grids",
+    "description": "Data grid admin: cursor expired",
+    "contentFormat": "plain"
+  },
+  "data-grids-reindex-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: reindex required",
+    "contentFormat": "plain"
+  },
+  "data-grids-collection-limit": {
+    "category": "data-grids",
+    "description": "Data grid admin: collection limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-limit": {
+    "category": "data-grids",
+    "description": "Data grid admin: query limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: query unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: type unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-partial-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: partial field",
+    "contentFormat": "plain"
+  },
+  "data-grids-view": {
+    "category": "data-grids",
+    "description": "Data grid admin: view",
+    "contentFormat": "plain"
+  },
+  "data-grids-delete": {
+    "category": "data-grids",
+    "description": "Data grid admin: delete",
+    "contentFormat": "plain"
+  },
+  "data-grids-delete-confirm": {
+    "category": "data-grids",
+    "description": "Data grid admin: delete confirm",
+    "contentFormat": "plain"
+  },
+  "data-grids-delete-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: delete failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-revision-conflict": {
+    "category": "data-grids",
+    "description": "Data grid admin: revision conflict",
+    "contentFormat": "plain"
+  },
+  "data-grids-grid-missing": {
+    "category": "data-grids",
+    "description": "Data grid admin: grid missing",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-definition": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid definition",
+    "contentFormat": "plain"
+  },
+  "data-grids-catalogue-limit": {
+    "category": "data-grids",
+    "description": "Data grid admin: catalogue limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-persistence-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: persistence failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-filter-type-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: filter type changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-filter-type": {
+    "category": "data-grids",
+    "description": "Data grid admin: repair filter type",
+    "contentFormat": "plain"
+  },
+  "data-grids-load-more": {
+    "category": "data-grids",
+    "description": "Data grid admin: load more",
+    "contentFormat": "plain"
+  },
+  "data-grids-sort-type-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: sort type changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-sort-type": {
+    "category": "data-grids",
+    "description": "Data grid admin: repair sort type",
+    "contentFormat": "plain"
+  },
+  "data-grids-saved-queries": {
+    "category": "admin",
+    "description": "Record explorer: saved queries",
+    "contentFormat": "plain"
+  },
+  "data-grids-close": {
+    "category": "admin",
+    "description": "Record explorer: close",
+    "contentFormat": "plain"
+  },
+  "data-grids-untitled": {
+    "category": "admin",
+    "description": "Record explorer: untitled",
+    "contentFormat": "plain"
+  },
+  "data-grids-not-saved": {
+    "category": "admin",
+    "description": "Record explorer: not saved",
+    "contentFormat": "plain"
+  },
+  "data-grids-edit-query": {
+    "category": "admin",
+    "description": "Record explorer: edit query",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-mode": {
+    "category": "admin",
+    "description": "Record explorer: query mode",
+    "contentFormat": "plain"
+  },
+  "data-grids-visual": {
+    "category": "admin",
+    "description": "Record explorer: visual",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql": {
+    "category": "admin",
+    "description": "Record explorer: graphql",
+    "contentFormat": "plain"
+  },
+  "data-grids-raw-summary": {
+    "category": "admin",
+    "description": "Record explorer: raw summary",
+    "contentFormat": "plain"
+  },
+  "data-grids-record-type": {
+    "category": "admin",
+    "description": "Record explorer: record type",
+    "contentFormat": "plain"
+  },
+  "data-grids-workflow-stage": {
+    "category": "admin",
+    "description": "Record explorer: workflow stage",
+    "contentFormat": "plain"
+  },
+  "data-grids-run": {
+    "category": "admin",
+    "description": "Record explorer: run",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-as": {
+    "category": "admin",
+    "description": "Record explorer: save as",
+    "contentFormat": "plain"
+  },
+  "data-grids-add-columns": {
+    "category": "admin",
+    "description": "Record explorer: add columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-loaded-search-help": {
+    "category": "admin",
+    "description": "Record explorer: loaded search help",
+    "contentFormat": "plain"
+  },
+  "data-grids-results-stale": {
+    "category": "admin",
+    "description": "Record explorer: results stale",
+    "contentFormat": "plain"
+  },
+  "data-grids-results-help": {
+    "category": "admin",
+    "description": "Record explorer: results help",
+    "contentFormat": "plain"
+  },
+  "data-grids-columns-apply-help": {
+    "category": "admin",
+    "description": "Record explorer: columns apply help",
+    "contentFormat": "plain"
+  },
+  "data-grids-switch-help": {
+    "category": "admin",
+    "description": "Record explorer: switch help",
+    "contentFormat": "plain"
+  },
+  "data-grids-document": {
+    "category": "admin",
+    "description": "Record explorer: document",
+    "contentFormat": "plain"
+  },
+  "data-grids-variables": {
+    "category": "admin",
+    "description": "Record explorer: variables",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql-limits": {
+    "category": "admin",
+    "description": "Record explorer: graphql limits",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-assistance": {
+    "category": "admin",
+    "description": "Record explorer: schema assistance",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-help": {
+    "category": "admin",
+    "description": "Record explorer: schema help",
+    "contentFormat": "plain"
+  },
+  "data-grids-refresh-schema": {
+    "category": "admin",
+    "description": "Record explorer: refresh schema",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-type": {
+    "category": "admin",
+    "description": "Record explorer: schema type",
+    "contentFormat": "plain"
+  },
+  "data-grids-complete-field": {
+    "category": "admin",
+    "description": "Record explorer: complete field",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-unavailable": {
+    "category": "admin",
+    "description": "Record explorer: schema unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-generate-graphql": {
+    "category": "admin",
+    "description": "Record explorer: generate graphql",
+    "contentFormat": "plain"
+  },
+  "data-grids-replace-graphql-confirm": {
+    "category": "admin",
+    "description": "Record explorer: replace graphql confirm",
+    "contentFormat": "plain"
+  },
+  "data-grids-grid-view": {
+    "category": "admin",
+    "description": "Record explorer: grid view",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-path": {
+    "category": "admin",
+    "description": "Record explorer: result path",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-result-path": {
+    "category": "admin",
+    "description": "Record explorer: choose result path",
+    "contentFormat": "plain"
+  },
+  "data-grids-mapping-help": {
+    "category": "admin",
+    "description": "Record explorer: mapping help",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-path-invalid": {
+    "category": "admin",
+    "description": "Record explorer: result path invalid",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-columns-limit": {
+    "category": "admin",
+    "description": "Record explorer: result columns limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-nonpaginated": {
+    "category": "admin",
+    "description": "Record explorer: nonpaginated",
+    "contentFormat": "plain"
+  },
+  "data-grids-run-query-help": {
+    "category": "admin",
+    "description": "Record explorer: run query help",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-help": {
+    "category": "admin",
+    "description": "Record explorer: save help",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-document": {
+    "category": "admin",
+    "description": "Record explorer: invalid document",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-actions": {
+    "category": "admin",
+    "description": "Record explorer: query actions",
+    "contentFormat": "plain"
+  },
+  "data-grids-rename": {
+    "category": "admin",
+    "description": "Record explorer: rename",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-missing": {
+    "category": "data-grids",
+    "description": "Record cell detail: Missing",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-null": {
+    "category": "data-grids",
+    "description": "Record cell detail: No value",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-empty-text": {
+    "category": "data-grids",
+    "description": "Record cell detail: (empty text)",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-true": {
+    "category": "data-grids",
+    "description": "Record cell detail: True",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-false": {
+    "category": "data-grids",
+    "description": "Record cell detail: False",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-empty-list": {
+    "category": "data-grids",
+    "description": "Record cell detail: Empty list",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-view-details": {
+    "category": "data-grids",
+    "description": "Record cell detail: View details",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-view-group": {
+    "category": "data-grids",
+    "description": "Record cell detail: View group details",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-more": {
+    "category": "data-grids",
+    "description": "Record cell detail: more",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-item": {
+    "category": "data-grids",
+    "description": "Record cell detail: item",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-items": {
+    "category": "data-grids",
+    "description": "Record cell detail: items",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-item-heading": {
+    "category": "data-grids",
+    "description": "Record cell detail: Item",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-open-value": {
+    "category": "data-grids",
+    "description": "Record cell detail: Open full value",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-close": {
+    "category": "data-grids",
+    "description": "Record cell detail: Close details",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-structured": {
+    "category": "data-grids",
+    "description": "Structured list or group field type",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-null-item": {
+    "category": "admin",
+    "description": "Record explorer: cell-null-item",
+    "contentFormat": "plain"
+  },
+  "data-grids-repeating-unavailable": {
+    "category": "admin",
+    "description": "Record explorer: repeating-unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-empty-object": {
+    "category": "admin",
+    "description": "Record explorer: empty object marker",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-refine-search": {
+    "category": "form",
+    "description": "Shown only when the current lookup has a verified next page."
+  },
+  "@form-typeahead-incompatible-query": {
+    "category": "form",
+    "description": "Lookup alias or GraphQL consumer configuration is incompatible."
+  },
+  "@validator-error-typeahead-lookup-compatibility": {
+    "category": "form",
+    "description": "Form inspection diagnostic for an incompatible named query lookup."
+  },
+  "named-query-source": {
+    "category": "Named queries",
+    "description": "Execution source"
+  },
+  "named-query-source-database": {
+    "category": "Named queries",
+    "description": "Database"
+  },
+  "named-query-source-graphql": {
+    "category": "Named queries",
+    "description": "GraphQL"
+  },
+  "named-query-source-buffers-help": {
+    "category": "Named queries",
+    "description": "Each source keeps its unsaved settings during this session. Saving stores only the selected source."
+  },
+  "named-query-immediate-save": {
+    "category": "Named queries",
+    "description": "Saved changes take effect immediately for consumers."
+  },
+  "named-query-invalid-source": {
+    "category": "Named queries",
+    "description": "Unsupported source"
+  },
+  "named-query-invalid-source-help": {
+    "category": "Named queries",
+    "description": "This saved source is unsupported. Review its diagnostics or delete it after removing known usages."
+  },
+  "named-query-review-title": {
+    "category": "Named queries",
+    "description": "Review changes before saving"
+  },
+  "named-query-review-description": {
+    "category": "Named queries",
+    "description": "This update takes effect immediately. Review the affected settings and known consumers before confirming."
+  },
+  "named-query-breaking-source": {
+    "category": "Named queries",
+    "description": "The saved execution source and its previous configuration will be replaced."
+  },
+  "named-query-breaking-parameters": {
+    "category": "Named queries",
+    "description": "Consumer parameter names, types, required values or defaults change."
+  },
+  "named-query-breaking-bindings": {
+    "category": "Named queries",
+    "description": "Confirmation reason for any changed GraphQL variable binding, including fixed values and omitted/consumer ownership transitions."
+  },
+  "named-query-breaking-document": {
+    "category": "Named queries",
+    "description": "Conservative confirmation reason for a changed GraphQL document or selected operation."
+  },
+  "named-query-breaking-mappings": {
+    "category": "Named queries",
+    "description": "Result paths or existing output mappings change."
+  },
+  "named-query-breaking-lookup": {
+    "category": "Named queries",
+    "description": "The lookup paging or search contract changes."
+  },
+  "named-query-confirm-immediate-save": {
+    "category": "Named queries",
+    "description": "Confirm and save changes"
+  },
+  "named-query-review-changed": {
+    "category": "Named queries",
+    "description": "The draft changed. Save again to review the current changes."
+  },
+  "named-query-graphql-editor": {
+    "category": "Named queries",
+    "description": "GraphQL named query settings"
+  },
+  "named-query-graphql-description": {
+    "category": "Named queries",
+    "description": "Description"
+  },
+  "named-query-graphql-tab-basics": {
+    "category": "Named queries",
+    "description": "Basics"
+  },
+  "named-query-graphql-tab-document": {
+    "category": "Named queries",
+    "description": "Query"
+  },
+  "named-query-graphql-tab-variables": {
+    "category": "Named queries",
+    "description": "Variables and parameters"
+  },
+  "named-query-graphql-tab-mappings": {
+    "category": "Named queries",
+    "description": "Results and lookup"
+  },
+  "named-query-graphql-auth-help": {
+    "category": "Named queries",
+    "description": "GraphQL runs as the authenticated caller. Saving this definition grants no additional record access. Reports and CSV do not support this source."
+  },
+  "named-query-graphql-document": {
+    "category": "Named queries",
+    "description": "Query document"
+  },
+  "named-query-graphql-operation": {
+    "category": "Named queries",
+    "description": "Operation name (optional for an unnamed query)"
+  },
+  "named-query-graphql-query-only": {
+    "category": "Named queries",
+    "description": "Use one read-only query. Current-schema validation runs without executing records."
+  },
+  "named-query-graphql-ownership-help": {
+    "category": "Named queries",
+    "description": "Choose fixed, consumer-supplied or intentionally omitted ownership for every declared variable. Configure paging variables under Results and lookup."
+  },
+  "named-query-graphql-json-help": {
+    "category": "Named queries",
+    "description": "Enter JSON values: quote strings, use arrays for lists, and use null explicitly. Fixed values are configuration, never credentials."
+  },
+  "named-query-graphql-operation-default": {
+    "category": "Named queries",
+    "description": "An operation default is declared in the query document."
+  },
+  "named-query-graphql-omission-satisfied": {
+    "category": "Named queries",
+    "description": "The current schema allows omission, or the operation default satisfies it."
+  },
+  "named-query-graphql-ownership": {
+    "category": "Named queries",
+    "description": "Variable ownership"
+  },
+  "named-query-graphql-unclassified": {
+    "category": "Named queries",
+    "description": "Choose ownership"
+  },
+  "named-query-graphql-fixed": {
+    "category": "Named queries",
+    "description": "Fixed value"
+  },
+  "named-query-graphql-consumer": {
+    "category": "Named queries",
+    "description": "Consumer parameter"
+  },
+  "named-query-graphql-omitted": {
+    "category": "Named queries",
+    "description": "Omit to use operation behavior"
+  },
+  "named-query-graphql-server": {
+    "category": "Named queries",
+    "description": "Server-owned paging"
+  },
+  "named-query-graphql-fixed-value": {
+    "category": "Named queries",
+    "description": "Fixed JSON value"
+  },
+  "named-query-graphql-parameter": {
+    "category": "Named queries",
+    "description": "Consumer parameter name"
+  },
+  "named-query-graphql-input-type": {
+    "category": "Named queries",
+    "description": "GraphQL input type"
+  },
+  "named-query-graphql-required": {
+    "category": "Named queries",
+    "description": "Requires a non-null effective value"
+  },
+  "named-query-graphql-default": {
+    "category": "Named queries",
+    "description": "Named-query default (optional JSON)"
+  },
+  "named-query-graphql-default-help": {
+    "category": "Named queries",
+    "description": "On omission, the named-query default applies first, then the operation default. Defaults never replace explicit null, false, zero or empty text. The required flag must match GraphQL nullability."
+  },
+  "named-query-graphql-remove-stale": {
+    "category": "Named queries",
+    "description": "Remove undeclared ownership"
+  },
+  "named-query-graphql-path-help": {
+    "category": "Named queries",
+    "description": "Use arrays of literal response alias segments, for example [\"matches\",\"nodes\"]. Result paths start at GraphQL data; mapping paths start at each item. [] selects the item itself."
+  },
+  "named-query-graphql-path-invalid": {
+    "category": "Named queries",
+    "description": "Enter a JSON array of string path segments."
+  },
+  "named-query-graphql-result-path": {
+    "category": "Named queries",
+    "description": "Result list path"
+  },
+  "named-query-graphql-mapping-oid": {
+    "category": "Named queries",
+    "description": "Identifier mapping (oid)"
+  },
+  "named-query-graphql-mapping-title": {
+    "category": "Named queries",
+    "description": "Label mapping (title)"
+  },
+  "named-query-graphql-mapping-metadata": {
+    "category": "Named queries",
+    "description": "Metadata mapping"
+  },
+  "named-query-graphql-mapping-dateCreated": {
+    "category": "Named queries",
+    "description": "Created date mapping"
+  },
+  "named-query-graphql-mapping-lastSaveDate": {
+    "category": "Named queries",
+    "description": "Last saved date mapping"
+  },
+  "named-query-graphql-lookup-adapter": {
+    "category": "Named queries",
+    "description": "Configure a first-page lookup adapter"
+  },
+  "named-query-graphql-page-help": {
+    "category": "Named queries",
+    "description": "Lookup previews run only compatible first-page definitions, with at most 25 records and no exact total. The server owns first and after. Valid definitions without an adapter can still be saved."
+  },
+  "named-query-graphql-collectionPath": {
+    "category": "Named queries",
+    "description": "Collection response path"
+  },
+  "named-query-graphql-hasNextPagePath": {
+    "category": "Named queries",
+    "description": "Continuation flag path"
+  },
+  "named-query-graphql-endCursorPath": {
+    "category": "Named queries",
+    "description": "End cursor path (optional)"
+  },
+  "named-query-graphql-first-variable": {
+    "category": "Named queries",
+    "description": "Server-owned page size variable"
+  },
+  "named-query-graphql-after-variable": {
+    "category": "Named queries",
+    "description": "Server-owned cursor variable"
+  },
+  "named-query-graphql-choose-variable": {
+    "category": "Named queries",
+    "description": "Choose a declared variable"
+  },
+  "named-query-graphql-search-parameter": {
+    "category": "Named queries",
+    "description": "Consumer search parameter name"
+  },
+  "named-query-graphql-schema-help": {
+    "category": "Named queries",
+    "description": "Inspect the current caller-scoped read schema. Use its field names, arguments, input types and enum values when editing the query."
+  },
+  "named-query-graphql-schema-type": {
+    "category": "Named queries",
+    "description": "Schema type"
+  },
+  "named-query-graphql-field-search": {
+    "category": "Named queries",
+    "description": "Find fields"
+  },
+  "named-query-graphql-schema-sdl": {
+    "category": "Named queries",
+    "description": "Read schema (SDL)"
+  },
+  "named-query-graphql-refresh-schema": {
+    "category": "Named queries",
+    "description": "Refresh read schema"
+  },
+  "named-query-graphql-schema-loading": {
+    "category": "Named queries",
+    "description": "Loading current GraphQL schema…"
+  },
+  "named-query-graphql-schema-error": {
+    "category": "Named queries",
+    "description": "Current GraphQL schema unavailable. Your draft is retained."
+  },
+  "named-query-graphql-lookup-ready": {
+    "category": "Named queries",
+    "description": "This definition can power an authenticated lookup."
+  },
+  "named-query-graphql-nonlookup": {
+    "category": "Named queries",
+    "description": "Valid definitions can be saved without lookup capability. Repair the following lookup settings before selecting one in a form or running a lookup preview."
+  },
+  "named-query-graphql-preview-bound": {
+    "category": "Named queries",
+    "description": "First page only, at most 25 results. The exact total is unknown. Preview uses your current record access."
+  },
+  "named-query-graphql-save-error": {
+    "category": "Named queries",
+    "description": "Failed to save GraphQL named query: {{error}}"
+  },
+  "named-query-diagnostic-location": {
+    "category": "Named queries",
+    "description": "Source line and column shown only for located diagnostics."
+  },
+  "named-query-graphql-correct-before-save": {
+    "category": "Named queries",
+    "description": "GraphQL save blocked validation guidance."
+  },
+  "named-query-untracked-callers-note": {
+    "category": "Named queries",
+    "description": "Known usage discovery is incomplete for dynamic hooks, API callers and opaque configuration references."
+  },
+  "data-grids-create-named-query": {
+    "category": "data-grids",
+    "description": "Create named query",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-help": {
+    "category": "data-grids",
+    "description": "This is an unsaved copy of your current exploration. Review candidate mappings and choose ownership for every variable before saving.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-provenance": {
+    "category": "data-grids",
+    "description": "The explorer reference is informational. Editing either saved definition leaves the other independent.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-save-help": {
+    "category": "data-grids",
+    "description": "Save creates an immediately available named query. Your exploration stays unchanged.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-current-value": {
+    "category": "data-grids",
+    "description": "Current explorer value",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-value-help": {
+    "category": "data-grids",
+    "description": "Choosing Fixed copies this value. A consumer parameter has no named-query default until you enter one.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-validation-failed": {
+    "category": "data-grids",
+    "description": "Validation is unavailable. Your detached draft is retained; change a field to retry.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-denied": {
+    "category": "data-grids",
+    "description": "Named-query create permission is required. Your exploration and detached draft are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-name-exists": {
+    "category": "data-grids",
+    "description": "That named-query name already exists. Choose a unique name and save again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-save-failed": {
+    "category": "data-grids",
+    "description": "The named query could not be saved. Your detached draft is retained; try saving again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard-heading": {
+    "category": "data-grids",
+    "description": "Discard this named-query draft?",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard-help": {
+    "category": "data-grids",
+    "description": "Your original exploration and its unsaved changes will be retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-keep-editing": {
+    "category": "data-grids",
+    "description": "Keep editing",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard": {
+    "category": "data-grids",
+    "description": "Discard named-query draft",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-invalid-values": {
+    "category": "data-grids",
+    "description": "Correct the explorer variables JSON before creating a named query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-open-failed": {
+    "category": "data-grids",
+    "description": "The named-query editor could not be opened. Your exploration is retained; check its fields and try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-opening": {
+    "category": "data-grids",
+    "description": "Preparing an unsaved named-query copy…",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-saved": {
+    "category": "data-grids",
+    "description": "Named query created. Your exploration and its unsaved changes are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-init-failed": {
+    "category": "data-grids",
+    "description": "The named-query editor could not load. Your exploration and detached draft are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-disabled": {
+    "category": "data-grids",
+    "description": "Record GraphQL is disabled. Your exploration is retained; ask an administrator to enable it before trying again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-timeout": {
+    "category": "data-grids",
+    "description": "Preparing the named query timed out. Your exploration is retained; try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-unavailable": {
+    "category": "data-grids",
+    "description": "Record GraphQL is temporarily unavailable. Your exploration is retained; try again later.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-schema-changed": {
+    "category": "data-grids",
+    "description": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-field-group-record": {
+    "category": "data-grids",
+    "description": "Fallback group heading for record system fields in the explorer catalogue",
+    "contentFormat": "plain"
+  },
+  "data-grids-field-group-metadata": {
+    "category": "data-grids",
+    "description": "Fallback group heading for metadata without a labelled form container",
+    "contentFormat": "plain"
+  },
+  "data-grids-field-group-other": {
+    "category": "data-grids",
+    "description": "Column picker heading for fields without a catalogue group when other fields are grouped",
+    "contentFormat": "plain"
+  },
+  "data-grids-records-reporting": {
+    "category": "Record explorer and named queries",
+    "description": "Records & reporting",
+    "contentFormat": "plain"
+  },
+  "data-grids-published": {
+    "category": "Record explorer and named queries",
+    "description": "Published",
+    "contentFormat": "plain"
+  },
+  "data-grids-published-as": {
+    "category": "Record explorer and named queries",
+    "description": "Published as",
+    "contentFormat": "plain"
+  },
+  "data-grids-named-queries": {
+    "category": "Record explorer and named queries",
+    "description": "Named queries →",
+    "contentFormat": "plain"
+  },
+  "data-grids-publish-named-query": {
+    "category": "Record explorer and named queries",
+    "description": "Publish as named query…",
+    "contentFormat": "plain"
+  },
+  "data-grids-update-named-query": {
+    "category": "Record explorer and named queries",
+    "description": "Update named query…",
+    "contentFormat": "plain"
+  },
+  "data-grids-conditions": {
+    "category": "Record explorer and named queries",
+    "description": "Conditions",
+    "contentFormat": "plain"
+  },
+  "data-grids-edit-columns": {
+    "category": "Record explorer and named queries",
+    "description": "Edit columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-done": {
+    "category": "Record explorer and named queries",
+    "description": "Done",
+    "contentFormat": "plain"
+  },
+  "data-grids-field-options": {
+    "category": "Record explorer and named queries",
+    "description": "Field options",
+    "contentFormat": "plain"
+  },
+  "data-grids-json-view": {
+    "category": "Record explorer and named queries",
+    "description": "JSON",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-view": {
+    "category": "Record explorer and named queries",
+    "description": "Result view",
+    "contentFormat": "plain"
+  },
+  "data-grids-more-available": {
+    "category": "Record explorer and named queries",
+    "description": "more available",
+    "contentFormat": "plain"
+  },
+  "data-grids-shown-in-order": {
+    "category": "Record explorer and named queries",
+    "description": "Shown, in order",
+    "contentFormat": "plain"
+  },
+  "data-grids-reset": {
+    "category": "Record explorer and named queries",
+    "description": "Reset",
+    "contentFormat": "plain"
+  },
+  "data-grids-keyboard-column-help": {
+    "category": "Record explorer and named queries",
+    "description": "Drag to reorder, or use arrow keys on a focused chip. Home and End move it to the beginning or end.",
+    "contentFormat": "plain"
+  },
+  "data-grids-repeating-note": {
+    "category": "Record explorer and named queries",
+    "description": "sub-fields belong to repeating groups. Add the group column and open a cell to see every value.",
+    "contentFormat": "plain"
+  },
+  "data-grids-show-them": {
+    "category": "Record explorer and named queries",
+    "description": "Show them",
+    "contentFormat": "plain"
+  },
+  "data-grids-hide-them": {
+    "category": "Record explorer and named queries",
+    "description": "Hide them",
+    "contentFormat": "plain"
+  },
+  "data-grids-apply-and-run": {
+    "category": "Record explorer and named queries",
+    "description": "Apply and run",
+    "contentFormat": "plain"
+  },
+  "data-grids-visual-readonly": {
+    "category": "Record explorer and named queries",
+    "description": "This query was unlinked for GraphQL editing. Visual controls are read-only. Run uses the GraphQL query. Start a new query to use the Visual builder again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql-linked": {
+    "category": "Record explorer and named queries",
+    "description": "Generated from the Visual tab. It updates when you change conditions or columns there. To edit it here, unlink it; the Visual tab then becomes read-only for this query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql-unlinked": {
+    "category": "Record explorer and named queries",
+    "description": "You are editing this query in GraphQL. The Visual tab is read-only; both tabs run the same query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-unlink-edit": {
+    "category": "Record explorer and named queries",
+    "description": "Unlink and edit",
+    "contentFormat": "plain"
+  },
+  "data-grids-checking": {
+    "category": "Record explorer and named queries",
+    "description": "Checking…",
+    "contentFormat": "plain"
+  },
+  "data-grids-valid": {
+    "category": "Record explorer and named queries",
+    "description": "Valid",
+    "contentFormat": "plain"
+  },
+  "data-grids-needs-attention": {
+    "category": "Record explorer and named queries",
+    "description": "Needs attention",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-check-help": {
+    "category": "Record explorer and named queries",
+    "description": "Check the document, variable values and current schema before running this query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-insert-field-help": {
+    "category": "Record explorer and named queries",
+    "description": "After unlinking, click a field to add it to the records selection.",
+    "contentFormat": "plain"
+  },
+  "data-grids-oid": {
+    "category": "Record explorer and named queries",
+    "description": "Record ID (OID)",
+    "contentFormat": "plain"
+  },
+  "data-grids-paging": {
+    "category": "Record explorer and named queries",
+    "description": "Paging",
+    "contentFormat": "plain"
+  },
+  "data-grids-publish-title": {
+    "category": "Record explorer and named queries",
+    "description": "Publish as named query",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-linked-help": {
+    "category": "Record explorer and named queries",
+    "description": "The saved explorer query and this named query stay linked.",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-before-publish": {
+    "category": "Record explorer and named queries",
+    "description": "Save this query first so the named query can link to its saved revision. Publishing continues after saving.",
+    "contentFormat": "plain"
+  },
+  "nq-section-basics": {
+    "category": "Record explorer and named queries",
+    "description": "Basics",
+    "contentFormat": "plain"
+  },
+  "nq-section-name": {
+    "category": "Record explorer and named queries",
+    "description": "Name",
+    "contentFormat": "plain"
+  },
+  "nq-section-name-help": {
+    "category": "Record explorer and named queries",
+    "description": "Use letters, numbers, underscores or hyphens, with no spaces and at most 120 characters — for example active_research_plans. The name collections is reserved.",
+    "contentFormat": "plain"
+  },
+  "nq-section-used-for": {
+    "category": "Record explorer and named queries",
+    "description": "Used for",
+    "contentFormat": "plain"
+  },
+  "nq-section-general": {
+    "category": "Record explorer and named queries",
+    "description": "API query",
+    "contentFormat": "plain"
+  },
+  "nq-section-form-lookup": {
+    "category": "Record explorer and named queries",
+    "description": "Form lookup (typeahead)",
+    "contentFormat": "plain"
+  },
+  "nq-section-parameters": {
+    "category": "Record explorer and named queries",
+    "description": "Parameters",
+    "contentFormat": "plain"
+  },
+  "nq-section-parameters-help": {
+    "category": "Record explorer and named queries",
+    "description": "Choose what callers can change. Everything else stays as saved.",
+    "contentFormat": "plain"
+  },
+  "nq-section-condition": {
+    "category": "Record explorer and named queries",
+    "description": "Condition",
+    "contentFormat": "plain"
+  },
+  "nq-section-saved-value": {
+    "category": "Record explorer and named queries",
+    "description": "Saved value",
+    "contentFormat": "plain"
+  },
+  "nq-section-when-called": {
+    "category": "Record explorer and named queries",
+    "description": "When called",
+    "contentFormat": "plain"
+  },
+  "nq-section-paging-managed": {
+    "category": "Record explorer and named queries",
+    "description": "Handled by ReDBox",
+    "contentFormat": "plain"
+  },
+  "nq-section-keep-value": {
+    "category": "Record explorer and named queries",
+    "description": "Keep saved value",
+    "contentFormat": "plain"
+  },
+  "nq-section-caller-provides": {
+    "category": "Record explorer and named queries",
+    "description": "Caller provides",
+    "contentFormat": "plain"
+  },
+  "nq-section-leave-out": {
+    "category": "Record explorer and named queries",
+    "description": "Leave out",
+    "contentFormat": "plain"
+  },
+  "nq-section-parameter-name": {
+    "category": "Record explorer and named queries",
+    "description": "Parameter name",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-fields": {
+    "category": "Record explorer and named queries",
+    "description": "Lookup fields",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-help": {
+    "category": "Record explorer and named queries",
+    "description": "Choose what each suggestion stores and shows in the form. Also store accepts a selected object.",
+    "contentFormat": "plain"
+  },
+  "nq-section-mapping-oid": {
+    "category": "Record explorer and named queries",
+    "description": "Stored value",
+    "contentFormat": "plain"
+  },
+  "nq-section-mapping-title": {
+    "category": "Record explorer and named queries",
+    "description": "Label",
+    "contentFormat": "plain"
+  },
+  "nq-section-mapping-metadata": {
+    "category": "Record explorer and named queries",
+    "description": "Also store",
+    "contentFormat": "plain"
+  },
+  "nq-section-none": {
+    "category": "Record explorer and named queries",
+    "description": "None",
+    "contentFormat": "plain"
+  },
+  "nq-section-advanced-paths": {
+    "category": "Record explorer and named queries",
+    "description": "Advanced: response paths",
+    "contentFormat": "plain"
+  },
+  "nq-section-raw-mappings": {
+    "category": "Record explorer and named queries",
+    "description": "Mapping paths (JSON)",
+    "contentFormat": "plain"
+  },
+  "nq-section-invalid-paths": {
+    "category": "Record explorer and named queries",
+    "description": "Enter an object of mapping names and arrays of literal path segments.",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview": {
+    "category": "Record explorer and named queries",
+    "description": "Preview",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview-help": {
+    "category": "Record explorer and named queries",
+    "description": "Preview reads real records using your current access. It does not save the query.",
+    "contentFormat": "plain"
+  },
+  "nq-section-run-preview": {
+    "category": "Record explorer and named queries",
+    "description": "Run preview",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview-running": {
+    "category": "Record explorer and named queries",
+    "description": "Running preview…",
+    "contentFormat": "plain"
+  },
+  "nq-section-ready": {
+    "category": "Record explorer and named queries",
+    "description": "Ready to publish",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview-failed": {
+    "category": "Record explorer and named queries",
+    "description": "Preview could not run. Check the parameters, query and your access, then try again.",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-paging-required": {
+    "category": "Record explorer and named queries",
+    "description": "A form lookup needs a records query with first and after variables, nodes and page information. Edit it in GraphQL before publishing as a lookup.",
+    "contentFormat": "plain"
+  },
+  "nq-section-search-parameter": {
+    "category": "Record explorer and named queries",
+    "description": "Text the user types",
+    "contentFormat": "plain"
+  },
+  "nq-section-choose-search": {
+    "category": "Record explorer and named queries",
+    "description": "Choose a caller-provided text parameter",
+    "contentFormat": "plain"
+  },
+  "nq-section-advanced-document": {
+    "category": "Record explorer and named queries",
+    "description": "Advanced: GraphQL document",
+    "contentFormat": "plain"
+  },
+  "nq-section-check-settings": {
+    "category": "Record explorer and named queries",
+    "description": "Check the parameter choices and mappings. Every required variable needs a saved value or a caller-provided value.",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-check": {
+    "category": "Record explorer and named queries",
+    "description": "Choose a caller-provided search parameter, a stored value and a label to use this query in forms.",
+    "contentFormat": "plain"
+  },
+  "nq-section-caller-access": {
+    "category": "Record explorer and named queries",
+    "description": "Runs as the person calling the query. It does not grant extra record access.",
+    "contentFormat": "plain"
+  },
+  "nq-section-update": {
+    "category": "Record explorer and named queries",
+    "description": "Update named query",
+    "contentFormat": "plain"
+  },
+  "nq-section-publish": {
+    "category": "Record explorer and named queries",
+    "description": "Publish",
+    "contentFormat": "plain"
+  },
+  "nq-section-review-title": {
+    "category": "Record explorer and named queries",
+    "description": "Review named-query update",
+    "contentFormat": "plain"
+  },
+  "nq-section-review-help": {
+    "category": "Record explorer and named queries",
+    "description": "This update changes the query contract. Review the consumers below before applying it.",
+    "contentFormat": "plain"
+  },
+  "nq-section-review-limit": {
+    "category": "Record explorer and named queries",
+    "description": "Hooks and direct API callers may also use this query. ReDBox cannot list every consumer.",
+    "contentFormat": "plain"
+  },
+  "nq-section-confirm-update": {
+    "category": "Record explorer and named queries",
+    "description": "Confirm and update",
+    "contentFormat": "plain"
+  },
+  "data-grids-full-schema": {
+    "category": "Record explorer and named queries",
+    "description": "Full schema (advanced)",
+    "contentFormat": "plain"
+  },
+  "data-grids-title-column": {
+    "category": "Record explorer and named queries",
+    "description": "Title",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-query-changed": {
+    "category": "Record explorer and named queries",
+    "description": "The query changed while publishing was opening. Save your changes and try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-publication-target": {
+    "category": "Record explorer and named queries",
+    "description": "Named query to update",
+    "contentFormat": "plain"
+  },
+  "data-grids-results-current": {
+    "category": "Record explorer and named queries",
+    "description": "Results match the current query.",
+    "contentFormat": "plain"
+  },
+  "nq-section-paging": {
+    "category": "Record explorer and named queries",
+    "description": "Paging",
+    "contentFormat": "plain"
+  },
+  "nq-section-per-page": {
+    "category": "Record explorer and named queries",
+    "description": "per page",
+    "contentFormat": "plain"
+  },
+  "nq-section-default-page": {
+    "category": "Record explorer and named queries",
+    "description": "Default page size",
+    "contentFormat": "plain"
+  },
+  "nq-ux-how-start": {
+    "category": "Named queries",
+    "description": "How do you want to start?"
+  },
+  "nq-ux-start-saved": {
+    "category": "Named queries",
+    "description": "From a saved query"
+  },
+  "nq-ux-start-saved-help": {
+    "category": "Named queries",
+    "description": "Use a query built in the Record explorer. It stays linked to it."
+  },
+  "nq-ux-start-graphql": {
+    "category": "Named queries",
+    "description": "New GraphQL query"
+  },
+  "nq-ux-start-graphql-help": {
+    "category": "Named queries",
+    "description": "Open the Record explorer to build a new query and see its results."
+  },
+  "nq-ux-start-database": {
+    "category": "Named queries",
+    "description": "Database query"
+  },
+  "nq-ux-start-database-help": {
+    "category": "Named queries",
+    "description": "Use the database editor for reports and CSV export."
+  },
+  "nq-ux-search-saved": {
+    "category": "Named queries",
+    "description": "Search saved queries"
+  },
+  "nq-ux-built-with": {
+    "category": "Named queries",
+    "description": "Built with"
+  },
+  "nq-ux-mode-visual": {
+    "category": "Named queries",
+    "description": "Visual"
+  },
+  "nq-ux-mode-graphql": {
+    "category": "Named queries",
+    "description": "GraphQL"
+  },
+  "nq-ux-loading-saved": {
+    "category": "Named queries",
+    "description": "Loading saved queries…"
+  },
+  "nq-ux-saved-table": {
+    "category": "Named queries",
+    "description": "Saved explorer queries"
+  },
+  "nq-ux-saved-query": {
+    "category": "Named queries",
+    "description": "Saved query"
+  },
+  "nq-ux-updated": {
+    "category": "Named queries",
+    "description": "Updated"
+  },
+  "nq-ux-published-as": {
+    "category": "Named queries",
+    "description": "Published as {{name}}"
+  },
+  "nq-ux-not-published": {
+    "category": "Named queries",
+    "description": "Not published"
+  },
+  "nq-ux-unknown-type": {
+    "category": "Named queries",
+    "description": "Multiple or unspecified record types"
+  },
+  "nq-ux-not-recorded": {
+    "category": "Named queries",
+    "description": "Not recorded"
+  },
+  "nq-ux-no-saved": {
+    "category": "Named queries",
+    "description": "No saved queries yet"
+  },
+  "nq-ux-no-saved-help": {
+    "category": "Named queries",
+    "description": "Build and save a query in the Record explorer, then return here to make it reusable."
+  },
+  "nq-ux-open-explorer": {
+    "category": "Named queries",
+    "description": "Open in Record explorer"
+  },
+  "nq-ux-chooser-help": {
+    "category": "Named queries",
+    "description": "Continue to review the conditions and choose which values callers can change. Nothing is published until you save."
+  },
+  "nq-ux-continue": {
+    "category": "Named queries",
+    "description": "Continue"
+  },
+  "nq-ux-preparing": {
+    "category": "Named queries",
+    "description": "Preparing query…"
+  },
+  "nq-ux-change-source": {
+    "category": "Named queries",
+    "description": "Choose a source query"
+  },
+  "nq-ux-chooser-load-error": {
+    "category": "Named queries",
+    "description": "Saved queries could not be loaded. Try again."
+  },
+  "nq-ux-source-conflict": {
+    "category": "Named queries",
+    "description": "This saved query changed while you were choosing it. Select its current version and continue again."
+  },
+  "nq-ux-source-gone": {
+    "category": "Named queries",
+    "description": "This saved query is no longer available. Choose another query."
+  },
+  "nq-ux-source-denied": {
+    "category": "Named queries",
+    "description": "You need permission to create named queries in this portal. Your current draft has been kept."
+  },
+  "nq-ux-prepare-error": {
+    "category": "Named queries",
+    "description": "This query could not be prepared. Check that its fields are available in the Record explorer, then try again."
+  },
+  "nq-ux-built-from": {
+    "category": "Named queries",
+    "description": "Built from"
+  },
+  "nq-ux-built-from-prefix": {
+    "category": "Named queries",
+    "description": "Built from the saved query"
+  },
+  "nq-ux-written-by-hand": {
+    "category": "Named queries",
+    "description": "Written by hand"
+  },
+  "nq-ux-database-source": {
+    "category": "Named queries",
+    "description": "Database query"
+  },
+  "nq-ux-source-missing": {
+    "category": "Named queries",
+    "description": "Source query unavailable"
+  },
+  "nq-ux-source-missing-help": {
+    "category": "Named queries",
+    "description": "The saved query was removed or is no longer available here. This named query still works with its published document. Choose another source to replace the link."
+  },
+  "nq-ux-source-changed": {
+    "category": "Named queries",
+    "description": "Changed since published"
+  },
+  "nq-ux-source-changed-help": {
+    "category": "Named queries",
+    "description": "The saved query has changed since this named query was published. The published query stays as it is until you review and save an update."
+  },
+  "nq-ux-review-update": {
+    "category": "Named queries",
+    "description": "Review and update"
+  },
+  "nq-ux-change": {
+    "category": "Named queries",
+    "description": "Change…"
+  },
+  "nq-ux-source-draft-updated": {
+    "category": "Named queries",
+    "description": "The current saved query is now in your draft. Review the parameters and lookup fields, then save to publish the update."
+  },
+  "nq-ux-source-independent": {
+    "category": "Named queries",
+    "description": "This named query uses its own published document. Changes in the explorer take effect here only after you review and save an update."
+  },
+  "nq-ux-linked-readonly": {
+    "category": "Named queries",
+    "description": "This linked document is read-only here. Edit and save its source in the Record explorer, then review an update here."
+  },
+  "nq-ux-advanced-document": {
+    "category": "Named queries",
+    "description": "Advanced: GraphQL document"
+  },
+  "nq-ux-advanced-schema": {
+    "category": "Named queries",
+    "description": "Advanced: schema browser"
+  },
+  "nq-ux-handwritten-help": {
+    "category": "Named queries",
+    "description": "This GraphQL query was written by hand. Edit its document and bindings here, or choose a saved query to link it."
+  },
+  "nq-ux-edit-graphql": {
+    "category": "Named queries",
+    "description": "Edit GraphQL and advanced bindings"
+  },
+  "nq-ux-sections": {
+    "category": "Named queries",
+    "description": "Named query sections"
+  },
+  "nq-ux-section-basics": {
+    "category": "Named queries",
+    "description": "Basics"
+  },
+  "nq-ux-section-source": {
+    "category": "Named queries",
+    "description": "Source query"
+  },
+  "nq-ux-section-parameters": {
+    "category": "Named queries",
+    "description": "Parameters"
+  },
+  "nq-ux-section-lookup": {
+    "category": "Named queries",
+    "description": "Lookup fields"
+  },
+  "nq-ux-section-preview": {
+    "category": "Named queries",
+    "description": "Preview"
+  },
+  "nq-ux-section-used-by": {
+    "category": "Named queries",
+    "description": "Used by"
+  },
+  "nq-ux-checks": {
+    "category": "Named queries",
+    "description": "Checks"
+  },
+  "nq-ux-checks-passed": {
+    "category": "Named queries",
+    "description": "The query and its variable bindings are valid."
+  },
+  "nq-ux-operation-default": {
+    "category": "Named queries",
+    "description": "Use the query default"
+  },
+  "nq-ux-no-conditions": {
+    "category": "Named queries",
+    "description": "None"
+  },
+  "nq-ux-search-parameter": {
+    "category": "Named queries",
+    "description": "Text the user types"
+  },
+  "nq-ux-preview-values": {
+    "category": "Named queries",
+    "description": "Enter JSON values for numbers, yes/no values and lists. Text values do not need quotes."
+  },
+  "nq-ux-preview-error": {
+    "category": "Named queries",
+    "description": "The preview could not run. Check the document, test values and available fields, then try again."
+  },
+  "nq-ux-save-conflict": {
+    "category": "Named queries",
+    "description": "The source or published query changed while you were editing. Your draft is kept. Reopen the current query or choose the source again, then review and save."
+  },
+  "nq-ux-description": {
+    "category": "Named queries",
+    "description": "Description"
+  },
+  "nq-ux-empty-conditions": {
+    "category": "Named queries",
+    "description": "All accessible records in this scope."
+  },
+  "nq-ux-condition-value": {
+    "category": "Named queries",
+    "description": "{{condition}}: {{value}}"
+  },
+  "nq-ux-diagnostic-DUPLICATE_PARAMETER": {
+    "category": "Named queries",
+    "description": "Give each caller parameter a unique name. Paging names are reserved."
+  },
+  "nq-ux-diagnostic-GRAPHQL_CONTEXT_REQUIRED": {
+    "category": "Named queries",
+    "description": "Sign in with an authorized account before validating this query."
+  },
+  "nq-ux-diagnostic-GRAPHQL_OPERATION": {
+    "category": "Named queries",
+    "description": "Use a single read-only query operation."
+  },
+  "nq-ux-diagnostic-GRAPHQL_SCHEMA": {
+    "category": "Named queries",
+    "description": "A selected field, argument or variable is unavailable or has changed. Check it against the current schema."
+  },
+  "nq-ux-diagnostic-GRAPHQL_SYNTAX": {
+    "category": "Named queries",
+    "description": "Check the GraphQL syntax at the indicated line and column."
+  },
+  "nq-ux-diagnostic-INPUT_TYPE": {
+    "category": "Named queries",
+    "description": "Match each caller parameter to its variable type. Use a scalar, choice or list of these values."
+  },
+  "nq-ux-diagnostic-INVALID_DEFAULT": {
+    "category": "Named queries",
+    "description": "A saved value or default does not match its variable type. Correct it under Advanced."
+  },
+  "nq-ux-diagnostic-INVALID_DEFINITION": {
+    "category": "Named queries",
+    "description": "Check the document, variable choices and result paths. Some settings are incomplete or invalid."
+  },
+  "nq-ux-diagnostic-INVALID_SCOPE": {
+    "category": "Named queries",
+    "description": "Choose one available record type and compatible workflow stages."
+  },
+  "nq-ux-diagnostic-INVALID_SOURCE": {
+    "category": "Named queries",
+    "description": "Choose a supported query source."
+  },
+  "nq-ux-diagnostic-LOOKUP_MAPPING": {
+    "category": "Named queries",
+    "description": "Choose a stored value and label that are present in every suggestion."
+  },
+  "nq-ux-diagnostic-LOOKUP_PAGE_REQUIRED": {
+    "category": "Named queries",
+    "description": "Set up first-page paging to use this query in a form lookup."
+  },
+  "nq-ux-diagnostic-LOOKUP_PAGE_SHAPE": {
+    "category": "Named queries",
+    "description": "Select the records list and its continuation fields. Declare separate first and after paging variables."
+  },
+  "nq-ux-diagnostic-LOOKUP_SEARCH_BINDING": {
+    "category": "Named queries",
+    "description": "Choose a text parameter used by a query condition for the text the user types."
+  },
+  "nq-ux-diagnostic-MAPPING_PATH": {
+    "category": "Named queries",
+    "description": "A mapped field is no longer selected in every result. Choose another field or correct its path under Advanced."
+  },
+  "nq-ux-diagnostic-PAGE_VARIABLE": {
+    "category": "Named queries",
+    "description": "Declare both paging variables in the query document."
+  },
+  "nq-ux-diagnostic-QUERY_LIMIT": {
+    "category": "Named queries",
+    "description": "The query exceeds a server limit. Reduce its size or number of selections."
+  },
+  "nq-ux-diagnostic-REQUIRED_CONTRACT": {
+    "category": "Named queries",
+    "description": "The caller parameter requirement must match its GraphQL variable type."
+  },
+  "nq-ux-diagnostic-REQUIRED_VARIABLE": {
+    "category": "Named queries",
+    "description": "Choose a saved value or caller parameter for each required condition."
+  },
+  "nq-ux-diagnostic-RESULT_PATH": {
+    "category": "Named queries",
+    "description": "Choose the selected result list under Advanced. Nested lists cannot be flattened."
+  },
+  "nq-ux-diagnostic-UNKNOWN_RECORD_TYPE": {
+    "category": "Named queries",
+    "description": "This record type is no longer available. Review the source in the Record explorer."
+  },
+  "nq-ux-diagnostic-UNKNOWN_VARIABLE": {
+    "category": "Named queries",
+    "description": "Remove bindings for variables that the document no longer declares."
+  },
+  "nq-ux-diagnostic-UNKNOWN_WORKFLOW_STAGE": {
+    "category": "Named queries",
+    "description": "A workflow stage is no longer available. Review the source in the Record explorer."
+  },
+  "nq-ux-diagnostic-UNSAFE_PATH": {
+    "category": "Named queries",
+    "description": "Choose a valid result field. Paths must use literal property names."
+  },
+  "nq-ux-diagnostic-VARIABLE_OWNERSHIP": {
+    "category": "Named queries",
+    "description": "Choose how each condition gets its value. Paging variables are managed by ReDBox."
+  },
+  "nq-ux-diagnostic-GRAPHQL_DISABLED": {
+    "category": "Named queries",
+    "description": "Record queries are disabled. Ask an administrator to enable GraphQL."
+  },
+  "nq-ux-diagnostic-GRAPHQL_SCHEMA_UNAVAILABLE": {
+    "category": "Named queries",
+    "description": "The current schema could not be loaded. Your draft is kept; try again."
+  },
+  "nq-ux-updated-by": {
+    "category": "Named queries",
+    "description": "Updated {{date}} by {{user}}"
+  },
+  "nq-ux-updated-at": {
+    "category": "Named queries",
+    "description": "Updated {{date}}"
+  },
+  "named-query-error-name-spaces": {
+    "category": "Named queries",
+    "description": "Names can't contain spaces. Use letters, numbers, underscores or hyphens — for example active_research_plans.",
+    "contentFormat": "plain"
+  },
+  "named-query-error-name-invalid": {
+    "category": "Named queries",
+    "description": "Names can only contain letters, numbers, underscores or hyphens — for example active_research_plans.",
+    "contentFormat": "plain"
+  },
+  "named-query-error-name-long": {
+    "category": "Named queries",
+    "description": "Names must be 120 characters or fewer.",
+    "contentFormat": "plain"
+  },
+  "named-query-name-use-suggestion": {
+    "category": "Named queries",
+    "description": "Use {{suggestion}}",
+    "contentFormat": "plain"
+  },
+  "named-query-error-name-reserved": {
+    "category": "Named queries",
+    "description": "The name collections is reserved. Choose a different name.",
+    "contentFormat": "plain"
+  },
+  "named-query-error-collection-required": {
+    "category": "Named queries",
+    "description": "Choose a collection in Basics before saving.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-source": {
+    "category": "Reports",
+    "description": "GraphQL",
+    "contentFormat": "plain"
+  },
+  "report-open-named-query": {
+    "category": "Reports",
+    "description": "Open named query",
+    "contentFormat": "plain"
+  },
+  "report-create-from-query": {
+    "category": "Reports",
+    "description": "Create report from this query",
+    "contentFormat": "plain"
+  },
+  "report-browse-queries": {
+    "category": "Reports",
+    "description": "Browse named queries",
+    "contentFormat": "plain"
+  },
+  "report-add-parameter-filter": {
+    "category": "Reports",
+    "description": "Add filter: {{name}}",
+    "contentFormat": "plain"
+  },
+  "report-graphql-range": {
+    "category": "Reports",
+    "description": "Showing {{start}}–{{end}}",
+    "contentFormat": "plain"
+  },
+  "report-graphql-previous": {
+    "category": "Reports",
+    "description": "Previous",
+    "contentFormat": "plain"
+  },
+  "report-graphql-next": {
+    "category": "Reports",
+    "description": "Next",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-limit": {
+    "category": "Reports",
+    "description": "Exports up to {{count}} rows",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-wait": {
+    "category": "Reports",
+    "description": "Export in progress. Please wait while ReDBox checks each page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-complete": {
+    "category": "Reports",
+    "description": "Export complete. Your CSV download is ready.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-failed": {
+    "category": "Reports",
+    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-live-data": {
+    "category": "Reports",
+    "description": "Results are live. Changes during paging or export can affect which records appear; this is not a snapshot.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-query-changed": {
+    "category": "Reports",
+    "description": "The named query has changed. Review its fields and filters, then accept the current version and save the report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-review-version": {
+    "category": "Reports",
+    "description": "Use reviewed query version",
+    "contentFormat": "plain"
+  },
+  "report-graphql-paging-required": {
+    "category": "Reports",
+    "description": "This query is missing the paging fields needed for reports. Re-publish it from the Record explorer, then select the published query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-output-field": {
+    "category": "Reports",
+    "description": "Result field",
+    "contentFormat": "plain"
+  },
+  "report-graphql-advanced": {
+    "category": "Reports",
+    "description": "Advanced: raw path",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_QUERY_CHANGED": {
+    "category": "Reports",
+    "description": "The named query has changed. Review its fields and filters, then accept the current version and save the report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_CURSOR_INVALID": {
+    "category": "Reports",
+    "description": "This page link is expired or no longer matches the report, filters or your access. Run the report again from the first page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_ROW_LIMIT": {
+    "category": "Reports",
+    "description": "The export exceeds its row limit. No partial CSV was downloaded. Narrow the query or ask an administrator to increase the limit.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_PAGE_LIMIT": {
+    "category": "Reports",
+    "description": "The export exceeds its page limit. No partial CSV was downloaded. Narrow the query and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_BYTE_LIMIT": {
+    "category": "Reports",
+    "description": "The export exceeds its file size limit. No partial CSV was downloaded. Choose fewer columns or narrow the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_TIMEOUT": {
+    "category": "Reports",
+    "description": "The export reached its time limit. No partial CSV was downloaded. Narrow the query and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_OFFSET_UNSUPPORTED": {
+    "category": "Reports",
+    "description": "This report uses Next and Previous to page through its results. Run it again from the first page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_PAGE_INVALID": {
+    "category": "Reports",
+    "description": "Choose a valid page size and run the report again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_CURSOR_UNAVAILABLE": {
+    "category": "Reports",
+    "description": "Report paging is not configured. Ask an administrator to check the shared cursor secret.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_LIMIT_CONFIG_INVALID": {
+    "category": "Reports",
+    "description": "Report export limits are not configured correctly. Ask an administrator to check them.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_CONTEXT_REQUIRED": {
+    "category": "Reports",
+    "description": "Sign in again before running or exporting this report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_REPORT_PAGING_REQUIRED": {
+    "category": "Reports",
+    "description": "This query is missing the paging fields needed for reports. Re-publish it from the Record explorer, then select the published query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_EXECUTION_FAILED": {
+    "category": "Reports",
+    "description": "The record query failed while running this report. Try again, or ask an administrator to check the named query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_RESULT_INVALID": {
+    "category": "Reports",
+    "description": "The query returned an unexpected result collection or paging fields. Re-publish it from the Record explorer and review the report columns.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_ROW_INVALID": {
+    "category": "Reports",
+    "description": "The query returned an unexpected record value. Re-publish it from the Record explorer and review the report columns.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_DISABLED": {
+    "category": "Reports",
+    "description": "GraphQL reports are currently unavailable. Ask an administrator to check the GraphQL configuration.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-UNAVAILABLE": {
+    "category": "Reports",
+    "description": "The report service is temporarily unavailable. Try again later.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-QUERY_TIMEOUT": {
+    "category": "Reports",
+    "description": "This report took too long. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-QUERY_LIMIT": {
+    "category": "Reports",
+    "description": "This report exceeds its data or work limit. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-COLLECTION_LIMIT": {
+    "category": "Reports",
+    "description": "This report could not finish a page within its work limit. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-INVALID_GRAPHQL_NAMED_QUERY": {
+    "category": "Reports",
+    "description": "The query no longer matches the available record fields. Ask an administrator to review it.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-INVALID_GRAPHQL_PARAMETER": {
+    "category": "Reports",
+    "description": "Check the report filter values and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-preview-help": {
+    "category": "Reports",
+    "description": "GraphQL report automatic first page preview guidance",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_LOOKUP_UNSUPPORTED": {
+    "category": "Reports",
+    "description": "This query cannot provide report results. Re-publish it from the Record explorer, then select the published query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_OFFSET_UNSUPPORTED": {
+    "category": "Reports",
+    "description": "This report uses Next and Previous to page through its results. Run it again from the first page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_PAGE_INVALID": {
+    "category": "Reports",
+    "description": "Choose a valid page size and run the report again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-INPUT_LIMIT": {
+    "category": "Reports",
+    "description": "The report or its filter values are too large. Use fewer columns or shorter filter values.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-COMPLEXITY_LIMIT": {
+    "category": "Reports",
+    "description": "The report configuration is too complex. Use fewer columns or simpler templates.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-MAPPING_LIMIT": {
+    "category": "Reports",
+    "description": "The report contains too many field mappings. Reduce the selected fields and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-PREVIEW_TIMEOUT": {
+    "category": "Reports",
+    "description": "The report preview took too long. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-FORBIDDEN": {
+    "category": "Reports",
+    "description": "You do not have access to preview this report. Sign in with an account that has report access.",
+    "contentFormat": "plain"
+  },
+  "named-queries-heading": {
+    "category": "reports",
+    "description": "Named queries",
+    "contentFormat": "plain"
+  },
+  "report-ux-list-help": {
+    "category": "reports",
+    "description": "Tables of records that people can view and download as CSV.",
+    "contentFormat": "plain"
+  },
+  "report-ux-report": {
+    "category": "reports",
+    "description": "Report",
+    "contentFormat": "plain"
+  },
+  "report-ux-more": {
+    "category": "reports",
+    "description": "More actions",
+    "contentFormat": "plain"
+  },
+  "report-ux-built-on": {
+    "category": "reports",
+    "description": "Built on the named query",
+    "contentFormat": "plain"
+  },
+  "report-ux-from-saved": {
+    "category": "reports",
+    "description": "from the saved query",
+    "contentFormat": "plain"
+  },
+  "report-ux-editor-help": {
+    "category": "reports",
+    "description": "Choose a query, then the columns and filters people will use.",
+    "contentFormat": "plain"
+  },
+  "report-ux-view-report": {
+    "category": "reports",
+    "description": "View report",
+    "contentFormat": "plain"
+  },
+  "report-ux-sections": {
+    "category": "reports",
+    "description": "Report sections",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-basics": {
+    "category": "reports",
+    "description": "Basics",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-source": {
+    "category": "reports",
+    "description": "Data source",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-columns": {
+    "category": "reports",
+    "description": "Columns",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-filters": {
+    "category": "reports",
+    "description": "Filters",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-preview": {
+    "category": "reports",
+    "description": "Preview",
+    "contentFormat": "plain"
+  },
+  "report-ux-title-help": {
+    "category": "reports",
+    "description": "Shown to people viewing the report.",
+    "contentFormat": "plain"
+  },
+  "report-ux-key-help": {
+    "category": "reports",
+    "description": "Used in the report’s web address. Can’t be changed after saving.",
+    "contentFormat": "plain"
+  },
+  "report-ux-browse": {
+    "category": "reports",
+    "description": "Browse…",
+    "contentFormat": "plain"
+  },
+  "report-ux-built-from": {
+    "category": "reports",
+    "description": "Built from",
+    "contentFormat": "plain"
+  },
+  "report-ux-choose-columns": {
+    "category": "reports",
+    "description": "Add or remove columns…",
+    "contentFormat": "plain"
+  },
+  "report-ux-order": {
+    "category": "reports",
+    "description": "Reorder column",
+    "contentFormat": "plain"
+  },
+  "report-ux-heading": {
+    "category": "reports",
+    "description": "Column heading",
+    "contentFormat": "plain"
+  },
+  "report-ux-shows": {
+    "category": "reports",
+    "description": "Shows",
+    "contentFormat": "plain"
+  },
+  "report-ux-on-screen": {
+    "category": "reports",
+    "description": "On screen",
+    "contentFormat": "plain"
+  },
+  "report-ux-csv": {
+    "category": "reports",
+    "description": "CSV",
+    "contentFormat": "plain"
+  },
+  "report-ux-hidden": {
+    "category": "reports",
+    "description": "Hidden",
+    "contentFormat": "plain"
+  },
+  "report-ux-reorder-help": {
+    "category": "reports",
+    "description": "Drag or use Alt+↑/↓ on a row to reorder. Edit a column to hide it on screen or customise how it displays.",
+    "contentFormat": "plain"
+  },
+  "report-ux-moved": {
+    "category": "reports",
+    "description": "{{name}} moved to position {{position}} of {{total}}.",
+    "contentFormat": "plain"
+  },
+  "report-ux-no-viewer-filters": {
+    "category": "reports",
+    "description": "This query has no parameters, so there’s nothing for viewers to filter on.",
+    "contentFormat": "plain"
+  },
+  "report-ux-add-viewer-before": {
+    "category": "reports",
+    "description": "To add one, open",
+    "contentFormat": "plain"
+  },
+  "report-ux-the-query": {
+    "category": "reports",
+    "description": "the named query",
+    "contentFormat": "plain"
+  },
+  "report-ux-add-viewer-after": {
+    "category": "reports",
+    "description": "and set a condition to Viewer provides.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-as": {
+    "category": "reports",
+    "description": "Preview as",
+    "contentFormat": "plain"
+  },
+  "report-ux-refresh": {
+    "category": "reports",
+    "description": "Refresh",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-ready": {
+    "category": "reports",
+    "description": "Preview updated. Showing up to 10 rows.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-idle": {
+    "category": "reports",
+    "description": "Refresh to preview your report.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-footer": {
+    "category": "reports",
+    "description": "First 10 of the first page · uses your unsaved changes",
+    "contentFormat": "plain"
+  },
+  "report-ux-raw": {
+    "category": "reports",
+    "description": "Show raw result data",
+    "contentFormat": "plain"
+  },
+  "report-ux-ready": {
+    "category": "reports",
+    "description": "Ready to save. {{count}} columns configured.",
+    "contentFormat": "plain"
+  },
+  "report-ux-access-check": {
+    "category": "reports",
+    "description": "Viewers only see records they’re allowed to see.",
+    "contentFormat": "plain"
+  },
+  "report-ux-export-check": {
+    "category": "reports",
+    "description": "CSV export covers up to 10,000 rows.",
+    "contentFormat": "plain"
+  },
+  "report-ux-saved": {
+    "category": "reports",
+    "description": "No unsaved changes",
+    "contentFormat": "plain"
+  },
+  "report-ux-apply": {
+    "category": "reports",
+    "description": "Apply",
+    "contentFormat": "plain"
+  },
+  "report-ux-columns-note": {
+    "category": "reports",
+    "description": "Only fields the named query returns can be columns. To report on another field, add it in the Record explorer and update the named query.",
+    "contentFormat": "plain"
+  },
+  "report-ux-edit-column": {
+    "category": "reports",
+    "description": "Edit column",
+    "contentFormat": "plain"
+  },
+  "report-ux-display-as": {
+    "category": "reports",
+    "description": "Display as",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-text": {
+    "category": "reports",
+    "description": "Text",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-date": {
+    "category": "reports",
+    "description": "Date",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-datetime": {
+    "category": "reports",
+    "description": "Date and time",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-help": {
+    "category": "reports",
+    "description": "Dates use UTC. CSV keeps the full value unless you add a CSV template.",
+    "contentFormat": "plain"
+  },
+  "report-ux-hide": {
+    "category": "reports",
+    "description": "Hide on screen (still included in CSV)",
+    "contentFormat": "plain"
+  },
+  "report-ux-multiple": {
+    "category": "reports",
+    "description": "When there are several values, show each on its own line",
+    "contentFormat": "plain"
+  },
+  "report-ux-advanced-template": {
+    "category": "reports",
+    "description": "Advanced: custom template",
+    "contentFormat": "plain"
+  },
+  "report-ux-template-help": {
+    "category": "reports",
+    "description": "Write a Handlebars template to customise this column. Insert a field by name below. A display template takes precedence over Display as. Leave the CSV template empty to reuse the display template.",
+    "contentFormat": "plain"
+  },
+  "report-ux-done": {
+    "category": "reports",
+    "description": "Done",
+    "contentFormat": "plain"
+  },
+  "report-ux-edit-filter": {
+    "category": "reports",
+    "description": "Edit filter",
+    "contentFormat": "plain"
+  },
+  "report-ux-filter-help": {
+    "category": "reports",
+    "description": "Choose the query parameter this filter will fill. Viewers enter a value when they open the report.",
+    "contentFormat": "plain"
+  },
+  "report-ux-advanced-binding": {
+    "category": "reports",
+    "description": "Advanced: field binding",
+    "contentFormat": "plain"
+  },
+  "report-ux-invalid-format": {
+    "category": "reports",
+    "description": "Choose Text, Date, or Date and time.",
+    "contentFormat": "plain"
+  },
+  "report-ux-invalid-labels": {
+    "category": "reports",
+    "description": "Choice labels must contain a stored value and a text label.",
+    "contentFormat": "plain"
+  },
+  "report-query-change-help": {
+    "category": "reports",
+    "description": "Columns that still exist in the new query are kept when you change it.",
+    "contentFormat": "plain"
+  },
+  "report-display-context-help": {
+    "category": "reports",
+    "description": "In a column with several values, insert Current item to show each one. Insert a field by its label below.",
+    "contentFormat": "plain"
+  },
+  "report-csv-context-help": {
+    "category": "reports",
+    "description": "Set the value to export for this column. Leave empty to reuse the display template, or the full original value when there is no display template.",
+    "contentFormat": "plain"
+  },
+  "report-insert-template-field": {
+    "category": "reports",
+    "description": "Insert a field…",
+    "contentFormat": "plain"
+  },
+  "report-ux-custom-path": {
+    "category": "reports",
+    "description": "Field path (advanced)",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-bounded": {
+    "category": "reports",
+    "description": "This preview shows a limited sample. The full report may contain more rows.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-limits": {
+    "category": "reports",
+    "description": "About preview limits",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-rdmp": {
+    "category": "reports",
+    "description": "Research plans",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-dataRecord": {
+    "category": "reports",
+    "description": "Archival data records",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-dataPublication": {
+    "category": "reports",
+    "description": "Data publications",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-party": {
+    "category": "reports",
+    "description": "People",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-funding": {
+    "category": "reports",
+    "description": "Funding",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-ror": {
+    "category": "reports",
+    "description": "Organisations",
+    "contentFormat": "plain"
+  },
+  "report-ux-records": {
+    "category": "reports",
+    "description": "Records",
+    "contentFormat": "plain"
+  },
+  "report-ux-stage-summary": {
+    "category": "reports",
+    "description": "{{name}} stage",
+    "contentFormat": "plain"
+  },
+  "report-ux-sort-summary": {
+    "category": "reports",
+    "description": "sorted by {{name}}",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-ASSISTANCE_UNAVAILABLE": {
+    "category": "reports",
+    "description": "The report preview is temporarily unavailable. Refresh it to try again.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-column": {
+    "category": "reports",
+    "description": "Check “{{name}}” in the preview. This query’s field list cannot confirm the values it will show.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-template-field": {
+    "category": "reports",
+    "description": "Check the custom template for “{{name}}” in Advanced. One of its fields could not be confirmed.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-template-syntax": {
+    "category": "reports",
+    "description": "Check the custom template for “{{name}}” in Advanced. Some template instructions could not be read.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-template-length": {
+    "category": "reports",
+    "description": "The custom template for “{{name}}” is too long to check. Simplify it, then refresh the preview.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-filter": {
+    "category": "reports",
+    "description": "Choose a parameter from this query for the filter “{{name}}”.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-date-filter": {
+    "category": "reports",
+    "description": "The filter “{{name}}” needs parameters that accept dates.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-multiple": {
+    "category": "reports",
+    "description": "“{{name}}” has several values. Edit the column to choose how to show them.",
+    "contentFormat": "plain"
+  },
+  "report-ux-this-setting": {
+    "category": "reports",
+    "description": "this setting",
+    "contentFormat": "plain"
+  },
+  "report-ux-path-help": {
+    "category": "reports",
+    "description": "Use this only when the field you need is not in Shows. Enter the exact path returned by the named query.",
+    "contentFormat": "plain"
+  },
+  "report-ux-current-item": {
+    "category": "reports",
+    "description": "Current item",
+    "contentFormat": "plain"
+  },
+  "report-ux-web-address": {
+    "category": "reports",
+    "description": "Portal web address",
+    "contentFormat": "plain"
+  },
+  "report-ux-from": {
+    "category": "reports",
+    "description": "From",
+    "contentFormat": "plain"
+  },
+  "report-ux-to": {
+    "category": "reports",
+    "description": "To",
+    "contentFormat": "plain"
+  },
+  "report-ux-suggested": {
+    "category": "reports",
+    "description": "Suggested filters",
+    "contentFormat": "plain"
+  },
+  "report-ux-report-address": {
+    "category": "reports",
+    "description": "Report web address",
     "contentFormat": "plain"
   }
 }

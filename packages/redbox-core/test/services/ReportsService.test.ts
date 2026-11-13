@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -501,6 +502,25 @@ describe('ReportsService', function () {
 
       expect(mockReport.findOne.calledWith({ key: 'brand-1_report-name' })).to.be.true;
       expect(result).to.deep.equal({ id: 'report-1' });
+    });
+  });
+
+  describe('GraphQL report version and caller guards', () => {
+    const report = { name: 'graphql-report', title: 'GraphQL report', reportSource: 'database', databaseQuery: { queryName: 'graphql' }, columns: [], filter: [], solrQuery: null };
+    const brand = { id: 'brand-1' };
+    beforeEach(() => {
+      Reflect.get(globalThis, 'NamedQueryService').getNamedQueryConfig.resolves({ source: 'graphql', graphql: { document: 'query { records }', variables: {}, resultPath: [] } });
+      mockReport.findOne.returns(createQueryObject(report));
+    });
+    it('rejects unversioned definitions before create, update or preview', async () => {
+      for (const operation of [() => ReportsService.createConfig(brand, report), () => ReportsService.updateConfig(brand, report.name, report), () => ReportsService.previewConfig(brand, report, { param: sinon.stub() })])
+        await assert.rejects(operation, /REPORT_QUERY_CHANGED/);
+      expect(Reflect.get(globalThis, 'NamedQueryService').performNamedQueryFromConfig.called).to.equal(false);
+    });
+    it('requires a trusted caller before rows or CSV execution', async () => {
+      for (const operation of [() => ReportsService.getResults(brand, report.name, { param: sinon.stub() }), () => ReportsService.getCSVResult(brand, report.name, { param: sinon.stub() })])
+        await assert.rejects(operation, /GRAPHQL_CONTEXT_REQUIRED/);
+      expect(Reflect.get(globalThis, 'NamedQueryService').performNamedQueryFromConfig.called).to.equal(false);
     });
   });
 

@@ -1,11 +1,35 @@
+import { SavedQueryChooserComponent } from './saved-query-chooser.component';
+import {
+  AdminSourceCardComponent,
+  NamedQueryBasicsSectionComponent,
+  NamedQueryNameFieldComponent,
+  NamedQueryParametersSectionComponent,
+  NamedQueryLookupSectionComponent,
+  NamedQueryPreviewSectionComponent,
+} from '@researchdatabox/portal-ng-common';
+import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
+import { GraphqlJsonInputComponent } from './graphql-json-input.component';
 import { QueryAssistanceModule } from './query-assistance.module';
 import { FieldTreeComponent, SchemaTargetSelectorComponent } from '@researchdatabox/portal-ng-common';
+import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import {
+  I18NextPipe,
+  AdminCountPipe,
+  AdminTabsDirective,
+  AdminModalDirective,
+  AdminOverflowDirective,
+  ConfigService,
+  TranslationService,
+  LoggerService,
+  UtilityService,
+  CsrfInterceptor,
+  trimLastSlashFromUrl,
+} from '@researchdatabox/portal-ng-common';
 
 import { NamedQueryEditorComponent } from './named-query-editor.component';
 import { NamedQueryApiService } from './named-query-api.service';
@@ -30,9 +54,22 @@ import { RelatedFilterEditorComponent } from './related-filter-editor/related-fi
   ],
   imports: [
     BrowserModule,
+    SavedQueryChooserComponent,
+    AdminSourceCardComponent,
+  NamedQueryBasicsSectionComponent,
+    NamedQueryNameFieldComponent,
+    NamedQueryParametersSectionComponent,
+    NamedQueryLookupSectionComponent,
+    NamedQueryPreviewSectionComponent,
+    GraphqlDraftEditorComponent,
+    GraphqlJsonInputComponent,
     A11yModule,
     FormsModule,
-    RedboxPortalCoreModule,
+    I18NextPipe,
+    AdminCountPipe,
+    AdminTabsDirective,
+    AdminModalDirective,
+    AdminOverflowDirective,
     CommonModule,
     QueryAssistanceModule,
     FieldTreeComponent,
@@ -40,6 +77,12 @@ import { RelatedFilterEditorComponent } from './related-filter-editor/related-fi
   ],
   providers: [
     NamedQueryApiService,
+    provideHttpClient(withInterceptorsFromDi()),
+    ConfigService,
+    TranslationService,
+    LoggerService,
+    UtilityService,
+    { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),

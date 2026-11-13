@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
-import { NamedQueryDefinition } from '../named-query-api.service';
+import { NamedQueryCatalogueRow } from '../named-query-api.service';
 
 export type NamedQueryListQueryState = {
   searchTerm: string;
@@ -10,11 +10,11 @@ export type NamedQueryListQueryState = {
   selector: 'nq-list',
   templateUrl: './nq-list.component.html',
   styleUrls: ['./nq-list.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class NqListComponent implements OnChanges, OnDestroy {
   @Input() brandingAndPortalUrl = '';
-  @Input() queries: NamedQueryDefinition[] = [];
+  @Input() queries: NamedQueryCatalogueRow[] = [];
   @Input() total = 0;
   @Input() collections: string[] = [];
   @Input() selectedName: string | null = null;
@@ -58,7 +58,10 @@ export class NqListComponent implements OnChanges, OnDestroy {
   }
 
   setCollection(collection: string): void {
-    if (this.searchDebounceTimer) { clearTimeout(this.searchDebounceTimer); this.searchDebounceTimer = null; }
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.queryChanged.emit({ searchTerm: this.searchTerm, collection });
   }
 
@@ -69,23 +72,50 @@ export class NqListComponent implements OnChanges, OnDestroy {
     }
     this.searchDebounceTimer = setTimeout(() => {
       this.searchDebounceTimer = null;
-      this.queryChanged.emit({ searchTerm: this.searchTerm, ...(this.query.collection ? { collection: this.query.collection } : {}) });
+      this.queryChanged.emit({
+        searchTerm: this.searchTerm,
+        ...(this.query.collection ? { collection: this.query.collection } : {}),
+      });
     }, 250);
   }
 
-  paramCount(q: NamedQueryDefinition): number {
+  sourceOf(query: NamedQueryCatalogueRow) {
+    return query.valid !== false && query.source === 'graphql' ? query.sourceSavedQuery : null;
+  }
+
+  sourceLabel(query: NamedQueryCatalogueRow): string {
+    return query.valid === false
+      ? 'named-query-invalid-source'
+      : query.source === 'graphql'
+        ? 'named-query-source-graphql'
+        : 'named-query-source-database';
+  }
+  collectionLabel(query: NamedQueryCatalogueRow): string {
+    if (query.valid === false || query.source === 'graphql') return '—';
+    return ['record', 'user'].includes(query.collectionName)
+      ? 'admin-query-collection-' + query.collectionName
+      : query.collectionName || '—';
+  }
+
+  paramCount(q: NamedQueryCatalogueRow): number {
+    if (q.valid === false) return 0;
+    if (q.source === 'graphql')
+      return Object.values(q.graphql?.variables ?? {}).filter(binding => binding?.ownership === 'consumer').length;
     return q.queryParams ? Object.keys(q.queryParams).length : 0;
   }
 
-  filterCount(q: NamedQueryDefinition): number {
+  filterCount(q: NamedQueryCatalogueRow): number {
+    if (q.valid === false) return 0;
     return q.relatedRecordFilters ? q.relatedRecordFilters.length : 0;
   }
 
-  mappingCount(q: NamedQueryDefinition): number {
+  mappingCount(q: NamedQueryCatalogueRow): number {
+    if (q.valid === false) return 0;
+    if (q.source === 'graphql') return Object.keys(q.graphql?.mappings ?? {}).length;
     return q.resultObjectMapping ? Object.keys(q.resultObjectMapping).length : 0;
   }
 
-  trackByName(_index: number, q: NamedQueryDefinition): string {
+  trackByName(_index: number, q: NamedQueryCatalogueRow): string {
     return q?.name || `named-query-${_index}`;
   }
 }

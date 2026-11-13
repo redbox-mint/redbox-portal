@@ -238,8 +238,9 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
     {
       id: 'records', titleKey: 'admin-nav-records', defaultExpanded: true,
       items: [
-        { id: 'reports', labelKey: 'admin-nav-reports', href: '/admin/reports' },
+        { id: 'data-grids', labelKey: 'data-grids-title', href: '/admin/data-grids', requiredRoles: ['Admin'] },
         { id: 'named-query', labelKey: 'admin-nav-named-query', href: '/admin/named-query' },
+        { id: 'reports', labelKey: 'admin-nav-reports', href: '/admin/reports' },
         { id: 'harvest-runs', labelKey: 'admin-nav-harvest-runs', href: '/admin/harvest-runs' },
         { id: 'export', labelKey: 'admin-nav-export', href: '/admin/export' },
         { id: 'deleted', labelKey: 'admin-nav-deleted', href: '/admin/deletedRecords' },

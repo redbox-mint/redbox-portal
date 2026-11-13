@@ -1,3 +1,5 @@
+import { z } from '../zod-openapi';
+import { namedQueryDefinitionSchema, namedQueryDraftSchema } from '../schemas/named-query';
 import { apiRoute } from '../route-factory';
 import { anyField, arrayField, objectField, responseField, stringField } from '../schemas/common';
 
@@ -11,7 +13,7 @@ const consumer = objectField({
   name: stringField('Consumer display name or translation key'),
   path: stringField('Link relative to the current brand and portal'),
 }, ['type', 'name', 'path']);
-const queryWithUsage = objectField({ usedBy: arrayField(consumer, 'Configured consumers in this brand') }, ['usedBy'], 'Named query definition with usage metadata', true);
+const queryWithUsage = objectField({ usedBy: arrayField(consumer, 'Configured consumers in this brand') }, ['usedBy'], 'Named query definition with usage metadata; list may include read-only recovery entries with name, raw source, valid:false and safe diagnostics', true);
 const listWithUsageResponse = responseField(objectField({ data: arrayField(queryWithUsage) }, ['data']), 'Brand named queries with usage');
 const queryWithUsageResponse = responseField(objectField({ data: queryWithUsage }, ['data']), 'Named query with usage');
 const inUseResponse = responseField(objectField({
@@ -19,7 +21,7 @@ const inUseResponse = responseField(objectField({
   errors: arrayField(anyField('Error explaining that configured references must be removed first')),
 }, ['meta', 'errors']), 'Query is in use; deletion refused');
 
-const namedQueryBody = objectField({}, [], 'Named query payload', true);
+const namedQueryBody = namedQueryDefinitionSchema;
 
 const nameParam = objectField(
   {
@@ -37,7 +39,7 @@ export const listNamedQueriesRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'List all named queries for the brand',
-    description: 'Admin-only. Includes usedBy consumers, aggregated once for the whole list. Links are relative to the current brand/portal. Runtime API callers are not tracked.',
+    description: 'Admin-only. Includes usedBy consumers, aggregated once for the whole list. Unsupported stored sources remain identifiable/deletable as minimal entries with name, raw source, valid:false and safe diagnostics; they are never executable definitions. Links are relative to the current brand/portal. Runtime API callers are not tracked.',
     responses: { 200: listWithUsageResponse },
   }
 );
@@ -80,6 +82,7 @@ export const createNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Create a new named query',
+    description: 'Missing source selects database. GraphQL definitions use source:graphql and a graphql operation block; database execution fields are forbidden. Structural validation does not execute the document.',
     responses: { 201: namedQueryResponse },
   }
 );
@@ -91,12 +94,14 @@ export const updateNamedQueryRoute = apiRoute(
   'updateQuery',
   {
     params: nameParam,
+    headers: objectField({ 'x-redbox-named-query-confirmation': stringField('Short-lived acknowledgement returned by review-update for this exact breaking change') }),
     body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
   },
   {
     tags: ['NamedQuery'],
     summary: 'Update an existing named query',
-    responses: { 200: namedQueryResponse },
+    description: 'Replaces the selected source definition. Unknown sources and contradictory fields are rejected. Legacy database JSON and omitted source are preserved on unchanged saves. Breaking source, parameter/default/type/nullability or lookup mapping changes require review-update and its X-ReDBox-Named-Query-Confirmation header; missing/stale confirmation or intervening writes return 409.',
+    responses: { 200: namedQueryResponse, 409: responseField(anyField('Safe confirmation-required or saved-state conflict error, with current review metadata where applicable'), 'Review is required again before updating') },
   }
 );
 
@@ -127,6 +132,32 @@ const assistanceQuery = objectField(
 );
 
 export const namedQueryEditorRoutes = [
+  apiRoute('get', '/:branding/:portal/api/named-query/editor/saved-queries',
+    'webservice/NamedQueryController', 'savedExplorations',
+    { query: z.object({ q: z.string().max(120).optional(), mode: z.enum(['visual', 'graphql']).optional(), after: z.string().regex(/^[a-f0-9]{24}$/).optional() }) },
+    { tags: ['NamedQuery'], summary: 'List saved explorer queries in the current brand and portal',
+      description: 'Admin session required. Literal case-insensitive search by saved name or visual record type; filter mode visual/graphql. Same ascending ObjectId cursor and 100-row page as the saved-grid catalogue. Returns grids summaries including updatedBy/At and publishedAs, and next. No query execution. Responses are no-store.', responses: { 200: namedQueryResponse } }),
+  { ...apiRoute('post', '/:branding/:portal/api/named-query/editor/from-saved-query',
+    'webservice/NamedQueryController', 'prepareSavedExploration',
+    { body: { required: true, content: { 'application/json': { schema: z.strictObject({ id: z.string().regex(/^[a-f0-9]{24}$/), revision: z.number().int().positive() }) } } } },
+    { tags: ['NamedQuery'], summary: 'Build an unsaved named-query draft from a saved explorer query',
+      description: 'Admin browser session, CSRF and independent named-query create permission required. Resolves the exact current brand/portal source and revision (409 on drift), then reuses explorer promotion. Returns definition and unclassified variableValues. Does not write or execute raw GraphQL. Provenance includes the source portal. Responses are no-store.', responses: { 200: namedQueryResponse, 403: namedQueryResponse, 404: namedQueryResponse, 409: namedQueryResponse } }), csrf: true },
+  { ...apiRoute('post', '/:branding/:portal/api/named-query/editor/from-explorer',
+    'webservice/NamedQueryController', 'preparePromotion',
+    { body: { required: true, content: { 'application/json': { schema: objectField({ exploration: anyField('Current unsaved visual or GraphQL explorer definition') }, ['exploration']) } } } },
+    { tags: ['NamedQuery'], summary: 'Prepare a detached unsaved named-query editor from an exploration',
+      description: 'Requires an explorer admin session and independent destination named-query create/write permission. Reads fresh visual discovery, never executes raw documents or persists/revises either definition. Returns copied candidate values with unclassified ownership and informational provenance. No documents or values travel in URLs. Responses are no-store.',
+      responses: { 200: namedQueryResponse, 400: namedQueryResponse, 403: namedQueryResponse } }), csrf: true },
+  { ...apiRoute('post', '/:branding/:portal/api/named-query/:name/review-update',
+    'webservice/NamedQueryController', 'reviewUpdate',
+    { params: nameParam, body: { required: true, content: { 'application/json': { schema: namedQueryDraftSchema } } } },
+    { tags: ['NamedQuery'], summary: 'Review breaking changes and known usages before an immediate update',
+      description: 'Does not persist or execute. Returns a short-lived confirmation bound to the exact definition, saved state, caller and known usages. Pass it in X-ReDBox-Named-Query-Confirmation on PUT. Dynamic hooks/API/config callers cannot be enumerated. A changed draft or saved state requires review again. Responses are no-store.',
+      responses: { 200: namedQueryResponse } }), csrf: true },
+  apiRoute('get', '/:branding/:portal/api/named-query/editor/graphql-schema',
+    'webservice/NamedQueryController', 'graphqlSchema', {},
+    { tags: ['NamedQuery'], summary: 'Current caller-scoped GraphQL read schema for named-query assistance',
+      description: 'Requires named-query permission and real authenticated caller context. Returns bounded SDL without executing records. Responses are no-store.', responses: { 200: namedQueryResponse } }),
   apiRoute(
     'get',
     '/:branding/:portal/api/named-query/editor/schema-targets',
@@ -162,19 +193,22 @@ export const namedQueryEditorRoutes = [
       'webservice/NamedQueryController',
       `${operation}Draft`,
       {
-        body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
+        body: { required: true, content: { 'application/json': { schema: namedQueryDraftSchema } } },
       },
       {
         tags: ['NamedQuery'],
         summary: `${operation} an unsaved named query`,
         description:
-          'Accepts {definition, guidance?, parameters?}; guidance is ephemeral and parameters are used only by explicit preview. Requires named-query permission and CSRF. Validation/description do not execute or persist. Completed validation and preview refusals return 200 with valid:false and diagnostics. Preview executes real data, forcibly brand-scoped, with server-owned limits: 131072 input bytes, depth 24, 4000 nodes, 1024 mapping aliases, 256 template expressions, 100 sample rows, 1000 scan rows, 524288 response bytes and 5000 ms query/render budget. Mongo count/find receive remaining maxTimeMS. Inspect truncated/truncationReasons (rows/bytes). User/custom collections, related filters and relation expansion refuse draft preview with PREVIEW_DEADLINE_UNSUPPORTED; editing/saving remains supported. API v1 returns DTOs; v2 wraps data/meta. Responses are no-store.',
+          'Accepts {definition, guidance?, parameters?}; guidance is ephemeral and parameters are used only by explicit preview. Requires named-query permission and CSRF. Validation/description do not execute or persist. Completed validation and preview refusals return 200 with valid:false and diagnostics. Preview executes real data, forcibly brand-scoped, with server-owned limits: 131072 input bytes, depth 24, 4000 nodes, 1024 mapping aliases, 256 template expressions, 100 sample rows, 1000 scan rows, 524288 response bytes and 5000 ms query/render budget. Mongo count/find receive remaining maxTimeMS. Inspect truncated/truncationReasons (rows/bytes). User/custom collections, related filters and relation expansion refuse draft preview with PREVIEW_DEADLINE_UNSUPPORTED; editing/saving remains supported. GraphQL preview uses the actual authenticated caller, first-page lookup-compatible definitions only, at most 25 rows, unknown total, 65536 request bytes, 262144 response bytes, depth 12, 200 scanned candidates and the existing 5000 ms GraphQL deadline. GraphQL invalid definitions or unsupported capabilities return 422, invalid parameters 400, missing context 401, byte overflow 413 and disabled/unavailable service or timeout 503; errors or partial data never produce a successful sample. API v1 returns DTOs; v2 wraps data/meta. Responses are no-store.',
         responses: {
           200: namedQueryResponse,
           400: namedQueryResponse,
+          401: namedQueryResponse,
           403: namedQueryResponse,
           408: namedQueryResponse,
           413: namedQueryResponse,
+          422: namedQueryResponse,
+          503: namedQueryResponse,
         },
       }
     ),

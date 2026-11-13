@@ -72,18 +72,8 @@
     <div id="nq-panel-basics" role="tabpanel" tabindex="0" aria-labelledby="nq-tab-basics" [hidden]="activeTab !== 'basics'" class="nq-tab-pane">
       <div class="row g-3 mb-3">
         <div class="col-md-6">
-          <label class="form-label" for="nq-name">{{ 'named-query-name' | i18next }}</label>
-          <input
-            id="nq-name"
-            type="text"
-            class="form-control"
-            [(ngModel)]="draft.name"
-            (ngModelChange)="draftChange.emit()"
-            [readonly]="!isNew"
-            pattern="[A-Za-z0-9_-]+"
-            title="Letters, numbers, underscores, and hyphens only"
-            [attr.placeholder]="'named-query-name-placeholder' | i18next"
-          />
+          <rb-named-query-name [name]="draft.name || ''" [isNew]="isNew" [attempted]="attempted"
+            (nameChange)="draft.name = $event; draftChange.emit()"></rb-named-query-name>
           <div *ngIf="!isNew" class="form-text">{{ 'named-query-name-readonly-help' | i18next }}</div>
         </div>
         <div class="col-md-6">
@@ -91,12 +81,16 @@
           <select
             id="nq-collection"
             class="form-select"
+            [class.is-invalid]="attempted && !draft.collectionName"
+            [attr.aria-invalid]="attempted && !draft.collectionName ? 'true' : null"
+            [attr.aria-describedby]="attempted && !draft.collectionName ? 'nq-collection-error' : null"
             [(ngModel)]="draft.collectionName"
             (ngModelChange)="collectionChange.emit()"
           >
             <option value="" disabled>{{ 'named-query-collection-select' | i18next }}</option>
             <option *ngFor="let collection of collectionOptions" [value]="collection">{{ collection }}</option>
           </select>
+          <div *ngIf="attempted && !draft.collectionName" id="nq-collection-error" class="invalid-feedback">{{ 'named-query-error-collection-required' | i18next }}</div>
         </div>
       </div>
       <div class="form-check">
@@ -171,6 +165,7 @@
     <ul *ngIf="draft.usedBy?.length; else notUsed" class="mb-0">
       <li *ngFor="let consumer of draft.usedBy"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
     </ul>
+    <p class="text-muted mt-2">{{ 'named-query-untracked-callers-note' | i18next }}</p>
     <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
   </div>
 </section>

@@ -70,6 +70,8 @@ node -e "
   });
 "
 
+npm run test:named-query:types
+
 bootstrap_test=test/bootstrap.test.ts
 
 mocha_cmd=(node_modules/.bin/mocha)

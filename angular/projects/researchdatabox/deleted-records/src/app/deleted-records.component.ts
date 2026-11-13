@@ -249,12 +249,12 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     try {
       let result = await this.getDeletedRecords(pageNum, params, sort);
       if (recoverLastPage && result.records.length === 0) {
-        const lastPage = Math.max(1, Math.ceil(result.total / this.recordsPerPage));
+        const lastPage = Math.max(1, Math.ceil((result.total ?? 0) / this.recordsPerPage));
         if (pageNum > lastPage) {
           // One bounded fallback, committed atomically with the initial read.
           // A failure leaves the retained rows and mutation refresh lock intact.
           result = await this.getDeletedRecords(lastPage, params, sort);
-          if (lastPage > Math.max(1, Math.ceil(result.total / this.recordsPerPage))) {
+          if (lastPage > Math.max(1, Math.ceil((result.total ?? 0) / this.recordsPerPage))) {
             throw new Error('The last page changed again. Refresh the list again.');
           }
         }
