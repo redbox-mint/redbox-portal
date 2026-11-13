@@ -174,6 +174,58 @@ import { principal, registry, storedRecord } from './fixtures';
           { dimensions: { tags: 'ml' }, metrics: { count: 10 } },
         ]);
     });
+    it('reconciles array missing filters and drilldown with the null grouping bucket', async () => {
+      // Use a separate isolated collection so the shared conformance fixture stays stable.
+      const isolated = client.db(dbName).collection('array_missing');
+      const cases: Array<[string, unknown]> = [
+        ['absent', undefined],
+        ['null', null],
+        ['empty', []],
+        ['null-only', [null]],
+        ['invalid-only', [42, false]],
+        ['mixed', [null, 'ml']],
+        ['populated', ['ai']],
+        ['scalar', 'ml'],
+      ];
+      await isolated.insertMany(
+        cases.map(([id, tags]) => {
+          const record = storedRecord(id);
+          if (tags === undefined) delete record.metadata.tags;
+          else record.metadata.tags = tags;
+          return record;
+        })
+      );
+      const hidden = storedRecord('hidden-empty');
+      hidden.metadata.tags = [];
+      hidden.authorization.view = ['bob'];
+      await isolated.insertOne(hidden);
+      const local = new MongoReportingProvider(isolated, registry);
+      const groups = await local.executeReporting(principal, {
+        operation: 'group',
+        recordType: 'rdmp',
+        groupBy: ['tags'],
+      });
+      expect(groups)
+        .to.have.property('items')
+        .that.deep.includes({ dimensions: { tags: null }, metrics: { count: 5 } });
+      const missing = { field: 'tags', operator: 'missing' as const, value: true };
+      expect(
+        await local.executeReporting(principal, { operation: 'count', recordType: 'rdmp', filters: [missing] })
+      ).to.deep.equal({ count: 5 });
+      const page = await local.executeReporting(principal, {
+        operation: 'records',
+        recordType: 'rdmp',
+        filters: [missing],
+      });
+      expect(page).to.have.property('items').that.has.members(['absent', 'null', 'empty', 'null-only', 'invalid-only']);
+      expect(
+        await local.executeReporting(principal, {
+          operation: 'count',
+          recordType: 'rdmp',
+          filters: [{ ...missing, value: false }],
+        })
+      ).to.deep.equal({ count: 3 });
+    });
     it('reports pagination and empty results explicitly, and returns only authorized IDs for drilldown', async () => {
       const result = await provider.executeReporting(principal, {
         operation: 'group',

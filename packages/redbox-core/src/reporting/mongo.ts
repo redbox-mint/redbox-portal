@@ -37,9 +37,42 @@ function typedValue(path: string, type: string): Document {
     ],
   };
 }
+/** One normalized array contract for grouping and null-bucket drilldown. */
+function categoryArrayValues(path: string): Document {
+  return {
+    $let: {
+      vars: {
+        values: {
+          $setUnion: [
+            {
+              $cond: [
+                { $isArray: `$${path}` },
+                {
+                  $filter: {
+                    input: `$${path}`,
+                    as: 'item',
+                    cond: { $eq: [{ $type: '$$item' }, 'string'] },
+                  },
+                },
+                [typedValue(path, 'category')],
+              ],
+            },
+            [],
+          ],
+        },
+      },
+      in: { $cond: [{ $eq: [{ $size: '$$values' }, 0] }, [null], '$$values'] },
+    },
+  };
+}
 function filterMatch(filter: ReportingFilter, registry: ReportingRegistry): Document {
   const field = requireReportingField(registry, filter.field, 'filter');
-  if (filter.operator === 'missing') return { [field.path]: filter.value ? null : { $ne: null } };
+  if (filter.operator === 'missing') {
+    if (field.array) {
+      return { $expr: { [filter.value ? '$eq' : '$ne']: [categoryArrayValues(field.path), [null]] } };
+    }
+    return { [field.path]: filter.value ? null : { $ne: null } };
+  }
   if (field.type === 'date') {
     const value = dateValue(field.path);
     if (filter.operator === 'between') {
@@ -118,31 +151,7 @@ export function compileReportingPipeline(
       const key = `d${index}`;
       if (field.array) {
         // Count a record once per distinct array value, retaining a null bucket for empty/missing arrays.
-        project[key] = {
-          $let: {
-            vars: {
-              values: {
-                $setUnion: [
-                  {
-                    $cond: [
-                      { $isArray: `$${field.path}` },
-                      {
-                        $filter: {
-                          input: `$${field.path}`,
-                          as: 'item',
-                          cond: { $eq: [{ $type: '$$item' }, 'string'] },
-                        },
-                      },
-                      [typedValue(field.path, field.type)],
-                    ],
-                  },
-                  [],
-                ],
-              },
-            },
-            in: { $cond: [{ $eq: [{ $size: '$$values' }, 0] }, [null], '$$values'] },
-          },
-        };
+        project[key] = categoryArrayValues(field.path);
         arrayDimension = key;
       } else project[key] = typedValue(field.path, field.type);
       groupId[key] = `$${key}`;

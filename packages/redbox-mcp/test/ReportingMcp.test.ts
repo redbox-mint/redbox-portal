@@ -5,6 +5,7 @@ import { Client, InMemoryTransport, StreamableHTTPClientTransport } from '@model
 import { createLocalJWKSet, errors, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
 import {
   BrandingModel,
+  Controllers,
   RoleModel,
   UserModel,
   ReportingError,
@@ -13,7 +14,7 @@ import {
 } from '@researchdatabox/redbox-core';
 import { createReportingMcpServer } from '../src/server';
 import { McpAuthenticator, McpAuthError, resolveOidcIdentity } from '../src/auth';
-import { mcpConfigSchema, type McpConfig } from '../src/config';
+import { mcp, mcpConfigSchema, type McpConfig } from '../src/config';
 import { reportingMcpHttpHandler } from '../src/http';
 
 const brand = Object.assign(new BrandingModel(), { id: 'brand-a', name: 'a' });
@@ -425,6 +426,36 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       assert.deepEqual(await invalid.json(), { error: 'invalid_token' });
     } finally {
       await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+    }
+  });
+  it('returns closed 503 responses for disabled and malformed URL configurations without throwing', async () => {
+    const hook = require('../src/index') as {
+      registerRedboxControllers(): {
+        McpController: {
+          handle(req: unknown, res: unknown): Promise<{ status: number; displayErrors: Array<{ code: string }> }>;
+        };
+      };
+    };
+    const previousSails = Reflect.get(globalThis, 'sails');
+    const prototype = Controllers.Core.Controller.prototype;
+    const sendResp = Reflect.get(prototype, 'sendResp');
+    Reflect.set(prototype, 'sendResp', (_req: unknown, _res: unknown, response: unknown) => response);
+    try {
+      for (const raw of [
+        mcp,
+        ...['resourceUrl', 'issuer', 'jwksUrl'].map(field => ({ ...config, [field]: 'invalid URL' })),
+        { ...config, allowedOrigins: ['invalid URL'] },
+      ]) {
+        assert.equal(mcpConfigSchema.safeParse(raw).success, false);
+        Reflect.set(globalThis, 'sails', { config: { mcp: raw } });
+        const response = await hook.registerRedboxControllers().McpController.handle({}, {});
+        assert.equal(response.status, 503);
+        assert.deepEqual(response.displayErrors, [{ code: 'MCP_UNAVAILABLE' }]);
+      }
+    } finally {
+      Reflect.set(prototype, 'sendResp', sendResp);
+      if (previousSails === undefined) Reflect.deleteProperty(globalThis, 'sails');
+      else Reflect.set(globalThis, 'sails', previousSails);
     }
   });
   it('requires allowedOrigins to use the exact browser origin representation', () => {

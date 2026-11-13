@@ -3,12 +3,16 @@ const secureUrl = z
   .string()
   .url()
   .refine(value => {
+    if (!URL.canParse(value)) return false;
     const url = new URL(value);
     return url.protocol === 'https:' && !url.username && !url.password && !url.hash && !url.search;
   });
 export const mcpConfigSchema = z.strictObject({
   enabled: z.literal(true),
-  resourceUrl: secureUrl.refine(value => new URL(value).pathname === '/mcp', 'The hook endpoint is /mcp'),
+  resourceUrl: secureUrl.refine(
+    value => URL.canParse(value) && new URL(value).pathname === '/mcp',
+    'The hook endpoint is /mcp'
+  ),
   issuer: secureUrl,
   jwksUrl: secureUrl,
   brand: z.string().min(1),
@@ -17,7 +21,12 @@ export const mcpConfigSchema = z.strictObject({
   usernameToLowercase: z.boolean(),
   algorithms: z.array(z.enum(['RS256', 'ES256', 'PS256'])).min(1),
   allowedOrigins: z
-    .array(secureUrl.refine(value => new URL(value).origin === value, 'Use an HTTPS origin without a path'))
+    .array(
+      secureUrl.refine(
+        value => URL.canParse(value) && new URL(value).origin === value,
+        'Use an HTTPS origin without a path'
+      )
+    )
     .max(20),
   maxRequestBytes: z.number().int().min(1024).max(64_000),
 });
