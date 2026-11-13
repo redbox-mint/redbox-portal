@@ -364,6 +364,154 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
     }
   });
+  it('supports scoped browser preflight and exposes authenticated MCP responses and OAuth errors', async () => {
+    const origin = 'https://reporting.example';
+    const server = createServer();
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    const base = `http://127.0.0.1:${port}`;
+    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp`, allowedOrigins: [origin] };
+    const auth = new McpAuthenticator(local, async () => principal, keys);
+    const handler = reportingMcpHttpHandler(local, reporting, auth);
+    server.on('request', (req, res) => {
+      // Preserve middleware's existing cache variation.
+      res.setHeader('Vary', 'Accept-Encoding');
+      void handler(req, res);
+    });
+    const localToken = await new SignJWT({ scope: config.scope })
+      .setProtectedHeader({ alg: 'RS256', typ: 'at+jwt', kid: 'test-key' })
+      .setIssuer(config.issuer)
+      .setAudience(local.resourceUrl)
+      .setSubject('alice')
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(privateKey);
+    const preflight = (path = '/mcp', headers: Record<string, string> = {}) =>
+      fetch(`${base}${path}`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: origin,
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'Authorization, Content-Type, MCP-Protocol-Version, Mcp-Method, Mcp-Name',
+          ...headers,
+        },
+      });
+    const checkCors = (response: Response) => {
+      assert.equal(response.headers.get('access-control-allow-origin'), origin);
+      assert.equal(response.headers.get('vary'), 'Accept-Encoding, Origin');
+      assert.equal(response.headers.get('access-control-allow-credentials'), null);
+    };
+    let client: Client | undefined;
+    try {
+      const allowed = await preflight(); // Browsers cannot attach a bearer token here.
+      assert.equal(allowed.status, 204);
+      assert.equal(await allowed.text(), '');
+      checkCors(allowed);
+      assert.equal(allowed.headers.get('access-control-allow-methods'), 'POST');
+      assert.equal(
+        allowed.headers.get('access-control-allow-headers'),
+        'accept, authorization, content-type, mcp-protocol-version, mcp-method, mcp-name'
+      );
+      const sameOrigin = await preflight('/mcp', { Origin: new URL(local.resourceUrl).origin });
+      assert.equal(sameOrigin.status, 204);
+      assert.equal(sameOrigin.headers.get('access-control-allow-origin'), new URL(local.resourceUrl).origin);
+      const deniedPreflights: Array<Record<string, string>> = [
+        { Origin: 'https://evil.example' },
+        { Origin: 'null' },
+        { 'Access-Control-Request-Method': 'DELETE' },
+        { 'Access-Control-Request-Method': 'GET' },
+        { 'Access-Control-Request-Headers': 'authorization, x-untrusted-header' },
+        { 'Access-Control-Request-Headers': 'authorization,' },
+      ];
+      for (const headers of deniedPreflights) {
+        const denied = await preflight('/mcp', headers);
+        assert.equal(denied.status, 403);
+        assert.equal(denied.headers.get('access-control-allow-origin'), null);
+        assert.equal(denied.headers.get('access-control-allow-headers'), null);
+      }
+      await new Promise<void>((resolve, reject) => {
+        const call = request(
+          `${base}/mcp`,
+          {
+            method: 'OPTIONS',
+            headers: { Host: 'evil.example', Origin: origin, 'Access-Control-Request-Method': 'POST' },
+          },
+          response => {
+            response.resume();
+            assert.equal(response.statusCode, 403);
+            assert.equal(response.headers['access-control-allow-origin'], undefined);
+            response.on('end', resolve);
+          }
+        );
+        call.on('error', reject);
+        call.end();
+      });
+      const missing = await preflight('/unrelated');
+      assert.equal(missing.status, 404);
+      assert.equal(missing.headers.get('access-control-allow-origin'), null);
+      const metadataPath = '/.well-known/oauth-protected-resource/mcp';
+      const discoveryPreflight = await preflight(metadataPath, {
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'MCP-Protocol-Version',
+      });
+      assert.equal(discoveryPreflight.status, 204);
+      assert.equal(discoveryPreflight.headers.get('access-control-allow-methods'), 'GET');
+      checkCors(discoveryPreflight);
+      const discovery = await fetch(`${base}${metadataPath}`, { headers: { Origin: origin } });
+      assert.equal(discovery.status, 200);
+      checkCors(discovery);
+      const challenge = await fetch(`${base}/mcp`, { method: 'POST', headers: { Origin: origin }, body: '{}' });
+      assert.equal(challenge.status, 401);
+      checkCors(challenge);
+      assert.ok(challenge.headers.get('www-authenticate')?.includes('resource_metadata='));
+      assert.equal(challenge.headers.get('access-control-expose-headers'), 'WWW-Authenticate, Mcp-Session-Id');
+      const malformed = await fetch(`${base}/mcp`, {
+        method: 'POST',
+        headers: { Origin: origin, Authorization: `Bearer ${localToken}` },
+        body: '{',
+      });
+      assert.equal(malformed.status, 400);
+      checkCors(malformed);
+      const malicious = await fetch(`${base}/mcp`, {
+        method: 'POST',
+        headers: { Origin: 'https://evil.example', Authorization: `Bearer ${localToken}` },
+        body: '{}',
+      });
+      assert.equal(malicious.status, 403);
+      assert.equal(malicious.headers.get('access-control-allow-origin'), null);
+      let posts = 0;
+      client = new Client({ name: 'browser-reporting-test', version: '1.0' });
+      await client.connect(
+        new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+          requestInit: { headers: { Origin: origin, Authorization: `Bearer ${localToken}` } },
+          fetch: async (input, init) => {
+            if (init?.method === 'POST') {
+              // Use the real SDK-generated headers, including its negotiated-version headers.
+              const headers = new Headers(init.headers);
+              headers.delete('origin');
+              const response = await preflight('/mcp', {
+                'Access-Control-Request-Headers': [...headers.keys()].join(', '),
+              });
+              assert.equal(response.status, 204);
+              checkCors(response);
+              posts++;
+            }
+            const response = await fetch(input, init);
+            checkCors(response);
+            return response;
+          },
+        })
+      );
+      assert.equal((await client.listTools()).tools.length, 7);
+      const result = await client.callTool({ name: 'count_records', arguments: { recordType: 'rdmp' } });
+      assert.deepEqual(result.structuredContent, { count: 10 });
+      assert.ok(posts >= 3);
+    } finally {
+      await client?.close();
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+    }
+  });
   for (const framing of ['chunked', 'content-length'] as const) {
     it(`returns a complete 413 response while an oversized ${framing} upload is still streaming`, async () => {
       invocations = [];

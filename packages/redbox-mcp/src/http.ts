@@ -32,17 +32,53 @@ export function reportingMcpHttpHandler(
   audit: (event: Record<string, unknown>) => void = () => {}
 ) {
   const resource = new URL(config.resourceUrl);
+  const metadataPath = new URL(metadataUrl(config)).pathname;
+  const allowedOrigins = new Set([resource.origin, ...config.allowedOrigins]);
+  // SDK v2 also sends body-derived method/name headers during protocol negotiation.
+  // This stateless POST endpoint does not support session deletion or SSE resumption.
+  const requestHeaders = ['accept', 'authorization', 'content-type', 'mcp-protocol-version', 'mcp-method', 'mcp-name'];
   return async (req: IncomingMessage & { body?: unknown }, res: ServerResponse): Promise<void> => {
     const path = new URL(req.url ?? '/', config.resourceUrl).pathname;
-    const metadataPath = new URL(metadataUrl(config)).pathname;
+    const isResource = path === resource.pathname;
+    const isMetadata = path === metadataPath;
+    if (isResource || isMetadata) {
+      const vary = res.getHeader('Vary');
+      res.setHeader('Vary', vary ? `${Array.isArray(vary) ? vary.join(', ') : vary}, Origin` : 'Origin');
+    }
     if (
       req.headers.host !== resource.host ||
-      (req.headers.origin && ![resource.origin, ...config.allowedOrigins].includes(req.headers.origin))
+      (req.headers.origin !== undefined && !allowedOrigins.has(req.headers.origin))
     ) {
       json(res, 403, { error: 'invalid_origin' });
       return;
     }
-    if (path === metadataPath && req.method === 'GET') {
+    const origin = req.headers.origin;
+    if (origin && (isResource || isMetadata)) {
+      if (req.method === 'OPTIONS') {
+        const method = isResource ? 'POST' : 'GET';
+        const headers = isResource ? requestHeaders : ['accept', 'mcp-protocol-version'];
+        const requestedHeaders = req.headers['access-control-request-headers'];
+        if (
+          req.headers['access-control-request-method'] !== method ||
+          (requestedHeaders !== undefined &&
+            (typeof requestedHeaders !== 'string' ||
+              requestedHeaders.split(',').some(header => !headers.includes(header.trim().toLowerCase()))))
+        ) {
+          json(res, 403, { error: 'invalid_preflight' });
+          return;
+        }
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', method);
+        res.setHeader('Access-Control-Allow-Headers', headers.join(', '));
+        res.writeHead(204, { 'Cache-Control': 'no-store' });
+        res.end();
+        return;
+      }
+      // Set these before authentication/body/SDK handling so error responses are readable too.
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, Mcp-Session-Id');
+    }
+    if (isMetadata && req.method === 'GET') {
       json(res, 200, protectedResourceMetadata(config));
       return;
     }
