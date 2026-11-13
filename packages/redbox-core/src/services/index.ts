@@ -242,10 +242,14 @@ export const ServiceExports = {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
   },
   get EmailTemplateAdminService() {
-    return getOrCreateService('EmailTemplateAdminService', () => new EmailTemplateAdminServiceModule.Services.EmailTemplateAdmin().exports());
+    return getOrCreateService('EmailTemplateAdminService', () =>
+      new EmailTemplateAdminServiceModule.Services.EmailTemplateAdmin().exports()
+    );
   },
   get EmailTemplateService() {
-    return getOrCreateService('EmailTemplateService', () => new EmailTemplateServiceModule.Services.EmailTemplates().exports());
+    return getOrCreateService('EmailTemplateService', () =>
+      new EmailTemplateServiceModule.Services.EmailTemplates().exports()
+    );
   },
   get EmailService() {
     return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());
@@ -395,7 +399,11 @@ export const ServiceExports = {
       new VocabularyServiceModule.Services.VocabularyService().exports()
     );
   },
-  get PartyImportService() { return getOrCreateService('PartyImportService', () => new PartyImportServiceModule.Services.PartyImport().exports()); },
+  get PartyImportService() {
+    return getOrCreateService('PartyImportService', () =>
+      new PartyImportServiceModule.Services.PartyImport().exports()
+    );
+  },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },
