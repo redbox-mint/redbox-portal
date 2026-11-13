@@ -193,6 +193,20 @@ describe('Generation provenance commit recovery', () => {
     expect(failed).to.equal(true); expect(rows).to.have.length(1);
     await commit(); expect(rows).to.have.length(2);
   });
+  it('returns the same safe provenance view when reviewing a field as when reloading it', async () => {
+    await commit();
+    const row = rows.find(item => item.profileFieldId === 'description');
+    if (!row) throw new Error('Expected committed description provenance');
+    savedMetadata.description = 'Researcher revision';
+    const reviewed = await service.review(actor, { roles: [] } as any, {} as any, row.id);
+    expect(reviewed).to.include({ displayState: 'edited', reviewRequired: false, metadataPointer: '/description' });
+    expect(reviewed).to.have.property('evidence').that.deep.equals([]);
+    expect(Object.keys(reviewed)).not.to.include.members(['brandId', 'generatedValueHash', 'candidateDigest', 'reviewedBy', 'evidenceRefs', 'targetRecordOid']);
+    expect(row.reviewedBy).to.equal(actor.userId);
+    expect(row.generatedValueHash).to.be.a('string');
+    const reloaded = await service.getForRecord(actor, { roles: [] } as any, {} as any, 'target-1');
+    expect(reviewed).to.deep.equal(reloaded.fields.find(item => item.id === row.id));
+  });
   it('pins the target before the first provenance write', async () => {
     beforeCreate = async () => { expect(run.targetDescriptor.targetOid).to.equal('target-1'); };
     await commit(); expect(run.status).to.equal('committed'); expect(rows).to.have.length(2);

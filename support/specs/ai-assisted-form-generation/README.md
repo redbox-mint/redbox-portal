@@ -21,7 +21,7 @@ The confirmed source-input requirement concerns the generation engine's capabili
 
 ## Delivery boundary
 
-The POC implements the end-to-end researcher experience and persists bootstrap-seeded configuration. Model calls use the provider-neutral [Vercel AI SDK](https://ai-sdk.dev/docs) behind ReDBox's domain adapter contract. Full admin management screens and non-OpenRouter providers are designed now but delivered after the POC. The generation capability itself is a core feature; only representative demo record types, forms, records, and policy content belong in `redbox-hook-dev` or development bootstrap resources.
+The POC implements the end-to-end researcher experience and persists bootstrap-seeded configuration. Model calls use the provider-neutral [Vercel AI SDK](https://ai-sdk.dev/docs) behind ReDBox's domain adapter contract. Full admin management screens and further provider adapters remain future work; the POC implements both OpenRouter and Bedrock. The generation capability itself is a core feature; only representative demo record types, forms, records, and policy content belong in `redbox-hook-dev` or development bootstrap resources.
 
 ## Relationship to DMPChef
 

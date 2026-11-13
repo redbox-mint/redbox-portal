@@ -170,7 +170,7 @@ export namespace Services {
       } catch {
         throw new GenerationError('GENERATION_OUTPUT_PARSE_FAILED', 'Generation response is not valid JSON');
       }
-      if (Object.keys(parsed).length !== 1 || !parsed.answers || typeof parsed.answers !== 'object' || Array.isArray(parsed.answers)) {
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || Object.keys(parsed).length !== 1 || !parsed.answers || typeof parsed.answers !== 'object' || Array.isArray(parsed.answers)) {
         throw new GenerationError('GENERATION_OUTPUT_SCHEMA_INVALID', 'Generation response envelope is invalid');
       }
       const answers = parsed.answers as Record<string, ProviderAnswer>;
@@ -183,6 +183,10 @@ export namespace Services {
       const evidenceIdByAlias = new Map((input.evidenceAliases ?? []).map((item) => [item.alias, item.evidenceId]));
       const items = input.definition.targetFields.map((field) => {
         const answer = answers[field.id];
+        if (!answer || typeof answer !== 'object' || Array.isArray(answer) || !Array.isArray(answer.evidenceIds) ||
+          answer.evidenceIds.some(id => typeof id !== 'string') || typeof answer.rationale !== 'string') {
+          throw new GenerationError('GENERATION_OUTPUT_SCHEMA_INVALID', `Generation answer '${field.id}' is invalid`);
+        }
         const resolvedAnswer = answer && input.evidenceAliases?.length
           ? {
             ...answer,
@@ -203,13 +207,10 @@ export namespace Services {
 
     private validateAnswer(
       field: GenerationProfileTargetField,
-      answer: ProviderAnswer | undefined,
+      answer: ProviderAnswer,
       evidenceById: Map<string, GenerationEvidence>,
       permittedEvidenceIds?: Set<string>,
     ): GenerationCandidatePatchItem {
-      if (!answer || typeof answer !== 'object' || !Array.isArray(answer.evidenceIds) || typeof answer.rationale !== 'string') {
-        throw new GenerationError('GENERATION_OUTPUT_SCHEMA_INVALID', `Generation answer '${field.id}' is invalid`);
-      }
       let value = answer.value;
       let evidenceIds = [...new Set(answer.evidenceIds)];
       if (evidenceIds.some((id) => !evidenceById.has(id) || (permittedEvidenceIds && !permittedEvidenceIds.has(id)))) {

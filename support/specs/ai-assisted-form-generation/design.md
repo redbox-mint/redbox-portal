@@ -120,7 +120,7 @@ Indexes:
 - `{ brandId: 1, profileId: 1, status: 1 }`;
 - `{ brandId: 1, contentHash: 1 }` for idempotent bootstrap/import.
 
-Published versions reject updates in both model lifecycle validation and service logic. A new draft copies the prior definition and receives the next version number. Publishing atomically switches `GenerationProfile.publishedVersionId`; existing runs retain their pinned ID.
+Service content updates require draft status in their atomic criteria, enforcing published-version immutability through the application API. Model lifecycle validation checks publication payloads; it cannot inspect the persisted row and is not a database-wide immutability guarantee. A new draft copies the prior definition and receives the next version number. Publishing atomically switches `GenerationProfile.publishedVersionId`; existing runs retain their pinned ID.
 
 The version `definition` has this conceptual TypeScript shape:
 
@@ -728,7 +728,7 @@ Add `generation.config.ts` with typed defaults for enabled state, provider adapt
 
 The POC adds exactly pinned `ai` and `@ai-sdk/openai-compatible` dependencies to `packages/redbox-core`. It otherwise uses Node `fetch`, `AbortController`, `crypto`, Zod, Agenda, Waterline/Mongo, FormsService, FormRecordConsistencyService, RecordsService, RecordTypesService, BrandingService, UsersService, and the existing form event bus. No OpenRouter-specific SDK, vector database, or DMPChef dependency is required.
 
-Future Google Vertex and Bedrock delivery adds exactly pinned `@ai-sdk/google-vertex` and `@ai-sdk/amazon-bedrock` packages only when each provider is implemented. Credential-chain packages are added only where the provider requires them. All SDK package versions are selected and compatibility-tested together because their provider-spec versions must align. ReDBox retains its adapter contract, capability probes, outbound policy, secret references, and conformance tests; the AI SDK is an invocation implementation detail rather than the persisted configuration or public service contract.
+The implemented Bedrock adapter uses exactly pinned `@ai-sdk/amazon-bedrock` and `@aws-sdk/credential-provider-node`. Future Google Vertex delivery adds an exactly pinned `@ai-sdk/google-vertex` package only when that provider is implemented. Credential-chain packages are added only where the provider requires them. All SDK package versions are selected and compatibility-tested together because their provider-spec versions must align. ReDBox retains its adapter contract, capability probes, outbound policy, secret references, and conformance tests; the AI SDK is an invocation implementation detail rather than the persisted configuration or public service contract.
 
 ## 3. Webservice Controllers (REST API)
 
