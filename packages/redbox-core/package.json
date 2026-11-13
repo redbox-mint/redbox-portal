@@ -152,7 +152,13 @@
     "css-minimizer-webpack-plugin": "8.0.0",
     "language-data-commons-vocabs": "1.0.1",
     "bcryptjs": "3.0.3",
-    "react": "19.3.1"
+    "react": "19.3.1",
+    "@ai-sdk/amazon-bedrock": "5.0.58",
+    "@ai-sdk/openai-compatible": "3.0.31",
+    "@aws-sdk/credential-provider-node": "3.972.93",
+    "ai": "7.0.68",
+    "mammoth": "1.13.0",
+    "pdfjs-dist": "6.3.289"
   },
   "files": [
     "dist",

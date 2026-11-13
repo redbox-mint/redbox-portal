@@ -71,7 +71,7 @@
         <div class="mb-2 col-md-4">
           <label>{{ 'named-query-related-filter-local' | i18next }}</label>
           <nq-path-input
-            [value]="filter.localField"
+            [value]="filter.localField ?? ''"
             [label]="'named-query-param-path' | i18next"
             [fields]="fields"
             (valueChange)="onFieldChange(filter, 'localField', $event)"
@@ -80,7 +80,7 @@
         <div class="mb-2 col-md-4">
           <label>{{ 'named-query-related-filter-foreign' | i18next }}</label>
           <nq-path-input
-            [value]="filter.foreignField"
+            [value]="filter.foreignField ?? ''"
             [label]="'named-query-param-path' | i18next"
             [fields]="foreignFields[i] || []"
             (valueChange)="onFieldChange(filter, 'foreignField', $event)"

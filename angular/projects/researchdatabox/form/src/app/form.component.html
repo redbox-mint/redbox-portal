@@ -41,4 +41,15 @@
     [portal]="trimmedParams.portal()"
     [allowedRoles]="viewAuditRoles()"
   />
+
+  <redbox-form-runtime-actions [actions]="runtimeActions" />
+
+  <redbox-generation-side-panel
+    [session]="generationSession"
+    [launches]="generationLaunches"
+    [inline]="true"
+    [form]="form"
+    [recordType]="trimmedParams.recordType()"
+    [formName]="trimmedParams.formName()"
+  />
 </div>

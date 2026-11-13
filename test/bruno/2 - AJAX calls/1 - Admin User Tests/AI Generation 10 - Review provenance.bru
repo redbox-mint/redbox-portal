@@ -1,0 +1,36 @@
+meta {
+  name: AI Generation 10 - Review provenance
+  type: http
+  seq: 69
+}
+
+post {
+  url: {{host}}/default/rdmp/generation/provenance/{{generationProvenanceId}}/review
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Marks the provenance field reviewed", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.reviewRequired).to.equal(false);
+    expect(data.reviewedAt).to.be.a("string").and.not.equal("");
+  });
+}

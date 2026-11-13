@@ -40,13 +40,19 @@ const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
  */
 @Component({
   selector: 'redbox-form-base-wrapper',
-  template: ` <ng-template redboxFormBaseWrapper></ng-template> `,
+  template: `
+    <ng-template redboxFormBaseWrapper></ng-template>
+    @if (renderProvenanceBadge && metadataPointer) {
+      <redbox-generation-provenance-badge [metadataPointer]="metadataPointer" />
+    }
+  `,
   standalone: false,
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
   protected override logName = 'FormBaseWrapperComponent';
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
+  public renderProvenanceBadge = false;
 
   @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
 
@@ -63,6 +69,18 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
+  }
+
+  public get metadataPointer(): string {
+    const path = this.formFieldCompMapEntry?.lineagePaths?.dataModel ?? [];
+    return path.length > 0
+      ? `/${path.map((part) => String(part).replaceAll('~', '~0').replaceAll('/', '~1')).join('/')}`
+      : '';
+  }
+
+  @HostBinding('attr.data-metadata-pointer')
+  public get hostMetadataPointer(): string | null {
+    return this.metadataPointer || null;
   }
 
   @HostBinding('style.display')
@@ -89,6 +107,9 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Store the form field details.
     this.formFieldCompMapEntry = formFieldCompMapEntry;
+    // Layouts create a second wrapper around the same field. Render provenance only
+    // on the inner wrapper that owns the actual control.
+    this.renderProvenanceBadge = omitLayout;
     const componentName = this.formFieldConfigName();
     this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${componentName}'.`, this.formFieldCompMapEntry);
     this.componentClass = this.formFieldCompMapEntry.componentClass as typeof FormFieldBaseComponent<ValueType>;

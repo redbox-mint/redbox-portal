@@ -357,6 +357,16 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(component.activeDatabaseBuffer.relatedRecordFilters[0].foreignField).toBe('metadata.title');
   });
 
+  it('skips foreign collection guidance for relation filters without a collection', async () => {
+    const filter = { rootRecordType: 'rdmp', relationId: 'project', mongoQuery: {} };
+    component.activeDatabaseBuffer.relatedRecordFilters = [filter];
+    api.fields.calls.reset();
+    await component.foreignContextChanged({ index: -1, collectionName: '' });
+    expect(api.fields).not.toHaveBeenCalled();
+    expect(component.foreignFields).toEqual({});
+    expect(component.activeDatabaseBuffer.relatedRecordFilters).toEqual([filter]);
+  });
+
   it('places warnings/errors and suggested corrections beside the affected entry and template', async () => {
     api.reviewUpdate.and.resolveTo({ required: false, changes: [], usedBy: [], usageComplete: false });
     api.validate.and.resolveTo({

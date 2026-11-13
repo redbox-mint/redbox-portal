@@ -1,0 +1,49 @@
+meta {
+  name: AI Generation 2 - Create source activity
+  type: http
+  seq: 61
+}
+
+post {
+  url: {{host}}/default/rdmp/recordmeta/researchActivity
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Coastal Communities Wellbeing Study",
+    "plainLanguageSummary": "A fictional study exploring how coastal change affects community wellbeing and access to local services.",
+    "objectives": "Demonstrate an ethical, human-participant research workflow using entirely synthetic project information.",
+    "methods": "Synthetic interviews and an anonymous online survey with adult volunteers; no real participant data is used in this demonstration.",
+    "humanParticipants": true,
+    "sensitiveData": true,
+    "expectedDataTypes": [
+      "De-identified survey responses",
+      "Synthetic interview transcripts",
+      "Aggregate statistics"
+    ],
+    "ethicsStatus": "Fictional ethics review pending",
+    "syntheticDemo": true
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Creates an authorised research activity", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.oid).to.be.a("string").and.not.equal("");
+    bru.setEnvVar("generationSourceOid", body.oid);
+  });
+}

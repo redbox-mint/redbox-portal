@@ -11,7 +11,7 @@ function harness(keyEncoding: 'flydrive' | 'raw' = 'flydrive') {
   const disk: any = {
     getMetaData: sinon.stub(),
     listAll: sinon.stub().resolves({ objects: [], paginationToken: undefined }),
-    getStream: sinon.stub().returns(Readable.from('streamed')),
+    getStream: sinon.stub().returns(Readable.from(Buffer.from('streamed'))),
     get: sinon.stub().resolves('text'),
     getBytes: sinon.stub().resolves(Buffer.from('bytes')),
     put: sinon.stub().resolves(),
@@ -38,7 +38,7 @@ function rawDriverHarness() {
   const driver = {
     getMetaData: sinon.stub(),
     listAll: sinon.stub().resolves({ objects: [], paginationToken: undefined }),
-    getStream: sinon.stub().returns(Readable.from('raw-streamed')),
+    getStream: sinon.stub().returns(Readable.from(Buffer.from('raw-streamed'))),
     get: sinon.stub().resolves('ocfl_1.1\n'),
     getBytes: sinon.stub().resolves(Buffer.from('raw-bytes')),
     put: sinon.stub().resolves(),
@@ -106,7 +106,9 @@ describe('Oni Flydrive OCFL store', () => {
     expect(disk.put.calledOnce).to.equal(true);
     expect(disk.putStream.calledOnce).to.equal(true);
     expect(disk.copy.calledOnceWith('oni/a.txt', 'oni/b.txt')).to.equal(true);
-    expect(await store.createReadable('/repo/a.txt')).to.equal(disk.getStream.returnValues[0]);
+    const readable = await store.createReadable('/repo/a.txt');
+    expect(readable).to.be.instanceOf(ReadableStream);
+    expect(await new Response(readable).text()).to.equal('streamed');
 
     disk.get.rejects(Object.assign(new Error('cannot read file'), { code: 'CANNOT_READ_FILE' }));
     try {
@@ -131,10 +133,12 @@ describe('Oni Flydrive OCFL store', () => {
 
     expect(await store.readFile('/repo/0=ocfl_1.1', 'utf8')).to.equal('ocfl_1.1\n');
     await store.writeFile('/repo/0=ocfl_1.1', 'ocfl_1.1\n');
-    await store.writeFile('/repo/stream=a', Readable.from('streamed'));
+    await store.writeFile('/repo/stream=a', Readable.from(Buffer.from('streamed')));
     const stat = await store.stat('/repo/meta=data');
     expect(stat.size).to.equal(12);
-    expect(await store.createReadable('/repo/read=stream')).to.equal(driver.getStream.returnValues[0]);
+    const readable = await store.createReadable('/repo/read=stream');
+    expect(readable).to.be.instanceOf(ReadableStream);
+    expect(await new Response(readable).text()).to.equal('raw-streamed');
     expect(await store.readdir('/repo/folder')).to.deep.equal(['a=b.txt']);
     await store.copyFile('/repo/source=a', '/repo/target=b');
     await store.move('/repo/source=a', '/repo/target=b');
@@ -170,6 +174,26 @@ describe('Oni Flydrive OCFL store', () => {
     } catch (error: any) {
       expect(error.code).to.equal('ENOENT');
     }
+  });
+
+  it('writes OCFL Web streams through Flydrive with their supplied content length', async () => {
+    const { disk, store } = harness('raw');
+    let uploaded = '';
+    disk.putStream.callsFake(async (_key: string, stream: Readable) => {
+      for await (const chunk of stream) {
+        uploaded += Buffer.from(chunk).toString();
+      }
+    });
+
+    await store.writeFile('/repo/data/synthetic.csv', Readable.toWeb(Readable.from('synthetic')), {
+      contentLength: 9,
+    });
+
+    expect(uploaded).to.equal('synthetic');
+    expect(disk.put.called).to.equal(false);
+    expect(disk.putStream.calledOnce).to.equal(true);
+    expect(disk.putStream.firstCall.args[0]).to.equal('oni/data/synthetic.csv');
+    expect(disk.putStream.firstCall.args[2]).to.deep.equal({ contentLength: 9 });
   });
 
   it('lists paginated directory entries and exposes opendir', async () => {

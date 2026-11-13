@@ -16,6 +16,7 @@ import {
   setUpDynamicAssets,
 } from "./helpers.spec";
 import { FormService } from './form.service';
+import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
 import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
 import {
   FormComponentEventBus,
@@ -153,10 +154,14 @@ async function createConcurrencyTestForm() {
 }
 
 describe('FormComponent', () => {
+  let originalUrl: string;
+
   const setWindowSearch = (search?: string) => {
     const url = new URL(window.location.href);
     url.search = search ?? '';
-    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
+    if (url.toString() !== window.location.href) {
+      window.history.replaceState({}, '', url.toString());
+    }
   };
 
   const setFormDebugUrl = (value?: string) => {
@@ -165,7 +170,7 @@ describe('FormComponent', () => {
     if (value) {
       url.searchParams.set('formDebug', value);
     }
-    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
+    setWindowSearch(url.search);
   };
 
   const ensureDebugPanelOpen = async (fixture: { nativeElement: HTMLElement; detectChanges: () => void; whenStable: () => Promise<any> }) => {
@@ -176,6 +181,10 @@ describe('FormComponent', () => {
       await fixture.whenStable();
     }
   };
+
+  beforeAll(() => {
+    originalUrl = window.location.href;
+  });
 
   beforeEach(async () => {
     setWindowSearch('');
@@ -211,6 +220,10 @@ describe('FormComponent', () => {
 
   afterEach(() => {
     setWindowSearch('');
+  });
+
+  afterAll(() => {
+    window.history.replaceState({}, '', originalUrl);
   });
 
   it('should create the app', () => {
@@ -1559,6 +1572,40 @@ describe('FormComponent', () => {
       empty: ''
     });
   });
+
+  for (const scenario of [
+    { name: 'enabled for a saved record', meta: { generationEnabled: true }, oid: 'saved-record', loads: true },
+    { name: 'disabled for a saved record', meta: { generationEnabled: false }, oid: 'saved-record', loads: false },
+    { name: 'missing the capability flag', meta: {}, oid: 'saved-record', loads: false },
+    { name: 'enabled for an unsaved form', meta: { generationEnabled: true }, oid: '', loads: false },
+  ]) {
+    it(`gates automatic generation provenance when ${scenario.name}`, async () => {
+      const config: FormConfigFrame = {
+        name: 'generation-provenance-gate',
+        componentDefinitions: [{
+          name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Saved title' } },
+          component: { class: 'SimpleInputComponent' },
+        }],
+      };
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: scenario.oid });
+      const formService = TestBed.inject(FormService);
+      const provenance = TestBed.inject(GenerationProvenanceStoreService);
+      const map = await formService.createFormComponentsMap(config, formService.buildLineagePaths({
+        angularComponents: [], dataModel: [], formConfig: ['componentDefinitions'], layout: [],
+      }), scenario.meta);
+      spyOn(formService, 'downloadFormComponents').and.resolveTo(map);
+      const load = spyOn(provenance, 'load').and.resolveTo();
+      const clear = spyOn(provenance, 'clear');
+
+      await formComponent.downloadAndCreateFormComponents();
+
+      expect(formComponent.form?.get('title')?.value).toBe('Saved title');
+      expect(clear).toHaveBeenCalled();
+      if (scenario.loads) expect(load).toHaveBeenCalledOnceWith('saved-record');
+      else expect(load).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
 
   it('exposes server role names and the current oid independently of request parameters', async () => {
     const { formComponent } = await createFormAndWaitForReady({ name: 'runtime-context', componentDefinitions: [

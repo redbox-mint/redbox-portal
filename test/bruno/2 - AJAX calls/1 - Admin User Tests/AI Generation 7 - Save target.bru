@@ -1,0 +1,46 @@
+meta {
+  name: AI Generation 7 - Save target
+  type: http
+  seq: 66
+}
+
+post {
+  url: {{host}}/default/rdmp/recordmeta/demoRdmp
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "researchActivity": { "oid": "{{generationSourceOid}}" },
+    "title": "Coastal Communities Wellbeing Study — Data Management Plan",
+    "projectSummary": "This fictional project explores how coastal change may affect community wellbeing and access to local services. It uses synthetic interviews and an anonymous survey demonstration to illustrate responsible planning for human-participant research.",
+    "dataDescription": "The project will produce de-identified survey responses, synthetic interview transcripts, and aggregate statistics. The demonstration contains no real participant information.",
+    "dataTypes": ["De-identified survey responses", "Synthetic interview transcripts", "Aggregate statistics"],
+    "storageApproach": "Store working data in an institution-managed research drive with role-based access, encrypted backups, and separate locations for identifiers and research content.",
+    "sharingAccess": "Confirm participant consent, ethics conditions, disclosure risk, and the intended access controls before sharing participant-level data.",
+    "retentionDisposal": "Retain the final research record for the period confirmed by the researcher and applicable policy. At the end of that period, review continuing value and securely dispose of material that no longer requires retention.",
+    "sensitivityClassification": "restricted",
+    "ethicsStatement": "Confirm ethics approval, participant consent, and permitted data-use conditions before the plan is finalised or data is shared."
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Saves the populated target through the normal form endpoint", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.oid).to.be.a("string").and.not.equal("");
+    bru.setEnvVar("generationTargetOid", body.oid);
+  });
+}

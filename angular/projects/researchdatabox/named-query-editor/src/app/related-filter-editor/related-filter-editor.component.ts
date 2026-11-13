@@ -3,15 +3,9 @@ import type {
   EditorDiagnostic,
   SchemaTarget,
   NamedQuerySchemaSelection,
+  RelatedRecordFilterDefinition,
 } from '@researchdatabox/sails-ng-common';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-
-interface RelatedRecordFilterDefinition {
-  collectionName: string;
-  mongoQuery: Record<string, unknown>;
-  localField: string;
-  foreignField: string;
-}
 
 interface FilterEntry extends RelatedRecordFilterDefinition {
   id: number;
@@ -39,7 +33,7 @@ export class RelatedFilterEditorComponent implements OnChanges {
   chooseForeign(index: number, recordType: string, stage?: string): void {
     this.contextChange.emit({
       index,
-      collectionName: this.filters[index].collectionName,
+      collectionName: this.filters[index].collectionName ?? '',
       selection: recordType ? { recordType, ...(stage ? { stage } : {}) } : undefined,
     });
   }
@@ -141,11 +135,7 @@ export class RelatedFilterEditorComponent implements OnChanges {
     this.filters = list.map(f => ({
       id: this.nextEntryId++,
       ...f,
-      collectionName: f.collectionName,
-      mongoQuery: f.mongoQuery,
       mongoQueryJson: JSON.stringify(f.mongoQuery || {}, null, 2),
-      localField: f.localField,
-      foreignField: f.foreignField,
     }));
   }
 }

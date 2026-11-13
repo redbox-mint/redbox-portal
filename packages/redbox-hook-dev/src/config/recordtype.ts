@@ -9,6 +9,18 @@ import { relatedPlanEmail, relatedPlanDoi } from './related-record-examples';
  * via redbox-hook-dev's registerRedboxConfig().
  */
 export const recordtype: RecordTypeConfig = {
+  researchActivity: {
+    packageType: 'researchActivity',
+    labels: { name: 'Research Activity', namePlural: 'Research Activities' },
+    relatedTo: [{ recordType: 'demoRdmp', foreignField: 'metadata.researchActivity.oid' }],
+    searchFilters: [],
+  },
+  demoRdmp: {
+    packageType: 'demoRdmp',
+    labels: { name: 'AI-assisted RDMP', namePlural: 'AI-assisted RDMPs' },
+    relatedTo: [{ recordType: 'researchActivity', localField: 'metadata.researchActivity.oid', foreignField: 'redboxOid' }],
+    searchFilters: [],
+  },
   'related-activity': {
     packageType: 'related-activity',
     labels: { name: 'Related activity', namePlural: 'Related activities' },

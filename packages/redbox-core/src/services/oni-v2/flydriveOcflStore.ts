@@ -1,4 +1,5 @@
 import { PassThrough, Readable, Writable } from 'node:stream';
+import { ReadableStream, WritableStream } from 'node:stream/web';
 import { posix as pathPosix, relative } from 'node:path';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
 
@@ -232,12 +233,12 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       return writable;
     }
 
-    async createReadable(filePath: string): Promise<NodeJS.ReadableStream> {
-      return this.createReadStream(filePath);
+    async createReadable(filePath: string): Promise<ReadableStream> {
+      return Readable.toWeb(await this.ioDisk.getStream(this.keyFor(filePath)));
     }
 
-    async createWritable(filePath: string): Promise<NodeJS.WritableStream> {
-      return this.createWriteStream(filePath);
+    async createWritable(filePath: string): Promise<WritableStream> {
+      return Writable.toWeb(await this.createWriteStream(filePath) as Writable);
     }
 
     async readFile(
@@ -260,10 +261,14 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
 
     async writeFile(
       filePath: string,
-      data: string | Uint8Array | Readable,
+      data: string | Uint8Array | Readable | ReadableStream,
       options?: Record<string, unknown>
     ): Promise<void> {
       const key = this.keyFor(filePath);
+      if (data instanceof ReadableStream) {
+        await this.ioDisk.putStream(key, Readable.fromWeb(data), options);
+        return;
+      }
       if (data instanceof Readable) {
         await this.ioDisk.putStream(key, data, options);
         return;

@@ -1,0 +1,30 @@
+[
+  {
+    "redboxOid": "demo-research-activity-human-coastal",
+    "title": "Coastal Communities Wellbeing Study",
+    "plainLanguageSummary": "A fictional study exploring how coastal change affects community wellbeing and access to local services.",
+    "objectives": "Demonstrate an ethical, human-participant research workflow using entirely synthetic project information.",
+    "methods": "Synthetic interviews and an anonymous online survey with adult volunteers; no real participant data is used in this demonstration.",
+    "humanParticipants": true,
+    "sensitiveData": true,
+    "expectedDataTypes": [
+      "De-identified survey responses",
+      "Synthetic interview transcripts",
+      "Aggregate statistics"
+    ],
+    "ethicsStatus": "Fictional ethics review pending",
+    "syntheticDemo": true
+  },
+  {
+    "redboxOid": "demo-research-activity-evaluation",
+    "title": "Open Weather Sensor Evaluation",
+    "plainLanguageSummary": "A non-sensitive fictional evaluation of environmental sensor accuracy using generated observations.",
+    "objectives": "Compare repeatability and calibration drift across a synthetic sensor fleet.",
+    "methods": "Generate simulated readings, calculate aggregate error metrics, and publish the evaluation scripts.",
+    "humanParticipants": false,
+    "sensitiveData": false,
+    "expectedDataTypes": ["Aggregate statistics"],
+    "ethicsStatus": "Not applicable — synthetic non-human data",
+    "syntheticDemo": true
+  }
+]
