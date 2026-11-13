@@ -2,6 +2,8 @@
 
 Status: implemented POC in draft review; future administration extensions remain proposed
 
+The unchecked items below preserve the original work breakdown, not a current completion ledger. Consult README.md for implementation and verification evidence; `[FULL]` administration items remain a roadmap.
+
 Design: [design.md](design.md)
 
 Plan: [implementation_plan.md](implementation_plan.md)
@@ -107,10 +109,10 @@ Legend:
 - [ ] **SV-15 [POC] Implement `GenerationRunService` launch/get/execute/retry/cancel/expiry.** Pin published IDs, enforce actor/brand/limits, freeze encrypted input, queue by ID, and expose client-safe state/result. Skills: Redbox Services.
 - [ ] **SV-15T [POC] Test run lifecycle.** Cover one success per run, failed retry, double-click, multiple runs per source, actor/brand isolation, disabled feature, retired-after-launch semantics, rate/concurrency limits, cancellation, and artifact expiry. Skills: Redbox Testing.
 
-- [ ] **SV-16 [POC] Implement `GenerationWorkerService`.** Acquire lease, reauthorize, decrypt, retrieve, prompt, invoke, validate, persist candidate/digests/usage, heartbeat, and terminal transitions without touching records. Skills: Redbox Services.
+- [ ] **SV-16 [POC] Implement `GenerationWorkerService`.** Acquire lease, reauthorize, decrypt, retrieve, prompt, invoke, validate, persist candidate/digests/usage, fence execution attempts, and perform terminal transitions without touching records. Skills: Redbox Services.
 - [ ] **SV-16T [POC] Test worker delivery/failure semantics.** Cover success, duplicate delivery, worker restart, source permission revoked, config hash mismatch, cancellation before/during provider, transient/permanent provider errors, schema/evidence failure, and assert no RecordsService create/update call. Skills: Redbox Testing.
 
-- [ ] **SV-17 [POC] Register Agenda execute/cleanup jobs.** Configure lock lifetime/concurrency/heartbeat and safe recurring cleanup; queue payload is only brand/run IDs. Skills: Redbox Services.
+- [ ] **SV-17 [POC] Register Agenda execute/cleanup jobs.** Configure lock lifetime/concurrency, attempt fencing, and artifact deadlines and safe recurring cleanup; queue payload is only brand/run IDs. Skills: Redbox Services.
 - [ ] **SV-17T [POC] Test Agenda registration/enqueue.** Verify exact job names/functions/options, serialisable minimal payload, backend behaviour, terminal no-op, and cleanup schedule. Skills: Redbox Testing.
 
 - [ ] **SV-18 [POC] Implement `GenerationProvenanceService`.** Commit completed candidate after save, verify target/source link and hashes, upsert provenance idempotently, derive display states, record review, and enforce artifact retention. Skills: Redbox Services.
@@ -159,7 +161,7 @@ Legend:
 - [ ] **AJ-01 [POC] Implement `GenerationController.launch`.** Validate binding/source input, derive brand/user, delegate, and return `201` run ID/relative URL. Skills: Redbox Controllers, Redbox Services.
 - [ ] **AJ-01T [POC] Test launch controller.** Cover success, malformed payload, action unavailable, source forbidden, feature disabled, cross-brand OID, and safe error response. Skills: Redbox Testing.
 
-- [ ] **AJ-02 [POC] Implement run get/execute/cancel actions.** Return only actor-safe question/status/result data; return `202`/`Retry-After` for queued work and `409` after completion. Skills: Redbox Controllers, Redbox Services.
+- [ ] **AJ-02 [POC] Implement run get/execute/cancel actions.** Return only actor-safe question/status/result data; return `202` from execute, `200` from get/cancel, and `409` for execute after completion; use bounded client polling without a `Retry-After` header. Skills: Redbox Controllers, Redbox Services.
 - [ ] **AJ-02T [POC] Test run actions.** Cover draft defaults, queued/running/completed/failed states, retryable failure, duplicate execute, wrong actor/brand, cancel idempotency, and artifact expiry. Skills: Redbox Testing.
 
 - [ ] **AJ-03 [POC] Implement commit/provenance/review actions.** Verify controller input and delegate all record/hash authorization to services. Skills: Redbox Controllers, Redbox Services.
@@ -186,7 +188,7 @@ Legend:
 - [ ] **NG-02T [POC] Test every reducer transition/selector.** Include initial/reset, duplicate launch/execute suppression, failure retry, completion lockout, panel close/reopen, review, save commit, and destroyed form. Skills: Redbox Testing.
 
 - [ ] **NG-03 [POC] Implement `GenerationApiService`.** Extend `HttpClientService`, initialise CSRF, use branded base URL/http context, and expose typed launch/run/execute/cancel/commit/provenance/review methods. Skills: Redbox Angular Services.
-- [ ] **NG-03T [POC] Add Angular HTTP tests.** Assert method/URL/body/query/context, `Retry-After` handling, response typing, and safe error propagation for every method. Skills: Redbox Testing.
+- [ ] **NG-03T [POC] Add Angular HTTP tests.** Assert method/URL/body/query/context, bounded polling behavior, response typing, and safe error propagation for every method. Skills: Redbox Testing.
 
 - [ ] **NG-03A [POC] Forward the allowlisted target-form run context.** Extend `FormService.downloadFormComponents()`/`getFormConfig()` with a typed runtime-context argument. Have `FormComponent` pass only a single valid `generationRunId` from its parsed page parameters; never forward the full parameter map. Preserve the request parameter in the existing JSONata query source, but confer no client-side authority. Skills: Redbox Angular Apps, Redbox Angular Services.
 - [ ] **NG-03AT [POC] Test form-definition context transport.** Assert a valid run ID is encoded once on `/record/form/...`; missing, empty, boolean, array, malformed, and oversized values are omitted; unrelated page parameters are never forwarded; and ordinary create/edit form URLs remain byte-for-byte equivalent apart from the existing timestamp. Skills: Redbox Testing.

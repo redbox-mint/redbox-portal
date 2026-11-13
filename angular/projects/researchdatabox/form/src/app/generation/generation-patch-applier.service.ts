@@ -12,6 +12,7 @@ import {
 } from '../form-state/events/form-component-event.types';
 
 export interface GenerationPatchApplicationResult {
+  /** Applied candidate profile IDs; system completion fields do not create generation provenance. */
   changedFieldIds: string[];
   conflictFieldIds: string[];
 }
@@ -144,7 +145,7 @@ export class GenerationPatchApplierService {
           previousValue: structuredClone(target.control.value),
           origin: item.origin,
         });
-        changedFieldIds.push(item.fieldId);
+        if (item.origin === 'generation') changedFieldIds.push(item.fieldId);
       }
     }
 

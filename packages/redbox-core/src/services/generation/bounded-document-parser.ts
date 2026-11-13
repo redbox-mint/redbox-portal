@@ -10,6 +10,22 @@ export function startBoundedDocumentParser(script: string, addressSpaceMiB = 102
   ) {
     throw new Error('Bounded document parsing requires a supported Linux runtime');
   }
+  const env: NodeJS.ProcessEnv = {};
+  // Carry parser runtime settings, without copying portal/provider credentials.
+  for (const name of [
+    'NODE_OPTIONS',
+    'NODE_PATH',
+    'TS_NODE_PROJECT',
+    'TS_NODE_COMPILER_OPTIONS',
+    'TS_NODE_TRANSPILE_ONLY',
+    'LANG',
+    'LC_ALL',
+    'TZ',
+  ]) {
+    if (process.env[name] !== undefined) env[name] = process.env[name];
+  }
+  // Native parser libraries otherwise reserve a thread/allocator arena per host CPU.
+  Object.assign(env, { UV_THREADPOOL_SIZE: '1', RAYON_NUM_THREADS: '1', MALLOC_ARENA_MAX: '1' });
   return spawn(
     '/bin/sh',
     [
@@ -29,8 +45,7 @@ export function startBoundedDocumentParser(script: string, addressSpaceMiB = 102
     {
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
       serialization: 'advanced',
-      // Native parser libraries otherwise reserve a thread/allocator arena per host CPU.
-      env: { ...process.env, UV_THREADPOOL_SIZE: '1', RAYON_NUM_THREADS: '1', MALLOC_ARENA_MAX: '1' },
+      env,
     }
   );
 }
