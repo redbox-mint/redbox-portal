@@ -79,7 +79,7 @@ export function rejectPublishedUpdate(record: Record<string, unknown>, callback:
 }
 
 export function containsEmbeddedSecret(value: unknown, parentKey = ''): boolean {
-  const secretKeys = /(^|_)(api[-_]?key|token|password|authorization|secret[-_]?value)($|_)/i;
+  const secretKeys = /(^|[-_])(api[-_]?key|token|password|authorization|secret[-_]?value)($|[-_])/i;
   if (secretKeys.test(parentKey)) {
     return value !== undefined && value !== null && String(value).trim() !== '';
   }
