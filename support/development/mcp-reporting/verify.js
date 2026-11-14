@@ -140,7 +140,7 @@ async function main() {
   assert.equal(typeof claims.sub, 'string', 'OAuth access token must include its subject');
   if (process.env.REDBOX_DEMO_DIAGNOSTICS === 'true') {
     const { execFileSync } = require('node:child_process');
-    const script = `const j=require('node:module').createRequire(require.resolve('@researchdatabox/redbox-mcp'))('jose'); const config=require('redbox-hook-reporting-demo').registerRedboxConfig().mcp; let input=''; process.stdin.on('data',v=>input+=v); process.stdin.on('end',async()=>{try{await j.jwtVerify(input,j.createRemoteJWKSet(new URL(config.jwksUrl)),{issuer:config.issuer,audience:config.resourceUrl,algorithms:config.algorithms}); console.log('JWT cryptographic verification passed');}catch(e){console.log('JWT verification failure:',e.code,e.message,e.cause?.code)}});`;
+    const script = `const j=require('node:module').createRequire(require.resolve('@researchdatabox/redbox-mcp'))('jose'); const config=require('redbox-hook-reporting-demo').registerRedboxConfig().brandingConfigurationDefaults.mcp; let input=''; process.stdin.on('data',v=>input+=v); process.stdin.on('end',async()=>{try{await j.jwtVerify(input,j.createRemoteJWKSet(new URL(config.jwksUrl)),{issuer:config.issuer,audience:config.resourceUrl,algorithms:config.algorithms}); console.log('JWT cryptographic verification passed');}catch(e){console.log('JWT verification failure:',e.code,e.message,e.cause?.code)}});`;
     console.log(
       execFileSync('docker', ['exec', '-i', 'redbox-reporting-demo-portal-1', 'node', '-e', script], {
         input: tokens.access_token,
