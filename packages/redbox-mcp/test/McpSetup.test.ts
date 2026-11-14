@@ -92,6 +92,20 @@ describe('MCP deployment and user setup', () => {
     assert.equal(mcpSetupConfigSchema.safeParse({ chatgptPluginUrl: 'javascript:alert(1)' }).success, false);
   });
 
+  it('reports malformed callback URLs as configuration diagnostics instead of throwing', async () => {
+    const admin = reportingPrincipal(brand, { ...user, roles: [adminRole] });
+    const result = await connectionSetup(
+      configuration,
+      { clients: { codex: { callbackUrl: 'invalid URL' } } },
+      true,
+      ['rdmp'],
+      admin,
+      api
+    );
+    assert.equal(result.state, 'needs-configuration');
+    assert.deepEqual(result.configurationProblems, ['mcpSetup.clients.codex.callbackUrl']);
+  });
+
   it('resolves navigation availability from the deployment flag during hook configuration', () => {
     const hook = require('../src/index') as (application: unknown) => { configure(): void };
     const application = { config: { mcp: { ...configuration, enabled: true } } };
