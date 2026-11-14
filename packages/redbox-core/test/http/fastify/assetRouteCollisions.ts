@@ -4,6 +4,7 @@ import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
 import { retainedAssetExpress } from './retainedAssetExpress';
+import { retainedDatastreamExpress } from './retainedDatastreamExpress';
 import { oidcFixture } from './oidcFixture';
 import { availablePort } from './authenticationFixture';
 import type { RequestHandler } from 'express';
@@ -121,6 +122,7 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
         const deviations: { name: string; express: Wire; native: Wire }[] = [];
         before(async () => {
           const retained = await retainedAssetExpress();
+          const retainedDownloads = await retainedDatastreamExpress();
           const provider = await oidcFixture();
           const port = await availablePort();
           const origin = 'http://127.0.0.1:' + port;
@@ -132,7 +134,16 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
               const f = await referenceProductionFixture(
                 native,
                 profile.policy,
-                native ? undefined : () => retained.install(),
+                native
+                  ? undefined
+                  : () => {
+                      const restoreAssets = retained.install(),
+                        restoreDownloads = retainedDownloads.install();
+                      return () => {
+                        restoreDownloads();
+                        restoreAssets();
+                      };
+                    },
                 {
                   declarations: audit.declarations,
                   pages,
@@ -253,6 +264,7 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
             }
           } finally {
             await provider.close();
+            await retainedDownloads.close();
             await retained.close();
           }
           if (process.env.FM031_RESULTS)
@@ -296,6 +308,14 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
               // filtered by route, controller or later-task ownership.
               if ([401, 403].includes(express!.status))
                 assert.equal(native!.status, express!.status, 'retained authentication/authorization denial');
+            }
+            if (c.row.ownerTask === 'FM-033') {
+              if (c.method === 'HEAD' && c.row.action === 'doAttachment') {
+                // Explicit retained fallthrough: the attachment GET guard runs,
+                // then FM-034's TUS HEAD owns the permitted protocol response.
+                assert.equal(native!.status, [401, 403].includes(express!.status) ? express!.status : 501);
+                assert.equal(native!.body, '');
+              } else assert.deepEqual(native, express, 'FM-033 selected download owners match retained Express');
             }
             if (c.row.controller === 'webservice/RecordSchemaController') {
               assert.deepEqual(native, express, 'schema instances and framing match without normalization');

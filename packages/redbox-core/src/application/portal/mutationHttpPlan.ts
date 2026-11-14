@@ -110,7 +110,7 @@ export function portalMutationControllers(
     metadata = portalHttpPlan(portal, {}).metadata;
   const combine = combineHttpInputs;
   const browserRecords = combine(
-    input.records,
+    combine(input.records, { downloads: reads.downloads }),
     combine(
       reads.records,
       combine(refs.form, {
@@ -129,7 +129,9 @@ export function portalMutationControllers(
       })
     )
   );
-  const apiRecords = combine(combine(combine(metadata, reads.records), input.records), input.harvest);
+  const apiRecords = combine(combine(combine(combine(metadata, reads.records), input.records), input.harvest), {
+    downloads: reads.downloads,
+  });
   const bindings = [
     uploads
       ? bindControllerFactory(mutationUploadController, combine(apiRecords, uploads))

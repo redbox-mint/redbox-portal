@@ -273,7 +273,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P5 — Complete streams and integrations
 
-- [ ] **FM-033 — Complete datastream delivery.**
+- [x] **FM-033 — Complete datastream delivery.**
   - Dependencies: G2, FM-024.
   - Work: port authorized downloads/ranges/conditional stream behavior as supported,
     backpressure, cancellation, storage errors and completion ownership.

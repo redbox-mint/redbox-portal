@@ -1,3 +1,4 @@
+import { datastreamReadRoutes } from '../../http/datastreamRoutes';
 import { brandingDeliveryRoutes, fontDeliveryRoute, dynamicAssetRoutes } from '../../http/assetRoutes';
 import { dynamicAssetController } from '../../http/controllers/AssetControllers';
 import { pageRoutes } from '../../http/pageRoutes';
@@ -126,7 +127,9 @@ export async function resolvePortalInstallation(
   const readTargets = new Set(
     input.declarations
       .filter(route =>
-        recordQueryReadDeclarations.some(read => read.method === route.method && read.path === route.path)
+        [...recordQueryReadDeclarations, ...datastreamReadRoutes].some(
+          read => read.method === route.method && read.path === route.path
+        )
       )
       .map(route => route.controller)
   );
@@ -501,6 +504,7 @@ export async function resolvePortalInstallation(
       )
     );
   const httpOwners = Object.freeze({
+    downloads: Object.freeze([...new Set(datastreamReadRoutes.flatMap(routesFor))]),
     uploads: routesFor(addDataStreamsRoute),
     progress: routesFor(progressSocketGrantRoute),
     metadataUpdates: routesFor(updateMetaRoute),
@@ -542,6 +546,7 @@ export async function resolvePortalInstallation(
   seal(namespaceConfiguration);
   return Object.freeze({
     ...resolved,
+    downloadInput: reads.downloads,
     ownership: {
       declarations: portalHttpOwnerDeclarations(context.config, [
         ...progressSocketHttpOwners(new URL(context.config.server.publicUrl).origin),

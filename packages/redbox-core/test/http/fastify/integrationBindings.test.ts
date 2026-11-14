@@ -8,7 +8,7 @@ import { coreRoutePrecedence } from '../../../src/http/fastify/precedence';
 import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies';
 import { nativePolicyNames } from '../../../src/http/fastify/policies';
 describe('FM-027 declaration-derived production integration bindings', () => {
-  it('binds all 70 assigned declarations once and leaves exactly the six reviewed P5 API entries', async () => {
+  it('binds all 70 assigned declarations once and leaves exactly the four reviewed FM-034 API entries', async () => {
     const inventory = JSON.parse(
       readFileSync(
         path.resolve(__dirname, '../../../../../support/specs/fastify-migration/evidence/FM-002.inventory.json'),
@@ -40,7 +40,7 @@ describe('FM-027 declaration-derived production integration bindings', () => {
     const remaining = inventory.routes.filter(
       (r: { kind: string; nativeBinding?: object }) => r.kind === 'api' && !r.nativeBinding
     );
-    assert.equal(remaining.length, 6);
-    assert(remaining.every((r: { ownerTask: string }) => ['FM-033', 'FM-034'].includes(r.ownerTask)));
+    assert.equal(remaining.length, 4);
+    assert(remaining.every((r: { ownerTask: string }) => r.ownerTask === 'FM-034'));
   });
 });

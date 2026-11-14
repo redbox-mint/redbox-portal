@@ -2,9 +2,9 @@
   "formatVersion": 1,
   "counts": {
     "browserAndIntegration": 183,
-    "migrated": 165,
+    "migrated": 169,
     "intentionalOverrides": 0,
-    "later": 18
+    "later": 14
   },
   "boundaries": [
     {
@@ -3835,64 +3835,160 @@
       "method": "get",
       "path": "/:branding/:portal/record/:oid/attach/:attachId",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 2
       },
       "originalOwner": "FM-033",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-033",
-      "reason": "Datastream/attachment read and conditional streaming",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-2f0b097b7c4390c0",
       "method": "get",
       "path": "/:branding/:portal/companion/record/:oid/attach/:attachId",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 3
       },
       "originalOwner": "FM-033",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-033",
-      "reason": "Datastream/attachment read and conditional streaming",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-ffc5ffbc62e80609",
       "method": "get",
       "path": "/:branding/:portal/record/:oid/attachments",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 4
       },
       "originalOwner": "FM-033",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-033",
-      "reason": "Datastream/attachment read and conditional streaming",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "getAttachments",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attachments",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attachments",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-5d3b7784a7c762b2",
       "method": "get",
       "path": "/:branding/:portal/record/:oid/datastream{*tail}",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 5
       },
       "originalOwner": "FM-033",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-033",
-      "reason": "Datastream/attachment read and conditional streaming",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "getDataStream",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/datastream*",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/datastream*",
+            "kind": "implicit-head"
+          },
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/datastream",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/datastream",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-post-718ae58e6fcb0373",

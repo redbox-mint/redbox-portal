@@ -31,9 +31,9 @@ describe('FM-028 complete declaration/runtime/documentation reconciliation', fun
   it('resolves every migrated API once with the same executable contract and generated documentation', () => {
     assert.deepEqual(audit.reconcile(fixture.portal.installation).counts, {
       api: 152,
-      migrated: 146,
+      migrated: 148,
       intentionalOverrides: 0,
-      later: 6,
+      later: 4,
     });
   });
   it('rejects a missing runtime API instead of silently reclassifying it', () => {

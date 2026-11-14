@@ -414,6 +414,21 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-033') {
+        const factories = readFactories.filter(
+          factory => factory.name === route.controller && factory.actions.includes(route.action)
+        );
+        assert.equal(factories.length, 1, 'Exactly one FM-033 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factories[0].name,
+          action: route.action,
+          file: prefix + 'http/controllers/ReadControllers.ts',
+          productionBinding: prefix + 'application/portal/readHttpPlan.ts',
+          differential: test('http/fastify/DatastreamDifferentialMongo.test.ts'),
+          migratedBy: 'FM-033',
+        };
+      }
       if (owners[collection.export][0] === 'FM-031') {
         const matches = assetFactories.filter(
           factory => factory.name === route.controller && factory.actions.includes(route.action)

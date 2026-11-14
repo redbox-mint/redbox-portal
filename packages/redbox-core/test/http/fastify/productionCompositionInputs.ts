@@ -143,6 +143,10 @@ export function productionCompositionInputCases() {
         );
         assert.strictEqual(resolve.firstCall.args[0][1], (await load.firstCall.returnValue).providers[0]);
         inputs<ResolvedPortalInstallation>(resolved, {
+          downloadInput: value => {
+            assert(value && typeof value === 'object');
+            for (const key of ['records', 'datastream', 'log']) assert(key in value);
+          },
           ownership: value => {
             assert(value && typeof value === 'object' && 'declarations' in value && 'configuration' in value);
             assert.strictEqual(value.configuration, resolved.policyConfiguration);
@@ -158,6 +162,7 @@ export function productionCompositionInputCases() {
             assert.equal(typeof value.run, 'function');
           },
           httpOwners: equal({
+            downloads: [],
             uploads: [],
             progress: [],
             schemaReads: [],

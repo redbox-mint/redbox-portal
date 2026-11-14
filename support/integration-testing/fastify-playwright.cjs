@@ -61,6 +61,7 @@ async function main() {
     ...new Set([
       ...core('http/referenceRoutes').referenceReadDeclarations,
       ...core('http/readRoutes').recordQueryReadDeclarations,
+      ...core('http/datastreamRoutes').datastreamReadRoutes,
       ...core('http/identityRoutes').identityAdministrationDeclarations,
       ...core('http/mutationRoutes').mutationDeclarations,
       ...core('http/integrationRoutes').integrationDeclarations,

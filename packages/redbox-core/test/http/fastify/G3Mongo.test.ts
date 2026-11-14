@@ -42,7 +42,7 @@ describe('FM-028 G3 production API composition', function () {
       const document = JSON.parse(await readFile(path.join(directory, 'openapi.json'), 'utf8'));
       const blueprint = await readFile(path.join(directory, 'apidocs.apib'), 'utf8');
       const report = audit.reconcile(installation, document, blueprint);
-      assert.deepEqual(report.counts, { api: 152, migrated: 146, intentionalOverrides: 0, later: 6 });
+      assert.deepEqual(report.counts, { api: 152, migrated: 148, intentionalOverrides: 0, later: 4 });
       const registered = installation.registry.snapshot();
       const observations: { name: string; method: string; status: number; body: string }[] = [];
       for (const row of report.rows.filter(row => row.classification === 'migrated')) {

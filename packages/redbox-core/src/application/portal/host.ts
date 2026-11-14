@@ -1,3 +1,5 @@
+import { datastreamReadGuard } from '../../http/fastify/datastreamReads';
+import { datastreamReadRoutes } from '../../http/datastreamRoutes';
 import { serveStaticAsset } from '../../http/fastify/assets';
 import { sendPageError } from '../../http/fastify/pages';
 import { httpReplySubmitted } from '../../http/fastify/errorBoundary';
@@ -199,6 +201,8 @@ export async function createPortalFastifyHost(
         }
       : undefined,
     guards: async (binding, request, reply) => {
+      if (resolved.httpOwners.downloads.includes(binding.route))
+        return datastreamReadGuard(request, reply, resolved.downloadInput, binding.route.declaration.action);
       if (resolved.httpOwners.integrations.includes(binding.route)) return integrationGuard(binding, request, reply);
       if (resolved.httpOwners.identities.includes(binding.route))
         return identityAdministrationGuard(binding, request, reply);
@@ -275,6 +279,7 @@ export async function createPortalFastifyHost(
           [
             ...referenceReadDeclarations,
             ...recordQueryReadDeclarations,
+            ...datastreamReadRoutes,
             ...identityAdministrationDeclarations,
             ...mutationDeclarations,
             ...integrationDeclarations,
@@ -300,9 +305,12 @@ export async function createPortalFastifyHost(
             // save/touch. A fresh untouched session instead ends with length 0.
             const sessionEnd =
               binding &&
-              [...identityAdministrationDeclarations, ...mutationDeclarations, ...integrationDeclarations].some(
-                route => coreRouteName(route.method, route.path) === binding.route.declaration.name
-              ) &&
+              [
+                ...identityAdministrationDeclarations,
+                ...mutationDeclarations,
+                ...integrationDeclarations,
+                ...datastreamReadRoutes,
+              ].some(route => coreRouteName(route.method, route.path) === binding.route.declaration.name) &&
               request.session &&
               (request.session.isPersisted() || request.session.isModified() || settings.session.saveUninitialized);
             // Match production Express only for this conversion scope. The owned

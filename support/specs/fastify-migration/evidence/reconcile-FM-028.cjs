@@ -23,7 +23,7 @@ const { recordQueryReadDeclarations } = source('http/readRoutes');
 const { identityAdministrationDeclarations } = source('http/identityRoutes');
 const { mutationDeclarations } = source('http/mutationRoutes');
 const { integrationDeclarations } = source('http/integrationRoutes');
-const { getMetaRoute } = source('api-routes/groups/records');
+const { getMetaRoute, listDatastreamsRoute, getDataStreamRoute } = source('api-routes/groups/records');
 const apiDeclarations = registerCoreApiRoutes();
 // Collections retain their executable definitions; metadata GET predates FM-024.
 const migratedDeclarations = Object.freeze([
@@ -34,6 +34,8 @@ const migratedDeclarations = Object.freeze([
     ...mutationDeclarations,
     ...integrationDeclarations,
     getMetaRoute,
+    listDatastreamsRoute,
+    getDataStreamRoute,
   ]),
 ]);
 assert(migratedDeclarations.every(Boolean));

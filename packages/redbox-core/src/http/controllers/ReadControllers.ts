@@ -1,3 +1,5 @@
+import type { DatastreamReadInput } from '../actions/datastreamReads';
+import { datastreamReadAction } from '../fastify/datastreamReads';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { defineController } from '../controllers';
 import { readAction } from '../fastify/readActions';
@@ -318,10 +320,17 @@ export const recordAuditReadController = defineController({
   create: (input: RecordAuditReadControllerInput) => new RecordAuditReadController(input),
 });
 
-export type ApiRecordReadControllerInput = r.RecordReadInput & RecordControllerInput;
+export type ApiRecordReadControllerInput = r.RecordReadInput &
+  RecordControllerInput & { readonly downloads: DatastreamReadInput };
 export class ApiRecordReadController extends RecordController {
   constructor(protected readonly input: ApiRecordReadControllerInput) {
     super(input);
+  }
+  listDatastreams(request: FastifyRequest, reply: FastifyReply) {
+    return datastreamReadAction(request, reply, this.input.downloads, 'listDatastreams', false);
+  }
+  getDataStream(request: FastifyRequest, reply: FastifyReply) {
+    return datastreamReadAction(request, reply, this.input.downloads, 'getDataStream', false);
   }
   async listRecords(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
     return readAction(
@@ -382,6 +391,8 @@ export const apiRecordReadController = defineController({
   name: 'webservice/RecordController',
   actions: [
     ...recordController.actions,
+    'listDatastreams',
+    'getDataStream',
     'listRecords',
     'listDeletedRecords',
     'getRecordAudit',
@@ -392,10 +403,37 @@ export const apiRecordReadController = defineController({
   create: (input: ApiRecordReadControllerInput) => new ApiRecordReadController(input),
 });
 
-export type RecordReadControllerInput = r.RecordReadInput & RecordReferenceControllerInput;
+export type RecordReadControllerInput = r.RecordReadInput &
+  RecordReferenceControllerInput & { readonly downloads: DatastreamReadInput };
 export class RecordReadController extends RecordReferenceController {
   constructor(protected readonly input: RecordReadControllerInput) {
     super(input);
+  }
+  protected attachmentNotFound(_request: FastifyRequest, _reply: FastifyReply): (() => Promise<unknown>) | undefined {
+    return undefined;
+  }
+  doAttachment(request: FastifyRequest, reply: FastifyReply) {
+    return datastreamReadAction(
+      request,
+      reply,
+      this.input.downloads,
+      'doAttachment',
+      true,
+      this.attachmentNotFound(request, reply)
+    );
+  }
+  getAttachments(request: FastifyRequest, reply: FastifyReply) {
+    return datastreamReadAction(request, reply, this.input.downloads, 'getAttachments', true);
+  }
+  getDataStream(request: FastifyRequest, reply: FastifyReply) {
+    return datastreamReadAction(
+      request,
+      reply,
+      this.input.downloads,
+      'getDataStream',
+      true,
+      this.attachmentNotFound(request, reply)
+    );
   }
   async getRecordList(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
     return readAction(
@@ -483,6 +521,9 @@ export const recordReadController = defineController({
   name: 'RecordController',
   actions: [
     ...recordReferenceController.actions,
+    'doAttachment',
+    'getAttachments',
+    'getDataStream',
     'getRecordList',
     'getDeletedRecordList',
     'getMeta',

@@ -82,7 +82,9 @@ function apiMetadata(api: ApiRouteSource, configuration: PoliciesConfig) {
   const head: HeadPolicy | undefined =
     api.method === 'get' && adminHeadDenials.has(coreRouteName(api.method, api.path))
       ? { kind: 'deny', allow: 'GET' }
-      : undefined;
+      : 'headBehavior' in api && api.headBehavior === 'fallthrough'
+        ? { kind: 'none' }
+        : undefined;
   return { access, effectivePolicies, head };
 }
 

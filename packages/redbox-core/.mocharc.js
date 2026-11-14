@@ -28,6 +28,7 @@ module.exports = {
     'test/http/fastify/IntegrationLifecycleMongo.test.ts',
     'test/http/fastify/MutationLifecycleMongo.test.ts',
     'test/http/fastify/ReadStreamsMongo.test.ts',
+    'test/http/fastify/DatastreamDifferentialMongo.test.ts',
     'test/http/PagesMongo.test.ts',
     'test/http/NotificationHooksMongo.test.ts',
     'test/http/RecordMutationsMongo.test.ts',

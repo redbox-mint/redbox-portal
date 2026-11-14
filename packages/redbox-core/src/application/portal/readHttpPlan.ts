@@ -87,7 +87,16 @@ export function portalReadHttpInputs(portal: PortalApplicationContext) {
     returnFields: config.record.search.returnFields,
     siemConfig: async id => ref.appConfigs.get().getAppConfigByBrandAndKey(id, 'siem'),
   };
-  return { records, queries };
+  const downloads = {
+    get records() {
+      return data.records.get();
+    },
+    get datastream() {
+      return data.datastream.get();
+    },
+    log,
+  };
+  return { records, queries, downloads };
 }
 type ReadUploadInput = c.ApiRecordReadControllerInput & DatastreamControllerInput;
 class ReadUploadController extends c.ApiRecordReadController {
@@ -117,7 +126,7 @@ export function portalReadControllers(
   browser?: BrowserPageBinding
 ) {
   const inputs = portalReadHttpInputs(portal);
-  const metadata = portalHttpPlan(portal, {}).metadata,
+  const metadata = combineHttpInputs(portalHttpPlan(portal, {}).metadata, { downloads: inputs.downloads }),
     refs = portalReferenceHttpInputs(portal);
   // Preserve lazy domain getters when combining a controller's explicit inputs.
   const combine = combineHttpInputs;
@@ -128,7 +137,7 @@ export function portalReadControllers(
     bindControllerFactory(
       c.recordReadController,
       combine(
-        inputs.records,
+        combine(inputs.records, { downloads: inputs.downloads }),
         combine(refs.form, {
           get recordTypes() {
             return refs.metadata.recordTypes;
@@ -167,5 +176,5 @@ export function portalReadControllers(
         )
       : bindControllerFactory(c.recordAuditReadController, inputs.queries),
   ].filter(binding => selected.has(binding.factory.name));
-  return { controllers: bindings.map(binding => binding.factory), bindings };
+  return { controllers: bindings.map(binding => binding.factory), bindings, downloads: inputs.downloads };
 }

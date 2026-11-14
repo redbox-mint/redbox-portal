@@ -13,8 +13,16 @@ const { brandingDeliveryRoutes, fontDeliveryRoute, dynamicAssetRoutes } = source
 const assetDeclarations = [...brandingDeliveryRoutes, fontDeliveryRoute, ...dynamicAssetRoutes];
 const { pageRootRoute } = source('http/express/pages');
 const { resolveEffectivePolicies } = source('http/express/policies');
-const declarations = [...pageRoutes, ...authenticationRoutes, pageRootRoute, ...assetDeclarations];
-const offlineApplication = () => previous.offlineApplication(previous.migratedDeclarations, true);
+const { datastreamReadRoutes } = source('http/datastreamRoutes');
+const migratedDeclarations = [...new Set([...previous.migratedDeclarations, ...datastreamReadRoutes])];
+const declarations = [
+  ...datastreamReadRoutes,
+  ...pageRoutes,
+  ...authenticationRoutes,
+  pageRootRoute,
+  ...assetDeclarations,
+];
+const offlineApplication = () => previous.offlineApplication(migratedDeclarations, true);
 function reconcile(installation, runtime) {
   const rows = inventory.routes
     .filter(row => row.kind !== 'api')
@@ -39,7 +47,7 @@ function reconcile(installation, runtime) {
             runtime: { kind: 'native session/CSRF owner', csrf: row.csrf.effective },
           };
         }
-        assert(['FM-033', 'FM-034', 'FM-035'].includes(row.ownerTask), 'Missing browser binding: ' + row.name);
+        assert(['FM-034', 'FM-035'].includes(row.ownerTask), 'Missing browser binding: ' + row.name);
         return {
           ...base,
           classification: 'owned-by-later-task',
@@ -192,7 +200,7 @@ async function main() {
     await f.close();
   }
 }
-module.exports = { offlineApplication, reconcile, declarations: previous.migratedDeclarations };
+module.exports = { offlineApplication, reconcile, declarations: migratedDeclarations };
 if (require.main === module)
   main().catch(error => {
     console.error(error);

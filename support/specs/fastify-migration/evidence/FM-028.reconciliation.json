@@ -2,12 +2,12 @@
   "formatVersion": 1,
   "counts": {
     "api": 152,
-    "migrated": 146,
+    "migrated": 148,
     "intentionalOverrides": 0,
-    "later": 6
+    "later": 4
   },
   "composition": {
-    "declarations": 251,
+    "declarations": 253,
     "controllers": 36
   },
   "rows": [
@@ -5939,10 +5939,29 @@
         "metadata": "complete operation equals the executable declaration-derived operation",
         "blueprint": true
       },
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-033",
-      "reason": "Complete datastream list/download authorization and streaming matrix (P5)",
-      "runtime": null
+      "runtime": {
+        "provider": "@researchdatabox/redbox-core",
+        "factory": "webservice/RecordController",
+        "action": "listDatastreams",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api/records/datastreams/:oid([\\s\\S]+)"
+          }
+        ],
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "validation": "same executable declaration object; response schemas remain documentation only",
+        "head": "implicit"
+      }
     },
     {
       "name": "core-http-get-afb6928769c61a93",
@@ -5960,10 +5979,29 @@
         "metadata": "complete operation equals the executable declaration-derived operation",
         "blueprint": true
       },
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-033",
-      "reason": "Complete datastream list/download authorization and streaming matrix (P5)",
-      "runtime": null
+      "runtime": {
+        "provider": "@researchdatabox/redbox-core",
+        "factory": "webservice/RecordController",
+        "action": "getDataStream",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api/records/datastreams/:oid([\\s\\S]+)/:datastreamId([\\s\\S]+)"
+          }
+        ],
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "validation": "same executable declaration object; response schemas remain documentation only",
+        "head": "implicit"
+      }
     },
     {
       "name": "core-http-post-82f94b3966e67137",

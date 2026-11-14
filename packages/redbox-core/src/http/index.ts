@@ -73,3 +73,6 @@ export {
   type BrandingAssetControllerInput,
   type DynamicAssetControllerInput,
 } from './controllers/AssetControllers';
+
+export { datastreamReadRoutes } from './datastreamRoutes';
+export type { DatastreamReadInput } from './actions/datastreamReads';

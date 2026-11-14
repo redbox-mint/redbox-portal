@@ -33,15 +33,35 @@ describe('RecordController datastream downloads', () => {
     datastreams = { getDatastream: sinon.stub().resolves({ body: pdf }) };
     let handler: any;
     sinon.stub(middleware, 'httpAction').callsFake(action => action as any);
-    sinon.stub(policies, 'requestContext').returns({ actor: { id: 'alice-id', username: 'alice', roles: [] }, brand: { id: 'brand-a' } } as any);
-    mountDatastreamReadRoutes({ get: (path, ...handlers) => { if (path.includes('datastream{')) handler = handlers.at(-1); } } as any,
-      { records, datastream: datastreams, policies: {}, policyConfiguration: { '*': true }, log: { error: sinon.stub() } as any });
+    sinon
+      .stub(policies, 'requestContext')
+      .returns({ actor: { id: 'alice-id', username: 'alice', roles: [] }, brand: { id: 'brand-a' } } as any);
+    mountDatastreamReadRoutes(
+      {
+        get: (path, ...handlers) => {
+          if (path.includes('datastream{')) handler = handlers.at(-1);
+        },
+      } as any,
+      {
+        records,
+        datastream: datastreams,
+        policies: {},
+        policyConfiguration: { '*': true },
+        log: { error: sinon.stub() } as any,
+      }
+    );
     controller = { getDataStream: (...args) => handler(...args), isAjax: sinon.stub().returns(false) };
     params = { oid: 'record-a', datastreamId: latest, fileName: 'datarecord.pdf' };
     req = {
-      get params() { return { oid: params.oid }; },
-      get query() { return { datastreamId: params.datastreamId, fileName: params.fileName }; },
-      get: () => controller.isAjax() ? 'jsclient' : undefined,
+      method: 'GET',
+      headers: {},
+      get params() {
+        return { oid: params.oid };
+      },
+      get query() {
+        return { datastreamId: params.datastreamId, fileName: params.fileName };
+      },
+      get: () => (controller.isAjax() ? 'jsclient' : undefined),
       user: { username: 'alice', roles: [] },
       session: { branding: 'default' },
     };
@@ -52,11 +72,18 @@ describe('RecordController datastream downloads', () => {
         callback();
       },
     });
-    res.set = sinon.stub().returnsThis();
-    res.attachment = sinon.stub();
+    const headers: Record<string, string> = {};
+    res.getHeader = (name: string) => headers[name.toLowerCase()];
+    res.set = sinon.stub().callsFake((name: string | Record<string, string>, value?: string) => {
+      for (const [key, entry] of Object.entries(typeof name === 'string' ? { [name]: value } : name))
+        headers[key.toLowerCase()] = entry!;
+      return res;
+    });
+    res.type = sinon.stub().returns(res);
     res.status = sinon.stub().returns(res);
     res.json = sinon.stub().returns(res);
     sendResp = res.json;
+    res.send = sinon.stub().callsFake((value: string) => res.json(JSON.parse(value)));
   });
 
   afterEach(() => {
@@ -66,7 +93,7 @@ describe('RecordController datastream downloads', () => {
   async function expectFailure(status: number) {
     await controller.getDataStream(req, res);
     expect(sendResp.calledOnce).to.equal(true);
-    expect(res.attachment.called).to.equal(false);
+    expect(res.getHeader('Content-Disposition')).to.equal(undefined);
     expect(res.set.calledWith('Content-Type', 'application/octet-stream')).to.equal(false);
     expect(res.status.lastCall.args[0]).to.equal(status);
     expect(res.json.calledOnce).to.equal(true);
@@ -77,8 +104,15 @@ describe('RecordController datastream downloads', () => {
     await controller.getDataStream(req, res);
     await finished(res);
     expect(Buffer.concat(chunks)).to.deep.equal(pdf);
-    expect(res.attachment.calledOnceWithExactly('datarecord.pdf')).to.equal(true);
-    expect(datastreams.getDatastream.calledOnceWithExactly('record-a', latest, { username: 'alice', actorId: 'alice-id', brandId: 'brand-a' })).to.equal(true);
+    expect(res.getHeader('Content-Disposition')).to.equal('attachment; filename=datarecord.pdf');
+    expect(res.getHeader('Content-Type')).to.equal('application/pdf');
+    expect(
+      datastreams.getDatastream.calledOnceWithExactly('record-a', latest, {
+        username: 'alice',
+        actorId: 'alice-id',
+        brandId: 'brand-a',
+      })
+    ).to.equal(true);
     expect(records.getAttachments.calledOnceWithExactly('record-a', undefined, { username: 'alice' })).to.equal(true);
     expect(sendResp.called).to.equal(false);
   });
@@ -90,7 +124,7 @@ describe('RecordController datastream downloads', () => {
     await controller.getDataStream(req, res);
     await finished(res);
     expect(Buffer.concat(chunks)).to.deep.equal(pdf);
-    expect(res.attachment.calledOnceWithExactly(historical)).to.equal(true);
+    expect(res.getHeader('Content-Disposition')).to.equal('attachment; filename=' + historical + '');
     expect(datastreams.getDatastream.firstCall.args[1]).to.equal(historical);
     expect(sendResp.called).to.equal(false);
   });
@@ -135,24 +169,27 @@ describe('RecordController datastream downloads', () => {
     });
   }
 
-  for (const method of ['set', 'attachment']) {
-    it(`destroys an opened storage stream if ${method} throws before piping`, async () => {
-      const source = new Readable({ read() {} });
-      datastreams.getDatastream.resolves({ readstream: source });
-      res[method].onFirstCall().throws(new Error('invalid response header'));
-      await controller.getDataStream(req, res);
-      expect(source.destroyed).to.equal(true);
-      expect(Buffer.concat(chunks).length).to.equal(0);
-      expect(sendResp.calledOnce).to.equal(true);
-      expect(res.status.lastCall.args[0]).to.equal(500);
-      expect(res.json.calledOnce).to.equal(true);
-    });
-  }
+  it('destroys an opened storage stream if header handoff throws before piping', async () => {
+    const source = new Readable({ read() {} });
+    datastreams.getDatastream.resolves({ readstream: source });
+    res.set.onFirstCall().throws(new Error('invalid response header'));
+    await controller.getDataStream(req, res);
+    expect(source.destroyed).to.equal(true);
+    expect(Buffer.concat(chunks).length).to.equal(0);
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(res.status.lastCall.args[0]).to.equal(500);
+  });
+
+  it('rejects unencodable filename metadata before opening storage', async () => {
+    params.fileName = '\ud800.pdf';
+    await expectFailure(500);
+    expect(datastreams.getDatastream.called).to.equal(false);
+  });
 
   it('drains a legacy storage stream without destroy if header setup fails', async () => {
     const source = { resume: sinon.stub() };
     datastreams.getDatastream.resolves({ readstream: source });
-    res.attachment.throws(new Error('invalid response header'));
+    res.set.onFirstCall().throws(new Error('invalid response header'));
     await controller.getDataStream(req, res);
     expect(source.resume.calledOnce).to.equal(true);
     expect(res.status.lastCall.args[0]).to.equal(500);

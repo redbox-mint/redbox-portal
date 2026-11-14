@@ -157,18 +157,18 @@
     "packages/redbox-core/src/application/portal/application.ts": "d577e1c969fbe81288c70f56a38972288bbce84e3fe5544e1607de81934ac248",
     "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "099dca485b235225bc7b8cbe7a955edcbd53bb1a0593614b11e4cdc651af832c",
+    "packages/redbox-core/src/application/portal/host.ts": "d0ea68daf494f06669d76f7627b42699c292afc0af267c5557430b7672045869",
     "packages/redbox-core/src/application/portal/http.ts": "fa012353b7c01b64fc2ca2887a79fc6173248855a9cd761d063727884b505f1e",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
-    "packages/redbox-core/src/application/portal/installation.ts": "fd7466294db1f2c8b18a4107bd60bb991b9f9136af9e90065297a2c1919ab788",
+    "packages/redbox-core/src/application/portal/installation.ts": "e4142853747aec725603ecd25cf4cb6a454137168907af7d4acf5894de38ca8d",
     "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "c931a1216244353fda58c71929b5c2cd38ab25d9debc985249cb9aff629893ac",
-    "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "e8a68994c4732044635ae328f63a624b3e5246afcc09493dfc98eb29b772ec34",
+    "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "df61627f0addc68ccfddba37ab7fef9677774dd6256b797f2630dd862d88e72a",
     "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "7c47a1438b729768983014aaf4dada9b13815c97ca33f8e1a5a9a021f50bd4af",
     "packages/redbox-core/src/application/portal/providers.ts": "32daf1c9dab7936148e14ef13a49c3744f74ea9292ef47006457bde1edb20ccd",
     "packages/redbox-core/src/application/portal/rawHttp.ts": "1153ae9fed44cb53dd4dc9e773a31191d637d4e3d696344eed57095f6fdd2a29",
-    "packages/redbox-core/src/application/portal/readHttpPlan.ts": "c7ca54f28c718e5f353a0f9f3a56783989940931429f7596ce2cb86e31b7de20",
+    "packages/redbox-core/src/application/portal/readHttpPlan.ts": "0f055e58b2c24f10511f0f7ff4c72d65a0b829737877784deb181aad05e4460a",
     "packages/redbox-core/src/application/portal/recordOperations.ts": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a",
     "packages/redbox-core/src/application/portal/reference.ts": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f",
     "packages/redbox-core/src/application/portal/referenceHttpPlan.ts": "8955373b254db84a6b63dd91c1d00b3853500ac92a132aaae945a4a2b359eb74",
@@ -278,6 +278,7 @@
     "packages/redbox-core/src/http/actions/configurationReads.ts": "f8255d5a9ced08b840e2e9a3615cd8a284f4b68656ce667aaa0588ddf79acf55",
     "packages/redbox-core/src/http/actions/configurationWrites.ts": "f1234146a5e30d8a60d68b82307cb19bd5a60e9f786ad7dca3f2c48ba37897e3",
     "packages/redbox-core/src/http/actions/configuredActions.ts": "deaa30f9836248cf811aa298cf4ac34814a40ad0978fc89c22248d0999e4d736",
+    "packages/redbox-core/src/http/actions/datastreamReads.ts": "4ebb5ff634985a80a6c19438a565eb00eb44c0d1a5780f610874a6a1ffde29f3",
     "packages/redbox-core/src/http/actions/datastreamUpload.ts": "9549c3cf4b09d1d461eedde22dcfc915ca1b8f981b60415b54261ccfba90ccf9",
     "packages/redbox-core/src/http/actions/figshareAdministration.ts": "141e5a5acb393608a2b8b245536d9969f437317b35a6cd92eb24a3e260be75d6",
     "packages/redbox-core/src/http/actions/formDelivery.ts": "d2c519e37c958ff06bc552624c7cdbf3fb933ade1c98298caad83dfefe9c8195",
@@ -308,16 +309,17 @@
     "packages/redbox-core/src/http/context.ts": "f0b15b9456a8ebb91b238ddb4354b6265549b91ba564b0ab61a7c43a3e5b37af",
     "packages/redbox-core/src/http/controllers.ts": "4295649161b5d152609c007a22727d683f386a51210e29131bbbf3a7bb856ba3",
     "packages/redbox-core/src/http/controllers/AssetControllers.ts": "bbfab210e65ded1009983ec3ecc8160fc5f72a0c4b6af932702ae7fce3b0cd25",
-    "packages/redbox-core/src/http/controllers/BrowserControllers.ts": "e06b4aab81c41fc85ec247cace89d51656c47ccffcec55f27ef0aed43a5cbdf0",
+    "packages/redbox-core/src/http/controllers/BrowserControllers.ts": "0f27980944c38bf08b97c9036103fac34b2b13ba89dd681b1759e7383a95670e",
     "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts": "a2d9d270fc0ef06fcbf86c79aaae3f6893017cfaae2eab6983631f1857e2bae7",
     "packages/redbox-core/src/http/controllers/IntegrationControllers.ts": "ea19fed4d21607b901c50a356e3fcf3ba8d019ae49705e9282bbdde5d9091f15",
     "packages/redbox-core/src/http/controllers/MutationControllers.ts": "2987f75547193ab44331a05a8fac8438a9fbd499faabd34abebe54a7ca24e11f",
     "packages/redbox-core/src/http/controllers/PageController.ts": "3c24571990273364b5e65c21850f2de47da0af2319055e167c4b36ade55a4753",
     "packages/redbox-core/src/http/controllers/ProgressController.ts": "e1dba5e6771bb39f34c6f59275783caa60ad6f3d9c560cafb5299b215bdccb53",
-    "packages/redbox-core/src/http/controllers/ReadControllers.ts": "e7e8a7dffd3f00d2ee6b3deb796336d7ad86b1fae2dc9fcac97c97c1c1e16c19",
+    "packages/redbox-core/src/http/controllers/ReadControllers.ts": "611ec0c051b10f10d894536c8d3cac44a4ee698ea7f381e7538b670ba5bab101",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "a5b9b2fdda355fdd72e7a6bdcfe5d520f6307e138f25789ff9bcc3e130f2a7b6",
     "packages/redbox-core/src/http/controllers/webservice/DatastreamController.ts": "f12be3b87082563b2935e10b2fa73d8d919dae70c7ef0513733ed0539ec3be6a",
     "packages/redbox-core/src/http/controllers/webservice/RecordController.ts": "57199d31d5294832f798622002ddda6b252e0164891eb3ba28f54fa632ad4aa5",
+    "packages/redbox-core/src/http/datastreamRoutes.ts": "5b32677d54e83fce55fce65f66b9d5b0cef660e2d07ad88aa8787147b7e03fd8",
     "packages/redbox-core/src/http/express/ExpressHost.ts": "bd9849007fddc3fa4638e229f8e4506f844f452e90f3ebbbc9c1e6f85f3b052d",
     "packages/redbox-core/src/http/express/actors.ts": "46d96bdbcc3d942cae16ea1b7c97c6e71ed43aafa724fdefb7728b64cddb7f34",
     "packages/redbox-core/src/http/express/adminOperations.ts": "891e066991de738008b2d3204d8a3e9dd29929c94f701138a16379715afa87bf",
@@ -332,7 +334,7 @@
     "packages/redbox-core/src/http/express/configurationWrites.ts": "de02398b7b882ed2076520e05feb2fd90652cd2f0c5004d37fe7b20ac02ded3c",
     "packages/redbox-core/src/http/express/configuredActions.ts": "0e00878503a4597ce91310fc37d6c7b3b4929d877a3faf31f005dc4f9626f8b3",
     "packages/redbox-core/src/http/express/csrf.ts": "aaf2780ae2231a8018ac6969b41f09777016f7cdae01da6fd737f1a27e9c3423",
-    "packages/redbox-core/src/http/express/datastreamReads.ts": "7f9b5989265e0597aa506240aa87788c77883f672d6782e5c268c6ea18e02960",
+    "packages/redbox-core/src/http/express/datastreamReads.ts": "0d55c137f194ff48bb0c2d1852efbcccf878bbce6c8b35e2ad921b82b92655bc",
     "packages/redbox-core/src/http/express/datastreamWrites.ts": "02ad25e7e6ba0ee26ffc92a7aa7f307e29f3f731964a0618234f091af866d3fb",
     "packages/redbox-core/src/http/express/figshareAdministration.ts": "1ded6f084d6ae41d473f6dc2970dda92376ce4a7cde146935f982bfd451e0223",
     "packages/redbox-core/src/http/express/formDelivery.ts": "795a0e8140bed103cc22fd48b5a42082c06ebc64380d4095f56154ab6df82054",
@@ -378,6 +380,7 @@
     "packages/redbox-core/src/http/fastify/composition.ts": "adb952198d6b979c6049ca47b9e6e82091d5d80874af4c134444c779eb3513cc",
     "packages/redbox-core/src/http/fastify/coreNamespaces.ts": "aa898f182d6f04bbf41f37767632e6c721f35db6b5e75da3ebb1c0651df7ca65",
     "packages/redbox-core/src/http/fastify/csrf.ts": "e190bb256c553c9accff701279bcadab4e833e810531cb13eed996f5f405525b",
+    "packages/redbox-core/src/http/fastify/datastreamReads.ts": "5f36845a00f5ecfec5ff92c03c812ed84b31a65324e71023444c9691a6a454ce",
     "packages/redbox-core/src/http/fastify/datastreamUploads.ts": "89184ebf6e2ff25a6b7439c19013abbd3889135ed65752d6584b207cdc9f9585",
     "packages/redbox-core/src/http/fastify/errorBoundary.ts": "77fcb3bbb8ace36c1787f52f82e060d3bfd971f63d42ad70015614558c609125",
     "packages/redbox-core/src/http/fastify/fallbacks.ts": "8220c4b6862d880e6cb8a782212d28b85abcf24500906934d26e471c3652662a",
@@ -385,7 +388,7 @@
     "packages/redbox-core/src/http/fastify/identityAdministration.ts": "609032a8fa596d7f388a299d78b13e48e7ac019984480c506ad502c4a3b4c999",
     "packages/redbox-core/src/http/fastify/identityProviders.ts": "f615c88335590697a5191ba3e8113695c820ba50061567d465ca089da1619772",
     "packages/redbox-core/src/http/fastify/integrations.ts": "55c2f326687b3a04f48a3cb3b83042bb169d41f480d74de8f931efd63240be8b",
-    "packages/redbox-core/src/http/fastify/logging.ts": "f2f46c880eeb0990026513ff31dee00d23e04d3a7e0ef83ad4ec1d6a4b184091",
+    "packages/redbox-core/src/http/fastify/logging.ts": "d42d74a6389061a89b32e999441e92aabf1c4802b00e468450910ed5984c8ba9",
     "packages/redbox-core/src/http/fastify/mutations.ts": "568cf80c87d4db26b97a0f6bd175f3953cc6ef47df9ef4152889afb89f54b350",
     "packages/redbox-core/src/http/fastify/pages.ts": "0c5aeabe231e0bb93fc3d628699e28aeb1281de95ed2225b8f0c0ac08479e8bf",
     "packages/redbox-core/src/http/fastify/parsers.ts": "2220870f08f2b639f05e3a049749ad1cf22876be8906c3245f30d7837f61d697",
@@ -394,16 +397,16 @@
     "packages/redbox-core/src/http/fastify/preparation.ts": "457c503ccb7f1cdbf1cb687198ed19ecdd09136094d44ddd475da2cdfab1f560",
     "packages/redbox-core/src/http/fastify/rawMultipart.ts": "bf33f81da4065fdc242b143dfed453248ac01f0056761ba8336e23e8ec864a1d",
     "packages/redbox-core/src/http/fastify/readActions.ts": "b9ffa2e357529d2287e935c3933580cf081c6bc5fde7b3eb14ef4a2ba06784f7",
-    "packages/redbox-core/src/http/fastify/readStreams.ts": "e7b9feec7978b07229ff48065d4dd65f5da911ec93d8182b4ef8693659a63c89",
+    "packages/redbox-core/src/http/fastify/readStreams.ts": "3b879908718648f383ebd1c580165367cc0f38d766bf2e8f5ee3c374dca16785",
     "packages/redbox-core/src/http/fastify/referenceReads.ts": "5ed1c640d728d10471b2564609208865ad3f648d6662bffcdd93c89ee5d6842b",
     "packages/redbox-core/src/http/fastify/registration.ts": "0f1c7a4f7430d99730ddea74a3a3751e7bd679d7af38b28ee8541e8656811189",
     "packages/redbox-core/src/http/fastify/registry.ts": "7ec34b62c1748c29dad37cd348967ba375ea876e4cadeb75917abbbb36926959",
     "packages/redbox-core/src/http/fastify/requestOwnership.ts": "b7bc1c2e130839ee019499b240b27cd8629ca3e83ad1c92f2276a6a6852f6abe",
     "packages/redbox-core/src/http/fastify/responses.ts": "262d2578c49b64c2347562c070df175f1c5b82116337c515174dd6a25d86613e",
     "packages/redbox-core/src/http/fastify/router.ts": "b716b5eac0b18f79fda8954b8631ce59f942e024074d425c4dc007cf09bc50f2",
-    "packages/redbox-core/src/http/fastify/routes.ts": "467ff18adebaa198c894d7b226614e332eb0075ac81ac75305d7e494213e787d",
+    "packages/redbox-core/src/http/fastify/routes.ts": "7e309b3c81ce0cbd0c227afef4b4082688e56a4d96e5dc5bcaddedd98e4cb7a4",
     "packages/redbox-core/src/http/fastify/session.ts": "fac87cd42982e7f51359bcc2291a01f8e79d8fa6cfecd2c99c2d03630d42a1a4",
-    "packages/redbox-core/src/http/fastify/staticOwnership.ts": "f32655234c47eabca5f214804c36333892f69b449bab9bfa6ea25468c674af4b",
+    "packages/redbox-core/src/http/fastify/staticOwnership.ts": "1eec1644d08785182b98a713ac4f59859a2379f3f4b85a654282b81e26c808e8",
     "packages/redbox-core/src/http/fastify/targetNames.ts": "17b7eb243aab350a84fd1fa0ac4d38a9a5bd6425fbb3a0f5f37c2c45a60625d5",
     "packages/redbox-core/src/http/fastify/validation.ts": "83e03cbd92be82209f9fcac8c5adfd9220815ff93ede845e838e9ee2d5d42ed0",
     "packages/redbox-core/src/http/identityRoutes.ts": "f629a9f39de55db579166b8c17a871f4e985c4356a978134637365140873aa0e",
@@ -748,7 +751,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "26552aba71bd45a6c69609c08916d77a9319ebb0b76cbda2387c04a581d60591"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "c3b3e9f3483c0facb12cd62f9bfaa2c4249ed04428ccc7450fd205e00c0d604c"
   },
   "counts": {
     "routes": 335,
@@ -37625,9 +37628,9 @@
       "kind": "api",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 0
       },
       "apiDeclaration": {
@@ -37717,10 +37720,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/datastreams/:oid",
       "controller": "webservice/RecordController",
       "action": "listDatastreams",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "listDatastreams",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts",
+        "migratedBy": "FM-033"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -37788,9 +37800,9 @@
       "kind": "api",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 1
       },
       "apiDeclaration": {
@@ -37895,10 +37907,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/datastreams/:oid/:datastreamId",
       "controller": "webservice/RecordController",
       "action": "getDataStream",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "getDataStream",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts",
+        "migratedBy": "FM-033"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -37966,9 +37987,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 2
       },
       "apiDeclaration": null,
@@ -37984,10 +38005,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/:oid/attach/:attachId",
       "controller": "RecordController",
       "action": "doAttachment",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "doAttachment",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts",
+        "migratedBy": "FM-033"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38008,9 +38038,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+          "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
           "export": "datastreamReadRoutes",
-          "line": 12
+          "line": 2
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38055,9 +38085,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 3
       },
       "apiDeclaration": null,
@@ -38073,10 +38103,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/companion/record/:oid/attach/:attachId",
       "controller": "RecordController",
       "action": "doAttachment",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "doAttachment",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts",
+        "migratedBy": "FM-033"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38097,9 +38136,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+          "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
           "export": "datastreamReadRoutes",
-          "line": 12
+          "line": 2
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38144,9 +38183,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 4
       },
       "apiDeclaration": null,
@@ -38161,10 +38200,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/:oid/attachments",
       "controller": "RecordController",
       "action": "getAttachments",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getAttachments",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts",
+        "migratedBy": "FM-033"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38185,9 +38233,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+          "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
           "export": "datastreamReadRoutes",
-          "line": 12
+          "line": 2
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38232,9 +38280,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
         "export": "datastreamReadRoutes",
-        "line": 12,
+        "line": 2,
         "index": 5
       },
       "apiDeclaration": null,
@@ -38249,10 +38297,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/:oid/datastream{*tail}",
       "controller": "RecordController",
       "action": "getDataStream",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getDataStream",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts",
+        "migratedBy": "FM-033"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38273,9 +38330,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+          "file": "packages/redbox-core/src/http/datastreamRoutes.ts",
           "export": "datastreamReadRoutes",
-          "line": 12
+          "line": 2
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },

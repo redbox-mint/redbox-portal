@@ -98,15 +98,16 @@ export class StaticOwnershipTable {
       });
     }
     for (const route of selected.routes) {
+      const previous = rows.get(route.declaration.name);
       const methods = selected.bindings
         .filter(binding => binding.route === route && binding.kind !== 'automatic-options')
         .map(binding => binding.method);
       rows.set(route.declaration.name, {
         route,
-        methods,
+        methods: previous?.fallsThrough ? [...new Set([...methods, 'HEAD'])] : methods,
         selected: true,
         phase: 'before-static',
-        fallsThrough: false,
+        fallsThrough: previous?.fallsThrough ?? false,
         matches: match(root + expressRuntimePath(route.declaration.path), { decode: false, sensitive: false }),
       });
     }

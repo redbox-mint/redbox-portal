@@ -87,7 +87,7 @@
         {
           "name": "ApiRecordSchemaReadController",
           "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
-          "lines": 33,
+          "lines": 45,
           "methods": [
             "create",
             "update",
@@ -417,6 +417,7 @@
       "inputFields": [
         "audit",
         "contextVariables",
+        "downloads",
         "forms",
         "harvest",
         "log",
@@ -439,6 +440,8 @@
       "exposedActions": [
         "getMeta",
         "updateMeta",
+        "listDatastreams",
+        "getDataStream",
         "listRecords",
         "listDeletedRecords",
         "getRecordAudit",
@@ -490,8 +493,10 @@
         {
           "name": "ApiRecordReadController",
           "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
-          "lines": 59,
+          "lines": 65,
           "methods": [
+            "listDatastreams",
+            "getDataStream",
             "listRecords",
             "listDeletedRecords",
             "getRecordAudit",
@@ -521,6 +526,7 @@
         "dashboardConfig",
         "dashboardTypes",
         "delivery",
+        "downloads",
         "forms",
         "log",
         "maxRows",
@@ -550,6 +556,9 @@
         "getDashboardWorkflowSettings",
         "getDashboardViewSettings",
         "getForm",
+        "doAttachment",
+        "getAttachments",
+        "getDataStream",
         "getRecordList",
         "getDeletedRecordList",
         "getMeta",
@@ -584,8 +593,12 @@
         {
           "name": "RecordReadController",
           "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
-          "lines": 86,
+          "lines": 112,
           "methods": [
+            "attachmentNotFound",
+            "doAttachment",
+            "getAttachments",
+            "getDataStream",
             "getRecordList",
             "getDeletedRecordList",
             "getMeta",

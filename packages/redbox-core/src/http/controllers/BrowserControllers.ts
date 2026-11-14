@@ -1,3 +1,4 @@
+import { sendPageError } from '../fastify/pages';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { defineController } from '../controllers';
 import { runNativePage, type PageControllerInput } from './PageController';
@@ -19,6 +20,10 @@ export interface RecordBrowserControllerInput extends m.RecordMutationController
 export class RecordBrowserController extends m.RecordMutationController {
   constructor(private readonly browserInput: RecordBrowserControllerInput) {
     super(browserInput);
+  }
+  protected attachmentNotFound(request: FastifyRequest, reply: FastifyReply) {
+    const pages = this.browserInput.browser.pages;
+    return () => sendPageError(request, reply, pages.rendering, () => pages.csrfToken(request), 404);
   }
   renderDeletedRecords(request: FastifyRequest, reply: FastifyReply) {
     return runNativePage(request, reply, this.browserInput.browser.pages, shellPage, 'shell');

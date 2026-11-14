@@ -40,6 +40,7 @@ const codes = new Set([
   'HTTP_REPLY_CALLBACK_FAILED',
   'HTTP_REPLY_REJECTED',
   'HTTP_STREAM_DISPOSAL_FAILED',
+  'HTTP_STREAM_FAILED',
 ]);
 type FailureClass = 'SINK' | 'STREAM' | 'WORKER';
 type Counts = {
@@ -202,7 +203,10 @@ export function createHttpLogger(target?: HttpLogTarget, owner?: PersistenceOwne
         const id = req && typeof req === 'object' ? Reflect.get(req, 'id') : undefined;
         const requestId = typeof id === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(id) ? id : undefined;
         const record = Object.freeze({
-          code: code ?? 'HTTP_DIAGNOSTIC', level, ...(path ? { path } : {}), ...(requestId ? { requestId } : {}),
+          code: code ?? 'HTTP_DIAGNOSTIC',
+          level,
+          ...(path ? { path } : {}),
+          ...(requestId ? { requestId } : {}),
         });
         const result = owner ? runAcceptedPersistenceWork(owner, () => Promise.resolve(write(record))) : write(record);
         if (result && typeof (result as PromiseLike<unknown>).then === 'function')
