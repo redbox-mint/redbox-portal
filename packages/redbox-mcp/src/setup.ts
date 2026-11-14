@@ -6,16 +6,26 @@ import {
   type ReportingApi,
   type ReportingPrincipal,
 } from '@researchdatabox/redbox-core';
-import { brandMcpSettings, mcpDeploymentEnabled, mcpSetupConfigSchema, metadataUrl, resolveMcpConfig } from './config';
+import {
+  brandMcpSettings,
+  mcpDeploymentEnabled,
+  mcpSetupConfigSchema,
+  metadataUrl,
+  resolveMcpConfig,
+  type McpConfig,
+} from './config';
 import { McpAuthError, resolveOidcIdentity } from './auth';
 
 /** Linked OIDC aliases can authenticate a primary account of another login type. */
-export async function hasMcpOidcIdentity(principal: ReportingPrincipal): Promise<boolean> {
-  if (principal.user.type === 'oidc') return true;
+export async function hasMcpOidcIdentity(principal: ReportingPrincipal, config?: McpConfig): Promise<boolean> {
+  const bound = (username: string) =>
+    !config ||
+    config.identityBindings.some(binding => binding.issuer === config.issuer && binding.username === username);
+  if (principal.user.type === 'oidc' && bound(principal.user.username)) return true;
   const linked = await new Promise<{ linkedAccounts: Array<{ type: string; username: string }> }>((resolve, reject) => {
     UsersService.getLinkedAccounts(principal.user.id).subscribe({ next: resolve, error: reject });
   });
-  for (const account of linked.linkedAccounts.filter(account => account.type === 'oidc')) {
+  for (const account of linked.linkedAccounts.filter(account => account.type === 'oidc' && bound(account.username))) {
     try {
       const mapped = await resolveOidcIdentity(account.username, principal.brand.name);
       if (mapped.user.id === principal.user.id) return true;
@@ -44,7 +54,8 @@ export async function connectionSetup(
   const setup = mcpSetupConfigSchema.safeParse(setupConfiguration);
   const isAdmin = recordRoleNames(principal.brand, principal.roles).includes('Admin');
   const authorizedTypes: string[] = [];
-  if (parsed.success && setup.success && reportingEnabled && oidcAccount) {
+  const identityBound = parsed.success && oidcAccount && (await hasMcpOidcIdentity(principal, parsed.data));
+  if (parsed.success && setup.success && reportingEnabled && identityBound) {
     for (const recordType of recordTypes) {
       try {
         await reporting.getReportingSchema(principal, { recordType }, { channel: 'rest' });
@@ -54,7 +65,7 @@ export async function connectionSetup(
       }
     }
   }
-  const configurationReady = parsed.success && setup.success;
+  const configurationReady = parsed.success && setup.success && (!oidcAccount || identityBound);
   const state = !configurationReady
     ? 'needs-configuration'
     : !reportingEnabled
@@ -93,6 +104,7 @@ export async function connectionSetup(
             ...new Set([
               ...(!parsed.success ? parsed.error.issues.map(issue => `mcp.${issue.path.join('.')}`) : []),
               ...(!setup.success ? setup.error.issues.map(issue => `mcpSetup.${issue.path.join('.')}`) : []),
+              ...(parsed.success && oidcAccount && !identityBound ? ['mcp.identityBindings'] : []),
             ]),
           ],
         }

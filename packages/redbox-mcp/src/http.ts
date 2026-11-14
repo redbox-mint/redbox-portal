@@ -16,7 +16,8 @@ async function body(req: IncomingMessage & { body?: unknown }, maximum: number):
   }
   const chunks: Buffer[] = [];
   let length = 0;
-  for await (const chunk of req) {
+  // Preserve the request/socket when a limit aborts iteration so the caller can send its 413.
+  for await (const chunk of req.iterator({ destroyOnReturn: false })) {
     const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     length += bytes.length;
     if (length > maximum) throw new Error('LIMIT');

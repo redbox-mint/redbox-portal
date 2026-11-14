@@ -37,6 +37,8 @@ import { createReportingMcpServer } from '../src/server';
             enabled: true,
             allowedRoles: ['Researcher'],
             forms: ['rdmp-view'],
+            searchCore: 'default',
+            searchFullTextVisibleToAllReportingRoles: true,
             fields: [
               {
                 id: 'created',

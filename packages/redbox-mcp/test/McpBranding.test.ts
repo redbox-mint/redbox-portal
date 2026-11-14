@@ -24,6 +24,10 @@ const settings = (name: string) => ({
     brand: name,
     resourceUrl: `https://portal.example/${name}/mcp`,
     issuer: `https://identity.example/${name}`,
+    identityBindings: [
+      { issuer: `https://identity.example/${name}`, subject: 'alice-subject', username: 'alice' },
+      { issuer: `https://identity.example/${name}`, subject: 'user-subject', username: 'user' },
+    ],
     jwksUrl: `https://identity.example/${name}/jwks`,
   },
   mcpSetup: { clients: { codex: { clientId: `${name}-client` } } },

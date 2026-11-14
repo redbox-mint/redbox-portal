@@ -914,9 +914,10 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/a/mcp` };
       const auth = new McpAuthenticator(local, async () => principal, keys);
       const events: Record<string, unknown>[] = [];
+      const destroyedRequests: boolean[] = [];
       const handler = reportingMcpHttpHandler(local, reporting, auth, event => events.push(event));
       server.on('request', (req, res) => {
-        void handler(req, res);
+        void handler(req, res).then(() => destroyedRequests.push(req.destroyed));
       });
       const localToken = await new SignJWT({ scope: config.scope })
         .setProtectedHeader({ alg: 'RS256', typ: 'at+jwt', kid: 'test-key' })
@@ -972,6 +973,11 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
             };
             write();
           }
+        );
+        assert.deepEqual(
+          destroyedRequests,
+          [false],
+          'body iteration must preserve the request until the response is sent'
         );
         assert.equal(result.status, 413);
         assert.deepEqual(JSON.parse(result.body), { error: 'invalid_request' });

@@ -27,6 +27,7 @@ const configuration = {
   enabled: true,
   resourceUrl: 'https://redbox.example/default/mcp',
   issuer: 'https://id.example',
+  identityBindings: [{ issuer: 'https://id.example', subject: 'alice-subject', username: 'alice' }],
   jwksUrl: 'https://id.example/jwks',
 };
 let schemaCalls: string[] = [];
@@ -131,6 +132,20 @@ describe('MCP deployment and user setup', () => {
     assert.equal('jwksUrl' in (result.connection ?? {}), false);
   });
 
+  it('reports missing identity bindings as configuration work without claiming the account is ready', async () => {
+    Reflect.set(globalThis, 'UsersService', { getLinkedAccounts: () => of({ linkedAccounts: [] }) });
+    const admin = reportingPrincipal(brand, { ...user, roles: [adminRole] });
+    for (const identityBindings of [
+      [],
+      [{ issuer: 'https://other.example', subject: 'alice-subject', username: 'alice' }],
+    ]) {
+      const result = await connectionSetup({ ...configuration, identityBindings }, {}, true, ['rdmp'], admin, api);
+      assert.equal(result.state, 'needs-configuration');
+      assert.deepEqual(result.configurationProblems, ['mcp.identityBindings']);
+      assert.equal(result.checks.configuration, false);
+    }
+    assert.deepEqual(schemaCalls, []);
+  });
   it('distinguishes disabled reporting, local accounts and missing reporting access without reading records', async () => {
     assert.equal(
       (await connectionSetup(configuration, {}, false, ['rdmp'], principal, api)).state,
@@ -177,11 +192,20 @@ describe('MCP deployment and user setup', () => {
           ? Promise.resolve({ id: 'oidc-alias' })
           : { populate: async () => ({ ...user, id: 'oidc-alias', loginDisabled: disabled }) },
     });
+    const boundConfig = {
+      ...configuration,
+      identityBindings: [{ issuer: configuration.issuer, subject: 'alias-subject', username: 'alice-oidc' }],
+    };
     const available = await hasMcpOidcIdentity(local);
+    assert.equal(await hasMcpOidcIdentity(local, resolveMcpConfig(configuration, brand.name).data), false);
     assert.equal(available, true);
-    assert.equal((await connectionSetup(configuration, {}, true, ['rdmp'], local, api, available)).state, 'ready');
+    assert.equal((await connectionSetup(boundConfig, {}, true, ['rdmp'], local, api, available)).state, 'ready');
     disabled = true;
     assert.equal(await hasMcpOidcIdentity(local), false);
+    assert.equal(
+      (await connectionSetup(boundConfig, {}, true, ['rdmp'], local, api, true)).state,
+      'needs-configuration'
+    );
   });
 
   it('does not turn infrastructure failures into a misleading access-denied result', async () => {
