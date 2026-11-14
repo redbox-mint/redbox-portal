@@ -149,7 +149,7 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
         });
         registerPersistenceResource(fixture.owner, 'companion-progress', progress);
         progress.attach(realServer);
-        assert.equal(realServer.listenerCount('upgrade'), 2, 'One filtered forwarder plus one portal owner');
+        assert.equal(realServer.listenerCount('upgrade'), 1, 'One dispatcher for both protocol owners');
         assert.throws(() => progress.attach(realServer), /already attached/);
       },
       { parserExclusions: ['/companion'] }
@@ -377,7 +377,7 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
         message: 'portal survives Companion reconnect',
       });
       assert.equal((await received).message, 'portal survives Companion reconnect');
-      assert.equal(realServer.listenerCount('upgrade'), 2);
+      assert.equal(realServer.listenerCount('upgrade'), 1);
     } finally {
       release();
       holdPatch = undefined;

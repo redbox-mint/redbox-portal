@@ -57,11 +57,21 @@ async function stopChild(c: ReturnType<typeof child>) {
     if (c.process.exitCode === null) c.process.kill('SIGKILL');
   }
 }
-function wire(url: string, method = 'GET', headers: Record<string, string> = credentials, body?: string) {
+function wire(
+  url: string,
+  method = 'GET',
+  headers: Record<string, string> = credentials,
+  body?: string,
+  rawTarget?: string
+) {
   return new Promise<{ status: number; headers: Record<string, unknown>; body: string }>((resolve, reject) => {
     const req = request(
       url,
-      { method, headers: { ...headers, ...(body === undefined ? {} : { 'Content-Length': Buffer.byteLength(body) }) } },
+      {
+        method,
+        ...(rawTarget ? { path: rawTarget } : {}),
+        headers: { ...headers, ...(body === undefined ? {} : { 'Content-Length': Buffer.byteLength(body) }) },
+      },
       res => {
         const chunks: Buffer[] = [];
         res.on('data', chunk => chunks.push(chunk));
@@ -172,8 +182,9 @@ for (const native of [false, true])
         assert.equal(init.prepared, true);
         assert.equal(init.listenCalls, 1);
         assert.equal(init.bridgeIsServer, false);
+        assert.equal(init.upgrades, 1, 'One production upgrade dispatcher');
       } else {
-        assert.equal(init.reference.revision, '5ba59694e42f6c85b8f6bd892cd8175b1c90d08e');
+        assert.equal(init.reference.revision, '5cc027e11d95994e1dc9d549427a883d65b3269d');
         assert.match(init.reference.sha256, /^[a-f0-9]{64}$/);
       }
     });
@@ -480,3 +491,280 @@ for (const mode of ['disabled', 'denied'])
         }
       });
   });
+
+for (const mode of ['drive', 'onedrive', 'streaming']) {
+  const providerNames = mode === 'drive' ? ['drive'] : mode === 'onedrive' ? ['onedrive'] : ['drive', 'onedrive'];
+  const observations = new Map<string, unknown>();
+  for (const native of [false, true])
+    describe(`FM-035 ${mode} ${native ? 'Fastify' : 'retained Express'} Companion completion`, function () {
+      this.timeout(90000);
+      let c: ReturnType<typeof child>, url: string, upstream: string, portalEndpoint: string;
+      const sockets = new Set<WebSocket>();
+      before(async () => {
+        c = child(native, mode);
+        const init = await c.call('init');
+        ({ url, upstream, portalEndpoint } = init);
+        if (native) assert.equal(init.upgrades, 1);
+      });
+      after(async () => {
+        for (const client of sockets) client.terminate();
+        if (c) await stopChild(c);
+      });
+      for (const provider of providerNames) {
+        it(`${provider} authenticates via callback, lists and transfers provider bytes through portal TUS`, async () => {
+          const session = await login(url);
+          await c.call('seedProviderGrant', provider);
+          const callback = await wire(url + '/imports/' + provider + '/callback', 'GET', session);
+          assert.equal(callback.status, 302, callback.body);
+          const authToken = new URL(String(callback.headers.location)).searchParams.get('uppyAuthToken');
+          assert(authToken);
+          const auth = { ...credentials, 'uppy-auth-token': authToken };
+          const listed = await wire(url + '/imports/' + provider + '/list', 'GET', auth);
+          assert.equal(listed.status, 200, listed.body);
+          const listing = JSON.parse(listed.body);
+          assert(listing.items.some((item: any) => item.id === 'provider-file'));
+          const value = snapshot(listed, upstream),
+            key = provider + '-authenticated-list';
+          if (!native) observations.set(key, value);
+          else assert.deepEqual(value, observations.get(key));
+          const response = await wire(
+            url + '/imports/' + provider + '/get/provider-file',
+            'POST',
+            { ...auth, 'Content-Type': 'application/json' },
+            JSON.stringify({
+              protocol: 'tus',
+              endpoint: portalEndpoint,
+              headers: credentials,
+              metadata: { name: provider + '.txt' },
+            })
+          );
+          assert.equal(response.status, 200, response.body);
+          const client = ws(url, JSON.parse(response.body).token);
+          sockets.add(client);
+          const done = terminal(client);
+          await once(client, 'open');
+          const completed = await done;
+          assert.equal(completed.action, 'success', JSON.stringify(completed));
+          assert.equal(
+            await c.call('staged', new URL(completed.payload.url).pathname.split('/').pop()),
+            'remote-companion-bytes'
+          );
+          assert((await c.call('state')).providerHits >= 3);
+          client.close();
+          await once(client, 'close');
+        });
+        for (const method of ['GET', 'HEAD', 'OPTIONS'])
+          for (const endpoint of ['list', 'list/folder', 'search?q=fixture', 'thumbnail/file', 'logout'])
+            it(`${provider} ${endpoint} ${method} HTTP parity`, async () => {
+              const response = await wire(url + '/imports/' + provider + '/' + endpoint, method);
+              const value = snapshot(response, upstream);
+              const key = provider + endpoint + method;
+              if (!native) observations.set(key, value);
+              else assert.deepEqual(value, observations.get(key));
+              assert.notEqual(response.status, 500, response.body);
+            });
+        for (const endpoint of [
+          'preauth',
+          'get/file',
+          'refresh-token',
+          'deauthorization/callback',
+          'simple-auth',
+          'mutate/delete',
+        ])
+          it(`${provider} ${endpoint} POST HTTP parity`, async () => {
+            const response = await wire(
+              url + '/imports/' + provider + '/' + endpoint,
+              'POST',
+              { ...credentials, 'Content-Type': 'application/json' },
+              '{}'
+            );
+            const value = snapshot(response, upstream);
+            const key = provider + endpoint;
+            if (!native) observations.set(key, value);
+            else if (endpoint === 'deauthorization/callback') {
+              const retained = observations.get(key) as typeof value;
+              assert.equal(value.status, retained.status);
+              assert.equal(value.body, retained.body);
+              // Thrown provider faults use the existing native opaque-error boundary:
+              // only its fixed cache/framing/COOP headers survive, never vendor headers.
+              assert.deepEqual(Object.keys(value.headers).sort(), [
+                'cache-control',
+                'content-length',
+                'content-type',
+                'cross-origin-opener-policy',
+                'expires',
+                'pragma',
+              ]);
+            } else assert.deepEqual(value, observations.get(key));
+            // The pinned provider's unsigned deauthorization callback returns 500.
+            // Preserve and characterize that existing provider failure on both hosts.
+            if (endpoint === 'deauthorization/callback') assert.equal(response.status, 500);
+            else assert.notEqual(response.status, 500, response.body);
+          });
+        for (const absolute of [false, true])
+          it(`${provider} canonical callback/connect/popup with hostile Host absolute=${absolute}`, async () => {
+            const session = await login(url);
+            const hostile = {
+              ...session,
+              Host: 'hostile.invalid',
+              'X-Forwarded-Host': 'hostile.invalid',
+              'X-Forwarded-Proto': 'http',
+            };
+            const target = (suffix: string) =>
+              (absolute ? 'http://hostile.invalid' : '') + '/portal/imports/' + provider + suffix;
+            const connect = await wire(
+              url + '/imports/' + provider + '/connect',
+              'GET',
+              hostile,
+              undefined,
+              target('/connect')
+            );
+            assert.equal(connect.status, absolute ? 404 : 302, connect.body);
+            if (!absolute) {
+              const location = String(connect.headers.location);
+              assert(location.startsWith('https://portal.example.invalid/portal/imports/connect/'));
+              assert(!location.includes('hostile.invalid'));
+            }
+            await c.call('seedProviderGrant', provider);
+            const callback = await wire(
+              url + '/imports/' + provider + '/callback',
+              'GET',
+              hostile,
+              undefined,
+              target('/callback')
+            );
+            assert.equal(callback.status, absolute ? 404 : 302, callback.body);
+            if (!absolute) {
+              const callbackLocation = String(callback.headers.location);
+              assert(
+                callbackLocation.startsWith(
+                  'https://portal.example.invalid/portal/imports/' + provider + '/send-token?'
+                )
+              );
+              assert(!callbackLocation.includes('hostile.invalid'));
+            }
+            const popup = await wire(
+              url + '/imports/' + provider + '/send-token',
+              'GET',
+              hostile,
+              undefined,
+              target('/send-token?uppyAuthToken=synthetic')
+            );
+            assert.equal(popup.status, 200, popup.body);
+            assert(popup.body.includes('https://portal.example.invalid'));
+            assert(!popup.body.includes('hostile.invalid'));
+          });
+      }
+      it('transfers actual remote bytes through the production portal TUS callback', async () => {
+        const response = await wire(
+          url + '/imports/url/get',
+          'POST',
+          { ...credentials, 'Content-Type': 'application/json' },
+          JSON.stringify({
+            url: upstream + '/source/small',
+            protocol: 'tus',
+            endpoint: portalEndpoint,
+            headers: credentials,
+            metadata: { name: 'portal-remote.txt' },
+          })
+        );
+        assert.equal(response.status, 200, response.body);
+        const client = ws(url, JSON.parse(response.body).token);
+        sockets.add(client);
+        const done = terminal(client);
+        await once(client, 'open');
+        const completed = await done;
+        assert.equal(completed.action, 'success', JSON.stringify(completed));
+        await eventually(c, 'transfers', 0);
+        assert.equal(
+          await c.call('staged', new URL(completed.payload.url).pathname.split('/').pop()),
+          'remote-companion-bytes'
+        );
+        client.close();
+        await once(client, 'close');
+      });
+      it('keeps callback upgrades independent and rejects unknown/hostile upgrade paths', async () => {
+        const callback = new WebSocket(
+          url.replace('http:', 'ws:') + '/imports/api2/auth-callback/token/' + 'x'.repeat(32),
+          { headers: { Origin: canonical, Host: 'hostile.invalid' } }
+        );
+        callback.on('error', () => {});
+        sockets.add(callback);
+        await once(callback, 'open');
+        callback.close();
+        await once(callback, 'close');
+        await refused(ws(url, 'unknown', canonical), 403);
+        await refused(ws(url, 'unknown', 'https://hostile.invalid'), 403);
+        const unknown = new WebSocket(new URL(url).origin.replace('http:', 'ws:') + '/unknown-upgrade', {
+          origin: canonical,
+        });
+        unknown.on('error', () => {});
+        sockets.add(unknown);
+        await assert.rejects(
+          new Promise<void>((resolve, reject) => {
+            unknown.once('open', resolve);
+            unknown.once('error', reject);
+          })
+        );
+      });
+      it('preserves absolute-form upgrade handling with hostile authority and canonical Origin', async () => {
+        const open = (suffix: string, origin: string) => {
+          const client = new WebSocket(url.replace('http:', 'ws:') + '/imports' + suffix, {
+            headers: { Origin: origin, Host: 'hostile.invalid', 'X-Forwarded-Host': 'hostile.invalid' },
+            finishRequest(req) {
+              req.path = 'http://hostile.invalid' + req.path;
+              req.end();
+            },
+          });
+          client.on('error', () => {});
+          sockets.add(client);
+          return client;
+        };
+        // The owner authorizes the parsed target and forwards the normalized path.
+        const callback = open('/api2/auth-callback/token/' + 'x'.repeat(32), canonical);
+        await once(callback, 'open');
+        assert.equal(callback.readyState, WebSocket.OPEN);
+        callback.close();
+        await once(callback, 'close');
+        await refused(open('/api2/auth-callback/token/' + 'x'.repeat(32), 'https://hostile.invalid'), 403);
+        await refused(open('/api/unknown', canonical), 403);
+      });
+      it('drains a retained in-flight transfer with open sockets before graceful stop completes', async () => {
+        await c.call('holdSink');
+        const response = await wire(
+          url + '/imports/url/get',
+          'POST',
+          { ...credentials, 'Content-Type': 'application/json' },
+          JSON.stringify({
+            url: upstream + '/source/small',
+            protocol: 'tus',
+            endpoint: upstream + '/sink',
+            headers: { Authorization: 'Bearer destination-grant' },
+          })
+        );
+        assert.equal(response.status, 200, response.body);
+        const client = ws(url, JSON.parse(response.body).token);
+        sockets.add(client);
+        const completed = terminal(client);
+        await once(client, 'open');
+        await c.call('waitSink');
+        const stopping = c.call('stop', 5000);
+        await delay(80);
+        const state = await c.call('state');
+        assert(state.pools > 0);
+        assert.equal(state.transfers, 1);
+        assert.equal(client.readyState, WebSocket.OPEN);
+        await c.call('releaseSink');
+        assert.equal((await completed).action, 'success');
+        if (!native) {
+          client.close();
+          await once(client, 'close');
+        }
+        const result = await stopping;
+        const stopped = await c.call('state');
+        assert.equal(result.error, null, JSON.stringify(stopped));
+        assert.equal(stopped.pools, 0);
+        assert.equal(stopped.stopped, true);
+      });
+    });
+}

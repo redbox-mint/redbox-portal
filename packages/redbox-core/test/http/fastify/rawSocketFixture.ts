@@ -25,6 +25,8 @@ export async function rawSocketFixture(
   native: boolean,
   options: {
     retainExpress?: boolean;
+    port?: number;
+    declarations?: import('./productionRawPortal').RawPortalOptions['declarations'];
     uploadRequest?: ApiRequestDefinition;
     companion?: import('./productionRawPortal').RawPortalOptions['companion'];
     policyConfiguration?: import('./productionRawPortal').RawPortalOptions['policyConfiguration'];
@@ -145,6 +147,8 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
   try {
     const f = await productionRawPortal(native, appPath, {
       companion: options.companion,
+      port: options.port,
+      declarations: options.declarations,
       policyConfiguration: options.policyConfiguration,
       beforeActivate: async host => {
         const base = 'http://127.0.0.1:' + host.address()!.port;

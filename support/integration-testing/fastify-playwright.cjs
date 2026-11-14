@@ -66,6 +66,7 @@ async function main() {
       ...core('http/identityRoutes').identityAdministrationDeclarations,
       ...core('http/mutationRoutes').mutationDeclarations,
       ...core('http/integrationRoutes').integrationDeclarations,
+      ...core('http/progressRoutes').progressOperationRoutes,
       core('api-routes/groups/records').getMetaRoute,
       // The already-qualified P2 multipart/progress pilots support browser upload.
       core('api-routes/groups/records').addDataStreamsRoute,

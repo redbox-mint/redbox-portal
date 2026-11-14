@@ -18,7 +18,6 @@ import { identityAdministrationDeclarations } from '../../http/identityRoutes';
 import { BrandingDeliveryCache } from '../../http/brandingDeliveryCache';
 import { recordQueryReadDeclarations, recordSchemaReadRoutes } from '../../http/readRoutes';
 import type { ApiRouteSource } from '../../http/fastify/routes';
-import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig } from '../../config/policies.config';
 import { resolveExtensionsV2, type loadInstalledExtensionProvidersV2 } from '../../extensions/v2';
 import { bindControllerFactory, type BoundControllerFactory } from '../../http/controllers';
@@ -29,7 +28,7 @@ import { nativePolicyNames } from '../../http/fastify/policies';
 import { PortalRawHttp } from './rawHttp';
 import { datastreamController } from '../../http/controllers/webservice/DatastreamController';
 import { progressController } from '../../http/controllers/ProgressController';
-import { progressSocketGrantRoute } from '../../http/express/progressOperations';
+import { progressSocketGrantRoute, progressOperationRoutes } from '../../http/progressRoutes';
 import { addDataStreamsRoute } from '../../api-routes/groups/records';
 import { updateMetaRoute } from '../../api-routes/groups/records';
 import type { ExtensionFactory } from '../../extensions';
@@ -68,6 +67,7 @@ export async function resolvePortalInstallation(
 ) {
   if (!Array.isArray(input.declarations) || !input.declarations.length)
     throw new TypeError('Native portal assembly requires an explicit nonempty conversion scope.');
+  const progress = input.progress || input.declarations.some(route => route.controller === progressController.name);
   const plan = portalHttpPlan(context, input);
   const settings = portalHttpSettings(context.config, input);
   const upload = input.declarations.some(
@@ -142,7 +142,7 @@ export async function resolvePortalInstallation(
       }
     : undefined;
   const rawDeclaration =
-    upload || brandingUpload || tusUpload || input.progress || context.config.companion.enabled
+    upload || brandingUpload || tusUpload || progress || context.config.companion.enabled
       ? {
           name: 'portal-raw-http',
           requires: [
@@ -285,7 +285,14 @@ export async function resolvePortalInstallation(
     ...apiRouteRegistrations({
       declarations: [
         ...input.declarations,
-        ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : []),
+        ...(progress
+          ? [...progressOperationRoutes, progressSocketGrantRoute]
+              .filter(
+                route =>
+                  !input.declarations.some(selected => selected.method === route.method && selected.path === route.path)
+              )
+              .map(route => ({ ...route, responses: {} }))
+          : []),
       ],
       configuration: plan.policyConfiguration,
       provider: '@researchdatabox/redbox-core',
@@ -298,7 +305,9 @@ export async function resolvePortalInstallation(
           : 'apiProtect'
         : (route.declaration.api?.controller === updateMetaRoute.controller &&
               [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
-            (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
+            (progress &&
+              route.declaration.api?.controller === progressSocketGrantRoute.controller &&
+              route.declaration.method !== 'get')
           ? 'apiProtect'
           : integrationDeclarations.some(item => route.declaration.name === coreRouteName(item.method, item.path))
             ? route.declaration.method === 'get'
@@ -448,12 +457,20 @@ export async function resolvePortalInstallation(
             : bindControllerFactory(recordController, plan.metadata),
         ]
       : []),
-    ...(input.progress
+    ...(progress
       ? [
           bindControllerFactory(progressController, {
             get sockets() {
               return raw!.sockets;
             },
+            get progress() {
+              return context.data.progress.get();
+            },
+            get records() {
+              return context.data.records.get();
+            },
+            audit: (actor, action, details) =>
+              context.data.users.get().addUserAuditEvent({ ...actor }, action, details),
             log: context.log,
           }),
         ]
@@ -526,7 +543,7 @@ export async function resolvePortalInstallation(
             ...identities.controllers,
             ...mutations.controllers,
             ...integrations.controllers,
-            ...(input.progress ? [progressController] : []),
+            ...(progress ? [progressController] : []),
           ],
         },
       },
@@ -563,7 +580,7 @@ export async function resolvePortalInstallation(
     resumableUploads: Object.freeze(
       [...new Set(resumableUploadRoutes.flatMap(routesFor))].filter(route => route.declaration.method === 'all')
     ),
-    progress: routesFor(progressSocketGrantRoute),
+    progress: Object.freeze([...new Set([progressSocketGrantRoute, ...progressOperationRoutes].flatMap(routesFor))]),
     metadataUpdates: routesFor(updateMetaRoute),
     schemaReads: Object.freeze(recordSchemaReadRoutes.flatMap(routesFor)),
     mutations: Object.freeze([
@@ -614,7 +631,7 @@ export async function resolvePortalInstallation(
     brandingUploadInput,
     ownership: {
       declarations: portalHttpOwnerDeclarations(context.config, [
-        ...progressSocketHttpOwners(new URL(context.config.server.publicUrl).origin),
+        ...progressSocketHttpOwners(new URL(context.config.server.publicUrl).origin, !!raw?.progress),
         ...(context.config.companion.enabled
           ? [
               {
@@ -622,6 +639,7 @@ export async function resolvePortalInstallation(
                 csrf: 'none' as const,
                 actorRequired: false,
                 rawTarget: true,
+                selected: true,
               },
             ]
           : []),

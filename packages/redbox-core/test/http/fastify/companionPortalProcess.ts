@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import { createServer, request as upstreamRequest } from 'node:http';
+import https from 'node:https';
 import { once } from 'node:events';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { rawSocketFixture, canonical } from './rawSocketFixture';
 import { retainedCompanionExpress } from './retainedCompanionExpress';
+import { retainedProgressExpress } from './retainedProgressExpress';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import WebSocket from 'ws';
+import { availablePort } from './authenticationFixture';
+import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
+import { getMetaRoute, updateMetaRoute, addDataStreamsRoute } from '../../../src/api-routes/groups/records';
 import { NativeMongoSessionStore } from '../../../src/http/fastify/session';
 
 export async function run() {
@@ -17,6 +22,7 @@ export async function run() {
   let companion: any;
   let source: ReturnType<typeof createServer>;
   let reference: Awaited<ReturnType<typeof retainedCompanionExpress>>;
+  let progressReference: Awaited<ReturnType<typeof retainedProgressExpress>> | undefined;
   let directory: string;
   let releaseMeta: (() => void) | undefined;
   let metaStarted = Promise.withResolvers<void>();
@@ -30,12 +36,54 @@ export async function run() {
   let sessionGate: ReturnType<typeof Promise.withResolvers<void>> | undefined;
   let sessionStarted = Promise.withResolvers<void>();
   const originalTouch = NativeMongoSessionStore.prototype.touch;
+  const originalHttpsRequest = https.request;
+  let providerHits = 0;
   let heldDeadline = false;
   const commands: Record<string, (args: any) => unknown> = {
     async init() {
       directory = await mkdtemp(path.join(tmpdir(), 'fm021-provider-'));
       source = createServer(async (req, res) => {
         try {
+          if (req.url?.startsWith('/provider/')) {
+            providerHits++;
+            assert.equal(req.headers.authorization, 'Bearer synthetic-access');
+            const target = new URL(req.url, 'http://fixture.invalid');
+            const bytes = Buffer.from('remote-companion-bytes');
+            if (target.searchParams.get('alt') === 'media' || target.pathname.endsWith('/content')) {
+              res.writeHead(200, { 'Content-Type': 'text/plain', 'Content-Length': bytes.length });
+              res.end(bytes);
+              return;
+            }
+            const file = {
+              id: 'provider-file',
+              name: 'provider.txt',
+              size: String(bytes.length),
+              mimeType: 'text/plain',
+            };
+            const value = target.pathname.endsWith('/about')
+              ? { user: { emailAddress: 'provider@example.invalid' } }
+              : target.pathname.endsWith('/drives')
+                ? { drives: [] }
+                : target.pathname.endsWith('/files')
+                  ? { files: [file] }
+                  : target.pathname.endsWith('/me')
+                    ? { mail: 'provider@example.invalid' }
+                    : target.pathname.endsWith('/children')
+                      ? {
+                          value: [
+                            {
+                              ...file,
+                              size: bytes.length,
+                              file: { mimeType: file.mimeType },
+                              parentReference: { driveId: 'fixture' },
+                            },
+                          ],
+                        }
+                      : { ...file, size: bytes.length };
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(value));
+            return;
+          }
           if (req.url?.startsWith('/source/')) {
             metaHits++;
             if (req.url === '/source/held') {
@@ -91,6 +139,18 @@ export async function run() {
       const address = source.address();
       assert(address && typeof address !== 'string');
       const upstream = 'http://127.0.0.1:' + address.port;
+      // Exercise the actual provider client over HTTP to a disposable upstream.
+      // Only the two selected provider authorities are redirected; no provider
+      // controller, token verifier, download method or upload worker is replaced.
+      https.request = ((target: URL, options: any, callback: any) => {
+        if (!['www.googleapis.com', 'graph.microsoft.com'].includes(target.hostname))
+          return originalHttpsRequest(target, options, callback);
+        return upstreamRequest(
+          new URL('/provider/' + target.hostname + target.pathname + target.search, upstream),
+          { ...options, protocol: 'http:', agent: undefined },
+          callback
+        );
+      }) as typeof https.request;
       const module = require('../../../src/http/express/companion');
       const uploadsModule = require('../../../src/http/integrations/companion/uploads');
       const original = {
@@ -99,15 +159,21 @@ export async function run() {
       };
       if (!native) {
         reference = await retainedCompanionExpress();
+        progressReference = await retainedProgressExpress();
         uploadsModule.CompanionUploads = reference.CompanionUploads;
         module.mountCompanionRoutes = (router: unknown, input: any) => {
           companion = input.uploads;
           reference.mountCompanionRoutes(router, input);
         };
       }
+      const port = await availablePort();
+      const portalEndpoint = 'http://127.0.0.1:' + port + '/portal/default/rdmp/companion/record/fm020-record/attach';
+      const restoreProgress = progressReference?.install();
       try {
         f = await rawSocketFixture(native, {
           retainExpress: false,
+          port,
+          declarations: [getMetaRoute, updateMetaRoute, addDataStreamsRoute, ...resumableUploadRoutes],
           companion: {
             enabled: mode !== 'disabled',
             route: '/imports',
@@ -116,14 +182,20 @@ export async function run() {
             metrics: false,
             server: { host: 'portal.example.invalid', protocol: 'https', path: '/imports' },
             providerOptions: {
-              drive: { key: 'synthetic-drive-client', secret: 'synthetic-drive-secret' },
-              onedrive: { key: 'synthetic-drive-client', secret: 'synthetic-drive-secret' },
+              drive: {
+                key: mode === 'onedrive' ? '' : 'synthetic-drive-client',
+                secret: mode === 'onedrive' ? '' : 'synthetic-drive-secret',
+              },
+              onedrive: {
+                key: mode === 'drive' ? '' : 'synthetic-onedrive-client',
+                secret: mode === 'drive' ? '' : 'synthetic-onedrive-secret',
+              },
             },
             enableUrlEndpoint: true,
             allowLocalUrls: true,
-            streamingUpload: false,
+            streamingUpload: mode === 'streaming',
             clientSocketConnectTimeout: 3000,
-            uploadUrls: [upstream + '/sink'],
+            uploadUrls: [upstream + '/sink', portalEndpoint],
           },
           ...(mode === 'denied' ? { policyConfiguration: { '*': true, CompanionController: { handle: false } } } : {}),
           beforeActivate: async host => {
@@ -158,13 +230,31 @@ export async function run() {
       } finally {
         uploadsModule.CompanionUploads = original.CompanionUploads;
         module.mountCompanionRoutes = original.mountCompanionRoutes;
+        restoreProgress?.();
       }
       if (native) {
         assert('installation' in f.portal);
         companion = f.portal.installation.raw!.companion;
+        const owners = f.portal.installation.registry.ownership!.snapshot();
+        const progressOwners = owners.filter(
+          row => row.path.includes('/asynch') || row.path.startsWith('/portal-socket.io')
+        );
+        assert.equal(progressOwners.length, 16);
+        assert(
+          progressOwners.every(row => row.selected),
+          'Every progress/client/transport owner is real'
+        );
+        const companionOwners = owners.filter(row => row.path === '/imports' || row.path === '/imports/*companionPath');
+        assert.equal(companionOwners.length, mode === 'disabled' ? 0 : 2);
+        assert(
+          companionOwners.every(row => row.selected),
+          'Every enabled Companion HTTP owner is real'
+        );
       }
       return {
         url: f.url,
+        portalEndpoint,
+        upgrades: f.server.listenerCount('upgrade'),
         upstream,
         reference: reference && { revision: reference.revision, sha256: reference.sha256 },
         prepared: f.preparedBeforeListening,
@@ -177,15 +267,41 @@ export async function run() {
     state() {
       return {
         requests: companion?.requests.size ?? 0,
+        upgrades: f.server.listenerCount('upgrade'),
         transfers: companion?.transfers.size ?? 0,
         sockets: companion?.sockets.size ?? 0,
         metaHits,
+        providerHits,
         files: [...files.values()].map(b => b.toString()),
         pools: persistenceStatus(f.owner).pools,
         closeCalls: f.closeCalls(),
         stopped: f.host.status().stopped,
         listening: f.host.status().listening,
       };
+    },
+    async staged(id) {
+      return (await f.disks.stagingDisk().get(id)).toString();
+    },
+    async attachments() {
+      return f.writer.getAttachments('fm020-record');
+    },
+    async file(id) {
+      const stream = await f.datastream.getDatastream('fm020-record', id);
+      const chunks = [];
+      for await (const chunk of stream.readstream) chunks.push(Buffer.from(chunk));
+      return Buffer.concat(chunks).toString();
+    },
+    async seedProviderGrant(provider) {
+      const collection = f.native.db().collection('pilotSessions');
+      for (const row of await collection.find({}).toArray()) {
+        const session = JSON.parse(row.session);
+        if (session.passport?.user !== f.user.id) continue;
+        session.grant = {
+          provider: provider === 'drive' ? 'googledrive' : 'microsoft',
+          response: { access_token: 'synthetic-access', refresh_token: 'synthetic-refresh' },
+        };
+        await collection.updateOne({ _id: row._id }, { $set: { session: JSON.stringify(session) } });
+      }
     },
     async actor(change) {
       await f.identities.update(
@@ -271,6 +387,7 @@ export async function run() {
       return true;
     },
     async close() {
+      https.request = originalHttpsRequest;
       releaseMeta?.();
       for (const release of sinkReleases) release();
       sinkReleases.clear();
@@ -279,6 +396,7 @@ export async function run() {
       await f?.close();
       await new Promise<void>(resolve => source.close(() => resolve()));
       await reference?.close();
+      await progressReference?.close();
       await rm(directory, { recursive: true, force: true });
       return {
         pools: f ? persistenceStatus(f.owner).pools : 0,

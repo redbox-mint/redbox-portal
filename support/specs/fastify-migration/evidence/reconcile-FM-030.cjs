@@ -14,9 +14,19 @@ const assetDeclarations = [...brandingDeliveryRoutes, fontDeliveryRoute, ...dyna
 const { pageRootRoute } = source('http/express/pages');
 const { resolveEffectivePolicies } = source('http/express/policies');
 const { datastreamReadRoutes } = source('http/datastreamRoutes');
+const { progressOperationRoutes, progressSocketGrantRoute } = source('http/progressRoutes');
+const progressDeclarations = [...progressOperationRoutes, progressSocketGrantRoute].map(route => ({
+  ...route,
+  responses: {},
+}));
 const { uploadDeclarations } = source('http/uploadRoutes');
 const migratedDeclarations = [
-  ...new Set([...previous.migratedDeclarations, ...datastreamReadRoutes, ...uploadDeclarations]),
+  ...new Set([
+    ...previous.migratedDeclarations,
+    ...datastreamReadRoutes,
+    ...uploadDeclarations,
+    ...progressDeclarations,
+  ]),
 ];
 const declarations = [
   ...datastreamReadRoutes,
@@ -51,18 +61,7 @@ function reconcile(installation, runtime) {
             runtime: { kind: 'native session/CSRF owner', csrf: row.csrf.effective },
           };
         }
-        assert(['FM-035'].includes(row.ownerTask), 'Missing browser binding: ' + row.name);
-        return {
-          ...base,
-          classification: 'owned-by-later-task',
-          owner: row.ownerTask,
-          reason: {
-            'FM-033': 'Datastream/attachment read and conditional streaming',
-            'FM-034': 'Multipart/staging/TUS upload and fallthrough',
-            'FM-035': 'Progress/socket/Companion protocol completion',
-          }[row.ownerTask],
-          runtime: null,
-        };
+        assert.fail('Missing browser binding: ' + row.name);
       }
       assert.equal(resolved.length, 1, 'Duplicate browser binding: ' + row.name);
       const route = resolved[0];
@@ -189,7 +188,9 @@ function reconcile(installation, runtime) {
               ? 'migrated: scoped multipart owner with staging, cleanup and drain'
               : row.ownerTask === 'FM-030'
                 ? 'migrated: shared branded page-not-found behind reserved namespaces'
-                : 'owned-by-later-task',
+                : row.ownerTask === 'FM-035'
+                  ? 'migrated: process-affine progress sockets and optional Companion HTTP/upgrades'
+                  : 'migrated: datastream reads and conditional streaming',
       })),
     rows,
   };

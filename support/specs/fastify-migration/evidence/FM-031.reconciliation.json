@@ -2,9 +2,9 @@
   "formatVersion": 1,
   "counts": {
     "browserAndIntegration": 183,
-    "migrated": 176,
+    "migrated": 183,
     "intentionalOverrides": 0,
-    "later": 7
+    "later": 0
   },
   "boundaries": [
     {
@@ -20,22 +20,22 @@
     {
       "name": "core-progress-transport",
       "owner": "FM-035",
-      "classification": "owned-by-later-task"
+      "classification": "migrated: process-affine progress sockets and optional Companion HTTP/upgrades"
     },
     {
       "name": "core-companion-http-0",
       "owner": "FM-035",
-      "classification": "owned-by-later-task"
+      "classification": "migrated: process-affine progress sockets and optional Companion HTTP/upgrades"
     },
     {
       "name": "core-companion-http-1",
       "owner": "FM-035",
-      "classification": "owned-by-later-task"
+      "classification": "migrated: process-affine progress sockets and optional Companion HTTP/upgrades"
     },
     {
       "name": "core-companion-upgrade",
       "owner": "FM-035",
-      "classification": "owned-by-later-task"
+      "classification": "migrated: process-affine progress sockets and optional Companion HTTP/upgrades"
     },
     {
       "name": "core-multipart-parser",
@@ -9617,111 +9617,254 @@
       "method": "post",
       "path": "/:branding/:portal/asynch",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 0
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "start",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-put-3933244eb49cfdbb",
       "method": "put",
       "path": "/:branding/:portal/asynch",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 1
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "update",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-delete-3933244eb49cfdbb",
       "method": "delete",
       "path": "/:branding/:portal/asynch",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 2
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "stop",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-3933244eb49cfdbb",
       "method": "get",
       "path": "/:branding/:portal/asynch",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 3
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "progress",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-49fc948e23e3f9f4",
       "method": "get",
       "path": "/:branding/:portal/asynch/subscribe/:roomId",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 4
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "subscribe",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "none",
+        "bindings": [
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch/subscribe/:roomId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch/subscribe/:roomId([\\s\\S]+)",
+            "kind": "implicit-head"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-delete-49fc948e23e3f9f4",
       "method": "delete",
       "path": "/:branding/:portal/asynch/subscribe/:roomId",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 5
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "unsubscribe",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch/subscribe/:roomId([\\s\\S]+)",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-post-7dab7c2e98d212e8",
       "method": "post",
       "path": "/:branding/:portal/asynch/socket-token",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressSocketGrantRoute",
-        "line": 33
+        "line": 21
       },
       "originalOwner": "FM-035",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-035",
-      "reason": "Progress/socket/Companion protocol completion",
-      "runtime": null
+      "runtime": {
+        "controller": "AsynchController",
+        "action": "subscribe",
+        "factory": "AsynchController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/asynch/socket-token",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-2c5512aee88ec1f3",

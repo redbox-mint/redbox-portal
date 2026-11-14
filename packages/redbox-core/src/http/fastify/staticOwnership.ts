@@ -43,6 +43,7 @@ export class StaticOwnershipTable {
       implicitHead,
       rawTarget,
       canonicalOrigin,
+      selected: rawSelected,
     } of declarations) {
       const name = coreRouteName(source.method, source.path);
       const policies =
@@ -85,7 +86,7 @@ export class StaticOwnershipTable {
             : source.method === 'get' && implicitHead !== false
               ? ['GET', 'HEAD']
               : [source.method.toUpperCase()],
-        selected: selected.routes.includes(route),
+        selected: rawSelected || selected.routes.includes(route),
         phase: 'before-static',
         rawTarget,
         canonicalOrigin,
@@ -178,6 +179,13 @@ export class StaticOwnershipTable {
       effectiveCsrf: 'none',
       paths: [],
     };
+    for (const entry of this.entries)
+      if (
+        entry.route.declaration.action !== 'native' &&
+        entry.phase === 'before-static' &&
+        this.root + expressRuntimePath(entry.route.declaration.path).replace(/\/\*[\w]+$/, '/*') === path
+      )
+        entry.selected = true;
     // Native registrations have already passed the sealed core boundary. Their
     // own router still executes the handler; this records only static ownership.
     this.entries.unshift({

@@ -287,7 +287,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: real multipart fields before/after files, partial/oversized uploads,
     backpressure, cancellation, low-space refusal, failure cleanup and stop pass.
 
-- [ ] **FM-035 — Complete sockets and Companion.**
+- [x] **FM-035 — Complete sockets and Companion.**
   - Dependencies: FM-020, FM-021; relevant P3/P4 integration routes.
   - Work: finish progress grants/reconnect/origin behavior and full Companion paths/
     transfers/upgrades; document process affinity and full-stop restart requirements.

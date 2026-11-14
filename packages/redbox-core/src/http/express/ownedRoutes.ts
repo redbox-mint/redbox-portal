@@ -27,6 +27,8 @@ export interface HttpOwnerDeclaration {
   readonly headFallsThrough?: boolean;
   readonly implicitHead?: false;
   readonly rawTarget?: boolean;
+  /** A prepared raw integration owns dispatch outside the native router. */
+  readonly selected?: boolean;
   /** Raw protocol owners enforce their canonical Origin before protocol dispatch. */
   readonly canonicalOrigin?: string;
 }

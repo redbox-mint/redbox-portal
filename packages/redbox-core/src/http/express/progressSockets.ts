@@ -1,9 +1,9 @@
 import { Server as SocketServer, type Socket } from 'socket.io';
+import { ownUpgrade } from '../integrations/upgrades';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import type { HttpOwnerDeclaration } from './ownedRoutes';
 import type { Server, IncomingMessage, RequestListener } from 'node:http';
-import type { Socket as NetworkSocket } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import type { AuthenticatedActor } from './identity';
 import type { RecordsService } from '../../RecordsService';
@@ -16,7 +16,7 @@ export const progressSocketPath = '/portal-socket.io';
 /** Socket.IO serves its packaged client files before Engine.IO's Origin guard.
  * Describe that same order for an unselected protocol owner; no protocol action
  * or static root is installed by these selection declarations. */
-export function progressSocketHttpOwners(canonicalOrigin: string): readonly HttpOwnerDeclaration[] {
+export function progressSocketHttpOwners(canonicalOrigin: string, selected = false): readonly HttpOwnerDeclaration[] {
   const clientFiles = readdirSync(path.join(path.dirname(require.resolve('socket.io/package.json')), 'client-dist'));
   return [
     ...clientFiles.map(file => ({
@@ -24,12 +24,14 @@ export function progressSocketHttpOwners(canonicalOrigin: string): readonly Http
       csrf: 'none' as const,
       actorRequired: false,
       rawTarget: true,
+      selected,
     })),
     {
       route: { method: 'all', path: progressSocketPath + '/*transportPath' },
       csrf: 'none',
       actorRequired: false,
       rawTarget: true,
+      selected,
       canonicalOrigin,
     },
   ];
@@ -117,8 +119,19 @@ export class ProgressSockets {
     // Engine.IO closes transports but leaves its HTTP upgrade listener installed.
     // Retain only this attachment's listeners so Companion/other owners survive.
     const attached = server.listeners('upgrade').filter(listener => !upgrades.has(listener));
-    this.detachUpgrade = () =>
-      attached.forEach(listener => server.off('upgrade', listener as (...args: unknown[]) => void));
+    for (const listener of attached) server.off('upgrade', listener as (...args: unknown[]) => void);
+    const releaseUpgrade = ownUpgrade(
+      server,
+      this,
+      request => (request.url ?? '').startsWith(this.input.path.replace(/\/$/, '') + '/'),
+      (request, socket, head) => {
+        const closed = new Promise<void>(resolve => socket.once('close', () => resolve()));
+        this.upgraded.add(closed);
+        void closed.then(() => this.upgraded.delete(closed));
+        for (const listener of attached) Reflect.apply(listener, server, [request, socket, head]);
+      }
+    );
+    this.detachUpgrade = releaseUpgrade;
     if (options.borrowedServer) {
       this.borrowedServer = true;
       const previous = before.get('request') as RequestListener[];
@@ -135,12 +148,6 @@ export class ProgressSockets {
       // Engine.IO's client registry clears before the WebSocket's underlying TCP
       // transport actually closes. Retain accepted upgrades through that close,
       // including failed handshakes and disconnects during namespace auth.
-      server.prependListener('upgrade', (request: IncomingMessage, socket: NetworkSocket) => {
-        if (!(request.url ?? '').startsWith(this.input.path.replace(/\/$/, '') + '/')) return;
-        const closed = new Promise<void>(resolve => socket.once('close', () => resolve()));
-        this.upgraded.add(closed);
-        void closed.then(() => this.upgraded.delete(closed));
-      });
       const added = new Map(
         [...before].map(([event, prior]) => [event, server.listeners(event).filter(fn => !prior.includes(fn))])
       );
@@ -149,13 +156,14 @@ export class ProgressSockets {
         retiredRequests.set(dispatch, previous);
         const directlyInstalled = server.listeners('request').includes(dispatch);
         for (const [event, listeners] of added) {
-          if (event === 'request') continue;
+          if (event === 'request' || event === 'upgrade') continue;
           for (const listener of listeners) server.off(event, listener as (...args: unknown[]) => void);
         }
         if (directlyInstalled) {
           server.off('request', dispatch);
           for (const listener of liveRequests(previous).reverse()) server.prependListener('request', listener);
         }
+        releaseUpgrade();
         attachments.delete(server);
       };
     }

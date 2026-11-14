@@ -46,6 +46,7 @@ import type {
 import { ExpressHost } from '../../http/express/ExpressHost';
 import { createPortalApplication, type PortalApplicationOptions } from './application';
 import { PortalHttp, type PortalHttpOptions } from './http';
+import { progressOperationRoutes, progressSocketGrantRoute } from '../../http/progressRoutes';
 import { prepareCompanionRoutes } from '../../http/integrations/companion/fastify';
 
 /** One production runtime, listener and signal boundary. Construction performs no acquisition. */
@@ -285,6 +286,8 @@ export async function createPortalFastifyHost(
             ...identityAdministrationDeclarations,
             ...mutationDeclarations,
             ...integrationDeclarations,
+            ...progressOperationRoutes,
+            progressSocketGrantRoute,
           ].map(route => coreRouteName(route.method, route.path))
         );
         const selectedReferenceNames = new Set(

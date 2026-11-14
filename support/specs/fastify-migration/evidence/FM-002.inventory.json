@@ -157,12 +157,12 @@
     "packages/redbox-core/src/application/portal/application.ts": "d577e1c969fbe81288c70f56a38972288bbce84e3fe5544e1607de81934ac248",
     "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "77c84d352294bd36036398c26e89437041eedbfb2b450f87bdcd009a6e600eef",
+    "packages/redbox-core/src/application/portal/host.ts": "11fbab604f1a0d678518c15b97e474996f9f6238ecae781e7aa9d4df8bc0828d",
     "packages/redbox-core/src/application/portal/http.ts": "fa012353b7c01b64fc2ca2887a79fc6173248855a9cd761d063727884b505f1e",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
-    "packages/redbox-core/src/application/portal/installation.ts": "77d02547603197783a9c1a985f25502f770b2b906ffb4e1deb5c709aa4b8668a",
+    "packages/redbox-core/src/application/portal/installation.ts": "9c6a9749b65b4520a0e191b4b6d2f1cf36109bf8f61eb078a22fa1bec1f51612",
     "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "c39a2e343feb74b735c2f7214b3a16c28fa3cea449a93bee5b0238012378524c",
     "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "ab10714e86594737893a7969e7acd78c32db22ac1c26b85f00adef72c387bda0",
     "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "7c47a1438b729768983014aaf4dada9b13815c97ca33f8e1a5a9a021f50bd4af",
@@ -291,6 +291,7 @@
     "packages/redbox-core/src/http/actions/integrationOperations.ts": "a6669ff2684de97bb2f01d7a4373b202b6d5c25338ee834ce179b2b6988913de",
     "packages/redbox-core/src/http/actions/metadataReads.ts": "aa99f195f7bc2fad753ebbab9c17a571dda9300718219af74212b1e494d397f4",
     "packages/redbox-core/src/http/actions/progressGrant.ts": "84016e801361bee902d869a29855b869e8bfde38f984eb10906d101200ec0397",
+    "packages/redbox-core/src/http/actions/progressOperations.ts": "45289b67cbb25cab69fd41b8b8d0705c1da5886fa3abafcbf1b112528955f170",
     "packages/redbox-core/src/http/actions/queryReads.ts": "963d750e6598a98603693d3651299174792b0da1e185c6b2b4d15a6da32b3631",
     "packages/redbox-core/src/http/actions/queryWrites.ts": "9d202bdddbdc527f98ed1fb05e44ea4a86e5595eaeb4dee65898ecba5898df95",
     "packages/redbox-core/src/http/actions/recordMetadata.ts": "8a8fb1e1de1779b7491631311a27d930b525fac02c7362b6f7b438ea2138579e",
@@ -316,7 +317,7 @@
     "packages/redbox-core/src/http/controllers/IntegrationControllers.ts": "ea19fed4d21607b901c50a356e3fcf3ba8d019ae49705e9282bbdde5d9091f15",
     "packages/redbox-core/src/http/controllers/MutationControllers.ts": "2987f75547193ab44331a05a8fac8438a9fbd499faabd34abebe54a7ca24e11f",
     "packages/redbox-core/src/http/controllers/PageController.ts": "3c24571990273364b5e65c21850f2de47da0af2319055e167c4b36ade55a4753",
-    "packages/redbox-core/src/http/controllers/ProgressController.ts": "e1dba5e6771bb39f34c6f59275783caa60ad6f3d9c560cafb5299b215bdccb53",
+    "packages/redbox-core/src/http/controllers/ProgressController.ts": "85052fb88fc74a256ffa057985ce277c9939ae2f17d788c71407c7d3bbde4386",
     "packages/redbox-core/src/http/controllers/ReadControllers.ts": "611ec0c051b10f10d894536c8d3cac44a4ee698ea7f381e7538b670ba5bab101",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "a5b9b2fdda355fdd72e7a6bdcfe5d520f6307e138f25789ff9bcc3e130f2a7b6",
     "packages/redbox-core/src/http/controllers/UploadControllers.ts": "69581c515ccd4239737de759b9865ee1ea7d33f0aae3f751aeebb438730e1dc4",
@@ -352,13 +353,13 @@
     "packages/redbox-core/src/http/express/metadata.ts": "96455a2cfe7a63fd02cdd4b52bd34410c727bb33a55079d14634bdf479982711",
     "packages/redbox-core/src/http/express/middleware.ts": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
     "packages/redbox-core/src/http/express/multipart.ts": "78afe9a4d39e919923bbcde10527c65b666b94dcb78963bb996af64b803c5d39",
-    "packages/redbox-core/src/http/express/ownedRoutes.ts": "36245e77eb73ef0c6faa0282ce66e9340056cabac6637d2f0d09deecef2a1898",
+    "packages/redbox-core/src/http/express/ownedRoutes.ts": "6f1021dbce3d1ffbecf5dd6bbe58fd02d036d10e0dbb077cb75c12977654716f",
     "packages/redbox-core/src/http/express/pageAssets.ts": "82ccfdb1530c8c895288260cb1cde4445346e8d1b4bfd836159d35c0ec1485e8",
     "packages/redbox-core/src/http/express/pageHeaders.ts": "6ea3ffd6d000c7ba3070909d33877c8a37eb230f652ad963ccb605a40ea885a9",
     "packages/redbox-core/src/http/express/pages.ts": "e3ddf76f2599bd6b7a29554ceca8ff15ef6cdff6535c7c7e70f5ef308c6eeb4d",
     "packages/redbox-core/src/http/express/policies.ts": "7b526b8d03bf7cba4883cdd184166391a305c58bd04c7e165f5e05a9b10d22c5",
-    "packages/redbox-core/src/http/express/progressOperations.ts": "8cba7261d11bf655a47dba8a1d786e8654fb4ac2c5c93b385d28b434614d05d8",
-    "packages/redbox-core/src/http/express/progressSockets.ts": "2725a57b8a459e64fd246ab67b64650deaceef68c7347a974c752e9ab96d59f2",
+    "packages/redbox-core/src/http/express/progressOperations.ts": "e77761a139a4f435bc5eb32acacb9475f90ad966ec42877156e387f5f7063e86",
+    "packages/redbox-core/src/http/express/progressSockets.ts": "ddbc2f35cec14cc8e1bdb79999df993765a1304461d1ba30076bb823f9a9d509",
     "packages/redbox-core/src/http/express/queryReads.ts": "de3e7269897173ba591e01d914b3de343b1fe9e7a03e27ff7add7f47ec0de857",
     "packages/redbox-core/src/http/express/queryWrites.ts": "ae0a2e950d9499c5b9977aa21ed34b6393cc53e9b7f63a3fbd009d395ea2aed9",
     "packages/redbox-core/src/http/express/readActions.ts": "68b7a1c8fa99ef6e5f98e640e71d6661b1a642fee9c1e2626115785d2c54cdac",
@@ -410,7 +411,7 @@
     "packages/redbox-core/src/http/fastify/router.ts": "b716b5eac0b18f79fda8954b8631ce59f942e024074d425c4dc007cf09bc50f2",
     "packages/redbox-core/src/http/fastify/routes.ts": "fde130ced70386094b86bbee5f80712569ae75231025b4d0c6f84b8883e9bea5",
     "packages/redbox-core/src/http/fastify/session.ts": "54962f1cb2b77c63a57246d5d7c6bd61e3eaab16178cf0f9889a95c028e20e62",
-    "packages/redbox-core/src/http/fastify/staticOwnership.ts": "1eec1644d08785182b98a713ac4f59859a2379f3f4b85a654282b81e26c808e8",
+    "packages/redbox-core/src/http/fastify/staticOwnership.ts": "64d723d6d2a036f2f9f01c9f323e921d924301506b2230182c172af4caf99a41",
     "packages/redbox-core/src/http/fastify/targetNames.ts": "17b7eb243aab350a84fd1fa0ac4d38a9a5bd6425fbb3a0f5f37c2c45a60625d5",
     "packages/redbox-core/src/http/fastify/validation.ts": "83e03cbd92be82209f9fcac8c5adfd9220815ff93ede845e838e9ee2d5d42ed0",
     "packages/redbox-core/src/http/identityRoutes.ts": "f629a9f39de55db579166b8c17a871f4e985c4356a978134637365140873aa0e",
@@ -419,11 +420,13 @@
     "packages/redbox-core/src/http/integrations/companion/companionLogging.ts": "7fa7f64f7217c75b56c047f760c91c86921bbfbcc37b6dccd6d2e2130ba05c8b",
     "packages/redbox-core/src/http/integrations/companion/companionSendToken.ts": "b5c45e3ccae28a18b62fec00cd951543f84c36540c8456252afcd6dfd73bc9bb",
     "packages/redbox-core/src/http/integrations/companion/fastify.ts": "077d9d8777570ac90420703cdcf3380dbbd18a092dcd928f5e82c23588dba0e9",
-    "packages/redbox-core/src/http/integrations/companion/uploads.ts": "a9427161069dac85c1a8ecf02b69a8638e7196d65934ca6f40f539fcda6fe8c4",
+    "packages/redbox-core/src/http/integrations/companion/uploads.ts": "bbb815ac879c0191faf8a8c844510854b767285a3880c5372e7f2e2515648e77",
+    "packages/redbox-core/src/http/integrations/upgrades.ts": "0fe0621ef6c0926398dc1f8bdc8074956547e1e983ce231942d9cdaf22c65efe",
     "packages/redbox-core/src/http/language.ts": "293f7d0b0b00080a3f269f9183c73c3dd051ae78c523323849bc04848b669db7",
     "packages/redbox-core/src/http/mutationRoutes.ts": "3c810038bf0b1aba1f88177e884fd690a2b524f55a3954b9807b147a180d1a88",
     "packages/redbox-core/src/http/pageRoutes.ts": "3a12eb0c29ba3524005b0c3cca641afe9cea4cefbac24edfd724af2299791875",
     "packages/redbox-core/src/http/policyConfiguration.ts": "a4d9223d24f2c2e978f1d984f4120eed3866766f0722b6a90a19e2cec3662c54",
+    "packages/redbox-core/src/http/progressRoutes.ts": "a2fb5df6eca758325b36d7757a5ce4dcfe280d83ecf1b0466af7973ee230dba7",
     "packages/redbox-core/src/http/readRoutes.ts": "e24b6f9b7a8d83ab6bc327d5e272bf8689c25ee9724c6e52986c6653be8abea4",
     "packages/redbox-core/src/http/referenceRoutes.ts": "150e3906d9209a3475e57830e3b15041173ffbd65b9bebed40e5ea555ae90e3a",
     "packages/redbox-core/src/http/requestValues.ts": "852282c8423c4391d3873e633aa12851042e918a404e7d9cbe8046d7f57999a2",
@@ -756,7 +759,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "94fd022ae580306382fc4aa252fe6e74b4a9b256b3142057f1d6eb9beeaffafe"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "b065052111ee383d58bae18198e64baf551d49dea46405daebc1f6785361d839"
   },
   "counts": {
     "routes": 335,
@@ -44792,9 +44795,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 0
       },
       "apiDeclaration": null,
@@ -44809,10 +44812,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch",
       "controller": "AsynchController",
       "action": "start",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "start",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -44833,9 +44845,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressOperationRoutes",
-          "line": 13
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -44876,9 +44888,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 1
       },
       "apiDeclaration": null,
@@ -44893,10 +44905,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch",
       "controller": "AsynchController",
       "action": "update",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "update",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -44917,9 +44938,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressOperationRoutes",
-          "line": 13
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -44960,9 +44981,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 2
       },
       "apiDeclaration": null,
@@ -44977,10 +44998,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch",
       "controller": "AsynchController",
       "action": "stop",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "stop",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -45001,9 +45031,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressOperationRoutes",
-          "line": 13
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -45044,9 +45074,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 3
       },
       "apiDeclaration": null,
@@ -45061,10 +45091,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch",
       "controller": "AsynchController",
       "action": "progress",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "progress",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -45085,9 +45124,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressOperationRoutes",
-          "line": 13
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -45132,9 +45171,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 4
       },
       "apiDeclaration": null,
@@ -45149,10 +45188,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch/subscribe/:roomId",
       "controller": "AsynchController",
       "action": "subscribe",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "subscribe",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -45173,9 +45221,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressOperationRoutes",
-          "line": 13
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -45220,9 +45268,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressOperationRoutes",
-        "line": 13,
+        "line": 1,
         "index": 5
       },
       "apiDeclaration": null,
@@ -45237,10 +45285,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch/subscribe/:roomId",
       "controller": "AsynchController",
       "action": "unsubscribe",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "unsubscribe",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -45261,9 +45318,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressOperationRoutes",
-          "line": 13
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -45304,9 +45361,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "file": "packages/redbox-core/src/http/progressRoutes.ts",
         "export": "progressSocketGrantRoute",
-        "line": 33
+        "line": 21
       },
       "apiDeclaration": null,
       "original": {
@@ -45320,10 +45377,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/asynch/socket-token",
       "controller": "AsynchController",
       "action": "subscribe",
-      "selectedFactory": null,
+      "selectedFactory": "AsynchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AsynchController",
+        "action": "subscribe",
+        "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "migratedBy": "FM-035"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -45344,9 +45410,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+          "file": "packages/redbox-core/src/http/progressRoutes.ts",
           "export": "progressSocketGrantRoute",
-          "line": 33
+          "line": 21
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -47032,7 +47098,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressSockets.ts",
         "export": "ProgressSockets",
-        "line": 66
+        "line": 68
       },
       "method": "provider HTTP + upgrade",
       "path": "${rootContext}/portal-socket.io",
@@ -47161,7 +47227,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/integrations/companion/uploads.ts",
         "export": "CompanionUploads",
-        "line": 50
+        "line": 52
       },
       "method": "upgrade",
       "path": [

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { io } from 'socket.io-client';
 import { addDataStreamsRoute, getMetaRoute, updateMetaRoute } from '../../../src/api-routes/groups/records';
 import { progressSocketGrantRoute } from '../../../src/http/express/progressOperations';
+import { progressOperationRoutes } from '../../../src/http/progressRoutes';
 import { coreRouteName } from '../../../src/http/fastify/routes';
 import { runAcceptedPersistenceWork, persistenceStatus } from '../../../src/persistence/runtime';
 import { productionRawPortal } from './productionRawPortal';
@@ -99,17 +100,12 @@ async function replacementPortal(
           ]
         : [declaration]),
     ...(options.disableBoth
-      ? [
-          {
-            name: coreRouteName(progressSocketGrantRoute.method, progressSocketGrantRoute.path),
-            method: progressSocketGrantRoute.method,
-            path: progressSocketGrantRoute.path,
-            controller: progressSocketGrantRoute.controller,
-            action: progressSocketGrantRoute.action,
-            access: { kind: 'deny' },
-            replaces: true,
-          },
-        ]
+      ? [...progressOperationRoutes, progressSocketGrantRoute].map(route => ({
+          name: coreRouteName(route.method, route.path),
+          ...route,
+          access: { kind: 'deny' },
+          replaces: true,
+        }))
       : []),
     {
       name: 'replacement-sibling',
@@ -273,6 +269,22 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
   }
 }
 type Fixture = Awaited<ReturnType<typeof replacementPortal>>;
+function familyOwners(f: Fixture, family: Family) {
+  const owners =
+    f.installation.httpOwners[family === 'upload' ? 'uploads' : family === 'progress' ? 'progress' : 'metadataUpdates'];
+  if (family !== 'progress') return owners;
+  // Replacing the grant leaves the six original progress operations selected.
+  // Check those owners too, then isolate the declaration varied by this matrix.
+  const operations = new Set(progressOperationRoutes.map(route => coreRouteName(route.method, route.path)));
+  assert.deepEqual(
+    owners
+      .map(route => route.declaration.name)
+      .filter(name => operations.has(name))
+      .sort(),
+    [...operations].sort()
+  );
+  return owners.filter(route => !operations.has(route.declaration.name));
+}
 async function unaffectedParsers(f: Fixture) {
   for (const [type, body, parsed] of [
     ['application/json', '{"nested":{"value":"json"}}', { nested: { value: 'json' } }],
@@ -389,10 +401,7 @@ describe('FM-020 production resolved-route transport ownership', function () {
               : original;
           const method =
             kind === 'alias' ? (family === 'metadata' ? 'POST' : 'PUT') : family === 'metadata' ? 'PUT' : 'POST';
-          const owners =
-            f.installation.httpOwners[
-              family === 'upload' ? 'uploads' : family === 'progress' ? 'progress' : 'metadataUpdates'
-            ];
+          const owners = familyOwners(f, family);
           assert.deepEqual(
             owners.map(route => route.declaration.name),
             kind === 'deny'
@@ -598,9 +607,9 @@ describe('FM-020 production resolved-route transport ownership', function () {
             }
           }
           if (family === 'progress' && kind === 'deny') {
-            const absent = await fetch(new URL(socketPath + '/?EIO=4&transport=polling', f.url), { headers });
-            assert.equal(absent.status, 404);
-            await absent.text();
+            const handshake = await fetch(new URL(socketPath + '/?EIO=4&transport=polling', f.url), { headers });
+            assert.equal(handshake.status, 200, 'remaining progress operations retain the socket integration');
+            await handshake.text();
           }
           await unaffectedParsers(f);
           if (kind !== 'deny')
@@ -625,13 +634,10 @@ describe('FM-020 production resolved-route transport ownership', function () {
           const selected = kind === 'subclass';
           const raw = f.installation.raw!;
           assert.equal(raw.upload, family !== 'upload' || selected);
-          assert.equal(raw.progress, family !== 'progress' || selected);
+          assert.equal(raw.progress, true);
           assert.equal(raw.multipart !== undefined, raw.upload);
           assert.equal(raw.sockets !== undefined, raw.progress);
-          const owner =
-            f.installation.httpOwners[
-              family === 'upload' ? 'uploads' : family === 'progress' ? 'progress' : 'metadataUpdates'
-            ];
+          const owner = familyOwners(f, family);
           assert.equal(owner.length, selected ? 1 : 0);
           const url = family === 'upload' ? uploadPath : family === 'progress' ? grantPath : metadataPath;
           const method = family === 'metadata' ? 'PUT' : 'POST';
@@ -688,8 +694,8 @@ describe('FM-020 production resolved-route transport ownership', function () {
               const response = await fetch(new URL(socketPath + suffix, f.url), { headers });
               assert.equal(
                 response.status,
-                suffix === '/socket.io.js' ? 501 : 404,
-                'FM-031 reserves the client script; unselected socket integration must not dispatch'
+                200,
+                'remaining progress operations retain the client script and socket integration'
               );
               await response.text();
             }

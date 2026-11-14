@@ -5,6 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
 import { retainedAssetExpress } from './retainedAssetExpress';
 import { retainedDatastreamExpress } from './retainedDatastreamExpress';
+import { retainedProgressExpress } from './retainedProgressExpress';
 import { retainedUploadExpress } from './retainedUploadExpress';
 import { oidcFixture } from './oidcFixture';
 import { availablePort } from './authenticationFixture';
@@ -125,6 +126,7 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
           const retained = await retainedAssetExpress();
           const retainedDownloads = await retainedDatastreamExpress();
           const retainedUploads = await retainedUploadExpress();
+          const retainedProgress = await retainedProgressExpress();
           const provider = await oidcFixture();
           const port = await availablePort();
           const origin = 'http://127.0.0.1:' + port;
@@ -141,8 +143,10 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
                   : () => {
                       const restoreAssets = retained.install(),
                         restoreDownloads = retainedDownloads.install(),
-                        restoreUploads = retainedUploads.install();
+                        restoreUploads = retainedUploads.install(),
+                        restoreProgress = retainedProgress.install();
                       return () => {
+                        restoreProgress();
                         restoreUploads();
                         restoreDownloads();
                         restoreAssets();
@@ -270,6 +274,7 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
             await provider.close();
             await retainedDownloads.close();
             await retainedUploads.close();
+            await retainedProgress.close();
             await retained.close();
           }
           if (process.env.FM031_RESULTS)
@@ -314,8 +319,8 @@ export function declareAssetRouteCollisions(wire: typeof assetWire, normalize: (
               if ([401, 403].includes(express!.status))
                 assert.equal(native!.status, express!.status, 'retained authentication/authorization denial');
             }
-            if (c.row.ownerTask === 'FM-033' || c.row.ownerTask === 'FM-034')
-              assert.deepEqual(native, express, 'Selected download/upload/TUS owners match retained Express');
+            if (['FM-033', 'FM-034', 'FM-035'].includes(c.row.ownerTask))
+              assert.deepEqual(native, express, 'Selected P5 owners match retained Express');
             if (c.row.controller === 'webservice/RecordSchemaController') {
               assert.deepEqual(native, express, 'schema instances and framing match without normalization');
               if (c.method === 'GET' && String(native!.headers['content-type']).includes('problem+json')) {

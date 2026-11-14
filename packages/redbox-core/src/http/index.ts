@@ -32,6 +32,7 @@ export {
   type DatastreamControllerInput,
 } from './controllers/webservice/DatastreamController';
 export { ProgressController, progressController } from './controllers/ProgressController';
+export type { ProgressOperationInput } from './actions/progressOperations';
 export type { ProgressGrantInput } from './actions/progressGrant';
 
 export * from './controllers/ReferenceControllers';

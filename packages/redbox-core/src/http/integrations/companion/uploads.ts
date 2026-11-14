@@ -1,3 +1,5 @@
+import { ownUpgrade } from '../upgrades';
+import { requestPathname } from '../../fastify/router';
 import { EventEmitter } from 'node:events';
 import type { Server, IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
@@ -51,6 +53,7 @@ export class CompanionUploads {
   private initializing?: Promise<void>;
   private server?: Server;
   private bridge?: EventEmitter;
+  private releaseUpgrade?: () => void;
   private provider?: Provider;
   private closing = false;
   private closed = false;
@@ -114,11 +117,19 @@ export class CompanionUploads {
     // Forward only admitted upgrades; no second HTTP Server/parser/listener.
     this.bridge = new EventEmitter();
     companion.socket(this.bridge as Server, this.input.options);
-    server.on('upgrade', this.upgrade);
+    this.releaseUpgrade = ownUpgrade(
+      server,
+      this,
+      request => {
+        const path = requestPathname(request.url ?? '');
+        return !!path && path.toLowerCase().startsWith(this.socketPath.toLowerCase() + '/');
+      },
+      this.upgrade
+    );
   }
 
   private readonly upgrade = (req: IncomingMessage, socket: Duplex, head: Buffer): void => {
-    const path = URL.parse(req.url ?? '', 'http://companion.invalid')?.pathname;
+    const path = requestPathname(req.url ?? '');
     if (!path?.toLowerCase().startsWith(this.socketPath.toLowerCase() + '/')) return;
     const relative = path.slice(this.socketPath.length);
     const upload = /^\/api\/([^/]+)$/.exec(relative);
@@ -240,9 +251,15 @@ export class CompanionUploads {
       );
     });
     try {
-      while (this.requests.size || this.sockets.size) {
-        await Promise.race([expired, ...this.requests.keys(), ...this.sockets.values()]);
+      while (this.requests.size || this.transfers.size) {
+        await Promise.race([expired, ...this.requests.keys()]);
         if (Date.now() >= deadline) break;
+      }
+      if (!this.requests.size && !this.transfers.size) {
+        // Flush queued terminal notifications before ending idle transports.
+        // The same deadline still terminates a peer that never closes.
+        for (const socket of this.sockets.keys()) socket.end();
+        await Promise.all(this.sockets.values());
       }
     } finally {
       clearTimeout(timer);
@@ -261,7 +278,8 @@ export class CompanionUploads {
     this.quiesce();
     this.terminate();
     this.provider?.emitter.removeListener('upload-start', this.started);
-    this.server?.off('upgrade', this.upgrade);
+    this.releaseUpgrade?.();
+    this.releaseUpgrade = undefined;
     // Every accepted socket has been terminated. Dropping this event-only
     // boundary releases the provider's WS dispatcher; it never owns host close.
     this.bridge?.removeAllListeners();

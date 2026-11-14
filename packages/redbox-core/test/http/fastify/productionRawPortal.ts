@@ -23,6 +23,7 @@ import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
 import type { ApiRouteDefinition } from '../../../src/api-routes/types';
 
 export interface RawPortalOptions {
+  readonly port?: number;
   readonly companion?: Partial<import('../../../src/config/companionDefaults').CompanionConfig>;
   readonly policyConfiguration?: import('../../../src/config/policies.config').PoliciesConfig;
   readonly declarations?: readonly ApiRouteDefinition[];
@@ -61,7 +62,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
         server: {
           rootContext,
           hostname: '127.0.0.1',
-          port: 0,
+          port: options.port ?? 0,
           trustProxy: false,
           stopDeadlineMs: 30000,
           publicUrl: 'https://portal.example.invalid',
