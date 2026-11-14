@@ -1,5 +1,6 @@
 // Reusable admin patterns. Outer selectors handle shell spacing and body-appended modal backdrops.
 .maincontent-body:has(> .rb-admin) { padding: 0; }
+.rb-site-user-icon { width: 1em; height: 1em; fill: currentColor; vertical-align: -.125em; }
 // ngx-bootstrap appends its backdrop to body, outside the admin wrapper.
 // Keep the override through the closing transition, until the modal is removed.
 body:has(.rb-admin .modal) > .modal-backdrop.show {

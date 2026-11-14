@@ -1,3 +1,6 @@
+import { ReportingError } from '../reporting/types';
+import { solrLiteral, assertReportingPrincipal } from '../reporting/authorization';
+import type { ReportingPrincipal } from '../reporting/types';
 // Copyright (c) 2020 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -141,6 +144,7 @@ class Solr {
 export namespace Services {
   type SolrFacetFields = Record<string, Array<string | number>>;
   type SolrResponse = {
+    responseHeader?: { partialResults?: boolean | 'true' | 'false' | 'omitted' };
     response: { numFound: number; docs: Array<Record<string, unknown>> };
     facet_counts?: { facet_fields: SolrFacetFields };
   };
@@ -168,6 +172,7 @@ export namespace Services {
       'index',
       'remove',
       'searchFuzzy',
+      'searchReportingText',
       'solrAddOrUpdate',
       'solrDelete',
       'searchAdvanced',
@@ -611,6 +616,38 @@ export namespace Services {
       this.updateChronicle({ solrTotalItems: totalItems, solrResultCount: customResp.records.length });
       customResp['totalItems'] = totalItems;
       return customResp;
+    }
+
+    /** Literal full-text discovery for reporting. No query syntax or caller filters. */
+    public async searchReportingText(principal: ReportingPrincipal, coreId: string, recordType: string, text: string, start: number, rows: number): Promise<string[]> {
+      assertReportingPrincipal(principal);
+      if (typeof text !== 'string' || !text.trim() || text.length > 500 || !Number.isInteger(start) || start < 0 || start > 10000 ||
+        !Number.isInteger(rows) || rows < 1 || rows > 101) throw new ReportingError('INVALID_QUERY');
+      if (!this.exactAclSchemaReady.has(coreId)) {
+        throw new ReportingError('UNAVAILABLE');
+      }
+      const core = sails.config.solr.cores[coreId];
+      if (!core) throw new Error('Reporting search core unavailable');
+      const params = new URLSearchParams({
+        q: `full_text:${solrLiteral(text)}`,
+        fl: 'redboxOid', start: String(start), rows: String(rows), wt: 'json',
+        sort: 'date_object_modified desc,storage_id asc', timeAllowed: '5000',
+      });
+      params.append('fq', `metaMetadata_brandId:${solrLiteral(principal.brand.id)}`);
+      params.append('fq', `metaMetadata_type:${solrLiteral(recordType)}`);
+      this.addAuthParams(params, principal.user.username, principal.roles, principal.brand);
+      const response = await axios.get(`${this.getBaseUrl(core.options)}${core.options.core}/select`, {
+        params, timeout: 6000,
+      }).then((response: { data: SolrResponse }) => response.data);
+      // A time-limited page cannot establish either its contents or pagination safely.
+      if (response.responseHeader?.partialResults && response.responseHeader.partialResults !== 'false') {
+        throw new ReportingError('UNAVAILABLE');
+      }
+      return response.response.docs.flatMap((doc: Record<string, unknown>) => {
+        // storage_id is Mongo's internal document ID; RecordsService resolves the public ReDBox OID.
+        const oid = Array.isArray(doc.redboxOid) ? doc.redboxOid[0] : doc.redboxOid;
+        return typeof oid === 'string' ? [oid] : [];
+      });
     }
 
     private clientSleep() {

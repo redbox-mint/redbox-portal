@@ -1,0 +1,329 @@
+:host {
+  display: block;
+  min-width: 0;
+  min-height: 70vh;
+}
+.card-header a {
+  color: inherit;
+  font-size: 13px;
+}
+.card-header h2 {
+  display: flex;
+  align-items: center;
+}
+.mcp-step-number {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--admin-bg);
+  color: var(--admin-panel);
+  font-size: 13px;
+  flex: none;
+}
+.mcp-ready {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.mcp-assistant-group + .mcp-assistant-group {
+  margin-top: 18px;
+}
+.mcp-assistant-group .rb-admin-sidebar-heading {
+  padding: 0 0 8px;
+}
+.mcp-assistant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+  gap: 10px;
+}
+.mcp-assistant {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 10px;
+  padding: 14px 12px;
+  min-height: 76px;
+  width: 100%;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  text-align: left;
+  font: inherit;
+}
+.mcp-assistant:hover {
+  background: var(--admin-surface);
+}
+.mcp-assistant[aria-checked='true'] {
+  border-color: var(--admin-primary);
+  background: color-mix(in srgb, var(--admin-primary) 5%, var(--admin-bg));
+  box-shadow: inset 0 0 0 1px var(--admin-primary);
+}
+.mcp-assistant-name {
+  flex: 1;
+  min-width: 0;
+}
+.mcp-assistant-name strong {
+  display: block;
+  font-size: 14px;
+}
+.mcp-assistant-name small {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.mcp-selected {
+  color: var(--admin-primary);
+  flex: none;
+}
+.mcp-stepper {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: steps;
+}
+.mcp-stepper > li {
+  container: mcp-step / inline-size;
+  position: relative;
+  padding: 0 0 24px 42px;
+  min-width: 0;
+}
+.mcp-stepper > li:last-child {
+  padding-bottom: 0;
+}
+.mcp-stepper > li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 30px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--admin-soft-line);
+}
+.mcp-step-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--admin-brand-tint);
+  color: var(--admin-brand);
+  font-size: 13px;
+  font-weight: 700;
+}
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.mcp-stepper h3 {
+  padding-top: 4px;
+}
+.mcp-stepper p {
+  margin-bottom: 12px;
+}
+.mcp-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 8px;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+pre,
+.mcp-surface {
+  padding: 14px 16px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-soft-line);
+  border-radius: var(--admin-radius);
+  max-width: 100%;
+}
+pre {
+  overflow: auto;
+  font-family: var(--admin-mono);
+  font-size: 13px;
+  margin: 0;
+}
+pre:focus-visible,
+.table-responsive:focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 3px;
+}
+pre code {
+  color: var(--admin-ink);
+  font-size: inherit;
+}
+.mcp-prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 16px;
+}
+.table-responsive {
+  max-width: 100%;
+}
+.table td,
+.table tbody th {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.table tbody th {
+  min-width: 110px;
+}
+.mcp-connection-fields .table :is(th, td) {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+// Use the step's available space: the admin sidebar can also narrow a desktop card.
+@container mcp-step (max-width: 600px) {
+  .mcp-connection-fields {
+    overflow: visible;
+  }
+  .mcp-connection-fields .table {
+    display: block;
+
+    // Keep the column headings available to assistive technology.
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    tbody {
+      display: block;
+    }
+    tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 10px;
+      padding-block: 12px;
+      border-bottom: 1px solid var(--admin-soft-line);
+      align-items: start;
+    }
+    tbody :is(th, td) {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    tbody th {
+      grid-column: 1 / -1;
+    }
+  }
+}
+.table td {
+  min-width: 90px;
+}
+.rb-admin-segmented {
+  margin-bottom: 4px;
+}
+.rb-admin-segmented .btn {
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+.rb-admin-split-side {
+  min-width: 0;
+}
+.rb-admin-split-side label {
+  font-size: 12.5px;
+  color: var(--admin-muted);
+}
+.rb-admin-split-side input {
+  margin: 6px 0 10px;
+  width: 100%;
+  min-width: 0;
+}
+details {
+  margin-top: 16px;
+}
+summary {
+  display: list-item;
+  list-style: disclosure-closed inside;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  padding-block: 8px;
+}
+details[open] > summary {
+  list-style-type: disclosure-open;
+}
+details p,
+details dl {
+  margin-top: 10px;
+}
+dl {
+  margin-bottom: 0;
+}
+dt {
+  font-size: 12.5px;
+  color: var(--admin-muted);
+  margin-top: 14px;
+}
+dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+#mcp-help details {
+  margin-top: 0;
+  border-bottom: 1px solid var(--admin-soft-line);
+}
+#mcp-help summary {
+  padding-block: 10px;
+}
+#mcp-help .btn {
+  margin-top: 18px;
+}
+.mcp-readiness-checks {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+  display: grid;
+  gap: 16px;
+}
+.mcp-readiness-checks small {
+  display: block;
+}
+.mcp-muted {
+  color: var(--admin-muted);
+}
+.btn.mcp-copied {
+  color: color-mix(in srgb, var(--admin-success) 40%, var(--admin-ink));
+  background: color-mix(in srgb, var(--admin-success) 10%, var(--admin-bg));
+  border-color: color-mix(in srgb, var(--admin-success) 35%, var(--admin-bg));
+}
+.mcp-copy-error {
+  display: block;
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--admin-danger-ink);
+  overflow-wrap: anywhere;
+}
+.rb-admin-page-actions .btn {
+  min-height: 44px;
+}
+#mcp-admin-details {
+  scroll-margin-top: 20px;
+}
+@media (max-width: 480px) {
+  .mcp-stepper > li {
+    padding-left: 34px;
+  }
+  .mcp-step-number {
+    margin-right: 8px;
+  }
+  .mcp-assistant-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

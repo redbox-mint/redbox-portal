@@ -293,6 +293,7 @@ export * from './utilities/ContextVariableUtils';
 export * from './visitor/visitor-helpers';
 export * from './api-routes';
 
+export * from './reporting';
 export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
 export { EmailTemplateError, EmailTemplateConflictError } from './services/EmailTemplateService';

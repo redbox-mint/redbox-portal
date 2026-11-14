@@ -1,0 +1,466 @@
+<nav class="rb-admin-crumbs" [attr.aria-label]="earlyHeader.breadcrumbLabel">
+  <ol>
+    <li>
+      <a [href]="earlyHeader.adminUrl">{{ earlyHeader.adminLabel }}</a>
+    </li>
+    @if (earlyHeader.section) {
+      <li>{{ earlyHeader.section }}</li>
+    }
+    <li>
+      <span aria-current="page">{{ earlyHeader.title }}</span>
+    </li>
+  </ol>
+</nav>
+<header class="rb-admin-page-header">
+  <div>
+    <h1>{{ earlyHeader.title }}</h1>
+    <p>{{ earlyHeader.description }}</p>
+  </div>
+  <div class="rb-admin-page-actions">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      (click)="refresh()"
+      [disabled]="loadPending || refreshing"
+      [attr.aria-busy]="refreshing"
+    >
+      <i class="fa fa-refresh" [class.fa-spin]="refreshing" aria-hidden="true"></i>
+      {{ (refreshing ? 'mcp-rechecking' : 'mcp-check-readiness') | i18next }}
+    </button>
+  </div>
+</header>
+@if (loadError || refreshError) {
+  <div class="alert alert-danger" role="alert">
+    {{ 'mcp-load-error' | i18next }}
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      [disabled]="loadPending || refreshing"
+      (click)="loadError ? retryLoad() : refresh()"
+    >
+      {{ 'admin-retry' | i18next }}
+    </button>
+  </div>
+}
+@if (loadPending && !status) {
+  <p role="status">{{ 'mcp-loading' | i18next }}</p>
+}
+<div class="visually-hidden" aria-live="polite" aria-atomic="true">{{ copyMessage }}</div>
+
+<ng-template #copyButton let-id="id" let-value="value" let-label="label" let-copyLabel="copyLabel">
+  <button
+    type="button"
+    class="btn btn-sm btn-outline-secondary"
+    [attr.aria-label]="copyLabel || (label | i18next)"
+    [class.mcp-copied]="copyStates[id] === 'copied'"
+    (click)="copy(id, value)"
+    [attr.aria-describedby]="copyStates[id] === 'failed' ? 'copy-error-' + id : null"
+  >
+    <i
+      class="fa"
+      [class.fa-check]="copyStates[id] === 'copied'"
+      [class.fa-copy]="copyStates[id] !== 'copied'"
+      aria-hidden="true"
+    ></i>
+    {{ (copyStates[id] === 'copied' ? 'mcp-copied' : label || 'mcp-copy') | i18next }}
+  </button>
+  @if (copyStates[id] === 'failed') {
+    <span class="mcp-copy-error" [id]="'copy-error-' + id">{{ 'mcp-copy-failed' | i18next }}</span>
+  }
+</ng-template>
+
+@if (status; as setup) {
+  @if (setup.state === 'ready' && setup.connection && guide; as instructions) {
+    <div class="alert alert-success mcp-ready" role="status">
+      <i class="fa fa-check-circle" aria-hidden="true"></i>
+      <div>
+        <strong>{{ 'mcp-ready-title' | i18next }}</strong> {{ 'mcp-ready-description' | i18next }}
+      </div>
+    </div>
+    <div class="rb-admin-split">
+      <div class="rb-admin-split-main">
+        <section class="card" aria-labelledby="mcp-choose-heading">
+          <div class="card-header">
+            <h2 id="mcp-choose-heading"><span class="mcp-step-number">1</span>{{ 'mcp-choose-harness' | i18next }}</h2>
+          </div>
+          <div class="card-body" role="radiogroup" aria-labelledby="mcp-choose-heading" (keydown)="radioKey($event)">
+            @for (group of groups; track group) {
+              <div class="mcp-assistant-group" role="presentation">
+                <h3 class="rb-admin-sidebar-heading">{{ 'mcp-group-' + group | i18next }}</h3>
+                <div class="mcp-assistant-grid">
+                  @for (harness of harnesses; track harness.id) {
+                    @if (harness.group === group) {
+                      <button
+                        type="button"
+                        role="radio"
+                        class="mcp-assistant"
+                        [attr.data-harness]="harness.id"
+                        [attr.aria-checked]="selectedHarness === harness.id"
+                        [tabIndex]="selectedHarness === harness.id ? 0 : -1"
+                        (click)="selectHarness(harness.id)"
+                      >
+                        <span class="rb-admin-tile-icon"
+                          ><i class="fa" [ngClass]="harness.icon" aria-hidden="true"></i
+                        ></span>
+                        <span class="mcp-assistant-name"
+                          ><strong>{{ harness.nameKey | i18next }}</strong
+                          ><small>{{ harness.subtitleKey | i18next }}</small></span
+                        >
+                        @if (selectedHarness === harness.id) {
+                          <i class="fa fa-check-circle mcp-selected" aria-hidden="true"></i>
+                        }
+                      </button>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+        <section class="card" aria-labelledby="mcp-connect-heading">
+          <div class="card-header">
+            <h2 id="mcp-connect-heading">
+              <span class="mcp-step-number">2</span>{{ 'mcp-connect-assistant' | i18next: { name: harnessName } }}
+            </h2>
+            <a [href]="instructions.documentationUrl" target="_blank" rel="noopener"
+              >{{ 'mcp-official-guide' | i18next }} ↗<span class="visually-hidden">{{
+                'mcp-new-tab' | i18next
+              }}</span></a
+            >
+          </div>
+          <div class="card-body">
+            @if (cloud) {
+              <div class="alert alert-warning">
+                <strong>{{ 'mcp-cloud-title' | i18next }}</strong>
+                {{ 'mcp-cloud-warning' | i18next: { name: harnessName } }}
+              </div>
+            }
+            <ol class="mcp-stepper">
+              @for (step of instructions.steps; track step.key; let index = $index) {
+                <li>
+                  <span class="mcp-step-marker" aria-hidden="true">{{ index + 1 }}</span>
+                  <h3>{{ step.key + '-title' | i18next }}</h3>
+                  <p>{{ step.key | i18next: { serverName: serverName } }}</p>
+                  @if (step.artefact; as artefact) {
+                    @switch (artefact.kind) {
+                      @case ('code') {
+                        <div class="mcp-code-header">
+                          <span>{{ artefact.labelKey | i18next }}</span
+                          ><ng-container
+                            *ngTemplateOutlet="
+                              copyButton;
+                              context: {
+                                id: step.key,
+                                value: artefact.text,
+                                copyLabel:
+                                  (artefact.labelKey === 'mcp-config-file'
+                                    ? 'mcp-copy-configuration'
+                                    : 'mcp-copy-command'
+                                  ) | i18next,
+                              }
+                            "
+                          ></ng-container>
+                        </div>
+                        <pre
+                          tabindex="0"
+                          [attr.aria-label]="artefact.labelKey | i18next"
+                        ><code>{{ artefact.text }}</code></pre>
+                      }
+                      @case ('fields') {
+                        <div class="table-responsive mcp-connection-fields">
+                          <table class="table" role="table" [attr.aria-label]="'mcp-connection-fields' | i18next">
+                            <thead>
+                              <tr>
+                                <th scope="col">{{ 'mcp-field' | i18next }}</th>
+                                <th scope="col">{{ 'mcp-value' | i18next }}</th>
+                                <th scope="col">{{ 'mcp-copy' | i18next }}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of artefact.rows; track row.labelKey) {
+                                <tr>
+                                  <th scope="row" [id]="'mcp-field-' + step.key + '-' + row.labelKey">
+                                    {{ row.labelKey | i18next }}
+                                  </th>
+                                  <td
+                                    class="rb-admin-mono"
+                                    [attr.headers]="'mcp-field-' + step.key + '-' + row.labelKey"
+                                  >
+                                    {{ row.value }}
+                                  </td>
+                                  <td [attr.headers]="'mcp-field-' + step.key + '-' + row.labelKey">
+                                    <ng-container
+                                      *ngTemplateOutlet="
+                                        copyButton;
+                                        context: {
+                                          id: step.key + row.labelKey,
+                                          value: row.value,
+                                          copyLabel: 'mcp-copy-field' | i18next: { field: row.labelKey | i18next },
+                                        }
+                                      "
+                                    ></ng-container>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                      @case ('plugin') {
+                        @if (artefact.url) {
+                          <a class="btn btn-primary" [href]="artefact.url" target="_blank" rel="noopener"
+                            >{{ 'mcp-open-plugin' | i18next
+                            }}<span class="visually-hidden">{{ 'mcp-new-tab' | i18next }}</span></a
+                          >
+                        } @else {
+                          <div class="alert alert-info">{{ 'mcp-plugin-admin-required' | i18next }}</div>
+                        }
+                      }
+                    }
+                  }
+                </li>
+              }
+            </ol>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="mcp-test-heading">
+          <div class="card-header">
+            <h2 id="mcp-test-heading"><span class="mcp-step-number">3</span>{{ 'mcp-verify' | i18next }}</h2>
+          </div>
+          <div class="card-body">
+            <p>{{ 'mcp-verify-help' | i18next: { name: harnessName } }}</p>
+            @if (setup.recordTypes.length > 1) {
+              <div class="rb-admin-segmented" role="group" [attr.aria-label]="'mcp-record-type' | i18next">
+                @for (recordType of setup.recordTypes; track recordType) {
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    [attr.aria-pressed]="selectedRecordType === recordType"
+                    (click)="selectRecordType(recordType)"
+                  >
+                    {{ recordTypeLabel(recordType) }}
+                  </button>
+                }
+              </div>
+            }
+            <div class="mcp-code-header">
+              <span>{{ 'mcp-example-prompt' | i18next }}</span
+              ><ng-container
+                *ngTemplateOutlet="
+                  copyButton;
+                  context: { id: 'prompt', value: verificationPrompt, label: 'mcp-copy-prompt' }
+                "
+              ></ng-container>
+            </div>
+            <div class="mcp-surface mcp-prompt">{{ verificationPrompt }}</div>
+            <p class="rb-admin-check rb-admin-check-success">
+              <i class="fa fa-check-circle" aria-hidden="true"></i
+              ><span>{{
+                'mcp-verify-result' | i18next: { name: harnessName, recordType: recordTypeLabel(selectedRecordType) }
+              }}</span>
+            </p>
+            <p class="rb-admin-check rb-admin-check-warning">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i
+              ><span
+                >{{ 'mcp-verify-trouble' | i18next }} <a [href]="anchor('mcp-help')">{{ 'mcp-troubleshooting' | i18next }}</a
+                >.</span
+              >
+            </p>
+          </div>
+        </section>
+      </div>
+      <aside class="rb-admin-split-side">
+        <section class="card" aria-labelledby="mcp-server-heading">
+          <div class="card-header">
+            <h2 id="mcp-server-heading">{{ 'mcp-connection-details' | i18next }}</h2>
+          </div>
+          <div class="card-body">
+            <label for="mcp-endpoint">{{ 'mcp-url-help' | i18next }}</label>
+            <input id="mcp-endpoint" class="form-control rb-admin-mono" readonly [value]="setup.connection.endpoint" />
+            <ng-container
+              *ngTemplateOutlet="
+                copyButton;
+                context: { id: 'endpoint', value: setup.connection.endpoint, label: 'mcp-copy-url' }
+              "
+            ></ng-container>
+            <details>
+              <summary>{{ 'mcp-advanced-details' | i18next }}</summary>
+              <dl>
+                <dt>{{ 'mcp-server-name' | i18next }}</dt>
+                <dd class="rb-admin-mono">{{ serverName }}</dd>
+                <dt>{{ 'mcp-transport' | i18next }}</dt>
+                <dd>{{ 'mcp-streamable-http' | i18next }}</dd>
+                <dt>{{ 'mcp-authentication' | i18next }}</dt>
+                <dd>{{ 'mcp-institutional-oauth' | i18next }}</dd>
+                <dt>{{ 'mcp-scope' | i18next }}</dt>
+                <dd class="rb-admin-mono">{{ setup.connection.scope }}</dd>
+                <dt>{{ 'mcp-issuer' | i18next }}</dt>
+                <dd>{{ setup.connection.issuer }}</dd>
+                <dt>{{ 'mcp-resource-metadata' | i18next }}</dt>
+                <dd>{{ setup.connection.metadataUrl }}</dd>
+              </dl>
+            </details>
+          </div>
+        </section>
+        <section id="mcp-help" class="card" aria-labelledby="mcp-help-heading">
+          <div class="card-header">
+            <h2 id="mcp-help-heading">{{ 'mcp-troubleshooting' | i18next }}</h2>
+          </div>
+          <div class="card-body">
+            @for (
+              topic of cloud ? ['network', 'tools', 'cloud-login'] : ['login', 'local-tools', 'permissions'];
+              track $index
+            ) {
+              <details>
+                <summary>{{ 'mcp-help-' + topic + '-title' | i18next }}</summary>
+                <p>{{ 'mcp-help-' + topic | i18next }}</p>
+              </details>
+            }
+            <ng-container
+              *ngTemplateOutlet="copyButton; context: { id: 'support', value: diagnostics, label: 'mcp-copy-support' }"
+            ></ng-container>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="mcp-access-heading">
+          <div class="card-header">
+            <h2 id="mcp-access-heading">{{ 'mcp-your-access' | i18next }}</h2>
+          </div>
+          <div class="card-body">
+            @for (key of ['permissions', 'read-only', 'disconnect']; track key) {
+              <p class="rb-admin-check rb-admin-check-success">
+                <i class="fa fa-check-circle" aria-hidden="true"></i><span>{{ 'mcp-access-' + key | i18next }}</span>
+              </p>
+            }
+          </div>
+        </section>
+      </aside>
+    </div>
+  } @else {
+    <div class="rb-admin-split">
+      <div class="rb-admin-split-main">
+        <section class="card" aria-labelledby="mcp-readiness-heading">
+          <div class="card-header">
+            <h2 id="mcp-readiness-heading">{{ 'mcp-readiness' | i18next }}</h2>
+            <span class="badge rb-admin-badge-warning">{{
+              'mcp-actions-needed' | i18next: { count: actionCount }
+            }}</span>
+          </div>
+          <div class="card-body">
+            <h3>{{ 'mcp-state-' + setup.state | i18next }}</h3>
+            <p>{{ 'mcp-state-' + setup.state + '-description' | i18next }}</p>
+            @if (setup.state === 'oidc-required' && setup.institutionalLoginUrl) {
+              <a class="btn btn-primary" [href]="setup.institutionalLoginUrl">{{ 'mcp-sign-in' | i18next }}</a>
+            }
+            @if (setup.state === 'needs-configuration' || setup.state === 'reporting-disabled') {
+              @if (setup.isAdmin) {
+                <a class="btn btn-primary" [href]="anchor('mcp-admin-details')">{{ 'mcp-review-settings' | i18next }}</a>
+              } @else {
+                <p>{{ 'mcp-contact-admin' | i18next }}</p>
+              }
+            }
+            @if (setup.state === 'no-reporting-access') {
+              <p>{{ 'mcp-contact-admin' | i18next }}</p>
+            }
+            <ul class="mcp-readiness-checks">
+              @for (check of checks; track check) {
+                <li
+                  class="rb-admin-check"
+                  [class.rb-admin-check-success]="checkState(check) === 'passed'"
+                  [class.rb-admin-check-warning]="checkState(check) === 'action'"
+                  [class.mcp-muted]="checkState(check) === 'unchecked'"
+                  [attr.data-check-state]="checkState(check)"
+                >
+                  <i
+                    class="fa"
+                    [class.fa-check-circle]="checkState(check) === 'passed'"
+                    [class.fa-exclamation-triangle]="checkState(check) === 'action'"
+                    [class.fa-minus]="checkState(check) === 'unchecked'"
+                    aria-hidden="true"
+                  ></i>
+                  <span
+                    ><strong>{{ 'mcp-check-' + check | i18next }}</strong> —
+                    {{ 'mcp-check-' + checkState(check) | i18next }}
+                    @if (checkState(check) === 'action') {
+                      <small>{{ 'mcp-hint-' + check | i18next }}</small>
+                    } @else if (checkState(check) === 'unchecked') {
+                      <small>{{
+                        (setup.state === 'oidc-required' ? 'mcp-hint-after-sign-in' : 'mcp-hint-after-setup') | i18next
+                      }}</small>
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+            <div class="mcp-surface">
+              <h3>{{ previewHeadingKey | i18next }}</h3>
+              <ol>
+                <li>{{ 'mcp-choose-harness' | i18next }}</li>
+                <li>{{ 'mcp-preview-connect' | i18next }}</li>
+                <li>{{ 'mcp-preview-test' | i18next }}</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+        @if (setup.isAdmin) {
+          <details id="mcp-admin-details" class="rb-admin-form-section" open>
+            <summary class="rb-admin-form-section-header">
+              {{ 'mcp-admin-readiness' | i18next }} · {{ 'mcp-admin-only' | i18next }}
+            </summary>
+            <div class="rb-admin-form-section-body">
+              @if (setup.configurationProblems?.length) {
+                <div
+                  class="table-responsive"
+                  tabindex="0"
+                  [attr.aria-label]="'mcp-admin-configuration-problems' | i18next"
+                >
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ 'mcp-setting' | i18next }}</th>
+                        <th scope="col">{{ 'mcp-problem' | i18next }}</th>
+                        <th scope="col">{{ 'mcp-affects' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (problem of setup.configurationProblems; track problem) {
+                        <tr>
+                          <th scope="row" class="rb-admin-mono">{{ problem }}</th>
+                          <td>{{ problemText(problem) }}</td>
+                          <td>
+                            {{ problemText(problem, true) }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+              <p>{{ 'mcp-admin-readiness-help' | i18next }}</p>
+              <div class="rb-admin-page-actions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    copyButton;
+                    context: { id: 'admin', value: diagnostics, label: 'mcp-copy-diagnostics' }
+                  "
+                ></ng-container
+                ><a [href]="wikiUrl" target="_blank" rel="noopener"
+                  >{{ 'mcp-wiki' | i18next }}<span class="visually-hidden">{{ 'mcp-new-tab' | i18next }}</span></a
+                >
+              </div>
+            </div>
+          </details>
+        }
+      </div>
+      <aside class="rb-admin-split-side">
+        <section class="card">
+          <div class="card-header">
+            <h2>{{ blockerHelpKey + '-title' | i18next }}</h2>
+          </div>
+          <div class="card-body">
+            <p>{{ blockerHelpKey | i18next }}</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  }
+}

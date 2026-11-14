@@ -555,6 +555,16 @@ export namespace Services {
       item: AdminSidebarItem,
       context: ResolutionContext
     ): Promise<ResolvedAdminSidebarItem | null> {
+      // Match the optional MCP hook's setup-route availability, including saved sidebar entries.
+      if (item.id === 'mcp-connect' || item.href === '/admin/mcp') {
+        const brandName = context.brand?.name;
+        const branded = brandName && typeof sails.config.brandingAware === 'function'
+          ? sails.config.brandingAware(brandName) : undefined;
+        const settings = branded && Reflect.get(branded, 'mcp');
+        if (process.env.REDBOX_MCP_ENABLED?.trim().toLowerCase() !== 'true' ||
+            !settings || typeof settings !== 'object' ||
+            Reflect.get(settings, 'enabled') !== true || Reflect.get(settings, 'brand') !== brandName) return null;
+      }
       // Check visibility rules (shared logic)
       const visibilityResult = this.checkItemVisibility(item, context);
       if (!visibilityResult.visible) {

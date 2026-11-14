@@ -141,6 +141,7 @@ jobs:
               . \
               packages/agenda-sqs-backend \
               packages/redbox-core \
+              packages/redbox-mcp \
               packages/redbox-dev-tools \
               packages/sails-hook-redbox-pdfgen \
               packages/sails-ng-common \
@@ -508,6 +509,19 @@ jobs:
           name: Run Mocha tests
           no_output_timeout: 30m
           command: timeout 1800s npm run test:mocha:ci
+      - run:
+          name: Test reporting authorization, Mongo aggregates and MCP
+          command: npm run test:reporting
+      - run:
+          name: Upload reporting code coverage
+          command: |
+            sudo chmod -R a+rwX ./coverage/reporting
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/reporting/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
+             --token "${CODECOV_TOKEN}" --name "reporting-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-reporting" --file "./coverage/reporting/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
       - run:
           name: Upload Mocha code coverage
           command: |
@@ -1367,6 +1381,7 @@ workflows:
                 - app-config
                 - deleted-records
                 - harvest-runs
+                - mcp-connect
                 - branding
                 - translation
                 - record-search
@@ -1542,6 +1557,7 @@ workflows:
                 - app-config
                 - deleted-records
                 - harvest-runs
+                - mcp-connect
                 - branding
                 - translation
                 - record-search
@@ -1697,6 +1713,7 @@ workflows:
                 - app-config
                 - deleted-records
                 - harvest-runs
+                - mcp-connect
                 - branding
                 - translation
                 - record-search

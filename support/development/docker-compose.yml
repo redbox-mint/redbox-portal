@@ -3,6 +3,8 @@ x-rbportal-env: &rbportal-env
   STARTUP_TIMING: '${STARTUP_TIMING:-false}'
   PORT: 1500
   WEBPACK_SKIP: 'true'
+  # External MCP remains unavailable until the operator opts in.
+  REDBOX_MCP_ENABLED: '${REDBOX_MCP_ENABLED:-false}'
   sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
   sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage
   sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions

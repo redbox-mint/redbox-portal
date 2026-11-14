@@ -1,0 +1,13 @@
+{
+  "name": "redbox-hook-reporting-demo",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "sails": {
+    "isHook": true,
+    "hookName": "reporting-demo",
+    "hasConfig": true,
+    "hasFormConfigs": true,
+    "hasBootstrap": true
+  }
+}
