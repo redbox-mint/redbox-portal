@@ -413,16 +413,18 @@
     },
     {
       "factory": "webservice/RecordController",
-      "input": "ApiRecordMutationControllerInput",
+      "input": "MutationUploadInput",
       "inputFields": [
         "audit",
         "contextVariables",
+        "datastream",
         "downloads",
         "forms",
         "harvest",
         "log",
         "maxRows",
         "maxSearchRows",
+        "multipart",
         "publicUrl",
         "recordTypes",
         "records",
@@ -463,10 +465,21 @@
         "addRoleView",
         "removeRoleView",
         "harvest",
-        "legacyHarvest"
+        "legacyHarvest",
+        "addDataStreams"
       ],
-      "moduleRequirements": [],
+      "moduleRequirements": [
+        "portal-raw-http"
+      ],
       "classes": [
+        {
+          "name": "MutationUploadController",
+          "file": "packages/redbox-core/src/http/controllers/UploadControllers.ts",
+          "lines": 10,
+          "methods": [
+            "addDataStreams"
+          ]
+        },
         {
           "name": "ApiRecordMutationController",
           "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
@@ -519,7 +532,7 @@
     },
     {
       "factory": "RecordController",
-      "input": "RecordMutationControllerInput",
+      "input": "RecordUploadControllerInput",
       "inputFields": [
         "audit",
         "contextVariables",
@@ -534,6 +547,7 @@
         "publicUrl",
         "recordTypes",
         "records",
+        "resumable",
         "returnFields",
         "returnMetadataOnSave",
         "reusableFormDefinitions",
@@ -575,8 +589,18 @@
         "destroyDeletedRecord",
         "stepTo"
       ],
-      "moduleRequirements": [],
+      "moduleRequirements": [
+        "portal-raw-http"
+      ],
       "classes": [
+        {
+          "name": "RecordUploadController",
+          "file": "packages/redbox-core/src/http/controllers/UploadControllers.ts",
+          "lines": 10,
+          "methods": [
+            "doAttachment"
+          ]
+        },
         {
           "name": "RecordMutationController",
           "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
@@ -1099,11 +1123,12 @@
     },
     {
       "factory": "webservice/BrandingController",
-      "input": "ApiBrandingControllerInput",
+      "input": "ApiBrandingUploadControllerInput",
       "inputFields": [
         "audit",
         "branding",
-        "log"
+        "log",
+        "uploads"
       ],
       "exposedActions": [
         "config",
@@ -1117,10 +1142,25 @@
         "publish",
         "restore",
         "rollback",
-        "history"
+        "history",
+        "uploadFace",
+        "logo",
+        "favicon"
       ],
-      "moduleRequirements": [],
+      "moduleRequirements": [
+        "portal-raw-http"
+      ],
       "classes": [
+        {
+          "name": "ApiBrandingUploadController",
+          "file": "packages/redbox-core/src/http/controllers/UploadControllers.ts",
+          "lines": 14,
+          "methods": [
+            "uploadFace",
+            "logo",
+            "favicon"
+          ]
+        },
         {
           "name": "ApiBrandingController",
           "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
@@ -1144,11 +1184,12 @@
     },
     {
       "factory": "BrandingAppController",
-      "input": "BrandingAppControllerInput",
+      "input": "BrandingAppUploadControllerInput",
       "inputFields": [
         "audit",
         "branding",
-        "log"
+        "log",
+        "uploads"
       ],
       "exposedActions": [
         "config",
@@ -1161,10 +1202,25 @@
         "versionPreview",
         "publish",
         "restore",
-        "rollback"
+        "rollback",
+        "uploadFace",
+        "logo",
+        "favicon"
       ],
-      "moduleRequirements": [],
+      "moduleRequirements": [
+        "portal-raw-http"
+      ],
       "classes": [
+        {
+          "name": "BrandingAppUploadController",
+          "file": "packages/redbox-core/src/http/controllers/UploadControllers.ts",
+          "lines": 14,
+          "methods": [
+            "uploadFace",
+            "logo",
+            "favicon"
+          ]
+        },
         {
           "name": "BrandingAppController",
           "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",

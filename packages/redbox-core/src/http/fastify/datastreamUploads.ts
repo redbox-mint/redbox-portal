@@ -1,6 +1,6 @@
 import type { ControllerInstances } from './registration';
 import type { FastifyPreparation } from './preparation';
-import { rawMultipartParserPlugin, receiveMultipart } from './rawMultipart';
+import { rawMultipartParserPlugin, stageMultipart, validatedMultipart, finishMultipart } from './rawMultipart';
 import type { ResolvedHttpRoute, RouteComposition, RouteGuards, RouteBinding } from './routes';
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -14,24 +14,15 @@ import {
   prepareDatastreamUpload,
   validateDatastreamUploadBody,
   rejectDatastreamUpload,
-  type PreparedDatastreamUpload,
   type DatastreamUploadInput,
 } from '../actions/datastreamUpload';
-import type { StreamingMultipart, MultipartResult } from '../express/multipart';
+import type { StreamingMultipart } from '../express/multipart';
 
 export interface DatastreamUploadBoundaryInput extends DatastreamUploadInput {
   readonly multipart: StreamingMultipart;
 }
-interface ValidatedUpload {
-  readonly prepared: PreparedDatastreamUpload;
-  received?: MultipartResult;
-  close(): Promise<void>;
-}
-const validatedUploads = new WeakMap<FastifyRequest, ValidatedUpload>();
 export function validatedDatastreamUpload(request: FastifyRequest) {
-  const upload = validatedUploads.get(request);
-  if (!upload?.received) throw new TypeError('Upload requires completed host validation.');
-  return { prepared: upload.prepared, received: upload.received, close: upload.close };
+  return validatedMultipart(request);
 }
 const actionRequest = (request: FastifyRequest) => ({
   params: request.params as Record<string, unknown>,
@@ -47,7 +38,7 @@ const actionRequest = (request: FastifyRequest) => ({
 export function createDatastreamUploadBoundary(input: () => DatastreamUploadBoundaryInput) {
   async function finish(request: FastifyRequest, reply: FastifyReply) {
     try {
-      await validatedUploads.get(request)?.close();
+      await finishMultipart(request);
     } catch (error) {
       // A submitted response's onSend owns its cleanup failure representation.
       if (!httpReplySubmitted(reply))
@@ -68,25 +59,7 @@ export function createDatastreamUploadBoundary(input: () => DatastreamUploadBoun
         if (!validated) return;
         const prepared = await prepareDatastreamUpload(ports, req, res, identity, validated);
         if (!prepared) return;
-        const ready = Promise.withResolvers<MultipartResult>(),
-          released = Promise.withResolvers<void>();
-        const work = receiveMultipart(request, ports.multipart, async received => {
-          validateDatastreamUploadBody(req, route, received);
-          ready.resolve(received);
-          await released.promise;
-        }).finally(() => validatedUploads.delete(request));
-        const upload: ValidatedUpload = {
-          prepared,
-          close: () => {
-            released.resolve();
-            return work.then(() => {});
-          },
-        };
-        validatedUploads.set(request, upload);
-        // Failure reaches the prelude only after receive has joined writes and
-        // cleaned staging. The actual receive remains HTTP/application-owned.
-        void work.catch(ready.reject);
-        upload.received = await ready.promise;
+        await stageMultipart(request, ports.multipart, received => validateDatastreamUploadBody(req, route, received));
       } catch (error) {
         rejectDatastreamUpload(ports, req, res, error);
       }
@@ -102,7 +75,7 @@ export function createDatastreamUploadBoundary(input: () => DatastreamUploadBoun
     },
     async onSend(request: FastifyRequest, reply: FastifyReply, payload: unknown) {
       try {
-        await validatedUploads.get(request)?.close();
+        await finishMultipart(request);
       } catch (error) {
         const output = nativeActionReply(reply, bytes => {
           payload = bytes;

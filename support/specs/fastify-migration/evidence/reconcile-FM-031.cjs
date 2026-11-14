@@ -8,7 +8,7 @@ function reconcile(installation, runtime) {
   const assets = result.rows.filter(row => row.originalOwner === 'FM-031');
   assert.equal(assets.length, 15);
   assert(assets.every(row => row.classification === 'migrated' && row.owner === 'FM-031'));
-  assert.deepEqual(result.counts, { browserAndIntegration: 183, migrated: 169, intentionalOverrides: 0, later: 14 });
+  assert.deepEqual(result.counts, { browserAndIntegration: 183, migrated: 176, intentionalOverrides: 0, later: 7 });
   return {
     ...result,
     assetCounts: { declarations: assets.length, migrated: assets.length, staticBoundaries: 1, laterAssetEntries: 0 },

@@ -62,6 +62,7 @@ async function main() {
       ...core('http/referenceRoutes').referenceReadDeclarations,
       ...core('http/readRoutes').recordQueryReadDeclarations,
       ...core('http/datastreamRoutes').datastreamReadRoutes,
+      ...core('http/uploadRoutes').uploadDeclarations,
       ...core('http/identityRoutes').identityAdministrationDeclarations,
       ...core('http/mutationRoutes').mutationDeclarations,
       ...core('http/integrationRoutes').integrationDeclarations,

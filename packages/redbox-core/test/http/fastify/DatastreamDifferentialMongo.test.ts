@@ -1,3 +1,4 @@
+import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
 import assert from 'node:assert/strict';
 import type { RequestHandler } from 'express';
 import { Agent, request, type IncomingMessage } from 'node:http';
@@ -210,7 +211,7 @@ describe('FM-033 retained production datastream differential', function () {
               profile.policy,
               mode === 'retained' ? retained.install : undefined,
               {
-                declarations: datastreamReadRoutes,
+                declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
                 rootContext: profile.root,
                 pages: {},
                 bindings: {
@@ -285,10 +286,14 @@ describe('FM-033 retained production datastream differential', function () {
           assert.deepEqual(express, retained, 'Shared extraction preserves preceding Express');
           if (c.method === 'HEAD' && 'headBehavior' in c.route) {
             // This is TUS HEAD, after the download policies, never a download
-            // shortcut. FM-034 still owns its permitted protocol implementation.
+            // shortcut. FM-034 now binds the retained protocol implementation.
             assert.equal(native.body, '');
-            if ([401, 403].includes(retained.status!)) assert.equal(native.status, retained.status);
-            else assert.equal(native.status, 501);
+            const expected = structuredClone(retained);
+            // The existing native public-error boundary retains documented
+            // headers only, including deliberate TUS invalid-ID refusals.
+            if (c.variant.upstreamStatus && expected.status! >= 400)
+              delete expected.headers!['x-fm033-upstream-status'];
+            assert.deepEqual(native, expected, 'TUS HEAD preserves the retained response after download guards');
             return;
           }
           const expected = structuredClone(retained);
@@ -362,7 +367,7 @@ describe('FM-033 production session authorization and unopened storage', functio
               mode === 'fastify',
               reduced ? { '*': ['noCache', 'brandingAndPortal'] } : undefined,
               mode === 'retained' ? retained.install : undefined,
-              { declarations: datastreamReadRoutes, pages: {} }
+              { declarations: [...datastreamReadRoutes, ...resumableUploadRoutes], pages: {} }
             );
             try {
               await seed(f);
@@ -434,7 +439,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
         undefined,
         mode === 'retained' ? retainedFaults.install : undefined,
         {
-          declarations: datastreamReadRoutes,
+          declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
           pages: {},
           log: { ...nothingLogger, warn: message => messages.push(String(message)) },
         }
@@ -580,7 +585,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
         const messages: string[] = [];
         let observationsFile = '';
         const f = await referenceProductionFixture(true, undefined, undefined, {
-          declarations: datastreamReadRoutes,
+          declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
           pages: {},
           log: { ...nothingLogger, warn: message => messages.push(String(message)) },
           artifacts: async (_directory, provider) => {
@@ -757,7 +762,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
       it(`${route.path} disconnect during ${phase} retains acquisition and disposal`, async () => {
         const messages: string[] = [];
         const f = await referenceProductionFixture(true, undefined, undefined, {
-          declarations: datastreamReadRoutes,
+          declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
           log: { ...nothingLogger, warn: message => messages.push(String(message)) },
         });
         await seed(f);
@@ -836,7 +841,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
     for (const replacement of ['filename', 'foreign-record'])
       it(`${route.path} reads live beforeAction ${replacement} replacement`, async () => {
         const f = await referenceProductionFixture(true, undefined, undefined, {
-          declarations: datastreamReadRoutes,
+          declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
           artifacts: async (_directory, provider) => {
             const entry = provider + '/index.cjs';
             const run =
@@ -876,7 +881,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
     it(driver + ' closes the real storage producer and its cursor/file after a slow-reader disconnect', async () => {
       const storage = { primaryDisk: 'primary', disks: { primary: { driver, config: {} as Record<string, unknown> } } };
       const f = await referenceProductionFixture(true, undefined, undefined, {
-        declarations: datastreamReadRoutes,
+        declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
         ...(driver === 'fs'
           ? {
               configuration: { storage },

@@ -1,3 +1,4 @@
+import { brandingUploadRoutes, resumableUploadRoutes, uploadDeclarations } from '../../http/uploadRoutes';
 import { datastreamReadRoutes } from '../../http/datastreamRoutes';
 import { brandingDeliveryRoutes, fontDeliveryRoute, dynamicAssetRoutes } from '../../http/assetRoutes';
 import { dynamicAssetController } from '../../http/controllers/AssetControllers';
@@ -72,6 +73,36 @@ export async function resolvePortalInstallation(
   const upload = input.declarations.some(
     route => route.controller === addDataStreamsRoute.controller && route.action === addDataStreamsRoute.action
   );
+  const brandingUpload = input.declarations.some(route =>
+    brandingUploadRoutes.some(item => item.controller === route.controller && item.action === route.action)
+  );
+  const tusUpload = input.declarations.some(
+    route => route.method === 'all' && resumableUploadRoutes.some(item => item.path === route.path)
+  );
+  const resumableInput = {
+    rootContext: context.config.server.rootContext,
+    get resumable() {
+      return raw!.resumable;
+    },
+  };
+  const brandingUploadInput = {
+    log: context.log,
+    faceMaxBytes: context.config.branding.typefaceFaceMaxBytes,
+    get branding() {
+      return context.data.reference.branding.get();
+    },
+    get logos() {
+      return raw!.logos;
+    },
+    get staging() {
+      return context.data.disks.get().stagingDisk();
+    },
+    get multipart() {
+      return raw!.multipart;
+    },
+    audit: (actor: { id: string; username: string }, action: string, details: { brandId: string }) =>
+      context.data.users.get().addUserAuditEvent({ ...actor }, action, details),
+  };
   // Bind the module offline, but select its resources only after route replacement.
   let raw: PortalRawHttp | undefined;
   let pages: PortalPages | undefined;
@@ -111,7 +142,7 @@ export async function resolvePortalInstallation(
       }
     : undefined;
   const rawDeclaration =
-    upload || input.progress || context.config.companion.enabled
+    upload || brandingUpload || tusUpload || input.progress || context.config.companion.enabled
       ? {
           name: 'portal-raw-http',
           requires: [
@@ -120,6 +151,9 @@ export async function resolvePortalInstallation(
             context.data.datastream.declaration.name,
             context.data.progress.declaration.name,
             context.data.users.declaration.name,
+            ...(brandingUpload
+              ? [context.data.reference.sanitizer.declaration.name, context.data.reference.branding.declaration.name]
+              : []),
           ],
           create: () => raw!,
         }
@@ -190,7 +224,19 @@ export async function resolvePortalInstallation(
     identityTargets.add('AdminController');
     for (const name of ['ExportController', 'RecordAuditController']) readTargets.add(name);
   }
-  const mutations = portalMutationControllers(context, mutationTargets, input.actions ?? {}, uploadInputs, browser);
+  if (tusUpload) mutationTargets.add('RecordController');
+  if (brandingUpload)
+    for (const route of brandingUploadRoutes)
+      if (input.declarations.some(item => item.controller === route.controller))
+        integrationTargets.add(route.controller);
+  const mutations = portalMutationControllers(
+    context,
+    mutationTargets,
+    input.actions ?? {},
+    uploadInputs,
+    browser,
+    tusUpload ? resumableInput : undefined
+  );
   const assetCache = new BrandingDeliveryCache();
   const identities = portalIdentityControllers(
     context,
@@ -209,7 +255,8 @@ export async function resolvePortalInstallation(
             return pages!.delivery;
           },
         }
-      : undefined
+      : undefined,
+    brandingUpload ? brandingUploadInput : undefined
   );
   const reads = portalReadControllers(
     context,
@@ -244,10 +291,14 @@ export async function resolvePortalInstallation(
       provider: '@researchdatabox/redbox-core',
     } satisfies ProductionApiRouteOptions).map(route => ({
       ...route,
-      effectiveCsrf:
-        (route.declaration.api?.controller === updateMetaRoute.controller &&
-          [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
-        (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
+      effectiveCsrf: uploadDeclarations.some(item => route.declaration.name === coreRouteName(item.method, item.path))
+        ? brandingUploadRoutes.some(item => route.declaration.name === coreRouteName(item.method, item.path)) &&
+          route.declaration.path.includes('/app/')
+          ? 'protect'
+          : 'apiProtect'
+        : (route.declaration.api?.controller === updateMetaRoute.controller &&
+              [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
+            (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
           ? 'apiProtect'
           : integrationDeclarations.some(item => route.declaration.name === coreRouteName(item.method, item.path))
             ? route.declaration.method === 'get'
@@ -504,8 +555,14 @@ export async function resolvePortalInstallation(
       )
     );
   const httpOwners = Object.freeze({
-    downloads: Object.freeze([...new Set(datastreamReadRoutes.flatMap(routesFor))]),
+    downloads: Object.freeze(
+      [...new Set(datastreamReadRoutes.flatMap(routesFor))].filter(route => route.declaration.method !== 'all')
+    ),
     uploads: routesFor(addDataStreamsRoute),
+    brandingUploads: Object.freeze([...new Set(brandingUploadRoutes.flatMap(routesFor))]),
+    resumableUploads: Object.freeze(
+      [...new Set(resumableUploadRoutes.flatMap(routesFor))].filter(route => route.declaration.method === 'all')
+    ),
     progress: routesFor(progressSocketGrantRoute),
     metadataUpdates: routesFor(updateMetaRoute),
     schemaReads: Object.freeze(recordSchemaReadRoutes.flatMap(routesFor)),
@@ -522,7 +579,14 @@ export async function resolvePortalInstallation(
     identities: Object.freeze([...new Set(identityAdministrationDeclarations.flatMap(routesFor))]),
   });
   if (input.pages) pages = new PortalPages(context, appPath, resolved, input.pages, assetCache);
-  if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
+  if (rawDeclaration)
+    raw = new PortalRawHttp(
+      context,
+      httpOwners.uploads.length > 0 || httpOwners.brandingUploads.length > 0,
+      httpOwners.progress.length > 0,
+      httpOwners.resumableUploads.length > 0,
+      httpOwners.brandingUploads.length > 0
+    );
   // Seal declaration/plan data in place to retain exact factory identities.
   // Class instances (Zod schemas and the request registry) own their runtime state;
   // bindings close over borrowed inputs, which are never traversed or frozen.
@@ -547,6 +611,7 @@ export async function resolvePortalInstallation(
   return Object.freeze({
     ...resolved,
     downloadInput: reads.downloads,
+    brandingUploadInput,
     ownership: {
       declarations: portalHttpOwnerDeclarations(context.config, [
         ...progressSocketHttpOwners(new URL(context.config.server.publicUrl).origin),
@@ -579,7 +644,7 @@ export async function resolvePortalInstallation(
     hookLoadPriority: Object.freeze([...installed.hookLoadPriority]),
     scope: Object.freeze({
       included: Object.freeze([...selected]),
-      excluded: 'All other core families, including the unresolved FM-034 TUS GET/fallthrough splits',
+      excluded: 'All other unselected core families',
     }),
   });
 }

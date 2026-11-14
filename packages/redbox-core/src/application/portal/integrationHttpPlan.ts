@@ -1,3 +1,5 @@
+import { apiBrandingUploadController, brandingAppUploadController } from '../../http/controllers/UploadControllers';
+import type { BrandingUploadInput } from '../../http/actions/brandingUploads';
 import { brandingAssetController } from '../../http/controllers/AssetControllers';
 import { combineBrowserInput } from './pageHttpPlan';
 import * as browserControllers from '../../http/controllers/BrowserControllers';
@@ -86,7 +88,8 @@ export function portalIntegrationControllers(
   selected: ReadonlySet<string>,
   cache: BrandingDeliveryCache,
   browser?: BrowserPageBinding,
-  delivery?: { readonly delivery: import('../../pages/brandingDelivery').BrandingDelivery }
+  delivery?: { readonly delivery: import('../../pages/brandingDelivery').BrandingDelivery },
+  uploads?: BrandingUploadInput
 ) {
   const input = portalIntegrationHttpInputs(portal),
     combine = combineHttpInputs;
@@ -96,8 +99,12 @@ export function portalIntegrationControllers(
     browser
       ? bindControllerFactory(browserControllers.vocabularyBrowserController, combineBrowserInput(vocabulary, browser))
       : bindControllerFactory(c.vocabularyController, vocabulary),
-    bindControllerFactory(c.apiBrandingController, input.branding),
-    bindControllerFactory(c.brandingAppController, input.branding),
+    uploads
+      ? bindControllerFactory(apiBrandingUploadController, combine(input.branding, { uploads }))
+      : bindControllerFactory(c.apiBrandingController, input.branding),
+    uploads
+      ? bindControllerFactory(brandingAppUploadController, combine(input.branding, { uploads }))
+      : bindControllerFactory(c.brandingAppController, input.branding),
     delivery
       ? bindControllerFactory(brandingAssetController, combine(input.branding, delivery))
       : bindControllerFactory(c.brandingController, input.branding),

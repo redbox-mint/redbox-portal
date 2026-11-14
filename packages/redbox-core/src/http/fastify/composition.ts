@@ -1,3 +1,5 @@
+import { createBrandingUploadBoundary } from './brandingUploads';
+import type { BrandingUploadInput } from '../actions/brandingUploads';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import {
   prepareDatastreamUploads,
@@ -37,6 +39,8 @@ export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare
   readonly rawUploadRoutes?: readonly ResolvedHttpRoute[];
   /** Canonical production ports; controller replacement cannot replace the host guard. */
   rawUploadInput?(): DatastreamUploadBoundaryInput;
+  readonly brandingUploadRoutes?: readonly ResolvedHttpRoute[];
+  brandingUploadInput?(): BrandingUploadInput;
   prepareIntegrations?(server: import('node:http').Server): Promise<void>;
   readonly composition?: Pick<
     Awaited<ReturnType<typeof import('../../extensions/v2').resolveExtensionsV2>>,
@@ -92,6 +96,8 @@ export async function createControllerHost(
     composition,
     rawUploadRoutes = [],
     rawUploadInput,
+    brandingUploadRoutes = [],
+    brandingUploadInput,
     prepareIntegrations,
     controllers,
     bindings,
@@ -114,6 +120,15 @@ export async function createControllerHost(
   const uploads = new Set(rawUploadRoutes);
   if (uploads.size && !rawUploadInput) throw new TypeError('Raw uploads require host-owned production inputs.');
   const uploadBoundary = rawUploadInput && createDatastreamUploadBoundary(rawUploadInput);
+  const brandingUploads = new Set(brandingUploadRoutes);
+  if (brandingUploads.size && !brandingUploadInput)
+    throw new TypeError('Branding uploads require host-owned production inputs.');
+  const brandingBoundary = brandingUploadInput && createBrandingUploadBoundary(brandingUploadInput);
+  const brandingUploadNames = new Set(brandingUploadRoutes.map(route => route.declaration.name));
+  const boundary = (request: FastifyRequest) => {
+    const binding = (request.routeOptions.config as { redboxRoute?: import('./routes').RouteBinding }).redboxRoute;
+    return binding && brandingUploadNames.has(binding.route.declaration.name) ? brandingBoundary : uploadBoundary;
+  };
   const registry =
     composition?.registry ??
     new HttpRouteRegistry(routing.rootContext, fallbackReservedPrefixes, namespaceConfiguration, routePlan.targets);
@@ -168,7 +183,11 @@ export async function createControllerHost(
           installSafeHttpErrors(app, security?.observers);
           prepareNativeParsers(app, security?.parsers);
           const instances = controllerPlan.instantiate();
-          if (uploadBoundary) app.addHook('onSend', uploadBoundary.onSend);
+          if (uploadBoundary || brandingBoundary)
+            app.addHook(
+              'onSend',
+              async (request, reply, payload) => boundary(request)?.onSend(request, reply, payload) ?? payload
+            );
           const names = new WeakMap<object, string>();
           const unmatched = new WeakSet<object>();
           const selections = new WeakMap<object, ReturnType<typeof fallbackPlan.select>>();
@@ -194,13 +213,21 @@ export async function createControllerHost(
             if (httpReplySubmitted(reply)) return reply;
           };
           const guard: RouteGuards = async (binding, request, reply) => {
+            // Attachment GET falls through on HEAD, after its policy chain.
+            for (const owner of ownershipTable?.select(request) ?? []) {
+              if (owner.binding.route === binding.route) break;
+              if (owner.fallsThrough) {
+                await securityGuard?.(owner.binding, request, reply);
+                if (httpReplySubmitted(reply)) return reply;
+              }
+            }
             await securityGuard?.(binding, request, reply);
             if (httpReplySubmitted(reply)) return reply;
             await guards?.(binding, request, reply);
             if (httpReplySubmitted(reply)) return reply;
             const declaration = binding.route.declaration;
-            if (uploads.has(binding.route)) {
-              await uploadBoundary!.prelude(request, reply);
+            if (uploads.has(binding.route) || brandingUploads.has(binding.route)) {
+              await boundary(request)!.prelude(request, reply);
               if (httpReplySubmitted(reply)) return reply;
             } else if (!actionPreparation?.applies(binding) && (declaration.api || declaration.validation)) {
               const contract = declaration.api?.request ?? declaration.validation;
@@ -219,17 +246,18 @@ export async function createControllerHost(
             try {
               await hookPlan.run('beforeAction', name, request, reply);
             } catch (error) {
-              await uploadBoundary?.finish(request, reply);
+              await boundary(request)?.finish(request, reply);
               throw error;
             }
             if (httpReplySubmitted(reply)) {
-              await uploadBoundary?.finish(request, reply);
+              await boundary(request)?.finish(request, reply);
               return reply;
             }
             if (
               binding &&
               (binding.kind === 'action' || binding.kind === 'implicit-head') &&
               !uploads.has(binding.route) &&
+              !brandingUploads.has(binding.route) &&
               actionPreparation?.applies(binding)
             ) {
               await actionPreparation.run(binding, request, reply);
@@ -290,13 +318,15 @@ export async function createControllerHost(
           await security?.prepare?.(app);
           prepareDatastreamUploads(app, {
             plan: routePlan,
-            routes: rawUploadRoutes,
+            routes: [...rawUploadRoutes, ...brandingUploadRoutes],
             controllers: {
               action: route => {
                 const action = instances.action(route);
-                return uploadBoundary && rawUploadRoutes.some(owner => owner.declaration === route)
-                  ? uploadBoundary.wrap(action)
-                  : action;
+                if (uploadBoundary && rawUploadRoutes.some(owner => owner.declaration === route))
+                  return uploadBoundary.wrap(action);
+                if (brandingBoundary && brandingUploadRoutes.some(owner => owner.declaration === route))
+                  return brandingBoundary.wrap(action);
+                return action;
               },
             },
             guards: guard,

@@ -24,8 +24,13 @@ describe('FM-010 complete inventory grammar and universal overlap audit', functi
     assert.equal(registrations.length, 335);
     for (const row of inventory.routes) assert(translateRoutePath(row.original.path).length);
     assert.equal(report.length, 210);
-    assert.equal(coreRoutePrecedence.length, 208);
+    assert.equal(coreRoutePrecedence.length, 210);
     assert.equal(report.filter((entry: { disposition: string }) => entry.disposition === 'FM-034').length, 2);
+    const promoted = new Set(
+      report
+        .filter((entry: { disposition: string }) => entry.disposition === 'FM-034')
+        .map(({ name }: { name: string }) => name)
+    );
     assert.deepEqual(
       report
         .filter((entry: { disposition: string }) => entry.disposition === 'declared')
@@ -35,9 +40,16 @@ describe('FM-010 complete inventory grammar and universal overlap audit', functi
           winner,
           over,
         })),
-      coreRoutePrecedence
+      coreRoutePrecedence.filter(entry => !promoted.has(entry.name))
     );
-    assert.equal(new Set(coreRoutePrecedence.map(entry => entry.name)).size, 208);
+    for (const entry of report.filter((row: { disposition: string }) => row.disposition === 'FM-034')) {
+      const selected = coreRoutePrecedence.find(edge => edge.name === entry.name);
+      assert(selected);
+      assert.equal(selected.winner, entry.winner);
+      assert.equal(selected.over, entry.over);
+      assert.match(selected.reason, /GET.*TUS.*HEAD/);
+    }
+    assert.equal(new Set(coreRoutePrecedence.map(entry => entry.name)).size, 210);
   });
   for (const rootContext of ['', '/research/v6'])
     for (const legacyOrder of [false, true]) {
@@ -56,29 +68,48 @@ describe('FM-010 complete inventory grammar and universal overlap audit', functi
           new Set(report.map((entry: { winner: string; over: string }) => pairKey(entry.winner, entry.over)))
         );
       });
-      it(`leaves precisely the two GET/TUS source splits unresolved for FM-034, legacy=${legacyOrder}, root=${rootContext || '/'}`, async () => {
-        let failure = '';
-        try {
-          await composeRoutes(registrations, {
-            policyNames: policies,
-            rootContext,
-            legacyOrder,
-            precedence: coreRoutePrecedence,
-          });
-        } catch (error) {
-          failure = String(error);
+      it(`resolves both GET/TUS splits with download GET and TUS HEAD ownership, legacy=${legacyOrder}, root=${rootContext || '/'}`, async () => {
+        const fallthrough = new Map(
+          inventory.routes
+            .filter(row => row.head.behavior.includes('falls through'))
+            .map(row => [row.name, row.head.explicitTarget!])
+        );
+        const effective = registrations.map(route =>
+          fallthrough.has(route.declaration.name)
+            ? { ...route, declaration: { ...route.declaration, head: { kind: 'none' as const } } }
+            : route
+        );
+        const run = composeRoutes(effective, {
+          policyNames: policies,
+          rootContext,
+          legacyOrder,
+          precedence: coreRoutePrecedence,
+        });
+        if (!legacyOrder) {
+          await assert.rejects(run, /cannot retain winner/);
+          return;
         }
-        const actual = new Set(
-          [...failure.matchAll(/route overlap at \S+: (\S+) \/ (\S+) requires/g)].map(([, a, b]) => pairKey(a, b))
-        );
-        assert.deepEqual(
-          actual,
-          new Set(
-            report
-              .filter((entry: { disposition: string }) => entry.disposition === 'FM-034')
-              .map((entry: { winner: string; over: string }) => pairKey(entry.winner, entry.over))
-          )
-        );
+        const composition = await run;
+        assert.equal(fallthrough.size, 2);
+        for (const [download, tus] of fallthrough) {
+          assert(
+            composition.bindings.some(
+              binding => binding.method === 'GET' && binding.route.declaration.name === download
+            )
+          );
+          assert(
+            !composition.bindings.some(
+              binding => binding.method === 'HEAD' && binding.route.declaration.name === download
+            )
+          );
+          assert(
+            !composition.bindings.some(binding => binding.method === 'GET' && binding.route.declaration.name === tus)
+          );
+          for (const method of ['HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'])
+            assert(
+              composition.bindings.some(binding => binding.method === method && binding.route.declaration.name === tus)
+            );
+        }
       });
       it(`audits the effective table with real metadata, legacy=${legacyOrder}, root=${rootContext || '/'}`, async () => {
         const fallthrough = new Set(

@@ -24,9 +24,9 @@ describe('FM-030 complete browser declaration and production binding reconciliat
   it('accounts for every non-API FM-002 declaration and its later-task owner', () => {
     assert.deepEqual(audit.reconcile(fixture.portal.installation).counts, {
       browserAndIntegration: 183,
-      migrated: 169,
+      migrated: 176,
       intentionalOverrides: 0,
-      later: 14,
+      later: 7,
     });
   });
   it('rejects a missing browser route instead of deferring it', () => {

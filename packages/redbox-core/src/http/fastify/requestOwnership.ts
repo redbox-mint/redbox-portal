@@ -1,3 +1,4 @@
+import { bindResumableRequestView } from './resumableUploads';
 import { bindAssetRequestView } from './assetCookies';
 import { isOwnedReadStream } from './readStreams';
 import { bindMultipartRequestView } from './rawMultipart';
@@ -402,6 +403,7 @@ export function requestOwnership(owner: PersistenceOwner) {
     replies.set(request, reply);
     bindMultipartRequestView(request, publicView(request, 'request'));
     bindCompanionRequestView(request, reply, publicView(request, 'request'));
+    bindResumableRequestView(request, reply, publicView(request, 'request'));
     publicView(reply, 'reply');
     for (const transport of [request.raw, reply.raw, request.raw.socket]) publicView(transport, 'raw');
     contexts.set(request, bindAcceptedPersistenceContext(owner));

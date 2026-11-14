@@ -1,10 +1,24 @@
 import type { RoutePrecedence } from './routes';
 
 /** Individually inventoried source-declaration precedence, across every method.
- * Named intent never bypasses native ownership proof. The two GET/TUS
- * fallthrough resources deliberately remain unresolved until FM-034.
+ * Named intent never bypasses native ownership proof. Attachment GET precedes
+ * TUS ALL; its explicit HEAD fallthrough keeps TUS HEAD available.
  */
 export const coreRoutePrecedence: readonly RoutePrecedence[] = [
+  {
+    name: 'legacy.core-http-get-394ddcf5e5780223.over.core-http-all-394ddcf5e5780223',
+    winner: 'core-http-get-394ddcf5e5780223',
+    over: 'core-http-all-394ddcf5e5780223',
+    reason:
+      'Retained attachment GET handles downloads before TUS ALL; HEAD explicitly continues to TUS after the download guards.',
+  },
+  {
+    name: 'legacy.core-http-get-2f0b097b7c4390c0.over.core-http-all-2f0b097b7c4390c0',
+    winner: 'core-http-get-2f0b097b7c4390c0',
+    over: 'core-http-all-2f0b097b7c4390c0',
+    reason:
+      'Retained attachment GET handles downloads before TUS ALL; HEAD explicitly continues to TUS after the download guards.',
+  },
   {
     name: 'legacy.core-http-head-e3ee2548904017ea.over.core-http-get-e3ee2548904017ea',
     reason: 'The explicit OIDC HEAD denial must block the GET provider-start action while retaining its own guards.',

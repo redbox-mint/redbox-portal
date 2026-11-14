@@ -414,6 +414,30 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-034') {
+        const uploads = fromSource(prefix + 'http/controllers/UploadControllers.ts');
+        const datastream = fromSource(prefix + 'http/controllers/webservice/DatastreamController.ts');
+        const factories = [
+          uploads.apiBrandingUploadController,
+          uploads.brandingAppUploadController,
+          uploads.recordUploadController,
+          datastream.datastreamController,
+        ].filter(factory => factory.name === route.controller && factory.actions.includes(route.action));
+        assert.equal(factories.length, 1, 'Exactly one FM-034 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factories[0].name,
+          action: route.action,
+          file:
+            prefix +
+            (route.action === 'addDataStreams'
+              ? 'http/controllers/webservice/DatastreamController.ts'
+              : 'http/controllers/UploadControllers.ts'),
+          productionBinding: prefix + 'application/portal/installation.ts',
+          differential: test('http/fastify/UploadDifferentialMongo.test.ts'),
+          migratedBy: 'FM-034',
+        };
+      }
       if (owners[collection.export][0] === 'FM-033') {
         const factories = readFactories.filter(
           factory => factory.name === route.controller && factory.actions.includes(route.action)

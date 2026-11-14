@@ -64,7 +64,7 @@ export async function prepareDatastreamUpload(
   req: ActionRequest,
   res: ActionReply,
   identity: NonNullable<ReturnType<typeof datastreamUploadActorPrelude>>,
-  validated: ValidatedApiRouteRequest
+  validated: Pick<ValidatedApiRouteRequest, 'params'>
 ) {
   const { actor, snapshot, portal } = identity;
   const oid = String(validated.params.oid),

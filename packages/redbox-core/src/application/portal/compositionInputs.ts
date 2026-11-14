@@ -25,9 +25,13 @@ export type ProductionExtensionResolutionOptions = Required<ExtensionResolutionV
   readonly namespaceConfiguration: ProductionNamespaceConfiguration;
 };
 export type ProductionControllerHostOptions = Required<
-  Omit<ControllerHostOptions, 'security' | 'routing' | 'rawUploadInput' | 'pageNotFound' | 'staticAsset'>
+  Omit<
+    ControllerHostOptions,
+    'security' | 'routing' | 'rawUploadInput' | 'brandingUploadInput' | 'pageNotFound' | 'staticAsset'
+  >
 > & {
   readonly rawUploadInput: ControllerHostOptions['rawUploadInput'];
+  readonly brandingUploadInput: ControllerHostOptions['brandingUploadInput'];
   readonly pageNotFound: ControllerHostOptions['pageNotFound'];
   readonly staticAsset: ControllerHostOptions['staticAsset'];
   readonly routing: ProductionRoutingOptions;

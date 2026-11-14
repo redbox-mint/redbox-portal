@@ -843,6 +843,22 @@ export async function composeRoutes(
     const effectiveUrl = path.url.endsWith('/') && path.url !== '/' ? path.url.slice(0, -1) : path.url;
     const duplicate = probe.hasRoute(method as NativeMethod, effectiveUrl);
     if (duplicate) {
+      // Exact method/path overlap can be wholly shadowed by an explicitly
+      // named earlier owner (attachment GET before TUS ALL). Other methods of
+      // the ALL declaration, including the GET's explicit HEAD continuation,
+      // keep their own bindings. Ambiguous structural identities still fail.
+      const earlier = bindings.find(
+        prior =>
+          prior.method === method && prior.path.url.toLowerCase().replace(/\/$/, '') === effectiveUrl.toLowerCase()
+      );
+      if (
+        !skipExisting &&
+        earlier &&
+        (options.precedence ?? []).some(
+          edge => edge.winner === earlier.route.declaration.name && edge.over === route.declaration.name
+        )
+      )
+        return;
       if (!skipExisting) fail(route.provider, `route collision: ${route.declaration.name} at ${method} ${path.url}`);
       // A required OPTIONS wildcard misses bare '/'. Keep an unconstrained
       // native fallback beside it; the constrained explicit guard wins for

@@ -14,9 +14,13 @@ const assetDeclarations = [...brandingDeliveryRoutes, fontDeliveryRoute, ...dyna
 const { pageRootRoute } = source('http/express/pages');
 const { resolveEffectivePolicies } = source('http/express/policies');
 const { datastreamReadRoutes } = source('http/datastreamRoutes');
-const migratedDeclarations = [...new Set([...previous.migratedDeclarations, ...datastreamReadRoutes])];
+const { uploadDeclarations } = source('http/uploadRoutes');
+const migratedDeclarations = [
+  ...new Set([...previous.migratedDeclarations, ...datastreamReadRoutes, ...uploadDeclarations]),
+];
 const declarations = [
   ...datastreamReadRoutes,
+  ...uploadDeclarations,
   ...pageRoutes,
   ...authenticationRoutes,
   pageRootRoute,
@@ -47,7 +51,7 @@ function reconcile(installation, runtime) {
             runtime: { kind: 'native session/CSRF owner', csrf: row.csrf.effective },
           };
         }
-        assert(['FM-034', 'FM-035'].includes(row.ownerTask), 'Missing browser binding: ' + row.name);
+        assert(['FM-035'].includes(row.ownerTask), 'Missing browser binding: ' + row.name);
         return {
           ...base,
           classification: 'owned-by-later-task',
@@ -101,9 +105,7 @@ function reconcile(installation, runtime) {
           );
         } else assert.deepEqual(route.effectivePolicies, row.access.effectivePolicies);
       } else {
-        const declaration = previous.migratedDeclarations.find(
-          item => coreRouteName(item.method, item.path) === row.name
-        );
+        const declaration = migratedDeclarations.find(item => coreRouteName(item.method, item.path) === row.name);
         assert(declaration, 'Missing executable browser-operation declaration: ' + row.name);
         assert.equal(route.declaration.controller, declaration.controller);
         assert.equal(route.declaration.action, declaration.action);
@@ -119,7 +121,11 @@ function reconcile(installation, runtime) {
           ? row.action === 'localLogin' || (row.action === 'logout' && row.method === 'post')
             ? 'protect'
             : 'none'
-          : row.csrf.effective;
+          : row.method === 'all' && row.ownerTask === 'FM-034'
+            ? 'apiProtect'
+            : row.csrf.effective;
+      if (row.method === 'all' && row.ownerTask === 'FM-034')
+        assert.equal(row.csrf.effective, 'apiProtect on ALL methods, including HEAD/OPTIONS');
       assert.equal(route.effectiveCsrf ?? 'none', expectedCsrf);
       const factory = installation.controllerPlan.controllers.filter(
         item => item.declaration.name === route.declaration.controller
@@ -179,9 +185,11 @@ function reconcile(installation, runtime) {
         classification:
           row.ownerTask === 'FM-031'
             ? 'migrated: contained static assets after declared routes, before fallback'
-            : row.ownerTask === 'FM-030'
-              ? 'migrated: shared branded page-not-found behind reserved namespaces'
-              : 'owned-by-later-task',
+            : row.ownerTask === 'FM-034'
+              ? 'migrated: scoped multipart owner with staging, cleanup and drain'
+              : row.ownerTask === 'FM-030'
+                ? 'migrated: shared branded page-not-found behind reserved namespaces'
+                : 'owned-by-later-task',
       })),
     rows,
   };

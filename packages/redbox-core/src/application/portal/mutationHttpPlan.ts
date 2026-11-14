@@ -1,18 +1,20 @@
+import {
+  recordUploadController,
+  mutationUploadController,
+  recordUploadBrowserController,
+  type ResumableControllerInput,
+} from '../../http/controllers/UploadControllers';
 import { combineBrowserInput } from './pageHttpPlan';
 import * as browserControllers from '../../http/controllers/BrowserControllers';
 import type { BrowserPageBinding } from '../../http/controllers/BrowserControllers';
 import type { PortalApplicationContext } from './application';
-import { bindControllerFactory, defineController } from '../../http/controllers';
+import { bindControllerFactory } from '../../http/controllers';
 import * as c from '../../http/controllers/MutationControllers';
 import { portalReadHttpInputs, combineHttpInputs } from './readHttpPlan';
 import { portalReferenceHttpInputs } from './referenceHttpPlan';
 import { portalHttpPlan } from './httpPlan';
 import type { ConfiguredAction } from '../../http/actions/configuredActions';
-import type { FastifyRequest, FastifyReply } from 'fastify';
-import {
-  DatastreamController,
-  type DatastreamControllerInput,
-} from '../../http/controllers/webservice/DatastreamController';
+import type { DatastreamControllerInput } from '../../http/controllers/webservice/DatastreamController';
 
 /** Offline selections borrow initialized production owners at request time. */
 export function portalMutationHttpInputs(
@@ -80,29 +82,13 @@ export function portalMutationHttpInputs(
     actions: { actions, audit, log },
   };
 }
-type MutationUploadInput = c.ApiRecordMutationControllerInput & DatastreamControllerInput;
-class MutationUploadController extends c.ApiRecordMutationController {
-  private readonly uploads: DatastreamController;
-  constructor(input: MutationUploadInput) {
-    super(input);
-    this.uploads = new DatastreamController(input);
-  }
-  addDataStreams(request: FastifyRequest, reply: FastifyReply) {
-    return this.uploads.addDataStreams(request, reply);
-  }
-}
-const mutationUploadController = defineController({
-  name: c.apiRecordMutationController.name,
-  requires: ['portal-raw-http'],
-  actions: [...c.apiRecordMutationController.actions, 'addDataStreams'],
-  create: (input: MutationUploadInput) => new MutationUploadController(input),
-});
 export function portalMutationControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
   actions: Readonly<Record<string, ConfiguredAction>>,
   uploads?: DatastreamControllerInput,
-  browser?: BrowserPageBinding
+  browser?: BrowserPageBinding,
+  resumable?: ResumableControllerInput
 ) {
   const input = portalMutationHttpInputs(portal, actions),
     reads = portalReadHttpInputs(portal),
@@ -136,12 +122,19 @@ export function portalMutationControllers(
     uploads
       ? bindControllerFactory(mutationUploadController, combine(apiRecords, uploads))
       : bindControllerFactory(c.apiRecordMutationController, apiRecords),
-    browser
-      ? bindControllerFactory(
-          browserControllers.recordMutationBrowserController,
-          combineBrowserInput(browserRecords, browser)
-        )
-      : bindControllerFactory(c.recordMutationController, browserRecords),
+    resumable
+      ? browser
+        ? bindControllerFactory(
+            recordUploadBrowserController,
+            combine(combineBrowserInput(browserRecords, browser), resumable)
+          )
+        : bindControllerFactory(recordUploadController, combine(browserRecords, resumable))
+      : browser
+        ? bindControllerFactory(
+            browserControllers.recordMutationBrowserController,
+            combineBrowserInput(browserRecords, browser)
+          )
+        : bindControllerFactory(c.recordMutationController, browserRecords),
     bindControllerFactory(c.apiAppConfigMutationController, combine(refs.configuration, input.configuration)),
     browser
       ? bindControllerFactory(

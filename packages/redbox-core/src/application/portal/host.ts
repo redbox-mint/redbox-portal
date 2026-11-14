@@ -139,6 +139,8 @@ export async function createPortalFastifyHost(
     composition: resolved,
     ownership: resolved.ownership,
     rawUploadRoutes: resolved.httpOwners.uploads,
+    brandingUploadRoutes: resolved.httpOwners.brandingUploads,
+    brandingUploadInput: resolved.httpOwners.brandingUploads.length ? () => resolved.brandingUploadInput : undefined,
     rawUploadInput: resolved.httpOwners.uploads.length ? () => resolved.raw!.uploadInput() : undefined,
     prepareIntegrations: async server => {
       await resolved.raw?.prepare(server, () => application.status().ready);

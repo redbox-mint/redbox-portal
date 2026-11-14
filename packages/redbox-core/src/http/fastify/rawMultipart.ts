@@ -48,3 +48,42 @@ export function receiveMultipart<T>(
   trackHttpRequestWork(request, work);
   return work;
 }
+
+interface StagedMultipart {
+  received?: MultipartResult;
+  close(): Promise<void>;
+}
+const staged = new WeakMap<FastifyRequest, StagedMultipart>();
+/** Complete fields are made live before beforeAction; staging stays owned until
+ * action/hook completion or onSend. No request-derived domain input is cached. */
+export async function stageMultipart(
+  request: FastifyRequest,
+  multipart: StreamingMultipart,
+  validate: (received: MultipartResult) => void
+): Promise<void> {
+  const ready = Promise.withResolvers<MultipartResult>(),
+    released = Promise.withResolvers<void>();
+  const work = receiveMultipart(request, multipart, async received => {
+    validate(received);
+    request.body = received.fields;
+    ready.resolve(received);
+    await released.promise;
+  }).finally(() => staged.delete(request));
+  const upload: StagedMultipart = {
+    close: () => {
+      released.resolve();
+      return work.then(() => {});
+    },
+  };
+  staged.set(request, upload);
+  void work.catch(ready.reject);
+  upload.received = await ready.promise;
+}
+export function validatedMultipart(request: FastifyRequest) {
+  const upload = staged.get(request);
+  if (!upload?.received) throw new TypeError('Upload requires completed host validation.');
+  return { received: { ...upload.received, fields: request.body as MultipartResult['fields'] }, close: upload.close };
+}
+export async function finishMultipart(request: FastifyRequest): Promise<void> {
+  await staged.get(request)?.close();
+}

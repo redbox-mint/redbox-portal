@@ -143,6 +143,10 @@ export function productionCompositionInputCases() {
         );
         assert.strictEqual(resolve.firstCall.args[0][1], (await load.firstCall.returnValue).providers[0]);
         inputs<ResolvedPortalInstallation>(resolved, {
+          brandingUploadInput: value => {
+            assert(value && typeof value === 'object');
+            for (const key of ['branding', 'logos', 'staging', 'multipart', 'log', 'audit']) assert(key in value);
+          },
           downloadInput: value => {
             assert(value && typeof value === 'object');
             for (const key of ['records', 'datastream', 'log']) assert(key in value);
@@ -164,6 +168,8 @@ export function productionCompositionInputCases() {
           httpOwners: equal({
             downloads: [],
             uploads: [],
+            brandingUploads: [],
+            resumableUploads: [],
             progress: [],
             schemaReads: [],
             identities: [],
@@ -200,7 +206,7 @@ export function productionCompositionInputCases() {
           namespaceConfiguration: same(resolver.namespaceConfiguration),
           scope: equal({
             included: resolver.coreRoutes.map((route: object) => Reflect.get(route, 'declaration').name),
-            excluded: 'All other core families, including the unresolved FM-034 TUS GET/fallthrough splits',
+            excluded: 'All other unselected core families',
           }),
         });
         inputs<ExtensionResolutionV2Options>(resolver, {
@@ -319,6 +325,8 @@ export function productionCompositionInputCases() {
           routeRegistry: same(resolved.registry),
           logger: same(transport.firstCall.args[1].logger),
           rawUploadRoutes: same(resolved.httpOwners.uploads),
+          brandingUploadRoutes: same(resolved.httpOwners.brandingUploads),
+          brandingUploadInput: same(undefined),
           rawUploadInput: same(undefined),
           prepareIntegrations: callable,
           composition: same(resolved),

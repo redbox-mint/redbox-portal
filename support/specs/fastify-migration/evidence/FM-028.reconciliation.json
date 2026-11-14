@@ -2,12 +2,12 @@
   "formatVersion": 1,
   "counts": {
     "api": 152,
-    "migrated": 148,
+    "migrated": 152,
     "intentionalOverrides": 0,
-    "later": 4
+    "later": 0
   },
   "composition": {
-    "declarations": 253,
+    "declarations": 264,
     "controllers": 36
   },
   "rows": [
@@ -4956,10 +4956,29 @@
         "metadata": "complete operation equals the executable declaration-derived operation",
         "blueprint": true
       },
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Complete multipart/staging/upload concurrency matrix (P5)",
-      "runtime": null
+      "runtime": {
+        "provider": "@researchdatabox/redbox-core",
+        "factory": "webservice/BrandingController",
+        "action": "uploadFace",
+        "bindings": [
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api/branding/draft/typeface/faces/:slot([\\s\\S]+)"
+          }
+        ],
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "validation": "same executable declaration object; response schemas remain documentation only",
+        "head": "not-applicable"
+      }
     },
     {
       "name": "core-http-post-e19554725619b5d9",
@@ -4977,10 +4996,29 @@
         "metadata": "complete operation equals the executable declaration-derived operation",
         "blueprint": true
       },
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Complete multipart/staging/upload concurrency matrix (P5)",
-      "runtime": null
+      "runtime": {
+        "provider": "@researchdatabox/redbox-core",
+        "factory": "webservice/BrandingController",
+        "action": "logo",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api/branding/logo"
+          }
+        ],
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "validation": "same executable declaration object; response schemas remain documentation only",
+        "head": "not-applicable"
+      }
     },
     {
       "name": "core-http-post-14f57981d058b2d8",
@@ -4998,10 +5036,29 @@
         "metadata": "complete operation equals the executable declaration-derived operation",
         "blueprint": true
       },
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Complete multipart/staging/upload concurrency matrix (P5)",
-      "runtime": null
+      "runtime": {
+        "provider": "@researchdatabox/redbox-core",
+        "factory": "webservice/BrandingController",
+        "action": "favicon",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api/branding/favicon"
+          }
+        ],
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "validation": "same executable declaration object; response schemas remain documentation only",
+        "head": "not-applicable"
+      }
     },
     {
       "name": "core-http-get-69c84656aeb2c939",
@@ -6019,10 +6076,29 @@
         "metadata": "complete operation equals the executable declaration-derived operation",
         "blueprint": true
       },
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Complete multipart/staging/upload concurrency matrix (P5)",
-      "runtime": null
+      "runtime": {
+        "provider": "@researchdatabox/redbox-core",
+        "factory": "webservice/RecordController",
+        "action": "addDataStreams",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/api/records/datastreams/:oid([\\s\\S]+)"
+          }
+        ],
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "validation": "same executable declaration object; response schemas remain documentation only",
+        "head": "not-applicable"
+      }
     }
   ]
 }

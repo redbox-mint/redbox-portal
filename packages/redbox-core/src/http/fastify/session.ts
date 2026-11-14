@@ -449,12 +449,14 @@ export function nativeSessionRequest(
 }
 
 const rawHandoffs = new WeakMap<FastifyRequest, () => Promise<unknown>>();
-/** Identified Companion handoff only; commit cookies/store work before raw headers. */
-export async function commitNativeSessionForCompanion(request: FastifyRequest): Promise<void> {
+/** Qualified Companion/TUS handoff only; commit cookies/store work before raw headers. */
+export async function commitNativeSessionForRawReply(request: FastifyRequest): Promise<void> {
   const commit = rawHandoffs.get(request);
-  if (!commit) throw new TypeError('Companion requires prepared native sessions.');
+  if (!commit) throw new TypeError('Raw publication requires prepared native sessions.');
   await commit();
 }
+
+export const commitNativeSessionForCompanion = commitNativeSessionForRawReply;
 
 /** Qualified replacement for the pinned plugin's incompatible default onSend.
  * Native Session still owns signing, hashing, serialization state and rotation.

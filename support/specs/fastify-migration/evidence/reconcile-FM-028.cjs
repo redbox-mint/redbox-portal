@@ -23,6 +23,7 @@ const { recordQueryReadDeclarations } = source('http/readRoutes');
 const { identityAdministrationDeclarations } = source('http/identityRoutes');
 const { mutationDeclarations } = source('http/mutationRoutes');
 const { integrationDeclarations } = source('http/integrationRoutes');
+const { uploadDeclarations } = source('http/uploadRoutes');
 const { getMetaRoute, listDatastreamsRoute, getDataStreamRoute } = source('api-routes/groups/records');
 const apiDeclarations = registerCoreApiRoutes();
 // Collections retain their executable definitions; metadata GET predates FM-024.
@@ -33,6 +34,7 @@ const migratedDeclarations = Object.freeze([
     ...identityAdministrationDeclarations,
     ...mutationDeclarations,
     ...integrationDeclarations,
+    ...uploadDeclarations,
     getMetaRoute,
     listDatastreamsRoute,
     getDataStreamRoute,
@@ -232,7 +234,9 @@ async function main() {
         'IdentityAdministrationControllers',
         'MutationControllers',
         'IntegrationControllers',
+        'UploadControllers',
         'webservice/RecordController',
+        'webservice/DatastreamController',
       ];
       const controllers = app.portal.installation.controllerPlan.controllers.map(({ declaration: factory }) => {
         let match;

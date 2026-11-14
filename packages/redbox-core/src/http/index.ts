@@ -76,3 +76,5 @@ export {
 
 export { datastreamReadRoutes } from './datastreamRoutes';
 export type { DatastreamReadInput } from './actions/datastreamReads';
+export * from './controllers/UploadControllers';
+export type { BrandingUploadInput } from './actions/brandingUploads';

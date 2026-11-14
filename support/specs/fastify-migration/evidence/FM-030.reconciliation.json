@@ -2,9 +2,9 @@
   "formatVersion": 1,
   "counts": {
     "browserAndIntegration": 183,
-    "migrated": 169,
+    "migrated": 176,
     "intentionalOverrides": 0,
-    "later": 14
+    "later": 7
   },
   "boundaries": [
     {
@@ -40,7 +40,7 @@
     {
       "name": "core-multipart-parser",
       "owner": "FM-034",
-      "classification": "owned-by-later-task"
+      "classification": "migrated: scoped multipart owner with staging, cleanup and drain"
     }
   ],
   "rows": [
@@ -3787,48 +3787,105 @@
       "method": "put",
       "path": "/:branding/:portal/app/branding/draft/typeface/faces/:slot",
       "source": {
-        "file": "packages/redbox-core/src/http/express/brandingUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "brandingUploadRoutes",
-        "line": 18,
+        "line": 14,
         "index": 3
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingAppController",
+        "action": "uploadFace",
+        "factory": "BrandingAppController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "protect",
+        "bindings": [
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/app/branding/draft/typeface/faces/:slot([\\s\\S]+)",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-post-d711d4b18b9dab54",
       "method": "post",
       "path": "/:branding/:portal/app/branding/logo",
       "source": {
-        "file": "packages/redbox-core/src/http/express/brandingUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "brandingUploadRoutes",
-        "line": 18,
+        "line": 14,
         "index": 4
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingAppController",
+        "action": "logo",
+        "factory": "BrandingAppController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "protect",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/app/branding/logo",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-post-712b918f3c58a0b3",
       "method": "post",
       "path": "/:branding/:portal/app/branding/favicon",
       "source": {
-        "file": "packages/redbox-core/src/http/express/brandingUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "brandingUploadRoutes",
-        "line": 18,
+        "line": 14,
         "index": 5
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "BrandingAppController",
+        "action": "favicon",
+        "factory": "BrandingAppController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "protect",
+        "bindings": [
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/app/branding/favicon",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-get-394ddcf5e5780223",
@@ -8750,64 +8807,810 @@
       "method": "all",
       "path": "/:branding/:portal/record/:oid/attach",
       "source": {
-        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "resumableUploadRoutes",
-        "line": 17,
+        "line": 3,
         "index": 0
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "ACL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "BIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "CHECKOUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "CONNECT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "COPY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "LINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "LOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "M-SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MERGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MKACTIVITY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MKCALENDAR",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MKCOL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MOVE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "NOTIFY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "OPTIONS",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PROPFIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PROPPATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PURGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "QUERY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "REBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "REPORT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "SOURCE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "SUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "TRACE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNLINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNLOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNSUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-all-fb875ae104ffe0b8",
       "method": "all",
       "path": "/:branding/:portal/companion/record/:oid/attach",
       "source": {
-        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "resumableUploadRoutes",
-        "line": 17,
+        "line": 3,
         "index": 1
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "ACL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "BIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "CHECKOUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "CONNECT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "COPY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "GET",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "LINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "LOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "M-SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MERGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MKACTIVITY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MKCALENDAR",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MKCOL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "MOVE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "NOTIFY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "OPTIONS",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PROPFIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PROPPATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PURGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "QUERY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "REBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "REPORT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "SOURCE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "SUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "TRACE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNLINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNLOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          },
+          {
+            "method": "UNSUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-all-394ddcf5e5780223",
       "method": "all",
       "path": "/:branding/:portal/record/:oid/attach/:attachId",
       "source": {
-        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "resumableUploadRoutes",
-        "line": 17,
+        "line": 3,
         "index": 2
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "ACL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "BIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "CHECKOUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "CONNECT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "COPY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "LINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "LOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "M-SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MERGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MKACTIVITY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MKCALENDAR",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MKCOL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MOVE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "NOTIFY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "OPTIONS",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PROPFIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PROPPATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PURGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "QUERY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "REBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "REPORT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "SOURCE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "SUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "TRACE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNLINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNLOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNSUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-all-2f0b097b7c4390c0",
       "method": "all",
       "path": "/:branding/:portal/companion/record/:oid/attach/:attachId",
       "source": {
-        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "file": "packages/redbox-core/src/http/uploadRoutes.ts",
         "export": "resumableUploadRoutes",
-        "line": 17,
+        "line": 3,
         "index": 3
       },
       "originalOwner": "FM-034",
-      "classification": "owned-by-later-task",
+      "classification": "migrated",
       "owner": "FM-034",
-      "reason": "Multipart/staging/TUS upload and fallthrough",
-      "runtime": null
+      "runtime": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "factory": "RecordController",
+        "provider": "@researchdatabox/redbox-core",
+        "policies": [
+          "nocache",
+          "brandingandportal",
+          "iswebserviceauthenticated",
+          "brandactor",
+          "checkauth"
+        ],
+        "csrf": "apiProtect",
+        "bindings": [
+          {
+            "method": "ACL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "BIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "CHECKOUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "CONNECT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "COPY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "DELETE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "HEAD",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "LINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "LOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "M-SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MERGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MKACTIVITY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MKCALENDAR",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MKCOL",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "MOVE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "NOTIFY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "OPTIONS",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "POST",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PROPFIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PROPPATCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PURGE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "PUT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "QUERY",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "REBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "REPORT",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "SEARCH",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "SOURCE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "SUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "TRACE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNBIND",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNLINK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNLOCK",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          },
+          {
+            "method": "UNSUBSCRIBE",
+            "path": "/portal/:branding([\\s\\S]+)/:portal([\\s\\S]+)/companion/record/:oid([\\s\\S]+)/attach/:attachId([\\s\\S]+)",
+            "kind": "action"
+          }
+        ]
+      }
     },
     {
       "name": "core-http-post-3933244eb49cfdbb",

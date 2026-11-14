@@ -175,7 +175,7 @@ ${
     ? `const { ${className}: Base, ${factoryName}: base } = require(${JSON.stringify(modulePath('http/controllers/' + controllerFile))});
 class InstalledController extends Base {
   async ${source.action}(request, reply) {
-    ${family === 'upload' ? 'assert.equal(request.body, undefined);' : ''}
+    ${family === 'upload' ? `assert.deepEqual(request.body, ${kind === 'strict' ? "{ approvalField: 'yes' }" : '{}'});` : ''}
     if (${!!options.ordering}) events.push('action');
     ${options.overrideAction === 'throw' ? "throw new Error('private action failure');" : options.overrideAction ? 'return reply.send({ override: true });' : ''}
     reply.header('X-FM020-Controller', 'subclass');
@@ -453,7 +453,10 @@ describe('FM-020 production resolved-route transport ownership', function () {
           }
           if (kind !== 'deny') {
             const wrong = await request(url, extra, true, method === 'PUT' ? 'POST' : 'PUT');
-            assert.equal(wrong.status, 404);
+            // FM-031 reserves the complete inventory even in this deliberately
+            // partial fixture. POST metadata is a real (unselected here) create
+            // declaration, so its guarded 501 owns this verb before fallback.
+            assert.equal(wrong.status, family === 'metadata' && kind !== 'alias' ? 501 : 404);
             await wrong.text();
             const unauth = await request(url, { ...extra, Authorization: 'Bearer invalid' });
             assert.equal(unauth.status, 401);
@@ -683,7 +686,11 @@ describe('FM-020 production resolved-route transport ownership', function () {
           if (family === 'progress' && !selected) {
             for (const suffix of ['/socket.io.js', '/?EIO=4&transport=polling']) {
               const response = await fetch(new URL(socketPath + suffix, f.url), { headers });
-              assert.equal(response.status, 404, 'unselected socket integration must not dispatch');
+              assert.equal(
+                response.status,
+                suffix === '/socket.io.js' ? 501 : 404,
+                'FM-031 reserves the client script; unselected socket integration must not dispatch'
+              );
               await response.text();
             }
           }

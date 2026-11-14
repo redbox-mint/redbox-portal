@@ -280,7 +280,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: real-network stream/header/denial/disconnect tests pass; resources
     remain live until retained work drains.
 
-- [ ] **FM-034 — Complete multipart and TUS.**
+- [x] **FM-034 — Complete multipart and TUS.**
   - Dependencies: G2, FM-026.
   - Work: port full upload paths, limits, staging/finalization, concurrency fields,
     TUS state and parser scopes; audit session persistence on raw replies.
