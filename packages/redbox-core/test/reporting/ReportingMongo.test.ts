@@ -145,6 +145,63 @@ import { principal, registry, storedRecord } from './fixtures';
         })
       ).to.deep.equal({ count: 6 });
     });
+    it('normalizes NaN and infinities to missing for numeric filters, dimensions, sums and averages', async () => {
+      const isolated = client.db(dbName).collection('nonfinite_numbers');
+      const values = [NaN, Infinity, -Infinity, null, 0, 42];
+      await isolated.insertMany(
+        values.map((amount, index) =>
+          storedRecord(`numeric-${index}`, {
+            metadata: { faculty: 'A', amount },
+          })
+        )
+      );
+      const numericRegistry = async () => {
+        const fields = await registry();
+        const amount = fields.fields.get('amount');
+        if (!amount) throw new Error('Expected numeric field');
+        amount.operations = [...amount.operations, 'group'];
+        return fields;
+      };
+      const local = new MongoReportingProvider(isolated, numericRegistry);
+      expect(
+        await local.executeReporting(principal, {
+          operation: 'count',
+          recordType: 'rdmp',
+          filters: [{ field: 'amount', operator: 'missing', value: true }],
+        })
+      ).to.deep.equal({ count: 4 });
+      expect(
+        await local.executeReporting(principal, {
+          operation: 'records',
+          recordType: 'rdmp',
+          filters: [{ field: 'amount', operator: 'missing', value: false }],
+        })
+      )
+        .to.have.property('items')
+        .that.has.members(['numeric-4', 'numeric-5']);
+      expect(
+        await local.executeReporting(principal, {
+          operation: 'group',
+          recordType: 'rdmp',
+          groupBy: ['amount'],
+        })
+      )
+        .to.have.property('items')
+        .that.deep.includes({ dimensions: { amount: null }, metrics: { count: 4 } });
+      expect(
+        await local.executeReporting(principal, {
+          operation: 'group',
+          recordType: 'rdmp',
+          groupBy: ['faculty'],
+          metrics: [
+            { operation: 'sum', field: 'amount', id: 'sum' },
+            { operation: 'average', field: 'amount', id: 'average' },
+          ],
+        })
+      )
+        .to.have.property('items')
+        .that.deep.equals([{ dimensions: { faculty: 'A' }, metrics: { sum: 42, average: 21 } }]);
+    });
     it('buckets UTC months, converting ISO offsets and BSON dates and excluding invalid/missing dates', async () => {
       const result = await provider.executeReporting(principal, {
         operation: 'time_series',

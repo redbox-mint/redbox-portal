@@ -31,7 +31,9 @@ function typedValue(path: string, type: string): Document {
   const ref = `$${path}`;
   return {
     $cond: [
-      type === 'number' ? { $isNumber: ref } : { $eq: [{ $type: ref }, type === 'boolean' ? 'bool' : 'string'] },
+      type === 'number'
+        ? { $and: [{ $isNumber: ref }, { $gte: [ref, -Number.MAX_VALUE] }, { $lte: [ref, Number.MAX_VALUE] }] }
+        : { $eq: [{ $type: ref }, type === 'boolean' ? 'bool' : 'string'] },
       ref,
       null,
     ],
