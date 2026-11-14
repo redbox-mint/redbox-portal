@@ -41,6 +41,7 @@ services:
     env_file: .dev/demo.env
     environment:
       NODE_ENV: mcpdemo
+      REDBOX_MCP_ENABLED: 'true'
       PORT: 1500
       WEBPACK_SKIP: 'true'
       LOAD_DEFAULT_FORMS: 'true'

@@ -31,5 +31,5 @@ if command -v iptables >/dev/null; then
     sudo iptables -I INPUT 2 "${reporting_demo_rule[@]}"
   fi
 fi
-echo "Demo starting at ${reporting_demo_url}/mcp"
+echo "Demo starting at ${reporting_demo_url}/default/mcp"
 echo "Wait for reporting_demo_ready in the portal logs, then run node ${reporting_demo_dir}/verify.js"

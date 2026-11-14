@@ -1381,6 +1381,7 @@ workflows:
                 - app-config
                 - deleted-records
                 - harvest-runs
+                - mcp-connect
                 - branding
                 - translation
                 - record-search
@@ -1556,6 +1557,7 @@ workflows:
                 - app-config
                 - deleted-records
                 - harvest-runs
+                - mcp-connect
                 - branding
                 - translation
                 - record-search
@@ -1711,6 +1713,7 @@ workflows:
                 - app-config
                 - deleted-records
                 - harvest-runs
+                - mcp-connect
                 - branding
                 - translation
                 - record-search

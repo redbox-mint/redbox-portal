@@ -1,0 +1,21 @@
+<%
+const appName = 'mcp-connect';
+const header = {
+  title: TranslationService.t('mcp-connect-title'),
+  description: TranslationService.t('mcp-connect-description'),
+  adminLabel: TranslationService.t('menu-admin'),
+  adminUrl: BrandingService.getBrandAndPortalPath(req) + '/admin',
+  breadcrumbLabel: TranslationService.t('admin-breadcrumb-label'),
+  section: ((typeof adminSidebar !== 'undefined' && adminSidebar.sections) || []).find(section => section.items.some(item => item.active))?.title || '',
+  refresh: TranslationService.t('mcp-check-readiness')
+};
+%>
+<%- include('layout/start.ejs') %>
+  <mcp-connect data-header="<%= JSON.stringify(header) %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <%- include('layout/early-header.ejs', { header }) %>
+    <p role="status"><%= TranslationService.t('mcp-loading') %></p>
+  </mcp-connect>
+<%- include('layout/end.ejs') %>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js" type="module"></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">

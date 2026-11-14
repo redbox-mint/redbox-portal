@@ -19,12 +19,16 @@ The first milestone supplies schema discovery, counts, up to three grouping dime
 
 ## Enable reporting
 
-Both `reporting.enabled` and `mcp.enabled` default to false. Install/build the MCP hook only for deployments that need it; it is already included in this repository's dependency graph and Docker build. Customer hooks register configuration and forms with `defineRedboxHook`; local/environment overrides follow the normal configuration precedence. Do not edit generated Sails shims.
+Both reporting and external MCP default to off. Install/build the MCP hook only for deployments that need it; it is already included in this repository's dependency graph and Docker build. Customer hooks register configuration and forms with `defineRedboxHook`. Do not edit generated Sails shims.
+
+`REDBOX_MCP_ENABLED=true` is the authoritative deployment switch for external MCP and the connection page. Unset, empty, false, and unrecognized values leave them disabled, even if a customer hook sets `mcp.enabled: true`. Values are trimmed and compared case-insensitively with `true`. The hook resolves this environment value into global `mcp.enabled` for navigation at startup and checks the environment again before serving protocol or setup requests. The brand’s own `mcp.enabled` must also be true. Configure the variable on the portal process/container and restart every portal instance after changing it. Existing authenticated REST reporting remains controlled independently by `reporting.enabled`.
+
+While disabled, `/:branding/mcp`, protected-resource discovery and connection-page routes return 404, and the admin sidebar entry **Integrations → Connect your AI assistant** (`/:branding/:portal/admin/mcp`, Admin and Librarians only) is hidden. When enabled, invalid OAuth configuration or disabled reporting also keeps the remote endpoint unavailable.
 
 1. Enable `reporting.enabled` and retain or reduce its configured limits.
 2. Add an enabled `reporting` block to the existing record type. Supply `allowedRoles`, optional `searchCore`, explicit form coverage, and explicitly enabled semantic fields.
 3. Confirm that each metadata path belongs to the caller's effective **view** metadata contract in every covered form. Test schema discovery with each reporting role.
-4. For external clients, configure institution OAuth as described below, then enable `mcp.enabled`.
+4. For external clients, configure institution OAuth as described below, then set `REDBOX_MCP_ENABLED=true` and restart the portal. Setting `mcp.enabled` in a hook alone does not enable external MCP.
 
 See [the typed example](../../packages/redbox-mcp/examples/reporting-config.ts). A typical block is:
 
@@ -56,7 +60,7 @@ A metadata filter, dimension or metric restricts its aggregate to records whose 
 
 ## Authorization
 
-Every provider requires a ReportingPrincipal containing a brand, persisted effective user and populated persisted roles. Public clients cannot supply any part of it. REST refreshes the session/API-authenticated user ID. MCP maps a verified institution access-token identity to an existing OIDC user, refreshes linked-account identity and roles, and uses the deployment's configured brand. Disabled users and unresolved linked aliases cannot report.
+Every provider requires a ReportingPrincipal containing a brand, persisted effective user and populated persisted roles. Public clients cannot supply any part of it. REST refreshes the session/API-authenticated user ID. MCP maps a verified institution access-token identity to an existing OIDC user, refreshes linked-account identity and roles, and uses the URL brand's validated configuration. Disabled users and unresolved linked aliases cannot report.
 
 All Mongo pipelines match tenant, record type and current record ACLs before filtering or grouping. Record visibility follows RecordsService: either view **or edit** username permission, or either view **or edit** role permission. Role names resolve through the active brand's canonical roles; membership uses role IDs. There is no implicit administrator bypass. Pending invitations do not grant access. Record-type and field reporting roles are additional requirements. REST access also passes through `auth.rules` in `auth.config.ts`: the default reporting paths admit Researcher and Librarians, with Admin admitted by the generic API rule. If `reporting.allowedRoles` includes a custom role such as Reviewer, add an equivalent reporting-path rule for that role in the deployment configuration; changing `allowedRoles` alone does not grant REST route access. MCP uses its own verified-token boundary.
 
@@ -111,21 +115,63 @@ Registered REST contracts are:
 
 The POST body is the same typed DSL with `operation` (`count`, `group`, `time_series`, `records`, `search`, `get_record`). They use existing ReDBox authentication, role policy, request validation, CSRF/session conventions and versioned response envelopes. Normal API version negotiation can select v2; these are not a separate `/api/v2` routing tree. Existing OpenAPI generation includes the endpoints. An eventual embedded client can call this API using its current authenticated ReDBox session.
 
+## Connect your AI assistant
+
+When MCP is enabled for a brand, Admin and Librarians users in that brand can choose **Connect your AI assistant** in Admin → Integrations, or open `/:branding/:portal/admin/mcp`. The page renders inside the admin layout and sidebar. Both endpoints enforce persisted, canonical Admin or Librarians roles for the requested brand. Anonymous requests follow the standard login redirect; other signed-in users receive 403. There are no legacy user routes or redirects. Its session-only status endpoint is `GET /:branding/:portal/admin/mcp/status`; bearer/API-key middleware is not used for these browser routes.
+
+The page checks deployment configuration, reporting enablement, the refreshed effective user's OIDC identity, and authorized schema discovery. It offers only record types whose reporting schema the user can access. Disabled users, other brands and anonymous requests cannot access setup data. Canonical brand administrators additionally see configuration field paths needing attention; raw configuration values and error messages are never included. Readiness checks request schemas, not record counts or contents.
+
+Choose Claude Code, Codex CLI, ChatGPT desktop, Claude (one guide for web and desktop), ChatGPT web, or generic MCP instructions. Copyable commands/configuration use the configured public resource URL. The verification prompt calls `get_reporting_schema` for an authorized record type without retrieving records. A successful call from the assistant confirms the actual connection; the portal does not claim to know the assistant's authentication state.
+
+Optional **public** OAuth client registration details may be supplied in the brand's `mcpSetup` AppConfig (`branded-config/<brand>/override/mcpSetup.js` in a customer hook):
+
+```js
+module.exports = {
+  clients: {
+    codex: {
+      clientId: 'redbox-local-assistants',
+      callbackUrl: 'http://127.0.0.1:52344/callback',
+      callbackPort: 52344,
+    },
+    claudeCode: { clientId: 'redbox-claude-code', callbackPort: 8080 },
+    claude: { clientId: 'redbox-claude-connectors' },
+  },
+  // Optional link to an institution-published ChatGPT plugin.
+  chatgptPluginUrl: 'https://chatgpt.com/your-institution-plugin',
+};
+```
+
+Omit unused registrations and the plugin link. Client IDs and callbacks must match actual institution registrations; these examples do not create registrations or plugins. With no client ID configured, the institution must support the client's automatic registration or published client identity. Secrets, access tokens and refresh tokens are rejected by the setup configuration schema and never included in snippets. Confidential client credentials must be provisioned separately through the institution/client's supported workflow.
+
+Codex CLI and ChatGPT desktop share local Codex configuration. Their computer must reach the portal and OAuth issuer. Claude desktop's **remote connectors**, like Claude web's connectors, connect from Anthropic's cloud and require public reachability on HTTPS port 443; configuring a local stdio server is a separate mechanism. Hosted ChatGPT uses an institution-published plugin and cloud-reachable HTTPS or an administrator-configured supported secure tunnel. The page explains these prerequisites and links current official instructions. It cannot provision accounts, institutional OAuth clients, workspace approvals, firewall access, or hosted plugins.
+
+Instruction sources, checked November 2026: [OpenAI MCP setup](https://learn.chatgpt.com/docs/extend/mcp), [Claude Code MCP](https://code.claude.com/docs/en/mcp), and [Claude remote connectors](https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp). Revalidate client registration, callbacks, consent, schema discovery, and provider network reachability in each target client before a deployment pilot.
+
 ## Institution OAuth and remote MCP
 
-The MCP hook exposes `/mcp` through stateless Streamable HTTP and `GET /.well-known/oauth-protected-resource/mcp` for protected-resource discovery. It is a resource server; it does not operate an authorization server or central customer service.
+The MCP hook exposes `/:branding/mcp` through stateless Streamable HTTP and `GET /.well-known/oauth-protected-resource/:branding/mcp` for protected-resource discovery. It is a resource server; it does not operate an authorization server or central customer service.
 
-Configure the institution authorization server for authorization-code flows with PKCE S256, client registration suitable for the chosen MCP clients, appropriate consent, the `redbox.reporting` scope, and an access-token audience of **exactly** `https://redbox.customer.edu.au/mcp`. Publish OAuth/OIDC authorization-server discovery and JWKS. Existing customer OIDC issuer/claim mappings can be reused if that issuer supports this resource/audience and clients. Browser OIDC login configuration alone does not create those capabilities.
+Configure the institution authorization server for authorization-code flows with PKCE S256, client registration suitable for the chosen MCP clients, appropriate consent, the `redbox.reporting` scope, and an access-token audience of **exactly** the brand's endpoint, for example `https://redbox.customer.edu.au/default/mcp`. Publish OAuth/OIDC authorization-server discovery and JWKS. Existing customer OIDC issuer/claim mappings can be reused if that issuer supports this resource/audience and clients. Browser OIDC login configuration alone does not create those capabilities.
 
 ReDBox configuration requires:
 
-- HTTPS `resourceUrl` ending in `/mcp`, exact `issuer`, and trusted `jwksUrl`.
-- A fixed existing `brand`, required `scope`, and an `identityClaim` matching the existing OIDC username convention (for example `preferred_username`), including the same lowercase setting if used.
+- HTTPS `resourceUrl` equal to `https://<host>[:port]/<brand>/mcp`, exact `issuer`, and trusted `jwksUrl`.
+- `enabled: true` and an explicit existing `brand` matching the URL brand, required `scope`, and an `identityClaim` matching the existing OIDC username convention (for example `preferred_username`), including the same lowercase setting if used.
 - Allowed signing algorithms (`RS256`, `ES256`, `PS256`), optional explicit browser origins, and request byte limit.
 
 Every protocol request authenticates independently. Tokens require verified signature, issuer, intended audience, expiry, issued-at and subject, plus scope and an explicit access-token indicator (`at+jwt`, or a Bearer/access claim for generic JWTs). ID tokens, opaque tokens, proprietary ReDBox API keys, cookie-only remote access and caller role claims are rejected. No account provisioning or email-based matching occurs. Opaque-token introspection and additional identity providers need a separate reviewed authentication adapter; leave the endpoint disabled until the institution meets this boundary.
 
-Unauthenticated calls receive a Bearer challenge pointing to protected-resource metadata. Tokens are never forwarded to another backend. TLS may terminate at a reverse proxy: preserve the configured public **Host**, forward authorization, route both endpoint and metadata, and retain ReDBox's same-origin/explicit-origin checks. The first milestone's external endpoint is at the root `/mcp`; deployments using another application root need corresponding proxy routing, not a different `resourceUrl` path. Clients that obtain OAuth tokens can use the endpoint; product-specific connector availability and client-registration compatibility depend on the institution/client configuration.
+Unauthenticated calls receive a Bearer challenge pointing to that brand's protected-resource metadata. Tokens are never forwarded to another backend. TLS may terminate at a reverse proxy: preserve the configured public **Host**, forward authorization, route both endpoint and metadata, and retain ReDBox's same-origin/explicit-origin checks. External endpoints use the root `/<brand>/mcp`; deployments using another application root need corresponding proxy routing. Clients that obtain OAuth tokens can use the endpoint; product-specific connector availability and client-registration compatibility depend on the institution/client configuration.
+
+### Brand isolation
+
+The URL selects an existing brand before OAuth configuration is read. MCP reads only that brand's `mcp` and `mcpSetup` through `sails.config.brandingAware(brandName)`; it does not fall back to global `sails.config.mcp` OAuth settings or look up the default brand. Store complete settings in the hook's `branded-config/<brand>/override/mcp.js`. The default configuration is disabled. A single-brand deployment can also provide `brandingConfigurationDefaults: { mcp: { ...settings, enabled: true, brand: 'default' }, mcpSetup: { clients: {} } }`; the explicit brand binding prevents these inherited MCP settings from enabling another brand.
+
+The deployment switch `REDBOX_MCP_ENABLED=true` and the brand's `mcp.enabled: true` are both required. Unknown, unconfigured, disabled, and incorrectly bound brands return 404, including their setup pages; enabled brands with invalid OAuth configuration return 503 from MCP and show configuration readiness guidance to signed-in users. Disabling a brand takes effect on the next request, including after its HTTP handler was cached. Other enabled brands continue operating.
+
+For two brands, `alpha` and `beta`, use `/alpha/mcp` and `/beta/mcp`, with corresponding distinct token audiences and discovery URLs. Each can configure its own issuer, JWKS, scope, allowed origins and public client registrations. An access token issued only for `/alpha/mcp` cannot authenticate `/beta/mcp`. Identity resolution refreshes persisted effective users and roles in the selected brand, rejects mismatched principal brands, and reporting always applies that brand's canonical roles, record tenant filter and record ACLs. Usernames remain existing global OIDC identities; token roles and brand claims never select the brand or grant permissions.
+
+The connection page uses its URL brand for readiness and instructions, including brand-specific public OAuth registrations. It shows the active brand and uses distinct names such as `redbox_reporting_alpha` and `redbox_reporting_beta`, allowing both connections in one assistant configuration. The unbranded `/mcp` and discovery routes are not registered.
 
 Run [the official SDK client example](../../packages/redbox-mcp/examples/client.ts) with `REDBOX_MCP_URL` and a securely supplied `REDBOX_MCP_ACCESS_TOKEN`. It demonstrates the milestone tools without logging the token. This example uses a previously obtained access token; OAuth acquisition is performed by the institution/client, not a custom ReDBox API-key flow.
 

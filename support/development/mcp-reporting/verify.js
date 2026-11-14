@@ -20,7 +20,7 @@ const settings = Object.fromEntries(
 );
 const credentials = JSON.parse(fs.readFileSync(path.join(directory, 'credentials.json')));
 const expected = JSON.parse(fs.readFileSync(path.join(directory, 'expected-results.json')));
-const endpoint = `${settings.REDBOX_DEMO_URL}/mcp`;
+const endpoint = `${settings.REDBOX_DEMO_URL}/default/mcp`;
 const callback = 'http://127.0.0.1:52344/callback';
 const issuer = `${settings.REDBOX_DEMO_URL}/auth/realms/redbox-reporting`;
 const cookies = new Map();
@@ -87,8 +87,8 @@ async function main() {
   const unauthenticated = await fetch(endpoint, { method: 'POST' });
   assert.equal(unauthenticated.status, 401);
   assert.match(unauthenticated.headers.get('www-authenticate'), /resource_metadata=/);
-  const metadata = await fetch(`${settings.REDBOX_DEMO_URL}/.well-known/oauth-protected-resource/mcp`).then(response =>
-    response.json()
+  const metadata = await fetch(`${settings.REDBOX_DEMO_URL}/.well-known/oauth-protected-resource/default/mcp`).then(
+    response => response.json()
   );
   assert.equal(metadata.resource, endpoint);
   assert.deepEqual(metadata.authorization_servers, [issuer]);

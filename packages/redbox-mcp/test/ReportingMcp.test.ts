@@ -24,7 +24,7 @@ const user = Object.assign(new UserModel(), { id: 'alice-id', username: 'alice',
 const principal = reportingPrincipal(brand, user);
 const config: McpConfig = {
   enabled: true,
-  resourceUrl: 'https://redbox.example/mcp',
+  resourceUrl: 'https://redbox.example/a/mcp',
   issuer: 'https://id.example',
   jwksUrl: 'https://id.example/jwks',
   brand: 'a',
@@ -80,20 +80,28 @@ async function connection(resolve = async () => principal, service = reporting) 
 describe('ReDBox MCP hook registration', () => {
   it('registers a callable hook, controller and closed defaults without requiring a Sails lift', () => {
     const hook = require('../src/index') as {
-      registerRedboxConfig(): { mcp: { enabled: boolean }; routes: Record<string, unknown>; policies: unknown };
+      registerRedboxConfig(): {
+        mcp: { enabled: boolean };
+        routes: Record<string, unknown>;
+        policies: Record<string, unknown>;
+      };
       registerRedboxControllers(): Record<string, unknown>;
       createReportingMcpServer: unknown;
     };
     assert.equal(typeof hook, 'function');
     assert.equal(typeof hook.createReportingMcpServer, 'function');
     assert.equal(hook.registerRedboxConfig().mcp.enabled, false);
-    assert.ok(hook.registerRedboxConfig().routes['/mcp']);
-    assert.deepEqual(hook.registerRedboxConfig().routes['options /.well-known/oauth-protected-resource/mcp'], {
-      controller: 'McpController',
-      action: 'handle',
-      csrf: false,
-    });
-    assert.deepEqual(hook.registerRedboxConfig().policies, { McpController: { '*': [] } });
+    assert.ok(hook.registerRedboxConfig().routes['/:branding/mcp']);
+    assert.equal(hook.registerRedboxConfig().routes['/mcp'], undefined);
+    assert.deepEqual(
+      hook.registerRedboxConfig().routes['options /.well-known/oauth-protected-resource/:branding/mcp'],
+      {
+        controller: 'McpController',
+        action: 'handle',
+        csrf: false,
+      }
+    );
+    assert.deepEqual(hook.registerRedboxConfig().policies.McpController, { '*': [] });
     assert.ok(hook.registerRedboxControllers().McpController);
   });
 });
@@ -311,6 +319,111 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
     }
     assert.equal(mapped, 4);
   });
+  it('rejects another brand audience before resolving identity and rejects mismatched resolved principals', async () => {
+    let mapped = 0;
+    const otherConfig = { ...config, brand: 'b', resourceUrl: 'https://redbox.example/b/mcp' };
+    const otherAuth = new McpAuthenticator(
+      otherConfig,
+      async () => {
+        mapped++;
+        return principal;
+      },
+      keys
+    );
+    await assert.rejects(otherAuth.authenticate(`Bearer ${await token()}`), McpAuthError);
+    assert.equal(mapped, 0);
+    const otherBrand = Object.assign(new BrandingModel(), { ...brand, id: 'brand-b', name: 'b' });
+    const wrongPrincipal = reportingPrincipal(otherBrand, user);
+    const auth = new McpAuthenticator(config, async () => wrongPrincipal, keys);
+    await assert.rejects(auth.authenticate(`Bearer ${await token()}`), McpAuthError);
+  });
+  it('keeps simultaneous HTTP connections bound to their own brand and rejects cross-brand tokens', async () => {
+    invocations = [];
+    const server = createServer();
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    const base = `http://127.0.0.1:${port}`;
+    const otherBrand = Object.assign(new BrandingModel(), { id: 'brand-b', name: 'b', roles: [role] });
+    const actors: Record<string, typeof principal> = { a: principal, b: reportingPrincipal(otherBrand, user) };
+    const configurations = Object.fromEntries(
+      ['a', 'b'].map(name => [
+        name,
+        {
+          ...config,
+          brand: name,
+          resourceUrl: `https://127.0.0.1:${port}/${name}/mcp`,
+        },
+      ])
+    );
+    const handlers = Object.fromEntries(
+      Object.entries(configurations).map(([name, settings]) => [
+        name,
+        reportingMcpHttpHandler(
+          settings,
+          reporting,
+          new McpAuthenticator(settings, async (_username, brandName) => actors[brandName], keys)
+        ),
+      ])
+    );
+    server.on('request', (req, res) => {
+      const name = new URL(req.url!, base).pathname.split('/')[1];
+      const handler = handlers[name];
+      if (handler) void handler(req, res);
+      else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+    const tokens = Object.fromEntries(
+      await Promise.all(
+        Object.entries(configurations).map(async ([name, settings]) => [
+          name,
+          await new SignJWT({ scope: settings.scope })
+            .setProtectedHeader({ alg: 'RS256', typ: 'at+jwt', kid: 'test-key' })
+            .setIssuer(settings.issuer)
+            .setAudience(settings.resourceUrl)
+            .setSubject('alice')
+            .setIssuedAt()
+            .setExpirationTime('5m')
+            .sign(privateKey),
+        ])
+      )
+    );
+    const clients: Client[] = [];
+    try {
+      for (const name of ['a', 'b', 'a', 'b']) {
+        const client = new Client({ name: `brand-${name}`, version: '1.0' });
+        clients.push(client);
+        await client.connect(
+          new StreamableHTTPClientTransport(new URL(`${base}/${name}/mcp`), {
+            requestInit: { headers: { Authorization: `Bearer ${tokens[name]}` } },
+          })
+        );
+        const result = await client.callTool({ name: 'count_records', arguments: { recordType: 'rdmp' } });
+        assert.deepEqual(result.structuredContent, { count: 10 });
+        assert.equal(invocations.at(-1)?.actor, actors[name]);
+      }
+      const calls = invocations.length;
+      for (const [source, target] of [
+        ['a', 'b'],
+        ['b', 'a'],
+      ]) {
+        const response = await fetch(`${base}/${target}/mcp`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${tokens[source]}` },
+          body: '{}',
+        });
+        assert.equal(response.status, 401);
+        assert.ok(response.headers.get('www-authenticate')?.includes(`/oauth-protected-resource/${target}/mcp`));
+      }
+      assert.equal(invocations.length, calls);
+      assert.equal((await fetch(`${base}/mcp`)).status, 404);
+    } finally {
+      await Promise.all(clients.map(client => client.close()));
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+    }
+  });
   it('distinguishes invalid identities from identity-store and JWKS availability failures', async () => {
     const bearer = `Bearer ${await token()}`;
     for (const failure of [new Error('private database credentials'), new ReportingError('UNAVAILABLE')]) {
@@ -417,7 +530,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
     const server = createServer();
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const port = (server.address() as AddressInfo).port;
-    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp` };
+    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/a/mcp` };
     const auth = new McpAuthenticator(
       local,
       async () => {
@@ -438,7 +551,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
         .setIssuedAt()
         .setExpirationTime('5m')
         .sign(privateKey);
-      const response = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      const response = await fetch(`http://127.0.0.1:${port}/a/mcp`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${bearer}` },
         body: '{}',
@@ -451,7 +564,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       parts[0] = Buffer.from(
         JSON.stringify({ alg: 'RS256', kid: 'test-key', crit: ['custom'], custom: true })
       ).toString('base64url');
-      const invalid = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      const invalid = await fetch(`http://127.0.0.1:${port}/a/mcp`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${parts.join('.')}` },
         body: '{}',
@@ -463,7 +576,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
     }
   });
-  it('returns closed 503 responses for disabled and malformed URL configurations without throwing', async () => {
+  it('returns closed 503 responses for malformed brand URL configurations without throwing', async () => {
     const hook = require('../src/index') as {
       registerRedboxControllers(): {
         McpController: {
@@ -472,18 +585,21 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       };
     };
     const previousSails = Reflect.get(globalThis, 'sails');
+    const previousBranding = Reflect.get(globalThis, 'BrandingService');
+    const previousFlag = process.env.REDBOX_MCP_ENABLED;
     const prototype = Controllers.Core.Controller.prototype;
     const sendResp = Reflect.get(prototype, 'sendResp');
     Reflect.set(prototype, 'sendResp', (_req: unknown, _res: unknown, response: unknown) => response);
     try {
+      process.env.REDBOX_MCP_ENABLED = 'true';
+      Reflect.set(globalThis, 'BrandingService', { getBrand: () => brand });
       for (const raw of [
-        mcp,
         ...['resourceUrl', 'issuer', 'jwksUrl'].map(field => ({ ...config, [field]: 'invalid URL' })),
         { ...config, allowedOrigins: ['invalid URL'] },
       ]) {
         assert.equal(mcpConfigSchema.safeParse(raw).success, false);
-        Reflect.set(globalThis, 'sails', { config: { mcp: raw } });
-        const response = await hook.registerRedboxControllers().McpController.handle({}, {});
+        Reflect.set(globalThis, 'sails', { config: { brandingAware: () => ({ mcp: raw }) } });
+        const response = await hook.registerRedboxControllers().McpController.handle({ params: { branding: 'a' } }, {});
         assert.equal(response.status, 503);
         assert.deepEqual(response.displayErrors, [{ code: 'MCP_UNAVAILABLE' }]);
       }
@@ -491,6 +607,10 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       Reflect.set(prototype, 'sendResp', sendResp);
       if (previousSails === undefined) Reflect.deleteProperty(globalThis, 'sails');
       else Reflect.set(globalThis, 'sails', previousSails);
+      if (previousBranding === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
+      else Reflect.set(globalThis, 'BrandingService', previousBranding);
+      if (previousFlag === undefined) delete process.env.REDBOX_MCP_ENABLED;
+      else process.env.REDBOX_MCP_ENABLED = previousFlag;
     }
   });
   it('requires allowedOrigins to use the exact browser origin representation', () => {
@@ -519,7 +639,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
     const server = createServer();
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const port = (server.address() as AddressInfo).port;
-    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp` };
+    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/a/mcp` };
     const auth = new McpAuthenticator(local, async () => principal, keys);
     const events: Record<string, unknown>[] = [];
     const handler = reportingMcpHttpHandler(local, reporting, auth, event => events.push(event));
@@ -537,25 +657,25 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       .sign(privateKey);
     let client: Client | undefined;
     try {
-      const metadata = await fetch(`${base}/.well-known/oauth-protected-resource/mcp`);
+      const metadata = await fetch(`${base}/.well-known/oauth-protected-resource/a/mcp`);
       assert.deepEqual(await metadata.json(), {
         resource: local.resourceUrl,
         authorization_servers: [config.issuer],
         scopes_supported: [config.scope],
         bearer_methods_supported: ['header'],
-        resource_name: 'ReDBox reporting',
+        resource_name: 'ReDBox reporting (a)',
       });
-      const challenge = await fetch(`${base}/mcp`, { method: 'POST', body: '{}' });
+      const challenge = await fetch(`${base}/a/mcp`, { method: 'POST', body: '{}' });
       assert.equal(challenge.status, 401);
       assert.ok(challenge.headers.get('www-authenticate')?.includes('resource_metadata='));
-      const malicious = await fetch(`${base}/mcp`, {
+      const malicious = await fetch(`${base}/a/mcp`, {
         method: 'POST',
         headers: { Origin: 'https://evil.example' },
         body: '{}',
       });
       assert.equal(malicious.status, 403);
       const invalidHost = await new Promise<number | undefined>((resolve, reject) => {
-        const call = request(`${base}/mcp`, { method: 'POST', headers: { Host: 'evil.example' } }, response => {
+        const call = request(`${base}/a/mcp`, { method: 'POST', headers: { Host: 'evil.example' } }, response => {
           response.resume();
           resolve(response.statusCode);
         });
@@ -565,7 +685,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       assert.equal(invalidHost, 403);
       client = new Client({ name: 'http-reporting-test', version: '1.0' });
       await client.connect(
-        new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+        new StreamableHTTPClientTransport(new URL(`${base}/a/mcp`), {
           requestInit: { headers: { Authorization: `Bearer ${localToken}` } },
         })
       );
@@ -587,7 +707,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
             event.success === false
         )
       );
-      const tooLarge = await fetch(`${base}/mcp`, {
+      const tooLarge = await fetch(`${base}/a/mcp`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: 'x'.repeat(20_000) }),
@@ -605,7 +725,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const port = (server.address() as AddressInfo).port;
     const base = `http://127.0.0.1:${port}`;
-    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp`, allowedOrigins: [origin] };
+    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/a/mcp`, allowedOrigins: [origin] };
     const auth = new McpAuthenticator(local, async () => principal, keys);
     const handler = reportingMcpHttpHandler(local, reporting, auth);
     server.on('request', (req, res) => {
@@ -621,7 +741,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       .setIssuedAt()
       .setExpirationTime('5m')
       .sign(privateKey);
-    const preflight = (path = '/mcp', headers: Record<string, string> = {}) =>
+    const preflight = (path = '/a/mcp', headers: Record<string, string> = {}) =>
       fetch(`${base}${path}`, {
         method: 'OPTIONS',
         headers: {
@@ -647,7 +767,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
         allowed.headers.get('access-control-allow-headers'),
         'accept, authorization, content-type, mcp-protocol-version, mcp-method, mcp-name'
       );
-      const sameOrigin = await preflight('/mcp', { Origin: new URL(local.resourceUrl).origin });
+      const sameOrigin = await preflight('/a/mcp', { Origin: new URL(local.resourceUrl).origin });
       assert.equal(sameOrigin.status, 204);
       assert.equal(sameOrigin.headers.get('access-control-allow-origin'), new URL(local.resourceUrl).origin);
       const deniedPreflights: Array<Record<string, string>> = [
@@ -659,14 +779,14 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
         { 'Access-Control-Request-Headers': 'authorization,' },
       ];
       for (const headers of deniedPreflights) {
-        const denied = await preflight('/mcp', headers);
+        const denied = await preflight('/a/mcp', headers);
         assert.equal(denied.status, 403);
         assert.equal(denied.headers.get('access-control-allow-origin'), null);
         assert.equal(denied.headers.get('access-control-allow-headers'), null);
       }
       await new Promise<void>((resolve, reject) => {
         const call = request(
-          `${base}/mcp`,
+          `${base}/a/mcp`,
           {
             method: 'OPTIONS',
             headers: { Host: 'evil.example', Origin: origin, 'Access-Control-Request-Method': 'POST' },
@@ -684,7 +804,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       const missing = await preflight('/unrelated');
       assert.equal(missing.status, 404);
       assert.equal(missing.headers.get('access-control-allow-origin'), null);
-      const metadataPath = '/.well-known/oauth-protected-resource/mcp';
+      const metadataPath = '/.well-known/oauth-protected-resource/a/mcp';
       const discoveryPreflight = await preflight(metadataPath, {
         'Access-Control-Request-Method': 'GET',
         'Access-Control-Request-Headers': 'MCP-Protocol-Version',
@@ -695,19 +815,19 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       const discovery = await fetch(`${base}${metadataPath}`, { headers: { Origin: origin } });
       assert.equal(discovery.status, 200);
       checkCors(discovery);
-      const challenge = await fetch(`${base}/mcp`, { method: 'POST', headers: { Origin: origin }, body: '{}' });
+      const challenge = await fetch(`${base}/a/mcp`, { method: 'POST', headers: { Origin: origin }, body: '{}' });
       assert.equal(challenge.status, 401);
       checkCors(challenge);
       assert.ok(challenge.headers.get('www-authenticate')?.includes('resource_metadata='));
       assert.equal(challenge.headers.get('access-control-expose-headers'), 'WWW-Authenticate, Mcp-Session-Id');
-      const malformed = await fetch(`${base}/mcp`, {
+      const malformed = await fetch(`${base}/a/mcp`, {
         method: 'POST',
         headers: { Origin: origin, Authorization: `Bearer ${localToken}` },
         body: '{',
       });
       assert.equal(malformed.status, 400);
       checkCors(malformed);
-      const malicious = await fetch(`${base}/mcp`, {
+      const malicious = await fetch(`${base}/a/mcp`, {
         method: 'POST',
         headers: { Origin: 'https://evil.example', Authorization: `Bearer ${localToken}` },
         body: '{}',
@@ -717,14 +837,14 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       let posts = 0;
       client = new Client({ name: 'browser-reporting-test', version: '1.0' });
       await client.connect(
-        new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+        new StreamableHTTPClientTransport(new URL(`${base}/a/mcp`), {
           requestInit: { headers: { Origin: origin, Authorization: `Bearer ${localToken}` } },
           fetch: async (input, init) => {
             if (init?.method === 'POST') {
               // Use the real SDK-generated headers, including its negotiated-version headers.
               const headers = new Headers(init.headers);
               headers.delete('origin');
-              const response = await preflight('/mcp', {
+              const response = await preflight('/a/mcp', {
                 'Access-Control-Request-Headers': [...headers.keys()].join(', '),
               });
               assert.equal(response.status, 204);
@@ -753,7 +873,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       const server = createServer();
       await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
       const port = (server.address() as AddressInfo).port;
-      const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp` };
+      const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/a/mcp` };
       const auth = new McpAuthenticator(local, async () => principal, keys);
       const events: Record<string, unknown>[] = [];
       const handler = reportingMcpHttpHandler(local, reporting, auth, event => events.push(event));
@@ -776,7 +896,7 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
             let sent = 0;
             let timer: ReturnType<typeof setTimeout> | undefined;
             const call = request(
-              `http://127.0.0.1:${port}/mcp`,
+              `http://127.0.0.1:${port}/a/mcp`,
               {
                 method: 'POST',
                 headers: {

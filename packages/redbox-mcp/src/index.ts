@@ -3,7 +3,16 @@ import {
   Controllers,
   ReportingService as ReportingServiceModule,
 } from '@researchdatabox/redbox-core';
-import { mcp, mcpConfigSchema, protectedResourceMetadata } from './config';
+import {
+  mcp,
+  mcpSetup,
+  mcpConfigSchema,
+  mcpDeploymentEnabled,
+  brandMcpSettings,
+  resolveMcpConfig,
+  protectedResourceMetadata,
+} from './config';
+import { McpSetupController } from './setup';
 import { reportingMcpHttpHandler } from './http';
 import { createReportingMcpServer } from './server';
 import { McpAuthenticator, McpAuthError } from './auth';
@@ -17,36 +26,87 @@ export type { McpIdentityResolver } from './auth';
 
 class McpController extends Controllers.Core.Controller {
   protected override _exportedMethods = ['handle'];
-  private handler?: ReturnType<typeof reportingMcpHttpHandler>;
-  private configuration?: string;
+  private readonly handlers = new Map<
+    string,
+    {
+      configuration: string;
+      handler: ReturnType<typeof reportingMcpHttpHandler>;
+    }
+  >();
   public async handle(req: Sails.Req, res: Sails.Res) {
-    const parsed = mcpConfigSchema.safeParse(sails.config.mcp);
-    if (!parsed.success)
+    const brandName = req.params?.branding;
+    const settings = brandMcpSettings(brandName);
+    if (!settings || typeof brandName !== 'string')
+      return this.sendResp(req, res, {
+        status: 404,
+        displayErrors: [{ code: 'NOT_FOUND' }],
+        headers: this.getNoCacheHeaders(),
+      });
+    const parsed = resolveMcpConfig(settings.mcp, brandName);
+    if (!parsed.success || sails.config.reporting?.enabled !== true)
       return this.sendResp(req, res, {
         status: 503,
         displayErrors: [{ code: 'MCP_UNAVAILABLE' }],
         headers: this.getNoCacheHeaders(),
       });
     const configuration = JSON.stringify(parsed.data);
-    if (!this.handler || this.configuration !== configuration) {
+    let cached = this.handlers.get(brandName);
+    if (!cached || cached.configuration !== configuration) {
       const service = sails.services.reportingservice as unknown as ReportingServiceModule.Services.Reporting;
-      this.handler = reportingMcpHttpHandler(parsed.data, service, undefined, event => sails.log.info(event));
-      this.configuration = configuration;
+      cached = {
+        configuration,
+        handler: reportingMcpHttpHandler(parsed.data, service, undefined, event => sails.log.info(event)),
+      };
+      this.handlers.set(brandName, cached);
     }
-    return this.handler(req, res);
+    return cached.handler(req, res);
   }
 }
 const controller = new McpController();
+const setupController = new McpSetupController();
 const hook = defineRedboxHook({
-  registerRedboxControllers: () => ({ McpController: controller.exports() }),
+  configure: application => {
+    application.config.mcp = { enabled: mcpDeploymentEnabled() };
+  },
+  registerRedboxControllers: () => ({
+    McpController: controller.exports(),
+    McpSetupController: setupController.exports(),
+  }),
   registerRedboxConfig: () => ({
-    mcp,
+    mcp: { enabled: false },
+    brandingConfigurationDefaults: { mcp, mcpSetup },
     routes: {
-      '/mcp': { controller: 'McpController', action: 'handle', csrf: false },
-      'get /.well-known/oauth-protected-resource/mcp': { controller: 'McpController', action: 'handle', csrf: false },
-      'options /.well-known/oauth-protected-resource/mcp': { controller: 'McpController', action: 'handle', csrf: false },
+      'get /:branding/:portal/admin/mcp': { controller: 'McpSetupController', action: 'page' },
+      'get /:branding/:portal/admin/mcp/status': { controller: 'McpSetupController', action: 'status' },
+      '/:branding/mcp': { controller: 'McpController', action: 'handle', csrf: false },
+      'get /.well-known/oauth-protected-resource/:branding/mcp': {
+        controller: 'McpController',
+        action: 'handle',
+        csrf: false,
+      },
+      'options /.well-known/oauth-protected-resource/:branding/mcp': {
+        controller: 'McpController',
+        action: 'handle',
+        csrf: false,
+      },
     },
-    policies: { McpController: { '*': [] } },
+    policies: {
+      McpController: { '*': [] },
+      // Browser admin policy chain. McpSetupController enforces canonical Admin/Librarians roles
+      // with the same redirect/403 behavior as checkAuth, independently of bootstrapped path rules.
+      McpSetupController: {
+        '*': [
+          'noCache',
+          'brandingAndPortal',
+          'checkBrandingValid',
+          'setLang',
+          'prepWs',
+          'i18nLanguages',
+          'menuResolver',
+          'contentSecurityPolicy',
+        ],
+      },
+    },
   }),
   additionalExports: {
     createReportingMcpServer,

@@ -1,5 +1,10 @@
 import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from 'jose';
-import { ReportingError, resolveReportingPrincipal, type ReportingPrincipal } from '@researchdatabox/redbox-core';
+import {
+  ReportingError,
+  assertReportingPrincipal,
+  resolveReportingPrincipal,
+  type ReportingPrincipal,
+} from '@researchdatabox/redbox-core';
 import type { McpConfig } from './config';
 export class McpAuthError extends Error {
   constructor(public readonly code: 'invalid_token' | 'insufficient_scope') {
@@ -51,7 +56,13 @@ export class McpAuthenticator {
       const identity = payload[this.config.identityClaim];
       if (typeof identity !== 'string' || !identity.trim() || identity.length > 200)
         throw new McpAuthError('invalid_token');
-      return await this.resolve(this.config.usernameToLowercase ? identity.toLowerCase() : identity, this.config.brand);
+      const principal = await this.resolve(
+        this.config.usernameToLowercase ? identity.toLowerCase() : identity,
+        this.config.brand
+      );
+      assertReportingPrincipal(principal);
+      if (principal.brand.name !== this.config.brand) throw new McpAuthError('invalid_token');
+      return principal;
     } catch (error) {
       if (error instanceof McpAuthError) throw error;
       if (

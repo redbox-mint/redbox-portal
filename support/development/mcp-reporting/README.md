@@ -2,11 +2,13 @@
 
 This development environment runs the reporting service from this checkout in an isolated ReDBox stack with its own MongoDB, Solr, Keycloak, and attachments. Its development hook is installed only in this Compose project. MCP calls use OAuth authorization code with S256 PKCE, the `redbox.reporting` scope, and an audience restricted to the MCP resource URL. ReDBox resolves the persisted OIDC account and its current ReDBox permissions for every request.
 
+This dedicated demo explicitly sets `REDBOX_MCP_ENABLED=true` in Compose. Ordinary deployments leave the flag unset/off. After signing in as an Admin or Librarian, open **Integrations → Connect your AI assistant** in the admin sidebar at `/admin/mcp` (under your brand and portal, for example `/default/rdmp/admin/mcp`); the static instructions below remain available for bootstrapping the demo.
+
 The running environment on `nam-oci-agent-2` uses:
 
 | Setting              | Value                                                             |
 | -------------------- | ----------------------------------------------------------------- |
-| MCP endpoint         | `https://nam-oci-agent-2.tail4a7c3.ts.net:8443/mcp`               |
+| MCP endpoint         | `https://nam-oci-agent-2.tail4a7c3.ts.net:8443/default/mcp`               |
 | Browser portal       | `https://nam-oci-agent-2.tail4a7c3.ts.net:8443/default/rdmp/home` |
 | OAuth client ID      | `redbox-reporting-work`                                           |
 | OAuth scope          | `redbox.reporting`                                                |
@@ -21,26 +23,26 @@ Connect your desktop to the same Tailscale network. The endpoint is private to t
 The ChatGPT desktop app and Codex share MCP configuration for the same local host. Add this entry to `~/.codex/config.toml` (merge it into the existing file):
 
 ```toml
-[mcp_servers.redbox_reporting]
-url = "https://nam-oci-agent-2.tail4a7c3.ts.net:8443/mcp"
+[mcp_servers.redbox_reporting_default]
+url = "https://nam-oci-agent-2.tail4a7c3.ts.net:8443/default/mcp"
 startup_timeout_sec = 30
 tool_timeout_sec = 30
 
-[mcp_servers.redbox_reporting.oauth]
+[mcp_servers.redbox_reporting_default.oauth]
 client_id = "redbox-reporting-work"
 callback_url = "http://127.0.0.1:52344/callback"
 callback_port = 52344
 ```
 
-In the ChatGPT desktop app, open **Settings → MCP servers**, select **Restart**, and select **Authenticate** for `redbox_reporting`. Sign in to **ReDBox Reporting Demo** as `reporting-researcher` using the generated password, then approve the reporting consent. This client is pre-registered; it has no client secret. The callback opens on your desktop, so port 52344 must be available there.
+In the ChatGPT desktop app, open **Settings → MCP servers**, select **Restart**, and select **Authenticate** for `redbox_reporting_default`. Sign in to **ReDBox Reporting Demo** as `reporting-researcher` using the generated password, then approve the reporting consent. This client is pre-registered; it has no client secret. The callback opens on your desktop, so port 52344 must be available there.
 
 Alternatively, after adding the TOML entry, run:
 
 ```bash
-codex mcp login redbox_reporting
+codex mcp login redbox_reporting_default
 ```
 
-Start a new **local Work** conversation. Use `/mcp` to confirm that the server is connected and exposes seven tools. Ask Work to use `redbox_reporting` and discover the reporting schema for record type `rdmp` first.
+Start a new **local Work** conversation. Use `/mcp` to confirm that the server is connected and exposes seven tools. Ask Work to use `redbox_reporting_default` and discover the reporting schema for record type `rdmp` first.
 
 These steps follow the current [ChatGPT desktop MCP documentation](https://learn.chatgpt.com/docs/extend/mcp), including its pre-registered OAuth client and callback settings. Hosted ChatGPT Work has a separate plugin connection flow and cannot directly access this private Tailscale endpoint; it needs a public HTTPS endpoint or [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
 

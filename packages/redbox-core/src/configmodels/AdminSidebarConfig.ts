@@ -281,13 +281,14 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
     },
     {
       id: 'integrations', titleKey: 'admin-nav-integrations', defaultExpanded: true,
-      requiredRoles: ['Admin'],
+      requiredRoles: ['Admin', 'Librarians'],
       items: [
-        { id: 'figsharepublishing', labelKey: 'admin-nav-figsharepublishing', href: '/admin/appconfig/edit/figsharePublishing' },
-        { id: 'onipublishing', labelKey: 'admin-nav-onipublishing', href: '/admin/appconfig/edit/oniPublishing' },
-        { id: 'doipublishing', labelKey: 'admin-nav-doipublishing', href: '/admin/appconfig/edit/doiPublishing' },
-        { id: 'raidpublishing', labelKey: 'admin-nav-raidpublishing', href: '/admin/appconfig/edit/raidPublishing' },
-        { id: 'notifications', labelKey: 'admin-nav-notifications', href: '/admin/appconfig/edit/integrationNotification' },
+        { id: 'mcp-connect', labelKey: 'mcp-connect-title', href: '/admin/mcp', requiredRoles: ['Admin', 'Librarians'] },
+        { id: 'figsharepublishing', labelKey: 'admin-nav-figsharepublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/figsharePublishing' },
+        { id: 'onipublishing', labelKey: 'admin-nav-onipublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/oniPublishing' },
+        { id: 'doipublishing', labelKey: 'admin-nav-doipublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/doiPublishing' },
+        { id: 'raidpublishing', labelKey: 'admin-nav-raidpublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/raidPublishing' },
+        { id: 'notifications', labelKey: 'admin-nav-notifications', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/integrationNotification' },
       ]
     },
     {

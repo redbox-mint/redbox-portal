@@ -63,9 +63,11 @@ export const rdmpReportingView: FormConfigFrame = {
     },
   ],
 };
+// Export this AppConfig object from branded-config/default/override/mcp.js in the customer hook.
+// The portal process also requires REDBOX_MCP_ENABLED=true; both switches are required.
 export const mcpConfig = {
   enabled: true,
-  resourceUrl: 'https://redbox.customer.edu.au/mcp',
+  resourceUrl: 'https://redbox.customer.edu.au/default/mcp',
   issuer: 'https://identity.customer.edu.au/realms/research',
   jwksUrl: 'https://identity.customer.edu.au/realms/research/protocol/openid-connect/certs',
   brand: 'default',

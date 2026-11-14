@@ -1,4 +1,364 @@
 {
+  "mcp-brand": {
+    "category": "mcp",
+    "description": "Brand",
+    "contentFormat": "plain"
+  },
+  "mcp-server-name": {
+    "category": "mcp",
+    "description": "Connection name",
+    "contentFormat": "plain"
+  },
+  "mcp-connect-title": {
+    "category": "mcp",
+    "description": "Connect your AI assistant",
+    "contentFormat": "plain"
+  },
+  "mcp-connect-description": {
+    "category": "mcp",
+    "description": "Ask questions about your ReDBox records in Claude, ChatGPT or another assistant. Setup takes about two minutes and uses your institutional sign-in.",
+    "contentFormat": "plain"
+  },
+  "mcp-check-readiness": {
+    "category": "mcp",
+    "description": "Re-check",
+    "contentFormat": "plain"
+  },
+  "mcp-loading": {
+    "category": "mcp",
+    "description": "Checking reporting availability…",
+    "contentFormat": "plain"
+  },
+  "mcp-load-error": {
+    "category": "mcp",
+    "description": "Unable to check availability. Sign in again or retry. Your administrator may have disabled MCP.",
+    "contentFormat": "plain"
+  },
+  "mcp-readiness": {
+    "category": "mcp",
+    "description": "Connection readiness",
+    "contentFormat": "plain"
+  },
+  "mcp-state-needs-configuration": {
+    "category": "mcp",
+    "description": "Setup required",
+    "contentFormat": "plain"
+  },
+  "mcp-state-needs-configuration-description": {
+    "category": "mcp",
+    "description": "Your administrator needs to finish configuring the reporting connection before you can connect.",
+    "contentFormat": "plain"
+  },
+  "mcp-state-reporting-disabled": {
+    "category": "mcp",
+    "description": "Reporting unavailable",
+    "contentFormat": "plain"
+  },
+  "mcp-state-reporting-disabled-description": {
+    "category": "mcp",
+    "description": "Reporting is disabled for this deployment. Contact your administrator to request access.",
+    "contentFormat": "plain"
+  },
+  "mcp-state-oidc-required": {
+    "category": "mcp",
+    "description": "Institutional account required",
+    "contentFormat": "plain"
+  },
+  "mcp-state-oidc-required-description": {
+    "category": "mcp",
+    "description": "Sign in to ReDBox with your institutional OpenID Connect account before configuring an assistant. Contact your administrator if you need help linking your accounts.",
+    "contentFormat": "plain"
+  },
+  "mcp-state-no-reporting-access": {
+    "category": "mcp",
+    "description": "Reporting access required",
+    "contentFormat": "plain"
+  },
+  "mcp-state-no-reporting-access-description": {
+    "category": "mcp",
+    "description": "Your account has no enabled reporting record types. Ask your administrator to check your reporting roles and configuration.",
+    "contentFormat": "plain"
+  },
+  "mcp-check-configuration": {
+    "category": "mcp",
+    "description": "Deployment configured",
+    "contentFormat": "plain"
+  },
+  "mcp-check-reporting": {
+    "category": "mcp",
+    "description": "Reporting enabled",
+    "contentFormat": "plain"
+  },
+  "mcp-check-account": {
+    "category": "mcp",
+    "description": "Institutional account",
+    "contentFormat": "plain"
+  },
+  "mcp-check-records": {
+    "category": "mcp",
+    "description": "Reporting access",
+    "contentFormat": "plain"
+  },
+  "mcp-check-passed": {
+    "category": "mcp",
+    "description": "Passed",
+    "contentFormat": "plain"
+  },
+  "mcp-admin-readiness": {
+    "category": "mcp",
+    "description": "Administrator details",
+    "contentFormat": "plain"
+  },
+  "mcp-admin-readiness-help": {
+    "category": "mcp",
+    "description": "MCP is enabled by REDBOX_MCP_ENABLED=true. Deployment changes require a restart. Check institution OAuth, reporting record types and public client registrations in deployment configuration. Each assistant must be registered with the institution or supported by its automatic client registration.",
+    "contentFormat": "plain"
+  },
+  "mcp-admin-configuration-problems": {
+    "category": "mcp",
+    "description": "Check these configuration fields:",
+    "contentFormat": "plain"
+  },
+  "mcp-choose-harness": {
+    "category": "mcp",
+    "description": "Choose your assistant",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-label": {
+    "category": "mcp",
+    "description": "Assistant or MCP client",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-other": {
+    "category": "mcp",
+    "description": "Other MCP client",
+    "contentFormat": "plain"
+  },
+  "mcp-official-guide": {
+    "category": "mcp",
+    "description": "Official guide",
+    "contentFormat": "plain"
+  },
+  "mcp-command": {
+    "category": "mcp",
+    "description": "Run in your terminal",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-url": {
+    "category": "mcp",
+    "description": "Copy URL",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-prompt": {
+    "category": "mcp",
+    "description": "Copy prompt",
+    "contentFormat": "plain"
+  },
+  "mcp-copied": {
+    "category": "mcp",
+    "description": "Copied",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-failed": {
+    "category": "mcp",
+    "description": "Clipboard access is unavailable. Select and copy the text manually.",
+    "contentFormat": "plain"
+  },
+  "mcp-client-id": {
+    "category": "mcp",
+    "description": "Registered OAuth client ID",
+    "contentFormat": "plain"
+  },
+  "mcp-open-plugin": {
+    "category": "mcp",
+    "description": "Open ReDBox plugin",
+    "contentFormat": "plain"
+  },
+  "mcp-plugin-admin-required": {
+    "category": "mcp",
+    "description": "Ask your administrator for the institution’s ReDBox plugin. They can connect this server through Plugin Creator and publish it for your workspace.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-code-add": {
+    "category": "mcp",
+    "description": "Paste this command into your terminal. It adds ReDBox for your user so it works in every project.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-code-auth": {
+    "category": "mcp",
+    "description": "Start Claude Code and type /mcp. Choose {{serverName}}, then Authenticate. Your browser opens your institution’s sign-in page.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-codex-config": {
+    "category": "mcp",
+    "description": "Merge the configuration below into ~/.codex/config.toml. Update an existing {{serverName}} entry if you already have one.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-codex-auth": {
+    "category": "mcp",
+    "description": "Run this command in your terminal and complete institutional sign-in in your browser.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-desktop-config": {
+    "category": "mcp",
+    "description": "Merge the configuration below into ~/.codex/config.toml on the computer running ChatGPT desktop. This configuration is shared with local Codex clients.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-desktop-auth": {
+    "category": "mcp",
+    "description": "In ChatGPT desktop, open Settings → MCP servers → Restart → Authenticate for {{serverName}}. Complete institutional sign-in in your browser.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-web-plugin": {
+    "category": "mcp",
+    "description": "Open the Plugins tab in ChatGPT and install your institution’s ReDBox plugin using the link below, or ask your administrator for access.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-web-auth": {
+    "category": "mcp",
+    "description": "Connect your institutional account when prompted, then enable the plugin in your conversation. Workspace administrators may need to approve the plugin.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-connector": {
+    "category": "mcp",
+    "description": "Open Customize → Connectors → Add custom connector. Team or Enterprise owners first add it under Organization settings → Connectors.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-auth": {
+    "category": "mcp",
+    "description": "Connect your account and complete institutional sign-in. Switch on the connector from the conversation’s Connectors menu, then start a new conversation.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-generic-add": {
+    "category": "mcp",
+    "description": "Add a remote MCP server named {{serverName}} using Streamable HTTP and the server URL shown here.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-generic-auth": {
+    "category": "mcp",
+    "description": "Use your client’s OAuth sign-in flow. It must support protected-resource discovery, authorization code with PKCE S256, and your institution’s client registration. The issuer is under Technical details.",
+    "contentFormat": "plain"
+  },
+  "mcp-verify": {
+    "category": "mcp",
+    "description": "Test the connection",
+    "contentFormat": "plain"
+  },
+  "mcp-verify-help": {
+    "category": "mcp",
+    "description": "Paste this question into {{name}}. It only asks which fields exist, so no records are read.",
+    "contentFormat": "plain"
+  },
+  "mcp-record-type": {
+    "category": "mcp",
+    "description": "Record type",
+    "contentFormat": "plain"
+  },
+  "mcp-example-prompt": {
+    "category": "mcp",
+    "description": "Example prompt",
+    "contentFormat": "plain"
+  },
+  "mcp-verification-prompt": {
+    "category": "mcp",
+    "description": "Using {{serverName}}, what reporting fields can I use for {{recordType}}? Just describe the fields (get_reporting_schema). Don’t fetch any records.",
+    "contentFormat": "plain"
+  },
+  "mcp-verify-result": {
+    "category": "mcp",
+    "description": "It worked if {{name}} lists reporting fields for {{recordType}}, such as titles, people and dates.",
+    "contentFormat": "plain"
+  },
+  "mcp-connection-details": {
+    "category": "mcp",
+    "description": "Server address",
+    "contentFormat": "plain"
+  },
+  "mcp-server-url": {
+    "category": "mcp",
+    "description": "Server URL",
+    "contentFormat": "plain"
+  },
+  "mcp-transport": {
+    "category": "mcp",
+    "description": "Transport",
+    "contentFormat": "plain"
+  },
+  "mcp-authentication": {
+    "category": "mcp",
+    "description": "Sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-institutional-oauth": {
+    "category": "mcp",
+    "description": "Institutional OAuth",
+    "contentFormat": "plain"
+  },
+  "mcp-scope": {
+    "category": "mcp",
+    "description": "Scope",
+    "contentFormat": "plain"
+  },
+  "mcp-advanced-details": {
+    "category": "mcp",
+    "description": "Technical details",
+    "contentFormat": "plain"
+  },
+  "mcp-issuer": {
+    "category": "mcp",
+    "description": "Issuer",
+    "contentFormat": "plain"
+  },
+  "mcp-resource-metadata": {
+    "category": "mcp",
+    "description": "Resource metadata",
+    "contentFormat": "plain"
+  },
+  "mcp-your-access": {
+    "category": "mcp",
+    "description": "What your assistant can see",
+    "contentFormat": "plain"
+  },
+  "mcp-auth-help": {
+    "category": "mcp",
+    "description": "Your assistant gets its own institutional sign-in so ReDBox can check your permissions for every request. ReDBox API keys and browser sessions can’t be used for this connection.",
+    "contentFormat": "plain"
+  },
+  "mcp-troubleshooting": {
+    "category": "mcp",
+    "description": "Having trouble?",
+    "contentFormat": "plain"
+  },
+  "mcp-help-login-title": {
+    "category": "mcp",
+    "description": "Sign-in didn’t finish",
+    "contentFormat": "plain"
+  },
+  "mcp-help-login": {
+    "category": "mcp",
+    "description": "Confirm you use the same institutional identity as your ReDBox account. Ask your administrator to check the client registration, callback URL, reporting scope and access-token audience.",
+    "contentFormat": "plain"
+  },
+  "mcp-help-network-title": {
+    "category": "mcp",
+    "description": "Couldn’t reach server",
+    "contentFormat": "plain"
+  },
+  "mcp-help-network": {
+    "category": "mcp",
+    "description": "Your assistant’s provider must be able to reach ReDBox on the public internet over HTTPS port 443. Ask your administrator to check routing, certificates and provider network access.",
+    "contentFormat": "plain"
+  },
+  "mcp-help-permissions-title": {
+    "category": "mcp",
+    "description": "Record types or fields are missing",
+    "contentFormat": "plain"
+  },
+  "mcp-help-permissions": {
+    "category": "mcp",
+    "description": "Ask your ReDBox administrator to check your reporting roles, enabled record types and view-form coverage. Your assistant only receives the fields your role permits.",
+    "contentFormat": "plain"
+  },
   "dashboard-heading": {
     "category": "dashboard",
     "description": "Dashboard page heading",
@@ -12639,6 +12999,756 @@
   "report-ux-report-address": {
     "category": "reports",
     "description": "Report web address",
+    "contentFormat": "plain"
+  },
+  "mcp-rechecking": {
+    "category": "mcp",
+    "description": "Re-checking…",
+    "contentFormat": "plain"
+  },
+  "mcp-ready-title": {
+    "category": "mcp",
+    "description": "You’re ready to connect.",
+    "contentFormat": "plain"
+  },
+  "mcp-ready-description": {
+    "category": "mcp",
+    "description": "Reporting is on and you’re signed in with your institutional account. Your assistant only sees the records and fields you can already see in ReDBox.",
+    "contentFormat": "plain"
+  },
+  "mcp-group-local": {
+    "category": "mcp",
+    "description": "Runs on your computer",
+    "contentFormat": "plain"
+  },
+  "mcp-group-cloud": {
+    "category": "mcp",
+    "description": "Runs in the provider’s cloud",
+    "contentFormat": "plain"
+  },
+  "mcp-group-other": {
+    "category": "mcp",
+    "description": "Other",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-claude-code": {
+    "category": "mcp",
+    "description": "Claude Code",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-codex": {
+    "category": "mcp",
+    "description": "Codex CLI",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-chatgpt-desktop": {
+    "category": "mcp",
+    "description": "ChatGPT desktop",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-claude": {
+    "category": "mcp",
+    "description": "Claude",
+    "contentFormat": "plain"
+  },
+  "mcp-harness-chatgpt": {
+    "category": "mcp",
+    "description": "ChatGPT",
+    "contentFormat": "plain"
+  },
+  "mcp-subtitle-command": {
+    "category": "mcp",
+    "description": "Terminal · one command",
+    "contentFormat": "plain"
+  },
+  "mcp-subtitle-config": {
+    "category": "mcp",
+    "description": "Terminal · config file",
+    "contentFormat": "plain"
+  },
+  "mcp-subtitle-desktop": {
+    "category": "mcp",
+    "description": "Desktop app · config file",
+    "contentFormat": "plain"
+  },
+  "mcp-subtitle-connector": {
+    "category": "mcp",
+    "description": "Web and desktop · custom connector",
+    "contentFormat": "plain"
+  },
+  "mcp-subtitle-plugin": {
+    "category": "mcp",
+    "description": "Web · institution plugin",
+    "contentFormat": "plain"
+  },
+  "mcp-subtitle-generic": {
+    "category": "mcp",
+    "description": "Any remote MCP client",
+    "contentFormat": "plain"
+  },
+  "mcp-connect-assistant": {
+    "category": "mcp",
+    "description": "Connect {{name}}",
+    "contentFormat": "plain"
+  },
+  "mcp-new-tab": {
+    "category": "mcp",
+    "description": " (opens in new tab)",
+    "contentFormat": "plain"
+  },
+  "mcp-cloud-title": {
+    "category": "mcp",
+    "description": "Check this first.",
+    "contentFormat": "plain"
+  },
+  "mcp-cloud-warning": {
+    "category": "mcp",
+    "description": "{{name}} connects from its provider’s cloud, not your computer, so ReDBox must be reachable on the public internet over HTTPS. Not sure? Ask your administrator, or choose an assistant that runs on your computer.",
+    "contentFormat": "plain"
+  },
+  "mcp-inside-claude-code": {
+    "category": "mcp",
+    "description": "Type inside Claude Code",
+    "contentFormat": "plain"
+  },
+  "mcp-inside-codex": {
+    "category": "mcp",
+    "description": "Type inside Codex",
+    "contentFormat": "plain"
+  },
+  "mcp-config-file": {
+    "category": "mcp",
+    "description": "~/.codex/config.toml",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-code-add-title": {
+    "category": "mcp",
+    "description": "Add ReDBox to Claude Code",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-code-auth-title": {
+    "category": "mcp",
+    "description": "Sign in with your institution",
+    "contentFormat": "plain"
+  },
+  "mcp-step-codex-config-title": {
+    "category": "mcp",
+    "description": "Add ReDBox to your config file",
+    "contentFormat": "plain"
+  },
+  "mcp-step-codex-auth-title": {
+    "category": "mcp",
+    "description": "Sign in with your institution",
+    "contentFormat": "plain"
+  },
+  "mcp-step-codex-conversation-title": {
+    "category": "mcp",
+    "description": "Start a new conversation",
+    "contentFormat": "plain"
+  },
+  "mcp-step-codex-conversation": {
+    "category": "mcp",
+    "description": "Start a new Codex conversation and type /mcp to check that {{serverName}} is available.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-desktop-config-title": {
+    "category": "mcp",
+    "description": "Add ReDBox to your config file",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-desktop-auth-title": {
+    "category": "mcp",
+    "description": "Restart and sign in",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-desktop-conversation-title": {
+    "category": "mcp",
+    "description": "Start a new local Work conversation",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-desktop-conversation": {
+    "category": "mcp",
+    "description": "Open a new local Work conversation to use the connected server.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-connector-title": {
+    "category": "mcp",
+    "description": "Open connector settings in Claude",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-form-title": {
+    "category": "mcp",
+    "description": "Fill in the form",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-form": {
+    "category": "mcp",
+    "description": "Enter these values in the connector form. If an OAuth client ID is shown, enter it under Advanced using “Use your own OAuth client”.",
+    "contentFormat": "plain"
+  },
+  "mcp-step-claude-auth-title": {
+    "category": "mcp",
+    "description": "Connect and switch it on",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-web-plugin-title": {
+    "category": "mcp",
+    "description": "Install your institution’s ReDBox plugin",
+    "contentFormat": "plain"
+  },
+  "mcp-step-chatgpt-web-auth-title": {
+    "category": "mcp",
+    "description": "Connect your account",
+    "contentFormat": "plain"
+  },
+  "mcp-step-generic-add-title": {
+    "category": "mcp",
+    "description": "Add a remote MCP server",
+    "contentFormat": "plain"
+  },
+  "mcp-step-generic-auth-title": {
+    "category": "mcp",
+    "description": "Sign in with OAuth",
+    "contentFormat": "plain"
+  },
+  "mcp-field-name": {
+    "category": "mcp",
+    "description": "Name",
+    "contentFormat": "plain"
+  },
+  "mcp-remote-url": {
+    "category": "mcp",
+    "description": "Remote MCP server URL",
+    "contentFormat": "plain"
+  },
+  "mcp-field": {
+    "category": "mcp",
+    "description": "Field",
+    "contentFormat": "plain"
+  },
+  "mcp-value": {
+    "category": "mcp",
+    "description": "Value",
+    "contentFormat": "plain"
+  },
+  "mcp-copy": {
+    "category": "mcp",
+    "description": "Copy",
+    "contentFormat": "plain"
+  },
+  "mcp-connection-fields": {
+    "category": "mcp",
+    "description": "Connection form values",
+    "contentFormat": "plain"
+  },
+  "mcp-verify-trouble": {
+    "category": "mcp",
+    "description": "Asked to sign in, or ReDBox not found? Repeat the sign-in step, start a new conversation, then see",
+    "contentFormat": "plain"
+  },
+  "mcp-url-help": {
+    "category": "mcp",
+    "description": "Server URL · most assistants only need this",
+    "contentFormat": "plain"
+  },
+  "mcp-streamable-http": {
+    "category": "mcp",
+    "description": "Streamable HTTP",
+    "contentFormat": "plain"
+  },
+  "mcp-help-tools-title": {
+    "category": "mcp",
+    "description": "Tools don’t show up",
+    "contentFormat": "plain"
+  },
+  "mcp-help-tools": {
+    "category": "mcp",
+    "description": "Enable the connector or plugin in your conversation, then start a new conversation.",
+    "contentFormat": "plain"
+  },
+  "mcp-help-cloud-login-title": {
+    "category": "mcp",
+    "description": "Sign-in didn’t finish",
+    "contentFormat": "plain"
+  },
+  "mcp-help-cloud-login": {
+    "category": "mcp",
+    "description": "Check the OAuth client ID under Advanced if your institution supplied one. Ask your administrator to check client registration, callback URL, scope and token audience.",
+    "contentFormat": "plain"
+  },
+  "mcp-help-local-tools-title": {
+    "category": "mcp",
+    "description": "ReDBox doesn’t appear in /mcp",
+    "contentFormat": "plain"
+  },
+  "mcp-help-local-tools": {
+    "category": "mcp",
+    "description": "Check that you added the configuration on this computer, then restart the assistant and open a new conversation. Your computer must be able to reach the server URL. Repeat the sign-in step.",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-support": {
+    "category": "mcp",
+    "description": "Copy details for your administrator",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-diagnostics": {
+    "category": "mcp",
+    "description": "Copy diagnostics",
+    "contentFormat": "plain"
+  },
+  "mcp-access-permissions": {
+    "category": "mcp",
+    "description": "Only the records and fields your ReDBox role allows.",
+    "contentFormat": "plain"
+  },
+  "mcp-access-read-only": {
+    "category": "mcp",
+    "description": "Read-only reporting. Your assistant can’t edit or delete records.",
+    "contentFormat": "plain"
+  },
+  "mcp-access-disconnect": {
+    "category": "mcp",
+    "description": "Disconnect it in your assistant when you’re finished. Your institution controls token expiry and revocation; information already shared may remain in your assistant.",
+    "contentFormat": "plain"
+  },
+  "mcp-actions-needed_one": {
+    "category": "mcp",
+    "description": "{{count}} action needed",
+    "contentFormat": "plain"
+  },
+  "mcp-actions-needed_other": {
+    "category": "mcp",
+    "description": "{{count}} actions needed",
+    "contentFormat": "plain"
+  },
+  "mcp-actions-needed": {
+    "category": "mcp",
+    "description": "{{count}} action(s) needed",
+    "contentFormat": "plain"
+  },
+  "mcp-check-action": {
+    "category": "mcp",
+    "description": "Needs action",
+    "contentFormat": "plain"
+  },
+  "mcp-check-unchecked": {
+    "category": "mcp",
+    "description": "Not checked yet",
+    "contentFormat": "plain"
+  },
+  "mcp-hint-configuration": {
+    "category": "mcp",
+    "description": "An administrator needs to complete the server configuration.",
+    "contentFormat": "plain"
+  },
+  "mcp-hint-reporting": {
+    "category": "mcp",
+    "description": "An administrator needs to enable reporting.",
+    "contentFormat": "plain"
+  },
+  "mcp-hint-account": {
+    "category": "mcp",
+    "description": "Sign in with your institutional account.",
+    "contentFormat": "plain"
+  },
+  "mcp-hint-records": {
+    "category": "mcp",
+    "description": "Ask an administrator to check your reporting roles and enabled record types.",
+    "contentFormat": "plain"
+  },
+  "mcp-hint-after-sign-in": {
+    "category": "mcp",
+    "description": "Checked after you sign in.",
+    "contentFormat": "plain"
+  },
+  "mcp-hint-after-setup": {
+    "category": "mcp",
+    "description": "Checked after server setup and reporting are enabled.",
+    "contentFormat": "plain"
+  },
+  "mcp-sign-in": {
+    "category": "mcp",
+    "description": "Sign in with your institution",
+    "contentFormat": "plain"
+  },
+  "mcp-review-settings": {
+    "category": "mcp",
+    "description": "Review administrator details",
+    "contentFormat": "plain"
+  },
+  "mcp-contact-admin": {
+    "category": "mcp",
+    "description": "Ask your ReDBox administrator to resolve the checks below, then select Re-check.",
+    "contentFormat": "plain"
+  },
+  "mcp-after-sign-in": {
+    "category": "mcp",
+    "description": "After you sign in, setup takes three steps",
+    "contentFormat": "plain"
+  },
+  "mcp-preview-connect": {
+    "category": "mcp",
+    "description": "Paste a command or fill in a form",
+    "contentFormat": "plain"
+  },
+  "mcp-preview-test": {
+    "category": "mcp",
+    "description": "Ask a test question",
+    "contentFormat": "plain"
+  },
+  "mcp-admin-only": {
+    "category": "mcp",
+    "description": "Only administrators see this section",
+    "contentFormat": "plain"
+  },
+  "mcp-setting": {
+    "category": "mcp",
+    "description": "Setting",
+    "contentFormat": "plain"
+  },
+  "mcp-problem": {
+    "category": "mcp",
+    "description": "Problem",
+    "contentFormat": "plain"
+  },
+  "mcp-affects": {
+    "category": "mcp",
+    "description": "Affects",
+    "contentFormat": "plain"
+  },
+  "mcp-invalid-setting": {
+    "category": "mcp",
+    "description": "Missing or invalid configuration; check the deployment settings.",
+    "contentFormat": "plain"
+  },
+  "mcp-client-setup": {
+    "category": "mcp",
+    "description": "Assistant setup",
+    "contentFormat": "plain"
+  },
+  "mcp-server-setup": {
+    "category": "mcp",
+    "description": "Server connection",
+    "contentFormat": "plain"
+  },
+  "mcp-wiki": {
+    "category": "mcp",
+    "description": "AI reporting documentation",
+    "contentFormat": "plain"
+  },
+  "mcp-why-sign-in": {
+    "category": "mcp",
+    "description": "Why institutional sign-in?",
+    "contentFormat": "plain"
+  },
+  "mcp-after-setup": {
+    "category": "mcp",
+    "description": "Once setup is finished, connecting takes three steps",
+    "contentFormat": "plain"
+  },
+  "mcp-after-access": {
+    "category": "mcp",
+    "description": "Once reporting access is granted, connecting takes three steps",
+    "contentFormat": "plain"
+  },
+  "mcp-sign-in-help-title": {
+    "category": "mcp",
+    "description": "Why institutional sign-in?",
+    "contentFormat": "plain"
+  },
+  "mcp-sign-in-help": {
+    "category": "mcp",
+    "description": "Your assistant gets its own institutional sign-in so ReDBox can check your permissions for every request. ReDBox API keys and browser sessions can’t be used for this connection.",
+    "contentFormat": "plain"
+  },
+  "mcp-admin-setup-help-title": {
+    "category": "mcp",
+    "description": "Finish the reporting setup",
+    "contentFormat": "plain"
+  },
+  "mcp-admin-setup-help": {
+    "category": "mcp",
+    "description": "Configure the ReDBox HTTPS endpoint and institutional OAuth settings, then enable reporting and the record types your institution allows. Review the administrator details and select Re-check after applying the deployment changes.",
+    "contentFormat": "plain"
+  },
+  "mcp-pending-setup-help-title": {
+    "category": "mcp",
+    "description": "Your administrator is finishing setup",
+    "contentFormat": "plain"
+  },
+  "mcp-pending-setup-help": {
+    "category": "mcp",
+    "description": "Your ReDBox administrator needs to configure the connection and enable reporting before you can connect an assistant. Contact them for an update, then select Re-check when setup is complete.",
+    "contentFormat": "plain"
+  },
+  "mcp-reporting-access-help-title": {
+    "category": "mcp",
+    "description": "Get reporting access",
+    "contentFormat": "plain"
+  },
+  "mcp-reporting-access-help": {
+    "category": "mcp",
+    "description": "An administrator needs to check your reporting roles and which record types are enabled for them. Once access is granted, select Re-check to see your connection instructions.",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-command": {
+    "category": "mcp",
+    "description": "Copy command",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-configuration": {
+    "category": "mcp",
+    "description": "Copy configuration",
+    "contentFormat": "plain"
+  },
+  "mcp-copy-field": {
+    "category": "mcp",
+    "description": "Copy {{field}}",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp": {
+    "category": "mcp",
+    "description": "Remove unrecognized MCP settings and check the server configuration structure.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp": {
+    "category": "mcp",
+    "description": "Server configuration",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.enabled": {
+    "category": "mcp",
+    "description": "Enable MCP for this brand and set REDBOX_MCP_ENABLED=true in the deployment environment.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.enabled": {
+    "category": "mcp",
+    "description": "Server availability",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.resourceUrl": {
+    "category": "mcp",
+    "description": "Set the public HTTPS endpoint to https://<host>/<brand>/mcp, matching this brand. Do not include credentials, a query or a fragment.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.resourceUrl": {
+    "category": "mcp",
+    "description": "Server address and discovery",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.issuer": {
+    "category": "mcp",
+    "description": "Set the HTTPS issuer URL of the institutional authorization server. It must match the issuer in access tokens.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.issuer": {
+    "category": "mcp",
+    "description": "Institutional sign-in and token validation",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.jwksUrl": {
+    "category": "mcp",
+    "description": "Set the institutional authorization server’s HTTPS JWKS URL so ReDBox can verify access-token signatures.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.jwksUrl": {
+    "category": "mcp",
+    "description": "Access-token signature validation",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.brand": {
+    "category": "mcp",
+    "description": "Set the MCP brand to the brand serving this page. Use letters, numbers, dots, underscores or hyphens, starting with a letter or number.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.brand": {
+    "category": "mcp",
+    "description": "Brand routing and token audience",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.scope": {
+    "category": "mcp",
+    "description": "Set one reporting OAuth scope using letters, numbers, dots, underscores, colons or hyphens. Configure the same scope at the authorization server.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.scope": {
+    "category": "mcp",
+    "description": "Reporting authorization",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.identityClaim": {
+    "category": "mcp",
+    "description": "Set the access-token claim that identifies the institutional user, starting with a letter and containing only letters, numbers or underscores.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.identityClaim": {
+    "category": "mcp",
+    "description": "Account matching",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.usernameToLowercase": {
+    "category": "mcp",
+    "description": "Set true or false to control whether the institutional username is converted to lowercase before account matching.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.usernameToLowercase": {
+    "category": "mcp",
+    "description": "Account matching",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.algorithms": {
+    "category": "mcp",
+    "description": "Allow at least one supported access-token signing algorithm: RS256, ES256 or PS256.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.algorithms": {
+    "category": "mcp",
+    "description": "Access-token signature validation",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.allowedOrigins": {
+    "category": "mcp",
+    "description": "Use at most 20 HTTPS origins, such as https://assistant.example, without paths, credentials, queries or fragments.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.allowedOrigins": {
+    "category": "mcp",
+    "description": "Browser client access (CORS)",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcp.maxRequestBytes": {
+    "category": "mcp",
+    "description": "Set the maximum MCP request size to a whole number between 1024 and 64000 bytes.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcp.maxRequestBytes": {
+    "category": "mcp",
+    "description": "MCP request size limit",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup": {
+    "category": "mcp",
+    "description": "Use only public client registrations and the ChatGPT plugin URL in assistant setup. Remove unrecognized settings and all secrets.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup": {
+    "category": "mcp",
+    "description": "Assistant setup",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients": {
+    "category": "mcp",
+    "description": "Configure only supported public clients: codex, claudeCode and claude. Do not include client secrets.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients": {
+    "category": "mcp",
+    "description": "Assistant OAuth registration",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.chatgptPluginUrl": {
+    "category": "mcp",
+    "description": "Set the institution’s ChatGPT plugin URL to an HTTPS URL without credentials, a query or a fragment.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.chatgptPluginUrl": {
+    "category": "mcp",
+    "description": "ChatGPT web plugin installation",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.codex": {
+    "category": "mcp",
+    "description": "Use a public client registration with only the supported fields: clientId, callbackUrl, callbackPort. Never include a client secret.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.codex": {
+    "category": "mcp",
+    "description": "Codex and ChatGPT desktop sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.codex.clientId": {
+    "category": "mcp",
+    "description": "Use the registered public OAuth client ID (1–500 characters). Never put a client secret here.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.codex.clientId": {
+    "category": "mcp",
+    "description": "Codex and ChatGPT desktop sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.codex.callbackUrl": {
+    "category": "mcp",
+    "description": "Use the registered HTTP or HTTPS callback URL (up to 2000 characters), without credentials or a fragment.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.codex.callbackUrl": {
+    "category": "mcp",
+    "description": "Codex and ChatGPT desktop sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.codex.callbackPort": {
+    "category": "mcp",
+    "description": "Use the registered local callback port as a whole number between 1 and 65535.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.codex.callbackPort": {
+    "category": "mcp",
+    "description": "Codex and ChatGPT desktop sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.claudeCode": {
+    "category": "mcp",
+    "description": "Use a public client registration with only the supported fields: clientId, callbackPort. Never include a client secret.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.claudeCode": {
+    "category": "mcp",
+    "description": "Claude Code sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.claudeCode.clientId": {
+    "category": "mcp",
+    "description": "Use the registered public OAuth client ID (1–500 characters). Never put a client secret here.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.claudeCode.clientId": {
+    "category": "mcp",
+    "description": "Claude Code sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.claudeCode.callbackPort": {
+    "category": "mcp",
+    "description": "Use the registered local callback port as a whole number between 1 and 65535.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.claudeCode.callbackPort": {
+    "category": "mcp",
+    "description": "Claude Code sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.claude": {
+    "category": "mcp",
+    "description": "Use a public client registration with only the supported fields: clientId. Never include a client secret.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.claude": {
+    "category": "mcp",
+    "description": "Claude connector sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-mcpSetup.clients.claude.clientId": {
+    "category": "mcp",
+    "description": "Use the registered public OAuth client ID (1–500 characters). Never put a client secret here.",
+    "contentFormat": "plain"
+  },
+  "mcp-problem-affects-mcpSetup.clients.claude.clientId": {
+    "category": "mcp",
+    "description": "Claude connector sign-in",
+    "contentFormat": "plain"
+  },
+  "mcp-schema-verification-prompt": {
+    "category": "mcp",
+    "description": "Using {{serverName}}, what reporting fields can I use for {{recordTypeLabel}} (record type \"{{recordType}}\")? Call get_reporting_schema with recordType \"{{recordType}}\". Just describe the fields. Don’t fetch any records.",
     "contentFormat": "plain"
   }
 }

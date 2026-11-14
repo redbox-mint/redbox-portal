@@ -81,19 +81,6 @@ function configuration() {
     appUrl: base,
     enableNewForm: true,
     reporting: { ...Config.reporting, enabled: true },
-    mcp: {
-      enabled: true,
-      resourceUrl: `${base}/mcp`,
-      issuer,
-      jwksUrl: `${issuer}/protocol/openid-connect/certs`,
-      brand: 'default',
-      scope: 'redbox.reporting',
-      identityClaim: 'preferred_username',
-      usernameToLowercase: true,
-      algorithms: ['RS256'],
-      allowedOrigins: [],
-      maxRequestBytes: 16000,
-    },
     recordtype: {
       rdmp: {
         reporting: {
@@ -121,6 +108,28 @@ function configuration() {
       ),
     },
     brandingConfigurationDefaults: {
+      mcpSetup: {
+        clients: {
+          codex: {
+            clientId: 'redbox-reporting-work',
+            callbackUrl: 'http://127.0.0.1:52344/callback',
+            callbackPort: 52344,
+          },
+        },
+      },
+      mcp: {
+        enabled: true,
+        resourceUrl: `${base}/default/mcp`,
+        issuer,
+        jwksUrl: `${issuer}/protocol/openid-connect/certs`,
+        brand: 'default',
+        scope: 'redbox.reporting',
+        identityClaim: 'preferred_username',
+        usernameToLowercase: true,
+        algorithms: ['RS256'],
+        allowedOrigins: [],
+        maxRequestBytes: 16000,
+      },
       auth: {
         active: ['local', 'oidc'],
         local: {

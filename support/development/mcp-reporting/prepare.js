@@ -104,11 +104,11 @@ const realm = {
   clients: [
     {
       // Use the same URI as the resource identity for code and refresh token audiences.
-      clientId: `${base}/mcp`,
+      clientId: `${base}/default/mcp`,
       name: 'ReDBox reporting resource',
       protocol: 'openid-connect',
       bearerOnly: true,
-      attributes: { resource_url: `${base}/mcp` },
+      attributes: { resource_url: `${base}/default/mcp` },
     },
     {
       clientId: 'redbox-reporting-work',
@@ -128,7 +128,7 @@ const realm = {
           protocol: 'openid-connect',
           protocolMapper: 'oidc-audience-mapper',
           config: {
-            'included.client.audience': `${base}/mcp`,
+            'included.client.audience': `${base}/default/mcp`,
             'access.token.claim': 'true',
             'id.token.claim': 'false',
           },
@@ -165,4 +165,4 @@ write('realm.json', JSON.stringify(realm, null, 2));
 // Keycloak runs as a different container UID. The host directory remains private (0700).
 fs.chmodSync(path.join(directory, 'realm.json'), 0o644);
 write('expected-results.json', JSON.stringify(require('./hook/seed').expectedResults(), null, 2));
-console.log(`Demo prepared for ${base}/mcp. Credentials are in ${credentialsPath}; no tokens are stored.`);
+console.log(`Demo prepared for ${base}/default/mcp. Credentials are in ${credentialsPath}; no tokens are stored.`);
