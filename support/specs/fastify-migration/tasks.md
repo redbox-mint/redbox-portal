@@ -264,7 +264,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: assets/forms initialize in the production composition; cache/HEAD/
     content-type/security-header tests pass with no public implementation leakage.
 
-- [ ] **FM-032 — Run browser acceptance and close G4.**
+- [x] **FM-032 — Run browser acceptance and close G4.**
   - Dependencies: FM-030, FM-031.
   - Work: adapt fixtures and run the full existing Playwright collection and coverage
     checks against Fastify in tested-image mode.
@@ -301,6 +301,9 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     dispatch. Run full real-network shutdown/integration matrix.
   - Acceptance: no abandoned work/second owner/listener, staged files are cleaned,
     and owned cleanup is proven before any process-force-exit harness behavior.
+    Carry-forward from G4 (FM-032): re-run the complete Playwright collection
+    against Fastify in tested-image mode, Companion enabled, retries 0, with zero
+    failures (F25 TUS and Companion startup must pass).
 
 ## P6 — Tooling, consumers and WSU
 

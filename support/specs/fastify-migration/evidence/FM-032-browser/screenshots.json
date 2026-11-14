@@ -1,0 +1,902 @@
+[
+  {
+    "name": "login",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/user/login",
+    "status": 200,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/user/login",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/aaf_service_223x54.png",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/Openid_connect_logo.png",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/loading.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/local-auth/browser/main-YOQVOCZM.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/local-auth/browser/chunk-7CGTOI24.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/csrfToken",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/dynamic/apiClientConfig?v=1794601062569",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/locales/en/translation.json",
+        "status": 200
+      }
+    ],
+    "documentHeight": 1213,
+    "body": "Login\nHOME\nAAF Credentials\nOpenid Connect Credentials\nLogin as an administrator\nLocal Credentials\n\n\n\n\nLOGIN \n\n\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  },
+  {
+    "name": "dashboard",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dashboard/rdmp",
+    "status": 200,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dashboard/rdmp",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Open+Sans:400italic,600",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/loading.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/dashboard/browser/styles-5INURTSO.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/dashboard/browser/main-OEZNDDZZ.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/dashboard/browser/chunk-IFGU66OU.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/csrfToken",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/dynamic/apiClientConfig?v=1794601065284",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/locales/en/translation.json",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/user/info",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dashboard/type/standard",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/wfSteps/rdmp",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dashboard/settings/workflow/rdmp",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dynamicAsset/recordDashboardTemplates/rdmp/draft?apiVersion=2.0&settingsFingerprint=f927d745f5ddb622e061361dc5c375a179474d477695001777b3097f648bcc41&ts=1794601065554",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/listRecords?recordType=rdmp&sort=metaMetadata.lastSaveDate%3A-1&state=draft&start=0&rows=10",
+        "status": 200
+      }
+    ],
+    "documentHeight": 960,
+    "body": " Welcome Local Admin \nLOGOUT\nHOME\nPLAN\nWORKSPACES\nMANAGE\nPUBLISH AND SHARE\nADMIN\nUpdate RDMP\nMy Plans\nFilter by Title\nSearch\nRecord Title \tChief Investigator \tData manager \tCreated \tModified \nBrowser acceptance full development form \t\t\t14 Nov 2026, 6:17 am\t14 Nov 2026, 6:17 am\nBrowser acceptance full development form \t\t\t14 Nov 2026, 6:10 am\t14 Nov 2026, 6:10 am\nFirst\n1\nLast\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  },
+  {
+    "name": "record-edit",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/edit/182d9645811f487e94ee4960f9bed92c",
+    "status": 200,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/edit/182d9645811f487e94ee4960f9bed92c",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/loading.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/styles-K5BUJDHB.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/main-E7ROLOSH.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/csrfToken",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/dynamic/apiClientConfig?v=1794601066742",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/locales/en/translation.json",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/user/info",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/form/auto/182d9645811f487e94ee4960f9bed92c?ts=1794601066867&edit=true",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/default/js/645.index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/default/js/551.index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dynamicAsset/formCompiledItems/e2e-initialisation-modes/182d9645811f487e94ee4960f9bed92c?apiVersion=2.0&edit=true&ts=1794601066978",
+        "status": 200
+      }
+    ],
+    "documentHeight": 960,
+    "body": " Welcome Local Admin \nLOGOUT\nHOME\nPLAN\nWORKSPACES\nMANAGE\nPUBLISH AND SHARE\nADMIN\nTitle\nCalculated description\n@rdmp-title-label\n@playwright-regression-translation\nSave\nAudit\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  },
+  {
+    "name": "record-edit-full-seeded-form",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/edit/4bcc79199bbd460abec18180971c60ce",
+    "status": 200,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/edit/4bcc79199bbd460abec18180971c60ce",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/loading.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/styles-K5BUJDHB.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/main-E7ROLOSH.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/csrfToken",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/dynamic/apiClientConfig?v=1794601067971",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/locales/en/translation.json",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/user/info",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/form/auto/4bcc79199bbd460abec18180971c60ce?ts=1794601068067&edit=true",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/default/js/645.index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/default/js/551.index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/dynamicAsset/formCompiledItems/rdmp/4bcc79199bbd460abec18180971c60ce?apiVersion=2.0&edit=true&ts=1794601068213",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DizEcbF7.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DJvk0-eI.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CH34nivH.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CC-EXL_g.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Cj0pFjPt.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Zc-DIsQb.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/be810be3a3e14c682a25.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DkeOFsZv.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-BPaOMyRP.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CqeRJiX1.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-8dLNXhhr.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-1E2MyCMn.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DxK6EvPu.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Q20emF7_.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DqkSnMMo.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-xOz5QQRU.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-qa6te_l1.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/workspaces/types",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/icons/aae2a8f793b1ab268f3f.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/blank.png",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/icons/6376436babdee8fe41f6.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Cs26yhlf.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CN2k0ymO.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Bl_dv80h.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DA9tZ7Y3.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-BkC47P45.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Cm825WVw.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-BRpFWaXW.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DQt75YYe.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-vevth5bg.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-BnIk_7ij.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-B5QpeH5n.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CFhVukbW.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DKgZDzn4.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-C_B7Hf11.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Bj2su3ac.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DDnDWMVQ.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CZYQ-Ug4.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Cg-XG5sC.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DsBID6JZ.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-D-vF619I.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-BsGlZlz0.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DrLwKwpV.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-E1t8cAzC.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-BeLZdvRy.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Cug-OUwq.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-kKDWBxwH.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CT4RxT2s.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DzOYVPh7.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-Imjdi9uZ.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-W1JLwbL5.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DHlraLMJ.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-ekshs2YM.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-CKnGOA8T.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DduxVqFm.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/form/browser/chunk-DyBlbxGm.js",
+        "status": 200
+      }
+    ],
+    "documentHeight": 3990,
+    "body": " Welcome Local Admin \nLOGOUT\nHOME\nPLAN\nWORKSPACES\nMANAGE\nPUBLISH AND SHARE\nADMIN\nTab 1\nTab 2\ncontent default value content: My first text block component!!!\nServer sync test value\ncontributor_ci\nName\nEmail\nORCID\nTextarea some label\nRich text editor\nH2\nBold\nItalic\nLink\nBullets\nNumbers\nQuote\nTable\nUndo\nRedo\n\n\n\n\nRich text editor (Markdown output)\nMarkdown\nH2\nBold\nItalic\nLink\nBullets\nNumbers\nQuote\nTable\nUndo\nRedo\n\n\n\n\nDropdown some label\nOption 1\nOption 2\nOption 3\nLookahead example\nName (requireSelection true)\nParty lookup\nANZSRC ToA lookup\nCheckbox some label (single value)\nOption 1\nOption 2\nOption 3\nCheckbox multiple values\nMulti Option 1\nMulti Option 2\nMulti Option 3\nMulti Option 4\nRadio some label (single value)\nOption 1\nOption 2\nOption 3\nTextField1 emitting events*\nTextField2 with expression listening to text_1_event\nTextField with default wrapper defined\nValue does not match the required format.\nTextField with default wrapper defined*\nTextField with default wrapper defined\nRepeatable TextField not inside the tab with default wrapper defined\nAdd Item\nEXISTING WORKSPACES\nExisting Workspaces\nExisting Workspaces description placeholder\nOpen workspace\nSave\nPrevious\nNext\nCancel\n\nPlease fix the following errors before continuing:\n\nTextField with default wrapper defined\nValue does not match the required format.\nform-item-id-text-2-event\nThis field requires a value.\nform-item-id-text-3-event\nThis field requires a value.\nRepeatable TextField with default wrapper defined\nValue does not match the required format.\n\nConsider completing the following fields:\n\nTab 1 - TextField with default wrapper defined\nThis field requires a value.\nAudit\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  },
+  {
+    "name": "admin-users",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/admin/users",
+    "status": 200,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/admin/users",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/manage-users/browser/styles-2QRA2Y43.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/loading.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/manage-users/browser/main-TSGDCZ3P.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/manage-users/browser/chunk-IFGU66OU.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/csrfToken",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/dynamic/apiClientConfig?v=1794601070530",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/locales/en/translation.json",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/admin/roles/get",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/admin/users/get",
+        "status": 200
+      }
+    ],
+    "documentHeight": 1544,
+    "body": " Welcome Local Admin \nLOGOUT\nHOME\nPLAN\nWORKSPACES\nMANAGE\nPUBLISH AND SHARE\nADMIN\n Admin\nAnalyze\nReports\nHarvest runs\nExport\nDeleted Records\nSystem settings\nRole management\nUser management\nSystem Messages\nWeb Analytics\nAuthorized Domains and Emails\nDashboard Configuration\nNamed Queries\nNavigation\nMenu Configuration\nHome Panels Configuration\nAdmin Sidebar Configuration\nSIEM Configuration\nFigshare publishing configuration\nmenu-onipublishingconfiguration\nLookup records\nParties\nVocabularies\nIntegrations\nFigshare Vocabularies\nConfigure site branding\nConfigure site translations\nUser management\nSEARCH FOR NAME\n Reset\nShow disabled users\n Add a new local user\nName\tEmail Address\tRoles\tAccount Status\tAPI Key\tAction\nLocal Admin\tadmin@redboxresearchdata.com.au\tAdmin, Librarians, Researcher, Guest\t\nActive\n\t\t\n Edit\n Linked Accounts\n Disable\n View Audit\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  },
+  {
+    "name": "search",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/search",
+    "status": 200,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/search",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/images/loading.svg",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/record-search/browser/styles-5INURTSO.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/record-search/browser/main-TYXFGYWO.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/angular/record-search/browser/chunk-7CGTOI24.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/csrfToken",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/dynamic/apiClientConfig?v=1794601071725",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/locales/en/translation.json",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/record/type",
+        "status": 200
+      }
+    ],
+    "documentHeight": 960,
+    "body": " Welcome Local Admin \nLOGOUT\nHOME\nPLAN\nWORKSPACES\nMANAGE\nPUBLISH AND SHARE\nADMIN\nSearch\nSearch\nSearch Plans\nToggle dropdown\nReset\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  },
+  {
+    "name": "error-page",
+    "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/fm032-not-found",
+    "status": 404,
+    "fullPage": true,
+    "locale": "en-AU",
+    "timezoneId": "Australia/Brisbane",
+    "errors": [
+      {
+        "kind": "console",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      }
+    ],
+    "requests": [
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/fm032-not-found",
+        "status": 404
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/theme.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/styles/style.min.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/jquery.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/index.bundle.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/js/bootstrap.bundle.min.js",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/styles/print.css",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/default/rdmp/images/logo",
+        "status": 200
+      },
+      {
+        "url": "http://nam-oci-agent-2.tail4a7c3.ts.net:48991/2463b90d9a316e4e5294.woff2",
+        "status": 200
+      }
+    ],
+    "documentHeight": 960,
+    "body": " Welcome Local Admin \nLOGOUT\nHOME\nPLAN\nWORKSPACES\nMANAGE\nPUBLISH AND SHARE\nADMIN\nPage Not Found!\nThe page you are trying to reach doesn't exist.\n\n© 2026 Queensland Cyber Infrastructure Foundation"
+  }
+]

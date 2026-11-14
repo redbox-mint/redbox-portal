@@ -1,0 +1,45 @@
+# FM-032: layer over docker-compose.playwright.yml; no application source or
+# compiled bundles are mounted into the portal. Select the baseline in a fresh
+# container with RBPORTAL_PLAYWRIGHT_HOST=express, using the same tested image.
+services:
+  redboxportal:
+    entrypoint: ['bash', '/opt/redbox-portal/support/integration-testing/run-fastify-browser.sh']
+    mem_limit: 3g
+    cpus: 1.25
+    environment:
+      RBPORTAL_PLAYWRIGHT_HOST: ${RBPORTAL_PLAYWRIGHT_HOST-fastify}
+      REDBOX_PUBLIC_URL: ${PLAYWRIGHT_BASE_URL:?Use the published Tailscale portal URL}
+      REDBOX_PORTAL_APP_URL: ${PLAYWRIGHT_BASE_URL}
+      # Match CI's enabled Companion configuration; transfers remain FM-035-owned.
+      UPPY_COMPANION_ENABLED: ${FM032_COMPANION_ENABLED:-true}
+    volumes:
+      - '../../.tmp/playwright/logs:/opt/redbox-portal/.tmp/playwright/logs'
+  playwright:
+    environment:
+      PLAYWRIGHT_BASE_URL: ${PLAYWRIGHT_BASE_URL}
+  mongodb:
+    mem_limit: 1536m
+    cpus: 0.5
+    ulimits:
+      nofile: { soft: 64000, hard: 64000 }
+    command: ['mongod', '--wiredTigerCacheSizeGB', '0.25']
+  solr:
+    image: solr:10.0.0@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb
+    mem_limit: 768m
+    cpus: 0.5
+    environment:
+      SOLR_HEAP: 512m
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1-1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b
+    mem_limit: 1024m
+    cpus: 0.5
+  playwright-stubs:
+    image: ${RBPORTAL_IMAGE}
+    mem_limit: 256m
+    cpus: 0.25
+    working_dir: /opt/playwright-stubs
+    entrypoint: ['node', 'server.cjs']
+    command: []
+  email:
+    mem_limit: 128m
+    cpus: 0.25

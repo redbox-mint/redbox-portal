@@ -348,7 +348,7 @@
     "packages/redbox-core/src/http/express/metadata.ts": "96455a2cfe7a63fd02cdd4b52bd34410c727bb33a55079d14634bdf479982711",
     "packages/redbox-core/src/http/express/middleware.ts": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
     "packages/redbox-core/src/http/express/multipart.ts": "78afe9a4d39e919923bbcde10527c65b666b94dcb78963bb996af64b803c5d39",
-    "packages/redbox-core/src/http/express/ownedRoutes.ts": "8c50b54134ed8bc9f9fbd6cd25c2d4eab517d0c56a834036c685a896d44ea7b6",
+    "packages/redbox-core/src/http/express/ownedRoutes.ts": "36245e77eb73ef0c6faa0282ce66e9340056cabac6637d2f0d09deecef2a1898",
     "packages/redbox-core/src/http/express/pageAssets.ts": "82ccfdb1530c8c895288260cb1cde4445346e8d1b4bfd836159d35c0ec1485e8",
     "packages/redbox-core/src/http/express/pageHeaders.ts": "6ea3ffd6d000c7ba3070909d33877c8a37eb230f652ad963ccb605a40ea885a9",
     "packages/redbox-core/src/http/express/pages.ts": "e3ddf76f2599bd6b7a29554ceca8ff15ef6cdff6535c7c7e70f5ef308c6eeb4d",

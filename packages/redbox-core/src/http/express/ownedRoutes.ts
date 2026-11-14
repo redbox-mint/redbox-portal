@@ -72,9 +72,7 @@ export function portalHttpOwnerDeclarations(
     ...dynamicAssetRoutes.map(route => owner(route)),
     ...protocols,
     ...(config.companion.enabled
-      ? [config.companion.route, config.companion.route + '/{*companionPath}'].map(path =>
-          owner({ method: 'all', path })
-        )
+      ? [config.companion.route, config.companion.route + '/*companionPath'].map(path => owner({ method: 'all', path }))
       : []),
     ...(config.server.rootContext
       ? []
@@ -90,7 +88,13 @@ export function portalOwnedHttpRoutes(config: OwnershipConfiguration): readonly 
   const routes = new Map<string, OwnedHttpRoute>();
   for (const route of declarations) {
     // The API reference retains these legacy spellings; use the paths mounted by the host.
-    const path = route.path.replace(':key*', '*key').replace('datastream*', 'datastream{*tail}');
+    // API1 extensions already use the optional Companion reservation's identity
+    // and path. Preserve that offline contract while native ownership uses the
+    // supported exact-mount plus required-descendant spelling above.
+    const path =
+      route.path === config.companion.route + '/*companionPath'
+        ? config.companion.route + '/{*companionPath}'
+        : route.path.replace(':key*', '*key').replace('datastream*', 'datastream{*tail}');
     const pattern = canonicalHttpRoutePath(path);
     const methods =
       route.method === 'all'

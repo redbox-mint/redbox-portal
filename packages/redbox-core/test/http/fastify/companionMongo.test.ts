@@ -182,6 +182,14 @@ for (const native of [false, true])
       if (c) await stopChild(c);
     });
 
+    it('activates the Companion-enabled production host after ownership construction', async () => {
+      const state = await c.call('state');
+      assert.equal(state.listening, true);
+      assert.equal(state.stopped, false);
+      const health = await wire(url + '/imports/health');
+      assert.equal(health.status, 200, health.body);
+    });
+
     const cases: {
       name: string;
       path: string;
