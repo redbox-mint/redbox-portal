@@ -86,9 +86,9 @@
           <div class="user-menu">
             <ul>
               <% if (!req.isAuthenticated())  { %>
-                <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/login"><i class="fa fa-user"></i><%= TranslationService.t('menu-login') %></a></li>
+                <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/login"><svg class="rb-site-user-icon" viewBox="0 0 448 512" aria-hidden="true" focusable="false"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512l388.6 0c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304l-91.4 0z"/></svg><%= TranslationService.t('menu-login') %></a></li>
               <% } else { %>
-                <li><i class="fa fa-user"></i>&nbsp;<%= TranslationService.t('menu-welcome-text') %>
+                <li><svg class="rb-site-user-icon" viewBox="0 0 448 512" aria-hidden="true" focusable="false"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512l388.6 0c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304l-91.4 0z"/></svg>&nbsp;<%= TranslationService.t('menu-welcome-text') %>
                   <%= req.user.name %>
                 </li>
                 <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/logout"><%= TranslationService.t('menu-logout') %></a></li>
