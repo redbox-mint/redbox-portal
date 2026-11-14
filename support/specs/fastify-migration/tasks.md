@@ -294,7 +294,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: cross-brand/invalid grant denials, retained transfer work and optional
     Companion modes pass without introducing cross-replica continuity claims.
 
-- [ ] **FM-036 — Audit raw boundaries and close G5.**
+- [x] **FM-036 — Audit raw boundaries and close G5.**
   - Dependencies: FM-033–FM-035.
   - Work: inventory hijacked/raw paths and bypassed Fastify hooks; verify explicit
     session writes, response/error observation, accepted-work/drain and upgrade

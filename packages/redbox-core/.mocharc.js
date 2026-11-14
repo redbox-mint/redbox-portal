@@ -31,6 +31,8 @@ module.exports = {
     'test/http/fastify/DatastreamDifferentialMongo.test.ts',
     'test/http/fastify/UploadDifferentialMongo.test.ts',
     'test/http/fastify/ProgressDifferentialMongo.test.ts',
+    'test/http/fastify/RawShutdownMongo.test.ts',
+    'test/http/fastify/RawObservationsMongo.test.ts',
     'test/http/PagesMongo.test.ts',
     'test/http/NotificationHooksMongo.test.ts',
     'test/http/RecordMutationsMongo.test.ts',

@@ -394,6 +394,11 @@ export async function run() {
       sessionGate?.resolve();
       NativeMongoSessionStore.prototype.touch = originalTouch;
       await f?.close();
+      assert.equal(companion?.requests.size ?? 0, 0);
+      assert.equal(companion?.transfers.size ?? 0, 0);
+      assert.equal(companion?.sockets.size ?? 0, 0);
+      assert.equal(f?.server.listening ?? false, false);
+      assert.equal(f?.server.listenerCount('upgrade') ?? 0, 0);
       await new Promise<void>(resolve => source.close(() => resolve()));
       await reference?.close();
       await progressReference?.close();

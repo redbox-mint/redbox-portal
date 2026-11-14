@@ -1,0 +1,35 @@
+// typed-call|on
+server.on('request', dispatch);
+
+// typed-call|once
+server.once('upgrade', dispatch);
+
+// typed-call|off
+emitter.off(event, handler);
+
+// typed-call|removeListener
+emitter.removeListener(event, handler);
+
+// typed-call|prependListener
+server.prependListener('request', listener);
+
+// typed-call|prependOnceListener
+server.prependOnceListener(event, handler);
+
+// typed-call|addListener
+server.addListener(event, handler);
+
+// typed-call|removeAllListeners
+bridge.removeAllListeners();
+
+// typed-call|on
+io.on('connection', callback);
+
+// typed-call|emit
+socket.emit(event, bytes);
+
+// typed-call|addEventListener
+signal.addEventListener('abort', cancel);
+
+// typed-call|removeEventListener
+signal.removeEventListener('abort', cancel);

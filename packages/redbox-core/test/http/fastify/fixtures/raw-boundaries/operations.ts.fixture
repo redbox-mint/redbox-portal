@@ -1,0 +1,35 @@
+// typed-call|destroy
+request.destroy(error);
+
+// typed-call|end
+res.end();
+
+// typed-call|write
+reply.raw.write(chunk);
+
+// typed-call|writeHead
+reply.raw.writeHead(200);
+
+// typed-call|pipe
+request.pipe(parser);
+
+// typed-call|unpipe
+request.unpipe(parser);
+
+// typed-call|resume
+request.resume();
+
+// typed-call|destroy
+stream.destroy(error);
+
+// typed-call|destroy
+parser.destroy(error);
+
+// typed-call|setTimeout
+socket.setTimeout(100);
+
+// typed-call|end
+request['raw']['end']();
+
+// typed-call|destroy
+arbitrary.destroy();

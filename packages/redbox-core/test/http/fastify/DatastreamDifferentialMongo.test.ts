@@ -1,5 +1,6 @@
 import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
 import assert from 'node:assert/strict';
+import { assertNoNewConnections } from './ownedCleanup';
 import type { RequestHandler } from 'express';
 import { Agent, request, type IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
@@ -742,6 +743,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
         assert(!source.destroyed);
         assert(persistenceStatus(f.owner).pools > 0);
         assert.equal(f.host.status().ready, false);
+        await assertNoNewConnections(f.url);
         release.resolve();
         const response = await receiving;
         await stopping;
@@ -861,7 +863,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
         const spy = sinon.spy(f.data.datastream.get(), 'getDatastream');
         try {
           const received = await wire(f, route.target + query(route));
-          assert.equal(received.status, replacement === 'filename' ? 200 : 404);
+          assert.equal(received.status, replacement === 'filename' ? 200 : 404, JSON.stringify(received));
           assert.equal(spy.callCount, replacement === 'filename' ? 1 : 0);
           if (replacement === 'filename') {
             assert.match(

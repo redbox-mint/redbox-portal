@@ -1,0 +1,8 @@
+// typed-construction|AbortController
+new AbortController();
+
+// typed-call|abort
+controller.abort(error);
+
+// typed-call|once
+req.once('aborted', cancel);

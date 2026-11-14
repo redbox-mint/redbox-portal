@@ -1,0 +1,548 @@
+{
+  "cases": [
+    {
+      "id": "readable-promise-return",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare function open(): Promise<StreamAlias>; async function produce() { return open(); }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "readable-promise-arrow",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare function open(): Promise<StreamAlias>; const produce = () => open();",
+      "expectedKind": "typed-return",
+      "operation": "arrow-return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "readable-promiselike-return",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare function open(): PromiseLike<StreamAlias>; function produce() { return open(); }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "readable-nested-return",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare function open(): PromiseLike<Promise<UnionAlias>>; function produce() { return open(); }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "readable-promise-handoff",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<UnionAlias>; accept(pending);",
+      "expectedKind": "typed-handoff",
+      "operation": "accept",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "readable-promiselike-handoff",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare const pending: PromiseLike<StreamAlias>; accept(pending);",
+      "expectedKind": "typed-handoff",
+      "operation": "accept",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "readable-promise-receiver",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<StreamAlias>; pending.then(value => value);",
+      "expectedKind": "typed-call",
+      "operation": "then",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "readable-promise-write",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<StreamAlias>; pending.then = pending.then;",
+      "expectedKind": "typed-property-write",
+      "operation": "then",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "readable-awaited-handoff",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare const resolved: Awaited<PromiseLike<UnionAlias>>; accept(resolved);",
+      "expectedKind": "typed-handoff",
+      "operation": "accept",
+      "expectedReceiver": "resolved"
+    },
+    {
+      "id": "readable-generic-return",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; function produce<T extends PromiseLike<StreamAlias>>(pending: T) { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "readable-promise-iteration",
+      "scope": "services",
+      "source": "type StreamAlias = Readable; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<Readable>; async function consume() { for await (const chunk of pending) void chunk; }",
+      "expectedKind": "typed-iteration",
+      "operation": "for-await",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "structural-promise-return",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare function open(): Promise<StreamAlias>; async function produce() { return open(); }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "structural-promise-arrow",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare function open(): Promise<StreamAlias>; const produce = () => open();",
+      "expectedKind": "typed-return",
+      "operation": "arrow-return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "structural-promiselike-return",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare function open(): PromiseLike<StreamAlias>; function produce() { return open(); }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "structural-nested-return",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare function open(): PromiseLike<Promise<UnionAlias>>; function produce() { return open(); }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "open()"
+    },
+    {
+      "id": "structural-promise-handoff",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<UnionAlias>; accept(pending);",
+      "expectedKind": "typed-handoff",
+      "operation": "accept",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "structural-promiselike-handoff",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare const pending: PromiseLike<StreamAlias>; accept(pending);",
+      "expectedKind": "typed-handoff",
+      "operation": "accept",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "structural-promise-receiver",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<StreamAlias>; pending.then(value => value);",
+      "expectedKind": "typed-call",
+      "operation": "then",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "structural-promise-write",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare const pending: Promise<StreamAlias>; pending.then = pending.then;",
+      "expectedKind": "typed-property-write",
+      "operation": "then",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "structural-awaited-handoff",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; declare const resolved: Awaited<PromiseLike<UnionAlias>>; accept(resolved);",
+      "expectedKind": "typed-handoff",
+      "operation": "accept",
+      "expectedReceiver": "resolved"
+    },
+    {
+      "id": "structural-generic-return",
+      "scope": "http",
+      "source": "type StreamAlias = { on(event: string, listener: () => void): void }; type UnionAlias = StreamAlias | undefined; function produce<T extends PromiseLike<StreamAlias>>(pending: T) { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-ReadableStream-operation",
+      "scope": "services",
+      "source": "type Alias = ReadableStream<Uint8Array>; declare const candidate: Alias; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-ReadableStream-promise",
+      "scope": "services",
+      "source": "type Alias = ReadableStream<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-WritableStream-operation",
+      "scope": "services",
+      "source": "type Alias = WritableStream<Uint8Array>; declare const candidate: Alias; candidate.abort();",
+      "expectedKind": "typed-call",
+      "operation": "abort",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-WritableStream-promise",
+      "scope": "services",
+      "source": "type Alias = WritableStream<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-TransformStream-operation",
+      "scope": "services",
+      "source": "type Alias = TransformStream<Uint8Array, Uint8Array>; declare const candidate: Alias; candidate.readable.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate.readable"
+    },
+    {
+      "id": "dom-TransformStream-promise",
+      "scope": "services",
+      "source": "type Alias = TransformStream<Uint8Array, Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-ReadableStreamDefaultReader-operation",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamDefaultReader<Uint8Array>; declare const candidate: Alias; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-ReadableStreamDefaultReader-promise",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamDefaultReader<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-ReadableStreamBYOBReader-operation",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamBYOBReader; declare const candidate: Alias; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-ReadableStreamBYOBReader-promise",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamBYOBReader; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-WritableStreamDefaultWriter-operation",
+      "scope": "services",
+      "source": "type Alias = WritableStreamDefaultWriter<Uint8Array>; declare const candidate: Alias; candidate.abort();",
+      "expectedKind": "typed-call",
+      "operation": "abort",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-WritableStreamDefaultWriter-promise",
+      "scope": "services",
+      "source": "type Alias = WritableStreamDefaultWriter<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-ReadableByteStreamController-operation",
+      "scope": "services",
+      "source": "type Alias = ReadableByteStreamController; declare const candidate: Alias; candidate.close();",
+      "expectedKind": "typed-call",
+      "operation": "close",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-ReadableByteStreamController-promise",
+      "scope": "services",
+      "source": "type Alias = ReadableByteStreamController; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-ReadableStreamDefaultController-operation",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamDefaultController<Uint8Array>; declare const candidate: Alias; candidate.close();",
+      "expectedKind": "typed-call",
+      "operation": "close",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-ReadableStreamDefaultController-promise",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamDefaultController<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-TransformStreamDefaultController-operation",
+      "scope": "services",
+      "source": "type Alias = TransformStreamDefaultController<Uint8Array>; declare const candidate: Alias; candidate.terminate();",
+      "expectedKind": "typed-call",
+      "operation": "terminate",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-TransformStreamDefaultController-promise",
+      "scope": "services",
+      "source": "type Alias = TransformStreamDefaultController<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-WritableStreamDefaultController-operation",
+      "scope": "services",
+      "source": "type Alias = WritableStreamDefaultController; declare const candidate: Alias; candidate.error();",
+      "expectedKind": "typed-call",
+      "operation": "error",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-WritableStreamDefaultController-promise",
+      "scope": "services",
+      "source": "type Alias = WritableStreamDefaultController; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "dom-ReadableStreamBYOBRequest-operation",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamBYOBRequest; declare const candidate: Alias; candidate.respond(1);",
+      "expectedKind": "typed-call",
+      "operation": "respond",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "dom-ReadableStreamBYOBRequest-promise",
+      "scope": "services",
+      "source": "type Alias = ReadableStreamBYOBRequest; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-ReadableStream-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStream<Uint8Array>; declare const candidate: Alias; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-ReadableStream-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStream<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-WritableStream-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.WritableStream<Uint8Array>; declare const candidate: Alias; candidate.abort();",
+      "expectedKind": "typed-call",
+      "operation": "abort",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-WritableStream-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.WritableStream<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-TransformStream-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.TransformStream<Uint8Array, Uint8Array>; declare const candidate: Alias; candidate.readable.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate.readable"
+    },
+    {
+      "id": "node-TransformStream-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.TransformStream<Uint8Array, Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-ReadableStreamDefaultReader-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamDefaultReader<Uint8Array>; declare const candidate: Alias; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-ReadableStreamDefaultReader-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamDefaultReader<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-ReadableStreamBYOBReader-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamBYOBReader; declare const candidate: Alias; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-ReadableStreamBYOBReader-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamBYOBReader; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-WritableStreamDefaultWriter-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.WritableStreamDefaultWriter<Uint8Array>; declare const candidate: Alias; candidate.abort();",
+      "expectedKind": "typed-call",
+      "operation": "abort",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-WritableStreamDefaultWriter-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.WritableStreamDefaultWriter<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-ReadableByteStreamController-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableByteStreamController; declare const candidate: Alias; candidate.close();",
+      "expectedKind": "typed-call",
+      "operation": "close",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-ReadableByteStreamController-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableByteStreamController; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-ReadableStreamDefaultController-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamDefaultController<Uint8Array>; declare const candidate: Alias; candidate.close();",
+      "expectedKind": "typed-call",
+      "operation": "close",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-ReadableStreamDefaultController-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamDefaultController<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-TransformStreamDefaultController-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.TransformStreamDefaultController<Uint8Array>; declare const candidate: Alias; candidate.terminate();",
+      "expectedKind": "typed-call",
+      "operation": "terminate",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-TransformStreamDefaultController-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.TransformStreamDefaultController<Uint8Array>; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-WritableStreamDefaultController-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.WritableStreamDefaultController; declare const candidate: Alias; candidate.error();",
+      "expectedKind": "typed-call",
+      "operation": "error",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-WritableStreamDefaultController-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.WritableStreamDefaultController; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-ReadableStreamBYOBRequest-operation",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamBYOBRequest; declare const candidate: Alias; candidate.respond(1);",
+      "expectedKind": "typed-call",
+      "operation": "respond",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-ReadableStreamBYOBRequest-promise",
+      "scope": "services",
+      "source": "import type * as Web from \"node:stream/web\"; type Alias = Web.ReadableStreamBYOBRequest; declare const pending: PromiseLike<Alias | undefined>; function produce() { return pending; }",
+      "expectedKind": "typed-return",
+      "operation": "return",
+      "expectedReceiver": "pending"
+    },
+    {
+      "id": "node-readable-direct-import",
+      "scope": "services",
+      "source": "import type { ReadableStream as ImportedReadable } from \"node:stream/web\"; declare const candidate: ImportedReadable<Uint8Array>; candidate.cancel();",
+      "expectedKind": "typed-call",
+      "operation": "cancel",
+      "expectedReceiver": "candidate"
+    },
+    {
+      "id": "node-readable-fromweb",
+      "scope": "services",
+      "source": "import type { ReadableStream as ImportedReadable } from \"node:stream/web\"; declare const data: ImportedReadable<Uint8Array>; NodeReadable.fromWeb(data);",
+      "expectedKind": "typed-handoff",
+      "operation": "fromWeb",
+      "expectedReceiver": "data"
+    },
+    {
+      "id": "dom-readable-fromweb",
+      "scope": "services",
+      "source": "declare const data: ReadableStream<Uint8Array>; NodeReadable.fromWeb(data as any);",
+      "expectedKind": "typed-handoff",
+      "operation": "fromWeb",
+      "expectedReceiver": "data as any"
+    }
+  ]
+}

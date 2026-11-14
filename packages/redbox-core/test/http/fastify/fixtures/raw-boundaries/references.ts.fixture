@@ -1,0 +1,23 @@
+// typed-reference|socket
+req.socket;
+
+// typed-reference|headersSent
+res.headersSent;
+
+// typed-reference|raw
+request.raw;
+
+// typed-reference|raw
+reply.raw;
+
+// typed-reference|destroyed
+socket.destroyed;
+
+// typed-reference|socket
+req['socket'];
+
+// typed-reference|raw
+reply['raw'];
+
+// typed-reference|signal
+controller.signal;

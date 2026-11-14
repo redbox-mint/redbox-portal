@@ -40,6 +40,11 @@ const { CompanionUploads } = require('../../../dist/http/express/companion');
   await uploads.close();
   assert.equal(server.listenerCount('upgrade'), 0);
   assert.equal(uploads.bridge.eventNames().length, 0, 'Provider event bridge detaches');
+  assert.equal(server.listening, false);
+  assert.equal(server.address(), null);
+  assert.equal(uploads.requests.size, 0);
+  assert.equal(uploads.transfers.size, 0);
+  assert.equal(uploads.sockets.size, 0);
   assert.equal(
     Object.keys(schedule.scheduledJobs).length,
     before + 1,

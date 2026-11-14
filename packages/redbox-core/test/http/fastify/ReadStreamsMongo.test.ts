@@ -32,14 +32,31 @@ const streamCases = ['/api/export/record/download/', '/export/record/download/']
   )
 );
 
+/** A completed assertion must not retain its losing deadline timer. */
+async function withStreamDeadline<T>(work: Promise<T>, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), 2000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Keep the HEAD socket open until the source settles: a bodyless client end
  * must not itself cancel a delayed server-side source error. */
 async function observeStream(
   f: Awaited<ReturnType<typeof referenceProductionFixture>>,
   scenario: (typeof streamCases)[number]
 ): Promise<StreamObservation> {
-  const started = Promise.withResolvers<void>(), closed = Promise.withResolvers<void>();
-  let disposed = false, produced = 0;
+  const started = Promise.withResolvers<void>(),
+    closed = Promise.withResolvers<void>();
+  let disposed = false,
+    produced = 0;
   const source = new Readable({
     read() {
       started.resolve();
@@ -50,8 +67,7 @@ async function observeStream(
         produced++;
         this.push(Buffer.from('[{"unicode":"研究 🌏"}]'));
         this.push(null);
-      }
-      else if (scenario.failure === 'mid-stream' && produced === 0) {
+      } else if (scenario.failure === 'mid-stream' && produced === 0) {
         produced++;
         this.push(Buffer.from('['));
         void pause(25).then(() => this.destroy(new Error('secret stream after first byte')));
@@ -64,33 +80,44 @@ async function observeStream(
   });
   source.on('error', () => {});
   source.once('close', () => closed.resolve());
-  const storage = f.data.storage(), original = Object.getOwnPropertyDescriptor(storage, 'exportAllPlans');
+  const storage = f.data.storage(),
+    original = Object.getOwnPropertyDescriptor(storage, 'exportAllPlans');
   Object.defineProperty(storage, 'exportAllPlans', { configurable: true, value: () => source });
   const agent = new Agent({ keepAlive: true });
   let client: ReturnType<typeof request> | undefined;
   try {
     const response = await new Promise<StreamObservation['response']>(resolve => {
-      client = request(f.url + '/default/rdmp' + scenario.path + '?recType=dataRecord', {
-        method: scenario.method, agent,
-        headers: { Authorization: 'Bearer pilot-api-token', 'X-ReDBox-API-Version': scenario.version },
-      }, res => {
-        const chunks: Buffer[] = [], headers: Record<string, unknown> = { ...res.headers };
-        for (const name of ['date', 'connection', 'keep-alive', 'x-request-id']) delete headers[name];
-        const complete = (aborted = false) => resolve({
-          status: res.statusCode!, headers, text: Buffer.concat(chunks).toString(), ...(aborted ? { aborted: true } : {}),
-        });
-        res.on('data', chunk => chunks.push(chunk));
-        res.on('aborted', () => complete(true));
-        res.on('error', () => complete(true));
-        res.on('end', () => complete());
-      });
+      client = request(
+        f.url + '/default/rdmp' + scenario.path + '?recType=dataRecord',
+        {
+          method: scenario.method,
+          agent,
+          headers: { Authorization: 'Bearer pilot-api-token', 'X-ReDBox-API-Version': scenario.version },
+        },
+        res => {
+          const chunks: Buffer[] = [],
+            headers: Record<string, unknown> = { ...res.headers };
+          for (const name of ['date', 'connection', 'keep-alive', 'x-request-id']) delete headers[name];
+          const complete = (aborted = false) =>
+            resolve({
+              status: res.statusCode!,
+              headers,
+              text: Buffer.concat(chunks).toString(),
+              ...(aborted ? { aborted: true } : {}),
+            });
+          res.on('data', chunk => chunks.push(chunk));
+          res.on('aborted', () => complete(true));
+          res.on('error', () => complete(true));
+          res.on('end', () => complete());
+        }
+      );
       client.setTimeout(10000, () => client!.destroy(new Error('HTTP timeout')));
       client.on('error', error => resolve({ error: (error as NodeJS.ErrnoException).code ?? error.message }));
       client.end();
       if (scenario.failure === 'client-abort')
         void started.promise.then(() => client!.destroy(new Error('client cancelled export')));
     });
-    await Promise.race([closed.promise, pause(2000).then(() => { throw new Error('Export source did not close'); })]);
+    await withStreamDeadline(closed.promise, 'Export source did not close');
     return { response, destroyed: source.destroyed, closed: source.closed, disposed, produced };
   } finally {
     client?.destroy();
@@ -109,9 +136,14 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
     const retained = await retainedReadExpress();
     try {
       for (const mode of ['retained', 'express', 'fastify'] as const) {
-        const f = await referenceProductionFixture(mode === 'fastify', undefined, mode === 'retained' ? retained.install : undefined, {
-          declarations: recordQueryReadDeclarations,
-        });
+        const f = await referenceProductionFixture(
+          mode === 'fastify',
+          undefined,
+          mode === 'retained' ? retained.install : undefined,
+          {
+            declarations: recordQueryReadDeclarations,
+          }
+        );
         try {
           for (const scenario of streamCases) {
             const rows = observations.get(key(scenario)) ?? [];
@@ -141,9 +173,10 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
         assert.equal(response.aborted, undefined);
         assert.equal(response.headers['content-disposition'], undefined);
         assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
-        const expected = scenario.version === '2.0'
-          ? '{"errors":[{"detail":"Internal server error"}],"meta":{}}'
-          : '{"message":"Internal server error","details":""}';
+        const expected =
+          scenario.version === '2.0'
+            ? '{"errors":[{"detail":"Internal server error"}],"meta":{}}'
+            : '{"message":"Internal server error","details":""}';
         assert.equal(response.headers['content-length'], String(Buffer.byteLength(expected)));
         assert.equal(response.text, scenario.method === 'HEAD' ? '' : expected);
       } else {
@@ -161,13 +194,26 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
         if (row === rows[2] && scenario.failure === 'before-byte') continue;
         if (scenario.failure === 'before-byte' || (scenario.failure === 'mid-stream' && scenario.method === 'HEAD'))
           assert.deepEqual(row.response, { error: 'ECONNRESET' });
-        else if (scenario.failure === 'client-abort') assert.deepEqual(row.response, { error: 'client cancelled export' });
+        else if (scenario.failure === 'client-abort')
+          assert.deepEqual(row.response, { error: 'client cancelled export' });
         else {
           assert('status' in row.response);
           assert.equal(row.response.status, 200);
           assert.match(String(row.response.headers['content-disposition']), /attachment/);
-          assert.equal(row.response.text, scenario.method === 'HEAD' ? '' : scenario.failure === 'normal' ? '[{"unicode":"研究 🌏"}]' : scenario.failure === 'mid-stream' ? '[' : '');
-          assert.equal(row.response.aborted, scenario.failure === 'mid-stream' && scenario.method === 'GET' ? true : undefined);
+          assert.equal(
+            row.response.text,
+            scenario.method === 'HEAD'
+              ? ''
+              : scenario.failure === 'normal'
+                ? '[{"unicode":"研究 🌏"}]'
+                : scenario.failure === 'mid-stream'
+                  ? '['
+                  : ''
+          );
+          assert.equal(
+            row.response.aborted,
+            scenario.failure === 'mid-stream' && scenario.method === 'GET' ? true : undefined
+          );
         }
       }
       if (scenario.method === 'HEAD' && ['before-byte', 'empty', 'normal'].includes(scenario.failure)) {
@@ -344,7 +390,11 @@ describe('FM-024 export ownership through the production bootstrap', function ()
               assert.equal(response.status, failure === 'replacement' ? 200 : 500);
               assert.equal(
                 response.text,
-                method === 'HEAD' ? '' : failure === 'replacement' ? 'replacement' : '{"message":"Internal server error","details":""}'
+                method === 'HEAD'
+                  ? ''
+                  : failure === 'replacement'
+                    ? 'replacement'
+                    : '{"message":"Internal server error","details":""}'
               );
               if (method === 'HEAD' && failure === 'replacement') {
                 assert.equal(response.headers['content-length'], String(Buffer.byteLength('replacement')));
@@ -354,12 +404,7 @@ describe('FM-024 export ownership through the production bootstrap', function ()
                 assert.equal(fault.callCount, 1);
                 assert.equal(response.headers['set-cookie'], undefined);
               }
-              await Promise.race([
-                disposing.promise,
-                pause(2000).then(() => {
-                  throw new Error('Source was left open after response handoff');
-                }),
-              ]);
+              await withStreamDeadline(disposing.promise, 'Source was left open after response handoff');
               assert.equal(source.destroyed, true);
               assert.equal(disposed, false);
               let stopped = false;
@@ -394,15 +439,25 @@ describe('FM-024 post-EOF export disposal through the production bootstrap', fun
         for (const version of ['1.0', '2.0'])
           for (const method of ['GET', 'HEAD'])
             it(`${method} ${path}${format} v${version} ${empty ? 'empty' : 'nonempty'} keeps its complete response and logs disposal failure once`, async () => {
-              const logs: unknown[] = [], unhandled: unknown[] = [];
-              const rejected = (error: unknown) => { unhandled.push(error); };
+              const logs: unknown[] = [],
+                unhandled: unknown[] = [];
+              const rejected = (error: unknown) => {
+                unhandled.push(error);
+              };
               process.on('unhandledRejection', rejected);
               const f = await referenceProductionFixture(true, undefined, undefined, {
                 declarations: recordQueryReadDeclarations,
-                log: { ...nothingLogger, warn: (record: unknown) => { logs.push(record); } },
+                log: {
+                  ...nothingLogger,
+                  warn: (record: unknown) => {
+                    logs.push(record);
+                  },
+                },
               });
-              const storage = f.data.storage(), original = Object.getOwnPropertyDescriptor(storage, 'exportAllPlans');
-              const disposing = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+              const storage = f.data.storage(),
+                original = Object.getOwnPropertyDescriptor(storage, 'exportAllPlans');
+              const disposing = Promise.withResolvers<void>(),
+                release = Promise.withResolvers<void>();
               const body = empty ? '' : '[{"unicode":"研究 🌏","value":null}]';
               let disposed = false;
               const source = new Readable({
@@ -412,20 +467,23 @@ describe('FM-024 post-EOF export disposal through the production bootstrap', fun
                 },
                 destroy(_error, done) {
                   disposing.resolve();
-                  void release.promise.then(() => pause(25)).then(() => {
-                    disposed = true;
-                    done(new Error('secret cursor finaliser failure after EOF'));
-                  });
+                  void release.promise
+                    .then(() => pause(25))
+                    .then(() => {
+                      disposed = true;
+                      done(new Error('secret cursor finaliser failure after EOF'));
+                    });
                 },
               });
               Object.defineProperty(storage, 'exportAllPlans', { configurable: true, value: () => source });
               try {
-                const response = await Promise.race([
+                const response = await withStreamDeadline(
                   rawRequest(f.url + '/default/rdmp' + path + format + '?recType=dataRecord', method, undefined, '', {
-                    Authorization: 'Bearer pilot-api-token', 'X-ReDBox-API-Version': version,
+                    Authorization: 'Bearer pilot-api-token',
+                    'X-ReDBox-API-Version': version,
                   }),
-                  pause(2000).then(() => { throw new Error('Response waited for post-EOF disposal'); }),
-                ]);
+                  'Response waited for post-EOF disposal'
+                );
                 assert.equal(response.status, 200);
                 assert.equal(response.text, method === 'HEAD' ? '' : body);
                 assert.match(String(response.headers['content-disposition']), /attachment/);
@@ -438,7 +496,9 @@ describe('FM-024 post-EOF export disposal through the production bootstrap', fun
                 assert.equal(source.readableEnded, true);
                 assert.equal(disposed, false);
                 let stopped = false;
-                const stopping = f.host.stop().then(() => { stopped = true; });
+                const stopping = f.host.stop().then(() => {
+                  stopped = true;
+                });
                 await pause(50);
                 assert.equal(stopped, false, 'close still owns pending source disposal after a complete response');
                 assert(persistenceStatus(f.owner).pools > 0);
@@ -450,11 +510,17 @@ describe('FM-024 post-EOF export disposal through the production bootstrap', fun
                 assert.equal(source.closed, true);
                 assert.equal(persistenceStatus(f.owner).pools, 0);
                 assert.deepEqual(unhandled, []);
-                const failures = logs.filter(record => typeof record === 'string' && record.startsWith('{"code":"HTTP_STREAM_DISPOSAL_FAILED"'));
-                assert.deepEqual(failures, [JSON.stringify({
-                  code: 'HTTP_STREAM_DISPOSAL_FAILED', level: 'error',
-                  path: '/portal/default/rdmp' + path + format, requestId: 'req-1',
-                })]);
+                const failures = logs.filter(
+                  record => typeof record === 'string' && record.startsWith('{"code":"HTTP_STREAM_DISPOSAL_FAILED"')
+                );
+                assert.deepEqual(failures, [
+                  JSON.stringify({
+                    code: 'HTTP_STREAM_DISPOSAL_FAILED',
+                    level: 'error',
+                    path: '/portal/default/rdmp' + path + format,
+                    requestId: 'req-1',
+                  }),
+                ]);
                 assert(!JSON.stringify(logs).includes('secret'));
                 assert(!logs.includes('HTTP_POST_SEND_FAILURE'));
                 assert(!logs.includes('HTTP_REQUEST_FAILED'));
@@ -463,8 +529,11 @@ describe('FM-024 post-EOF export disposal through the production bootstrap', fun
                 source.destroy();
                 if (original) Object.defineProperty(storage, 'exportAllPlans', original);
                 else Reflect.deleteProperty(storage, 'exportAllPlans');
-                try { await f.close(); }
-                finally { process.off('unhandledRejection', rejected); }
+                try {
+                  await f.close();
+                } finally {
+                  process.off('unhandledRejection', rejected);
+                }
               }
             });
 });

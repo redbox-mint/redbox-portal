@@ -1,0 +1,14 @@
+// typed-handoff|call
+handler.call(server, request, response);
+
+// typed-handoff|apply
+Reflect.apply(listener, server, [request, socket, head]);
+
+// typed-call|destroy
+const destroy = request.destroy.bind(request); destroy(error);
+
+// typed-property-write|end
+response['end'] = wrapper;
+
+// typed-handoff|set
+requests.set(promise, req.socket);

@@ -1,0 +1,674 @@
+{
+  "families": [
+    {
+      "id": "incoming-message",
+      "declaration": "declare const candidate: IncomingMessage;",
+      "capabilities": [
+        "node-readable",
+        "node-stream",
+        "async-iterable",
+        "emitter",
+        "destroyable",
+        "pipeline",
+        "compose-source",
+        "iterator",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "server-response",
+      "declaration": "declare const candidate: ServerResponse;",
+      "capabilities": [
+        "node-writable",
+        "node-stream",
+        "emitter",
+        "destroyable",
+        "pipeline",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "socket",
+      "declaration": "declare const candidate: NetSocket;",
+      "capabilities": [
+        "async-iterable",
+        "destroyable",
+        "emitter",
+        "iterator",
+        "node-readable",
+        "node-stream",
+        "node-writable",
+        "pipeline",
+        "compose-source",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "readable",
+      "declaration": "declare const candidate: Readable;",
+      "capabilities": [
+        "node-readable",
+        "node-stream",
+        "async-iterable",
+        "emitter",
+        "destroyable",
+        "iterator",
+        "pipeline",
+        "compose-source",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "writable",
+      "declaration": "declare const candidate: Writable;",
+      "capabilities": [
+        "node-writable",
+        "node-stream",
+        "emitter",
+        "destroyable",
+        "pipeline",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "duplex",
+      "declaration": "declare const candidate: Duplex;",
+      "capabilities": [
+        "async-iterable",
+        "destroyable",
+        "emitter",
+        "iterator",
+        "node-readable",
+        "node-stream",
+        "node-writable",
+        "pipeline",
+        "compose-source",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "transform",
+      "declaration": "declare const candidate: Transform;",
+      "capabilities": [
+        "async-iterable",
+        "destroyable",
+        "emitter",
+        "iterator",
+        "node-readable",
+        "node-stream",
+        "node-writable",
+        "pipeline",
+        "compose-source",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "pass-through",
+      "declaration": "declare const candidate: PassThrough;",
+      "capabilities": [
+        "async-iterable",
+        "destroyable",
+        "emitter",
+        "iterator",
+        "node-readable",
+        "node-stream",
+        "node-writable",
+        "pipeline",
+        "compose-source",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "nodejs-readable",
+      "declaration": "declare const candidate: NodeJS.ReadableStream & AsyncIterable<Buffer>;",
+      "capabilities": [
+        "node-readable",
+        "node-stream",
+        "async-iterable",
+        "emitter",
+        "pipeline",
+        "compose-source"
+      ]
+    },
+    {
+      "id": "nodejs-writable",
+      "declaration": "declare const candidate: NodeJS.WritableStream;",
+      "capabilities": [
+        "node-writable",
+        "node-stream",
+        "emitter",
+        "pipeline"
+      ]
+    },
+    {
+      "id": "nodejs-readwrite",
+      "declaration": "declare const candidate: NodeJS.ReadWriteStream & AsyncIterable<Buffer>;",
+      "capabilities": [
+        "node-readable",
+        "node-writable",
+        "node-stream",
+        "async-iterable",
+        "emitter",
+        "pipeline",
+        "compose-source"
+      ]
+    },
+    {
+      "id": "event-emitter",
+      "declaration": "declare const candidate: EventEmitter;",
+      "capabilities": [
+        "emitter"
+      ]
+    },
+    {
+      "id": "structural-emitter",
+      "declaration": "declare const candidate: { on(event: string, callback: (...args: any[]) => void): void; removeListener(event: string, callback: (...args: any[]) => void): void; };",
+      "capabilities": [
+        "emitter"
+      ]
+    },
+    {
+      "id": "companion-emitter",
+      "declaration": "declare const candidate: ReturnType<typeof Companion.app>['emitter'];",
+      "capabilities": [
+        "emitter"
+      ]
+    },
+    {
+      "id": "web-readable",
+      "declaration": "declare const candidate: ReadableStream<Uint8Array> & AsyncIterable<Uint8Array>;",
+      "capabilities": [
+        "async-iterable",
+        "abortable",
+        "pipeline",
+        "compose-source"
+      ]
+    },
+    {
+      "id": "http-server",
+      "declaration": "declare const candidate: Server;",
+      "capabilities": [
+        "emitter",
+        "async-disposable"
+      ]
+    },
+    {
+      "id": "fastify-request",
+      "declaration": "declare const candidate: FastifyRequest;",
+      "capabilities": [
+        "node-readable",
+        "node-stream",
+        "async-iterable",
+        "emitter",
+        "destroyable",
+        "pipeline",
+        "compose-source",
+        "iterator",
+        "async-disposable"
+      ],
+      "expression": "candidate.raw"
+    },
+    {
+      "id": "fastify-reply",
+      "declaration": "declare const candidate: FastifyReply;",
+      "capabilities": [
+        "node-writable",
+        "node-stream",
+        "emitter",
+        "destroyable",
+        "pipeline",
+        "async-disposable"
+      ],
+      "expression": "candidate.raw"
+    },
+    {
+      "id": "abort-controller",
+      "declaration": "declare const candidate: AbortController;",
+      "capabilities": []
+    },
+    {
+      "id": "abort-signal",
+      "declaration": "declare const candidate: AbortSignal;",
+      "capabilities": [
+        "event-target"
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "id": "for-await",
+      "kind": "typed-iteration",
+      "operation": "for-await",
+      "source": "async function consume() { for await (const chunk of $candidate) void chunk; }",
+      "requires": "async-iterable",
+      "inapplicable": "No direct async byte iterator on a writable-only stream, pure emitter/server, reply or abort owner; use eventOn iteration/local handoff instead."
+    },
+    {
+      "id": "async-iterator",
+      "kind": "typed-call",
+      "operation": "<computed>",
+      "source": "$candidate[Symbol.asyncIterator]();",
+      "requires": "async-iterable",
+      "inapplicable": "No direct Symbol.asyncIterator on this family; eventOn supplies emitter iteration where applicable."
+    },
+    {
+      "id": "iterator-method",
+      "kind": "typed-call",
+      "operation": "iterator",
+      "source": "$candidate.iterator({ destroyOnReturn: false });",
+      "requires": "iterator",
+      "inapplicable": "The family does not expose the Node Readable.iterator method; explicit asyncIterator or events iteration covers its valid iterator path."
+    },
+    {
+      "id": "for-of-container",
+      "kind": "typed-iteration",
+      "operation": "for-of",
+      "source": "for (const value of [$candidate]) accept(value);",
+      "receiver": "[$candidate]"
+    },
+    {
+      "id": "yield-delegation",
+      "kind": "typed-delegation",
+      "operation": "yield*",
+      "source": "async function* consume() { yield* $candidate; }",
+      "requires": "async-iterable",
+      "inapplicable": "Direct yield* byte delegation requires an iterable; emitter iteration uses eventOn."
+    },
+    {
+      "id": "pipeline-callback",
+      "kind": "typed-handoff",
+      "operation": "callbackPipeline",
+      "source": "callbackPipeline($pipeline, callbackError);",
+      "requires": "pipeline",
+      "inapplicable": "Pipeline requires byte streams/iterables; a pure emitter/server/abort owner is not a byte pipeline. Fastify uses its raw stream."
+    },
+    {
+      "id": "pipeline-promise",
+      "kind": "typed-handoff",
+      "operation": "promisePipeline",
+      "source": "promisePipeline($pipeline);",
+      "requires": "pipeline",
+      "inapplicable": "Pipeline requires byte streams/iterables; a pure emitter/server/abort owner is not a byte pipeline. Fastify uses its raw stream."
+    },
+    {
+      "id": "finished-callback",
+      "kind": "typed-handoff",
+      "operation": "callbackFinished",
+      "source": "callbackFinished($candidate, callbackError);",
+      "requires": "node-stream",
+      "inapplicable": "Callback stream.finished requires a Node stream; this family uses event observation or its own completion API."
+    },
+    {
+      "id": "finished-promise",
+      "kind": "typed-handoff",
+      "operation": "promiseFinished",
+      "source": "promiseFinished($candidate);",
+      "requires": "node-stream",
+      "inapplicable": "Promise finished cases use Node streams; Web stream completion is separately tested via finished-web."
+    },
+    {
+      "id": "finished-web",
+      "kind": "typed-handoff",
+      "operation": "promiseFinished",
+      "source": "promiseFinished($candidate);",
+      "requires": "abortable",
+      "inapplicable": "This form is specific to Web readable streams; Node stream finished has its own row."
+    },
+    {
+      "id": "readable-from",
+      "kind": "typed-handoff",
+      "operation": "from",
+      "source": "NodeReadable.from($candidate);",
+      "requires": "async-iterable",
+      "inapplicable": "Readable.from requires an iterable; pure emitters use eventOn, and writable-only families are destinations."
+    },
+    {
+      "id": "compose",
+      "kind": "typed-handoff",
+      "operation": "compose",
+      "source": "compose($candidate, parser);",
+      "requires": "compose-source",
+      "inapplicable": "Composition needs a readable source; pure emitters and writable-only families have other observation/handoff forms."
+    },
+    {
+      "id": "add-abort-signal",
+      "kind": "typed-handoff",
+      "operation": "addAbortSignal",
+      "source": "addAbortSignal(controller.signal, $candidate);",
+      "requires": "node-stream",
+      "inapplicable": "This row wires Node streams; Web-specific addAbortSignal is covered separately; non-stream families use signal options/listeners."
+    },
+    {
+      "id": "add-abort-signal-web",
+      "kind": "typed-handoff",
+      "operation": "addAbortSignal",
+      "source": "addAbortSignal(controller.signal, $candidate);",
+      "requires": "abortable",
+      "inapplicable": "Specific Web stream cancellation wiring; Node addAbortSignal has its own row."
+    },
+    {
+      "id": "events-on",
+      "kind": "typed-handoff",
+      "operation": "eventOn",
+      "source": "eventOn($candidate, 'data');",
+      "requires": "emitter",
+      "inapplicable": "Pure Web streams, Fastify facades and abort controllers are not EventEmitters; raw transports are tested and AbortSignal uses the EventTarget row."
+    },
+    {
+      "id": "events-on-iteration",
+      "kind": "typed-iteration",
+      "operation": "for-await",
+      "source": "async function consume() { for await (const value of eventOn($candidate, 'data')) accept(value); }",
+      "requires": "emitter",
+      "inapplicable": "No emitter event API on this family; direct stream iteration or EventTarget form applies instead.",
+      "receiver": "eventOn($candidate, 'data')"
+    },
+    {
+      "id": "events-on-target",
+      "kind": "typed-handoff",
+      "operation": "eventOn",
+      "source": "eventOn($candidate, 'abort');",
+      "requires": "event-target",
+      "inapplicable": "Specific EventTarget/AbortSignal event observation; emitter events.on has its own row."
+    },
+    {
+      "id": "events-once",
+      "kind": "typed-handoff",
+      "operation": "eventOnce",
+      "source": "eventOnce($candidate, 'close');",
+      "requires": "emitter",
+      "inapplicable": "No emitter event API on this family; AbortSignal EventTarget once is tested separately."
+    },
+    {
+      "id": "events-once-target",
+      "kind": "typed-handoff",
+      "operation": "eventOnce",
+      "source": "eventOnce($candidate, 'abort');",
+      "requires": "event-target",
+      "inapplicable": "Specific EventTarget/AbortSignal once observation; emitter events.once has its own row."
+    },
+    {
+      "id": "pipe-source",
+      "kind": "typed-call",
+      "operation": "pipe",
+      "source": "$candidate.pipe(parser);",
+      "requires": "node-readable",
+      "inapplicable": "No Node pipe source API on writable-only/pure emitter/Web/abort families; use their supported consuming APIs."
+    },
+    {
+      "id": "pipe-target",
+      "kind": "typed-handoff",
+      "operation": "pipe",
+      "source": "stream.pipe($candidate);",
+      "requires": "node-writable",
+      "inapplicable": "This family is not a Node writable destination; readable-source and generic function handoff forms are tested."
+    },
+    {
+      "id": "local-argument",
+      "kind": "typed-handoff",
+      "operation": "accept",
+      "source": "accept($candidate);"
+    },
+    {
+      "id": "constructor-argument",
+      "kind": "typed-handoff",
+      "operation": "Holder",
+      "source": "new Holder($candidate);"
+    },
+    {
+      "id": "explicit-return",
+      "kind": "typed-return",
+      "operation": "return",
+      "source": "function produce() { return $candidate; }"
+    },
+    {
+      "id": "arrow-return",
+      "kind": "typed-return",
+      "operation": "arrow-return",
+      "source": "const produce = () => $candidate;"
+    },
+    {
+      "id": "aggregate-return",
+      "kind": "typed-return",
+      "operation": "return",
+      "source": "function produce() { const result = { body: $candidate }; return result; }",
+      "receiver": "result"
+    },
+    {
+      "id": "aggregate-argument",
+      "kind": "typed-handoff",
+      "operation": "accept",
+      "source": "accept({ body: $candidate });",
+      "receiver": "{ body: $candidate }"
+    },
+    {
+      "id": "spread-argument",
+      "kind": "typed-handoff",
+      "operation": "accept",
+      "source": "const args = [$candidate] as const; accept(...args);",
+      "receiver": "...args"
+    },
+    {
+      "id": "signal-options",
+      "kind": "typed-handoff",
+      "operation": "accept",
+      "source": "accept($candidate, { signal: controller.signal });"
+    },
+    {
+      "id": "abort-destroy",
+      "kind": "typed-call",
+      "operation": "destroy",
+      "source": "signal.addEventListener('abort', () => $candidate.destroy());",
+      "requires": "destroyable",
+      "inapplicable": "Interface-only streams may not declare destroy; their addAbortSignal or signal options wiring remains inventoried."
+    },
+    {
+      "id": "abort-listener",
+      "kind": "typed-handoff",
+      "operation": "addAbortListener",
+      "source": "addAbortListener($candidate, finish);",
+      "requires": "event-target",
+      "inapplicable": "addAbortListener accepts AbortSignal; other families are wired by signal options/addAbortSignal/abort-destroy."
+    },
+    {
+      "id": "pipeline-namespace",
+      "kind": "typed-handoff",
+      "operation": "pipeline",
+      "source": "nodeStreams.pipeline($pipeline, callbackError);",
+      "requires": "pipeline",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "pipeline-promise-namespace",
+      "kind": "typed-handoff",
+      "operation": "pipeline",
+      "source": "streamPromises.pipeline($pipeline);",
+      "requires": "pipeline",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "finished-namespace",
+      "kind": "typed-handoff",
+      "operation": "finished",
+      "source": "nodeStreams.finished($candidate, callbackError);",
+      "requires": "node-stream",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "finished-promise-namespace",
+      "kind": "typed-handoff",
+      "operation": "finished",
+      "source": "streamPromises.finished($candidate);",
+      "requires": "node-stream",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "events-namespace-once",
+      "kind": "typed-handoff",
+      "operation": "once",
+      "source": "nodeEvents.once($candidate, 'close');",
+      "requires": "emitter",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "events-namespace-on",
+      "kind": "typed-handoff",
+      "operation": "on",
+      "source": "nodeEvents.on($candidate, 'data');",
+      "requires": "emitter",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "web-reader",
+      "kind": "typed-call",
+      "operation": "read",
+      "source": "$candidate.getReader().read();",
+      "requires": "abortable",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs.",
+      "receiver": "$candidate.getReader()"
+    },
+    {
+      "id": "web-pipe-to",
+      "kind": "typed-call",
+      "operation": "pipeTo",
+      "source": "$candidate.pipeTo(new WritableStream());",
+      "requires": "abortable",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "web-pipe-through",
+      "kind": "typed-call",
+      "operation": "pipeThrough",
+      "source": "$candidate.pipeThrough(new TransformStream());",
+      "requires": "abortable",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs."
+    },
+    {
+      "id": "web-from",
+      "kind": "typed-handoff",
+      "operation": "fromWeb",
+      "source": "NodeReadable.fromWeb($candidate as any);",
+      "requires": "abortable",
+      "inapplicable": "This API belongs to the indicated byte-stream family; other families use their applicable consume/handoff APIs.",
+      "receiver": "$candidate as any"
+    },
+    {
+      "id": "awaited-return",
+      "kind": "typed-return",
+      "operation": "return",
+      "source": "async function produce() { return await Promise.resolve($candidate); }",
+      "receiver": "await Promise.resolve($candidate)"
+    },
+    {
+      "id": "conditional-return",
+      "kind": "typed-return",
+      "operation": "return",
+      "source": "function produce(flag: boolean) { return flag ? $candidate : undefined; }",
+      "receiver": "flag ? $candidate : undefined"
+    },
+    {
+      "id": "destructured-argument",
+      "kind": "typed-handoff",
+      "operation": "accept",
+      "source": "const { body } = { body: $candidate }; accept(body);",
+      "receiver": "body"
+    },
+    {
+      "id": "callback-return",
+      "kind": "typed-return",
+      "operation": "arrow-return",
+      "source": "Promise.resolve().then(() => $candidate);"
+    },
+    {
+      "id": "yield-value",
+      "kind": "typed-yield",
+      "operation": "yield",
+      "source": "function* produce() { yield $candidate; }",
+      "receiver": "$candidate"
+    },
+    {
+      "id": "array-spread",
+      "kind": "typed-spread",
+      "operation": "spread",
+      "source": "const copy = [...[$candidate]];",
+      "receiver": "[$candidate]"
+    },
+    {
+      "id": "object-spread",
+      "kind": "typed-spread",
+      "operation": "spread-object",
+      "source": "const copy = { ...$candidate };",
+      "receiver": "$candidate"
+    },
+    {
+      "id": "await-using",
+      "kind": "typed-disposal",
+      "operation": "await-using",
+      "source": "async function consume() { await using owned = $candidate; }",
+      "receiver": "$candidate",
+      "requires": "async-disposable",
+      "inapplicable": "This interface does not declare Symbol.asyncDispose; explicit cancellation, completion and return/handoff remain covered."
+    },
+    {
+      "id": "for-await-factory",
+      "kind": "typed-iteration",
+      "operation": "for-await",
+      "source": "declare function sourceFactory(): Promise<typeof $candidate>; async function consume() { for await (const chunk of await sourceFactory()) void chunk; }",
+      "receiver": "await sourceFactory()",
+      "requires": "async-iterable",
+      "inapplicable": "This family is not a direct async byte iterable; its valid handoffs/event observation remain covered."
+    },
+    {
+      "id": "for-await-assertion",
+      "kind": "typed-iteration",
+      "operation": "for-await",
+      "source": "declare const erased: unknown; async function consume() { for await (const chunk of erased as typeof $candidate) void chunk; }",
+      "receiver": "erased as typeof $candidate",
+      "requires": "async-iterable",
+      "inapplicable": "This family is not a direct async byte iterable; its valid handoffs/event observation remain covered."
+    },
+    {
+      "id": "asserted-return",
+      "kind": "typed-return",
+      "operation": "return",
+      "source": "declare const erased: unknown; function produce() { return erased as typeof $candidate; }",
+      "receiver": "erased as typeof $candidate"
+    },
+    {
+      "id": "iterator-next",
+      "kind": "typed-call",
+      "operation": "next",
+      "source": "const iterator = $candidate[Symbol.asyncIterator](); iterator.next();",
+      "receiver": "iterator",
+      "requires": "async-iterable",
+      "inapplicable": "No direct iterator of this kind on the family; its applicable byte/event handoffs are covered."
+    },
+    {
+      "id": "iterator-return",
+      "kind": "typed-call",
+      "operation": "return",
+      "source": "const iterator = $candidate[Symbol.asyncIterator](); iterator.return?.();",
+      "receiver": "iterator",
+      "requires": "async-iterable",
+      "inapplicable": "No direct iterator of this kind on the family; its applicable byte/event handoffs are covered."
+    },
+    {
+      "id": "events-iterator-next",
+      "kind": "typed-call",
+      "operation": "next",
+      "source": "const iterator = eventOn($candidate, 'data'); iterator.next();",
+      "receiver": "iterator",
+      "requires": "emitter",
+      "inapplicable": "No direct iterator of this kind on the family; its applicable byte/event handoffs are covered."
+    },
+    {
+      "id": "events-iterator-return",
+      "kind": "typed-call",
+      "operation": "return",
+      "source": "const iterator = eventOn($candidate, 'data'); iterator.return?.();",
+      "receiver": "iterator",
+      "requires": "emitter",
+      "inapplicable": "No direct iterator of this kind on the family; its applicable byte/event handoffs are covered."
+    }
+  ]
+}

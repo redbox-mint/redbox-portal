@@ -1,0 +1,38 @@
+// typed-call|setHeader
+reply.raw.setHeader('X-Inventory', 'present');
+
+// typed-call|setHeader
+res.setHeader('set-cookie', ['session=value; HttpOnly']);
+
+// typed-property-write|statusCode
+reply.raw.statusCode = 503;
+
+// typed-call|setHeader
+foo(reply.raw.setHeader('X-Nested', 'present'));
+
+// typed-call|destroy
+raw.destroy(error);
+
+// typed-call|end
+socket.end();
+
+// typed-call|disconnect
+progressSocket.disconnect(true);
+
+// typed-call|removeAllListeners
+progress.removeAllListeners();
+
+// typed-call|close
+progress.close();
+
+// typed-call|close
+progress.of('/').adapter.close();
+
+// typed-call|close
+progress.engine.close();
+
+// typed-call|cancel
+declare const web: ReadableStream; web.cancel('HEAD response');
+
+// typed-call|futureTransportMethod
+declare const unrelatedName: IncomingMessage & {futureTransportMethod(): void}; unrelatedName.futureTransportMethod();

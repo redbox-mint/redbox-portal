@@ -1,0 +1,44 @@
+// typed-call|on
+declare const source: NodeJS.ReadableStream; source.on('data', callback);
+
+// typed-call|once
+declare const source: NodeJS.ReadableStream; source.once('end', finish);
+
+// typed-call|write
+declare const sink: NodeJS.WritableStream; sink.write(bytes);
+
+// typed-call|end
+declare const sink: NodeJS.WritableStream; sink.end();
+
+// typed-call|on
+interface EmitterLike { on(event: string, listener: (...args: unknown[]) => void): void; } declare const transportEvents: EmitterLike; transportEvents.on('upload-start', callback);
+
+// typed-call|removeListener
+interface EmitterLike { removeListener(event: string, listener: (...args: unknown[]) => void): void; } declare const transportEvents: EmitterLike; transportEvents.removeListener('terminal', callback);
+
+// typed-call|futureTransportMethod
+interface EmitterLike { on(event: string, listener: (...args: unknown[]) => void): void; futureTransportMethod(): void; } declare const unrelated: EmitterLike; foo(unrelated.futureTransportMethod());
+
+// typed-property-write|on
+interface EmitterLike { on(event: string, listener: (...args: unknown[]) => void): void; } declare const transportEvents: EmitterLike; transportEvents.on = callback;
+
+// typed-call|on
+declare const provider: ReturnType<typeof Companion.app>; provider.emitter.on('upload-start', callback);
+
+// typed-call|removeListener
+declare const provider: ReturnType<typeof Companion.app>; provider.emitter.removeListener('terminal', callback);
+
+// typed-call|once
+class StorageDriver { readStreamToBuffer(source: NodeJS.ReadableStream) { source.once('error', callback); } }
+
+// typed-call|destroy
+declare const transformed: Transform; transformed.destroy(error);
+
+// typed-call|end
+declare const passthrough: PassThrough; passthrough.end();
+
+// typed-call|once
+declare const source: NodeJS.ReadableStream | undefined; source?.once('end', finish);
+
+// typed-call|aliased
+interface StreamLike { pipe(destination: unknown): void; futureTransportMethod(): void; } declare const producer: StreamLike; const aliased = producer.futureTransportMethod; aliased();

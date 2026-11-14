@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { assertNoNewConnections } from './ownedCleanup';
 import { request, type ClientRequest } from 'node:http';
 import { once } from 'node:events';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -1000,12 +1001,17 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           await entered.promise;
           await assert.rejects(f.host.stop({ deadlineMs: 50 }));
           assert(persistenceStatus(f.owner).pools > 0);
+          await assertNoNewConnections(f.url);
           release.resolve();
           const out = await response;
           assert.equal(out.status, 204, out.body);
           await f.host.stop();
           assert.equal(persistenceStatus(f.owner).pools, 0);
           assert.equal(await disk.get(id), 'abc');
+          assert.equal(
+            (await stagingKeys(disk)).some(key => key.includes('/parts/')),
+            false
+          );
         } finally {
           release.resolve();
           await response.catch(() => {});
@@ -1033,6 +1039,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           await pause(100);
           assert(!stopped);
           assert(persistenceStatus(f.owner).pools > 0);
+          await assertNoNewConnections(f.url);
           release.resolve();
           const out = await response;
           assert.equal(out.status, 200, out.body);

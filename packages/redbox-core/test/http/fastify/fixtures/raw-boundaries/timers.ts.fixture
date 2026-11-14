@@ -1,0 +1,23 @@
+// owned-global-call|setTimeout
+setTimeout(finish, delay);
+
+// owned-global-call|setInterval
+setInterval(check, delay);
+
+// owned-global-call|setImmediate
+setImmediate(finish);
+
+// owned-global-call|setTimeout
+globalThis.setTimeout(finish, delay);
+
+// owned-global-call|timeout
+AbortSignal.timeout(delay);
+
+// owned-global-call|clearTimeout
+clearTimeout(timer);
+
+// owned-global-call|clearInterval
+clearInterval(timer);
+
+// owned-global-call|clearImmediate
+clearImmediate(timer);

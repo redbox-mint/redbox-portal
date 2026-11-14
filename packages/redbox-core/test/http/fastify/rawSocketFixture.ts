@@ -12,6 +12,7 @@ import { persistenceStatus } from '../../../src/persistence/runtime';
 import { productionRawPortal } from './productionRawPortal';
 import { retainedRawExpress } from './retainedRawExpress';
 import type { ApiRequestDefinition } from '../../../src/api-routes/types';
+import { assertOwnedHttpClosed } from './ownedCleanup';
 
 export const canonical = 'https://portal.example.invalid';
 export const uploadPath = '/default/rdmp/api/records/datastreams/fm020-record';
@@ -229,6 +230,14 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
         providerGate?.resolve();
         authenticationGate?.resolve();
         await f.close();
+        if (native) await assertOwnedHttpClosed(f.host, f.owner, server);
+        // The immutable FM-019 Express adapter predates explicit TCP-upgrade
+        // leases; current/native owners must additionally empty that set.
+        for (const name of ['pending', 'grants', 'connections', ...(retained ? [] : ['upgraded'])])
+          assert.equal(Reflect.get(sockets, name).size, 0, 'Stopped progress owner: ' + name);
+        assert.equal(Reflect.get(sockets, 'io'), undefined);
+        assert.equal(Reflect.get(multipart, 'pending').size, 0);
+        assert.equal(Reflect.get(multipart, 'cleanup').size, 0);
         assert.equal(persistenceStatus(f.owner).pools, 0);
         await retained?.close();
         await rm(appPath, { recursive: true, force: true });

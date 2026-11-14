@@ -22,6 +22,7 @@ import { persistenceStatus } from '../../../src/persistence/runtime';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
 import { requestContext } from '../../../src/http/context';
 import { requestPathname } from '../../../src/http/fastify/router';
+import { assertOwnedHttpClosed } from './ownedCleanup';
 
 let counter = 0;
 export const referenceOrigin = 'https://portal.example.invalid';
@@ -372,6 +373,14 @@ export async function referenceProductionFixture(
       url: 'http://127.0.0.1:' + host.address()!.port + portal.config.server.rootContext,
       close: async () => {
         await host.stop();
+        if (nativeHost) {
+          await assertOwnedHttpClosed(host, owner);
+          const raw = (portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>).installation.raw;
+          if (raw?.multipart) {
+            assert.equal(Reflect.get(raw.multipart, 'pending').size, 0);
+            assert.equal(Reflect.get(raw.multipart, 'cleanup').size, 0);
+          }
+        }
         assert.equal(persistenceStatus(owner).pools, 0);
         await client.db().dropDatabase();
         await client.close();

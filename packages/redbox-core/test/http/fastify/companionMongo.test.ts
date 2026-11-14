@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { assertNoNewConnections } from './ownedCleanup';
 import { fork, type ChildProcess } from 'node:child_process';
 import { request } from 'node:http';
 import { once } from 'node:events';
@@ -754,6 +755,7 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
         assert(state.pools > 0);
         assert.equal(state.transfers, 1);
         assert.equal(client.readyState, WebSocket.OPEN);
+        await assertNoNewConnections(url);
         await c.call('releaseSink');
         assert.equal((await completed).action, 'success');
         if (!native) {

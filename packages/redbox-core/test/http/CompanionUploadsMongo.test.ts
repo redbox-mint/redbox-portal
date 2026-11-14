@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
-import { once } from 'node:events';
+import { once, type EventEmitter } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { join } from 'node:path';
-import { mkdtemp } from 'node:fs/promises';
-import { rmSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { of } from 'rxjs';
 import WebSocket from 'ws';
@@ -33,12 +32,10 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
   let rejectUpload = false;
   let releaseMeta: (() => void) | undefined, metaSeen: (() => void) | undefined;
   let releaseSlow: (() => void) | undefined;
+  let beyondDeadlineWork: Promise<void> | undefined;
   const data = Buffer.alloc(512 * 1024, 'x');
   before(async () => {
     directory = await mkdtemp(join(tmpdir(), 'sr-companion-http-'));
-    // Beyond-deadline remote I/O is process-owned. Keep its temporary directory
-    // until those provider callbacks have settled naturally, then remove it.
-    process.once('exit', () => rmSync(directory, { recursive: true, force: true }));
     source = createServer(async (req, res) => {
       if (req.url === '/held') {
         metaSeen?.();
@@ -176,6 +173,20 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
     for (const client of portalClients) client.disconnect();
     await f?.close();
     if (source) await new Promise<void>(resolve => source.close(() => resolve()));
+    // A deadline may leave vendor remote I/O process-owned. Observe its actual
+    // terminal event before removing files or reaching any process exit harness.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        beyondDeadlineWork,
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('Companion remote worker did not settle after stop')), 20000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+    await rm(directory, { recursive: true, force: true });
   });
   const endpoint = () => f.url + '/default/rdmp/companion/record/' + oid + '/attach';
   async function post(path: string, body: unknown, headers: Record<string, string> = f.headers) {
@@ -393,6 +404,15 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
     const client = await connect(token);
     assert.equal((await terminal(client)).action, 'success');
     const unfinished = await start(transferBody({ url: sourceUrl + '/slow' }));
+    const providerEvents = Reflect.get(companion, 'provider').emitter as EventEmitter;
+    beyondDeadlineWork = new Promise<void>(resolve => {
+      const terminal = (event: { action?: string }) => {
+        if (!['success', 'error'].includes(event.action ?? '')) return;
+        providerEvents.off(unfinished, terminal);
+        resolve();
+      };
+      providerEvents.on(unfinished, terminal);
+    });
     const slowClient = await connect(unfinished);
     // The server can emit first progress in the same turn as the handshake;
     // the source body remains held regardless of when that notification arrives.
