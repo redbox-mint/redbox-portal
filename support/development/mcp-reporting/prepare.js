@@ -150,6 +150,7 @@ const realm = {
   ],
   users: [
     {
+      id: 'reporting-demo-researcher',
       username: 'reporting-researcher',
       enabled: true,
       email: 'reporting-researcher@example.invalid',

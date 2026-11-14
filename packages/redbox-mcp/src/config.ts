@@ -18,6 +18,17 @@ export const mcpConfigSchema = z
     scope: z.string().regex(/^[A-Za-z0-9._:-]+$/),
     identityClaim: z.string().regex(/^[A-Za-z][A-Za-z0-9_]*$/),
     usernameToLowercase: z.boolean(),
+    // Administrator-verified issuer/subject -> existing account bindings. Never infer from a username claim.
+    identityBindings: z
+      .array(
+        z.strictObject({
+          issuer: secureUrl,
+          subject: z.string().min(1).max(500),
+          username: z.string().min(1).max(200),
+        })
+      )
+      .max(10000)
+      .default([]),
     algorithms: z.array(z.enum(['RS256', 'ES256', 'PS256'])).min(1),
     allowedOrigins: z
       .array(
@@ -107,6 +118,7 @@ export const mcp = {
   scope: 'redbox.reporting',
   identityClaim: 'sub',
   usernameToLowercase: false,
+  identityBindings: [],
   algorithms: ['RS256', 'ES256'],
   allowedOrigins: [],
   maxRequestBytes: 16_000,

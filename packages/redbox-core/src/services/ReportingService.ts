@@ -145,6 +145,7 @@ export namespace Services {
           if (query.operation === 'get_record')
             return this.bounded(await this.read(principal, query.recordType, query.oid, registry), registry);
           if (query.operation === 'search') {
+            if (!registry.searchCore) throw new ReportingError('FORBIDDEN');
             const page = {
               limit:
                 query.pagination?.limit ?? Math.min(20, registry.limits.maxSearchResults, registry.limits.maxPageSize),

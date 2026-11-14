@@ -31,6 +31,7 @@ const config: McpConfig = {
   scope: 'redbox.reporting',
   identityClaim: 'sub',
   usernameToLowercase: false,
+  identityBindings: [{ issuer: 'https://id.example', subject: 'alice', username: 'alice' }],
   algorithms: ['RS256'],
   allowedOrigins: [],
   maxRequestBytes: 16_000,
@@ -283,6 +284,43 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       principal.roles.map(role => role.name),
       ['Researcher']
     );
+  });
+  it('requires explicit issuer and subject bindings even when two issuers assert the same username', async () => {
+    let mapped = 0;
+    const resolve = async () => {
+      mapped++;
+      return principal;
+    };
+    const settings = { ...config, identityClaim: 'preferred_username' };
+    const sign = async (issuer: string, subject: string) =>
+      new SignJWT({ scope: config.scope, preferred_username: 'alice' })
+        .setProtectedHeader({ alg: 'RS256', typ: 'at+jwt', kid: 'test-key' })
+        .setIssuer(issuer)
+        .setAudience(config.resourceUrl)
+        .setSubject(subject)
+        .setIssuedAt()
+        .setExpirationTime('5m')
+        .sign(privateKey);
+    const valid = `Bearer ${await sign(config.issuer, 'alice')}`;
+    assert.equal(await new McpAuthenticator(settings, resolve, keys).authenticate(valid), principal);
+    await assert.rejects(
+      new McpAuthenticator({ ...settings, identityBindings: [] }, resolve, keys).authenticate(valid),
+      McpAuthError
+    );
+    await assert.rejects(
+      new McpAuthenticator(settings, resolve, keys).authenticate(
+        `Bearer ${await sign(config.issuer, 'different-subject')}`
+      ),
+      McpAuthError
+    );
+    const issuer = 'https://other-identity.example';
+    await assert.rejects(
+      new McpAuthenticator({ ...settings, issuer }, resolve, keys).authenticate(
+        `Bearer ${await sign(issuer, 'alice')}`
+      ),
+      McpAuthError
+    );
+    assert.equal(mapped, 1);
   });
   it('accepts case-insensitive JWT media types while requiring access-token markers', async () => {
     let mapped = 0;

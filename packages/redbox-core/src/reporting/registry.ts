@@ -39,6 +39,7 @@ const configSchema = z
     allowedRoles: z.array(z.string().min(1)).min(1).max(100),
     forms: z.array(z.string().min(1).max(128)).max(50).optional(),
     searchCore: reportingIdSchema.optional(),
+    searchFullTextVisibleToAllReportingRoles: z.boolean().optional(),
     fields: z.array(fieldSchema).max(100),
   })
   .refine(config => new Set(config.fields.map(field => field.id)).size === config.fields.length);
@@ -46,7 +47,7 @@ const configSchema = z
 export interface ReportingRegistry {
   fields: Map<string, ReportingFieldDefinition>;
   forms: string[];
-  searchCore: string;
+  searchCore?: string;
   limits: ReportingLimits;
 }
 export type VisibleReportingPaths = (principal: ReportingPrincipal, forms: string[]) => Promise<Set<string>>;
@@ -84,7 +85,7 @@ export async function resolveReportingRegistry(
         .map(field => [field.id, field])
     ),
     forms,
-    searchCore: parsed.data.searchCore ?? 'default',
+    searchCore: parsed.data.searchFullTextVisibleToAllReportingRoles === true ? parsed.data.searchCore : undefined,
     limits: limitResult.data,
   };
 }
@@ -135,6 +136,7 @@ export function validateReportingQuery(input: unknown, registry: ReportingRegist
   const parsed = reportingQuerySchema.safeParse(input);
   if (!parsed.success) throw new ReportingError('INVALID_QUERY');
   const query = parsed.data;
+  if (query.operation === 'search' && !registry.searchCore) throw new ReportingError('FORBIDDEN');
   if ('filters' in query) {
     if ((query.filters?.length ?? 0) > registry.limits.maxFilters) throw new ReportingError('LIMIT_EXCEEDED');
     query.filters?.forEach(filter => validateReportingFilter(registry, filter));

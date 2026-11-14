@@ -17,6 +17,8 @@ export const recordTypes: RecordTypeConfig = {
       enabled: true,
       allowedRoles: ['Reporter'],
       forms: ['rdmp-view'],
+      searchCore: 'default',
+      searchFullTextVisibleToAllReportingRoles: true,
       fields: [
         {
           id: 'created',

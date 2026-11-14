@@ -255,6 +255,29 @@ describe('ReportingService safety and independent use', () => {
     executeReporting.rejects(new Error('raw Mongo failure'));
     await bad(() => service.count(principal, { recordType: 'rdmp' }), 'UNAVAILABLE');
   });
+  it('rejects hidden-text probes before contacting Solr unless a safe search core is explicitly opted in', async () => {
+    // The accessible record contains a value excluded by its projected view contract.
+    getMeta.resolves(storedRecord('record-1', { metadata: { faculty: 'A', hidden: 'confidential-sentinel' } }));
+    for (const reporting of [
+      { ...recordTypes.rdmp.reporting!, searchFullTextVisibleToAllReportingRoles: undefined },
+      { ...recordTypes.rdmp.reporting!, searchFullTextVisibleToAllReportingRoles: false },
+      { ...recordTypes.rdmp.reporting!, searchCore: undefined },
+    ]) {
+      resolveRegistry.callsFake(() =>
+        resolveReportingRegistry(
+          principal,
+          'rdmp',
+          configuration,
+          { rdmp: { ...recordTypes.rdmp, reporting } },
+          async () => new Set(['metadata.faculty'])
+        )
+      );
+      await bad(() => service.search(principal, { recordType: 'rdmp', text: 'confidential-sentinel' }), 'FORBIDDEN');
+    }
+    expect(search.called).to.equal(false);
+    expect(getMeta.called).to.equal(false);
+    expect(await service.count(principal, { recordType: 'rdmp' })).to.deep.equal({ count: 10 });
+  });
   it('clamps omitted search limits to configured caps while preserving offsets', async () => {
     const fields = await registry();
     resolveRegistry.resolves({ ...fields, limits: { ...fields.limits, maxPageSize: 2, maxSearchResults: 1 } });

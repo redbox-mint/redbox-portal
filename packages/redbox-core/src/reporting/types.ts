@@ -28,6 +28,8 @@ export interface RecordTypeReportingConfig {
   /** Explicit authoritative forms covered by metadata analytics. */
   forms?: string[];
   searchCore?: string;
+  /** Opt in only after verifying every indexed field is visible to all allowed reporting roles. */
+  searchFullTextVisibleToAllReportingRoles?: boolean;
   fields: ReportingFieldDefinition[];
 }
 export interface ReportingLimits {

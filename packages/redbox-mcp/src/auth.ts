@@ -56,10 +56,14 @@ export class McpAuthenticator {
       const identity = payload[this.config.identityClaim];
       if (typeof identity !== 'string' || !identity.trim() || identity.length > 200)
         throw new McpAuthError('invalid_token');
-      const principal = await this.resolve(
-        this.config.usernameToLowercase ? identity.toLowerCase() : identity,
-        this.config.brand
-      );
+      const username = this.config.usernameToLowercase ? identity.toLowerCase() : identity;
+      if (
+        !this.config.identityBindings.some(
+          binding => binding.issuer === payload.iss && binding.subject === payload.sub && binding.username === username
+        )
+      )
+        throw new McpAuthError('invalid_token');
+      const principal = await this.resolve(username, this.config.brand);
       assertReportingPrincipal(principal);
       if (principal.brand.name !== this.config.brand) throw new McpAuthError('invalid_token');
       return principal;

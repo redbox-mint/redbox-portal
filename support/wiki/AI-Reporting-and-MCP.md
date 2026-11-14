@@ -26,7 +26,7 @@ Both reporting and external MCP default to off. Install/build the MCP hook only 
 While disabled, `/:branding/mcp`, protected-resource discovery and connection-page routes return 404, and the admin sidebar entry **Integrations → Connect your AI assistant** (`/:branding/:portal/admin/mcp`, Admin and Librarians only) is hidden. When enabled, invalid OAuth configuration or disabled reporting also keeps the remote endpoint unavailable.
 
 1. Enable `reporting.enabled` and retain or reduce its configured limits.
-2. Add an enabled `reporting` block to the existing record type. Supply `allowedRoles`, optional `searchCore`, explicit form coverage, and explicitly enabled semantic fields.
+2. Add an enabled `reporting` block to the existing record type. Supply `allowedRoles`, explicit form coverage, and explicitly enabled semantic fields.
 3. Confirm that each metadata path belongs to the caller's effective **view** metadata contract in every covered form. Test schema discovery with each reporting role.
 4. For external clients, configure institution OAuth as described below, then set `REDBOX_MCP_ENABLED=true` and restart the portal. Setting `mcp.enabled` in a hook alone does not enable external MCP.
 
@@ -37,7 +37,9 @@ reporting: {
   enabled: true,
   allowedRoles: ['Researcher', 'Librarians', 'Admin'],
   forms: ['rdmp-reporting-view'],
-  searchCore: 'default',
+  // Search is disabled by default. Opt in only with a verified safe full-text index:
+  // searchCore: 'reporting-safe',
+  // searchFullTextVisibleToAllReportingRoles: true,
   fields: [
     { id: 'created', label: 'Created date',
       description: 'Creation date; UTC ranges include start and exclude end.',
@@ -66,7 +68,7 @@ All Mongo pipelines match tenant, record type and current record ACLs before fil
 
 Consequently, ten visible Faculty A records and five inaccessible Faculty A records produce **Faculty A = 10**. Cross-brand records never contribute. Aggregate permissions come from authoritative Mongo records, not index facets. `get_record` and drilldown call RecordsService's view authorization before applying the existing form projection and returning registered `read` fields only. No raw record, permission list or metadata subtree is returned. Reporting's view projection can be stricter than the editable browser form.
 
-Solr discovery applies tenant/type/ACL filters and quotes user text as a literal phrase. Current RecordsService permissions are rechecked for every hit, including the lookahead used to determine truncation. Index totals are omitted (`total: null`) because stale index permissions cannot safely establish an authoritative count. Pages can be short when stale/deleted hits are discarded; offsets refer to index candidates. `truncated` is true when an additional authorized hit is found, otherwise null because completeness is unknown. No inaccessible hit count or presence flag is exposed. Full-text discovery follows the deployment's existing `full_text` indexing semantics. A match can therefore confirm text from any indexed field on an accessible record, including fields absent from the caller's view form. Reporting field allowlists constrain structured filters and returned values, not full-text matches. Before exposing full-text tools to a reporting role, configure the existing index to exclude text that role must not search. Structured Mongo reporting does not use the full-text index.
+Solr discovery applies tenant/type/ACL filters and quotes user text as a literal phrase. Current RecordsService permissions are rechecked for every hit, including the lookahead used to determine truncation. Index totals are omitted (`total: null`) because stale index permissions cannot safely establish an authoritative count. Pages can be short when stale/deleted hits are discarded; offsets refer to index candidates. `truncated` is true when an additional authorized hit is found, otherwise null because completeness is unknown. No inaccessible hit count or presence flag is exposed. Full-text discovery follows the deployment's existing `full_text` indexing semantics. A match can therefore confirm text from any indexed field on an accessible record, including fields absent from the caller's view form. Reporting field allowlists constrain structured filters and returned values, not full-text matches. Search is disabled by default. To enable it, explicitly set `searchCore` and `searchFullTextVisibleToAllReportingRoles: true` on the record type only after verifying the core excludes every field that any allowed reporting role must not search. Changing allowed roles or view contracts requires rechecking that assertion. Without both settings, search fails with `FORBIDDEN` before contacting Solr. Structured Mongo reporting does not use the full-text index.
 
 ## Queries and drilldown
 
@@ -157,6 +159,7 @@ ReDBox configuration requires:
 
 - HTTPS `resourceUrl` equal to `https://<host>[:port]/<brand>/mcp`, exact `issuer`, and trusted `jwksUrl`.
 - `enabled: true` and an explicit existing `brand` matching the URL brand, required `scope`, and an `identityClaim` matching the existing OIDC username convention (for example `preferred_username`), including the same lowercase setting if used.
+- `identityBindings`: administrator-verified `{ issuer, subject, username }` entries binding exact verified token `iss` and `sub` to an existing ReDBox OIDC username. Use the normalized stored username. No bindings are trusted by default; unbound tokens fail authentication even when their username claim matches an account. Verify these mappings through the institution identity administrator; never populate them from untrusted token claims.
 - Allowed signing algorithms (`RS256`, `ES256`, `PS256`), optional explicit browser origins, and request byte limit.
 
 Every protocol request authenticates independently. Tokens require verified signature, issuer, intended audience, expiry, issued-at and subject, plus scope and an explicit access-token indicator (`at+jwt`, or a Bearer/access claim for generic JWTs). ID tokens, opaque tokens, proprietary ReDBox API keys, cookie-only remote access and caller role claims are rejected. No account provisioning or email-based matching occurs. Opaque-token introspection and additional identity providers need a separate reviewed authentication adapter; leave the endpoint disabled until the institution meets this boundary.
@@ -169,7 +172,7 @@ The URL selects an existing brand before OAuth configuration is read. MCP reads 
 
 The deployment switch `REDBOX_MCP_ENABLED=true` and the brand's `mcp.enabled: true` are both required. Unknown, unconfigured, disabled, and incorrectly bound brands return 404, including their setup pages; enabled brands with invalid OAuth configuration return 503 from MCP and show configuration readiness guidance to signed-in users. Disabling a brand takes effect on the next request, including after its HTTP handler was cached. Other enabled brands continue operating.
 
-For two brands, `alpha` and `beta`, use `/alpha/mcp` and `/beta/mcp`, with corresponding distinct token audiences and discovery URLs. Each can configure its own issuer, JWKS, scope, allowed origins and public client registrations. An access token issued only for `/alpha/mcp` cannot authenticate `/beta/mcp`. Identity resolution refreshes persisted effective users and roles in the selected brand, rejects mismatched principal brands, and reporting always applies that brand's canonical roles, record tenant filter and record ACLs. Usernames remain existing global OIDC identities; token roles and brand claims never select the brand or grant permissions.
+For two brands, `alpha` and `beta`, use `/alpha/mcp` and `/beta/mcp`, with corresponding distinct token audiences and discovery URLs. Each can configure its own issuer, JWKS, scope, allowed origins and public client registrations. An access token issued only for `/alpha/mcp` cannot authenticate `/beta/mcp`. Identity resolution refreshes persisted effective users and roles in the selected brand, rejects mismatched principal brands, and reporting always applies that brand's canonical roles, record tenant filter and record ACLs. Existing global OIDC usernames are selected only through explicit issuer/subject bindings; copying a binding to a different issuer does not authorize its identities. Token roles and brand claims never select the brand or grant permissions.
 
 The connection page uses its URL brand for readiness and instructions, including brand-specific public OAuth registrations. It shows the active brand and uses distinct names such as `redbox_reporting_alpha` and `redbox_reporting_beta`, allowing both connections in one assistant configuration. The unbranded `/mcp` and discovery routes are not registered.
 

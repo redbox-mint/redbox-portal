@@ -6,7 +6,7 @@ export const rdmpReporting: RecordTypeReportingConfig = {
   enabled: true,
   allowedRoles: ['Researcher', 'Librarians', 'Admin'],
   forms: ['rdmp-reporting-view'],
-  searchCore: 'default',
+  // Search stays disabled until the index is verified safe for every allowed reporting role.
   fields: [
     {
       id: 'created',
@@ -74,6 +74,13 @@ export const mcpConfig = {
   scope: 'redbox.reporting',
   identityClaim: 'preferred_username',
   usernameToLowercase: true,
+  identityBindings: [
+    {
+      issuer: 'https://identity.customer.edu.au/realms/research',
+      subject: 'replace-with-verified-institution-subject',
+      username: 'replace-with-existing-redbox-oidc-username',
+    },
+  ],
   algorithms: ['RS256'],
   allowedOrigins: [],
   maxRequestBytes: 16_000,
