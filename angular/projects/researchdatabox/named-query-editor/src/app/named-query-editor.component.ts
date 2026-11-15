@@ -853,6 +853,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     const filters = this.draft.relatedRecordFilters || [];
     await Promise.all(
       filters.map(async (filter, index) => {
+        if (!filter.collectionName) return;
         try {
           const result = await this.api.fields({
             collectionName: filter.collectionName,
