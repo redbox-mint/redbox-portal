@@ -321,7 +321,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: hooks compile and run with concrete application bindings; consumers
     use public entrypoints; API1 receives actionable migration failure.
 
-- [ ] **FM-039 — Qualify clean packed consumers.**
+- [x] **FM-039 — Qualify clean packed consumers.**
   - Dependencies: FM-038.
   - Work: update packed/generated fixtures and run clean pack/install/start/route/
     restart/drain tests outside source-linked node_modules assumptions.

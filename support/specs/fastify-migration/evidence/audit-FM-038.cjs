@@ -31,7 +31,7 @@ function previousExports() {
       entries.push({ package: manifest.name, entrypoint: name, source });
     }
   }
-  const changed = execFileSync('git', ['diff', '--name-only', baseline, '--', 'packages'], {
+  const changed = execFileSync('git', ['diff', '--name-only', '--diff-filter=DMRT', baseline, '--', 'packages'], {
     cwd: root,
     encoding: 'utf8',
     timeout: 10000,

@@ -90,7 +90,7 @@ export function portalDataPlan(
     formRegistry: input.forms,
     localesDirectory: input.localesDirectory,
   });
-  const disks = portalDomain(
+  const disks = portalDomain<ConstructorParameters<typeof Disks.StorageManager>[0], Disks.StorageManager>(
     'storageDisks',
     [],
     (input: ConstructorParameters<typeof Disks.StorageManager>[0]) => new Disks.StorageManager(input),

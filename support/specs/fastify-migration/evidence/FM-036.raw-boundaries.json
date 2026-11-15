@@ -6112,29 +6112,30 @@
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
     "packages/redbox-core/src/application/migrations.ts": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
-    "packages/redbox-core/src/application/portal/application.ts": "17226b52f6cf9bada49cab7b2509da302962b031fb8f7d9dedb7d7ccccd90cbc",
+    "packages/redbox-core/src/application/portal/application.ts": "5a320126c01acfbe5bc080fb13604160b5e44b5a6df11a0d69d11c4c2ba97b8c",
     "packages/redbox-core/src/application/portal/compositionInputs.ts": "bd847e1dc558a06da58149f0b266dbd280857b963387dd90dffb86fb8a411769",
-    "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
+    "packages/redbox-core/src/application/portal/data.ts": "1c483815d77e522a0154db5dae47746cdfd40ad9ebec9c21ac61069de17bbb82",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "df4f9afc624f647fbf7734d1f9915394dfff42eb7a099b0c134b0b1d62332d0c",
+    "packages/redbox-core/src/application/portal/host.ts": "7447980126849093ef92f21f93451e0766df0bb136a45cfb059bf22436d964d1",
     "packages/redbox-core/src/application/portal/http.ts": "fa012353b7c01b64fc2ca2887a79fc6173248855a9cd761d063727884b505f1e",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
     "packages/redbox-core/src/application/portal/index.ts": "2627866a4d858e7a5a2b0f69f5089cd55fdfbea7fa06689102acd8fe63268f7f",
-    "packages/redbox-core/src/application/portal/installation.ts": "9c6a9749b65b4520a0e191b4b6d2f1cf36109bf8f61eb078a22fa1bec1f51612",
+    "packages/redbox-core/src/application/portal/installation.ts": "72e17c5a0f9967fc44501f98ca22bf291b8192c327dd8f202e28ef5c9b037706",
     "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "c39a2e343feb74b735c2f7214b3a16c28fa3cea449a93bee5b0238012378524c",
     "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "ab10714e86594737893a7969e7acd78c32db22ac1c26b85f00adef72c387bda0",
     "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "7c47a1438b729768983014aaf4dada9b13815c97ca33f8e1a5a9a021f50bd4af",
     "packages/redbox-core/src/application/portal/providers.ts": "32daf1c9dab7936148e14ef13a49c3744f74ea9292ef47006457bde1edb20ccd",
-    "packages/redbox-core/src/application/portal/rawHttp.ts": "87585a43dc7ae21684a8822b65f09d46c45121d0edeadcee38c9a5e5b5609401",
+    "packages/redbox-core/src/application/portal/rawHttp.ts": "cc3af6d0ca5a51df1bca8629e23d09a2fcfd131f1502c2a4f32bb22d556684bf",
     "packages/redbox-core/src/application/portal/readHttpPlan.ts": "0f055e58b2c24f10511f0f7ff4c72d65a0b829737877784deb181aad05e4460a",
     "packages/redbox-core/src/application/portal/recordOperations.ts": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a",
     "packages/redbox-core/src/application/portal/reference.ts": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f",
     "packages/redbox-core/src/application/portal/referenceHttpPlan.ts": "8955373b254db84a6b63dd91c1d00b3853500ac92a132aaae945a4a2b359eb74",
     "packages/redbox-core/src/async.d.ts": "bb533213ab0bacc4db82adc6c70f46cf3d27e1a320edad7601643b27c6c4aa69",
     "packages/redbox-core/src/authentication/Accounts.ts": "2d4259e1851fb2d1f319ab9c04530a287db2edc882073e63a900fb7eedb4a86c",
-    "packages/redbox-core/src/authentication/index.ts": "607ea2318d6edbc66a029f6df874e9bee0feec2b93da06b1068951f3d09478d0",
+    "packages/redbox-core/src/authentication/HttpIdentity.ts": "7cfbce90d6194db213bdf5261d3ea292b46c4f9ef6b87d26fecfda6fc9321988",
+    "packages/redbox-core/src/authentication/index.ts": "7fe6290cdc1e2c958fe0b8e576ab98d62700875631fa0ffd3d735c8a6375569e",
     "packages/redbox-core/src/authorization/PathRules.ts": "c02b304060622d5913851712b1fedd690e4404f8d6fdc7902f2c310a4178e888",
     "packages/redbox-core/src/branding/Branding.ts": "918efe256ee58e374ee366a5e3ac80f31d24c4cce91390982f731c60f4b8852f",
     "packages/redbox-core/src/branding/BrandingLogo.ts": "13f6a08621800061848b06ea1196532c4b3cbfa3964a789bde8733f82cfa7464",
@@ -6243,7 +6244,7 @@
     "packages/redbox-core/src/extensions/integrationModule.ts": "84bf53dea810d3654954fcc2973d5072cd8687ce338cd7650de0575502040cfd",
     "packages/redbox-core/src/extensions/legacyContract.ts": "6ffdfe9e17cfcb340df596f8804835cd4891c655c0a63c6f1896390e6dd02170",
     "packages/redbox-core/src/extensions/loading.ts": "28bd41f8c84504cb8ad5851bd5b46c3094c34ba69f743048afb0bca26c41a672",
-    "packages/redbox-core/src/extensions/resolution.ts": "be0f867d062dfdbf2566b72b0a75c47b4e31318e05d6382428680c28b1e559d5",
+    "packages/redbox-core/src/extensions/resolution.ts": "4f4123b94993c4230aeb26aaf2ae871399792d6057f1116265f794e72bb8fe9b",
     "packages/redbox-core/src/extensions/storage.ts": "6baae36567e571e1f714ab1df4df4e35c28747b3d83af429e503c54ab97cad7c",
     "packages/redbox-core/src/extensions/v2.ts": "b6393d5dd61c66767e9d0f2f01d03a2a90a1b1f71c8747045a0852fcb719889a",
     "packages/redbox-core/src/form-config/generated-view-only.ts": "2e562b328cf229a55cf3fe5136a29ae5ebac303e698e780b6024ce52fec98dd0",
@@ -6334,7 +6335,7 @@
     "packages/redbox-core/src/http/express/formDelivery.ts": "795a0e8140bed103cc22fd48b5a42082c06ebc64380d4095f56154ab6df82054",
     "packages/redbox-core/src/http/express/formVocabulary.ts": "1c5807d3c6cec281eb9a3e5ac1e5ff752b0abd6596c3b7e83de442718f3873e1",
     "packages/redbox-core/src/http/express/harvestMutations.ts": "88fa4be62ba43f6cb72ecb450bb29b77cd34d8cdc0af0b98c0942306cf176919",
-    "packages/redbox-core/src/http/express/identity.ts": "a5f46fecf45de4a19d39bf3637fcf71016b79ff550f4cda0e60fe3b40f6a8a79",
+    "packages/redbox-core/src/http/express/identity.ts": "7bc82ca6eaf4ab17cc118fec1603630db130ccf7e9376b0dc1fc4925f597d408",
     "packages/redbox-core/src/http/express/identityAdministration.ts": "2950453bbf4cefe0ca3e600e597f27ea797be4d248835b8332bc1544f192f451",
     "packages/redbox-core/src/http/express/identityLinks.ts": "61f38ad1cee71e0b1da8f393effdf09c24ddcbdcf4141566c75b1db0a84be7f0",
     "packages/redbox-core/src/http/express/identityProviders.ts": "1ac43bc01e995e2e2b2b0e105044a8221216394b19c01410b7a6ef06d9b3012b",
@@ -6366,7 +6367,7 @@
     "packages/redbox-core/src/http/express/siemWrites.ts": "1eccbb16f037aa92792be86a785d34091826267fd38933aa42bb072bcab0b305",
     "packages/redbox-core/src/http/express/vocabularyAdministration.ts": "1efef5723379f3563da57443e1653943536f157ba6770ea9ac70431b00f77587",
     "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "17899dbdbb6aacc59e2fe9310336a48feb4f98ba15fbd75913f7e397bae41a99",
-    "packages/redbox-core/src/http/fastify/FastifyHost.ts": "21e21276301067c29bb5a1ad5a6676275781d2c4077269073c916529189cbc00",
+    "packages/redbox-core/src/http/fastify/FastifyHost.ts": "1a9c441aecfc74092da3a0444f8d365936384f4a25d41d124d3679555357b519",
     "packages/redbox-core/src/http/fastify/actionReply.ts": "49fd0f32e55a234a38dc6aae6d2b908e21989de747186a93e3616b3d5f47df2e",
     "packages/redbox-core/src/http/fastify/assetCookies.ts": "0d5f692761a54910e34b5b27bfc4f80a509d774f5fd104280b88ed977e8f1e4b",
     "packages/redbox-core/src/http/fastify/assets.ts": "224706e6b6bf561c92850ab7130ba7d86cb9c9376fcb74c339f2fa819c7482e3",
@@ -6635,7 +6636,7 @@
     "packages/redbox-core/src/persistence/storage/attachmentValues.ts": "223b6bbeea580a9b69afe932aee74112aa2a341893bda9d2783da8fdcc1eae52",
     "packages/redbox-core/src/persistence/storage/auditFields.ts": "385db1f1dfdb7e3239a1fd38f8df145c25ab512e983dc46b4a72349d8964f573",
     "packages/redbox-core/src/persistence/storage/preflight.ts": "1b47fae98ae7bcc39d0ea5f163ff6496fa18495ab79653d8cb3346dbc73cdf81",
-    "packages/redbox-core/src/persistence/storage/prismaAdapter.ts": "77687357bc1a58eee13f115d820684e56ceaee135bee2fc72778ffff5f630d60",
+    "packages/redbox-core/src/persistence/storage/prismaAdapter.ts": "f0d2846d4de7e30a9b15c24ce04564541446516665ef0176930aaf657f7320c7",
     "packages/redbox-core/src/persistence/storage/runtime.ts": "24bcba44ededff68c4d257a2a8d154ee8f6906efe31a995c593daa1ddc1d9cc0",
     "packages/redbox-core/src/persistence/suppliedDataProperties.ts": "28ea6e47265e13486b8afaace4e4e216902bf10f09da256f77c96456d5b2ed1b",
     "packages/redbox-core/src/persistence/timestamps.ts": "b37eb0d02734bfa3787b2f88d85f58d283f527205ace0638765cf6d46e0d3092",
@@ -6809,7 +6810,7 @@
     "packages/redbox-core/src/storage/GridFSDriver.ts": "918300c74bbdc3dd502af21d4d5728a8c3b572057da9a1dd19acc8c2cb3d7605",
     "packages/redbox-core/src/storage/StandardDatastream.ts": "eab4b36ffb52440ab85e954295facb9412b9d37875b1ace0746bddcb31f22643",
     "packages/redbox-core/src/storage/StorageManager.ts": "7eb72c2c6e1fecbfa018dffcba0babed3c36d080ba7a8a3b1027f46e311b0015",
-    "packages/redbox-core/src/storage/TusStorageManagerDataStore.ts": "3d2aeb8a4ea2ba41967411eba3cf2cc466b1746cb9e56e946786e2501d7fabf6",
+    "packages/redbox-core/src/storage/TusStorageManagerDataStore.ts": "20dd727c58d00c7bacdf67e75e6bfe26e14787ac7f11d1a579d47ba56423d486",
     "packages/redbox-core/src/storage/ownGridFSDownload.ts": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
     "packages/redbox-core/src/storage/writeGridFSStream.ts": "3a5e97dfab9abd7e76451584963c72a7044e47211b75a4a843747b0967ac47c6",
     "packages/redbox-core/src/transformers/ExportJSONTransformer.ts": "52727132ea599326b3cd09c39a0367580d92975c8a1bd1595cf9e0bea474ad96",
@@ -39889,7 +39890,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/rawHttp.ts",
       "kind": "typed-handoff",
-      "line": 132,
+      "line": 133,
       "call": "this.sockets.attach(server, { borrowedServer: true })",
       "scopes": [
         "PortalRawHttp",
@@ -39922,7 +39923,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/rawHttp.ts",
       "kind": "typed-handoff",
-      "line": 133,
+      "line": 134,
       "call": "companions.get(this)?.initialize(server, { borrowedLifecycle: true })",
       "scopes": [
         "PortalRawHttp",
@@ -40044,6 +40045,246 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
         "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-return",
+      "line": 37,
+      "call": "return this.effectiveUser( await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), { populate: ['roles'], }) );",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "9aec37bc65397ab04b57995cefda9f519a5c416e04ea380017e0b0c85c62c8e2",
+      "operation": "return",
+      "receiverType": "Promise<false | (Omit<UserAttributes, \"password\" | \"token\"> & Values & { hasApiKey?: boolean | undefined; })>",
+      "receiver": "this.effectiveUser(\n      await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), {\n        populate: ['roles'],\n      })\n    )",
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-handoff",
+      "line": 37,
+      "call": "this.effectiveUser( await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), { populate: ['roles'], }) )",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "3812cc363e711c5cd9d9ae5d7ad3291975db826b469ee235d41a0ed8409f443c",
+      "operation": "effectiveUser",
+      "receiverType": "(Omit<UserAttributes, \"password\" | \"token\"> & Values & { hasApiKey?: boolean | undefined; }) | null",
+      "receiver": "await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), {\n        populate: ['roles'],\n      })",
+      "argumentIndex": 0,
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-handoff",
+      "line": 38,
+      "call": "this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), { populate: ['roles'], })",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "885eafda05bb52f4293b5f37353d09a43e3371d76dc36b231b1d84b923b44e62",
+      "operation": "findByApiTokenHash",
+      "receiverType": "string",
+      "receiver": "createHash('sha256').update(token).digest('base64')",
+      "argumentIndex": 0,
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-call",
+      "line": 38,
+      "call": "createHash('sha256').update(token).digest('base64')",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "89b3f11abb10855ba9a57d3546886f8a3a2b656d07447b2742533942fb07ea9c",
+      "operation": "digest",
+      "receiverType": "Hash",
+      "receiver": "createHash('sha256').update(token)",
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-reference",
+      "line": 38,
+      "call": "createHash('sha256').update(token).digest",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "826438b44e928a767e3c26cf392433a4be743cd0197a9749aa4207e3f1d3a3b5",
+      "operation": "digest",
+      "receiverType": "Hash",
+      "receiver": "createHash('sha256').update(token)",
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-call",
+      "line": 38,
+      "call": "createHash('sha256').update(token)",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "d298e3a2b8d07724b36550e1e1c4147cf31a735eb1d88d52e3fb6f22da91eb93",
+      "operation": "update",
+      "receiverType": "Hash",
+      "receiver": "createHash('sha256')",
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-reference",
+      "line": 38,
+      "call": "createHash('sha256').update",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "8a99fac2263004e17383d743a0773cb77c993ea2de1ff7bba8c2709572b7488e",
+      "operation": "update",
+      "receiverType": "Hash",
+      "receiver": "createHash('sha256')",
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/authentication/HttpIdentity.ts",
+      "kind": "typed-construction",
+      "line": 38,
+      "call": "createHash('sha256')",
+      "scopes": [
+        "HttpIdentity",
+        "bearerProfile"
+      ],
+      "iterations": [],
+      "syntaxSha256": "6380f9409bc5e53a82d43f6ae9c4a37868e462328e01405d7c5b78789fd28c7b",
+      "operation": "createHash",
+      "profile": "service",
+      "owner": "authentication/HttpIdentity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
+        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
+        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
+        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
+        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
+        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
       ]
     },
@@ -101005,246 +101246,6 @@
       ]
     },
     {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-return",
-      "line": 37,
-      "call": "return this.effectiveUser( await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), { populate: ['roles'], }) );",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "9aec37bc65397ab04b57995cefda9f519a5c416e04ea380017e0b0c85c62c8e2",
-      "operation": "return",
-      "receiverType": "Promise<false | (Omit<UserAttributes, \"password\" | \"token\"> & Values & { hasApiKey?: boolean | undefined; })>",
-      "receiver": "this.effectiveUser(\n      await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), {\n        populate: ['roles'],\n      })\n    )",
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-handoff",
-      "line": 37,
-      "call": "this.effectiveUser( await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), { populate: ['roles'], }) )",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "3812cc363e711c5cd9d9ae5d7ad3291975db826b469ee235d41a0ed8409f443c",
-      "operation": "effectiveUser",
-      "receiverType": "(Omit<UserAttributes, \"password\" | \"token\"> & Values & { hasApiKey?: boolean | undefined; }) | null",
-      "receiver": "await this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), {\n        populate: ['roles'],\n      })",
-      "argumentIndex": 0,
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-handoff",
-      "line": 38,
-      "call": "this.repository.findByApiTokenHash(createHash('sha256').update(token).digest('base64'), { populate: ['roles'], })",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "885eafda05bb52f4293b5f37353d09a43e3371d76dc36b231b1d84b923b44e62",
-      "operation": "findByApiTokenHash",
-      "receiverType": "string",
-      "receiver": "createHash('sha256').update(token).digest('base64')",
-      "argumentIndex": 0,
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-call",
-      "line": 38,
-      "call": "createHash('sha256').update(token).digest('base64')",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "89b3f11abb10855ba9a57d3546886f8a3a2b656d07447b2742533942fb07ea9c",
-      "operation": "digest",
-      "receiverType": "Hash",
-      "receiver": "createHash('sha256').update(token)",
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-reference",
-      "line": 38,
-      "call": "createHash('sha256').update(token).digest",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "826438b44e928a767e3c26cf392433a4be743cd0197a9749aa4207e3f1d3a3b5",
-      "operation": "digest",
-      "receiverType": "Hash",
-      "receiver": "createHash('sha256').update(token)",
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-call",
-      "line": 38,
-      "call": "createHash('sha256').update(token)",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "d298e3a2b8d07724b36550e1e1c4147cf31a735eb1d88d52e3fb6f22da91eb93",
-      "operation": "update",
-      "receiverType": "Hash",
-      "receiver": "createHash('sha256')",
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-reference",
-      "line": 38,
-      "call": "createHash('sha256').update",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "8a99fac2263004e17383d743a0773cb77c993ea2de1ff7bba8c2709572b7488e",
-      "operation": "update",
-      "receiverType": "Hash",
-      "receiver": "createHash('sha256')",
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/http/express/identity.ts",
-      "kind": "typed-construction",
-      "line": 38,
-      "call": "createHash('sha256')",
-      "scopes": [
-        "HttpIdentity",
-        "bearerProfile"
-      ],
-      "iterations": [],
-      "syntaxSha256": "6380f9409bc5e53a82d43f6ae9c4a37868e462328e01405d7c5b78789fd28c7b",
-      "operation": "createHash",
-      "profile": "service",
-      "owner": "http/express/identity.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Shared service streams, deadlines and outbound cancellation do not bypass Fastify hooks; they execute beneath an accepted action or an independently owned job.",
-        "session": "No raw session publication. An HTTP caller retains its ordinary session/callback ownership independently of service cancellation.",
-        "observation": "Service observes its own completion/error; HTTP callers retain the one native response/error observation.",
-        "drain": "Service operation/finalizer and resource owner retain stream iterator/pipeline/completion/EOF/error settlement and outstanding work; argument/return/producer handoffs do not release the HTTP request or dependency frontier. Cancellable timers clear in finally/close, awaited delays settle before release, and AbortSignal.timeout owns its unreferenced expiry.",
-        "security": "No new inbound listener or raw header writer; upstream guards and service-specific validation continue to apply.",
-        "upgrade": "Not an upgrade path; no host upgrade listener is acquired."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
       "file": "packages/redbox-core/src/http/express/multipart.ts",
       "kind": "typed-handoff",
       "line": 51,
@@ -116195,7 +116196,167 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-reference",
-      "line": 364,
+      "line": 365,
+      "call": "this.fastify.server.listening",
+      "scopes": [
+        "FastifyHost",
+        "drainRequests"
+      ],
+      "iterations": [],
+      "syntaxSha256": "feb969f736578dd7043bc1fc2ee5bc805a07b068319833b115467b70a1b2c95b",
+      "operation": "listening",
+      "receiverType": "RawServerDefault",
+      "receiver": "this.fastify.server",
+      "profile": "host",
+      "owner": "FastifyHost / requestOwnership; sole listener and transport-close attempt",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Root admission runs before every raw listener. Sealed callback/producer qualification retains accepted work even after hijack/response/disconnect.",
+        "session": "Session and callback work retained by shared request lifetime/store owner.",
+        "observation": "Shared error boundary + redacting logger; asynchronous observations and sink work remain owned. Hooks cannot replace terminal responses.",
+        "drain": "Stop intent closes admission, single transport-close attempt, request drain plus dependency-ordered application cleanup; deadline retains ownership, explicit retry, idempotent success.",
+        "security": "Capability seal rejects unqualified stream/callback handoffs; no new raw registration capability.",
+        "upgrade": "Server emit admission precedes sole owner dispatcher; close detaches integration listeners."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/rawSocketMongo.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
+      "kind": "typed-reference",
+      "line": 365,
+      "call": "this.fastify.server",
+      "scopes": [
+        "FastifyHost",
+        "drainRequests"
+      ],
+      "iterations": [],
+      "syntaxSha256": "fa735288e0d70f2b0ec7a2938bb8c207a7c5d4e5a56ceefd4105898e70e652fc",
+      "operation": "server",
+      "receiverType": "FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>",
+      "receiver": "this.fastify",
+      "profile": "host",
+      "owner": "FastifyHost / requestOwnership; sole listener and transport-close attempt",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Root admission runs before every raw listener. Sealed callback/producer qualification retains accepted work even after hijack/response/disconnect.",
+        "session": "Session and callback work retained by shared request lifetime/store owner.",
+        "observation": "Shared error boundary + redacting logger; asynchronous observations and sink work remain owned. Hooks cannot replace terminal responses.",
+        "drain": "Stop intent closes admission, single transport-close attempt, request drain plus dependency-ordered application cleanup; deadline retains ownership, explicit retry, idempotent success.",
+        "security": "Capability seal rejects unqualified stream/callback handoffs; no new raw registration capability.",
+        "upgrade": "Server emit admission precedes sole owner dispatcher; close detaches integration listeners."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/rawSocketMongo.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
+      "kind": "typed-call",
+      "line": 365,
+      "call": "this.fastify.server.closeIdleConnections()",
+      "scopes": [
+        "FastifyHost",
+        "drainRequests"
+      ],
+      "iterations": [],
+      "syntaxSha256": "09516b22a8a91523eda85ec1c2a5992c2aa4ead8096e4f801a651a7bc97e3bb7",
+      "operation": "closeIdleConnections",
+      "receiverType": "RawServerDefault",
+      "receiver": "this.fastify.server",
+      "profile": "host",
+      "owner": "FastifyHost / requestOwnership; sole listener and transport-close attempt",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Root admission runs before every raw listener. Sealed callback/producer qualification retains accepted work even after hijack/response/disconnect.",
+        "session": "Session and callback work retained by shared request lifetime/store owner.",
+        "observation": "Shared error boundary + redacting logger; asynchronous observations and sink work remain owned. Hooks cannot replace terminal responses.",
+        "drain": "Stop intent closes admission, single transport-close attempt, request drain plus dependency-ordered application cleanup; deadline retains ownership, explicit retry, idempotent success.",
+        "security": "Capability seal rejects unqualified stream/callback handoffs; no new raw registration capability.",
+        "upgrade": "Server emit admission precedes sole owner dispatcher; close detaches integration listeners."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/rawSocketMongo.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
+      "kind": "typed-reference",
+      "line": 365,
+      "call": "this.fastify.server.closeIdleConnections",
+      "scopes": [
+        "FastifyHost",
+        "drainRequests"
+      ],
+      "iterations": [],
+      "syntaxSha256": "886fb6209c9c3b9ae9a1995c3c66bce9752dab6b3f319b93717a1717f984a1fd",
+      "operation": "closeIdleConnections",
+      "receiverType": "RawServerDefault",
+      "receiver": "this.fastify.server",
+      "profile": "host",
+      "owner": "FastifyHost / requestOwnership; sole listener and transport-close attempt",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Root admission runs before every raw listener. Sealed callback/producer qualification retains accepted work even after hijack/response/disconnect.",
+        "session": "Session and callback work retained by shared request lifetime/store owner.",
+        "observation": "Shared error boundary + redacting logger; asynchronous observations and sink work remain owned. Hooks cannot replace terminal responses.",
+        "drain": "Stop intent closes admission, single transport-close attempt, request drain plus dependency-ordered application cleanup; deadline retains ownership, explicit retry, idempotent success.",
+        "security": "Capability seal rejects unqualified stream/callback handoffs; no new raw registration capability.",
+        "upgrade": "Server emit admission precedes sole owner dispatcher; close detaches integration listeners."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/rawSocketMongo.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
+      "kind": "typed-reference",
+      "line": 365,
+      "call": "this.fastify.server",
+      "scopes": [
+        "FastifyHost",
+        "drainRequests"
+      ],
+      "iterations": [],
+      "syntaxSha256": "fa735288e0d70f2b0ec7a2938bb8c207a7c5d4e5a56ceefd4105898e70e652fc",
+      "operation": "server",
+      "receiverType": "FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>",
+      "receiver": "this.fastify",
+      "profile": "host",
+      "owner": "FastifyHost / requestOwnership; sole listener and transport-close attempt",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Root admission runs before every raw listener. Sealed callback/producer qualification retains accepted work even after hijack/response/disconnect.",
+        "session": "Session and callback work retained by shared request lifetime/store owner.",
+        "observation": "Shared error boundary + redacting logger; asynchronous observations and sink work remain owned. Hooks cannot replace terminal responses.",
+        "drain": "Stop intent closes admission, single transport-close attempt, request drain plus dependency-ordered application cleanup; deadline retains ownership, explicit retry, idempotent success.",
+        "security": "Capability seal rejects unqualified stream/callback handoffs; no new raw registration capability.",
+        "upgrade": "Server emit admission precedes sole owner dispatcher; close detaches integration listeners."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/rawSocketMongo.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
+      "kind": "typed-reference",
+      "line": 369,
       "call": "this.fastify.server",
       "scopes": [
         "FastifyHost",
@@ -116227,7 +116388,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-reference",
-      "line": 365,
+      "line": 370,
       "call": "server.close",
       "scopes": [
         "FastifyHost",
@@ -116259,7 +116420,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-property-write",
-      "line": 370,
+      "line": 375,
       "call": "server.close",
       "scopes": [
         "FastifyHost",
@@ -116291,7 +116452,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-reference",
-      "line": 370,
+      "line": 375,
       "call": "server.close",
       "scopes": [
         "FastifyHost",
@@ -116323,7 +116484,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-return",
-      "line": 371,
+      "line": 376,
       "call": "return close.call(this, (error?: NodeJS.ErrnoException) => { if (error && error.code !== 'ERR_SERVER_NOT_RUNNING') transportError = error; callback?.(error); });",
       "scopes": [
         "FastifyHost",
@@ -116355,7 +116516,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-call",
-      "line": 371,
+      "line": 376,
       "call": "close.call(this, (error?: NodeJS.ErrnoException) => { if (error && error.code !== 'ERR_SERVER_NOT_RUNNING') transportError = error; callback?.(error); })",
       "scopes": [
         "FastifyHost",
@@ -116387,7 +116548,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-handoff",
-      "line": 371,
+      "line": 376,
       "call": "close.call(this, (error?: NodeJS.ErrnoException) => { if (error && error.code !== 'ERR_SERVER_NOT_RUNNING') transportError = error; callback?.(error); })",
       "scopes": [
         "FastifyHost",
@@ -116420,7 +116581,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-property-write",
-      "line": 382,
+      "line": 387,
       "call": "server.close",
       "scopes": [
         "FastifyHost",
@@ -116452,7 +116613,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/FastifyHost.ts",
       "kind": "typed-reference",
-      "line": 382,
+      "line": 387,
       "call": "server.close",
       "scopes": [
         "FastifyHost",
@@ -281087,58 +281248,62 @@
       ]
     },
     "packages/redbox-core/test/http/fastify/FastifyHost.test.ts": {
-      "sha256": "8e171314c1785968111b981ea352f0fd91359430883fd8e0f97c7b11ef2b4b5b",
+      "sha256": "8cf43c70c027125afdcc2f1d720557911512f9d0a5d34d899d1cc9e45f4d3809",
       "cases": [
         {
-          "line": 140,
+          "line": 139,
+          "title": "'reaps a keep-alive connection that becomes idle after a held request drains during stop retry'"
+        },
+        {
+          "line": 200,
           "title": "`uses only the prepared server with dual-stack localhost DNS (IPv${family} first)`"
         },
         {
-          "line": 214,
+          "line": 274,
           "title": "`retains startup ownership without listening during hostname resolution (${outcome})`"
         },
         {
-          "line": 316,
+          "line": 376,
           "title": "`matches Express admission and probes for ${form} request-target forms over raw sockets`"
         },
         {
-          "line": 360,
+          "line": 420,
           "title": "'initializes the application, prepares the complete plugin graph, then binds exactly one server'"
         },
         {
-          "line": 457,
+          "line": 517,
           "title": "'refuses concurrent ordinary requests before parsing, plugin hooks, actions and fallback through activation'"
         },
         {
-          "line": 531,
+          "line": 591,
           "title": "'matches Express probe, admission and host-miss status/body/header contracts over real sockets'"
         },
         {
-          "line": 572,
+          "line": 632,
           "title": "`closes admission and owned resources after ${phase} failure, preserving the original error`"
         },
         {
-          "line": 632,
+          "line": 692,
           "title": "'reports failed activation as unhealthy while cleanup is pending and refuses every ordinary request'"
         },
         {
-          "line": 672,
+          "line": 732,
           "title": "`closes admission immediately and waits for ${phase} to settle when stopped`"
         },
         {
-          "line": 745,
+          "line": 805,
           "title": "'handles stop in the actual listening event without opening admission or leaking a later listener'"
         },
         {
-          "line": 760,
+          "line": 820,
           "title": "'stops before initialization without running preparation, and successful stop is idempotent'"
         },
         {
-          "line": 773,
+          "line": 833,
           "title": "'gates an active listener immediately on stop while transport quiesces'"
         },
         {
-          "line": 805,
+          "line": 865,
           "title": "`owns opt-in ${signal} handling at the compiled executable boundary (${mode})`"
         }
       ]
@@ -282985,8 +283150,8 @@
     }
   },
   "counts": {
-    "boundaries": 6514,
+    "boundaries": 6519,
     "retainedExpress": 1131,
-    "sources": 812
+    "sources": 813
   }
 }

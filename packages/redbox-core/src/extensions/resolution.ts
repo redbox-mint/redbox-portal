@@ -5,6 +5,7 @@ import { parse, pathToRegexp, TokenData, type Token } from 'path-to-regexp';
 import type { ExtensionFactory, ExtensionWork } from './contract';
 import { ExtensionError, inspectInstalledExtensionProviders } from './loading';
 
+/** Retained API1 composition declaration. @preCutover */
 export interface ExtensionProvider {
   readonly name: string;
   readonly root: string;
@@ -14,6 +15,7 @@ export interface ResolvedRegistration<T> {
   readonly provider: string;
   readonly declaration: T;
 }
+/** Retained API1 composition declaration. @preCutover */
 export interface ResolvedExtensions {
   /** Contributions merge low to high; lookup paths search high to low. */
   readonly providers: readonly ExtensionProvider[];
@@ -269,6 +271,7 @@ function orderModules(modules: readonly ResolvedRegistration<ExtensionFactory>[]
 }
 
 /** Validate and order offline contributions before concrete core factory inputs exist. */
+/** Retained API1 composition declaration. @preCutover */
 export function orderExtensionProviders(
   providers: readonly ExtensionProvider[],
   hookLoadPriority: readonly string[] = []
@@ -292,6 +295,7 @@ export function orderExtensionProviders(
 }
 
 /** Resolve the whole graph before any factory is called. Core is always lowest precedence. */
+/** Retained API1 composition declaration. @preCutover */
 export function resolveExtensions(
   providers: readonly ExtensionProvider[],
   hookLoadPriority: readonly string[] = [],
@@ -366,6 +370,7 @@ export function resolveExtensions(
   };
 }
 
+/** Retained API1 composition declaration. @preCutover */
 export async function loadExtensions(
   appPath: string,
   options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}
@@ -375,6 +380,7 @@ export async function loadExtensions(
 }
 
 /** Discovery/registration only; the production root resolves the complete graph after config. */
+/** Retained API1 composition declaration. @preCutover */
 export async function loadInstalledExtensionProviders(
   appPath: string,
   options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}

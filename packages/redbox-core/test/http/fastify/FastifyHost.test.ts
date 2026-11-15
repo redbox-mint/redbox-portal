@@ -136,6 +136,66 @@ describe('internal late-listening Fastify host', function () {
     return address.port;
   }
 
+  it('reaps a keep-alive connection that becomes idle after a held request drains during stop retry', async () => {
+    const started = barrier(),
+      release = barrier();
+    let closed = 0;
+    const { host } = compose(
+      [
+        {
+          name: 'borrowed',
+          create: () => ({
+            initialize: async () => {},
+            close: async () => {
+              closed++;
+            },
+          }),
+        },
+      ],
+      async app => {
+        app.get('/probe', async (_request, reply) => {
+          started.resolve();
+          await release.promise;
+          assert.equal(closed, 0, 'Accepted request retains its borrowed module');
+          reply.header('connection', 'keep-alive');
+          return { complete: true };
+        });
+      }
+    );
+    const agent = new http.Agent({ keepAlive: true });
+    try {
+      await host.initialize();
+      await host.activate();
+      const chosenPort = port(host);
+      const response = new Promise<{ text: string; connection: string | undefined }>((resolve, reject) => {
+        const req = request({ hostname: '127.0.0.1', port: chosenPort, path: '/probe', agent }, res => {
+          let text = '';
+          res.setEncoding('utf8');
+          res.on('data', chunk => {
+            text += chunk;
+          });
+          res.on('error', reject);
+          res.on('end', () => resolve({ text, connection: res.headers.connection }));
+        });
+        req.on('error', reject);
+        req.end();
+      });
+      await started.promise;
+      await assert.rejects(host.stop({ deadlineMs: 20 }), /deadline/i);
+      assert.equal(closed, 0);
+      release.resolve();
+      assert.deepEqual(await response, { text: '{"complete":true}', connection: 'keep-alive' });
+      await host.stop({ deadlineMs: 1000 });
+      assert.equal(closed, 1);
+      assert.equal(host.status().stopped, true);
+      await refused(chosenPort);
+    } finally {
+      release.resolve();
+      agent.destroy();
+      await host.stop();
+    }
+  });
+
   for (const family of [4, 6]) {
     it(`uses only the prepared server with dual-stack localhost DNS (IPv${family} first)`, async () => {
       const addresses = [

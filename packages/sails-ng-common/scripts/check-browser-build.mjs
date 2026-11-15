@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
+import ts from 'typescript';
 
 const packageDirectory = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -34,6 +35,37 @@ function retainedInputs(result) {
 }
 
 try {
+  // TypeScript's namespace re-exports infer directory imports in declarations.
+  // Validate the finalized ESM declarations, including those unneeded by the
+  // small runtime bundle below; import("...js") must never reach a consumer.
+  async function declarations(directory) {
+    const files = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const file = join(directory, entry.name);
+      if (entry.isDirectory()) files.push(...(await declarations(file)));
+      else if (entry.name.endsWith('.d.ts')) files.push(file);
+    }
+    return files;
+  }
+  const program = ts.createProgram(await declarations(join(packageDirectory, 'dist/esm')), {
+    module: ts.ModuleKind.NodeNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    target: ts.ScriptTarget.ES2024,
+    strict: true,
+    skipLibCheck: false,
+    types: ['node'],
+    noEmit: true,
+  });
+  const diagnostics = ts.getPreEmitDiagnostics(program);
+  assert.equal(
+    diagnostics.length,
+    0,
+    ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+      getCurrentDirectory: () => packageDirectory,
+      getCanonicalFileName: file => file,
+      getNewLine: () => '\n',
+    })
+  );
   const result = await build({
     ...options,
     stdin: {
@@ -130,6 +162,10 @@ try {
     'browser and Node named exports must stay compatible'
   );
   const runtime = await import(new URL('../dist/esm/handlebars-runtime.js', import.meta.url));
+  const parser = await import(new URL('../dist/esm/markdown-parser.js', import.meta.url));
+  const browserParser = await import(new URL('../dist/esm/markdown-parser.browser.js', import.meta.url));
+  assert.equal(parser.getMarkdownParser, browserParser.getMarkdownParser);
+  assert.equal(parser.loadMarkdownParser, browserParser.loadMarkdownParser);
   assert.equal(runtime.handlebarsInstance().compile, undefined);
   assert.equal(typeof node.handlebarsInstance().compile, 'function');
   require('handlebars').registerHelper('directCompilerHook', value => `direct:${value}`);
@@ -150,7 +186,9 @@ try {
     const spec = Function(`return ${compiler.precompile('{{explicitCompilerHook name}}')}`)();
     const originalFunction = globalThis.Function;
     try {
-      globalThis.Function = () => { throw new Error('CSP forbids dynamic code generation'); };
+      globalThis.Function = () => {
+        throw new Error('CSP forbids dynamic code generation');
+      };
       assert.equal(runtime.handlebarsTemplate(spec)({ name: 'Ada' }), 'hook:Ada');
     } finally {
       globalThis.Function = originalFunction;
@@ -164,7 +202,11 @@ try {
   }
   // A new Node process proves import/HTML do not preload Marked and the very
   // first synchronous server Markdown render contains HTML, without a timer.
-  execFileSync(process.execPath, ['-e', `
+  execFileSync(
+    process.execPath,
+    [
+      '-e',
+      `
     const assert = require('node:assert/strict');
     const api = require('@researchdatabox/sails-ng-common');
     const loaded = () => Object.keys(require.cache).some(path => path.endsWith('/marked-parser.cjs'));
@@ -175,10 +217,19 @@ try {
     assert.equal(loaded(), false);
     assert.equal(render({ content: '**first**', outputFormat: 'markdown' }), '<p><strong>first</strong></p>\\n');
     assert.equal(loaded(), true);
-  `], { cwd: packageDirectory, stdio: 'pipe' });
+  `,
+    ],
+    { cwd: packageDirectory, stdio: 'pipe' }
+  );
   // Resolve the actual browser export condition in an isolated process, without
   // the CommonJS API sharing Handlebars' vendor singleton with this test runner.
-  execFileSync(process.execPath, ['--conditions=browser', '--input-type=module', '-e', `
+  execFileSync(
+    process.execPath,
+    [
+      '--conditions=browser',
+      '--input-type=module',
+      '-e',
+      `
     import assert from 'node:assert/strict';
     import { handlebarsInstance as full } from '@researchdatabox/sails-ng-common';
     import { handlebarsInstance as runtime, handlebarsHelperDefinitions, loadMarkdownParser }
@@ -189,7 +240,10 @@ try {
     await loadMarkdownParser();
     assert.equal(full().compile('{{{markdownToHtml content "markdown"}}}')({ content: '**browser**' }),
       '<p><strong>browser</strong></p>\\n');
-  `], { cwd: packageDirectory, stdio: 'pipe' });
+  `,
+    ],
+    { cwd: packageDirectory, stdio: 'pipe' }
+  );
   assert.deepEqual(
     [...browser.FieldComponentDefinitionMap.keys()],
     [...node.FieldComponentDefinitionMap.keys()],

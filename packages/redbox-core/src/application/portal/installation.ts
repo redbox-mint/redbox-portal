@@ -85,7 +85,7 @@ export async function resolvePortalInstallation(
       return raw!.resumable;
     },
   };
-  const brandingUploadInput = {
+  const brandingUploadInput: import('../../http/actions/brandingUploads').BrandingUploadInput = {
     log: context.log,
     faceMaxBytes: context.config.branding.typefaceFaceMaxBytes,
     get branding() {
@@ -97,7 +97,7 @@ export async function resolvePortalInstallation(
     get staging() {
       return context.data.disks.get().stagingDisk();
     },
-    get multipart() {
+    get multipart(): import('../../http/express/multipart').StreamingMultipart {
       return raw!.multipart;
     },
     audit: (actor: { id: string; username: string }, action: string, details: { brandId: string }) =>
@@ -189,7 +189,7 @@ export async function resolvePortalInstallation(
         get datastream() {
           return context.data.datastream.get();
         },
-        get multipart() {
+        get multipart(): import('../../http/express/multipart').StreamingMultipart {
           return raw!.multipart;
         },
       }

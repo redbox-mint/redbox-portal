@@ -50,7 +50,7 @@ import { PortalHttp, type PortalHttpOptions } from './http';
 import { progressOperationRoutes, progressSocketGrantRoute } from '../../http/progressRoutes';
 import { prepareCompanionRoutes } from '../../http/integrations/companion/fastify';
 
-/** One production runtime, listener and signal boundary. Construction performs no acquisition. */
+/** Retained pre-cutover Express executable composition. @preCutover */
 export async function createPortalHost(options: LegacyPortalApplicationOptions & PortalHttpOptions) {
   let http: PortalHttp;
   const portal = await createPortalApplication({

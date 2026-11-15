@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import { DataStore, Upload, ERRORS } from '@tus/server';
+import { DataStore, Upload, ERRORS } from '@tus/utils';
 import type { Services } from './StorageManager';
 
 import type { ILogger } from '@researchdatabox/sails-ng-common';

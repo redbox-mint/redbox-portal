@@ -1717,7 +1717,9 @@
         "AuthenticationRejected",
         "OidcAuthConfig"
       ],
-      "added": []
+      "added": [
+        "HttpIdentity"
+      ]
     },
     {
       "package": "@researchdatabox/redbox-core",

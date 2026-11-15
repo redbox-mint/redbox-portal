@@ -106,7 +106,8 @@
     "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
     "persistence:indexes": "node node_modules/@researchdatabox/redbox-core/bin/persistence-indexes.cjs",
     "check:prisma": "npm --prefix packages/redbox-core run check:prisma",
-    "compile:host": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc"
+    "compile:host": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
+    "test:packed:fastify": "node support/integration-testing/qualify-fastify-packages.cjs"
   },
   "main": "app.express.cjs",
   "repository": {

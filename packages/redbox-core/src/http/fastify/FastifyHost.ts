@@ -358,6 +358,11 @@ export class FastifyHost {
   private async drainRequests(): Promise<void> {
     while (this.requests.size) await Promise.allSettled(this.requests);
     await drainHttpLogger(this.fastify.log);
+    // Native close reaps connections idle at its start. A request accepted
+    // earlier can become idle afterwards, including after a stop deadline.
+    // Reap only after native close starts and owned response work drains.
+    // A pending preClose hook must still permit pipelined admission refusals.
+    if (this.stopRequested && !this.fastify.server.listening) this.fastify.server.closeIdleConnections();
   }
 
   private async closeTransport(): Promise<void> {

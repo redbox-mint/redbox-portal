@@ -1,7 +1,11 @@
+import type { MongoFilterExpr } from '@prisma/orm-mongo/query-ast';
+import type { FieldOperation } from '@prisma/orm-mongo/orm';
 import type { StoragePrismaClient } from '../prisma/client';
 
 /** Lazy first-party adapter seam; importing core never loads the Prisma engine. @internal */
-export function prismaModelFilter(...args: Parameters<typeof import('../prisma/modelFilter').prismaModelFilter>) {
+export function prismaModelFilter(
+  ...args: Parameters<typeof import('../prisma/modelFilter').prismaModelFilter>
+): MongoFilterExpr {
   return (require('../prisma/modelFilter') as typeof import('../prisma/modelFilter')).prismaModelFilter(...args);
 }
 /** Catalog inspection is acquired only after persistence initialization. @internal */
@@ -24,7 +28,7 @@ export function prismaRecordRevisionBatches(client: StoragePrismaClient) {
 /** Model field operations for the first-party record protocol; no native pipeline support. @internal */
 export function prismaRecordFieldOperations(
   ...args: Parameters<typeof import('../prisma/recordOperations').prismaRecordFieldOperations>
-) {
+): FieldOperation[] {
   return (
     require('../prisma/recordOperations') as typeof import('../prisma/recordOperations')
   ).prismaRecordFieldOperations(...args);

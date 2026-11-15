@@ -5,3 +5,5 @@ export {
   type OidcAuthConfig,
   type AuthenticationAccountsInput,
 } from './Accounts';
+
+export { HttpIdentity } from './HttpIdentity';

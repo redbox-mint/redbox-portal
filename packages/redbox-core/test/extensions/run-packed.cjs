@@ -5,12 +5,19 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const repo = path.resolve(__dirname, '../../../..');
 const maintenance = process.argv.includes('--maintenance-mongo');
-const output = path.join(
-  repo,
-  maintenance ? '.tmp/sails-retirement/p3-maintenance-pack' : '.tmp/sails-retirement/p2-pack'
-);
+if (!maintenance) {
+  // Current production consumer gate; the remaining body is the retained
+  // Sails-retirement maintenance-only qualifier.
+  execFileSync(process.execPath, [path.join(repo, 'support/integration-testing/qualify-fastify-packages.cjs')], {
+    cwd: repo,
+    env: process.env,
+    stdio: 'inherit',
+  });
+  return;
+}
+const output = path.join(repo, '.tmp/sails-retirement/p3-maintenance-pack');
 fs.mkdirSync(output, { recursive: true });
-const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), maintenance ? 'redbox-p3-packed-' : 'redbox-p2-packed-'));
+const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-p3-packed-'));
 const packages = [
   'sails-ng-common',
   'agenda-sqs-backend',
@@ -42,7 +49,7 @@ function pack(directory) {
 const packed = [
   ...packages.map(name => pack(path.join(repo, 'packages', name))),
   ...['esm-only', 'esm-hook', 'commonjs-hook'].map(name => pack(path.join(__dirname, 'fixtures', name))),
-  ...(maintenance ? [pack(path.join(__dirname, '../maintenance/fixtures/probe'))] : []),
+  pack(path.join(__dirname, '../maintenance/fixtures/probe')),
 ];
 const dependencies = Object.fromEntries(packed.map(item => [item.name, item.spec]));
 const overrides = { ...JSON.parse(fs.readFileSync(path.join(repo, 'packages/redbox-core/package.json'))).overrides };
@@ -81,13 +88,34 @@ function install(args, log) {
     throw error;
   }
 }
-install(['install', '--strict-peer-deps', '--legacy-peer-deps=false', '--prefer-offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'install.log');
-fs.rmSync(path.join(sandbox, 'node_modules'), { recursive: true, force: true });
-install(['ci', '--strict-peer-deps', '--legacy-peer-deps=false', '--offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'offline-ci.log');
-fs.copyFileSync(
-  path.join(__dirname, maintenance ? '../maintenance/packed-mongo.cjs' : 'packed-consumer.cjs'),
-  path.join(sandbox, 'verify.cjs')
+install(
+  [
+    'install',
+    '--strict-peer-deps',
+    '--legacy-peer-deps=false',
+    '--prefer-offline',
+    '--omit=dev',
+    '--ignore-scripts',
+    '--no-audit',
+    '--no-fund',
+  ],
+  'install.log'
 );
+fs.rmSync(path.join(sandbox, 'node_modules'), { recursive: true, force: true });
+install(
+  [
+    'ci',
+    '--strict-peer-deps',
+    '--legacy-peer-deps=false',
+    '--offline',
+    '--omit=dev',
+    '--ignore-scripts',
+    '--no-audit',
+    '--no-fund',
+  ],
+  'offline-ci.log'
+);
+fs.copyFileSync(path.join(__dirname, '../maintenance/packed-mongo.cjs'), path.join(sandbox, 'verify.cjs'));
 const result = execFileSync(process.execPath, ['verify.cjs'], { cwd: sandbox, env, encoding: 'utf8' });
 const summary = {
   node: process.version,

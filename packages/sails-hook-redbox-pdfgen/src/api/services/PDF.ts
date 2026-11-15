@@ -1,6 +1,6 @@
 import { of } from 'rxjs';
 
-import { launch, type HTTPRequest, type Page, type PDFOptions as PuppeteerPDFOptions } from 'puppeteer';
+import { launch, type Browser, type HTTPRequest, type Page, type PDFOptions as PuppeteerPDFOptions } from 'puppeteer';
 import { DateTime } from 'luxon';
 import * as fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -157,7 +157,7 @@ export namespace Services {
       return error._tag === 'BrowserError' || error._tag === 'PDFRenderError' || error._tag === 'DatastreamSaveError';
     }
 
-    protected launchBrowser(options: Parameters<typeof launch>[0]) {
+    protected launchBrowser(options: Parameters<typeof launch>[0]): Promise<Browser> {
       return launch(options);
     }
 

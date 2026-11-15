@@ -14,6 +14,7 @@ import { CompanionUploads, companionOptions } from '../../http/integrations/comp
 
 // Companion's Express adapter stays behind the private production integration seam.
 const companions = new WeakMap<PortalRawHttp, CompanionUploads>();
+/** Private Companion borrowing seam. @preCutover */
 export const portalCompanion = (raw: PortalRawHttp | undefined): CompanionUploads | undefined =>
   raw && companions.get(raw);
 

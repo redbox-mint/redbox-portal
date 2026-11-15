@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
-# Run the unchanged packed consumer over a clean committed build without
-# exporting the builder's large development dependency tree as a Docker image.
+# Historical clean-context entrypoint; use the current Fastify packed gate.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 node --eval 'require("node:assert/strict").equal(process.version, "v26.12.1")'
 task_context=${SR_P7_CLEAN_CONTEXT:?Set the clean git-archive build context}
 task_output=${SR_P7_PACKED_OUTPUT:?Set a new output directory for packed qualification}
-[[ -f "$task_context/Dockerfile" && -f "$task_context/package-lock.json" ]]
-[[ ! -e "$task_output" ]]
-task_temporary=$(mktemp -d)
+[[ -f "$task_context/package-lock.json" && -f "$task_context/support/integration-testing/qualify-fastify-packages.cjs" ]]
+[[ ! -e "$task_context/node_modules" && ! -e "$task_output" ]]
+task_context=$(realpath "$task_context")
+task_output=$(realpath -m "$task_output")
+task_temporary=$(mktemp -d "${FM039_SCRATCH_PARENT:-$HOME}/fm039-clean-context-XXXXXX")
 trap 'rm -rf "$task_temporary"' EXIT
-cat "$task_context/Dockerfile" > "$task_temporary/Dockerfile"
-cat >> "$task_temporary/Dockerfile" <<'DOCKERFILE'
-
-FROM builder AS packed_qualification
-ENV npm_config_strict_peer_deps=true npm_config_legacy_peer_deps=false
-RUN node packages/redbox-core/test/extensions/run-packed.cjs
-
-FROM scratch AS packed_results
-COPY --from=packed_qualification /opt/redbox-portal/.tmp/sails-retirement/p2-pack/ /
-DOCKERFILE
-docker build --network host --progress plain --file "$task_temporary/Dockerfile" \
-  --target packed_results --output "type=local,dest=$task_output" "$task_context"
-node --eval 'const assert = require("node:assert/strict"); const result = require(process.argv[1]); assert.equal(result.artifacts.length, 12); assert.equal(result.result.checks, 20); console.log(JSON.stringify(result));' "$task_output/result.json"
+trap 'exit 1' INT TERM
+mkdir "$task_temporary/source"
+cp -a "$task_context/." "$task_temporary/source/"
+cd "$task_temporary/source"
+# Source links are allowed only while building. The gate installs tarballs into
+# separate external projects and audits every runtime/compiler resolution.
+export npm_config_cache="$task_temporary/cache"
+export PUPPETEER_SKIP_DOWNLOAD=true
+export FM039_OUTPUT="$task_output"
+export FM039_SCRATCH_PARENT="$task_temporary"
+timeout --signal=TERM --kill-after=20 900 npm ci --ignore-scripts --strict-peer-deps --no-audit --no-fund
+timeout --signal=TERM --kill-after=20 2400 node support/integration-testing/qualify-fastify-packages.cjs
+node --eval 'const assert = require("node:assert/strict"); const result = require(process.argv[1]); assert.equal(result.packages.length, 14); assert.equal(result.passing, 1); assert.equal(result.failing, 0); console.log(JSON.stringify(result));' "$task_output/result.json"

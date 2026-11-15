@@ -114,7 +114,7 @@ export interface PortalApplicationOptions {
   readonly postBootstrap?: readonly ApplicationWork[];
 }
 
-/** Private pre-cutover host inputs; never exported by the package entrypoint. */
+/** Private pre-cutover host inputs. @preCutover */
 export interface LegacyPortalApplicationOptions extends Omit<PortalApplicationOptions, 'bindings'> {
   readonly bindings?: PortalApplicationOptions['bindings'] & {
     readonly handler?: ExtensionBindings['handler'];
@@ -122,7 +122,7 @@ export interface LegacyPortalApplicationOptions extends Omit<PortalApplicationOp
   };
 }
 
-/** Offline discovery/configuration/selection followed by one explicit production lifecycle. */
+/** Retained pre-cutover Express composition. @preCutover */
 export async function createPortalApplication(options: LegacyPortalApplicationOptions) {
   const installed = await loadInstalledExtensionProviders(options.appPath, {
     includeDevDependencies: options.includeDevDependencies,

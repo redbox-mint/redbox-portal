@@ -1,4 +1,6 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { statSync } from 'node:fs';
+import path from 'node:path';
 import ts from 'typescript';
 
 // TypeScript preserves package/extensionless specifiers. Keep the original
@@ -13,7 +15,13 @@ function rewriteModuleSpecifiers(source, filename) {
     let specifier = node.text;
     if (specifier === 'lodash') specifier = 'lodash-es';
     else if (specifier === './markdown-parser') specifier = './markdown-parser.browser.js';
-    else if (specifier.startsWith('.') && !/\.(?:js|mjs|cjs|json)$/i.test(specifier)) specifier += '.js';
+    else if (specifier.startsWith('.') && !/\.(?:js|mjs|cjs|json)$/i.test(specifier)) {
+      const target = path.resolve(path.dirname(filename), specifier);
+      // A declaration may infer import("..") through the public barrel. Native
+      // ESM requires ../index.js, whereas appending .js produces the invalid ...js.
+      const directory = statSync(target, { throwIfNoEntry: false })?.isDirectory();
+      specifier = directory ? specifier.replace(/\/$/, '') + '/index.js' : specifier + '.js';
+    }
     if (specifier !== node.text) edits.push({ start: node.getStart(file) + 1, end: node.getEnd() - 1, specifier });
   }
   function visit(node) {
@@ -44,6 +52,10 @@ async function finalize(directory) {
   }
 }
 await finalize(output);
+// Keep historical deep imports usable without shipping the orphan Node-only
+// helper, whose demand-loaded CJS parser belongs exclusively to dist/src.
+for (const extension of ['js', 'd.ts'])
+  await writeFile(new URL(`markdown-parser.${extension}`, output), "export * from './markdown-parser.browser.js';\n");
 // This is a package boundary for Node's ESM loader. Repeat the audited side
 // effect policy here because bundlers use the nearest package.json.
 await writeFile(
