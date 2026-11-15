@@ -1,375 +1,244 @@
-const { expect } = require('chai');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const { request } = require('node:http') as typeof import('node:http');
-const loadTs = require('../support/load-ts.cjs');
-const controllerGeneratorModule = loadTs(module, '../../src/generators/controller');
-const pathsModule = loadTs(module, '../../src/utils/paths');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import ts from 'typescript';
+import { ControllerGenerator } from '../../src/generators/controller';
+import { parseRoutes } from '../../src/cli-parsers';
+import { resolvePaths } from '../../src/utils/paths';
 
-describe('ControllerGenerator', () => {
-  let tempRoot: string;
-  let coreTypesRoot: string;
-
+describe('ControllerGenerator API2', () => {
+  let root: string;
+  let paths: ReturnType<typeof resolvePaths>;
+  const routes = () => {
+    const source = fs.readFileSync(path.join(paths.coreTypes, 'src/config/extensionRoutes.ts'), 'utf8');
+    const output = { exports: {} as { routes?: import('@researchdatabox/redbox-core/http').HttpRouteDeclaration[] } };
+    new Function('exports', ts.transpile(source, { module: ts.ModuleKind.CommonJS }))(output.exports);
+    return output.exports.routes!;
+  };
   beforeEach(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
-    coreTypesRoot = path.join(tempRoot, 'packages', 'redbox-core');
-
-    fs.mkdirSync(path.join(coreTypesRoot, 'src', 'controllers'), { recursive: true });
-    fs.mkdirSync(path.join(coreTypesRoot, 'src', 'config'), { recursive: true });
-
-    // Create mock index.ts
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'fm037-controller-'));
+    fs.mkdirSync(path.join(root, 'src/config'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ redbox: { extension: '.' } }));
     fs.writeFileSync(
-      path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'),
-      `export const existingDeclaration = true;`
+      path.join(root, 'src/config/auth.config.ts'),
+      `export const auth = { rules: [{ path: '/', role: 'Guest', can_read: true }] };`
     );
-
-    // Create mock auth.config.ts
-    fs.writeFileSync(
-      path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'),
-      `
-export const auth: any = {
-    rules: [
-        { path: '/', role: 'Guest', can_read: true },
-    ],
-};
-`
-    );
-
-    // Create a mock package.json so resolvePaths is happy
-    fs.writeFileSync(path.join(coreTypesRoot, 'package.json'), '{}');
+    paths = resolvePaths({ root });
   });
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
 
-  afterEach(() => {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
-  });
-
-  it('should generate a controller and update index', async () => {
-    const paths = pathsModule.resolvePaths({ root: tempRoot });
-    const generator = new controllerGeneratorModule.ControllerGenerator({
-      name: 'Test',
-      actions: ['index', 'save'],
-      root: tempRoot,
-      paths,
-    });
-
-    await generator.generate();
-
-    const controllerPath = path.join(coreTypesRoot, 'src', 'controllers', 'TestController.ts');
-    expect(fs.existsSync(controllerPath)).to.be.true;
-
-    const content = fs.readFileSync(controllerPath, 'utf-8');
-    expect(content).to.contain('class Test');
-    expect(content).to.contain('public async index');
-    expect(content).to.contain('public async save');
-    expect(content).to.contain('Request, Response');
-    expect(content).not.to.contain('_exportedMethods');
-
-    const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), 'utf-8');
-    // console.log('INDEX CONTENT:', indexContent);
-    expect(indexContent).to.contain("export * from './TestController'");
-    expect(indexContent).to.contain('TestController');
-    expect(indexContent).not.to.contain('getOrCreate');
-    expect(indexContent).not.to.contain('ControllerExports');
+  it('generates native signatures, concrete inputs, factories and explicit bindings in an extension root', async () => {
+    assert.equal(paths.coreTypes, root);
+    await new ControllerGenerator({ root, paths, name: 'Test', actions: ['index', 'save'] }).generate();
+    const source = fs.readFileSync(path.join(root, 'src/controllers/TestController.ts'), 'utf8');
+    for (const fragment of [
+      "from 'fastify'",
+      'interface TestInput',
+      'index(request: FastifyRequest): Promise<unknown>',
+      'this.input.index(request)',
+      'JSON.stringify(result)',
+      'defineController',
+      'actions: ["index","save"]',
+    ])
+      assert(source.includes(fragment), fragment);
+    assert(!/express|sails|_exportedMethods/.test(source));
+    const bindings = fs.readFileSync(path.join(root, 'src/config/extensionControllers.ts'), 'utf8');
+    assert(bindings.includes('bindControllerFactory(BrowserTestController, inputs["TestController"])'));
+    assert(bindings.includes('TestInput as BrowserTestControllerInput'));
   });
 
   for (const order of [
     [false, true],
     [true, false],
   ]) {
-    it(`typechecks same-named browser and API controllers (API first: ${order[0]})`, async () => {
-      const paths = pathsModule.resolvePaths({ root: tempRoot });
-      for (const webservice of order) {
-        await new controllerGeneratorModule.ControllerGenerator({
-          name: 'Test',
-          actions: ['index'],
-          root: tempRoot,
+    it(`strictly compiles same-named browser/API controllers and multiple browser factories (${order})`, async () => {
+      for (const webservice of order)
+        await new ControllerGenerator({
+          root,
           paths,
+          name: 'Test',
+          actions: ['index', 'delete'],
           webservice,
         }).generate();
-      }
-      const { Project } = require('ts-morph');
-      const project = new Project({ compilerOptions: { noEmit: true, skipLibCheck: true, types: [] } });
-      project.createSourceFile(
-        path.join(tempRoot, 'express.d.ts'),
-        "declare module 'express' { export interface Request {} export interface Response { json(value: unknown): void } }"
+      await new ControllerGenerator({ root, paths, name: 'Other', actions: ['read'] }).generate();
+      fs.symlinkSync(path.resolve(__dirname, '../../../../node_modules'), path.join(root, 'node_modules'), 'dir');
+      const config = ts.parseJsonConfigFileContent(
+        {
+          compilerOptions: {
+            strict: true,
+            skipLibCheck: true,
+            noEmit: true,
+            target: 'ES2022',
+            module: 'NodeNext',
+            moduleResolution: 'NodeNext',
+            types: ['node'],
+          },
+          include: ['src/**/*.ts'],
+        },
+        ts.sys,
+        root
       );
-      project.addSourceFilesAtPaths(path.join(coreTypesRoot, 'src/controllers/**/*.ts'));
-      const index = project.getSourceFileOrThrow(path.join(coreTypesRoot, 'src/controllers/index.ts'));
-      project.createSourceFile(
-        path.join(coreTypesRoot, 'src/consumer.ts'),
-        `
-        import { Test, WebserviceTestController } from './controllers';
-        export const browser = new Test();
-        export const api = new WebserviceTestController.Test();
-      `
+      const diagnostics = ts.getPreEmitDiagnostics(ts.createProgram(config.fileNames, config.options));
+      assert.equal(
+        diagnostics.length,
+        0,
+        ts.formatDiagnostics(diagnostics, {
+          getCurrentDirectory: () => root,
+          getCanonicalFileName: f => f,
+          getNewLine: () => '\n',
+        })
       );
-      expect(project.getPreEmitDiagnostics().map((d: any) => d.getMessageText())).to.deep.equal([]);
-      expect(index.getExportDeclarations()).to.have.length(2);
     });
   }
 
-  it('should update routes and auth', async () => {
-    const paths = pathsModule.resolvePaths({ root: tempRoot });
-    const generator = new controllerGeneratorModule.ControllerGenerator({
+  it('defaults to the production ordered protected chain and updates role rules', async () => {
+    await new ControllerGenerator({
+      root,
+      paths,
       name: 'Test',
-      actions: ['index'],
-      routes: [{ action: 'index', verb: 'get', path: '/test-route' }],
+      routes: [{ action: 'index', path: '/:branding/:portal/test' }],
       auth: ['Admin', 'Researcher'],
-      root: tempRoot,
-      paths,
-    });
-
-    await generator.generate();
-
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
-    expect(routesContent).to.contain('path: "/test-route"');
-    expect(routesContent).to.contain('handler: "TestController-index"');
-    const { Project } = require('ts-morph');
-    const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
-    const source = project.createSourceFile('/routes.ts', routesContent);
-    const emitted = source.getEmitOutput().getOutputFiles()[0].getText();
-    const output = { exports: {} };
-    new Function('exports', emitted)(output.exports);
-    const routes = (output.exports as { routes: Array<{ name: string; handler: string; access: string[] }> }).routes;
-    const { resolveExtensions } = require('@researchdatabox/redbox-core/extensions');
-    const resolved = resolveExtensions([
-      {
-        name: 'generated',
-        root: tempRoot,
-        declaration: {
-          apiVersion: 1,
-          routes,
-          handlers: routes.map(route => ({ name: route.handler, create: () => () => {} })),
-        },
+    }).generate();
+    assert.deepEqual(routes()[0], {
+      name: routes()[0].name,
+      method: 'get',
+      path: '/:branding/:portal/test',
+      controller: 'TestController',
+      action: 'index',
+      access: {
+        kind: 'policies',
+        names: ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
       },
-    ]);
-    expect(resolved.routes).to.have.length(1);
-    expect(resolved.handlers[0].declaration.name).to.equal(resolved.routes[0].declaration.handler);
-    const { createHttpPolicies, bindHttpPolicies } = require('@researchdatabox/redbox-core/http/express');
-    const policies = createHttpPolicies({});
-    expect(() =>
-      bindHttpPolicies(
-        routes[0].access.map(name => name.toLowerCase()),
-        policies
-      )
-    ).not.to.throw();
-    expect(routes[0].access.map(name => name.toLowerCase())).to.deep.equal([
-      'nocache',
-      'brandingandportal',
-      'iswebserviceauthenticated',
-      'brandactor',
-      'checkauth',
-    ]);
-
-    const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
-    expect(authContent).to.contain("{ path: '/test-route', role: 'Admin', can_read: true }");
-    expect(authContent).to.contain("{ path: '/test-route', role: 'Researcher', can_read: true }");
+      csrf: false,
+    });
+    const auth = fs.readFileSync(path.join(root, 'src/config/auth.config.ts'), 'utf8');
+    assert(auth.includes("role: 'Admin', can_read: true"));
+    assert(auth.includes("role: 'Researcher', can_read: true"));
   });
 
-  it('retains every method and path for a shared action and deduplicates only exact routes', async () => {
-    const paths = pathsModule.resolvePaths({ root: tempRoot });
-    const generator = new controllerGeneratorModule.ControllerGenerator({
-      name: 'Test',
-      actions: ['index'],
-      root: tempRoot,
+  it('retains method/path aliases and stable unique names while deduplicating exact routes', async () => {
+    const mappings = [
+      { action: 'read', path: '/:branding/:portal/shared', verb: 'get' },
+      { action: 'read', path: '/:branding/:portal/shared', verb: 'post' },
+      { action: 'read', path: '/:branding/:portal/alias', verb: 'get' },
+      { action: 'read', path: '/:branding/:portal/item/:"item-id"', verb: 'get' },
+    ];
+    await new ControllerGenerator({ root, paths, name: 'Test', routes: [...mappings, ...mappings] }).generate();
+    assert.equal(routes().length, 4);
+    assert.equal(new Set(routes().map(r => r.name)).size, 4);
+    assert.deepEqual(
+      routes().map(r => r.csrf),
+      [false, true, false, false]
+    );
+    assert(routes().every(r => r.controller === 'TestController' && r.action === 'read'));
+  });
+
+  it('generates distinct API identities, explicit public and per-route named/deny access', async () => {
+    await new ControllerGenerator({
+      root,
       paths,
+      name: 'Test',
+      webservice: true,
       routes: [
-        { action: 'index', verb: 'get', path: '/:branding/:portal/shared' },
-        { action: 'index', verb: 'post', path: '/:branding/:portal/shared' },
-        { action: 'index', verb: 'get', path: '/:branding/:portal/alias' },
-        { action: 'index', verb: 'get', path: '/:branding/:portal/item/:"item-id"' },
-        { action: 'index', verb: 'get', path: '/:branding/:portal/item/:"item-id"' },
-        { action: 'index', verb: 'get', path: '/:branding/:portal/shared' },
-      ],
-    });
-    await generator.generate();
-    const { Project } = require('ts-morph');
-    const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
-    const source = project.createSourceFile(
-      '/routes.ts',
-      fs.readFileSync(path.join(coreTypesRoot, 'src/config/extensionRoutes.ts'), 'utf8')
-    );
-    const output = { exports: {} };
-    new Function('exports', source.getEmitOutput().getOutputFiles()[0].getText())(output.exports);
-    const routes = (
-      output.exports as { routes: Array<{ name: string; method: string; path: string; handler: string }> }
-    ).routes;
-    expect(routes).to.have.length(4);
-    expect(new Set(routes.map(route => route.name)).size).to.equal(4);
-    expect(new Set(routes.map(route => route.handler))).to.deep.equal(new Set(['TestController-index']));
-    const { resolveExtensions } = require('@researchdatabox/redbox-core/extensions');
-    const express = require('node:module').createRequire(require.resolve('@researchdatabox/redbox-core/extensions'))(
-      'express'
-    );
-    const app = express();
-    const resolved = resolveExtensions([
-      {
-        name: 'generated',
-        root: tempRoot,
-        declaration: {
-          apiVersion: 1,
-          routes,
-          handlers: [
-            { name: 'TestController-index', create: () => (_req: any, res: any) => res.json({ served: true }) },
-          ],
+        { action: 'publicRead', path: '/public', access: { kind: 'public' } },
+        { action: 'deny', path: '/deny', access: { kind: 'deny' } },
+        {
+          action: 'write',
+          verb: 'post',
+          path: '/:branding/:portal/write',
+          access: { kind: 'policies', names: ['nocache'] },
         },
-      },
-    ]);
-    for (const { declaration: route } of resolved.routes)
-      app[route.method](route.path, (_req: any, res: any) => res.json({ handler: route.handler }));
-    const server = app.listen(0, '127.0.0.1');
-    try {
-      await new Promise(resolve => server.once('listening', resolve));
-      const url = 'http://127.0.0.1:' + server.address().port;
-      for (const route of routes) {
-        const response = await new Promise<{ status: number | undefined; body: string }>((resolve, reject) => {
-          const req = request(
-            url + route.path.replace(':branding', 'default').replace(':portal', 'portal').replace(':"item-id"', '123'),
-            { method: route.method.toUpperCase() },
-            res => {
-              let body = '';
-              res.setEncoding('utf8');
-              res.on('data', chunk => {
-                body += chunk;
-              });
-              res.on('error', reject);
-              res.on('end', () => resolve({ status: res.statusCode, body }));
-            }
-          );
-          req.on('error', reject);
-          req.end();
-        });
-        expect(response.status).to.equal(200);
-        expect(JSON.parse(response.body)).to.deep.equal({ handler: 'TestController-index' });
-      }
-    } finally {
-      await new Promise<void>((resolve, reject) =>
-        server.close((error?: Error) => (error ? reject(error) : resolve()))
+      ],
+    }).generate();
+    assert(routes().every(r => r.controller === 'webservice/TestController'));
+    assert.deepEqual(
+      routes().map(r => r.access.kind),
+      ['policies', 'deny', 'policies']
+    );
+    assert.equal(routes()[2].csrf, true);
+    assert.deepEqual(routes()[0].access, { kind: 'policies', names: ['nocache'] });
+    assert.deepEqual(routes()[0].api?.policy, ['nocache']);
+    const policies = fs.readFileSync(path.join(root, 'src/config/extensionApiPolicies.ts'), 'utf8');
+    assert(policies.includes('publicRead: true'));
+    assert(!policies.includes('write: true'));
+    assert(!policies.includes('deny: true'));
+  });
+
+  it('supports explicit public generation and rejects contradictory role rules', async () => {
+    await new ControllerGenerator({ root, paths, name: 'Public', route: '/public', public: true }).generate();
+    assert.deepEqual(routes()[0].access, { kind: 'public' });
+    assert.throws(
+      () => new ControllerGenerator({ root, paths, name: 'Bad', public: true, auth: ['Admin'] }),
+      /public access/
+    );
+    assert.throws(
+      () =>
+        new ControllerGenerator({
+          root,
+          paths,
+          name: 'Bad',
+          public: true,
+          routes: [{ action: 'read', path: '/public', auth: ['Admin'] }],
+        }),
+      /public access/
+    );
+    assert.throws(
+      () =>
+        new ControllerGenerator({
+          root,
+          paths,
+          name: 'Bad',
+          auth: ['Admin'],
+          routes: [{ action: 'read', path: '/public', access: { kind: 'public' } }],
+        }),
+      /public access/
+    );
+  });
+
+  for (const action of ['constructor', '__proto__', 'prototype', 'input'])
+    it(`rejects forbidden action ${action}`, () => {
+      assert.throws(
+        () => new ControllerGenerator({ root, paths, name: 'Bad', actions: [action] }),
+        /Invalid generated identifier/
       );
-    }
-  });
-
-  it('should handle webservice controllers', async () => {
-    fs.mkdirSync(path.join(coreTypesRoot, 'src', 'controllers', 'webservice'), { recursive: true });
-
-    const paths = pathsModule.resolvePaths({ root: tempRoot });
-    const generator = new controllerGeneratorModule.ControllerGenerator({
-      name: 'Test',
-      actions: ['index'],
-      webservice: true,
-      routes: [{ action: 'index', verb: 'post', path: '/api/test' }],
-      auth: ['Admin'],
-      root: tempRoot,
-      paths,
     });
 
-    await generator.generate();
+  it('uses the shared identifier spelling for names, classes and actions', async () => {
+    await new ControllerGenerator({
+      root,
+      paths,
+      name: 'custom-probe',
+      className: 'custom-class',
+      routes: [{ action: 'read-item', path: '/item' }],
+    }).generate();
+    assert.equal(routes()[0].controller, 'customProbeController');
+    assert.equal(routes()[0].action, 'readItem');
+    const content = fs.readFileSync(path.join(root, 'src/controllers/customProbeController.ts'), 'utf8');
+    assert(content.includes('class customClass'));
+    for (const name of ['123', '...', 'a/b', 'class', 'toString'])
+      assert.throws(
+        () => new ControllerGenerator({ root, paths, name, actions: ['read'] }),
+        /Invalid generated identifier/
+      );
+  });
 
-    const controllerPath = path.join(coreTypesRoot, 'src', 'controllers', 'webservice', 'TestController.ts');
-    expect(fs.existsSync(controllerPath)).to.be.true;
-
-    const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), 'utf-8');
-    expect(indexContent).to.contain("export * as WebserviceTestController from './webservice/TestController'");
-    expect(indexContent).to.contain('TestController');
-    expect(indexContent).not.to.contain('getOrCreate');
-
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
-    expect(routesContent).to.contain('handler: "api-TestController-index"');
-    const { Project } = require('ts-morph');
-    const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
-    const emitted = project.createSourceFile('/routes.ts', routesContent).getEmitOutput().getOutputFiles()[0].getText();
-    const output = { exports: {} };
-    new Function('exports', emitted)(output.exports);
-    const routes = (output.exports as { routes: Array<{ access: string[] }> }).routes;
-    const {
-      createHttpPolicies,
-      createHttpCsrf,
-      bindHttpPolicies,
-    } = require('@researchdatabox/redbox-core/http/express');
-    const csrf = createHttpCsrf({ origins: ['https://portal.example.invalid'] });
-    expect(routes[0].access.map(name => name.toLowerCase())).to.deep.equal([
-      'nocache',
-      'brandingandportal',
-      'iswebserviceauthenticated',
-      'brandactor',
-      'checkauth',
-      'csrf',
+  it('preserves branded route parameters when parsing CLI role suffixes', () => {
+    assert.deepEqual(parseRoutes('read:get:/:branding/:portal/items/:id:Admin:Researcher'), [
+      { action: 'read', verb: 'get', path: '/:branding/:portal/items/:id', auth: ['Admin', 'Researcher'] },
     ]);
-    expect(() =>
-      bindHttpPolicies(
-        routes[0].access.map(name => name.toLowerCase()),
-        {
-          ...createHttpPolicies({}),
-          csrf: csrf.apiProtect,
-        }
-      )
-    ).not.to.throw();
-
-    const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
-    expect(authContent).to.contain("{ path: '/api/test', role: 'Admin', can_update: true }");
+    assert.deepEqual(parseRoutes('read:/items'), [{ action: 'read', verb: 'get', path: '/items' }]);
   });
 
-  it('should support multiple action-to-route mappings', async () => {
-    fs.mkdirSync(path.join(coreTypesRoot, 'src', 'controllers', 'webservice'), { recursive: true });
-
-    const paths = pathsModule.resolvePaths({ root: tempRoot });
-    const generator = new controllerGeneratorModule.ControllerGenerator({
-      name: 'Dashboard',
-      actions: ['listDashboards', 'getDashboard', 'createDashboard', 'updateDashboard', 'deleteDashboard'],
-      webservice: true,
-      routes: [
-        {
-          action: 'listDashboards',
-          verb: 'get',
-          path: '/:branding/:portal/api/dashboards',
-          auth: ['Admin', 'Researcher'],
-        },
-        {
-          action: 'getDashboard',
-          verb: 'get',
-          path: '/:branding/:portal/api/dashboards/:id',
-          auth: ['Admin', 'Researcher'],
-        },
-        { action: 'createDashboard', verb: 'post', path: '/:branding/:portal/api/dashboards', auth: ['Admin'] },
-        { action: 'updateDashboard', verb: 'put', path: '/:branding/:portal/api/dashboards/:id', auth: ['Admin'] },
-        { action: 'deleteDashboard', verb: 'delete', path: '/:branding/:portal/api/dashboards/:id', auth: ['Admin'] },
-      ],
-      root: tempRoot,
+  it('leaves the filesystem unchanged for dry runs', async () => {
+    await new ControllerGenerator({
+      root,
       paths,
-    });
-
-    await generator.generate();
-
-    const controllerPath = path.join(coreTypesRoot, 'src', 'controllers', 'webservice', 'DashboardController.ts');
-    expect(fs.existsSync(controllerPath)).to.be.true;
-
-    const content = fs.readFileSync(controllerPath, 'utf-8');
-    expect(content).to.contain('public async listDashboards');
-    expect(content).to.contain('public async getDashboard');
-    expect(content).to.contain('public async createDashboard');
-    expect(content).to.contain('public async updateDashboard');
-    expect(content).to.contain('public async deleteDashboard');
-
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
-    expect(routesContent).to.contain('handler: "api-DashboardController-listDashboards"');
-    expect(routesContent).to.contain('handler: "api-DashboardController-getDashboard"');
-    expect(routesContent).to.contain('handler: "api-DashboardController-createDashboard"');
-    expect(routesContent).to.contain('handler: "api-DashboardController-updateDashboard"');
-    expect(routesContent).to.contain('handler: "api-DashboardController-deleteDashboard"');
-
-    const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
-    // GET routes should have can_read for both Admin and Researcher
-    expect(authContent).to.contain("{ path: '/:branding/:portal/api/dashboards', role: 'Admin', can_read: true }");
-    expect(authContent).to.contain("{ path: '/:branding/:portal/api/dashboards', role: 'Researcher', can_read: true }");
-    // POST/PUT/DELETE routes should only have Admin with can_update
-    expect(authContent).to.contain("{ path: '/:branding/:portal/api/dashboards', role: 'Admin', can_update: true }");
-    expect(authContent).to.contain(
-      "{ path: '/:branding/:portal/api/dashboards/:id', role: 'Admin', can_update: true }"
-    );
-    // Researcher should NOT have update access
-    expect(authContent).to.not.contain(
-      "{ path: '/:branding/:portal/api/dashboards', role: 'Researcher', can_update: true }"
-    );
+      name: 'Dry',
+      actions: ['read'],
+      routes: [{ action: 'read', path: '/dry' }],
+      dryRun: true,
+    }).generate();
+    assert(!fs.existsSync(path.join(root, 'src/controllers')));
   });
 });

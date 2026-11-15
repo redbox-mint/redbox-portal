@@ -7,20 +7,18 @@ import { NavigationMapping, LanguageDefaultEntry } from './utils/config-helper';
 // Format: action:verb:path[:role1:role2:...] (e.g., "listItems:get:/api/items:Admin:Researcher,deleteItem:delete:/api/items/:id:Admin")
 export function parseRoutes(val: string): RouteMapping[] {
   return val.split(',').map(route => {
-    const parts = route.trim().split(':');
-    if (parts.length < 2) {
+    const match = /^([^:]+):(?:(get|post|put|patch|delete|head|options):)?(\/.*)$/i.exec(route.trim());
+    if (!match) {
       throw new Error(`Invalid route format: ${route}. Expected action:verb:path or action:path`);
     }
-    if (parts.length === 2) {
-      // action:path format (verb defaults to get)
-      return { action: parts[0], verb: 'get', path: parts[1] };
-    }
-    // action:verb:path[:role1:role2:...] format
-    const action = parts[0];
-    const verb = parts[1].toLowerCase();
-    const path = parts[2];
-    const auth = parts.length > 3 ? parts.slice(3) : undefined;
-    return { action, verb, path, auth };
+    // A segment parameter's colon belongs to the path, not the role list.
+    const [path, ...roles] = match[3].split(/(?<!\/):/);
+    return {
+      action: match[1],
+      verb: (match[2] ?? 'get').toLowerCase(),
+      path,
+      ...(roles.length ? { auth: roles } : {}),
+    };
   });
 }
 

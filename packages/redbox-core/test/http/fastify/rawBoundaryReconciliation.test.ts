@@ -85,6 +85,7 @@ describe('FM-036 type-checked raw boundaries', function () {
     const file = Object.keys(result.scannerFixtures).find((file: string) =>
       file.endsWith('/consumption-matrix.json.fixture')
     );
+    assert(file !== undefined, 'The consumption-matrix scanner fixture must be present');
     const cases = result.scannerFixtures[file].cases;
     for (const cell of result.consumptionCoverage) {
       const fixture = cases.find((row: any) => row.family === cell.family && row.form === cell.form);

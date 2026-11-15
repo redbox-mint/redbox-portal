@@ -66,19 +66,26 @@ function migrateHookDependencyContract(pkg: any): any {
 
   const exactOrInstalled = (version: unknown, installed: string): string =>
     typeof version === 'string' && /^(?:\d+\.\d+\.\d+(?:-[\w.-]+)?$|file:|workspace:)/.test(version)
-      ? version : installed;
+      ? version
+      : installed;
   const coreVersion = readPackageJson(require.resolve('@researchdatabox/redbox-core/package.json')).version;
   if (nextPkg.devDependencies.typescript != null)
     nextPkg.devDependencies.typescript = exactOrInstalled(
       nextPkg.devDependencies.typescript,
       readPackageJson(require.resolve('typescript/package.json')).version
     );
-  nextPkg.peerDependencies['@researchdatabox/redbox-core'] =
-    exactOrInstalled(nextPkg.peerDependencies['@researchdatabox/redbox-core'], coreVersion);
-  nextPkg.devDependencies['@researchdatabox/redbox-core'] =
-    exactOrInstalled(nextPkg.devDependencies['@researchdatabox/redbox-core'], coreVersion);
-  nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] =
-    exactOrInstalled(nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'], packageJson.version!);
+  nextPkg.peerDependencies['@researchdatabox/redbox-core'] = exactOrInstalled(
+    nextPkg.peerDependencies['@researchdatabox/redbox-core'],
+    coreVersion
+  );
+  nextPkg.devDependencies['@researchdatabox/redbox-core'] = exactOrInstalled(
+    nextPkg.devDependencies['@researchdatabox/redbox-core'],
+    coreVersion
+  );
+  nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] = exactOrInstalled(
+    nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'],
+    packageJson.version!
+  );
 
   return nextPkg;
 }
@@ -200,8 +207,7 @@ program
       findings.push(...findRetiredFrameworkDependencies(pkg));
       if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');
       const entry = pkg.redbox?.extension;
-      if (!isPublicExtensionEntry(entry))
-        findings.push('redbox.extension: declare a public v6 extension subpath');
+      if (!isPublicExtensionEntry(entry)) findings.push('redbox.extension: declare a public v6 extension subpath');
       else if (!hasRuntimeExtensionExport(pkg.exports, entry))
         findings.push('exports: expose the declared redbox.extension subpath with a runtime target');
       findings.push(...findRetiredViewApis(process.cwd()));
@@ -263,6 +269,7 @@ generate
     parseLanguageDefaults
   )
   .option('--auth <roles>', 'Default roles for auth rules (can be overridden per-route)', val => val.split(','))
+  .option('--public', 'Explicitly allow unauthenticated access (default: protected)')
   .action(async (name, options) => {
     try {
       const globalOptions = program.opts();
@@ -276,6 +283,7 @@ generate
         route: options.route,
         routes: options.routes,
         auth: options.auth,
+        public: options.public,
         navigation: options.nav,
         languageDefaults: options.lang,
         className: options.className,
@@ -328,6 +336,7 @@ generate
   .option('--route <route>', 'Route path (for controllers)')
   .option('--http <verb>', 'HTTP verb (GET, POST, etc.)')
   .option('--auth <roles>', 'Comma-separated list of roles', val => val.split(','))
+  .option('--public', 'Explicitly allow unauthenticated access (default: protected)')
   .option(
     '--nav <nav>',
     'Navigation mappings: type[:containerId]:labelKey[:itemId],... (e.g., menu:plan:create-rdmp:plan-create)',
@@ -350,6 +359,7 @@ generate
         route: options.route,
         http: options.http,
         auth: options.auth,
+        public: options.public,
         navigation: options.nav,
         languageDefaults: options.lang,
         dryRun: globalOptions.dryRun,

@@ -1,8 +1,66 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import { isDeepStrictEqual } from 'node:util';
+import { controllerFactory } from './controller-factory';
 import { createHash } from 'node:crypto';
 import { Project, SyntaxKind, ObjectLiteralExpression, ArrayLiteralExpression } from 'ts-morph';
 import { RedboxPaths } from './paths';
+import type { RouteAccess } from '@researchdatabox/redbox-core/http';
+
+/** Explicit author-side bindings; no runtime service lookup or action discovery. */
+export async function updateControllerRegistration(params: {
+  project: Project;
+  paths: RedboxPaths;
+  controllerName: string;
+  className: string;
+  webservice: boolean;
+}): Promise<void> {
+  const { project, paths, controllerName, webservice } = params;
+  const info = controllerFactory(
+    project.addSourceFileAtPath(
+      path.join(paths.coreTypes, 'src/controllers', webservice ? 'webservice' : '', `${controllerName}.ts`)
+    )
+  );
+  const filePath = path.join(paths.coreTypes, 'src/config/extensionControllers.ts');
+  const source =
+    project.addSourceFileAtPathIfExists(filePath) ??
+    project.createSourceFile(
+      filePath,
+      `
+import { bindControllerFactory, type BoundControllerFactory, type ControllerRegistration } from '@researchdatabox/redbox-core/http';
+export const controllers: ControllerRegistration[] = [];
+export interface GeneratedControllerInputs {}
+export function bindGeneratedControllers(inputs: GeneratedControllerInputs): readonly BoundControllerFactory[] {
+  return [];
+}
+`
+    );
+  const alias = `${webservice ? 'Webservice' : 'Browser'}${controllerName}`;
+  const importPath = `../controllers/${webservice ? 'webservice/' : ''}${controllerName}`;
+  if (!source.getImportDeclaration(importPath)) {
+    source.addImportDeclaration({
+      moduleSpecifier: importPath,
+      namedImports: [
+        { name: info.factory.getName(), alias },
+        { name: info.input.getName(), alias: `${alias}Input`, isTypeOnly: true },
+      ],
+    });
+    source
+      .getVariableDeclarationOrThrow('controllers')
+      .getInitializerIfKindOrThrow(SyntaxKind.ArrayLiteralExpression)
+      .addElement(alias);
+    const name = info.name;
+    source
+      .getInterfaceOrThrow('GeneratedControllerInputs')
+      .addProperty({ name: JSON.stringify(name), type: `${alias}Input` });
+    source
+      .getFunctionOrThrow('bindGeneratedControllers')
+      .getFirstDescendantByKindOrThrow(SyntaxKind.ArrayLiteralExpression)
+      .addElement(`bindControllerFactory(${alias}, inputs[${JSON.stringify(name)}])`);
+  }
+  source.formatText();
+  await source.save();
+}
 
 export type NavigationTarget = 'menu' | 'menuRoot' | 'homePanel' | 'adminSection' | 'adminFooter';
 
@@ -31,7 +89,25 @@ export async function updateControllerIndex(params: {
   const indexPath = path.join(params.paths.coreTypes, 'src', 'controllers', 'index.ts');
   const importPath = params.webservice ? `./webservice/${params.controllerName}` : `./${params.controllerName}`;
   if (!params.webservice) {
-    await addPublicExport(params.project, indexPath, importPath, params.dryRun);
+    const source =
+      params.project.addSourceFileAtPathIfExists(indexPath) ?? params.project.createSourceFile(indexPath, '');
+    if (!source.getExportDeclaration(d => d.getModuleSpecifierValue() === importPath)) {
+      const controllerSource = params.project.addSourceFileAtPath(
+        path.join(params.paths.coreTypes, 'src/controllers', `${params.controllerName}.ts`)
+      );
+      const info = controllerFactory(controllerSource);
+      const className = info.targetClass.getNameOrThrow();
+      source.addExportDeclaration({
+        moduleSpecifier: importPath,
+        namedExports: [
+          className,
+          info.input.getName(),
+          { name: info.factory.getName(), alias: `${params.controllerName}Factory` },
+        ],
+      });
+    }
+    source.formatText();
+    if (!params.dryRun) await source.save();
     return;
   }
   const sourceFile =
@@ -78,7 +154,10 @@ export async function updateRoutes(params: {
   controllerName: string;
   action: string;
   webservice: boolean;
+  /** Existing factories may declare an identity unrelated to their file name. */
+  controllerIdentity?: string;
   csrf?: boolean;
+  access?: RouteAccess;
   dryRun: boolean;
 }): Promise<void> {
   if (params.csrf === false)
@@ -95,7 +174,7 @@ export async function updateRoutes(params: {
     params.project.addSourceFileAtPathIfExists(routesPath) ??
     params.project.createSourceFile(
       routesPath,
-      `import type { ExtensionRoute } from '@researchdatabox/redbox-core/extensions';\n// Include these declarations in registerRedboxExtension().routes and bind each named handler/policy.\nexport const routes: ExtensionRoute[] = [];\n`
+      `import type { HttpRouteDeclaration } from '@researchdatabox/redbox-core/http';\n// Include in registerRedboxExtension().routes; bind the generated controller inputs.\nexport const routes: HttpRouteDeclaration[] = [];\n`
     );
   const routes = sourceFile
     .getVariableDeclarationOrThrow('routes')
@@ -106,21 +185,82 @@ export async function updateRoutes(params: {
   const verb = method.toLowerCase();
   const suffix = `-${verb}-${createHash('sha256').update(routePath).digest('hex').slice(0, 16)}`;
   const name = handler.slice(0, 100 - suffix.length) + suffix;
+  let access = params.access ?? {
+    kind: 'policies',
+    names: ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
+  };
+  // API policy sources require a nonempty named chain. nocache is deliberately
+  // unauthenticated and preserves explicit public access without an empty chain.
+  if (params.webservice && access.kind === 'public') access = { kind: 'policies', names: ['nocache'] };
+  const csrf = !['get', 'head', 'options'].includes(verb);
+  const target = params.controllerIdentity ?? `${params.webservice ? 'webservice/' : ''}${params.controllerName}`;
+  if (params.webservice && verb === 'options')
+    throw new Error('Webservice OPTIONS is owned by the host; generate an API action with a supported API method.');
+  const api =
+    params.webservice && access.kind !== 'deny'
+      ? {
+          method: verb,
+          path: routePath,
+          controller: target,
+          action: params.action,
+          csrf,
+          policy: access.kind === 'policies' ? [...access.names] : [],
+        }
+      : undefined;
+  const expected = {
+    name,
+    method: verb,
+    path: routePath,
+    controller: target,
+    action: params.action,
+    access,
+    csrf,
+    ...(api ? { api } : {}),
+  };
   const duplicate = routes
     .getElements()
-    .some(
+    .find(
       el =>
         el.isKind(SyntaxKind.ObjectLiteralExpression) &&
         getStringProp(el, 'method') === verb &&
-        getStringProp(el, 'path') === routePath &&
-        getStringProp(el, 'handler') === handler
+        getStringProp(el, 'path') === routePath
     );
-  const access = ['noCache', 'brandingAndPortal', 'isWebServiceAuthenticated', 'brandActor', 'checkAuth'];
-  if (!['get', 'head', 'options'].includes(method.toLowerCase())) access.push('csrf');
-  if (!duplicate)
+  if (duplicate) {
+    if (!isDeepStrictEqual(literalValue(duplicate), expected))
+      throw new Error(
+        `Conflicting declaration for ${verb.toUpperCase()} ${routePath}: existing target/access/CSRF/API metadata differs. Edit the declaration explicitly before rerunning; access was not changed.`
+      );
+  } else
     routes.addElement(
-      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(verb)}, path: ${JSON.stringify(routePath)}, handler: ${JSON.stringify(handler)}, access: ${JSON.stringify(access)} }`
+      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(verb)}, path: ${JSON.stringify(routePath)}, controller: ${JSON.stringify(target)}, action: ${JSON.stringify(params.action)}, access: ${JSON.stringify(access)}, csrf: ${csrf}${api ? `, api: ${JSON.stringify(api)}` : ''} }`
     );
+  if (params.webservice && params.access?.kind === 'public') {
+    const file = path.join(params.paths.coreTypes, 'src/config/extensionApiPolicies.ts');
+    const source =
+      params.project.addSourceFileAtPathIfExists(file) ??
+      params.project.createSourceFile(
+        file,
+        `// Merge into the application's http.policyConfiguration; only these API actions are public.\nexport const apiPolicies: Record<string, Record<string, true>> = {};\n`
+      );
+    const policies = source
+      .getVariableDeclarationOrThrow('apiPolicies')
+      .getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    let mapping = policies
+      .getProperties()
+      .find(
+        property =>
+          property.isKind(SyntaxKind.PropertyAssignment) &&
+          property.getNameNode().asKind(SyntaxKind.StringLiteral)?.getLiteralValue() === target
+      );
+    if (!mapping) mapping = policies.addPropertyAssignment({ name: JSON.stringify(target), initializer: '{}' });
+    const actions = mapping
+      .asKindOrThrow(SyntaxKind.PropertyAssignment)
+      .getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    if (!actions.getProperty(params.action) && !actions.getProperty(JSON.stringify(params.action)))
+      actions.addPropertyAssignment({ name: params.action, initializer: 'true' });
+    source.formatText();
+    if (!params.dryRun) await source.save();
+  }
   sourceFile.formatText();
   if (!params.dryRun) await sourceFile.save();
 }
@@ -262,6 +402,26 @@ export async function updateAuth(params: {
     await sourceFile.save();
     console.log(`  [UPDATE] ${path.relative(params.root, authPath)}`);
   }
+}
+
+/** Read literal declarations without evaluating extension code. Unknown syntax fails closed. */
+function literalValue(node: import('ts-morph').Node): unknown {
+  if (node.isKind(SyntaxKind.StringLiteral)) return node.getLiteralValue();
+  if (node.isKind(SyntaxKind.TrueKeyword)) return true;
+  if (node.isKind(SyntaxKind.FalseKeyword)) return false;
+  if (node.isKind(SyntaxKind.ArrayLiteralExpression)) return node.getElements().map(literalValue);
+  if (node.isKind(SyntaxKind.ObjectLiteralExpression))
+    return Object.fromEntries(
+      node.getProperties().map(prop => {
+        const assignment = prop.asKindOrThrow(SyntaxKind.PropertyAssignment);
+        const key = assignment.getNameNode();
+        return [
+          key.isKind(SyntaxKind.StringLiteral) ? key.getLiteralValue() : key.getText(),
+          literalValue(assignment.getInitializerOrThrow()),
+        ];
+      })
+    );
+  throw new Error('Existing route metadata is not literal; review the declaration explicitly before rerunning.');
 }
 
 function getStringProp(obj: ObjectLiteralExpression, name: string): string | undefined {

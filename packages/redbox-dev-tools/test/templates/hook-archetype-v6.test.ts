@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 import type { ApplicationModule } from '@researchdatabox/redbox-core/application';
-import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 import { loadPortalConfiguration } from '@researchdatabox/redbox-core/configuration';
 
 const { generateHookArchetype } = require('../../src/templates/hook-archetype');
@@ -39,7 +39,7 @@ describe('v6 hook archetype', () => {
         assert.match(String(value), /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
 
       const hook = require(path.join(output, 'dist/index.js')) as {
-        registerRedboxExtension(): RedboxExtension;
+        registerRedboxExtension(): RedboxExtensionV2;
         Example: new (input: {
           auditPath: string;
           greeting: string;
@@ -47,9 +47,9 @@ describe('v6 hook archetype', () => {
       };
       const declaration = hook.registerRedboxExtension();
       assert.equal(declaration.modules?.length, 1);
-      assert.equal(declaration.routes?.[0].access, 'public');
+      assert.equal(declaration.routes?.[0].access.kind, 'public');
       const finalized = await loadPortalConfiguration({
-        extensions: { providers: [{ name: pkg.name, root: output, declaration }] },
+        extensions: { providers: [{ name: pkg.name, declaration }] },
         env: { REDBOX_SESSION_SECRET: 'generated-hook-qualification-secret-at-least-32' },
       });
       assert.deepEqual(finalized.custom['123-demo'], { greeting: '123Demo' });

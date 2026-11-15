@@ -18,9 +18,14 @@ export function resolvePaths(options: { root?: string; coreTypesRoot?: string; a
     throw new Error(`The provided root directory does not exist: ${root}`);
   }
 
+  const manifestPath = path.join(root, 'package.json');
+  const isExtension =
+    fs.existsSync(manifestPath) && !!JSON.parse(fs.readFileSync(manifestPath, 'utf8')).redbox?.extension;
   const coreTypes = options.coreTypesRoot
     ? path.resolve(options.coreTypesRoot)
-    : path.join(root, 'packages', 'redbox-core');
+    : isExtension
+      ? root
+      : path.join(root, 'packages', 'redbox-core');
 
   const angular = options.angularRoot ? path.resolve(options.angularRoot) : path.join(root, 'angular');
 

@@ -307,7 +307,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P6 — Tooling, consumers and WSU
 
-- [ ] **FM-037 — Update generators and v6 scaffold.**
+- [x] **FM-037 — Update generators and v6 scaffold.**
   - Dependencies: G2.
   - Work: generate typed classes/actions, factory inputs, explicit route/policy
     declarations and API2 wiring; update method generator and migration examples.

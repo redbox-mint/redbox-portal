@@ -64,8 +64,12 @@ export const auth: any = {
     expect(fs.existsSync(path.join(projectPath, 'src', 'main.ts'))).to.be.true;
     expect(fs.existsSync(path.join(projectPath, 'src', 'app', 'test-app.module.ts'))).to.be.true;
     expect(fs.existsSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'))).to.be.true;
-    expect(fs.readFileSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'), 'utf-8')).to.contain('changeDetection: ChangeDetectionStrategy.OnPush');
-    expect(fs.readFileSync(path.join(projectPath, 'src', 'main.ts'), 'utf-8')).to.contain('platformBrowser().bootstrapModule');
+    expect(fs.readFileSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'), 'utf-8')).to.contain(
+      'changeDetection: ChangeDetectionStrategy.OnPush'
+    );
+    expect(fs.readFileSync(path.join(projectPath, 'src', 'main.ts'), 'utf-8')).to.contain(
+      'platformBrowser().bootstrapModule'
+    );
 
     // Check angular.json
     const angularJson = JSON.parse(fs.readFileSync(path.join(angularRoot, 'angular.json'), 'utf-8'));
@@ -90,7 +94,13 @@ export const auth: any = {
     // Check routes
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain('path: "/:branding/:portal/admin/test-app"');
-    expect(routesContent).to.contain('handler: "page-admin-testView"');
+    expect(routesContent).to.contain('controller: "TestAppPageController"');
+
+    expect(routesContent).to.contain('action: "adminTestView"');
+    const controller = fs.readFileSync(path.join(coreTypesRoot, 'src/controllers/TestAppPageController.ts'), 'utf8');
+    expect(controller).to.contain('this.input.render(request, reply,');
+    expect(controller).to.contain('"admin/testView"');
+    expect(controller).not.to.contain('admin-testView');
 
     // Check auth
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');

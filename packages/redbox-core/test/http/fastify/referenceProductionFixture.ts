@@ -44,6 +44,7 @@ export async function referenceProductionFixture(
     readonly artifacts?: (directory: string, providerDirectory: string) => Promise<void>;
     /** Installed API2 provider hooks; no alternate host/controller composition. */
     readonly hooksModule?: string;
+    readonly httpBindings?: import('../../../src/application/portal/installation').PortalFastifySelection['bindings'];
     readonly actions?: Readonly<Record<string, import('../../../src/http/actions/configuredActions').ConfiguredAction>>;
     readonly bindings?: import('../../../src/application/portal/application').PortalApplicationOptions['bindings'];
   }
@@ -194,6 +195,7 @@ export async function referenceProductionFixture(
             policyConfiguration,
             actions: scope?.actions,
             portals: ['rdmp'],
+            bindings: scope?.httpBindings,
           },
         })
       : await createPortalHost({ ...options, ...scope?.pages, policyConfiguration, portals: ['rdmp'] });

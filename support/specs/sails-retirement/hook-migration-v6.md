@@ -1,5 +1,9 @@
 # Initial v5-to-v6 hook conversion
 
+The FM-037 scaffold/controller examples below target the production Fastify
+composition and API2. The default executable still selects Express until FM-042;
+remaining rollout/reference guidance is reconciled in FM-041/FM-048.
+
 The neutral contract is [extensions-v6.md](extensions-v6.md). Use a core artifact
 from the same qualified v6 build as the portal. The current source version also
 exists on npm as a historical Sails package without the v6 exports, so an unqualified
@@ -52,11 +56,14 @@ The template lives in this repository at
 `packages/redbox-dev-tools/templates/hook-archetype/v6/`. V6 is now the only scaffold and the default; `standard` is rejected. The v6
 template demonstrates an extension, not a complete standalone portal deployment.
 Build and pack it, install the archive in the portal deployment, and bind its
-concrete module/work/handler inputs through `createPortalHost`. Startup data
+concrete module/work inputs through `createPortalFastifyApplication` and controller
+inputs through its `http.bindings` callback. Pass that resolved application to
+`createPortalFastifyHost`. Startup data
 belongs under `config.custom[hookName]`.
-[Generated institution qualification](../../../packages/redbox-core/test/qualification/generated-institution.cjs)
-exercises these bindings, persisted work, public HTTP, restart and drain on the
-production host; it supplements the isolated packed registration checks.
+[Generated API2 qualification](../../../packages/redbox-core/test/http/fastify/GeneratedExtensionMongo.test.ts)
+compiles and loads fresh generated controllers through the production Fastify
+bootstrap, exercising public/protected actions, CSRF and typed failures. The
+older generated-institution driver is an Express baseline awaiting FM-039.
 
 ## Convert compiler configuration before a clean install
 
@@ -90,7 +97,7 @@ module.exports = hook;
 ```
 
 After, `redbox.extension` names a public export and that entry declares
-`registerRedboxExtension(): RedboxExtension` with `apiVersion: 1`. The generated
+`registerRedboxExtension(): RedboxExtensionV2` with `apiVersion: 2`. The generated
 package uses CommonJS and exports the function from TypeScript; ESM can expose
 the same named function, including top-level await. Package format compatibility
 does **not** make old Sails-dependent source compatible. Convert `CoreService`,
@@ -120,7 +127,7 @@ for observable application stop retry. The application registers the module
 before initialization, including when later initialization fails.
 
 The application binds the **selected** module factory with its concrete input,
-using `bindExtensionFactory`, and retains that instance for the handler input.
+using `bindExtensionFactory`, and retains that instance for the controller input.
 The binding belongs to the application's composition root. Each application gets
 its own handle and configuration slice. `replaces: true` intentionally overrides
 a named lower-priority factory; a duplicate without that flag is rejected before
@@ -144,22 +151,39 @@ class ExampleController extends CoreController {
 // Sails hook routes: 'GET /hooks/demo-client/status': 'ExampleController.index'
 ```
 
-After, `src/handler.ts` exports an Express handler factory receiving only
-`{ example: Pick<Example, 'greet'> }`. Generated `src/index.ts` declares its module
-prerequisite and a named GET route. The example deliberately uses `access: 'public'`.
-A protected route declares ordered policy names, for example
-`access: ['brandingAndPortal', 'isWebServiceAuthenticated', 'brandActor', 'csrf']`; the host must bind policy execution.
-These are the production host's policy names. Check the resolved actor's brand-scoped
-`Admin` role inside an administrative handler; there is no built-in `administrator`
-policy. Include `csrf` on mutation routes. Extension routes mount before the
-ordinary portal route groups and do not inherit those groups' CSRF policy.
-Missing policies are an error, not an implicit public route. Method/path aliases
-and unintended duplicates fail during resolution; named replacement is explicit.
-Handler execution sits behind the existing host's inactive/activation gate.
+After, `src/controllers/ExampleController.ts` declares typed Fastify actions
+and a concrete `ExampleControllerInput` borrowing `{ example: Pick<Example,
+'greet'> }`. The factory is explicit:
 
-The generated handler is a small demonstration. The production Express host
-binds request parameters, branding, authentication and portal API routes explicitly.
-Convert custom handlers to these owned inputs; legacy controllers are not mounted.
+```ts
+const exampleController = defineController({
+  name: 'ExampleDemoController',
+  requires: ['ExampleDemo'],
+  actions: ['status', 'greet'],
+  create: (input: ExampleControllerInput) => new ExampleController(input),
+});
+```
+
+Import `defineController` and `bindControllerFactory` from the public
+`@researchdatabox/redbox-core/http` entrypoint. Bind the factory from the production
+application's `http.bindings` callback. Controllers borrow operations; they do not
+receive a server or global service lookup. Actions use `FastifyRequest` and
+`FastifyReply`, serialize JSON before `reply.send`, and let typed failures reach
+the host's safe error boundary.
+
+The public status GET declares `access: { kind: 'public' }`. The greeting POST
+uses `access: { kind: 'policies', names: ['nocache', 'brandingandportal',
+'iswebserviceauthenticated', 'brandactor', 'checkauth'] }` and `csrf: true`.
+Its explicit `Admin` role rule lives in `src/config/auth.config.ts`. Browser
+mutations need the session token and canonical Origin. Missing actors and policy
+bindings fail closed; controller replacement cannot weaken route access.
+
+The controller and method generators include declarations in the scaffold's
+API2 registration and export `bindGeneratedControllers` with named concrete
+operation inputs. Adding a method updates the input interface, factory action
+allowlist and route. See the [API2 generator example](../fastify-migration/extension-api2.md#generator-migration-example-fm-037)
+for commands. The older Express handler example belongs to the preceding runtime;
+API1 is rejected by Fastify discovery rather than adapted.
 
 ## Configuration, forms, contributors, views and assets
 
@@ -256,9 +280,10 @@ conversion; there is no dynamic service-path evaluation.
 Before, registration or a callback could launch unawaited application-data writes:
 
 ```ts
-registerRedboxBootstrap: () => async function bootstrap() {
-  sails.services.namedqueryservice.upsert('demo-dashboard', query);
-}
+registerRedboxBootstrap: () =>
+  async function bootstrap() {
+    sails.services.namedqueryservice.upsert('demo-dashboard', query);
+  };
 ```
 
 After, generated `src/work.ts` defines `ExampleWorkInput.ensureNamedQuery()` and
@@ -366,6 +391,7 @@ cleanup cron and remote I/O beyond that deadline have process lifetime; remote
 completion/recovery across exit is not promised. Redis/periodic pings are refused.
 See the archived P6 upload/realtime reports described in the [evidence summary](evidence-summary.md) for the real URL/tus and
 socket qualification and the design for accepted residual limits.
+
 ### PDF background work admission
 
 The PDF factory input now requires `runAcceptedWork`. Bind it to

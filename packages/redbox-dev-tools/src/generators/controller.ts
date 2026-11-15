@@ -1,16 +1,19 @@
 import * as path from 'path';
 import { Project, QuoteKind } from 'ts-morph';
+import { identifier } from '../utils/identifier';
 import { Generator, GeneratorOptions } from '../utils/generator';
 import { RedboxPaths } from '../utils/paths';
 import {
   updateRoutes,
   updateAuth,
   updateControllerIndex,
+  updateControllerRegistration,
   updateNavigationConfig,
   updateLanguageDefaults,
   NavigationMapping,
   LanguageDefaultEntry,
 } from '../utils/config-helper';
+import type { RouteAccess } from '@researchdatabox/redbox-core/http';
 
 export interface RouteMapping {
   action: string;
@@ -18,6 +21,7 @@ export interface RouteMapping {
   path: string;
   auth?: string[]; // Roles for this specific route (overrides controller-level auth)
   csrf?: boolean; // Optional override for CSRF protection (mainly for webservice routes)
+  access?: RouteAccess;
 }
 
 export interface ControllerGeneratorOptions extends GeneratorOptions {
@@ -28,6 +32,7 @@ export interface ControllerGeneratorOptions extends GeneratorOptions {
   route?: string;
   routes?: RouteMapping[];
   auth?: string[];
+  public?: boolean;
   navigation?: NavigationMapping[];
   languageDefaults?: LanguageDefaultEntry[];
   className?: string;
@@ -41,6 +46,7 @@ export class ControllerGenerator extends Generator {
   private webservice: boolean;
   private routes: RouteMapping[];
   private auth?: string[];
+  private public: boolean;
   private navigation: NavigationMapping[];
   private languageDefaults: LanguageDefaultEntry[];
   private paths: RedboxPaths;
@@ -48,22 +54,22 @@ export class ControllerGenerator extends Generator {
 
   constructor(options: ControllerGeneratorOptions) {
     super(options);
-    this.name = options.name;
+    this.name = identifier(options.name);
     this.actions = options.actions || [];
     this.webservice = !!options.webservice;
     this.auth = options.auth;
+    this.public = !!options.public;
+    if (this.public && this.auth?.length) throw new Error('Choose public access or protected role rules.');
     this.navigation = options.navigation || [];
     this.languageDefaults = options.languageDefaults || [];
     this.paths = options.paths;
     const inferredClassName = this.name.endsWith('Controller') ? this.name.replace('Controller', '') : this.name;
-    this.className = options.className || inferredClassName;
+    this.className = identifier(options.className || inferredClassName, 'class');
     this.project = new Project({
       manipulationSettings: {
         quoteKind: QuoteKind.Single,
       },
     });
-
-    this.validateActions();
 
     // Handle backwards compatibility: convert single route to routes array
     if (options.routes && options.routes.length > 0) {
@@ -75,6 +81,17 @@ export class ControllerGenerator extends Generator {
     } else {
       this.routes = [];
     }
+    if (
+      this.routes.some(
+        route =>
+          (route.access?.kind === 'public' || (!route.access && this.public)) && (route.auth ?? this.auth)?.length
+      )
+    )
+      throw new Error('Choose public access or protected role rules.');
+    this.routes = this.routes.map(route => ({ ...route, action: identifier(route.action) }));
+    this.actions = [
+      ...new Set([...this.actions.map(action => identifier(action)), ...this.routes.map(route => route.action)]),
+    ];
   }
 
   public async generate(): Promise<void> {
@@ -86,6 +103,18 @@ export class ControllerGenerator extends Generator {
     const controllerPath = path.join(controllerDir, `${controllerName}.ts`);
 
     const content = this.generateControllerContent(className);
+    for (const route of this.routes)
+      await updateRoutes({
+        project: this.project,
+        paths: this.paths,
+        route: `${route.verb?.toLowerCase() ?? 'get'} ${route.path}`,
+        controllerName,
+        action: route.action,
+        webservice: this.webservice,
+        csrf: route.csrf,
+        access: route.access ?? (this.public ? { kind: 'public' } : undefined),
+        dryRun: true,
+      });
     this.writeFile(controllerPath, content);
 
     if (!this.dryRun) {
@@ -95,6 +124,13 @@ export class ControllerGenerator extends Generator {
         controllerName: controllerName,
         webservice: this.webservice,
         dryRun: this.dryRun,
+      });
+      await updateControllerRegistration({
+        project: this.project,
+        paths: this.paths,
+        controllerName,
+        className,
+        webservice: this.webservice,
       });
 
       // Process each route mapping
@@ -111,6 +147,7 @@ export class ControllerGenerator extends Generator {
           action: routeMapping.action,
           webservice: this.webservice,
           csrf: routeMapping.csrf,
+          access: routeMapping.access ?? (this.public ? { kind: 'public' } : undefined),
           dryRun: this.dryRun,
         });
 
@@ -173,28 +210,31 @@ export class ControllerGenerator extends Generator {
     const actionsCode = this.actions
       .map(
         action => `
-  public async ${action}(_req: Request, res: Response): Promise<void> {
-    res.json({ message: 'Action ${action} in ${className}' });
+  public async ${action}(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
+    // Read the live request after hooks; typed failures reach the host's safe error boundary.
+    const result = await this.input.${action}(request);
+    return reply.type('application/json; charset=utf-8').send(JSON.stringify(result));
   }`
       )
       .join('\n');
-    return `import type { Request, Response } from 'express';
+    return `import type { FastifyRequest, FastifyReply } from 'fastify';
+import { defineController } from '@researchdatabox/redbox-core/http';
 
-/** Bind methods in an explicit extension handler factory. */
+export interface ${className}Input {
+  /** Supply the selected application operation; constructors acquire no resources. */
+${this.actions.map(action => `  ${action}(request: FastifyRequest): Promise<unknown>;`).join('\n')}
+}
+
 export class ${className} {
+  public constructor(private readonly input: ${className}Input) {}
 ${actionsCode}
 }
+
+export const controller = defineController({
+  name: ${JSON.stringify(`${this.webservice ? 'webservice/' : ''}${this.name.endsWith('Controller') ? this.name : this.name + 'Controller'}`)},
+  actions: ${JSON.stringify(this.actions)},
+  create: (input: ${className}Input) => new ${className}(input),
+});
 `;
-  }
-
-  private validateActions(): void {
-    const invalidActions = this.actions.filter(action => !this.isValidIdentifier(action));
-    if (invalidActions.length > 0) {
-      throw new Error(`Invalid action name(s): ${invalidActions.join(', ')}`);
-    }
-  }
-
-  private isValidIdentifier(name: string): boolean {
-    return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
   }
 }

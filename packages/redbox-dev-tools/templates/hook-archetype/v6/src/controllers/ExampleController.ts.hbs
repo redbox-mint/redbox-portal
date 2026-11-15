@@ -1,0 +1,28 @@
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { defineController } from '@researchdatabox/redbox-core/http';
+import type { Example } from '../Example';
+
+export interface ExampleControllerInput {
+  readonly example: Pick<Example, 'greet'>;
+}
+
+/** Borrow application-owned operations; request state stays on the request. */
+export class ExampleController {
+  public constructor(private readonly input: ExampleControllerInput) {}
+
+  public async status(_request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
+    const result = { greeting: await this.input.example.greet() };
+    return reply.type('application/json; charset=utf-8').send(JSON.stringify(result));
+  }
+
+  public async greet(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
+    return this.status(request, reply);
+  }
+}
+
+export const exampleController = defineController({
+  name: 'Example{{hookPascalName}}Controller',
+  requires: ['Example{{hookPascalName}}'],
+  actions: ['status', 'greet'],
+  create: (input: ExampleControllerInput) => new ExampleController(input),
+});

@@ -90,3 +90,35 @@ HTTP route/fallback names share one offline target namespace with reserved core
 owners; hook scopes resolve against it. `redbox.internal.*`, `portal.automatic-*`
 and `core-native-http-*` are internal prefixes, forbidden in user route, fallback
 and hook names and in scoped hook targets. See [hook semantics](hooks.md).
+
+## Generator migration example (FM-037)
+
+Run `redbox-dev-tools init demo --template v6` inside the extension directory.
+The scaffold returns API2, with a public status GET and a protected greeting POST
+(`csrf: true`). Non-HTTP module/work inputs remain explicit. To add a controller:
+
+```sh
+redbox-dev-tools --root . generate controller Catalogue --routes 'read:get:/:branding/:portal/catalogue:Admin'
+redbox-dev-tools --root . generate method --file src/controllers/CatalogueController.ts --method publish --http POST --route '/:branding/:portal/catalogue/publish' --auth Admin
+```
+
+Generated `CatalogueInput` has named `read(request)` and `publish(request)`
+operations. Supply them in `bindGeneratedControllers({ CatalogueController: {
+read, publish } })` from the production application's `http.bindings` callback.
+The scaffold already includes generated controllers/routes in registration.
+The method generator updates the input interface, exposed actions and route,
+including CSRF for mutations. `--public` explicitly selects public access;
+omitting it selects ordered production authentication/brand/role policies.
+Role rules are added to the scaffold's `auth.config.ts`. Callbacks read the live
+Fastify request after hooks and allow typed failures to reach the safe host
+boundary. Bind the example module and work through application `bindings`, and
+borrow its greeting operation with `bindControllerFactory(exampleController,
+{ example })`. Pass the resulting resolved application unchanged to
+`createPortalFastifyHost`; the extension never registers a server itself.
+
+API1 `RequestHandler`/`res.json` examples from the historical Sails-retirement
+guide describe the preceding host. For API2 use `FastifyRequest`/`FastifyReply`,
+`defineController`, explicit action allowlists and complete access declarations as
+above. Generate JSON before calling `reply.send` so serialization errors remain
+inside the action boundary. Source-linked generator qualification is FM-037;
+clean packed-consumer qualification is FM-039.

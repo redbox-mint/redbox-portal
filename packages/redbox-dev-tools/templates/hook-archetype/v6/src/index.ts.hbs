@@ -1,25 +1,42 @@
-import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 import { Example, type ExampleInput } from './Example';
-import { createExampleHandler } from './handler';
+import { exampleController } from './controllers/ExampleController';
+import { controllers } from './config/extensionControllers';
+import { routes } from './config/extensionRoutes';
+import { auth } from './config/auth.config';
 import { exampleConfig } from './config';
 import { bootstrapExample, migrateExample } from './work';
 
+export { apiPolicies } from './config/extensionApiPolicies';
 export { Example, type ExampleInput } from './Example';
-export type { ExampleWorkInput } from './work';
+export { bootstrapExample, migrateExample, type ExampleWorkInput } from './work';
+export { exampleController, type ExampleControllerInput } from './controllers/ExampleController';
+export { bindGeneratedControllers, type GeneratedControllerInputs } from './config/extensionControllers';
 
-export function registerRedboxExtension(): RedboxExtension {
+export const exampleModule = { name: 'Example{{hookPascalName}}', create: (input: ExampleInput) => new Example(input) };
+
+export function registerRedboxExtension(): RedboxExtensionV2 {
   return {
-    apiVersion: 1,
-    config: { custom: { {{json hookShortName}}: exampleConfig } },
-    modules: [{ name: 'Example{{hookPascalName}}', create: (input: ExampleInput) => new Example(input) }],
-    handlers: [{ name: 'Status{{hookPascalName}}', requires: ['Example{{hookPascalName}}'], create: createExampleHandler }],
+    apiVersion: 2,
+    config: { auth, custom: { {{json hookShortName}}: exampleConfig } },
+    modules: [exampleModule],
+    controllers: [exampleController, ...controllers],
     routes: [{
       name: 'Status{{hookPascalName}}',
       method: 'get',
       path: '/hooks/{{hookShortName}}/status',
-      handler: 'Status{{hookPascalName}}',
-      access: 'public'
-    }],
+      controller: exampleController.name,
+      action: 'status',
+      access: { kind: 'public' }
+    }, {
+      name: 'Greet{{hookPascalName}}',
+      method: 'post',
+      path: '/:branding/:portal/hooks/{{hookShortName}}/greet',
+      controller: exampleController.name,
+      action: 'greet',
+      access: { kind: 'policies', names: ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'] },
+      csrf: true
+    }, ...routes],
     migrations: [{ name: '20261023-{{hookShortName}}-named-query', requires: ['Example{{hookPascalName}}'], run: migrateExample }],
     bootstrap: [{ name: '{{hookPascalName}}Dashboard', requires: ['Example{{hookPascalName}}'], run: bootstrapExample }],
     views: ['views'],

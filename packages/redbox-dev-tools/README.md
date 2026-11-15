@@ -36,7 +36,7 @@ version label is not proof of v6 compatibility.
 The generated project contains `src/`, `assets/`, `views/`, a standalone TypeScript
 configuration and an exact-pinned package manifest. It declares a neutral
 `registerRedboxExtension()` export, a concrete module with an owned audit file,
-a public handler/route, startup configuration under `custom.<hook-name>`, and
+typed Fastify controllers with public/protected API2 routes, startup configuration under `custom.<hook-name>`, and
 migration/bootstrap operations. Registration and factory binding remain offline.
 
 ```sh
@@ -45,24 +45,28 @@ npm pack --ignore-scripts
 ```
 
 The package is a portal extension. Install its pack in the deployment and bind
-its concrete module, handler and `ensureNamedQuery` repository inputs through
-`createPortalHost`'s `bindings` option. Supply a writable audit path and the
+its concrete module and `ensureNamedQuery` repository inputs through
+`createPortalFastifyApplication`'s `bindings` option; supply typed controller inputs
+through `http.bindings` using `bindControllerFactory`. Supply a writable audit path and the
 finalized `config.custom[hookName].greeting`. The production application owns
 initialization, activation, migration ledger, HTTP admission, drain and close;
 the hook does not create another listener or signal owner. Protected routes need
-ordered policies; the sample status route is deliberately public.
+ordered policies. The sample status GET is public; the greeting POST uses
+authentication, brand/role checks and CSRF.
 
 Controller, add-method and Angular-page routes use the host's ordered
-`noCache`, `brandingAndPortal`, `isWebServiceAuthenticated`, `brandActor` and
-`checkAuth` policies. Supply a path with `/:branding/:portal` parameters and
-include the generated declarations in the extension's `routes`; bind its named
-handlers. Write methods also select `csrf`: browser callers send a session token,
+`nocache`, `brandingandportal`, `iswebserviceauthenticated`, `brandactor` and
+`checkauth` policies. Supply a path with `/:branding/:portal` parameters and
+the v6 scaffold already includes generated route/controller declarations. Bind
+`GeneratedControllerInputs` through `bindGeneratedControllers`. Write methods select
+`csrf: true`: browser callers send a session token,
 and independently verified API bearer credentials receive the host's exemption.
 
 See [v6 conversion and deployment bindings](../../support/specs/sails-retirement/hook-migration-v6.md)
-and [the generated-app qualification](../redbox-core/test/qualification/generated-institution.cjs).
-The latter compiles and packs a fresh hook, supplies concrete persisted operations,
-then exercises production HTTP startup, restart and cleanup with real MongoDB.
+and [the generated API2 qualification](../redbox-core/test/http/fastify/GeneratedExtensionMongo.test.ts).
+The latter runs the CLI, strictly compiles a fresh hook, links it through installed
+extension discovery and exercises real protected/public HTTP, CSRF, typed errors
+and a subsequently generated method. Clean packed consumers remain FM-039.
 
 Use exact dependency versions. The scaffold explicitly pins TypeScript and Node
 declarations for standalone compilation and declares core as a matching peer/dev

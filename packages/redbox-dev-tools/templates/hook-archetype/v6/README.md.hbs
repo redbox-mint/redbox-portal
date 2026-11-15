@@ -1,36 +1,68 @@
 # {{packageName}}
 
-V6 extension scaffold. Generate with `redbox-dev-tools init {{hookShortName}} --template v6`.
-Install the matching qualified v6 core before `npm run build` and
-`npm pack --ignore-scripts`. An identically numbered historical npm core package
-may lack the v6 exports. For a built source checkout, use
-`npm install --save-dev --save-exact /absolute/path/to/redbox-portal/packages/redbox-core`;
-the portal's hook-migration-v6.md gives the complete checkout workflow. Replace
-the local reference with the deployment's qualified exact version or complete
-packed dependency set before release. Package versions are exact; replace them only with
-qualified versions. This template compiles CommonJS and exposes the neutral
-`registerRedboxExtension()` contract. It needs no Sails shims or global services.
+Generate with `redbox-dev-tools init {{hookShortName}} --template v6` in an empty
+directory. Install the deployment's qualified v6 core and Fastify **5.12.8**, then
+run `npm run build`. The scaffold uses strict TypeScript and public package
+entrypoints. Exact pins identify the required artifacts; historical npm packages
+with the same core version may lack these exports. For local development use
+`npm install --save-dev --save-exact /absolute/path/to/redbox-portal/packages/redbox-core`.
 
-The application binds each selected factory's concrete input with
-`bindExtensionFactory`: `ExampleInput` for the module and `{ example }` for the
-handler. Supply an application-owned writable audit path and the finalized
-greeting configuration from `config.custom[{{json hookShortName}}]`. The factory
-only wires objects; initialize opens the file, activate admits greetings, drain waits for accepted writes and close owns
-the native handle. The sample route deliberately permits public access; declare
-ordered policy names and supply host policy execution for protected routes.
+`registerRedboxExtension()` returns **API2** declarations without starting work.
+`exampleModule` receives `ExampleInput` (an application-owned writable `auditPath`
+and the finalized `config.custom[{{json hookShortName}}].greeting`). Bind the selected
+module using `bindExtensionFactory` in `createPortalFastifyApplication().bindings.module`.
+Its initialization opens the audit file, activation admits writes, drain awaits
+accepted writes, and close releases the handle. Bind migration/bootstrap functions
+with `ExampleWorkInput.ensureNamedQuery`, the deployment's actual repository upsert.
 
-The migration and bootstrap functions receive `ExampleWorkInput` repository
-operations. Registration never runs them. The application's later startup stages
-bind/await them after prerequisites; migrations use lexical names and the existing
-ledger. `ensureNamedQuery` must implement the deployment's existing upsert policy;
-the declaration adds no transaction or exactly-once guarantee. Asset/view paths
-are package-relative and included in the artifact.
+Supply `http.bindings` to `createPortalFastifyApplication`, returning
+`bindControllerFactory(exampleController, { example })` and the bindings returned
+by `bindGeneratedControllers`. Use a lazy borrowed operation if the module has not
+yet been constructed. Pass the resolved application to `createPortalFastifyHost`;
+the production host owns authentication, policies, CSRF, errors, the listener and
+signals. Set the canonical application URL to the actual published origin.
 
-Legacy `CoreService`, global `sails`, events, `lower` patches and controller shims
-need source conversion even when the package stays CommonJS. Install the packed
-extension in the portal deployment and supply the concrete module, work and handler bindings through `createPortalHost`. The host owns the
-listener and signals. A fresh generated extension is qualified in production
-composition, including persisted work, HTTP startup, restart and cleanup, by
-`packages/redbox-core/test/qualification/generated-institution.cjs` in the portal
-source. Use the deployment's explicit configuration and approved artifacts; this
-package does not start a second portal by itself.
+The GET `/hooks/{{hookShortName}}/status` action explicitly permits public access.
+POST `/:branding/:portal/hooks/{{hookShortName}}/greet` selects the ordered
+production authentication/brand/role policies and CSRF. Its role rule permits
+`Admin`; browser callers supply a session token and canonical Origin. Public
+access does not bypass CSRF on mutations. Constructors acquire no resources;
+Fastify actions borrow operations and serialize JSON before submitting the reply.
+Typed errors pass to the host's safe error boundary without a generic catch.
+
+Add a controller from this directory:
+
+```sh
+redbox-dev-tools --root . generate controller Catalogue --routes 'read:get:/:branding/:portal/catalogue:Admin'
+redbox-dev-tools --root . generate method --file src/controllers/CatalogueController.ts --method publish --http POST --route '/:branding/:portal/catalogue/publish' --auth Admin
+```
+
+Generation updates `config/extensionControllers.ts` and `config/extensionRoutes.ts`,
+already included in API2 registration, plus the explicit action allowlist/input
+interface for new methods. Supply each named operation in the generated typed
+`GeneratedControllerInputs`; requests remain live after `beforeAction` hooks.
+Use `--public` to select public access explicitly; the default is protected.
+`--auth` adds role rules when `auth.config.ts` is present. Programmatic callers
+can supply per-route `access` with public, named policies or deny. Browser and
+webservice controller identities remain distinct. Webservice routes retain executable
+API metadata, so verified bearer mutations use the host's API CSRF adapter;
+cookie sessions still require CSRF and all mutations retain Origin checks.
+For `--webservice --public`, merge the exported `apiPolicies` into the application's
+explicit `http.policyConfiguration` after its base mappings. API policies precede
+that mapping: the generated per-action `true` entry permits only the selected
+public actions; other actions retain their configured protection.
+Reruns with different route target/access/CSRF/API metadata fail explicitly.
+Adding a method to `src/controllers/ExampleController.ts` preserves its existing
+`exampleController` registration; also supply the new operation when binding it.
+
+`generate angular-app review-app --ejs-view review-view --auth Admin` emits a
+registered page controller with a valid action identifier. Bind its typed
+`render(request, reply, view, title)` operation to the application's shared page
+renderer (`prepareNativePage`, `renderPageShell`, `sendPageResponse`) and session
+CSRF operation. It passes the generated EJS view/title explicitly; it needs no globals. Non-HTTP modules, work,
+configuration, package-relative views and assets retain their lifecycle owners.
+
+The source-linked production qualification is
+`packages/redbox-core/test/http/fastify/GeneratedExtensionMongo.test.ts` in the
+portal. Clean packed-consumer qualification belongs to FM-039. A generated
+extension does not start a separate portal process or expose raw Fastify registration.

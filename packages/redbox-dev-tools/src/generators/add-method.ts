@@ -1,12 +1,13 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { Project, QuoteKind, SyntaxKind, ClassDeclaration, Scope } from 'ts-morph';
+import { identifier } from '../utils/identifier';
+import { controllerFactory } from '../utils/controller-factory';
 import { Generator, GeneratorOptions } from '../utils/generator';
 import { RedboxPaths } from '../utils/paths';
 import {
   updateRoutes,
   updateAuth,
-  updateControllerIndex,
   updateServiceIndex,
   updateNavigationConfig,
   updateLanguageDefaults,
@@ -20,6 +21,7 @@ export interface AddMethodGeneratorOptions extends GeneratorOptions {
   route?: string;
   http?: string;
   auth?: string[];
+  public?: boolean;
   navigation?: NavigationMapping[];
   languageDefaults?: LanguageDefaultEntry[];
   paths: RedboxPaths;
@@ -31,6 +33,7 @@ export class AddMethodGenerator extends Generator {
   private route?: string;
   private http?: string;
   private auth?: string[];
+  private public: boolean;
   private navigation: NavigationMapping[];
   private languageDefaults: LanguageDefaultEntry[];
   private paths: RedboxPaths;
@@ -39,10 +42,12 @@ export class AddMethodGenerator extends Generator {
   constructor(options: AddMethodGeneratorOptions) {
     super(options);
     this.filePath = path.isAbsolute(options.file) ? options.file : path.resolve(this.root, options.file);
-    this.method = options.method;
+    this.method = identifier(options.method);
     this.route = options.route;
     this.http = options.http || 'GET';
     this.auth = options.auth;
+    this.public = !!options.public;
+    if (this.public && this.auth?.length) throw new Error('Choose public access or protected role rules.');
     this.navigation = options.navigation || [];
     this.languageDefaults = options.languageDefaults || [];
     this.paths = options.paths;
@@ -69,10 +74,32 @@ export class AddMethodGenerator extends Generator {
       throw new Error('Target file must be a Controller or Service (.ts)');
     }
 
-    // 2. Find the class
-    const targetClass = sourceFile.getFirstDescendantByKind(SyntaxKind.ClassDeclaration);
-    if (!targetClass) {
-      throw new Error('Could not find a class in the target file');
+    const info = isController ? controllerFactory(sourceFile) : undefined;
+    const targetClass = info?.targetClass ?? sourceFile.getFirstDescendantByKindOrThrow(SyntaxKind.ClassDeclaration);
+    if (info) {
+      // Validate a rerun before saving any controller/config changes.
+      if (this.route)
+        await updateRoutes({
+          project: this.project,
+          paths: this.paths,
+          route: this.route.trim().includes(' ')
+            ? this.route.trim()
+            : `${this.http!.toLowerCase()} ${this.route.trim()}`,
+          controllerName: path.basename(this.filePath, '.ts'),
+          controllerIdentity: info.name,
+          action: this.method,
+          webservice: info.name.startsWith('webservice/'),
+          access: this.public ? { kind: 'public' } : undefined,
+          dryRun: true,
+        });
+      if (!info.actions.getElements().some(action => action.getText().replace(/["']/g, '') === this.method))
+        info.actions.addElement(JSON.stringify(this.method));
+      if (!info.input.getMethod(this.method))
+        info.input.addMethod({
+          name: this.method,
+          parameters: [{ name: 'request', type: 'import("fastify").FastifyRequest' }],
+          returnType: 'Promise<unknown>',
+        });
     }
     this.updateClass(targetClass, isController);
 
@@ -88,15 +115,9 @@ export class AddMethodGenerator extends Generator {
     const fileName = path.basename(this.filePath, '.ts');
 
     if (!this.dryRun) {
-      if (isController) {
-        await updateControllerIndex({
-          project: this.project,
-          paths: this.paths,
-          controllerName: fileName,
-          webservice: this.filePath.includes(path.join('controllers', 'webservice')),
-          dryRun: this.dryRun,
-        });
-      } else {
+      // Existing API2 controllers already own their registration/bindings. In particular,
+      // the scaffold registers exampleController directly; never register it a second time.
+      if (!isController) {
         await updateServiceIndex({
           project: this.project,
           paths: this.paths,
@@ -108,22 +129,26 @@ export class AddMethodGenerator extends Generator {
 
     // 3. Update routes and auth if it's a controller and route is provided
     if (isController && this.route) {
-      const trimmedRoute = this.route.trim();
+      const trimmedRoute = this.route.trim().includes(' ')
+        ? this.route.trim()
+        : `${this.http!.toLowerCase()} ${this.route.trim()}`;
       if (!trimmedRoute) {
         throw new Error('Route cannot be empty or whitespace.');
       }
 
       const controllerName = fileName;
-      const webservice = this.filePath.includes(path.join('controllers', 'webservice'));
+      const webservice = info!.name.startsWith('webservice/');
 
       await updateRoutes({
         project: this.project,
         paths: this.paths,
         route: trimmedRoute,
         controllerName: controllerName,
+        controllerIdentity: info!.name,
         action: this.method,
         webservice: webservice,
         dryRun: this.dryRun,
+        access: this.public ? { kind: 'public' } : undefined,
       });
 
       if (this.auth && this.auth.length > 0) {
@@ -183,10 +208,10 @@ export class AddMethodGenerator extends Generator {
           isAsync: true,
           returnType: 'Promise<unknown>',
           parameters: [
-            { name: 'req', type: 'import("express").Request' },
-            { name: 'res', type: 'import("express").Response' },
+            { name: 'request', type: 'import("fastify").FastifyRequest' },
+            { name: 'reply', type: 'import("fastify").FastifyReply' },
           ],
-          statements: `return res.json({ message: 'Action ${this.method} in ${klass.getName()}' });`,
+          statements: `const result = await this.input.${this.method}(request);\nreturn reply.type('application/json; charset=utf-8').send(JSON.stringify(result));`,
         });
       } else {
         klass.addMethod({

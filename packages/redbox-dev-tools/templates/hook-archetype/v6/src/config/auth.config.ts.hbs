@@ -1,0 +1,4 @@
+/** Role rules consumed by the production checkAuth policy. */
+export const auth = {
+  rules: [{ path: '/:branding/:portal/hooks/{{hookShortName}}/greet', role: 'Admin', can_update: true }],
+};

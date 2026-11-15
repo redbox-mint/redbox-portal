@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import { Project } from 'ts-morph';
 import { Generator, GeneratorOptions } from '../utils/generator';
 import { RedboxPaths } from '../utils/paths';
-import { updateRoutes, updateAuth } from '../utils/config-helper';
+import { identifier } from '../utils/identifier';
+import { updateRoutes, updateAuth, updateControllerIndex, updateControllerRegistration } from '../utils/config-helper';
 
 export interface AngularAppGeneratorOptions extends GeneratorOptions {
   name: string;
@@ -22,6 +23,9 @@ export class AngularAppGenerator extends Generator {
   constructor(options: AngularAppGeneratorOptions) {
     super(options);
     this.name = options.name.toLowerCase();
+    identifier(this.name);
+    if (!/^[a-z][a-z0-9-]*$/.test(this.name)) throw new Error('Invalid Angular app name.');
+    identifier(`admin-${options.ejsView}`);
     this.ejsView = options.ejsView;
     this.auth = options.auth;
     this.paths = options.paths;
@@ -53,32 +57,31 @@ export class AngularAppGenerator extends Generator {
     const appRoot = path.join(srcRoot, 'app');
 
     const files = {
-      'tsconfig.app.json': JSON.stringify({
-        "extends": "../../../tsconfig.json",
-        "compilerOptions": {
-          "outDir": "../../../dist/out-tsc",
-          "types": []
+      'tsconfig.app.json': JSON.stringify(
+        {
+          extends: '../../../tsconfig.json',
+          compilerOptions: {
+            outDir: '../../../dist/out-tsc',
+            types: [],
+          },
+          files: ['src/main.ts'],
+          include: ['src/**/*.d.ts'],
         },
-        "files": [
-          "src/main.ts"
-        ],
-        "include": [
-          "src/**/*.d.ts"
-        ]
-      }, null, 2),
-      'tsconfig.spec.json': JSON.stringify({
-        "extends": "../../../tsconfig.json",
-        "compilerOptions": {
-          "outDir": "../../../dist/out-tsc",
-          "types": [
-            "jasmine"
-          ]
+        null,
+        2
+      ),
+      'tsconfig.spec.json': JSON.stringify(
+        {
+          extends: '../../../tsconfig.json',
+          compilerOptions: {
+            outDir: '../../../dist/out-tsc',
+            types: ['jasmine'],
+          },
+          include: ['src/**/*.spec.ts', 'src/**/*.d.ts'],
         },
-        "include": [
-          "src/**/*.spec.ts",
-          "src/**/*.d.ts"
-        ]
-      }, null, 2),
+        null,
+        2
+      ),
       'src/main.ts': `import { platformBrowser } from '@angular/platform-browser';
 import { ${this.toClassName(this.name)}Module } from './app/${this.name}.module';
 
@@ -181,61 +184,59 @@ export class ${this.toClassName(this.name)}Component {
     }
 
     angularJson.projects[projectName] = {
-      "projectType": "application",
-      "schematics": {
-        "@schematics/angular:component": {
-          "style": "scss"
-        }
+      projectType: 'application',
+      schematics: {
+        '@schematics/angular:component': {
+          style: 'scss',
+        },
       },
-      "root": `projects/researchdatabox/${this.name}`,
-      "sourceRoot": `projects/researchdatabox/${this.name}/src`,
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:application",
-          "options": {
-            "outputPath": {
-              "base": `../assets/angular/${this.name}`
+      root: `projects/researchdatabox/${this.name}`,
+      sourceRoot: `projects/researchdatabox/${this.name}/src`,
+      prefix: 'app',
+      architect: {
+        build: {
+          builder: '@angular-devkit/build-angular:application',
+          options: {
+            outputPath: {
+              base: `../assets/angular/${this.name}`,
             },
-            "index": `projects/researchdatabox/${this.name}/src/index.html`,
-            "polyfills": [],
-            "tsConfig": `projects/researchdatabox/${this.name}/tsconfig.app.json`,
-            "inlineStyleLanguage": "scss",
-            "assets": [
+            index: `projects/researchdatabox/${this.name}/src/index.html`,
+            polyfills: [],
+            tsConfig: `projects/researchdatabox/${this.name}/tsconfig.app.json`,
+            inlineStyleLanguage: 'scss',
+            assets: [
               `projects/researchdatabox/${this.name}/src/favicon.ico`,
-              `projects/researchdatabox/${this.name}/src/assets`
+              `projects/researchdatabox/${this.name}/src/assets`,
             ],
-            "styles": [
-              `projects/researchdatabox/${this.name}/src/styles.scss`
-            ],
-            "scripts": [],
-            "browser": `projects/researchdatabox/${this.name}/src/main.ts`
+            styles: [`projects/researchdatabox/${this.name}/src/styles.scss`],
+            scripts: [],
+            browser: `projects/researchdatabox/${this.name}/src/main.ts`,
           },
-          "configurations": {
-            "production": {
-              "budgets": [
+          configurations: {
+            production: {
+              budgets: [
                 {
-                  "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  type: 'initial',
+                  maximumWarning: '500kb',
+                  maximumError: '1mb',
                 },
                 {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
-                }
+                  type: 'anyComponentStyle',
+                  maximumWarning: '2kb',
+                  maximumError: '4kb',
+                },
               ],
-              "outputHashing": "all"
+              outputHashing: 'all',
             },
-            "development": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true
-            }
+            development: {
+              optimization: false,
+              extractLicenses: false,
+              sourceMap: true,
+            },
           },
-          "defaultConfiguration": "production"
-        }
-      }
+          defaultConfiguration: 'production',
+        },
+      },
     };
 
     this.writeFile(angularJsonPath, JSON.stringify(angularJson, null, 2));
@@ -248,7 +249,7 @@ export class ${this.toClassName(this.name)}Component {
     if (!viewPath.startsWith(path.resolve(baseDir) + path.sep)) {
       throw new Error(`EJS view name resolves outside the admin views directory: ${safeViewName}`);
     }
-    
+
     const content = `<% let appName = '${this.name}'; %>
 <div class="row admin-layout">
   <div class="col-md-3 col-lg-2">
@@ -274,30 +275,71 @@ export class ${this.toClassName(this.name)}Component {
   private async updateRouteConfig(): Promise<void> {
     const route = `/:branding/:portal/admin/${this.name}`; // Defaulting to admin path
     const safeViewName = this.getSafeEjsViewName();
-    
-    // The named page handler must be bound by the selected extension factory
-    // with request locals and installed PageArtifacts for admin/${safeViewName}.
+
+    const action = identifier(`admin-${safeViewName}`);
+    const className = identifier(`${this.toClassName(this.name)}Page`, 'class');
+    const controllerName = `${className}Controller`;
+    const content = `import type { FastifyRequest, FastifyReply } from 'fastify';
+import { defineController } from '@researchdatabox/redbox-core/http';
+
+export interface ${className}Input {
+  /** Bind the application-owned native page renderer and its session CSRF operation. */
+  render(request: FastifyRequest, reply: FastifyReply, view: string, title: string): Promise<unknown>;
+}
+export class ${className} {
+  constructor(private readonly input: ${className}Input) {}
+  async ${action}(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
+    return this.input.render(request, reply, ${JSON.stringify(`admin/${safeViewName}`)}, ${JSON.stringify(this.toClassName(this.name))});
+  }
+}
+export const controller = defineController({
+  name: ${JSON.stringify(controllerName)}, actions: [${JSON.stringify(action)}],
+  create: (input: ${className}Input) => new ${className}(input),
+});
+`;
     await updateRoutes({
-      project: this.project, paths: this.paths,
-      route: `get ${route}`, controllerName: 'page', action: `admin-${safeViewName}`,
-      webservice: false, dryRun: this.dryRun,
+      project: this.project,
+      paths: this.paths,
+      route: `get ${route}`,
+      controllerName,
+      action,
+      webservice: false,
+      dryRun: this.dryRun,
     });
+    this.writeFile(path.join(this.paths.coreTypes, 'src/controllers', `${controllerName}.ts`), content);
+    if (!this.dryRun) {
+      await updateControllerIndex({
+        project: this.project,
+        paths: this.paths,
+        controllerName,
+        webservice: false,
+        dryRun: false,
+      });
+      await updateControllerRegistration({
+        project: this.project,
+        paths: this.paths,
+        controllerName,
+        className,
+        webservice: false,
+      });
+    }
   }
 
   private async updateAuthConfig(): Promise<void> {
     const route = `/:branding/:portal/admin/${this.name}`;
     await updateAuth({
-        project: this.project,
-        paths: this.paths,
-        root: this.root,
-        route: route,
-        auth: this.auth!,
-        dryRun: this.dryRun
+      project: this.project,
+      paths: this.paths,
+      root: this.root,
+      route: route,
+      auth: this.auth!,
+      dryRun: this.dryRun,
     });
   }
 
   private toClassName(name: string): string {
-    return name.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+    const symbol = identifier(name);
+    return symbol.charAt(0).toUpperCase() + symbol.slice(1);
   }
 
   private getSafeEjsViewName(): string {
