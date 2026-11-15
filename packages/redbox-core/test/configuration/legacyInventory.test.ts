@@ -11,7 +11,7 @@ const env = { REDBOX_SESSION_SECRET: 'configuration-inventory-synthetic-secret' 
 const load = (config: Record<string, unknown>) =>
   loadPortalConfiguration({
     env,
-    extensions: { providers: [{ name: 'baseline-inventory', root: '.', declaration: { apiVersion: 1, config } }] },
+    extensions: { providers: [{ name: 'baseline-inventory', declaration: { config } }] },
   });
 
 describe('complete source-derived baseline configuration inventory', () => {

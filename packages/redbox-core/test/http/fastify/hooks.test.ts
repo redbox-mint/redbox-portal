@@ -12,13 +12,9 @@ import {
   type HttpHookContribution,
   type HttpFallbackContribution,
 } from '../../../dist/http';
-import {
-  resolveExtensionsV2,
-  resolveExtensions,
-  composeExtensionApplication,
-  bindExtensionFactory,
-  type ExtensionProviderV2,
-} from '../../../dist/extensions';
+import { resolveExtensionsV2, bindExtensionFactory, type ExtensionProviderV2 } from '../../../dist/extensions';
+import { resolveExtensions } from '../../../dist/extensions/resolution';
+import { composeExtensionApplication } from '../../../dist/extensions/composition';
 import { ExpressHost } from '../../../dist/http/express';
 import { createControllerHost, type ControllerHostOptions } from '../../../dist/http/fastify/composition';
 import { createNativePolicies } from '../../../dist/http/fastify/policies';

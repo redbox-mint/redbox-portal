@@ -15,6 +15,13 @@ import { assertResolvedPilotPins } from './pilotPins';
 if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT)
   throw new Error('FM-022 requires disposable Mongo /sr_p4_http and Solr; Q12 cannot be skipped.');
 
+// This retained ownership assertion inspects the packed core's private adapter seam.
+function companion(raw: import('../../../src/application/portal/rawHttp').PortalRawHttp) {
+  const module = require(path.join(packedDirectory, 'node_modules/@researchdatabox/redbox-core/dist/application/portal/rawHttp')) as typeof import('../../../src/application/portal/rawHttp');
+  return module.portalCompanion(raw);
+}
+let packedDirectory: string;
+
 const canonical = 'https://portal.example.invalid';
 const target = '/default/rdmp/api/records/metadata/fm019-record';
 const upload = '/default/rdmp/api/records/datastreams/fm019-record';
@@ -143,6 +150,7 @@ describe('FM-022 Q12 integrated packed production pilot', function () {
     const port = await availablePort();
     packed = await installedPilot({ integrated: true });
     console.log('FM022 packed SHA256 ' + JSON.stringify(packed.hashes));
+    packedDirectory = packed.directory;
     f = await packed.nativeProductionFixture(packed.application, packed.module, {
       // The unbranded public probe selects its own mapping; API routes retain
       // their production mappings and host-owned contract validation.
@@ -175,7 +183,7 @@ describe('FM-022 Q12 integrated packed production pilot', function () {
           server = Reflect.get(raw.sockets, 'io').httpServer;
           assert.equal(server.listening, false);
           assert.equal(server.address(), null);
-          assert(raw.upload && raw.progress && raw.companion);
+          assert(raw.upload && raw.progress && companion(raw));
           const listen = server.listen,
             close = server.close;
           server.listen = function (this: Server, ...args: Parameters<Server['listen']>) {
@@ -251,7 +259,7 @@ describe('FM-022 Q12 integrated packed production pilot', function () {
       'fm019-api2-pilot'
     );
     assert.equal(
-      Reflect.get(f.portal.installation.raw!.companion!, 'bridge') instanceof require('node:http').Server,
+      Reflect.get(companion(f.portal.installation.raw!)!, 'bridge') instanceof require('node:http').Server,
       false
     );
   });

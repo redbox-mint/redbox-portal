@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import express, { type Request, type Response } from 'express';
-import { resolveExtensions, type ExtensionProvider, type RedboxExtension } from '../../src/extensions';
+import { resolveExtensions, type ExtensionProvider } from '../../src/extensions/resolution';
+import { type RedboxExtension } from '../../src/extensions/legacyContract';
 
 const makeModule = (name: string, requires?: string[]) => ({
   name,

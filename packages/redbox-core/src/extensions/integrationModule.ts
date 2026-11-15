@@ -1,5 +1,5 @@
 import type { ApplicationModuleFactory } from '../application/Application';
-import type { ExtensionHostIntegration } from './contract';
+import type { ExtensionHostIntegration } from './legacyContract';
 
 export function integrationModule(
   name: string,

@@ -1,0 +1,430 @@
+{
+  "baseline": "52c67fe732f45ea83916e8bf652cbb5a2b2e6bf2",
+  "packages": [
+    {
+      "package": "@researchdatabox/agenda-sqs-backend",
+      "directory": "agenda-sqs-backend",
+      "extension": false
+    },
+    {
+      "package": "@researchdatabox/raido-openapi-generated-node",
+      "directory": "raido",
+      "extension": false
+    },
+    {
+      "package": "@researchdatabox/redbox-core",
+      "directory": "redbox-core",
+      "extension": false
+    },
+    {
+      "package": "@researchdatabox/redbox-dev-tools",
+      "directory": "redbox-dev-tools",
+      "extension": false
+    },
+    {
+      "package": "redbox-hook-dev",
+      "directory": "redbox-hook-dev",
+      "extension": true,
+      "source": "packages/redbox-hook-dev/src/extension.ts",
+      "apiVersion": {
+        "before": 1,
+        "after": 2
+      },
+      "http": {
+        "controllers": {
+          "before": [],
+          "after": []
+        },
+        "handlers": {
+          "before": [],
+          "after": []
+        },
+        "routes": {
+          "before": [],
+          "after": []
+        },
+        "middleware": {
+          "before": [],
+          "after": []
+        },
+        "integrations": {
+          "before": [],
+          "after": []
+        },
+        "hooks": {
+          "before": [],
+          "after": []
+        },
+        "fallbacks": {
+          "before": [],
+          "after": []
+        }
+      },
+      "before": {
+        "config": {
+          "entries": [
+            "auth",
+            "brandingConfigurationDefaults",
+            "dashboardtype",
+            "dashboardview",
+            "jsonld",
+            "page",
+            "record",
+            "recordtype",
+            "workflow",
+            "workspacetype"
+          ],
+          "sha256": "da301bfd9fd3ece434faca1b50faf3370a0460ab7458e2f17e33d1652425a916"
+        },
+        "forms": {
+          "entries": [
+            "dataPublication-1.0-draft",
+            "dataPublication-1.0-embargoed",
+            "dataPublication-1.0-published",
+            "dataPublication-1.0-queued",
+            "dataPublication-1.0-retired",
+            "dataRecord-1.0-draft",
+            "default-1.0-draft",
+            "existing-locations-1.0-draft",
+            "pw-01-expression-chaining-1.0-draft",
+            "pw-02-calculations-1.0-draft",
+            "pw-02-nested-1.0-draft",
+            "pw-02-validation-1.0-draft",
+            "pw-03-logical-row-1.0-draft",
+            "pw-03-source-1.0-draft",
+            "pw-04-early-lookup-1.0-draft",
+            "pw-05-nested-focus-1.0-draft",
+            "pw-05-validation-focus-1.0-draft",
+            "pw-06-accordion-1.0-draft",
+            "pw-07-date-control-1.0-draft",
+            "pw-07-date-writeback-1.0-draft",
+            "pw-08-save-busy-1.0-draft",
+            "pw-09-rapid-save-retry-1.0-draft",
+            "pw-10-save-completions-1.0-draft",
+            "pw-11-transport-validation-1.0-draft",
+            "pw-12-conflict-resolution-1.0-draft",
+            "pw-13-empty-1.0-draft",
+            "pw-13-omitted-1.0-draft",
+            "pw-13-other-1.0-draft",
+            "pw-14-columns-1.0-draft",
+            "pw-19-search-1.0-draft",
+            "pw-22-integrations-1.0-draft"
+          ],
+          "sha256": "20c16b1b23b053a71b7d063e51924bad02f9c1d7fd1d0a9afb6a4273e8b07d39"
+        },
+        "workflows": {
+          "entries": [
+            "concurrencyTest",
+            "dataPublication",
+            "dataRecord",
+            "existing-locations",
+            "party",
+            "pw-01-expression-chaining",
+            "pw-02-calculations",
+            "pw-02-nested",
+            "pw-02-validation",
+            "pw-03-logical-row",
+            "pw-03-source",
+            "pw-04-early-lookup",
+            "pw-05-nested-focus",
+            "pw-05-validation-focus",
+            "pw-06-accordion",
+            "pw-07-date-control",
+            "pw-07-date-writeback",
+            "pw-08-save-busy",
+            "pw-09-rapid-save-retry",
+            "pw-10-save-completions",
+            "pw-11-transport-validation",
+            "pw-12-conflict-resolution",
+            "pw-13-empty",
+            "pw-13-omitted",
+            "pw-13-other",
+            "pw-14-columns",
+            "pw-19-search",
+            "pw-22-integrations",
+            "rdmp"
+          ],
+          "sha256": "325f75dbdeafcf5a51308ccb2a9faf200989a235f961a6b7ba82ce47f021ab9e"
+        }
+      },
+      "after": {
+        "config": {
+          "entries": [
+            "auth",
+            "brandingConfigurationDefaults",
+            "dashboardtype",
+            "dashboardview",
+            "jsonld",
+            "page",
+            "record",
+            "recordtype",
+            "workflow",
+            "workspacetype"
+          ],
+          "sha256": "da301bfd9fd3ece434faca1b50faf3370a0460ab7458e2f17e33d1652425a916"
+        },
+        "forms": {
+          "entries": [
+            "dataPublication-1.0-draft",
+            "dataPublication-1.0-embargoed",
+            "dataPublication-1.0-published",
+            "dataPublication-1.0-queued",
+            "dataPublication-1.0-retired",
+            "dataRecord-1.0-draft",
+            "default-1.0-draft",
+            "existing-locations-1.0-draft",
+            "pw-01-expression-chaining-1.0-draft",
+            "pw-02-calculations-1.0-draft",
+            "pw-02-nested-1.0-draft",
+            "pw-02-validation-1.0-draft",
+            "pw-03-logical-row-1.0-draft",
+            "pw-03-source-1.0-draft",
+            "pw-04-early-lookup-1.0-draft",
+            "pw-05-nested-focus-1.0-draft",
+            "pw-05-validation-focus-1.0-draft",
+            "pw-06-accordion-1.0-draft",
+            "pw-07-date-control-1.0-draft",
+            "pw-07-date-writeback-1.0-draft",
+            "pw-08-save-busy-1.0-draft",
+            "pw-09-rapid-save-retry-1.0-draft",
+            "pw-10-save-completions-1.0-draft",
+            "pw-11-transport-validation-1.0-draft",
+            "pw-12-conflict-resolution-1.0-draft",
+            "pw-13-empty-1.0-draft",
+            "pw-13-omitted-1.0-draft",
+            "pw-13-other-1.0-draft",
+            "pw-14-columns-1.0-draft",
+            "pw-19-search-1.0-draft",
+            "pw-22-integrations-1.0-draft"
+          ],
+          "sha256": "20c16b1b23b053a71b7d063e51924bad02f9c1d7fd1d0a9afb6a4273e8b07d39"
+        },
+        "workflows": {
+          "entries": [
+            "concurrencyTest",
+            "dataPublication",
+            "dataRecord",
+            "existing-locations",
+            "party",
+            "pw-01-expression-chaining",
+            "pw-02-calculations",
+            "pw-02-nested",
+            "pw-02-validation",
+            "pw-03-logical-row",
+            "pw-03-source",
+            "pw-04-early-lookup",
+            "pw-05-nested-focus",
+            "pw-05-validation-focus",
+            "pw-06-accordion",
+            "pw-07-date-control",
+            "pw-07-date-writeback",
+            "pw-08-save-busy",
+            "pw-09-rapid-save-retry",
+            "pw-10-save-completions",
+            "pw-11-transport-validation",
+            "pw-12-conflict-resolution",
+            "pw-13-empty",
+            "pw-13-omitted",
+            "pw-13-other",
+            "pw-14-columns",
+            "pw-19-search",
+            "pw-22-integrations",
+            "rdmp"
+          ],
+          "sha256": "325f75dbdeafcf5a51308ccb2a9faf200989a235f961a6b7ba82ce47f021ab9e"
+        }
+      }
+    },
+    {
+      "package": "@researchdatabox/rva-registry-openapi-generated-node",
+      "directory": "rva-registry",
+      "extension": false
+    },
+    {
+      "package": "@researchdatabox/sails-hook-redbox-pdfgen",
+      "directory": "sails-hook-redbox-pdfgen",
+      "extension": true,
+      "source": "packages/sails-hook-redbox-pdfgen/src/extension.ts",
+      "apiVersion": {
+        "before": 1,
+        "after": 2
+      },
+      "http": {
+        "controllers": {
+          "before": [],
+          "after": []
+        },
+        "handlers": {
+          "before": [],
+          "after": []
+        },
+        "routes": {
+          "before": [],
+          "after": []
+        },
+        "middleware": {
+          "before": [],
+          "after": []
+        },
+        "integrations": {
+          "before": [],
+          "after": []
+        },
+        "hooks": {
+          "before": [],
+          "after": []
+        },
+        "fallbacks": {
+          "before": [],
+          "after": []
+        }
+      },
+      "before": {
+        "config": {
+          "entries": [
+            "pdfgen"
+          ],
+          "sha256": "98636567c4051e49d4a1967437ff8163ddd66bba1ef2c19f9f7016edf3e232c0"
+        },
+        "configModels": {
+          "entries": [
+            "pdfgen"
+          ],
+          "sha256": "733cbd652f8f5d41611122754f374e75e588c021dcea26ad27c65d501ae29075"
+        },
+        "modules": {
+          "entries": [
+            "pdf"
+          ],
+          "sha256": "1fe966322194d9db05ab1c75bc94ef268caecde34fe11f158419fb5c96909c3f"
+        },
+        "jobs": {
+          "entries": [
+            "PDFService-CreatePDF"
+          ],
+          "sha256": "4754e178d463c255bb1007498f10d93569808eb1650ba0d7e3489ce08422be6d"
+        }
+      },
+      "after": {
+        "config": {
+          "entries": [
+            "pdfgen"
+          ],
+          "sha256": "98636567c4051e49d4a1967437ff8163ddd66bba1ef2c19f9f7016edf3e232c0"
+        },
+        "configModels": {
+          "entries": [
+            "pdfgen"
+          ],
+          "sha256": "733cbd652f8f5d41611122754f374e75e588c021dcea26ad27c65d501ae29075"
+        },
+        "modules": {
+          "entries": [
+            "pdf"
+          ],
+          "sha256": "1fe966322194d9db05ab1c75bc94ef268caecde34fe11f158419fb5c96909c3f"
+        },
+        "jobs": {
+          "entries": [
+            "PDFService-CreatePDF"
+          ],
+          "sha256": "4754e178d463c255bb1007498f10d93569808eb1650ba0d7e3489ce08422be6d"
+        }
+      }
+    },
+    {
+      "package": "@researchdatabox/sails-hook-redbox-storage-mongo",
+      "directory": "sails-hook-redbox-storage-mongo",
+      "extension": true,
+      "source": "packages/sails-hook-redbox-storage-mongo/src/extension.ts",
+      "apiVersion": {
+        "before": 1,
+        "after": 2
+      },
+      "http": {
+        "controllers": {
+          "before": [],
+          "after": []
+        },
+        "handlers": {
+          "before": [],
+          "after": []
+        },
+        "routes": {
+          "before": [],
+          "after": []
+        },
+        "middleware": {
+          "before": [],
+          "after": []
+        },
+        "integrations": {
+          "before": [],
+          "after": []
+        },
+        "hooks": {
+          "before": [],
+          "after": []
+        },
+        "fallbacks": {
+          "before": [],
+          "after": []
+        }
+      },
+      "before": {
+        "config": {
+          "entries": [
+            "record",
+            "storage"
+          ],
+          "sha256": "6d4b7a22b4347c09a26782d7ddb05bd697edd03f2d17d421fd47b2df0142af1e"
+        },
+        "modules": {
+          "entries": [
+            "storage"
+          ],
+          "sha256": "5fcdda377b520a5926b7572e4edc99934bb237c0ac83577b492998add82fc620"
+        },
+        "migrations": {
+          "entries": [
+            "@researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+          ],
+          "sha256": "c3d1773d4a41da8ea21e4ab9f0d7352d2f5fc3c3ecf1644f54ecc038ce0d8fbd"
+        }
+      },
+      "after": {
+        "config": {
+          "entries": [
+            "record",
+            "storage"
+          ],
+          "sha256": "6d4b7a22b4347c09a26782d7ddb05bd697edd03f2d17d421fd47b2df0142af1e"
+        },
+        "modules": {
+          "entries": [
+            "storage"
+          ],
+          "sha256": "5fcdda377b520a5926b7572e4edc99934bb237c0ac83577b492998add82fc620"
+        },
+        "migrations": {
+          "entries": [
+            "@researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+          ],
+          "sha256": "c3d1773d4a41da8ea21e4ab9f0d7352d2f5fc3c3ecf1644f54ecc038ce0d8fbd"
+        }
+      }
+    },
+    {
+      "package": "@researchdatabox/sails-ng-common",
+      "directory": "sails-ng-common",
+      "extension": false
+    }
+  ],
+  "registrations": [
+    "packages/redbox-hook-dev/src/extension.ts",
+    "packages/sails-hook-redbox-pdfgen/src/extension.ts",
+    "packages/sails-hook-redbox-storage-mongo/src/extension.ts"
+  ],
+  "httpRoutePolicyChanges": [],
+  "nonHttpParity": true
+}

@@ -4,7 +4,7 @@ import { portalSchema, portalDefaults } from '../../src/configuration/portal';
 import { execFileSync } from 'node:child_process';
 import { loadStartupConfiguration } from '../../src/configuration/loading';
 import { ConfigurationError, resolveStartupConfiguration } from '../../src/configuration';
-import { resolveExtensions, type ExtensionProvider } from '../../src/extensions';
+import { resolveExtensions, type ExtensionProvider } from '../../src/extensions/resolution';
 
 const schema = z
   .object({

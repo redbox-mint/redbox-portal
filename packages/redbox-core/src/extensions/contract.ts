@@ -1,13 +1,10 @@
 import type { HttpHookContribution, HttpFallbackContribution } from '../http/contracts';
-import type { Server } from 'node:http';
-import type { RequestHandler } from 'express';
-export type { RequestHandler } from 'express';
 import type { ApplicationModule } from '../application';
 import type { ControllerRegistration, HttpRouteDeclaration } from '../http/contracts';
 
 /**
  * Offline factory declaration with a concrete, application-bound input.
- * @extensionPoint Register a named module or handler factory; declare requires and replaces explicitly. The selected application supplies each concrete dependency.
+ * @extensionPoint Register a named module or controller factory; declare requires and replaces explicitly. The selected application supplies each concrete dependency.
  * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
  */
 export interface ExtensionFactory<Input = never, Output = ApplicationModule> {
@@ -16,27 +13,6 @@ export interface ExtensionFactory<Input = never, Output = ApplicationModule> {
   /** Replacing a lower-precedence registration must be intentional. */
   readonly replaces?: true;
   create(input: Input): Output;
-}
-
-/**
- * Explicit HTTP route declaration with mandatory access policy.
- * @extensionPoint Register routes with selected handler names and public or named access policies. The host owns the listener and policy binding.
- */
-export interface ExtensionRoute {
-  readonly name: string;
-  readonly method: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
-  readonly path: string;
-  readonly handler: string;
-  readonly access: 'public' | readonly string[];
-  readonly replaces?: true;
-}
-
-/**
- * Owned integration with the host's single HTTP server.
- * @extensionPoint Supply prepare and application lifecycle methods; never listen independently or install process signals.
- */
-export interface ExtensionHostIntegration extends ApplicationModule {
-  prepare(server: Server): Promise<void>;
 }
 
 /**
@@ -50,23 +26,10 @@ export interface ExtensionWork {
   run(input: never): Promise<void>;
 }
 
-/**
- * Versioned v6 extension declaration, safe for offline import and inspection.
- * @extensionPoint Export registerRedboxExtension returning apiVersion 1. Contribute factories, routes and data; acquisition belongs to the awaited application lifecycle.
- * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
- */
-export interface RedboxExtension {
-  readonly apiVersion: 1;
+/** Transport-independent extension contributions, shared by both hosts. */
+export interface ExtensionData {
   readonly config?: Readonly<Record<string, unknown>>;
   readonly modules?: readonly ExtensionFactory[];
-  readonly handlers?: readonly ExtensionFactory<never, RequestHandler>[];
-  readonly routes?: readonly ExtensionRoute[];
-  readonly middleware?: readonly {
-    readonly name: string;
-    readonly stage: 'beforeRoutes' | 'afterRoutes';
-    readonly handler: string;
-  }[];
-  readonly integrations?: readonly ExtensionFactory<never, ExtensionHostIntegration>[];
   readonly migrations?: readonly ExtensionWork[];
   readonly bootstrap?: readonly ExtensionWork[];
   readonly jobs?: Readonly<Record<string, unknown>>;
@@ -79,13 +42,8 @@ export interface RedboxExtension {
   readonly assets?: readonly string[];
 }
 
-/** Fastify declaration. Non-HTTP contributions retain their API1 types and semantics.
- * Hooks/fallbacks are qualified separately; raw server integrations are not an extension capability.
- */
-export interface RedboxExtensionV2 extends Omit<
-  RedboxExtension,
-  'apiVersion' | 'handlers' | 'routes' | 'middleware' | 'integrations'
-> {
+/** Current Fastify extension contract. */
+export interface RedboxExtensionV2 extends ExtensionData {
   readonly apiVersion: 2;
   readonly controllers?: readonly ControllerRegistration[];
   readonly hooks?: readonly HttpHookContribution[];

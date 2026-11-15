@@ -99,7 +99,6 @@
       "types": "./dist/extension.d.ts",
       "default": "./dist/extension.js"
     },
-    "./package.json": "./package.json",
-    "./dist/*": "./dist/*"
+    "./package.json": "./package.json"
   }
 }

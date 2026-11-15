@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict';
 import { MongoClient, ObjectId } from 'mongodb';
 import { ApplicationRuntime } from '../../src/application';
-import {
-  composeExtensionApplication,
-  bindExtensionFactory,
-  bindExtensionWork,
-  resolveExtensions,
-} from '../../src/extensions';
+import { bindExtensionFactory, bindExtensionWork } from '../../src/extensions';
+import { composeExtensionApplication } from '../../src/extensions/composition';
+import { resolveExtensions } from '../../src/extensions/resolution';
 import { initializePersistence, persistenceStatus } from '../../src/persistence/runtime';
 import { ensureMigrationPersistenceIndex } from '../../src/persistence/migration/preflight';
 import { getMigrationLedgerRepository } from '../../src/persistence/migration/runtime';

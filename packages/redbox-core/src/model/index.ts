@@ -17,7 +17,7 @@ export { RBValidationError } from "./RBValidationError";
 export type { RBValidationProblemKind } from "./RBValidationError";
 export {ListAPIResponse}from "./ListAPIResponse";
 export {ListAPISummary}from "./ListAPISummary";
-export {RequestDetails} from "./RequestDetails";
+
 export {RecordTypeResponseModel} from "./RecordTypeResponseModel";
 export {DashboardTypeResponseModel} from "./DashboardTypeResponseModel";
 export {DashboardViewResponseModel, DashboardViewStepResponseModel} from "./DashboardViewResponseModel";

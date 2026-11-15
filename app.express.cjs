@@ -5,13 +5,14 @@ const pino = require('pino');
 const { ConfigurationError } = require('@researchdatabox/redbox-core/configuration');
 const { ExtensionError } = require('@researchdatabox/redbox-core/extensions');
 const {
-  createPortalHost,
-  createPortalApplication,
   prepareSelectedPersistenceIndexes,
   selectedAgendaMongoOptions,
   cleanupPersistence,
   persistenceStatus,
 } = require('@researchdatabox/redbox-core/portal');
+// The pre-cutover executable owns this private Express composition.
+const { createPortalHost } = require('./packages/redbox-core/dist/application/portal/host');
+const { createPortalApplication } = require('./packages/redbox-core/dist/application/portal/application');
 
 process.chdir(__dirname);
 const destination = pino.destination({ dest: 1, sync: true });

@@ -1,6 +1,6 @@
-export * from './contract';
+export type { ExtensionFactory, ExtensionWork, ExtensionData, RedboxExtensionV2 } from './contract';
 export * from './loading';
 export * from './exports';
-export * from './resolution';
-export * from './composition';
+export type { ResolvedRegistration } from './resolution';
+export { bindExtensionFactory, bindExtensionWork } from './bindings';
 export * from './v2';

@@ -13,6 +13,7 @@ import WebSocket from 'ws';
 import { availablePort } from './authenticationFixture';
 import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
 import { getMetaRoute, updateMetaRoute, addDataStreamsRoute } from '../../../src/api-routes/groups/records';
+import { portalCompanion } from '../../../src/application/portal/rawHttp';
 import { NativeMongoSessionStore } from '../../../src/http/fastify/session';
 
 export async function run() {
@@ -234,7 +235,7 @@ export async function run() {
       }
       if (native) {
         assert('installation' in f.portal);
-        companion = f.portal.installation.raw!.companion;
+        companion = portalCompanion(f.portal.installation.raw);
         const owners = f.portal.installation.registry.ownership!.snapshot();
         const progressOwners = owners.filter(
           row => row.path.includes('/asynch') || row.path.startsWith('/portal-socket.io')
@@ -288,6 +289,7 @@ export async function run() {
     async file(id) {
       const stream = await f.datastream.getDatastream('fm020-record', id);
       const chunks = [];
+      assert(stream.readstream, 'The persisted attachment has a readable stream');
       for await (const chunk of stream.readstream) chunks.push(Buffer.from(chunk));
       return Buffer.concat(chunks).toString();
     },

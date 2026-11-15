@@ -1,8 +1,8 @@
-import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 import { getDevelopmentRegistration } from './registration';
 import { convertBuiltinRecordTypeHooks } from '@researchdatabox/redbox-core/record-types';
 
-export function registerRedboxExtension(): RedboxExtension {
+export function registerRedboxExtension(): RedboxExtensionV2 {
   const { config, forms } = getDevelopmentRegistration();
   // Convert development page declarations to the host configuration contract.
   const { routes, views, ...domains } = config;
@@ -10,7 +10,7 @@ export function registerRedboxExtension(): RedboxExtension {
   if (typeof landingPath !== 'string' || !/^\/(?!\/)/.test(landingPath))
     throw new Error('Development extension requires a local landing path.');
   return {
-    apiVersion: 1,
+    apiVersion: 2,
     config: {
       ...domains,
       recordtype: convertBuiltinRecordTypeHooks(domains.recordtype),

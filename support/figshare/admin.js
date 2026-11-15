@@ -14,7 +14,8 @@ if (values.help || !['inspect', 'reconcile', 'abandon-create', 'link', 'relink',
   console.log('Changes default to dry-run. Pause Figshare workers before applying migration or repairs. No command publishes or transfers ownership.');
   process.exit(values.help ? 0 : 1);
 }
-const { createPortalApplication } = require('@researchdatabox/redbox-core/portal');
+// Private pre-cutover application composition; no listener is acquired.
+const { createPortalApplication } = require('../../packages/redbox-core/dist/application/portal/application');
 let portal;
 (async () => {
   const { REDBOX_APPLICATION_CONFIG, REDBOX_ENVIRONMENT_CONFIG, REDBOX_LOCAL_CONFIG, ...env } = process.env;

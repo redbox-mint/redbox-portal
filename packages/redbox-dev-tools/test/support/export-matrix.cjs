@@ -18,7 +18,7 @@ function canonicalFileURL(value) {
 module.exports = function runExportMatrix(
   hasRuntimeExtensionExport,
   resolveExtensionExport,
-  hostModule = require.resolve('@researchdatabox/redbox-core/dist/extensions/loading')
+  hostModule = require.resolve('@researchdatabox/redbox-core/extensions')
 ) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'r20-exports-'));
   const cases = [],

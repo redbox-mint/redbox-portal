@@ -1,6 +1,11 @@
-export * from './application';
-export * from './host';
-export * from './http';
+export {
+  createPortalFastifyApplication,
+  type PortalApplicationOptions,
+  type PortalApplicationContext,
+  type PortalPdfInput,
+  type PortalPdfModule,
+} from './application';
+export { createPortalFastifyHost } from './host';
 export * from './domain';
 export { prepareSelectedPersistenceIndexes } from '../../persistence/maintenance';
 export { cleanupPersistence, persistenceStatus } from '../../persistence/runtime';

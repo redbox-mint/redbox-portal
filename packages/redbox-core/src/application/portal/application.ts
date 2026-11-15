@@ -14,14 +14,14 @@ import * as persistence from '../../persistence/runtime';
 import { initializeCachePersistence } from '../../persistence/cache/runtime';
 import { initializeStoragePersistence } from '../../persistence/storage/runtime';
 import { prepareSelectedPersistenceIndexes, type StorageIndexPreparation } from '../../persistence/maintenance';
+import { type ExtensionFactory, type ExtensionWork, type ResolvedRegistration } from '../../extensions';
 import {
   loadInstalledExtensionProviders,
   resolveExtensions,
-  type ExtensionFactory,
-  type ExtensionWork,
-  type ResolvedRegistration,
-  type ExtensionBindings,
-} from '../../extensions';
+  type ResolvedExtensions,
+} from '../../extensions/resolution';
+import type { ExtensionBindings } from '../../extensions/composition';
+import type { ExtensionHostIntegration } from '../../extensions/legacyContract';
 import type { RequestHandler, Router } from 'express';
 import type { Server } from 'node:http';
 import type { AgendaJobHandler } from '../../queues/AgendaQueue';
@@ -54,13 +54,13 @@ type LifecycleResolution = {
   readonly rawDeclaration?: ExtensionFactory;
   readonly pages?: import('./pageHttpPlan').PortalPages;
   readonly pageDeclaration?: ExtensionFactory;
-} & Pick<import('../../extensions').ResolvedExtensions, 'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'> &
-  Partial<Pick<import('../../extensions').ResolvedExtensions, 'handlers' | 'integrations' | 'routes' | 'middleware'>>;
+} & Pick<ResolvedExtensions, 'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'> &
+  Partial<Pick<ResolvedExtensions, 'handlers' | 'integrations' | 'routes' | 'middleware'>>;
 type InstalledContributions = {
   readonly providers: readonly {
     readonly name: string;
     readonly declaration: Pick<
-      import('../../extensions').RedboxExtension,
+      import('../../extensions').ExtensionData,
       'forms' | 'configModels' | 'contributors' | 'config' | 'workflows' | 'jobs'
     >;
   }[];
@@ -105,8 +105,6 @@ export interface PortalApplicationOptions {
     readonly jobs?: Readonly<Record<string, AgendaJobHandler>>;
     readonly schedules?: Readonly<Record<string, () => Promise<void>>>;
     readonly contributors?: Readonly<Record<string, import('../../record-contract').RecordContractContributor>>;
-    readonly handler?: ExtensionBindings['handler'];
-    readonly integration?: ExtensionBindings['integration'];
     readonly vocabularyLookups?: Readonly<
       Record<string, ReturnType<Parameters<typeof portalDataPlan>[3]['resolveVocabularyLookup']>>
     >;
@@ -116,8 +114,16 @@ export interface PortalApplicationOptions {
   readonly postBootstrap?: readonly ApplicationWork[];
 }
 
+/** Private pre-cutover host inputs; never exported by the package entrypoint. */
+export interface LegacyPortalApplicationOptions extends Omit<PortalApplicationOptions, 'bindings'> {
+  readonly bindings?: PortalApplicationOptions['bindings'] & {
+    readonly handler?: ExtensionBindings['handler'];
+    readonly integration?: ExtensionBindings['integration'];
+  };
+}
+
 /** Offline discovery/configuration/selection followed by one explicit production lifecycle. */
-export async function createPortalApplication(options: PortalApplicationOptions) {
+export async function createPortalApplication(options: LegacyPortalApplicationOptions) {
   const installed = await loadInstalledExtensionProviders(options.appPath, {
     includeDevDependencies: options.includeDevDependencies,
   });
@@ -151,11 +157,12 @@ export async function createPortalFastifyApplication(
   const portal = await buildPortalApplication(options, installed, context =>
     resolvePortalInstallation(installed, context, options.http, options.appPath)
   );
-  return { ...portal, installation: portal.resolved };
+  const { prepareExtensions: _legacyPreparation, ...nativePortal } = portal;
+  return { ...nativePortal, installation: portal.resolved };
 }
 
 async function buildPortalApplication<R extends LifecycleResolution>(
-  options: PortalApplicationOptions,
+  options: LegacyPortalApplicationOptions,
   installed: InstalledContributions,
   select: (
     context: PortalApplicationContext & { readonly plans: readonly { readonly declaration: ExtensionFactory }[] }
@@ -404,7 +411,7 @@ async function buildPortalApplication<R extends LifecycleResolution>(
     if (!options.bindings?.handler) throw new Error('Bind extension HTTP handler: ' + item.declaration.name);
     return { name: item.declaration.name, create: options.bindings.handler(item) };
   });
-  const integrations = new Map<string, import('../../extensions').ExtensionHostIntegration>();
+  const integrations = new Map<string, ExtensionHostIntegration>();
   for (const item of resolved.integrations ?? []) {
     if (!options.bindings?.integration) throw new Error('Bind extension host integration: ' + item.declaration.name);
     const create = options.bindings.integration(item);

@@ -20,7 +20,7 @@ import * as sinon from 'sinon';
 const load = (config: Record<string, unknown>) =>
   loadPortalConfiguration({
     env: { REDBOX_SESSION_SECRET: 'validation-defaults-disposable-session-secret' },
-    extensions: { providers: [{ name: 'institution', root: '.', declaration: { apiVersion: 1, config } }] },
+    extensions: { providers: [{ name: 'institution', declaration: { config } }] },
   });
 const json = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -391,6 +391,7 @@ describe('runtime-supplied startup defaults', () => {
 
   it('accepts an empty PDF filename prefix without coercion', async () => {
     const config = await load({ pdfgen: { ...pdfgen, pdfPrefix: '' } });
+    assert(config.pdfgen);
     assert.equal(config.pdfgen.pdfPrefix, '');
     await assert.rejects(load({ pdfgen: { ...pdfgen, pdfPrefix: false } }), /pdfPrefix/);
   });
@@ -407,6 +408,7 @@ describe('runtime-supplied startup defaults', () => {
       assert.deepEqual(config.pdfgen.PDFOptions, options);
     }
     const zeroTimeout = await load({ pdfgen: { ...pdfgen, readinessTimeout: 0 } });
+    assert(zeroTimeout.pdfgen);
     assert.equal(zeroTimeout.pdfgen.readinessTimeout, 0);
     await assert.rejects(load({ pdfgen: { ...pdfgen, readinessTimeout: -1 } }), /readinessTimeout/);
     for (const PDFOptions of [{ format: 'not-paper' }, { width: {} }, { margin: { top: false } }])

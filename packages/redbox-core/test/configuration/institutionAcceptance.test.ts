@@ -15,7 +15,7 @@ const env = { REDBOX_SESSION_SECRET: 'institution-acceptance-disposable-session-
 const load = (config: Record<string, unknown>) =>
   loadPortalConfiguration({
     env,
-    extensions: { providers: [{ name: 'institution', root: '.', declaration: { apiVersion: 1, config } }] },
+    extensions: { providers: [{ name: 'institution', declaration: { config } }] },
   });
 
 describe('institution startup acceptance', () => {

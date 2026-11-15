@@ -23,7 +23,8 @@ describe('executable startup diagnostics', () => {
           if (name === 'pino') return Object.assign(() => logger, { destination: () => ({}) });
           if (name.endsWith('/configuration')) return { ConfigurationError };
           if (name.endsWith('/extensions')) return { ExtensionError };
-          if (name.endsWith('/portal'))
+          if (name.endsWith('/portal') || name.endsWith('/host')) return {};
+          if (name.endsWith('/application'))
             return {
               createPortalApplication: async () => {
                 throw error;

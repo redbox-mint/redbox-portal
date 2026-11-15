@@ -1,3 +1,4 @@
+import type { ExtensionHostIntegration } from './legacyContract';
 import { integrationModule } from './integrationModule';
 import type { Server } from 'node:http';
 import type { RequestHandler, Router } from 'express';
@@ -10,24 +11,11 @@ import {
 import type { PersistenceOwner } from '../persistence/owner';
 import { httpAction } from '../http/express/middleware';
 import { initializeMigrationPersistence, getMigrationLedgerRepository } from '../persistence/migration/runtime';
-import type { ExtensionFactory, ExtensionHostIntegration, ExtensionWork } from './contract';
+import type { ExtensionFactory, ExtensionWork } from './contract';
 import { ExtensionError } from './loading';
 import type { ResolvedExtensions, ResolvedRegistration } from './resolution';
 
-/** Compose the selected factory with its concrete, factory-specific input. */
-export function bindExtensionFactory<Input, Output>(
-  factory: ExtensionFactory<Input, Output>,
-  input: Input
-): () => Output {
-  return () => factory.create(input);
-}
-
-export function bindExtensionWork<Input>(
-  work: { run(input: Input): Promise<void> },
-  input: Input
-): () => Promise<void> {
-  return () => work.run(input);
-}
+export { bindExtensionFactory, bindExtensionWork } from './bindings';
 
 export interface ExtensionBindings {
   work?(registration: ResolvedRegistration<ExtensionWork>): () => Promise<void>;

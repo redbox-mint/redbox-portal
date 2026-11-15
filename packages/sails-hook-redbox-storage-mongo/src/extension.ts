@@ -1,5 +1,5 @@
 import type { ApplicationModule } from '@researchdatabox/redbox-core/application';
-import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 import type { PersistenceOwner } from '@researchdatabox/redbox-core/extensions/storage';
 import { PrismaStorage } from './persistence/StorageProtocol';
 import { guardPrismaStorage } from './persistence/guardPrismaStorage';
@@ -25,9 +25,9 @@ export function createMongoStorageModule(input: MongoStorageInputs): MongoStorag
     close: async () => {},
   };
 }
-export function registerRedboxExtension(): RedboxExtension {
+export function registerRedboxExtension(): RedboxExtensionV2 {
   return {
-    apiVersion: 1,
+    apiVersion: 2,
     // Prisma index descriptors belong to explicit preflight; the legacy Mongo
     // config DSL remains with the comparison entrypoint.
     config: { storage: { serviceName: storage.serviceName }, record },

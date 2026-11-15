@@ -35,7 +35,7 @@ const env = { REDBOX_SESSION_SECRET: 'configuration-acceptance-synthetic-secret'
 const load = (config: Record<string, unknown> = {}) =>
   loadPortalConfiguration({
     env,
-    extensions: { providers: [{ name: 'baseline-data', root: '.', declaration: { apiVersion: 1, config } }] },
+    extensions: { providers: [{ name: 'baseline-data', declaration: { config } }] },
   });
 
 // Capture actual production inputs after startup resolution. Route behavior is covered

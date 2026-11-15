@@ -12,13 +12,17 @@ import { ProgressSockets, progressSocketPath, type ProgressCredential } from '..
 import type { AuthenticatedActor } from '../../http/express/identity';
 import { CompanionUploads, companionOptions } from '../../http/integrations/companion/uploads';
 
+// Companion's Express adapter stays behind the private production integration seam.
+const companions = new WeakMap<PortalRawHttp, CompanionUploads>();
+export const portalCompanion = (raw: PortalRawHttp | undefined): CompanionUploads | undefined =>
+  raw && companions.get(raw);
+
 /** Selected raw transports borrow the production domains and the host's one server. */
 export class PortalRawHttp implements ApplicationModule {
   multipart!: StreamingMultipart;
   sockets!: ProgressSockets;
   resumable!: ResumableUploads;
   logos!: Logos.BrandingLogo;
-  companion?: CompanionUploads;
   private isReady = () => false;
   private authenticate?: (credential: ProgressCredential) => Promise<AuthenticatedActor | false>;
   constructor(
@@ -99,13 +103,16 @@ export class PortalRawHttp implements ApplicationModule {
         },
       });
     if (config.companion.enabled)
-      this.companion = new CompanionUploads({
-        owner,
-        path: config.companion.route,
-        origins: [new URL(config.server.publicUrl).origin],
-        isReady: () => this.isReady(),
-        options: companionOptions(config.companion, config.server.rootContext),
-      });
+      companions.set(
+        this,
+        new CompanionUploads({
+          owner,
+          path: config.companion.route,
+          origins: [new URL(config.server.publicUrl).origin],
+          isReady: () => this.isReady(),
+          options: companionOptions(config.companion, config.server.rootContext),
+        })
+      );
   }
   uploadInput() {
     if (!this.upload || !this.multipart)
@@ -123,21 +130,21 @@ export class PortalRawHttp implements ApplicationModule {
   async prepare(server: Server, isReady: () => boolean): Promise<void> {
     this.isReady = isReady;
     if (this.progress) this.sockets.attach(server, { borrowedServer: true });
-    await this.companion?.initialize(server, { borrowedLifecycle: true });
+    await companions.get(this)?.initialize(server, { borrowedLifecycle: true });
   }
   quiesce(): void {
     this.multipart?.quiesce();
     this.resumable?.quiesce();
     this.logos?.quiesce();
     this.sockets?.quiesce();
-    this.companion?.quiesce();
+    companions.get(this)?.quiesce();
   }
   async drain(options: { deadline?: number } = {}): Promise<void> {
     await Promise.all([
       this.multipart?.drain(),
       this.resumable?.drain(),
       this.sockets?.drain(),
-      this.companion?.drain(options),
+      companions.get(this)?.drain(options),
     ]);
   }
   async close(): Promise<void> {
@@ -145,6 +152,6 @@ export class PortalRawHttp implements ApplicationModule {
     await this.resumable?.close();
     await this.logos?.close();
     await this.sockets?.close();
-    await this.companion?.close();
+    await companions.get(this)?.close();
   }
 }

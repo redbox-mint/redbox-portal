@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import type { RedboxExtension } from '../extensions/contract';
+import type { ExtensionData } from '../extensions/contract';
 
 /** Configuration depends only on version-independent data contributions. */
 export interface ConfigurationExtensions {
   readonly providers: readonly {
     readonly name: string;
-    readonly declaration: Pick<RedboxExtension, 'config' | 'workflows' | 'jobs'>;
+    readonly declaration: Pick<ExtensionData, 'config' | 'workflows' | 'jobs'>;
   }[];
 }
 

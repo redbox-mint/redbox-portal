@@ -5,11 +5,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { MongoClient } from 'mongodb';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import {
-  createPortalHost,
-  createPortalFastifyApplication,
-  createPortalFastifyHost,
-} from '../../../src/application/portal';
+import { createPortalFastifyApplication, createPortalFastifyHost } from '../../../src/application/portal';
+import { createPortalHost } from '../../../src/application/portal/host';
 import { prepareSelectedPersistenceIndexes } from '../../../src/persistence/maintenance';
 import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
 import { initializeBrandingPersistence, getBrandingRepository } from '../../../src/persistence/branding/runtime';
@@ -46,7 +43,7 @@ export async function referenceProductionFixture(
     readonly hooksModule?: string;
     readonly httpBindings?: import('../../../src/application/portal/installation').PortalFastifySelection['bindings'];
     readonly actions?: Readonly<Record<string, import('../../../src/http/actions/configuredActions').ConfiguredAction>>;
-    readonly bindings?: import('../../../src/application/portal/application').PortalApplicationOptions['bindings'];
+    readonly bindings?: import('../../../src/application/portal/application').LegacyPortalApplicationOptions['bindings'];
   }
 ) {
   assert(

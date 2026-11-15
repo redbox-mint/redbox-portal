@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
-import {
-  bindExtensionFactory,
-  composeExtensionApplication,
-  resolveExtensions,
-  type ExtensionProvider,
-} from '../../src/extensions';
+import { bindExtensionFactory } from '../../src/extensions';
+import { composeExtensionApplication } from '../../src/extensions/composition';
+import { resolveExtensions, type ExtensionProvider } from '../../src/extensions/resolution';
 import { ExpressHost } from '../../src/http/express';
 
 describe('owned extension composition', () => {

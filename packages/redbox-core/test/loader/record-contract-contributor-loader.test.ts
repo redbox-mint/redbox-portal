@@ -10,7 +10,7 @@ import {
   RECORD_CONTRACT_REGISTRATION_CODES,
 } from '../../src/record-contract';
 import type { RecordContractComponentContributor, RecordContractContributorRegistration } from '../../src/record-contract';
-import { loadExtensions } from '../../src/extensions';
+import { loadExtensions } from '../../src/extensions/resolution';
 
 const contributor = (key: string, componentType: string): RecordContractComponentContributor => ({
   kind: 'component', key, version: '1', componentType, ownedPointers: [''], nullability: 'non-null',

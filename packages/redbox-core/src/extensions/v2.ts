@@ -1,3 +1,4 @@
+import type { RedboxExtension } from './legacyContract';
 import type { PoliciesConfig } from '../config/policies.config';
 import type { BoundControllerFactory } from '../http/controllers';
 import type { ControllerRegistration, PortalHttpMethod, RouteAccess } from '../http/contracts';
@@ -6,11 +7,13 @@ import { composeHttpFallbacks } from '../http/fastify/fallbacks';
 import { HttpRouteRegistry, type CoreNamespaceConfiguration } from '../http/fastify/registry';
 import { composeControllers } from '../http/fastify/registration';
 import { apiRouteRegistrations, composeRoutes, coreRouteName, type RouteRegistration } from '../http/fastify/routes';
-import type { RedboxExtension, RedboxExtensionV2 } from './contract';
+import type { RedboxExtensionV2 } from './contract';
 import { ExtensionError, inspectInstalledExtensionProviders } from './loading';
 import { orderExtensionProviders, resolveExtensions, type ExtensionProvider } from './resolution';
 
-export interface ExtensionProviderV2 extends Omit<ExtensionProvider, 'declaration'> {
+export interface ExtensionProviderV2 {
+  readonly name: string;
+  readonly root: string;
   readonly declaration: RedboxExtensionV2;
 }
 
@@ -31,16 +34,31 @@ function accessIdentity(access: RouteAccess | undefined): string {
 function contributions(provider: { name: string; root: string; declaration: unknown }): ExtensionProvider {
   const value = provider.declaration;
   if (!object(value)) fail(provider.name, `expected apiVersion 2 declaration; convert using ${migration}`);
-  const legacy = ['handlers', 'middleware', 'integrations'].filter(field => field in value);
-  if (Array.isArray(value.routes) && value.routes.some(route => object(route) && 'handler' in route))
-    legacy.push('routes[].handler');
+  const legacy: string[] = [];
+  const identify = (field: string, entry: unknown, index: number) => {
+    const name = object(entry) && typeof entry.name === 'string' ? entry.name : undefined;
+    // Declaration identities are useful diagnostics; arbitrary values are never stringified.
+    return `${field}[${index}]${name && /^[a-zA-Z0-9_./:-]{1,160}$/.test(name) ? ` (${name})` : ''}`;
+  };
+  for (const field of ['handlers', 'middleware', 'integrations']) {
+    if (!(field in value)) continue;
+    const entries = value[field];
+    if (Array.isArray(entries) && entries.length)
+      entries.forEach((entry, index) => legacy.push(identify(field, entry, index)));
+    else legacy.push(field);
+  }
+  if (Array.isArray(value.routes))
+    value.routes.forEach((route, index) => {
+      if (object(route) && 'handler' in route) legacy.push(`${identify('routes', route, index)}.handler`);
+    });
   if (value.apiVersion !== 2 || legacy.length)
     fail(
       provider.name,
-      `expected apiVersion 2; found ${legacy.length ? `API1 HTTP construct(s): ${legacy.join(', ')}` : `apiVersion ${String(value.apiVersion)}`}. ` +
+      `expected apiVersion 2; found ${legacy.length ? `API1 HTTP construct(s): ${legacy.join(', ')}` : `apiVersion ${typeof value.apiVersion === 'number' ? value.apiVersion : 'invalid'}`}. ` +
         'Return apiVersion: 2; replace handlers with controllers using defineController({ name, actions, create }), ' +
-        'map routes to controller/action and explicit access: { kind: "public" | "policies" | "deny" }; ' +
+        'map routes[].handler to controller/action and explicit access: { kind: "public" | "policies" | "deny" }; ' +
         'replace middleware with scoped hooks/fallbacks, and move raw-server integrations to qualified core owners. ' +
+        'Generate an API2 example with redbox-dev-tools init example --template v6. ' +
         `Keep non-HTTP fields unchanged. Migration: ${migration}`
     );
   if (value.controllers !== undefined && !Array.isArray(value.controllers))

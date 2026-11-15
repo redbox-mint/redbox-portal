@@ -314,7 +314,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: a fresh generated extension compiles without manual transport fixes
     and runs its declared protected/public actions through production composition.
 
-- [ ] **FM-038 — Convert bundled hooks and public exports.**
+- [x] **FM-038 — Convert bundled hooks and public exports.**
   - Dependencies: FM-037; consumed P3–P5 contracts.
   - Work: convert all bundled controller/handler/middleware contributions, retire
     Express exports, keep non-HTTP configuration/work/assets behavior unchanged.

@@ -235,6 +235,7 @@ function collectInventory() {
     prefix + 'application/portal/http.ts',
     prefix + 'application/portal/host.ts',
     prefix + 'extensions/contract.ts',
+    prefix + 'extensions/legacyContract.ts',
     prefix + 'extensions/resolution.ts',
     prefix + 'extensions/composition.ts',
     prefix + 'config/companion.config.ts',
@@ -998,7 +999,7 @@ function collectInventory() {
     surface(
       'extension-http-contract',
       'extension-contract',
-      prefix + 'extensions/contract.ts',
+      prefix + 'extensions/legacyContract.ts',
       'ExtensionRoute',
       'declared method',
       'installed extension declarations',

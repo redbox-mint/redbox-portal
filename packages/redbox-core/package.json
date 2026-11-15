@@ -75,7 +75,8 @@
     "test:http-uploads:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT) throw new Error('Disposable Mongo and Solr are required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 60000 test/http/fastify/uploadBindings.test.ts test/http/fastify/UploadDifferentialMongo.test.ts",
     "test:http-progress:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT) throw new Error('Disposable Mongo and Solr are required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 60000 test/http/fastify/ProgressDifferentialMongo.test.ts test/http/ProgressSockets.test.ts test/http/ProgressSocketsMongo.test.ts test/http/recordProgressContracts.test.ts test/http/fastify/rawPreparation.test.ts",
     "test:http-generated:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT) throw new Error('Disposable Mongo and Solr required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --require test/http/fastify/ownedCleanupProbe.cjs --timeout 180000 test/http/fastify/GeneratedExtensionMongo.test.ts",
-    "test:http-g5:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT) throw new Error('Disposable Mongo and Solr are required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --require test/http/fastify/ownedCleanupProbe.cjs --timeout 60000 test/http/fastify/rawBoundaryReconciliation.test.ts test/http/fastify/RawShutdownMongo.test.ts test/http/fastify/RawObservationsMongo.test.ts"
+    "test:http-g5:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT) throw new Error('Disposable Mongo and Solr are required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --require test/http/fastify/ownedCleanupProbe.cjs --timeout 60000 test/http/fastify/rawBoundaryReconciliation.test.ts test/http/fastify/RawShutdownMongo.test.ts test/http/fastify/RawObservationsMongo.test.ts",
+    "test:http-bundled:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT) throw new Error('Disposable Mongo and Solr required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --require test/http/fastify/ownedCleanupProbe.cjs --timeout 180000 test/http/fastify/BundledHooksMongo.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -286,10 +287,6 @@
       "types": "./dist/recordTypes/index.d.ts",
       "default": "./dist/recordTypes/index.js"
     },
-    "./http/express": {
-      "types": "./dist/http/express/index.d.ts",
-      "default": "./dist/http/express/index.js"
-    },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
@@ -326,10 +323,6 @@
       "types": "./dist/form-config/index.d.ts",
       "default": "./dist/form-config/index.js"
     },
-    "./dist/http/express": {
-      "types": "./dist/http/express/index.d.ts",
-      "default": "./dist/http/express/index.js"
-    },
     "./dist/model/api": {
       "types": "./dist/model/api/index.d.ts",
       "default": "./dist/model/api/index.js"
@@ -362,15 +355,6 @@
       "types": "./dist/services/index.d.ts",
       "default": "./dist/services/index.js"
     },
-    "./dist/*.js": "./dist/*.js",
-    "./dist/*.json": "./dist/*.json",
-    "./dist/*.d.ts": "./dist/*.d.ts",
-    "./dist/*.map": "./dist/*.map",
-    "./dist/*": {
-      "types": "./dist/*.d.ts",
-      "default": "./dist/*.js"
-    },
-    "./*": "./*",
     "./maintenance": {
       "types": "./dist/maintenance/indexes.d.ts",
       "default": "./dist/maintenance/indexes.js"
@@ -426,6 +410,31 @@
     "./portal": {
       "types": "./dist/application/portal/index.d.ts",
       "default": "./dist/application/portal/index.js"
+    },
+    "./package.json": "./package.json",
+    "./dist/persistence/branding/runtime": {
+      "types": "./dist/persistence/branding/runtime.d.ts",
+      "default": "./dist/persistence/branding/runtime.js"
+    },
+    "./dist/persistence/branding/runtime.js": {
+      "types": "./dist/persistence/branding/runtime.d.ts",
+      "default": "./dist/persistence/branding/runtime.js"
+    },
+    "./dist/branding/typefaceMigration": {
+      "types": "./dist/branding/typefaceMigration.d.ts",
+      "default": "./dist/branding/typefaceMigration.js"
+    },
+    "./dist/branding/typefaceMigration.js": {
+      "types": "./dist/branding/typefaceMigration.d.ts",
+      "default": "./dist/branding/typefaceMigration.js"
+    },
+    "./dist/recordTypes/index": {
+      "types": "./dist/recordTypes/index.d.ts",
+      "default": "./dist/recordTypes/index.js"
+    },
+    "./dist/recordTypes/index.js": {
+      "types": "./dist/recordTypes/index.d.ts",
+      "default": "./dist/recordTypes/index.js"
     }
   }
 }

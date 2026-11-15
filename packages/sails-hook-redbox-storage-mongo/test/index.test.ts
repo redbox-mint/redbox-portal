@@ -3,7 +3,7 @@ const { expect } = require('chai');
 describe('storage-mongo extension exports', function () {
   it('registers the storage module, migration and configuration from the package entrypoint', () => {
     const extension = require('../src').registerRedboxExtension();
-    expect(extension.apiVersion).to.equal(1);
+    expect(extension.apiVersion).to.equal(2);
     expect(extension.modules.map((module: any) => module.name)).to.deep.equal(['storage']);
     expect(extension.migrations).to.have.length(1);
     expect(extension.config).to.deep.equal({

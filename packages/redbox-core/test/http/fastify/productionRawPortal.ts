@@ -5,12 +5,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { MongoClient } from 'mongodb';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import {
-  createPortalFastifyApplication,
-  createPortalFastifyHost,
-  createPortalHost,
-  type PortalApplicationOptions,
-} from '../../../src/application/portal';
+import { createPortalFastifyApplication, createPortalFastifyHost } from '../../../src/application/portal';
+import { createPortalHost } from '../../../src/application/portal/host';
 import { addDataStreamsRoute, getMetaRoute, updateMetaRoute } from '../../../src/api-routes/groups/records';
 import { prepareSelectedPersistenceIndexes } from '../../../src/persistence/maintenance';
 import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
@@ -20,13 +16,13 @@ import { initializeReferencePersistence, getReferenceRepositories } from '../../
 import { HttpIdentity } from '../../../src/http/express/identity';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
-import type { ApiRouteDefinition } from '../../../src/api-routes/types';
+import type { ApiRouteSource } from '../../../src/http/fastify/routes';
 
 export interface RawPortalOptions {
   readonly port?: number;
   readonly companion?: Partial<import('../../../src/config/companionDefaults').CompanionConfig>;
   readonly policyConfiguration?: import('../../../src/config/policies.config').PoliciesConfig;
-  readonly declarations?: readonly ApiRouteDefinition[];
+  readonly declarations?: readonly ApiRouteSource[];
   readonly progress?: boolean;
   beforeActivate?(host: Awaited<ReturnType<typeof createPortalFastifyHost>>['host']): Promise<void>;
   prepare(portal: Awaited<ReturnType<typeof createPortalFastifyApplication>>): Promise<void>;
@@ -119,7 +115,9 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
     | undefined;
   let nativePlan: Awaited<ReturnType<typeof createPortalFastifyHost>> | undefined;
   try {
-    const bindings: NonNullable<PortalApplicationOptions['bindings']> = {
+    const bindings: NonNullable<
+      import('../../../src/application/portal/application').LegacyPortalApplicationOptions['bindings']
+    > = {
       handler: registration => () => registration.declaration.create(undefined as never),
     };
     const common = {

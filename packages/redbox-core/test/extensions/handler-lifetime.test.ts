@@ -6,7 +6,9 @@ import type { RequestHandler } from 'express';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime } from '../../src/application';
 import { createPortalApplication } from '../../src/application/portal/application';
-import { composeExtensionApplication, resolveExtensions, type RedboxExtension } from '../../src/extensions';
+import { composeExtensionApplication } from '../../src/extensions/composition';
+import { resolveExtensions } from '../../src/extensions/resolution';
+import { type RedboxExtension } from '../../src/extensions/legacyContract';
 import { ExpressHost } from '../../src/http/express';
 import { persistenceOperation } from '../../src/persistence/runtime';
 

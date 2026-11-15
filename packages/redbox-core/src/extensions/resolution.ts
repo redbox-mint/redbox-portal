@@ -1,6 +1,8 @@
+import type { ExtensionRoute } from './legacyContract';
+import type { RedboxExtension } from './legacyContract';
 import path from 'node:path';
 import { parse, pathToRegexp, TokenData, type Token } from 'path-to-regexp';
-import type { RedboxExtension, ExtensionFactory, ExtensionRoute, ExtensionWork } from './contract';
+import type { ExtensionFactory, ExtensionWork } from './contract';
 import { ExtensionError, inspectInstalledExtensionProviders } from './loading';
 
 export interface ExtensionProvider {
@@ -385,8 +387,16 @@ export async function loadInstalledExtensionProviders(
   const providers: ExtensionProvider[] = options.core
     ? [{ name: 'core', root: appPath, declaration: options.core }]
     : [];
-  for (const provider of installed.providers)
-    providers.push({ ...provider, declaration: provider.declaration as RedboxExtension });
+  for (const provider of installed.providers) {
+    const value = provider.declaration;
+    if (value && typeof value === 'object' && Reflect.get(value, 'apiVersion') === 2) {
+      // Data-only hooks are shared during cutover; never reinterpret Fastify HTTP as Express.
+      for (const field of ['controllers', 'routes', 'hooks', 'fallbacks', 'handlers', 'middleware', 'integrations'])
+        if (Reflect.get(value, field) !== undefined)
+          fail(provider.name, `API2 ${field} requires the Fastify host; the retained Express host accepts data-only API2 hooks`);
+      providers.push({ ...provider, declaration: { ...value, apiVersion: 1 } as RedboxExtension });
+    } else providers.push({ ...provider, declaration: value as RedboxExtension });
+  }
   return {
     providers: orderExtensionProviders(providers, installed.hookLoadPriority),
     hookLoadPriority: installed.hookLoadPriority,

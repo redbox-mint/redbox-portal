@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
-import { bindExtensionFactory, composeExtensionApplication, resolveExtensions } from '../../src/extensions';
+import { bindExtensionFactory } from '../../src/extensions';
+import { composeExtensionApplication } from '../../src/extensions/composition';
+import { resolveExtensions } from '../../src/extensions/resolution';
 import { ExpressHost } from '../../src/http/express/ExpressHost';
 
 describe('HTTP preparation and application cleanup', () => {

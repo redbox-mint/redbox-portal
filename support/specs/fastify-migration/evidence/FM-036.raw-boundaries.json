@@ -6112,22 +6112,22 @@
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
     "packages/redbox-core/src/application/migrations.ts": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
-    "packages/redbox-core/src/application/portal/application.ts": "d577e1c969fbe81288c70f56a38972288bbce84e3fe5544e1607de81934ac248",
+    "packages/redbox-core/src/application/portal/application.ts": "17226b52f6cf9bada49cab7b2509da302962b031fb8f7d9dedb7d7ccccd90cbc",
     "packages/redbox-core/src/application/portal/compositionInputs.ts": "bd847e1dc558a06da58149f0b266dbd280857b963387dd90dffb86fb8a411769",
     "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "11fbab604f1a0d678518c15b97e474996f9f6238ecae781e7aa9d4df8bc0828d",
+    "packages/redbox-core/src/application/portal/host.ts": "df4f9afc624f647fbf7734d1f9915394dfff42eb7a099b0c134b0b1d62332d0c",
     "packages/redbox-core/src/application/portal/http.ts": "fa012353b7c01b64fc2ca2887a79fc6173248855a9cd761d063727884b505f1e",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
-    "packages/redbox-core/src/application/portal/index.ts": "4d6938e7d0cd207290eb99b6c1251c19a6fcbdd67483c86dc021ad313a212b39",
+    "packages/redbox-core/src/application/portal/index.ts": "2627866a4d858e7a5a2b0f69f5089cd55fdfbea7fa06689102acd8fe63268f7f",
     "packages/redbox-core/src/application/portal/installation.ts": "9c6a9749b65b4520a0e191b4b6d2f1cf36109bf8f61eb078a22fa1bec1f51612",
     "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "c39a2e343feb74b735c2f7214b3a16c28fa3cea449a93bee5b0238012378524c",
     "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "ab10714e86594737893a7969e7acd78c32db22ac1c26b85f00adef72c387bda0",
     "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "7c47a1438b729768983014aaf4dada9b13815c97ca33f8e1a5a9a021f50bd4af",
     "packages/redbox-core/src/application/portal/providers.ts": "32daf1c9dab7936148e14ef13a49c3744f74ea9292ef47006457bde1edb20ccd",
-    "packages/redbox-core/src/application/portal/rawHttp.ts": "8fe3c4f48b44d9891fae3b9a815011a42cecbcb11f1c0b3f676c0a7c9276295d",
+    "packages/redbox-core/src/application/portal/rawHttp.ts": "87585a43dc7ae21684a8822b65f09d46c45121d0edeadcee38c9a5e5b5609401",
     "packages/redbox-core/src/application/portal/readHttpPlan.ts": "0f055e58b2c24f10511f0f7ff4c72d65a0b829737877784deb181aad05e4460a",
     "packages/redbox-core/src/application/portal/recordOperations.ts": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a",
     "packages/redbox-core/src/application/portal/reference.ts": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f",
@@ -6226,7 +6226,7 @@
     "packages/redbox-core/src/configuration/index.ts": "84b13ecd4844993a32543edabfb25b536179b6a76ba704e1e7684cb8ef27fcdd",
     "packages/redbox-core/src/configuration/loading.ts": "c3e6a270c50a3891729928135e64e34ed914b31833be47d54b3d83cd793237e7",
     "packages/redbox-core/src/configuration/portal.ts": "aa18936f044ad938ef489525d31420ea1a80bef1a13db8e2aa1f19a4ff62985e",
-    "packages/redbox-core/src/configuration/resolution.ts": "7207ca593ed303dae9ae5191ffa2e3a75a8644364b1f90d72841aa698b36eae2",
+    "packages/redbox-core/src/configuration/resolution.ts": "76d5a8328e1c8c13ec4adb989155b374f695325d117b2cb135b1c3503e5d4b59",
     "packages/redbox-core/src/constants/export.ts": "cc2f14008a47b922d9db7612eaa4bc785bf6871d5c8d983fba6821da35875898",
     "packages/redbox-core/src/dashboards/DashboardConfig.ts": "36f792ea7bc8efefe91c679d9a0cecaaed25fa2d37546353e93ddaf3dabd7443",
     "packages/redbox-core/src/dashboards/DashboardLegacyConversion.ts": "d3a7961e9b4fc3e7d9af56892f3a2462859c05a2fde5855a00bea3bb05bfde40",
@@ -6234,16 +6234,18 @@
     "packages/redbox-core/src/dashboards/index.ts": "02f8ca4931bb2ef0061d85866b813896a3983b8fa82ed2229b9fc97c53b9a6e8",
     "packages/redbox-core/src/decorator/PopulateExportedMethods.decorator.ts": "1c52867effeace6830a8f7b1d8313cf9834e5835e51aa85e9011ea2d14bedcfc",
     "packages/redbox-core/src/decorator/index.ts": "16ac7fb38948c927da673f1122c7873e013f9528a51c5b7687a74693d7e14b05",
-    "packages/redbox-core/src/extensions/composition.ts": "45ad55512ee0986ba970bab4bb82ec4299feed1f5cc659801fb8991e48f9d115",
+    "packages/redbox-core/src/extensions/bindings.ts": "eaccd3db776c7d02c7d747e8a70bed8f36a854c23b961d8d739996f50c3761c7",
+    "packages/redbox-core/src/extensions/composition.ts": "d2ae6140e1c5389cda3d1c5686e90f22c9b34f6a0c219c1600409ae6af53a9a5",
     "packages/redbox-core/src/extensions/config.ts": "eefe9292c8eb59a3466bb57b2c51f906fd4170fd8ecebc81e07636fe5ade4996",
-    "packages/redbox-core/src/extensions/contract.ts": "fabd98aebd84df9b8b27530ef1f3679de8f7c4bbaa72ecb00cbed5eb3b21e157",
+    "packages/redbox-core/src/extensions/contract.ts": "a7a662fa66d0e9bade814a3a7d6f3a80b14ec756f0e52e44155a0d87a263a9ad",
     "packages/redbox-core/src/extensions/exports.ts": "52248700fa015cfb08685662b790876a55a8ab05bf1babb0d493f37d779301f9",
-    "packages/redbox-core/src/extensions/index.ts": "b4e738cf868665bd7721a9788beecdd45eb1ef1e38ce7b93aad579c8f74d2a12",
-    "packages/redbox-core/src/extensions/integrationModule.ts": "eb6df3af0bc7baf56c4d0011c263024b97b2b8474827705ed23cfc7213878dc2",
+    "packages/redbox-core/src/extensions/index.ts": "dcabb113818ba6d4464304982f9d73eba306d1db2047612f062577c07a014875",
+    "packages/redbox-core/src/extensions/integrationModule.ts": "84bf53dea810d3654954fcc2973d5072cd8687ce338cd7650de0575502040cfd",
+    "packages/redbox-core/src/extensions/legacyContract.ts": "6ffdfe9e17cfcb340df596f8804835cd4891c655c0a63c6f1896390e6dd02170",
     "packages/redbox-core/src/extensions/loading.ts": "28bd41f8c84504cb8ad5851bd5b46c3094c34ba69f743048afb0bca26c41a672",
-    "packages/redbox-core/src/extensions/resolution.ts": "0447d987b564188b0039aaa3a218e85b3c1a4beb2608e99e702c85b5ebb6b77d",
+    "packages/redbox-core/src/extensions/resolution.ts": "be0f867d062dfdbf2566b72b0a75c47b4e31318e05d6382428680c28b1e559d5",
     "packages/redbox-core/src/extensions/storage.ts": "6baae36567e571e1f714ab1df4df4e35c28747b3d83af429e503c54ab97cad7c",
-    "packages/redbox-core/src/extensions/v2.ts": "46f6fca0dee4055163ba4560f6fe5734b02629b7e8f4abde755d967fc78c9dfb",
+    "packages/redbox-core/src/extensions/v2.ts": "b6393d5dd61c66767e9d0f2f01d03a2a90a1b1f71c8747045a0852fcb719889a",
     "packages/redbox-core/src/form-config/generated-view-only.ts": "2e562b328cf229a55cf3fe5136a29ae5ebac303e698e780b6024ce52fec98dd0",
     "packages/redbox-core/src/form-config/index.ts": "831f73a8bf88c106ce8de630a738bf7bc52b96d10129aeb0a4aac057fc012ba4",
     "packages/redbox-core/src/forms/ContextVariables.ts": "5520f614751d52912471569eea62260679e06e0477ca7afc3dca8ce478266421",
@@ -6425,7 +6427,7 @@
     "packages/redbox-core/src/identity/Users.ts": "81108aa8780214d85b6443bc748f857a453f355fbb9a07578ad63ad8f959a261",
     "packages/redbox-core/src/identity/bootstrap.ts": "d4947918eb8ef346900ec417c9afecb914776a3a62fd5150b3994a595c0e17ab",
     "packages/redbox-core/src/identity/index.ts": "d4596ca0cd5648595d009da6b7b72c608d7b8a5807781b3008d8f8d72e17c22c",
-    "packages/redbox-core/src/index.ts": "2d8bcd58586e226947b05c57bbfa49f0b4a0cbe14e97d0f8b9914d4e704693f1",
+    "packages/redbox-core/src/index.ts": "4a056f9f72ffb96bf4ced651854564632258211f36417bb701efd208952c672f",
     "packages/redbox-core/src/integrations/Doi.ts": "63db28f1f6a351bf8e4d52b2f690fefbac1a85019e6157596cac8ed6feb3fbe8",
     "packages/redbox-core/src/integrations/Email.ts": "2b17d88cdeb72a4874574b848929f69107b0affb659f0f7c2d0cec10e34d0e71",
     "packages/redbox-core/src/integrations/Figshare.ts": "4ec09da2e0b114954f00f46af55f535638d04d295a51b4537b5ee75b182d603f",
@@ -6493,7 +6495,7 @@
     "packages/redbox-core/src/model/config/SolrConfig.ts": "c5aa9e9704af8a5b38796afcdf9579c1bf391b657720792152a68b47f52fd3c3",
     "packages/redbox-core/src/model/config/VocabQueryConfig.ts": "e5d8fda364be60ac5fc42495876c82e7ac917c53597f34ed2f55e21a22940654",
     "packages/redbox-core/src/model/config/index.ts": "3530d0087c215316e49cd7a4fab2043f33847e36b0253e7fdbf84a1d2b574125",
-    "packages/redbox-core/src/model/index.ts": "616fb480abea7106be50ddcdd7afb5714c9d83cb1ec7a69588b988b35057f2a7",
+    "packages/redbox-core/src/model/index.ts": "f7a2ef113f5b175ee3c1fa659e32891e74f70ec8234c0837c52dc92cc2a1ea0e",
     "packages/redbox-core/src/model/record-contract.ts": "ba296cdec8dc3e705c66e0da421fc60c16d1bde4cd35448ca6f09bf81111a864",
     "packages/redbox-core/src/model/storage/AppConfigModel.ts": "7c02c1cd4838fd80a2a7b68c02b1a585421e575f70868ed986d2892e42bbf3b4",
     "packages/redbox-core/src/model/storage/AsynchProgressModel.ts": "0846a89cc53f1b17d86bcc9ced97097a4dfd2587b95469aeb68d741a559f6b6d",
@@ -35278,7 +35280,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/application.ts",
       "kind": "typed-handoff",
-      "line": 518,
+      "line": 525,
       "call": "handler(req, res, next)",
       "scopes": [
         "buildPortalApplication",
@@ -35310,7 +35312,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/application.ts",
       "kind": "typed-handoff",
-      "line": 518,
+      "line": 525,
       "call": "handler(req, res, next)",
       "scopes": [
         "buildPortalApplication",
@@ -35342,7 +35344,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/application.ts",
       "kind": "typed-handoff",
-      "line": 524,
+      "line": 531,
       "call": "instance.prepare(server)",
       "scopes": [
         "buildPortalApplication",
@@ -35376,7 +35378,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/application.ts",
       "kind": "typed-handoff",
-      "line": 534,
+      "line": 541,
       "call": "boundPolicy(req, res, next)",
       "scopes": [
         "buildPortalApplication",
@@ -35410,7 +35412,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/application.ts",
       "kind": "typed-handoff",
-      "line": 534,
+      "line": 541,
       "call": "boundPolicy(req, res, next)",
       "scopes": [
         "buildPortalApplication",
@@ -35444,7 +35446,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 66,
+      "line": 67,
       "call": "http.prepare(router, server)",
       "scopes": [
         "createPortalHost"
@@ -35474,7 +35476,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 66,
+      "line": 67,
       "call": "http.prepare(router, server)",
       "scopes": [
         "createPortalHost"
@@ -35505,7 +35507,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 120,
+      "line": 121,
       "call": "return authentication.authenticate(request);",
       "scopes": [
         "createPortalFastifyHost"
@@ -35535,7 +35537,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 120,
+      "line": 121,
       "call": "authentication.authenticate(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -35566,7 +35568,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 147,
+      "line": 148,
       "call": "resolved.raw?.prepare(server, () => application.status().ready)",
       "scopes": [
         "createPortalFastifyHost"
@@ -35597,7 +35599,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 158,
+      "line": 159,
       "call": "serveStaticAsset( request, reply, resolved.pages!.artifacts, rootContext, { publicUrl: portal.config.server.publicUrl, sessionMaxAgeMs: portal.config.redboxSession.cookie?.maxAge, noCache: resolved.pages!.noCache, }, beforeSend )",
       "scopes": [
         "createPortalFastifyHost"
@@ -35627,7 +35629,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 158,
+      "line": 159,
       "call": "serveStaticAsset( request, reply, resolved.pages!.artifacts, rootContext, { publicUrl: portal.config.server.publicUrl, sessionMaxAgeMs: portal.config.redboxSession.cookie?.maxAge, noCache: resolved.pages!.noCache, }, beforeSend )",
       "scopes": [
         "createPortalFastifyHost"
@@ -35658,7 +35660,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 158,
+      "line": 159,
       "call": "serveStaticAsset( request, reply, resolved.pages!.artifacts, rootContext, { publicUrl: portal.config.server.publicUrl, sessionMaxAgeMs: portal.config.redboxSession.cookie?.maxAge, noCache: resolved.pages!.noCache, }, beforeSend )",
       "scopes": [
         "createPortalFastifyHost"
@@ -35689,7 +35691,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 173,
+      "line": 174,
       "call": "requestPathname(request.raw.url ?? '/')",
       "scopes": [
         "createPortalFastifyHost"
@@ -35720,7 +35722,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 173,
+      "line": 174,
       "call": "request.raw.url",
       "scopes": [
         "createPortalFastifyHost"
@@ -35750,7 +35752,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 173,
+      "line": 174,
       "call": "request.raw",
       "scopes": [
         "createPortalFastifyHost"
@@ -35780,7 +35782,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 174,
+      "line": 175,
       "call": "['GET', 'HEAD'].includes(request.method)",
       "scopes": [
         "createPortalFastifyHost"
@@ -35811,7 +35813,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 174,
+      "line": 175,
       "call": "request.method",
       "scopes": [
         "createPortalFastifyHost"
@@ -35841,7 +35843,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 177,
+      "line": 178,
       "call": "raw.slice(0, rootContext.length).toLowerCase()",
       "scopes": [
         "createPortalFastifyHost"
@@ -35871,7 +35873,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 177,
+      "line": 178,
       "call": "raw.slice(0, rootContext.length)",
       "scopes": [
         "createPortalFastifyHost"
@@ -35901,7 +35903,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 181,
+      "line": 182,
       "call": "raw.slice(rootContext.length)",
       "scopes": [
         "createPortalFastifyHost"
@@ -35931,7 +35933,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 182,
+      "line": 183,
       "call": "/^\\/(?:[^/]+\\/[^/]+\\/)?(?:js|styles|images|fonts|angular|icons)(?:\\/|$)/.test( relative )",
       "scopes": [
         "createPortalFastifyHost"
@@ -35962,7 +35964,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 185,
+      "line": 186,
       "call": "resolved.registry.protects(raw)",
       "scopes": [
         "createPortalFastifyHost"
@@ -35993,7 +35995,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 188,
+      "line": 189,
       "call": "/^\\/([^/]+)\\/([^/]+)(?:\\/.*)?$/.exec(relative)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36024,7 +36026,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-property-write",
-      "line": 191,
+      "line": 192,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -36054,7 +36056,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 191,
+      "line": 192,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -36084,7 +36086,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 191,
+      "line": 192,
       "call": "decodeURIComponent(match[1])",
       "scopes": [
         "createPortalFastifyHost"
@@ -36115,7 +36117,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 191,
+      "line": 192,
       "call": "decodeURIComponent(match[2])",
       "scopes": [
         "createPortalFastifyHost"
@@ -36146,7 +36148,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 193,
+      "line": 194,
       "call": "return reply.code(400).send();",
       "scopes": [
         "createPortalFastifyHost"
@@ -36176,7 +36178,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 193,
+      "line": 194,
       "call": "reply.code(400).send()",
       "scopes": [
         "createPortalFastifyHost"
@@ -36206,7 +36208,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 193,
+      "line": 194,
       "call": "reply.code(400).send",
       "scopes": [
         "createPortalFastifyHost"
@@ -36236,7 +36238,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 193,
+      "line": 194,
       "call": "reply.code(400)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36266,7 +36268,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 193,
+      "line": 194,
       "call": "reply.code",
       "scopes": [
         "createPortalFastifyHost"
@@ -36296,7 +36298,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 196,
+      "line": 197,
       "call": "policies[name]!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36329,7 +36331,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 196,
+      "line": 197,
       "call": "policies[name]!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36362,7 +36364,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 197,
+      "line": 198,
       "call": "httpReplySubmitted(reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36395,7 +36397,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 199,
+      "line": 200,
       "call": "requestContext(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36426,7 +36428,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 200,
+      "line": 201,
       "call": "return reply.code(403).send();",
       "scopes": [
         "createPortalFastifyHost"
@@ -36456,7 +36458,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 200,
+      "line": 201,
       "call": "reply.code(403).send()",
       "scopes": [
         "createPortalFastifyHost"
@@ -36486,7 +36488,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 200,
+      "line": 201,
       "call": "reply.code(403).send",
       "scopes": [
         "createPortalFastifyHost"
@@ -36516,7 +36518,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 200,
+      "line": 201,
       "call": "reply.code(403)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36546,7 +36548,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 200,
+      "line": 201,
       "call": "reply.code",
       "scopes": [
         "createPortalFastifyHost"
@@ -36576,7 +36578,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 201,
+      "line": 202,
       "call": "Object.values(request.query as Record<string, unknown>).some(value => typeof value !== 'string')",
       "scopes": [
         "createPortalFastifyHost"
@@ -36606,7 +36608,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 201,
+      "line": 202,
       "call": "Object.values(request.query as Record<string, unknown>)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36637,7 +36639,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 201,
+      "line": 202,
       "call": "request.query",
       "scopes": [
         "createPortalFastifyHost"
@@ -36667,7 +36669,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 202,
+      "line": 203,
       "call": "return reply.code(400).send();",
       "scopes": [
         "createPortalFastifyHost"
@@ -36697,7 +36699,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 202,
+      "line": 203,
       "call": "reply.code(400).send()",
       "scopes": [
         "createPortalFastifyHost"
@@ -36727,7 +36729,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 202,
+      "line": 203,
       "call": "reply.code(400).send",
       "scopes": [
         "createPortalFastifyHost"
@@ -36757,7 +36759,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 202,
+      "line": 203,
       "call": "reply.code(400)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36787,7 +36789,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 202,
+      "line": 203,
       "call": "reply.code",
       "scopes": [
         "createPortalFastifyHost"
@@ -36817,7 +36819,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 203,
+      "line": 204,
       "call": "return sendPageError(request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 404);",
       "scopes": [
         "createPortalFastifyHost"
@@ -36847,7 +36849,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 203,
+      "line": 204,
       "call": "sendPageError(request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 404)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36878,7 +36880,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 203,
+      "line": 204,
       "call": "sendPageError(request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 404)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36909,7 +36911,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 203,
+      "line": 204,
       "call": "csrf.generateToken(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36939,7 +36941,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 203,
+      "line": 204,
       "call": "csrf.generateToken(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -36970,7 +36972,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 208,
+      "line": 209,
       "call": "return datastreamReadGuard(request, reply, resolved.downloadInput, binding.route.declaration.action);",
       "scopes": [
         "createPortalFastifyHost"
@@ -37000,7 +37002,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 208,
+      "line": 209,
       "call": "datastreamReadGuard(request, reply, resolved.downloadInput, binding.route.declaration.action)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37031,7 +37033,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 208,
+      "line": 209,
       "call": "datastreamReadGuard(request, reply, resolved.downloadInput, binding.route.declaration.action)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37062,7 +37064,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 209,
+      "line": 210,
       "call": "return integrationGuard(binding, request, reply);",
       "scopes": [
         "createPortalFastifyHost"
@@ -37092,7 +37094,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 209,
+      "line": 210,
       "call": "integrationGuard(binding, request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37123,7 +37125,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 209,
+      "line": 210,
       "call": "integrationGuard(binding, request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37154,7 +37156,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 211,
+      "line": 212,
       "call": "return identityAdministrationGuard(binding, request, reply);",
       "scopes": [
         "createPortalFastifyHost"
@@ -37184,7 +37186,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 211,
+      "line": 212,
       "call": "identityAdministrationGuard(binding, request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37215,7 +37217,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 211,
+      "line": 212,
       "call": "identityAdministrationGuard(binding, request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37246,7 +37248,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 212,
+      "line": 213,
       "call": "return mutationGuard(binding, request, reply);",
       "scopes": [
         "createPortalFastifyHost"
@@ -37276,7 +37278,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 212,
+      "line": 213,
       "call": "mutationGuard(binding, request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37307,7 +37309,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 212,
+      "line": 213,
       "call": "mutationGuard(binding, request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37338,7 +37340,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 213,
+      "line": 214,
       "call": "return schemaReadPrelude(request, reply);",
       "scopes": [
         "createPortalFastifyHost"
@@ -37368,7 +37370,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-construction",
-      "line": 213,
+      "line": 214,
       "call": "schemaReadPrelude(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37396,7 +37398,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 213,
+      "line": 214,
       "call": "schemaReadPrelude(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37427,7 +37429,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 213,
+      "line": 214,
       "call": "schemaReadPrelude(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37458,7 +37460,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 214,
+      "line": 215,
       "call": "return recordMetadataBodyPrelude(request, reply);",
       "scopes": [
         "createPortalFastifyHost"
@@ -37488,7 +37490,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-construction",
-      "line": 214,
+      "line": 215,
       "call": "recordMetadataBodyPrelude(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37516,7 +37518,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 214,
+      "line": 215,
       "call": "recordMetadataBodyPrelude(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37547,7 +37549,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 214,
+      "line": 215,
       "call": "recordMetadataBodyPrelude(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37578,7 +37580,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 227,
+      "line": 228,
       "call": "Object.assign(request.params as object, { branding: request.session.branding ?? portal.config.auth.defaultBrand, portal: request.session.portal ?? portal.config.auth.defaultPortal, })",
       "scopes": [
         "createPortalFastifyHost"
@@ -37609,7 +37611,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 227,
+      "line": 228,
       "call": "Object.assign(request.params as object, { branding: request.session.branding ?? portal.config.auth.defaultBrand, portal: request.session.portal ?? portal.config.auth.defaultPortal, })",
       "scopes": [
         "createPortalFastifyHost"
@@ -37640,7 +37642,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 227,
+      "line": 228,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -37648,36 +37650,6 @@
       "iterations": [],
       "syntaxSha256": "c63bf28ba13c200c7a60142fb027f3a584046a87e1aec299e6d4c8fc06a4b3a5",
       "operation": "params",
-      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
-      "receiver": "request",
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-reference",
-      "line": 228,
-      "call": "request.session",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "6b94d27d306a9def256ab547de1247f014b9c92efbf1318c9d87f3a56d66f30e",
-      "operation": "session",
       "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
       "receiver": "request",
       "profile": "native",
@@ -37729,8 +37701,38 @@
     },
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-reference",
+      "line": 230,
+      "call": "request.session",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "6b94d27d306a9def256ab547de1247f014b9c92efbf1318c9d87f3a56d66f30e",
+      "operation": "session",
+      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
+      "receiver": "request",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 240,
+      "line": 241,
       "call": "requestPathname(request.raw.url ?? '/')",
       "scopes": [
         "createPortalFastifyHost"
@@ -37761,7 +37763,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 240,
+      "line": 241,
       "call": "request.raw.url",
       "scopes": [
         "createPortalFastifyHost"
@@ -37791,7 +37793,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 240,
+      "line": 241,
       "call": "request.raw",
       "scopes": [
         "createPortalFastifyHost"
@@ -37821,7 +37823,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 244,
+      "line": 245,
       "call": "raw.slice(0, rootContext.length).toLowerCase()",
       "scopes": [
         "createPortalFastifyHost"
@@ -37851,7 +37853,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 244,
+      "line": 245,
       "call": "raw.slice(0, rootContext.length)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37881,7 +37883,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 248,
+      "line": 249,
       "call": "raw.slice(rootContext.length)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37911,7 +37913,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 249,
+      "line": 250,
       "call": "applyPageHeaders( { path: relative }, { set: (name: string | Record<string, string>, value?: string) => typeof name === 'string' ? reply.header(name, value!) : reply.headers(name), removeHeader: name => reply.removeHeader(name), }, { publicUrl: portal.config.server.publicUrl, sessionMaxAgeMs: portal",
       "scopes": [
         "createPortalFastifyHost"
@@ -37942,7 +37944,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 253,
+      "line": 254,
       "call": "typeof name === 'string' ? reply.header(name, value!) : reply.headers(name)",
       "scopes": [
         "createPortalFastifyHost"
@@ -37972,7 +37974,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 253,
+      "line": 254,
       "call": "reply.header(name, value!)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38002,7 +38004,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 253,
+      "line": 254,
       "call": "reply.header",
       "scopes": [
         "createPortalFastifyHost"
@@ -38032,7 +38034,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 253,
+      "line": 254,
       "call": "reply.headers(name)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38062,7 +38064,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 253,
+      "line": 254,
       "call": "reply.headers",
       "scopes": [
         "createPortalFastifyHost"
@@ -38092,7 +38094,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 254,
+      "line": 255,
       "call": "reply.removeHeader(name)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38122,7 +38124,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 254,
+      "line": 255,
       "call": "reply.removeHeader(name)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38152,7 +38154,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 254,
+      "line": 255,
       "call": "reply.removeHeader",
       "scopes": [
         "createPortalFastifyHost"
@@ -38182,7 +38184,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 267,
+      "line": 268,
       "call": "request.method",
       "scopes": [
         "createPortalFastifyHost"
@@ -38212,7 +38214,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 268,
+      "line": 269,
       "call": "reply.statusCode",
       "scopes": [
         "createPortalFastifyHost"
@@ -38242,7 +38244,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 269,
+      "line": 270,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38272,7 +38274,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 270,
+      "line": 271,
       "call": "request.session.isPersisted()",
       "scopes": [
         "createPortalFastifyHost"
@@ -38302,7 +38304,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 270,
+      "line": 271,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38332,7 +38334,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 271,
+      "line": 272,
       "call": "request.session.isModified()",
       "scopes": [
         "createPortalFastifyHost"
@@ -38362,7 +38364,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 271,
+      "line": 272,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38392,7 +38394,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 274,
+      "line": 275,
       "call": "reply.removeHeader('Transfer-Encoding').header('Content-Length', '0')",
       "scopes": [
         "createPortalFastifyHost"
@@ -38422,7 +38424,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 274,
+      "line": 275,
       "call": "reply.removeHeader('Transfer-Encoding').header",
       "scopes": [
         "createPortalFastifyHost"
@@ -38452,7 +38454,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 274,
+      "line": 275,
       "call": "reply.removeHeader('Transfer-Encoding')",
       "scopes": [
         "createPortalFastifyHost"
@@ -38482,7 +38484,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 274,
+      "line": 275,
       "call": "reply.removeHeader",
       "scopes": [
         "createPortalFastifyHost"
@@ -38512,7 +38514,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 300,
+      "line": 301,
       "call": "request.routeOptions",
       "scopes": [
         "createPortalFastifyHost"
@@ -38542,7 +38544,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 301,
+      "line": 302,
       "call": "return !!binding && selectedReferenceNames.has(binding.route.declaration.name);",
       "scopes": [
         "createPortalFastifyHost"
@@ -38572,7 +38574,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 301,
+      "line": 302,
       "call": "selectedReferenceNames.has(binding.route.declaration.name)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38603,7 +38605,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 305,
+      "line": 306,
       "call": "referenceRequest(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38634,7 +38636,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 305,
+      "line": 306,
       "call": "reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')",
       "scopes": [
         "createPortalFastifyHost"
@@ -38664,7 +38666,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 305,
+      "line": 306,
       "call": "reply.header",
       "scopes": [
         "createPortalFastifyHost"
@@ -38694,7 +38696,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 308,
+      "line": 309,
       "call": "request.routeOptions",
       "scopes": [
         "createPortalFastifyHost"
@@ -38724,7 +38726,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 318,
+      "line": 319,
       "call": "coreRouteName(route.method, route.path) === binding.route.declaration.name",
       "scopes": [
         "createPortalFastifyHost"
@@ -38754,7 +38756,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 319,
+      "line": 320,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38784,7 +38786,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 320,
+      "line": 321,
       "call": "request.session.isPersisted()",
       "scopes": [
         "createPortalFastifyHost"
@@ -38814,7 +38816,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 320,
+      "line": 321,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38844,7 +38846,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 320,
+      "line": 321,
       "call": "request.session.isModified()",
       "scopes": [
         "createPortalFastifyHost"
@@ -38874,7 +38876,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 320,
+      "line": 321,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38904,7 +38906,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 325,
+      "line": 326,
       "call": "referenceRequest(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38935,7 +38937,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 327,
+      "line": 328,
       "call": "request.method",
       "scopes": [
         "createPortalFastifyHost"
@@ -38965,7 +38967,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 328,
+      "line": 329,
       "call": "reply.statusCode",
       "scopes": [
         "createPortalFastifyHost"
@@ -38995,7 +38997,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 331,
+      "line": 332,
       "call": "reply.removeHeader('Transfer-Encoding')",
       "scopes": [
         "createPortalFastifyHost"
@@ -39025,7 +39027,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 331,
+      "line": 332,
       "call": "reply.removeHeader",
       "scopes": [
         "createPortalFastifyHost"
@@ -39055,7 +39057,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 332,
+      "line": 333,
       "call": "reply.header('Content-Length', '0')",
       "scopes": [
         "createPortalFastifyHost"
@@ -39085,7 +39087,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 332,
+      "line": 333,
       "call": "reply.header",
       "scopes": [
         "createPortalFastifyHost"
@@ -39115,7 +39117,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 374,
+      "line": 375,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -39145,7 +39147,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-property-write",
-      "line": 375,
+      "line": 376,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -39175,7 +39177,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 375,
+      "line": 376,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -39205,7 +39207,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-spread",
-      "line": 376,
+      "line": 377,
       "call": "...params",
       "scopes": [
         "createPortalFastifyHost"
@@ -39215,36 +39217,6 @@
       "operation": "spread-object",
       "receiverType": "Record<string, unknown>",
       "receiver": "params",
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-reference",
-      "line": 377,
-      "call": "request.session",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "6b94d27d306a9def256ab547de1247f014b9c92efbf1318c9d87f3a56d66f30e",
-      "operation": "session",
-      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
-      "receiver": "request",
       "profile": "native",
       "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
       "bypassed": [],
@@ -39294,8 +39266,38 @@
     },
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-reference",
+      "line": 379,
+      "call": "request.session",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "6b94d27d306a9def256ab547de1247f014b9c92efbf1318c9d87f3a56d66f30e",
+      "operation": "session",
+      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
+      "receiver": "request",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 380,
+      "line": 381,
       "call": "policies.brandingandportal!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39326,7 +39328,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 380,
+      "line": 381,
       "call": "policies.brandingandportal!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39357,7 +39359,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 381,
+      "line": 382,
       "call": "httpReplySubmitted(reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39388,7 +39390,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 382,
+      "line": 383,
       "call": "policies.browseractor!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39419,7 +39421,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 382,
+      "line": 383,
       "call": "policies.browseractor!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39450,7 +39452,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 383,
+      "line": 384,
       "call": "return sendPageError( request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 403, { message: 'error-auth', detailedMessage: reason === 'authorized-email-denied' ? reason : 'There was an issue with your user credentials, please try again.', } );",
       "scopes": [
         "createPortalFastifyHost"
@@ -39480,7 +39482,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 383,
+      "line": 384,
       "call": "sendPageError( request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 403, { message: 'error-auth', detailedMessage: reason === 'authorized-email-denied' ? reason : 'There was an issue with your user credentials, please try again.', } )",
       "scopes": [
         "createPortalFastifyHost"
@@ -39511,7 +39513,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 383,
+      "line": 384,
       "call": "sendPageError( request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 403, { message: 'error-auth', detailedMessage: reason === 'authorized-email-denied' ? reason : 'There was an issue with your user credentials, please try again.', } )",
       "scopes": [
         "createPortalFastifyHost"
@@ -39542,7 +39544,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 387,
+      "line": 388,
       "call": "csrf.generateToken(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39572,7 +39574,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 387,
+      "line": 388,
       "call": "csrf.generateToken(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39887,7 +39889,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/rawHttp.ts",
       "kind": "typed-handoff",
-      "line": 125,
+      "line": 132,
       "call": "this.sockets.attach(server, { borrowedServer: true })",
       "scopes": [
         "PortalRawHttp",
@@ -39920,14 +39922,14 @@
     {
       "file": "packages/redbox-core/src/application/portal/rawHttp.ts",
       "kind": "typed-handoff",
-      "line": 126,
-      "call": "this.companion?.initialize(server, { borrowedLifecycle: true })",
+      "line": 133,
+      "call": "companions.get(this)?.initialize(server, { borrowedLifecycle: true })",
       "scopes": [
         "PortalRawHttp",
         "prepare"
       ],
       "iterations": [],
-      "syntaxSha256": "c918f4c0abcfb9a7549c2836d03acb0bf77a9f63db8968a4418255ce6f6deb53",
+      "syntaxSha256": "8587aab23a4c64a31d5c39ec0e3a4b465ba1c42856859a7adda2ac3d0ebb134e",
       "operation": "initialize",
       "receiverType": "Server<typeof IncomingMessage, typeof ServerResponse>",
       "receiver": "server",
@@ -43310,7 +43312,7 @@
     {
       "file": "packages/redbox-core/src/extensions/composition.ts",
       "kind": "typed-handoff",
-      "line": 113,
+      "line": 101,
       "call": "handler(req, res, next)",
       "scopes": [
         "composeExtensionApplication",
@@ -43342,7 +43344,7 @@
     {
       "file": "packages/redbox-core/src/extensions/composition.ts",
       "kind": "typed-handoff",
-      "line": 113,
+      "line": 101,
       "call": "handler(req, res, next)",
       "scopes": [
         "composeExtensionApplication",
@@ -43374,7 +43376,7 @@
     {
       "file": "packages/redbox-core/src/extensions/composition.ts",
       "kind": "typed-handoff",
-      "line": 118,
+      "line": 106,
       "call": "instance.prepare(server)",
       "scopes": [
         "composeExtensionApplication",
@@ -43408,7 +43410,7 @@
     {
       "file": "packages/redbox-core/src/extensions/composition.ts",
       "kind": "typed-handoff",
-      "line": 126,
+      "line": 114,
       "call": "policy(req, res, next)",
       "scopes": [
         "composeExtensionApplication",
@@ -43443,7 +43445,7 @@
     {
       "file": "packages/redbox-core/src/extensions/composition.ts",
       "kind": "typed-handoff",
-      "line": 126,
+      "line": 114,
       "call": "policy(req, res, next)",
       "scopes": [
         "composeExtensionApplication",
@@ -282985,6 +282987,6 @@
   "counts": {
     "boundaries": 6514,
     "retainedExpress": 1131,
-    "sources": 810
+    "sources": 812
   }
 }

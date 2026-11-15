@@ -51,7 +51,8 @@ describe('executable maintenance backend selection', () => {
           if (name === 'pino') return Object.assign(() => nothingLogger, { destination: () => ({}) });
           if (name.endsWith('/configuration')) return { ConfigurationError: class extends Error {} };
           if (name.endsWith('/extensions')) return { ExtensionError: class extends Error {} };
-          if (name.endsWith('/portal'))
+          if (name.endsWith('/host')) return {};
+          if (name.endsWith('/portal') || name.endsWith('/application'))
             return {
               createPortalApplication: async (options: {
                 files: Record<string, string>;

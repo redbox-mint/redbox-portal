@@ -1,4 +1,3 @@
-import './http/express/sessionData';
 export type { ILogger } from '@researchdatabox/sails-ng-common';
 export type {
   JsonValue,

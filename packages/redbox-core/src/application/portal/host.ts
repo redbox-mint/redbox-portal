@@ -1,3 +1,4 @@
+import { portalCompanion } from './rawHttp';
 import { datastreamReadGuard } from '../../http/fastify/datastreamReads';
 import { datastreamReadRoutes } from '../../http/datastreamRoutes';
 import { serveStaticAsset } from '../../http/fastify/assets';
@@ -44,13 +45,13 @@ import type {
 } from './compositionInputs';
 
 import { ExpressHost } from '../../http/express/ExpressHost';
-import { createPortalApplication, type PortalApplicationOptions } from './application';
+import { createPortalApplication, type LegacyPortalApplicationOptions } from './application';
 import { PortalHttp, type PortalHttpOptions } from './http';
 import { progressOperationRoutes, progressSocketGrantRoute } from '../../http/progressRoutes';
 import { prepareCompanionRoutes } from '../../http/integrations/companion/fastify';
 
 /** One production runtime, listener and signal boundary. Construction performs no acquisition. */
-export async function createPortalHost(options: PortalApplicationOptions & PortalHttpOptions) {
+export async function createPortalHost(options: LegacyPortalApplicationOptions & PortalHttpOptions) {
   let http: PortalHttp;
   const portal = await createPortalApplication({
     ...options,
@@ -232,7 +233,7 @@ export async function createPortalFastifyHost(
         : undefined,
       parsers: {
         parserExclusions: [],
-        flatFormPrefixes: resolved.raw?.companion ? [rootContext + portal.config.companion.route] : [],
+        flatFormPrefixes: portalCompanion(resolved.raw) ? [rootContext + portal.config.companion.route] : [],
       },
       prepare: async (app: FastifyPreparation) => {
         if (resolved.pages)
@@ -406,9 +407,9 @@ export async function createPortalFastifyHost(
         if (resolved.pages)
           resolved.pages.authentication = createNativeAuthenticationActions(authentication, authenticationInput);
         else installNativeAuthenticationRoutes(app, authentication, authenticationInput);
-        if (resolved.raw?.companion)
+        if (portalCompanion(resolved.raw))
           prepareCompanionRoutes(app, {
-            uploads: resolved.raw.companion,
+            uploads: portalCompanion(resolved.raw)!,
             rootContext,
             path: portal.config.companion.route,
             appUrl: portal.config.server.publicUrl,

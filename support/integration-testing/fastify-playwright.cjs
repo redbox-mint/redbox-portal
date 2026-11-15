@@ -5,52 +5,14 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 const pino = require('pino');
 const root = path.resolve(__dirname, '../..');
 const dist = path.dirname(require.resolve('@researchdatabox/redbox-core'));
 const core = name => require(path.join(dist, name));
 const { createPortalFastifyApplication, createPortalFastifyHost } = require('@researchdatabox/redbox-core/portal');
-const { discoverInstalledExtensions, loadExtensionModule } = core('extensions/loading');
-
-// The bundled hooks have only non-HTTP contributions. Their API2 conversion is
-// FM-038. Adapt their declaration envelopes in this disposable container only;
-// preserve every config/form/module/migration and original package export.
-async function prepareDataOnlyExtensions() {
-  const installed = await discoverInstalledExtensions(root, { includeDevDependencies: true });
-  const adapted = [];
-  for (const extension of installed.extensions) {
-    const original = await loadExtensionModule(extension);
-    const declaration = await original.registerRedboxExtension();
-    for (const key of ['handlers', 'routes', 'middleware', 'integrations', 'controllers', 'hooks', 'fallbacks']) {
-      assert.equal(declaration[key], undefined, `${extension.name}: HTTP contributions require real API2 conversion`);
-    }
-    assert.equal(declaration.apiVersion, 1);
-    const originalEntry = require.resolve(extension.specifier);
-    const wrapper = path.join(extension.root, 'playwright-api2.mjs');
-    const entryUrl = JSON.stringify(pathToFileURL(originalEntry).href);
-    await fs.writeFile(
-      wrapper,
-      `import * as original from ${entryUrl};\nexport * from ${entryUrl};\n` +
-        'export function registerRedboxExtension() { return {...original.registerRedboxExtension(), apiVersion: 2}; }\n'
-    );
-    const manifestPath = path.join(extension.root, 'package.json');
-    const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-    assert(manifest.exports && manifest.redbox.extension === './extension');
-    manifest.exports['./extension'] = './playwright-api2.mjs';
-    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-    adapted.push({ name: extension.name, originalEntry, fields: Object.keys(declaration) });
-  }
-  await fs.writeFile(
-    path.join(root, '.tmp/playwright/logs/fastify-extension-fixtures.json'),
-    JSON.stringify(adapted, null, 2)
-  );
-}
-
 async function main() {
   assert.equal(process.env.NODE_ENV, 'integrationtest');
   assert.equal(process.env.RBPORTAL_PLAYWRIGHT_MODE, 'image');
-  await prepareDataOnlyExtensions();
   const logger = pino({ level: 'info' }, pino.destination({ dest: 1, sync: true }));
   const log = Object.fromEntries(
     ['info', 'warn', 'error', 'fatal', 'debug', 'trace'].map(level => [level, (...args) => logger[level](...args)])

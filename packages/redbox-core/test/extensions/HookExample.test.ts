@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import express from 'express';
-import { resolveExtensions, type RedboxExtension } from '../../src/extensions';
+import { resolveExtensions } from '../../src/extensions/resolution';
+import { type RedboxExtension } from '../../src/extensions/legacyContract';
 
 // The published source lives outside this package's compiler root. Its own
 // documentation audit typechecks it; this regression exercises it at runtime.

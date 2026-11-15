@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { discoverInstalledExtensions, loadExtensions } from '../../src/extensions';
+import { discoverInstalledExtensions } from '../../src/extensions';
+import { loadExtensions } from '../../src/extensions/resolution';
 
 describe('installed extension discovery and precedence', () => {
   let appPath: string;

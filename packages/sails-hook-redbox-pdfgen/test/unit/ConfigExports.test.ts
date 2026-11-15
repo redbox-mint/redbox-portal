@@ -103,6 +103,7 @@ describe('Config exports', () => {
       'SolrSearchService-CreateOrUpdateIndex': { fnName: 'solrsearchservice.createOrUpdateIndex' },
     };
     const extension = registerRedboxExtension();
+    expect(extension.apiVersion).to.equal(2);
     expect(Object.keys(mergeAgendaQueueJobs(existingJobs, extension.jobs))).to.deep.equal([
       'SolrSearchService-CreateOrUpdateIndex',
       'PDFService-CreatePDF',

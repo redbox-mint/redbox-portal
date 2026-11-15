@@ -9,11 +9,12 @@ const { MongoClient } = require('mongodb');
 const { firstValueFrom } = require('rxjs');
 const { protocol: p, metadata, attachment, hash } = require('./protocol.cjs');
 const {
-  createPortalHost,
   prepareSelectedPersistenceIndexes,
   cleanupPersistence,
   persistenceStatus,
 } = require('@researchdatabox/redbox-core/portal');
+// Private retained Express side of the host differential.
+const { createPortalHost } = require('../../../packages/redbox-core/dist/application/portal/host');
 const { nothingLogger: log } = require('@researchdatabox/sails-ng-common');
 const runtime = require('../../../packages/redbox-core/dist/persistence/runtime');
 const { drainHttpRequests } = require('../../../packages/redbox-core/dist/middleware/requestLifetime');
