@@ -56,6 +56,8 @@ export const applicationManifest: readonly ApplicationManifestEntry[] = [
   app('A19', '@researchdatabox/record-search', '/default/rdmp/record/search', ['record-search #basic-search-input', 'record-search button:has-text("Search Plans")'], 'dashboard-and-search.spec.ts'),
   app('A20', '@researchdatabox/siem-admin', '/default/rdmp/admin/siem', ['siem-admin #siem-event-category', 'siem-admin button:has-text("Save changes")'], 'siem.spec.ts'),
   app('A21', '@researchdatabox/email-templates', '/default/rdmp/admin/email-templates', ['email-templates-root #et-catalogue-filter', 'email-templates-root [data-template-action="name"]'], 'email-templates.spec.ts'),
+  app('A22', '@researchdatabox/mcp-connect', '/default/rdmp/admin/mcp', ['mcp-connect h1', 'mcp-connect .mcp-readiness-checks, mcp-connect #mcp-choose-heading'], 'query-tools.spec.ts'),
+  app('A23', '@researchdatabox/data-grids', '/default/rdmp/admin/data-grids', ['data-grids #grid-search', 'data-grids .rb-admin-page-actions button:enabled'], 'query-tools.spec.ts'),
 ];
 
 export function workspaceApplications(workspacePath = path.resolve('angular/angular.json')): string[] {
