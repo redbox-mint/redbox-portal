@@ -495,10 +495,14 @@ describe('Report configuration workspace', () => {
     await component.validateDraft();
     component.editColumn(0);
     render();
+    await fixture.whenStable();
+    render();
     for (const location of ['columns.0.property', 'columns.0.template', 'columns.0.exportTemplate'])
       expect(query(`[data-location="${location}"]`)).toBeTruthy();
     component.columnDraft = null;
     component.openFilter(0);
+    render();
+    await fixture.whenStable();
     render();
     expect(query('[data-location="filter.0.paramName"]')).toBeTruthy();
     expect(component.selectedReport).toEqual(report());
@@ -514,6 +518,8 @@ describe('Report configuration workspace', () => {
     await component.validateDraft();
     render();
     component.openFilter(0);
+    render();
+    await fixture.whenStable();
     render();
     expect(query('[data-location="filter.0.database.fromProperty"]')).toBeTruthy();
     expect(query('[data-location="filter.0.database.toProperty"]')).toBeTruthy();
