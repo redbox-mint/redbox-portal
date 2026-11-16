@@ -603,4 +603,69 @@ describe('FM-017 installed API2 extension composition', function () {
     );
     assert.deepEqual(input.created, []);
   });
+
+  it('orders explicit institution/core precedence after provider replacement resolution', async () => {
+    const input = await loaded();
+    const owned = apiRouteRegistrations({
+      declarations: [{ ...api, method: 'get', path: '/wsu/type/:type', csrf: false }],
+      configuration: { ApplicationStatusController: { status: true } },
+    });
+    const route = {
+      name: 'wsu-plan-pdf',
+      method: 'get' as const,
+      path: '/wsu/:oid/latest-pdf',
+      controller: applicationStatusController.name,
+      action: 'status',
+      access: { kind: 'public' as const },
+    };
+    const providers = [
+      ...input.providers,
+      provider('wsu', { apiVersion: 2, routes: [route] }),
+      provider('wsu-override', { apiVersion: 2, routes: [{ ...route, replaces: true }] }),
+    ];
+    const precedence = [
+      {
+        name: 'wsu-before-core-type',
+        winner: route.name,
+        over: owned[0]!.declaration.name,
+        reason: 'The installed institution handled this URL before the parameterized core alias.',
+      },
+    ];
+    const selected = {
+      ...options(input.bindings),
+      coreRoutes: [...coreRoutes, ...owned],
+      routing: { policyNames: ['allowed'], legacyOrder: true, precedence },
+    };
+    await assert.rejects(
+      resolveExtensionsV2(providers, { ...selected, routing: { ...selected.routing, precedence: [] } }),
+      /overlap/
+    );
+    await assert.rejects(resolveExtensionsV2(providers, selected), /cannot retain winner/);
+    const result = await resolveExtensionsV2(providers, { ...selected, orderRoutesByPrecedence: true });
+    const winner = result.routePlan.routes.find(item => item.declaration.name === route.name)!;
+    assert.equal(winner.provider, 'wsu-override');
+    assert.equal(winner.replaced?.provider, 'wsu');
+    assert.equal(
+      result.routePlan.overlaps.find(item => item.precedence?.name === precedence[0]!.name)?.precedence?.winner,
+      route.name
+    );
+    assert.deepEqual(input.created, []);
+  });
+
+  it('rejects cyclic institution precedence offline without constructing controllers', async () => {
+    const input = await loaded();
+    const name = coreRoutes[0]!.declaration.name;
+    await assert.rejects(
+      resolveExtensionsV2(input.providers, {
+        ...options(input.bindings),
+        orderRoutesByPrecedence: true,
+        routing: {
+          policyNames: ['allowed'],
+          precedence: [{ name: 'self-cycle', winner: name, over: name, reason: 'Invalid cycle' }],
+        },
+      }),
+      /precedence contains a cycle/
+    );
+    assert.deepEqual(input.created, []);
+  });
 });

@@ -16,12 +16,18 @@ import { HttpIdentity } from '../../../src/http/express/identity';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
-import type { RecordControllerInput, DatastreamControllerInput, BoundControllerFactory } from '../../../src/http';
+import type {
+  RecordControllerInput,
+  DatastreamControllerInput,
+  BoundControllerFactory,
+  RoutePrecedence,
+} from '../../../src/http';
 import type { ApplicationModule } from '../../../src/application';
 
 type Config = Awaited<ReturnType<typeof createPortalFastifyApplication>>['config'];
 export interface ProductionPilotOptions {
   readonly policyConfiguration?: PoliciesConfig;
+  readonly routePrecedence?: readonly RoutePrecedence[];
   readonly server?: Partial<Config['server']>;
   readonly session?: Partial<Config['redboxSession']>;
   readonly auth?: Partial<Config['auth']>;
@@ -147,6 +153,7 @@ export async function productionPilotFixture(
         },
       },
       http: {
+        routePrecedence: options.routePrecedence,
         declarations: [getMetaRoute, updateMetaRoute, ...(options.raw ? [addDataStreamsRoute] : [])],
         progress: !!options.raw,
         pages: undefined,

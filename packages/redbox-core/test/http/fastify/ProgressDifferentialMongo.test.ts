@@ -156,6 +156,28 @@ for (const profile of [
               if (!native) oracle.set(key, normalized(response));
               else assert.deepEqual(normalized(response), oracle.get(key));
             });
+      it('preserves conditional progress reads and admission for GET and HEAD', async () => {
+        for (const method of ['GET', 'HEAD'])
+          for (const variant of ['fresh', 'no-cache', 'invalid', 'anonymous'] as const) {
+            const headers: Record<string, string> = { ...credentials, 'If-None-Match': '*' };
+            if (variant === 'no-cache') headers['Cache-Control'] = 'no-cache';
+            if (variant === 'anonymous') delete headers.Authorization;
+            const response = await wire(f.url, target(variant === 'invalid' ? '?fq=invalid' : ''), method, headers);
+            const expected = profile.policy
+              ? 401
+              : { fresh: 304, 'no-cache': 200, invalid: 400, anonymous: 401 }[variant];
+            assert.equal(response.status, expected, method + ' ' + variant);
+            if (response.status === 304) {
+              assert.equal(response.bytes.length, 0);
+              for (const header of ['content-type', 'content-length', 'transfer-encoding'])
+                assert.equal(response.headers[header], undefined);
+            }
+            if (method === 'HEAD') assert.equal(response.bytes.length, 0);
+            const key = profile.name + 'conditional-progress-' + method + '-' + variant;
+            if (!native) oracle.set(key, normalized(response));
+            else assert.deepEqual(normalized(response), oracle.get(key));
+          }
+      });
       const files = readdirSync(path.join(path.dirname(require.resolve('socket.io/package.json')), 'client-dist'));
       it('preserves raw Engine.IO upgrade ownership with hostile Host and absolute targets', async () => {
         for (const absolute of [false, true]) {

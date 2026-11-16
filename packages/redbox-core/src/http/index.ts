@@ -37,6 +37,11 @@ export type { ProgressGrantInput } from './actions/progressGrant';
 
 export * from './controllers/ReferenceControllers';
 export { referenceReadDeclarations } from './referenceRoutes';
+export { recordQueryReadDeclarations } from './readRoutes';
+export { identityAdministrationDeclarations } from './identityRoutes';
+export { mutationDeclarations } from './mutationRoutes';
+export { integrationDeclarations } from './integrationRoutes';
+export { uploadDeclarations } from './uploadRoutes';
 
 export * from './controllers/ReadControllers';
 export * from './controllers/IdentityAdministrationControllers';
@@ -79,3 +84,7 @@ export { datastreamReadRoutes } from './datastreamRoutes';
 export type { DatastreamReadInput } from './actions/datastreamReads';
 export * from './controllers/UploadControllers';
 export type { BrandingUploadInput } from './actions/brandingUploads';
+/** Deliver an application-owned readable with retained cancellation/disposal and HEAD semantics. */
+export { sendReadStream } from './fastify/readStreams';
+export { sendLoginRedirect as sendRedirect } from './fastify/responses';
+export type { RoutePrecedence } from './fastify/routes';

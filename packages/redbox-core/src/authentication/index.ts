@@ -7,3 +7,5 @@ export {
 } from './Accounts';
 
 export { HttpIdentity } from './HttpIdentity';
+
+export { authenticationFailureEvent } from './events';

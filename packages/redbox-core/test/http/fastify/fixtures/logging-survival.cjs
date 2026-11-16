@@ -14,6 +14,10 @@ const { log } = require('../../../../dist/config/log.config');
 
 const [kind, failure, shape = 'direct'] = process.argv.slice(2);
 let armed = false;
+// Worker destinations must follow the same arm boundary as in-process streams.
+// Production initialization can write before the HTTP failure probe starts.
+// Slot 1 acknowledges an actual healthy write in the worker before slot 0 arms it.
+const workerArmed = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2));
 const lines = [];
 let writes = 0;
 let faults = 0;
@@ -21,7 +25,10 @@ const problem = () => Object.assign(new Error('transport-secret credential-secre
 let destination;
 let transport;
 if (failure.startsWith('worker-')) {
-  transport = pino.transport({ target: require.resolve('./logging-transport.cjs'), options: { failure } });
+  transport = pino.transport({
+    target: require.resolve('./logging-transport.cjs'),
+    options: { failure, armed: workerArmed.buffer },
+  });
   destination = transport;
   if (failure === 'worker-error-event') {
     const write = transport.write.bind(transport);
@@ -107,12 +114,25 @@ async function start() {
     await host.activate();
   }
   if (transport && !transport.ready) await once(transport, 'ready');
+  if (transport) {
+    // Prove startup writes have completed safely before exposing the probe.
+    transport.write('{"level":30,"msg":"fixture initialization before arm"}\n');
+    // thread-stream.flush() only waits for bytes already in its shared buffer;
+    // it can acknowledge before the queued main-thread write runs. Drain that
+    // queue and the worker, then let its scheduled empty flush finish before arm.
+    transport.flushSync();
+    await new Promise(setImmediate);
+    assert(Atomics.load(workerArmed, 1) > 0, 'worker must consume the healthy startup write before arm');
+  }
   process.send({ port: host.address().port });
 }
 
 process.on('message', message => {
   void (async () => {
-    if (message.command === 'arm') armed = true;
+    if (message.command === 'arm') {
+      armed = true;
+      Atomics.store(workerArmed, 0, 1);
+    }
     else if (message.command === 'audit-express-sync') assert(faults > 0);
     else if (message.command === 'audit') {
       const native = Reflect.get(host, 'fastify').log;

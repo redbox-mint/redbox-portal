@@ -328,7 +328,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: installed package graph, required peers/types and generated hook
     work on Fastify without repository-private imports or stale Express declarations.
 
-- [ ] **FM-040 — Convert and locally qualify WSU.**
+- [x] **FM-040 — Convert and locally qualify WSU.**
   - Dependencies: FM-006, G3–G5, FM-038.
   - Work: port the identified converted WSU hook to API2, bind controllers and run
     its existing suite plus representative production-composition local rehearsal.

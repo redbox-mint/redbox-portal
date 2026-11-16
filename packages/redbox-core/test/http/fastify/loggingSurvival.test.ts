@@ -51,11 +51,12 @@ async function fixture(kind: 'fastify' | 'express', failure: string, shape = 'di
   child.stderr!.on('data', value => (output += value));
   const exit = once(child, 'exit');
   let id = 0;
+  let phase = 'startup';
   const next = () =>
     Promise.race([
       once(child, 'message').then(([message]) => message),
       exit.then(([code, signal]) => {
-        throw new Error(`Logger child exited (${code}, ${signal}): ${output}`);
+        throw new Error(`Logger child exited during ${phase} (${code}, ${signal}): ${output}`);
       }),
     ]);
   const timer = setTimeout(() => child.kill('SIGKILL'), 25000);
@@ -71,14 +72,17 @@ async function fixture(kind: 'fastify' | 'express', failure: string, shape = 'di
   try {
     const { port } = await next();
     assert(Number.isInteger(port));
+    phase = 'ready';
     return {
       port,
       exit,
       output: () => output,
       async command(command: string) {
+        phase = `command ${command}`;
         const result = next();
         child.send({ command, id: ++id }, () => {});
         assert.deepEqual(await result, { id });
+        phase = `after ${command}`;
       },
       stop,
     };

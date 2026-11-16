@@ -42,6 +42,11 @@ export {
 export { RecordAuditParams } from '../RecordAuditParams';
 export { IntegrationAuditParams } from '../IntegrationAuditParams';
 export { metTriggerCondition } from '../utilities/metTriggerCondition';
+/** Physical codecs for finite, application-owned institution data migrations. */
+export { encodeReference, decodeReference, referenceId } from '../persistence/reference/physical';
+export { encodeConfiguration, decodeConfiguration } from '../persistence/configuration/physical';
+export { decodeVocabulary, prepareVocabulary } from '../persistence/vocabulary/physical';
+export { prismaVocabularyRepositories } from '../persistence/vocabulary/PrismaVocabularyRepositories';
 
 export type { RecordTypes } from '../recordTypes';
 import type { Services as StorageManagerServices } from '../services/StorageManagerService';

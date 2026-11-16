@@ -6,6 +6,7 @@ export {
   type PortalPdfModule,
 } from './application';
 export { createPortalFastifyHost } from './host';
+export { portalHttpPolicies } from './httpPolicies';
 export * from './domain';
 export { prepareSelectedPersistenceIndexes } from '../../persistence/maintenance';
 export { cleanupPersistence, persistenceStatus } from '../../persistence/runtime';

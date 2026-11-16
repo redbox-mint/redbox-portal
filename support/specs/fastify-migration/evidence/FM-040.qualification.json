@@ -1,0 +1,3349 @@
+{
+  "task": "FM-040",
+  "round": 2,
+  "localQualification": "PASSED",
+  "institutionalProductionAcceptance": "PENDING",
+  "recordedAt": "2026-11-16T03:01:58.888033+00:00",
+  "artifactsDirectory": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2",
+  "supersedes": {
+    "initialQualification": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/initial-qualification.json",
+    "reason": "four review findings corrected; new clean install, tarballs, HTTP/browser/core qualification"
+  },
+  "reviewFindings": [
+    {
+      "finding": "Progress omitted",
+      "classification": "hook conversion defect",
+      "fix": "Select progress:true and four additional explicit publication/progress overlaps; 32 overlaps total.",
+      "proof": "http-extended-*.json; deployment-selection-audit.json"
+    },
+    {
+      "finding": "Failed-login events drifted",
+      "classification": "hook binding defect; shared auth semantics unchanged",
+      "fix": "Reuse the existing bounded authenticationFailureEvent through the neutral public authentication entrypoint; preserve login.failure, brand/portal, bounded attempted username, query-free request path/method, and credential redaction. Success/logout audit uses actual brand id.",
+      "proof": "96 focused auth passes; exact installed event comparison"
+    },
+    {
+      "finding": "Persisted local credential fields ignored",
+      "classification": "hook binding defect; authentication provider already used hydrated config",
+      "fix": "Read the same hydrated AppConfig through the credentialFields getter during host preparation.",
+      "proof": "custom-auth-express.json and custom-auth-fastify.json"
+    },
+    {
+      "finding": "Clean test install lacked providers",
+      "classification": "hook dependency/child-fixture defects",
+      "fix": "Declare PDF/storage devDependencies and exact Fastify peer/devDependency; retain runner module path in two isolated child-test files.",
+      "proof": "npm ci followed by 565/0/0, no manually installed provider dependencies"
+    }
+  ],
+  "sourcesArtifactsConfiguration": {
+    "at": "2026-11-16T01:00:44.604563+00:00",
+    "node": "26.12.1",
+    "npm": "11.20.0",
+    "repositories": {
+      "portal": {
+        "path": "/home/ubuntu/work/github/redbox-portal",
+        "sha": "8d7a0dd4d69c8aea1364de8fc3743dfd6de8b3b9",
+        "branch": "feature/fastify-migration",
+        "patchFile": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/receipts/portal.patch",
+        "patchSha256": "f01c3f5f24d26b074c2622ad095508d88eca6a9278364895bc1ebd4b2ca7126e",
+        "sourceManifestSha256": "6387fde640050ff6bc6d2a4b85c6b6ebd13986d1769fe26fa431ec46d4e5483d",
+        "status": [
+          " M packages/redbox-core/src/application/portal/index.ts",
+          " M packages/redbox-core/src/application/portal/installation.ts",
+          " M packages/redbox-core/src/authentication/index.ts",
+          " M packages/redbox-core/src/extensions/config.ts",
+          " M packages/redbox-core/src/extensions/storage.ts",
+          " M packages/redbox-core/src/extensions/v2.ts",
+          " M packages/redbox-core/src/http/controllers/ProgressController.ts",
+          " M packages/redbox-core/src/http/express/login.ts",
+          " M packages/redbox-core/src/http/index.ts",
+          " M packages/redbox-core/test/extensions/v2.test.ts",
+          " M packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts",
+          " M packages/redbox-core/test/http/fastify/fixtures/logging-survival.cjs",
+          " M packages/redbox-core/test/http/fastify/fixtures/logging-transport.cjs",
+          " M packages/redbox-core/test/http/fastify/loggingSurvival.test.ts",
+          " M packages/redbox-core/test/http/fastify/productionCompositionInputs.ts",
+          " M packages/redbox-core/test/http/fastify/productionPilotFixture.ts",
+          " M support/specs/fastify-migration/evidence/FM-002.inventory.json",
+          " M support/specs/fastify-migration/evidence/FM-036.raw-boundaries.json",
+          " M support/specs/fastify-migration/evidence/FM-038.exports.json",
+          "?? packages/redbox-core/src/authentication/events.ts",
+          "?? packages/redbox-core/test/authentication/",
+          "?? support/specs/fastify-migration/evidence/FM-040-browser/",
+          "?? support/specs/fastify-migration/evidence/FM-040.md",
+          "?? support/specs/fastify-migration/evidence/FM-040.qualification.json"
+        ]
+      },
+      "hook": {
+        "path": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+        "sha": "764851e98cd2ae2d6938c41b18b8abcc081e0656",
+        "branch": "feature/v6-api2",
+        "patchFile": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/receipts/hook.patch",
+        "patchSha256": "7d753370efa16bd9cfe164d7b4dca90affb31091498269c8e249165af8492834",
+        "sourceManifestSha256": "c3aa82c83c16c6d66f8f23cbb94193f6d10e41c4c037cbd53ad9e308447cfe5b",
+        "status": [
+          " M .nvmrc",
+          " M README.md",
+          " M package-lock.json",
+          " M package.json",
+          " M src/api/services/MetadataOutputsTriggerService.ts",
+          " M src/deployment.ts",
+          " D src/handlers.ts",
+          " M src/index.ts",
+          " M src/migration-data.ts",
+          " M support/development/docker-compose.yml",
+          " M support/v6/README.md",
+          " M support/v6/app.cjs",
+          " M support/v6/docker-compose.test.yml",
+          " M test/unit/controllers/LegacyMappingController.test.ts",
+          " M test/unit/data-publication-metadata.test.ts",
+          " M test/unit/deployment-exporter.test.ts",
+          " M test/unit/deployment-storage.test.ts",
+          " M test/unit/development-origin.test.ts",
+          " M test/unit/forms/PublicationAccessRights.test.ts",
+          " M test/unit/http-surface.test.ts",
+          " M test/unit/index.test.ts",
+          " M test/unit/latest-pdf-http.test.ts",
+          " M test/unit/migration-vocabulary-persistence.test.ts",
+          " M test/unit/pages.test.ts",
+          " M test/unit/publication-http.test.ts",
+          "?? src/controllers.ts",
+          "?? src/route-precedence.ts",
+          "?? src/routes.ts",
+          "?? test/support/http-fixture.cjs"
+        ]
+      }
+    },
+    "retainedExpressBaseline": {
+      "hookSha": "764851e98cd2ae2d6938c41b18b8abcc081e0656",
+      "filesSha256": {
+        "baseline-original-index.ts": "859ce26ac4aa3f082fd8b62e8d174770365162f8e158cfb848070818a7d739a7",
+        "baseline-transpiled-index.js": "75ea48f8e6a7a6124abb34e57cb87a998975c826d81f828e356d53c2dd5781bf",
+        "baseline-original-handlers.ts": "21738c223bf05e7e474a6d0fa80130e78c91f44a7afe8bd013d11729a2576f9c",
+        "baseline-transpiled-handlers.js": "2a1b57a40834be33e69a7829b1ad098eaf7beec558f5bda4dc8fba80d2d2683e",
+        "baseline-original-deployment.ts": "d340a7718a59486ab9475a7b3e251c3a0124df0e17dcf612899862260b025862",
+        "baseline-transpiled-deployment.js": "d3c5b77bb92944bf3ab1727880321d2a2219e5f867bc857dfb1e6d47cf59a38c",
+        "baseline-application.cjs": "1f2db8672c8aa94a5e745ffbc2139aba8fe483acf1234661426bdee68c542ad3",
+        "baseline-retained-portal.cjs": "d35b9d4470823941bd71d8f7549fcb169650de444176ec27817d4c2a52626ffb",
+        "baseline-package.json": "4f1d3a66a770c709d9907408852d9fac7912902e5cbae46b16333bd87ec7ff30"
+      },
+      "coreResolvesTo": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime/node_modules/@researchdatabox/redbox-core",
+      "privateImports": "external baseline only; not packed Fastify qualification"
+    },
+    "locksAndConfiguration": {
+      "runtime-package-lock.json": "4544ace9a263123a404fbe55ec3060c32d5ea8de82eb1ca8cc99f683df4ab70d",
+      "runtime-tmp-public-hashes.json": "fe45cb83ff7356f351ff8186833c180b660b29569a6242cd85174bb1c30a6baf",
+      "runtime-env.json": "b50d6c376922c8829100ae157660e7e41fcd96c824bbc1f68bd334f4e093ac3a",
+      "hook-package-lock.json": "8dd5b4efd9084a1cbf79d4f5a6d1858465ff32778a2a59fe9f90050ca538fdfb",
+      "runtime-views-hashes.json": "bde097de6c3fa991175b6071e03c4d0937c3077d6d2eaf2e94ea453d007d44ad",
+      "runtime-package.json": "142e3997635f2c60d27cd0eef28c72da520c289def14b8dbedb83b971c7f7ba7",
+      "baseline-package.json": "4f1d3a66a770c709d9907408852d9fac7912902e5cbae46b16333bd87ec7ff30",
+      "portal-package.json": "8447d0fd820cd3a0c4d9f86f857ebf8f37612b3b264299e781384674fc509ae0",
+      "hook-package.json": "577b60fce77287384f7ce8d76b495c2977821e1a73e00de2cb9867fdf217fb8f",
+      "runtime-assets-hashes.json": "a41f53278e831cd75ee117b94faac0aef4a91156dca60155ddd8e2fa394f8b12",
+      "baseline-application.cjs": "1f2db8672c8aa94a5e745ffbc2139aba8fe483acf1234661426bdee68c542ad3",
+      "runtime-application.cjs": "2414c2ccfba57cbd6e744462bf3d4cb0ef49418e17ec56915dc3f460a6b3a4a2",
+      "baseline-retained-portal.cjs": "d35b9d4470823941bd71d8f7549fcb169650de444176ec27817d4c2a52626ffb",
+      "author-package.json": "6b0e02e43ddaca11da05349471feb510e15385797ee5d7b8f52bb3bfc6bd0013",
+      "portal-package-lock.json": "3e7e3fd39c986cddf4337523f636c9949ae82f4a735269e7ce1ab2e6f97e0ced"
+    },
+    "deployedPacks": [
+      {
+        "name": "@researchdatabox/sails-ng-common",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-ng-common-0.2.1.tgz",
+        "bytes": 335171,
+        "sha256": "d186c3854c2b39f0d8b7e28e74437722a79a3e13dbd8eed70d983f4a46e10649"
+      },
+      {
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+        "bytes": 11751,
+        "sha256": "fbd053c112286839f00c694e0427390d937d5092b97d45f878b91d864bf3cb09"
+      },
+      {
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+        "bytes": 18488,
+        "sha256": "20feaf4686d8f568e74f218555b2156316e82b879fc46dede8df0e53914193f4"
+      },
+      {
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+        "bytes": 47853,
+        "sha256": "b5c52176f275107ceab116b1471afd5a96af63c79ad41def991fc54bc1f910a1"
+      },
+      {
+        "name": "@researchdatabox/redbox-core",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+        "bytes": 2794532,
+        "sha256": "899d98a1b0a46d766a26c13e5f49a6335b00a384fbc8e395e03c850e1177a5a1"
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+        "bytes": 81335,
+        "sha256": "776a79e677d5ff81a67d03e5d9e60b8e357d04469d0db78eefd923545024e7a2"
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+        "bytes": 44035,
+        "sha256": "678981fcb1dd795b598ffbbdbae00a2dc6ea2ef047d437d6b127a5fa10a735b0"
+      },
+      {
+        "name": "redbox-hook-wsu",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs/redbox-hook-wsu-2.0.0-v6.0.tgz",
+        "bytes": 862164,
+        "sha256": "a8daf56c859e443b962e80d073961c8467953da8f52ad78d2c9e5f38740ee7bd",
+        "retainedPath": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/redbox-hook-wsu-2.0.0-v6.0.tgz"
+      }
+    ],
+    "publicCoreImportCount": 30,
+    "preservation": {
+      "tasksSha256": "c80fe4cb0524560b32b33d47ab5918f5f8eaabd5e8caab5bb11babea9d65ed88",
+      "bundleSha256": "5efc57058a7c7a78d625ecea4ee554ab3dfbe5c2aee869016669ffb0c6d91e87",
+      "stagedPortal": "",
+      "stagedHook": ""
+    },
+    "screenshots": {
+      "r1/08-publication.png": "9c0e25084eea3e63dd8c64bf0bdb3d707bc7210fd1476fd9fdb5b85e3ec7bad0",
+      "r1/07-dataPublication.png": "67eb2263cbdf7d05e3f34e055f2f2a644a48d68299840a22324dead480b2ee90",
+      "r1/06-ror.png": "98782b1ee357e1ebe3fd13183c31b6349196f78e9c99db75f75f4aa4a35feba6",
+      "r1/09-after-restart.png": "d8cf0ecf88d9781388063591de2de5d825d99b9392ee0f16476649f9fd6df102",
+      "r1/04-dataRecord.png": "fd1faf4f8e0fd38373c80d4a36068c97fe885890aba4cfadd06ed15c6cd3fda1",
+      "r1/02-home-admin.png": "7b628aabd8414c6bfb0e05bda35f6a9a71741eaf9a4e403df705b551e5e612a2",
+      "r1/05-instrument.png": "fa10e0bf40edd9cd28d7f6080270fa5d50299fa5e98737dcc651974a2ce5c2d8",
+      "r1/03-rdmp.png": "67fc8fb585b109fb4d48837b2da27c8c1c013a00ca5975c9c8a1eab3550d19cb",
+      "r1/01-login.png": "9d956daedbc4b1ac9d5f46087d9f54ca819942e9b76c01e476a4963e472d725f"
+    },
+    "commandLedgerSha256": "9075c429d1d666b23f64ff652bfd8c735a9d205918b5dd59f4cf2310fca20730",
+    "qualificationToolsSha256": {
+      "qualify-rest.py": "21a3ddb5693faa17523d2083060152896b83aeca03d79a64cf0601cb64c98f7d",
+      "qualify-installed.py": "fc787c3d3d5865290fed13c940a745f6f09403e77822d40f5f2723e0db93d07e",
+      "logging-startup-control-transport.cjs": "a9e6b365f9d372d8b5c1e70a20590a9c23b80da6517485525d54f50b1b94ea88",
+      "cleanup-bucket.cjs": "69a58430361433246b487f3c8a401c6385aa3909cafeabbcbc59e10359aad5f8",
+      "serve.cjs": "2020ce14c7b185e16af04c56b1502b5fe52ae2979e31b26c4327ce2a389c0cc8",
+      "runtime-command.py": "ade7ea9be86b686953cb41b0f34da7b3da6b8d36d133bdeac242116acaed665f",
+      "core-gates.py": "31f05bb7ffa63305206a1e00612fb2e15dca96b4f92814c7456e0e6489664b64",
+      "offline-inspect.cjs": "65b682f79f6b9bac0b7ab3df4ac6221ee54fc649bfe86af3b0788874f1472227",
+      "write-evidence.py": "c1124e26376bfbd7abc5e99f1cbb10a9bb3a12fc3cb5def01b9e97c2976b6771",
+      "qualify-final.py": "787ae2bdb1d9150ee808c77e1e71026808680801b43fbee3e83cce2925f14f19",
+      "prepare-runtime-final.cjs": "228388bc60608f82fc5fc28d8b0202ac51a7bdcfc951f0261d94e6e591dd84e2",
+      "capture.py": "273804a71804d11f489d4dbccbe1d477c9fb9aa706d3154d313ed60f205d58b4",
+      "post-final.py": "d396c066ae18d4567ebdebce18b8c9dc7613e7754ef0cd5ff2d27829e8a9bd9e",
+      "prepare-baseline.cjs": "1c235dabb643b111c80be4a8ea47757f4675846aec3483e361bc57ebd27fab4d",
+      "compare-http.py": "a525094ee894af59f35a6596f3b07647002333c8232c6cfc2d1087f9a793bf87",
+      "compare-core.py": "7141fa0591420066eda6679f6941cf96f25df0198d5adce3e72b24d23e68cc76",
+      "compare-extended.py": "9fcbb12916caabeedf5e6d709fa86d85d1401c30fd3b98ddce2b09d759dfd993",
+      "prepare-runtime.cjs": "6531d23bcc8ae795419f8517973538c2001f4aa2637f9399ac20d4b7486633f7",
+      "run.py": "88c5df5b55691598bde4828342f7e8bd578d9e21dcbca917396fbbb59fc78f4b",
+      "cleanup.py": "88e272660de7771965d0fad55b6232732324c1ab380c611be7fa05a1d5be7b66",
+      "final-logger-core.py": "e8bad967c13ab2a31bc2cf40276ef714fe124768629c4dd8207010db99caeb92",
+      "qualify-initial.py": "fd03dd8e71020844c7a66188eee73f3656e306893137f2e921cc4c7bd963bc6e",
+      "seed-bucket.cjs": "53cd8febd34f8c63e89a2fde82f506e74191455ac1b67ed9774c0e0d2b57aa78",
+      "qualify-http.py": "96dcebe9683b3ef6bee2d1b4b70bbb8c32975145a941ef82a05bdcbbaa4b5448",
+      "wsu-fresh.cjs": "49273a92ed51724df47bb7ee9e3cb45af79d08195bf11d05c59b888877683354",
+      "http-extended.cjs": "82e69a608c29acd977b591ae57786189704df8cd0529fed80952d0730d3efa14",
+      "selection-audit.cjs": "39d9d2f4731f3b5eb997a12ff1ffa92195e66ef74e88918a71ebe4315cf5fd74",
+      "pack.cjs": "e1fa18f2d0edb28f198a34e11b53b1a3d7bbeeaad6792e00d43d879ae02888df",
+      "focus-refresh.py": "78617bfb7a47d6ef36c2ba34e7dd821fb7722cab4e91750c1292d2797226aab4",
+      "http-reduced.cjs": "96f49925082c0077be99a9ce02d63f4fec4b2435c4f3462bb1adaf432da385b1",
+      "scout-progress.py": "4a8cd4431b2fafe7af814930e5526e2092b5521a977fd24e504e4448fbd1377c",
+      "custom-auth.cjs": "ae0a88bb851d72108c5bf60812576167285ef5afe40a7100175023aba927218f",
+      "logging-startup-control.cjs": "136c0ff5fad80d9acd74024a64cf8189e76c0f4dbf62c762b4da74442fbea57c",
+      "seed.cjs": "bc2bd98ad7581b6af3966a46c2f68563d10684ba1462405b16c799a2211d8fa9",
+      "browser-checks.py": "2f679bc0b5da27340c428487d0a52f4f327fa17119f2eb0bb6c09348fde75861",
+      "services.py": "37f22f9b7a735e71f6e16715c3cefa76170a84667fc4784b233a9854ec62a856",
+      "browser-smoke.py": "6926dbd6041cc867738878997d8f7586c32145963cd2d9f7ec657360ba6d6bff",
+      "http-rehearsal.cjs": "dfa0af5d9063467782e42ff6cd57f1bf9f0ffce87af7b988a4c443ac1d0c6ea6",
+      "pack-final.cjs": "33fba8cb61af8e899e5f75cb4bb3aa36c01129c471d0d15c3857641105cdda64",
+      "refresh-progress.py": "5029aff7a4a9add21efa9846581d638426dfde45658e31f77c801e7d66f432fa",
+      "final-audit.py": "fec798c3182636be3e6c9dbb6d86159535bc0dfbba661ae5f422c9c8acb417c6"
+    },
+    "artifactRetention": [
+      {
+        "name": "@researchdatabox/sails-ng-common",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-ng-common-0.2.1.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-ng-common-0.2.1.tgz",
+        "sha256": "d186c3854c2b39f0d8b7e28e74437722a79a3e13dbd8eed70d983f4a46e10649",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+        "sha256": "fbd053c112286839f00c694e0427390d937d5092b97d45f878b91d864bf3cb09",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+        "sha256": "20feaf4686d8f568e74f218555b2156316e82b879fc46dede8df0e53914193f4",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+        "sha256": "b5c52176f275107ceab116b1471afd5a96af63c79ad41def991fc54bc1f910a1",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "@researchdatabox/redbox-core",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+        "sha256": "899d98a1b0a46d766a26c13e5f49a6335b00a384fbc8e395e03c850e1177a5a1",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+        "sha256": "776a79e677d5ff81a67d03e5d9e60b8e357d04469d0db78eefd923545024e7a2",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+        "sha256": "678981fcb1dd795b598ffbbdbae00a2dc6ea2ef047d437d6b127a5fa10a735b0",
+        "retainedBytesMatchQualifiedArtifact": true
+      },
+      {
+        "name": "redbox-hook-wsu",
+        "installedFrom": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs/redbox-hook-wsu-2.0.0-v6.0.tgz",
+        "retainedAt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/redbox-hook-wsu-2.0.0-v6.0.tgz",
+        "sha256": "a8daf56c859e443b962e80d073961c8467953da8f52ad78d2c9e5f38740ee7bd",
+        "retainedBytesMatchQualifiedArtifact": true
+      }
+    ]
+  },
+  "postCoreStability": {
+    "portal": {
+      "sha": true,
+      "branch": true,
+      "patchSha256": true,
+      "sourceManifestSha256": true
+    },
+    "hook": {
+      "sha": true,
+      "branch": true,
+      "patchSha256": true,
+      "sourceManifestSha256": true
+    },
+    "deployedPacks": true,
+    "locksAndConfiguration": true,
+    "screenshots": true,
+    "publicCoreImportCount": true,
+    "preservation": true
+  },
+  "loggerFixtureStability": {
+    "onlyChangedPortalSourceFiles": [
+      "packages/redbox-core/test/http/fastify/fixtures/logging-survival.cjs",
+      "packages/redbox-core/test/http/fastify/fixtures/logging-transport.cjs"
+    ],
+    "deployedPacksUnchanged": true,
+    "hookPatchUnchanged": true,
+    "productionLoggerUnchanged": true
+  },
+  "results": {
+    "wsu": {
+      "passes": 565,
+      "failures": 0,
+      "pending": 0,
+      "cleanInstall": {
+        "label": "hook-clean-ci-final-qualified",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "900",
+          "npm",
+          "ci",
+          "--ignore-scripts",
+          "--strict-peer-deps",
+          "--no-audit",
+          "--no-fund"
+        ],
+        "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+        "start": "2026-11-15T23:14:52.774452+00:00",
+        "end": "2026-11-15T23:14:53.938339+00:00",
+        "exit": 0
+      },
+      "runnerNote": "Existing Mocha exit:true retained; round-1 and round-2 hook unit exits are not natural-exit claims."
+    },
+    "focusedAuthentication": {
+      "passes": 96,
+      "failures": 0
+    },
+    "focusedProgress": {
+      "passes": 6,
+      "failures": 0
+    },
+    "completeProgressMongo": {
+      "suites": 6,
+      "tests": 1252,
+      "passes": 1252,
+      "pending": 0,
+      "failures": 0,
+      "start": "2026-11-16T00:54:47.486Z",
+      "end": "2026-11-16T00:55:50.310Z",
+      "duration": 62824
+    },
+    "focusedLogger": {
+      "passes": 134,
+      "failures": 0,
+      "startupControl": {
+        "asyncFlushProcessed": 0,
+        "syncFlushProcessed": 1,
+        "conclusion": "flush() acknowledged shared buffer before queued main-thread startup write; flushSync()+event-loop fence drains startup before arm"
+      }
+    },
+    "http": {
+      "standardMatches": 53,
+      "reducedPolicyMatches": 12,
+      "extendedMatches": 32,
+      "persistedCredentialFieldsMatched": true,
+      "details": {
+        "http-extended": {
+          "matched": true,
+          "cases": 32,
+          "progressEventReceived": true,
+          "normalizations": [
+            "generated progress/socket/grant identifiers and timestamps; same expected format checked",
+            "selected canonical public origin",
+            "session query CSRF values; Expires policy date validated as 2027"
+          ]
+        },
+        "custom-auth": {
+          "matched": true,
+          "cases": 0,
+          "progressEventReceived": null,
+          "normalizations": [
+            "generated progress/socket/grant identifiers and timestamps; same expected format checked",
+            "selected canonical public origin",
+            "session query CSRF values; Expires policy date validated as 2027"
+          ]
+        },
+        "http-reduced": {
+          "matched": true,
+          "cases": 12,
+          "progressEventReceived": null,
+          "normalizations": [
+            "generated progress/socket/grant identifiers and timestamps; same expected format checked",
+            "selected canonical public origin",
+            "session query CSRF values; Expires policy date validated as 2027"
+          ]
+        }
+      }
+    },
+    "browser": {
+      "beforeRestart": [
+        {
+          "name": "rdmp",
+          "oid": "1614ff5679044c4fa3b93d9926607d06",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/1614ff5679044c4fa3b93d9926607d06\\\",\\\"welcome\\\":true,\\\"tabs\\\":11,\\\"controls\\\":56,\\\"visibleControls\\\":10,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/03-rdmp.png"
+        },
+        {
+          "name": "dataRecord",
+          "oid": "2680483a9837401da76584d38c512e08",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/2680483a9837401da76584d38c512e08\\\",\\\"welcome\\\":true,\\\"tabs\\\":10,\\\"controls\\\":50,\\\"visibleControls\\\":7,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/04-dataRecord.png"
+        },
+        {
+          "name": "instrument",
+          "oid": "37074f7721ba483bb322c250ec39328c",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/37074f7721ba483bb322c250ec39328c\\\",\\\"welcome\\\":true,\\\"tabs\\\":2,\\\"controls\\\":28,\\\"visibleControls\\\":20,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/05-instrument.png"
+        },
+        {
+          "name": "ror",
+          "oid": "238d3c1376034eb297228438bdcd081a",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/238d3c1376034eb297228438bdcd081a\\\",\\\"welcome\\\":true,\\\"tabs\\\":6,\\\"controls\\\":31,\\\"visibleControls\\\":8,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/06-ror.png"
+        },
+        {
+          "name": "dataPublication",
+          "oid": "d2a8458746064ac2814de6d784e14770",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/d2a8458746064ac2814de6d784e14770\\\",\\\"welcome\\\":true,\\\"tabs\\\":9,\\\"controls\\\":64,\\\"visibleControls\\\":8,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/07-dataPublication.png"
+        },
+        {
+          "name": "public publication",
+          "errors": "",
+          "snapshot": "- link \"Western Sydney University\" [ref=e1]\n- link \"ResearchDirect\" [ref=e2]\n- heading \"FM040 published publication\" [level=1, ref=e3]\n- heading \"Start\" [level=2, ref=e4]\n  - button \"Start\" [expanded=true, ref=e8]\n- heading \"Data\" [level=2, ref=e5]\n  - button \"Data\" [expanded=true, ref=e9]\n- columnheader \"Type\" [ref=e14]\n- columnheader \"Location\" [ref=e15]\n- columnheader \"Notes\" [ref=e16]\n- cell \"selected\" [ref=e13]\n- heading \"Supplements\" [level=2, ref=e6]\n  - button \"Supplements\" [expanded=true, ref=e10]\n- heading \"Citation\" [level=2, ref=e7]\n  - button \"Citation\" [expanded=true, ref=e11]\n- link \"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/published/d2a8458746064ac2814de6d784e14770\" [ref=e12]\n"
+        }
+      ],
+      "afterRestart": [
+        {
+          "name": "rdmp",
+          "oid": "1614ff5679044c4fa3b93d9926607d06",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/1614ff5679044c4fa3b93d9926607d06\\\",\\\"welcome\\\":true,\\\"tabs\\\":11,\\\"controls\\\":56,\\\"visibleControls\\\":10,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/03-rdmp.png"
+        },
+        {
+          "name": "dataRecord",
+          "oid": "2680483a9837401da76584d38c512e08",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/2680483a9837401da76584d38c512e08\\\",\\\"welcome\\\":true,\\\"tabs\\\":10,\\\"controls\\\":50,\\\"visibleControls\\\":7,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/04-dataRecord.png"
+        },
+        {
+          "name": "instrument",
+          "oid": "37074f7721ba483bb322c250ec39328c",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/37074f7721ba483bb322c250ec39328c\\\",\\\"welcome\\\":true,\\\"tabs\\\":2,\\\"controls\\\":28,\\\"visibleControls\\\":20,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/05-instrument.png"
+        },
+        {
+          "name": "ror",
+          "oid": "238d3c1376034eb297228438bdcd081a",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/238d3c1376034eb297228438bdcd081a\\\",\\\"welcome\\\":true,\\\"tabs\\\":6,\\\"controls\\\":31,\\\"visibleControls\\\":8,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/06-ror.png"
+        },
+        {
+          "name": "dataPublication",
+          "oid": "d2a8458746064ac2814de6d784e14770",
+          "diagnostic": "\"{\\\"url\\\":\\\"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/default/rdmp/record/edit/d2a8458746064ac2814de6d784e14770\\\",\\\"welcome\\\":true,\\\"tabs\\\":9,\\\"controls\\\":64,\\\"visibleControls\\\":8,\\\"failedLocalResources\\\":[]}\"\n",
+          "errors": "",
+          "screenshot": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-040-browser/r1/07-dataPublication.png"
+        },
+        {
+          "name": "public publication",
+          "errors": "",
+          "snapshot": "- link \"Western Sydney University\" [ref=e1]\n- link \"ResearchDirect\" [ref=e2]\n- heading \"FM040 published publication\" [level=1, ref=e3]\n- heading \"Start\" [level=2, ref=e4]\n  - button \"Start\" [expanded=true, ref=e8]\n- heading \"Data\" [level=2, ref=e5]\n  - button \"Data\" [expanded=true, ref=e9]\n- columnheader \"Type\" [ref=e14]\n- columnheader \"Location\" [ref=e15]\n- columnheader \"Notes\" [ref=e16]\n- cell \"selected\" [ref=e13]\n- heading \"Supplements\" [level=2, ref=e6]\n  - button \"Supplements\" [expanded=true, ref=e10]\n- heading \"Citation\" [level=2, ref=e7]\n  - button \"Citation\" [expanded=true, ref=e11]\n- link \"http://nam-oci-agent-2.tail4a7c3.ts.net:49245/published/d2a8458746064ac2814de6d784e14770\" [ref=e12]\n"
+        }
+      ],
+      "stopExits": [
+        0,
+        0
+      ],
+      "canonicalUrl": "http://nam-oci-agent-2.tail4a7c3.ts.net:49245",
+      "institutionalProductionAcceptance": "PENDING"
+    },
+    "core": {
+      "suites": 953,
+      "tests": 25389,
+      "passes": 25286,
+      "pending": 103,
+      "failures": 0,
+      "start": "2026-11-16T00:12:03.415Z",
+      "end": "2026-11-16T00:54:26.316Z",
+      "duration": 2542901
+    },
+    "coreComparison": {
+      "FM-039": {
+        "baseline": {
+          "suites": 952,
+          "tests": 25381,
+          "passes": 25278,
+          "pending": 103,
+          "failures": 0,
+          "start": "2026-11-15T14:37:09.653Z",
+          "end": "2026-11-15T15:18:43.884Z",
+          "duration": 2494231
+        },
+        "current": {
+          "suites": 953,
+          "tests": 25389,
+          "passes": 25286,
+          "pending": 103,
+          "failures": 0,
+          "start": "2026-11-16T00:12:03.415Z",
+          "end": "2026-11-16T00:54:26.316Z",
+          "duration": 2542901
+        },
+        "removedPasses": [],
+        "addedPasses": [
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract retains the original event and bounded attempted username without credentials or extra body fields"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the missing attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the empty attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the object attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the array attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the oversized attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/extensions/v2.test.ts",
+              "FM-017 installed API2 extension composition orders explicit institution/core precedence after provider replacement resolution"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/extensions/v2.test.ts",
+              "FM-017 installed API2 extension composition rejects cyclic institution precedence offline without constructing controllers"
+            ],
+            1
+          ]
+        ],
+        "removedPending": [],
+        "addedPending": []
+      },
+      "FM-040-initial": {
+        "baseline": {
+          "suites": 952,
+          "tests": 25383,
+          "passes": 25280,
+          "pending": 103,
+          "failures": 0,
+          "start": "2026-11-15T19:56:40.388Z",
+          "end": "2026-11-15T20:38:45.451Z",
+          "duration": 2525063
+        },
+        "current": {
+          "suites": 953,
+          "tests": 25389,
+          "passes": 25286,
+          "pending": 103,
+          "failures": 0,
+          "start": "2026-11-16T00:12:03.415Z",
+          "end": "2026-11-16T00:54:26.316Z",
+          "duration": 2542901
+        },
+        "removedPasses": [],
+        "addedPasses": [
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract retains the original event and bounded attempted username without credentials or extra body fields"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the missing attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the empty attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the object attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the array attempted username while retaining failure context"
+            ],
+            1
+          ],
+          [
+            [
+              "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/authentication/events.test.ts",
+              "authentication failure event public contract omits the oversized attempted username while retaining failure context"
+            ],
+            1
+          ]
+        ],
+        "removedPending": [],
+        "addedPending": []
+      }
+    },
+    "cleanup": {
+      "actions": [
+        {
+          "command": [
+            "docker",
+            "rm",
+            "-f",
+            "-v",
+            "fm040r1-core"
+          ],
+          "exit": 0,
+          "stdout": "fm040r1-core\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "rm",
+            "-f",
+            "-v",
+            "fm040r1-storage"
+          ],
+          "exit": 0,
+          "stdout": "fm040r1-storage\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "rm",
+            "-f",
+            "-v",
+            "fm040-solr"
+          ],
+          "exit": 0,
+          "stdout": "fm040-solr\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "rm",
+            "-f",
+            "-v",
+            "fm040r1-seaweed"
+          ],
+          "exit": 0,
+          "stdout": "fm040r1-seaweed\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "image",
+            "rm",
+            "chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882"
+          ],
+          "exit": 0,
+          "stdout": "Untagged: chrislusf/seaweedfs@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882\nDeleted: sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "ps",
+            "-aq"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "volume",
+            "ls",
+            "-q"
+          ],
+          "exit": 0,
+          "stdout": "70f02f0a4387d759ddbe63a6ca8a5e55e63fd00e7da10cb2617253149046bee7\n75d870e25614ce36860576579c82c3832b0993b7757b8823159c40e9d0610013\ne8dd35c93e8fc2e0a2770b39c3a3117dd936219a240c04d5f61a4f8db7712d1f\nrbmocha-2c5a4b53fb372563a694af5e40a8c223_mailpit\nrbmocha-8fde9862647daddbbcb0c148fcc3f8dc_mailpit\nrbmocha-9faabbd46d9240e982491ceb20043a2e_mailpit\nrbmocha-9faabbd46d9240e982491ceb20043a2e_mongo-config\nrbmocha-9faabbd46d9240e982491ceb20043a2e_mongo-data\nrbmocha-9faabbd46d9240e982491ceb20043a2e_solr-data\nrbmocha-55ebca1f624b4d08a71c3424754fff17_owned-mongo\nrbmocha-55ebca1f624b4d08a71c3424754fff17_owned-mongo-config\nrbmocha-55ebca1f624b4d08a71c3424754fff17_owned-solr\nrbmocha-328f40a90b66b824ddd8c91b60152f14_mailpit\nrbmocha-820d82c9966448f9a95426bd13d0d750_owned-mongo\nrbmocha-820d82c9966448f9a95426bd13d0d750_owned-mongo-config\nrbmocha-820d82c9966448f9a95426bd13d0d750_owned-solr\nrbmocha-686719be76a8422b9cc66a9f99f62d20_mongo-config\nrbmocha-686719be76a8422b9cc66a9f99f62d20_mongo-data\nrbmocha-686719be76a8422b9cc66a9f99f62d20_solr-data\nrbmocha-ad68cc92a9584c9aac4c3b59e22187cd_mongo-config\nrbmocha-ad68cc92a9584c9aac4c3b59e22187cd_mongo-data\nrbmocha-ad68cc92a9584c9aac4c3b59e22187cd_solr-data\nrbmocha-bddd7e10f63d4721a8ebcf83afc4ff3d_mongo-config\nrbmocha-bddd7e10f63d4721a8ebcf83afc4ff3d_mongo-data\nrbmocha-bddd7e10f63d4721a8ebcf83afc4ff3d_solr-data\nrbplay-5ede67be4fe3514a1ad43e7c92e2e87a_mailpit\nredbox4762-dev_mongo-data\nredbox4762-dev_solr-data\nredbox-reporting-demo_attachments\nredbox-reporting-demo_keycloak-data\nredbox-reporting-demo_mongo7-data\nredbox-reporting-demo_mongo-data\nredbox-reporting-demo_solr-data\nsa09-uon_sa09-mongo\nsa09-uon_sa09-views\nsa09-uwa_sa09-mongo\nsa09-uwa_sa09-views\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "network",
+            "ls",
+            "-q"
+          ],
+          "exit": 0,
+          "stdout": "3a37eea5ed2a\n1b3466218da3\nacd0760c2f4c\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "docker",
+            "image",
+            "ls",
+            "-q"
+          ],
+          "exit": 0,
+          "stdout": "628e78944854\n9e8783313332\n497bfaece9e0\n94d11bb2e50c\nb866a82ef3a0\n94aea1479556\na78d6b795721\n47b510dd9230\n1a712cae556d\ndc28ed5a9d0f\n23fe39e81bde\nb3c656d55d7a\n",
+          "stderr": ""
+        }
+      ],
+      "containers": [],
+      "volumesMatchInitial": true,
+      "networksMatchInitial": true,
+      "imagesMatchInitial": true,
+      "ownedPortsClosed": {
+        "49240": true,
+        "49241": true,
+        "49242": true,
+        "49243": true,
+        "49244": true,
+        "49245": true,
+        "49246": true,
+        "49247": true,
+        "49248": true,
+        "49249": true,
+        "49250": true
+      },
+      "intentionalDeliverables": "logs/scripts/receipts, selected review tarballs and portal screenshots; no installed runtime, cache, provider volumes or browser profile retained"
+    },
+    "bucketCleanup": {
+      "endpoint": "http://127.0.0.1:49243",
+      "Bucket": "fm040-wsu-disposable",
+      "deletedObjectsThisInvocation": 0,
+      "priorAttempt": "cleanup-bucket-first.log; S3 objects deleted before residual empty filer directory prevented bucket deletion; first invocation object count was not retained",
+      "deleteAttempts": 1,
+      "maintenance": [],
+      "bucketDeleted": true
+    }
+  },
+  "serviceIdentities": [
+    {
+      "name": "fm040r1-core",
+      "containerId": "764e64c00dd073145bc529b5a27d1e2ffc518e2d4ec0c44f26531ebdf5183817",
+      "imageId": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+      "configuredImage": "mongo@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+      "repoDigests": [
+        "mongo@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8"
+      ],
+      "memory": 1610612736,
+      "nanoCpus": 500000000,
+      "ports": {
+        "27017/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "49240"
+          }
+        ]
+      },
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "e40482837a1f1b66c0fb325be3c59a74082c5f801029c24cf887e29402e88e74",
+          "Source": "/home/ubuntu/work/docker/volumes/e40482837a1f1b66c0fb325be3c59a74082c5f801029c24cf887e29402e88e74/_data",
+          "Destination": "/data/db",
+          "Driver": "local",
+          "Mode": "",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "volume",
+          "Name": "f1f5bef3dc5be8b2861a6b43190292862b6d68bc74f2271ed3252f07b09ef526",
+          "Source": "/home/ubuntu/work/docker/volumes/f1f5bef3dc5be8b2861a6b43190292862b6d68bc74f2271ed3252f07b09ef526/_data",
+          "Destination": "/data/configdb",
+          "Driver": "local",
+          "Mode": "",
+          "RW": true,
+          "Propagation": ""
+        }
+      ]
+    },
+    {
+      "name": "fm040r1-storage",
+      "containerId": "2e313057a6b0c2bcecffd957c111b00196710275f2b05fe1750cae5e8c24f5f1",
+      "imageId": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+      "configuredImage": "mongo@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+      "repoDigests": [
+        "mongo@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8"
+      ],
+      "memory": 1610612736,
+      "nanoCpus": 500000000,
+      "ports": {
+        "27017/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "49241"
+          }
+        ]
+      },
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "e990e79527c6563cc5f3c579c1bc7ecc4e381fc544db083ffcbcaded3fc71c3d",
+          "Source": "/home/ubuntu/work/docker/volumes/e990e79527c6563cc5f3c579c1bc7ecc4e381fc544db083ffcbcaded3fc71c3d/_data",
+          "Destination": "/data/db",
+          "Driver": "local",
+          "Mode": "",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "volume",
+          "Name": "f3877b4d7a52703307342f39bbb04efbda0dd86118e0689409c2ed981692832a",
+          "Source": "/home/ubuntu/work/docker/volumes/f3877b4d7a52703307342f39bbb04efbda0dd86118e0689409c2ed981692832a/_data",
+          "Destination": "/data/configdb",
+          "Driver": "local",
+          "Mode": "",
+          "RW": true,
+          "Propagation": ""
+        }
+      ]
+    },
+    {
+      "name": "fm040-solr",
+      "containerId": "e8ce89b294a2cccd3547d86850300580fbf6033827072e988ec3bbb91d871e10",
+      "imageId": "sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb",
+      "configuredImage": "solr@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb",
+      "repoDigests": [
+        "solr@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb"
+      ],
+      "memory": 1073741824,
+      "nanoCpus": 500000000,
+      "ports": {
+        "8983/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "49242"
+          }
+        ]
+      },
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "51d2b4316b7b901e93a7a147e00cd293e2d3f034aa9df1ed3829915ee19ffc79",
+          "Source": "/home/ubuntu/work/docker/volumes/51d2b4316b7b901e93a7a147e00cd293e2d3f034aa9df1ed3829915ee19ffc79/_data",
+          "Destination": "/var/solr",
+          "Driver": "local",
+          "Mode": "",
+          "RW": true,
+          "Propagation": ""
+        }
+      ]
+    },
+    {
+      "name": "fm040r1-seaweed",
+      "containerId": "2c4df1207b9bfd6159c358209ce509a87f85947c6d013595e2be8e3fbca65cfc",
+      "imageId": "sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882",
+      "configuredImage": "chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882",
+      "repoDigests": [
+        "chrislusf/seaweedfs@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882"
+      ],
+      "memory": 805306368,
+      "nanoCpus": 250000000,
+      "ports": {
+        "8333/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "49243"
+          }
+        ]
+      },
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "25b16d63667898a3572126cb756995cea2b97e40eb839df28dea1111425e24d0",
+          "Source": "/home/ubuntu/work/docker/volumes/25b16d63667898a3572126cb756995cea2b97e40eb839df28dea1111425e24d0/_data",
+          "Destination": "/data",
+          "Driver": "local",
+          "Mode": "z",
+          "RW": true,
+          "Propagation": ""
+        }
+      ]
+    }
+  ],
+  "preservation": {
+    "/home/ubuntu/work/github/redbox-portal/package-lock.json": true,
+    "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/tasks.md": true,
+    "/home/ubuntu/work/bitbucket/redbox-hook-wsu-v6-764851e.bundle": true
+  },
+  "commandLedger": [
+    {
+      "label": "hook-lock",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "npm",
+        "install",
+        "--package-lock-only",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:02:02.201046+00:00",
+      "end": "2026-11-15T22:02:02.640683+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-clean-ci",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:02:02.680180+00:00",
+      "end": "2026-11-15T22:02:03.262252+00:00",
+      "exit": 0
+    },
+    {
+      "label": "format-core",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "node_modules/.bin/prettier",
+        "--write",
+        "packages/redbox-core/src/authentication/events.ts",
+        "packages/redbox-core/src/authentication/index.ts",
+        "packages/redbox-core/src/http/express/login.ts",
+        "packages/redbox-core/test/authentication/events.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:02:32.929223+00:00",
+      "end": "2026-11-15T22:02:33.342680+00:00",
+      "exit": 0
+    },
+    {
+      "label": "core-build",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T22:02:33.379994+00:00",
+      "end": "2026-11-15T22:03:18.497671+00:00",
+      "exit": 2
+    },
+    {
+      "label": "core-build-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T22:04:00.324460+00:00",
+      "end": "2026-11-15T22:04:48.675318+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-compile",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "300",
+        "npm",
+        "run",
+        "compile"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:04:49.704700+00:00",
+      "end": "2026-11-15T22:05:01.426690+00:00",
+      "exit": 2
+    },
+    {
+      "label": "hook-lock-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "npm",
+        "install",
+        "--package-lock-only",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:05:56.753291+00:00",
+      "end": "2026-11-15T22:05:58.930020+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-clean-ci-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:05:58.968212+00:00",
+      "end": "2026-11-15T22:06:00.137904+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-compile-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "300",
+        "npm",
+        "run",
+        "compile"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:06:00.175665+00:00",
+      "end": "2026-11-15T22:06:09.280088+00:00",
+      "exit": 0
+    },
+    {
+      "label": "offline-overlaps",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/offline-inspect.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:07:14.225465+00:00",
+      "end": "2026-11-15T22:07:27.968156+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-unit-clean",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1800",
+        "env",
+        "WSU_TEST_ORIGIN=http://nam-oci-agent-2.tail4a7c3.ts.net:49244",
+        "WSU_TEST_CORE=mongodb://127.0.0.1:49240",
+        "WSU_TEST_STORAGE=mongodb://127.0.0.1:49241",
+        "WSU_TEST_SOLR=49242",
+        "WSU_TEST_SCRATCH=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1",
+        "npm",
+        "run",
+        "test:unit"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:08:31.516810+00:00",
+      "end": "2026-11-15T22:17:17.339570+00:00",
+      "exit": 6
+    },
+    {
+      "label": "hook-clean-ci-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:17:17.340491+00:00",
+      "end": "2026-11-15T22:17:18.586159+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-unit-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1800",
+        "npm",
+        "run",
+        "test:unit"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T22:17:18.624697+00:00",
+      "end": "2026-11-15T22:26:21.570414+00:00",
+      "exit": 0
+    },
+    {
+      "label": "authentication-focused",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node_modules/.bin/mocha",
+        "--no-config",
+        "--node-option",
+        "no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "test/authentication/events.test.ts",
+        "test/http/fastify/authenticationDifferential.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T22:26:21.614165+00:00",
+      "end": "2026-11-15T22:27:51.522390+00:00",
+      "exit": 0
+    },
+    {
+      "label": "controllers-types",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "packages/redbox-core/test/tsconfig.controllers.json"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:27:51.560035+00:00",
+      "end": "2026-11-15T22:28:37.473908+00:00",
+      "exit": 0
+    },
+    {
+      "label": "application-types",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "packages/redbox-core/test/tsconfig.application.json"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:28:37.511101+00:00",
+      "end": "2026-11-15T22:29:26.826502+00:00",
+      "exit": 0
+    },
+    {
+      "label": "export-generate",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "support/specs/fastify-migration/evidence/audit-FM-038.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:29:26.863740+00:00",
+      "end": "2026-11-15T22:29:43.359255+00:00",
+      "exit": 0
+    },
+    {
+      "label": "raw-generate",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "support/specs/fastify-migration/evidence/reconcile-FM-036.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:29:43.396442+00:00",
+      "end": "2026-11-15T22:30:30.026635+00:00",
+      "exit": 0
+    },
+    {
+      "label": "route-generate",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "--no-experimental-strip-types",
+        "support/specs/fastify-migration/evidence/generate-FM-002.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:30:30.065050+00:00",
+      "end": "2026-11-15T22:30:38.080751+00:00",
+      "exit": 0
+    },
+    {
+      "label": "packs",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/pack.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:30:38.117656+00:00",
+      "end": "2026-11-15T22:30:48.708277+00:00",
+      "exit": 0
+    },
+    {
+      "label": "runtime-prepare",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/prepare-runtime.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:30:48.745705+00:00",
+      "end": "2026-11-15T22:30:52.856273+00:00",
+      "exit": 0
+    },
+    {
+      "label": "runtime-lock",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "npm",
+        "install",
+        "--package-lock-only",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--omit=dev",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/npm-cache"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:30:52.894046+00:00",
+      "end": "2026-11-15T22:32:20.570223+00:00",
+      "exit": 0
+    },
+    {
+      "label": "runtime-clean-ci",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--omit=dev",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/npm-cache"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:32:20.607972+00:00",
+      "end": "2026-11-15T22:32:45.598158+00:00",
+      "exit": 0
+    },
+    {
+      "label": "seaweed-pull",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "docker",
+        "pull",
+        "chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:33:36.332432+00:00",
+      "end": "2026-11-15T22:33:45.293999+00:00",
+      "exit": 0
+    },
+    {
+      "label": "seaweed-start",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "60",
+        "docker",
+        "run",
+        "--pull=never",
+        "-d",
+        "--name",
+        "fm040r1-seaweed",
+        "--memory=768m",
+        "--cpus=0.25",
+        "--ulimit",
+        "nofile=64000:64000",
+        "-p",
+        "127.0.0.1:49243:8333",
+        "--mount",
+        "type=volume,dst=/data",
+        "-e",
+        "AWS_ACCESS_KEY_ID=seaweedadmin",
+        "-e",
+        "AWS_SECRET_ACCESS_KEY=seaweedadmin",
+        "chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882",
+        "mini",
+        "-dir=/data",
+        "-ip=127.0.0.1",
+        "-master.telemetry=false",
+        "-admin.user=seaweedadmin",
+        "-admin.password=seaweedadmin",
+        "-s3.autoCreateBucket=false",
+        "-s3.allowDeleteBucketNotEmpty=false",
+        "-webdav=false",
+        "-s3.port.iceberg=0",
+        "-s3.port.lance=0"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T22:33:45.337512+00:00",
+      "end": "2026-11-15T22:33:52.752484+00:00",
+      "exit": 0
+    },
+    {
+      "label": "selection-audit",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/selection-audit.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:33:52.804615+00:00",
+      "end": "2026-11-15T22:34:04.526540+00:00",
+      "exit": 0
+    },
+    {
+      "label": "seed-bucket",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/seed-bucket.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:34:04.563964+00:00",
+      "end": "2026-11-15T22:34:04.962016+00:00",
+      "exit": 0
+    },
+    {
+      "label": "baseline-prepare",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/prepare-baseline.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:34:04.998988+00:00",
+      "end": "2026-11-15T22:34:05.528287+00:00",
+      "exit": 0
+    },
+    {
+      "label": "indexes",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "300",
+        "node",
+        "node_modules/redbox-hook-wsu/support/v6/app.cjs",
+        "--maintenance=indexes:ensure"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:34:05.566117+00:00",
+      "end": "2026-11-15T22:34:17.726144+00:00",
+      "exit": 0
+    },
+    {
+      "label": "fresh-driver",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "docker",
+        "run",
+        "--pull=never",
+        "--rm",
+        "--user",
+        "1001:1001",
+        "--name",
+        "fm040r1-job-fresh-driver",
+        "--network=host",
+        "--no-healthcheck",
+        "--memory=2048m",
+        "--cpus=1",
+        "--ulimit",
+        "nofile=64000:64000",
+        "--read-only",
+        "--tmpfs",
+        "/tmp:rw,size=256m",
+        "--mount",
+        "type=bind,src=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1,dst=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1",
+        "--workdir",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+        "--entrypoint",
+        "node",
+        "-e",
+        "NODE_PATH=",
+        "-e",
+        "NODE_OPTIONS=",
+        "-e",
+        "NODE_ENV=production",
+        "-e",
+        "SR_WSU_DISPOSABLE=true",
+        "-e",
+        "SR_WSU_MONGO_VERSION=9.0.4",
+        "-e",
+        "SR_WSU_FCV=9.0",
+        "-e",
+        "WSU_DISPOSABLE=true",
+        "-e",
+        "REDBOX_APPLICATION_CONFIG=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime/application.cjs",
+        "-e",
+        "REDBOX_PUBLIC_URL=http://nam-oci-agent-2.tail4a7c3.ts.net:49245",
+        "-e",
+        "REDBOX_SESSION_SECRET=fm040-disposable-session-secret-at-least-32",
+        "-e",
+        "HOOK_S3_BUCKET=fm040-wsu-disposable",
+        "-e",
+        "HOOK_S3_REGION=ap-southeast-2",
+        "-e",
+        "HOOK_S3_ENDPOINT=http://127.0.0.1:49243",
+        "-e",
+        "HOOK_S3_ACCESS_KEY=seaweedadmin",
+        "-e",
+        "HOOK_S3_SECRET_KEY=seaweedadmin",
+        "-e",
+        "HOOK_S3_FORCE_PATH_STYLE=true",
+        "-e",
+        "HOOK_S3_SUPPORTS_ACL=false",
+        "-e",
+        "HOOK_ATTACHMENTS_STAGE_DIR=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime/state/staging",
+        "-e",
+        "NODE_PATH=",
+        "-e",
+        "NODE_OPTIONS=",
+        "sha256:94d11bb2e50cefd0697d1ae0d51e421804db712e1eb8bf227c002fb7ef15a30a",
+        "--max-old-space-size=1536",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/wsu-fresh.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:34:17.795295+00:00",
+      "end": "2026-11-15T22:39:42.563378+00:00",
+      "exit": 0
+    },
+    {
+      "label": "seed",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "300",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/seed.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:39:42.621588+00:00",
+      "end": "2026-11-15T22:39:55.780909+00:00",
+      "exit": 0
+    },
+    {
+      "label": "installed-verify",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node",
+        "node_modules/redbox-hook-wsu/support/v6/verify.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:39:55.819071+00:00",
+      "end": "2026-11-15T22:40:24.419715+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-express",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:40:24.458003+00:00",
+      "end": "2026-11-15T22:40:31.791335+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-express",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:40:31.828727+00:00",
+      "end": "2026-11-15T22:40:38.945900+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-express",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:40:38.984398+00:00",
+      "end": "2026-11-15T22:41:46.046458+00:00",
+      "exit": 1
+    },
+    {
+      "label": "http-express-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:42:28.510929+00:00",
+      "end": "2026-11-15T22:42:36.271979+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-express-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:42:36.309410+00:00",
+      "end": "2026-11-15T22:42:43.392176+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-express-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:42:43.429927+00:00",
+      "end": "2026-11-15T22:42:50.660524+00:00",
+      "exit": 1
+    },
+    {
+      "label": "http-express-qualified2",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:43:29.033677+00:00",
+      "end": "2026-11-15T22:43:36.622119+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-express-qualified2",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:43:36.660780+00:00",
+      "end": "2026-11-15T22:43:43.782874+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-express-qualified2",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:43:43.820869+00:00",
+      "end": "2026-11-15T22:43:51.084054+00:00",
+      "exit": 1
+    },
+    {
+      "label": "http-express-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:44:52.763600+00:00",
+      "end": "2026-11-15T22:45:00.070482+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-express-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:45:00.108104+00:00",
+      "end": "2026-11-15T22:45:07.329518+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-express-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:45:07.367495+00:00",
+      "end": "2026-11-15T22:45:14.787416+00:00",
+      "exit": 0
+    },
+    {
+      "label": "custom-auth-express-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/custom-auth.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T22:45:14.824803+00:00",
+      "end": "2026-11-15T22:50:23.709021+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-fastify-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:50:23.747637+00:00",
+      "end": "2026-11-15T22:50:37.958812+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-fastify-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:50:37.997204+00:00",
+      "end": "2026-11-15T22:50:51.233824+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-fastify-qualified3",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T22:50:51.271127+00:00",
+      "end": "2026-11-15T22:51:07.074808+00:00",
+      "exit": 1
+    },
+    {
+      "label": "core-build-progress",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T22:52:27.889906+00:00",
+      "end": "2026-11-15T22:53:13.790701+00:00",
+      "exit": 0
+    },
+    {
+      "label": "progress-focused",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1200",
+        "env",
+        "HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:49240/sr_p4_http",
+        "HTTP_READ_SOLR_PORT=49242",
+        "TS_NODE_PROJECT=test/tsconfig.json",
+        "node_modules/.bin/mocha",
+        "--no-config",
+        "--node-option",
+        "no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "test/http/fastify/ProgressDifferentialMongo.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T22:53:45.212480+00:00",
+      "end": "2026-11-15T22:59:53.165079+00:00",
+      "exit": 2
+    },
+    {
+      "label": "progress-focused-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1200",
+        "node_modules/.bin/mocha",
+        "--no-config",
+        "--node-option",
+        "no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "test/http/fastify/ProgressDifferentialMongo.test.ts",
+        "--grep",
+        "preserves conditional progress reads and admission"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T23:01:22.417870+00:00",
+      "end": "2026-11-15T23:07:00.691032+00:00",
+      "exit": 0
+    },
+    {
+      "label": "format-progress",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "node_modules/.bin/prettier",
+        "--write",
+        "packages/redbox-core/src/http/controllers/ProgressController.ts",
+        "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:07:00.758160+00:00",
+      "end": "2026-11-15T23:07:01.187096+00:00",
+      "exit": 0
+    },
+    {
+      "label": "core-build-progress-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T23:07:01.224314+00:00",
+      "end": "2026-11-15T23:07:45.971777+00:00",
+      "exit": 0
+    },
+    {
+      "label": "packs-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/pack-final.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:07:46.009163+00:00",
+      "end": "2026-11-15T23:07:56.661444+00:00",
+      "exit": 0
+    },
+    {
+      "label": "runtime-prepare-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/prepare-runtime-final.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:07:56.698937+00:00",
+      "end": "2026-11-15T23:08:07.812604+00:00",
+      "exit": 0
+    },
+    {
+      "label": "runtime-lock-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "npm",
+        "install",
+        "--package-lock-only",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--omit=dev",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/npm-cache"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:08:07.851145+00:00",
+      "end": "2026-11-15T23:08:12.942991+00:00",
+      "exit": 0
+    },
+    {
+      "label": "runtime-clean-ci-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--omit=dev",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/npm-cache"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:08:12.982502+00:00",
+      "end": "2026-11-15T23:08:31.212089+00:00",
+      "exit": 0
+    },
+    {
+      "label": "selection-audit-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/selection-audit.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:08:31.251305+00:00",
+      "end": "2026-11-15T23:08:40.708991+00:00",
+      "exit": 0
+    },
+    {
+      "label": "baseline-prepare-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/prepare-baseline.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:08:40.745696+00:00",
+      "end": "2026-11-15T23:08:40.962846+00:00",
+      "exit": 1
+    },
+    {
+      "label": "baseline-prepare-final-retry",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/prepare-baseline.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:09:39.042693+00:00",
+      "end": "2026-11-15T23:09:39.480111+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-fastify-scout",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:09:39.517342+00:00",
+      "end": "2026-11-15T23:14:52.773563+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-clean-ci-final-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--strict-peer-deps",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T23:14:52.774452+00:00",
+      "end": "2026-11-15T23:14:53.938339+00:00",
+      "exit": 0
+    },
+    {
+      "label": "hook-unit-final-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1800",
+        "npm",
+        "run",
+        "test:unit"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-15T23:14:53.976519+00:00",
+      "end": "2026-11-15T23:23:37.242115+00:00",
+      "exit": 0
+    },
+    {
+      "label": "controllers-types-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "packages/redbox-core/test/tsconfig.controllers.json"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:23:37.337784+00:00",
+      "end": "2026-11-15T23:24:23.525343+00:00",
+      "exit": 0
+    },
+    {
+      "label": "application-types-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "packages/redbox-core/test/tsconfig.application.json"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:24:23.562872+00:00",
+      "end": "2026-11-15T23:25:12.569039+00:00",
+      "exit": 0
+    },
+    {
+      "label": "export-generate-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "support/specs/fastify-migration/evidence/audit-FM-038.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:25:12.609095+00:00",
+      "end": "2026-11-15T23:25:29.199275+00:00",
+      "exit": 0
+    },
+    {
+      "label": "raw-generate-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "support/specs/fastify-migration/evidence/reconcile-FM-036.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:25:29.236510+00:00",
+      "end": "2026-11-15T23:26:14.660900+00:00",
+      "exit": 0
+    },
+    {
+      "label": "route-generate-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "--no-experimental-strip-types",
+        "support/specs/fastify-migration/evidence/generate-FM-002.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:26:14.697992+00:00",
+      "end": "2026-11-15T23:26:22.968396+00:00",
+      "exit": 0
+    },
+    {
+      "label": "fresh-driver-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "docker",
+        "run",
+        "--pull=never",
+        "--rm",
+        "--user",
+        "1001:1001",
+        "--name",
+        "fm040r1-job-fresh-driver-final",
+        "--network=host",
+        "--no-healthcheck",
+        "--memory=2048m",
+        "--cpus=1",
+        "--ulimit",
+        "nofile=64000:64000",
+        "--read-only",
+        "--tmpfs",
+        "/tmp:rw,size=256m",
+        "--mount",
+        "type=bind,src=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1,dst=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1",
+        "--workdir",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+        "--entrypoint",
+        "node",
+        "-e",
+        "NODE_PATH=",
+        "-e",
+        "NODE_OPTIONS=",
+        "-e",
+        "NODE_ENV=production",
+        "-e",
+        "SR_WSU_DISPOSABLE=true",
+        "-e",
+        "SR_WSU_MONGO_VERSION=9.0.4",
+        "-e",
+        "SR_WSU_FCV=9.0",
+        "-e",
+        "WSU_DISPOSABLE=true",
+        "-e",
+        "REDBOX_APPLICATION_CONFIG=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime/application.cjs",
+        "-e",
+        "REDBOX_PUBLIC_URL=http://nam-oci-agent-2.tail4a7c3.ts.net:49245",
+        "-e",
+        "REDBOX_SESSION_SECRET=fm040-disposable-session-secret-at-least-32",
+        "-e",
+        "HOOK_S3_BUCKET=fm040-wsu-disposable",
+        "-e",
+        "HOOK_S3_REGION=ap-southeast-2",
+        "-e",
+        "HOOK_S3_ENDPOINT=http://127.0.0.1:49243",
+        "-e",
+        "HOOK_S3_ACCESS_KEY=seaweedadmin",
+        "-e",
+        "HOOK_S3_SECRET_KEY=seaweedadmin",
+        "-e",
+        "HOOK_S3_FORCE_PATH_STYLE=true",
+        "-e",
+        "HOOK_S3_SUPPORTS_ACL=false",
+        "-e",
+        "HOOK_ATTACHMENTS_STAGE_DIR=/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime/state/staging",
+        "-e",
+        "NODE_PATH=",
+        "-e",
+        "NODE_OPTIONS=",
+        "sha256:94d11bb2e50cefd0697d1ae0d51e421804db712e1eb8bf227c002fb7ef15a30a",
+        "--max-old-space-size=1536",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/wsu-fresh.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:26:23.038308+00:00",
+      "end": "2026-11-15T23:31:43.605908+00:00",
+      "exit": 0
+    },
+    {
+      "label": "seed-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "300",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/seed.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:31:43.669945+00:00",
+      "end": "2026-11-15T23:31:56.453933+00:00",
+      "exit": 0
+    },
+    {
+      "label": "installed-verify-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node",
+        "node_modules/redbox-hook-wsu/support/v6/verify.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:31:56.491065+00:00",
+      "end": "2026-11-15T23:32:25.438681+00:00",
+      "exit": 0
+    },
+    {
+      "label": "baseline-prepare-final-qualified",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/prepare-baseline.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:32:25.477445+00:00",
+      "end": "2026-11-15T23:32:25.909512+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-express-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T23:32:25.976762+00:00",
+      "end": "2026-11-15T23:32:33.238146+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-express-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T23:32:33.275959+00:00",
+      "end": "2026-11-15T23:32:40.362652+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-express-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T23:32:40.401081+00:00",
+      "end": "2026-11-15T23:33:47.075743+00:00",
+      "exit": 0
+    },
+    {
+      "label": "custom-auth-express-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/custom-auth.cjs",
+        "express"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/baseline",
+      "start": "2026-11-15T23:33:47.113659+00:00",
+      "end": "2026-11-15T23:34:55.832648+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-fastify-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-rehearsal.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:34:55.869990+00:00",
+      "end": "2026-11-15T23:35:10.089505+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-reduced-fastify-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-reduced.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:35:10.127268+00:00",
+      "end": "2026-11-15T23:35:22.978440+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-extended-fastify-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/http-extended.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:35:23.016332+00:00",
+      "end": "2026-11-15T23:35:39.178237+00:00",
+      "exit": 0
+    },
+    {
+      "label": "custom-auth-fastify-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "900",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/custom-auth.cjs",
+        "fastify"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/runtime",
+      "start": "2026-11-15T23:35:39.216213+00:00",
+      "end": "2026-11-15T23:36:59.869182+00:00",
+      "exit": 0
+    },
+    {
+      "label": "http-compare-qualified4",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/compare-http.py"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1",
+      "start": "2026-11-15T23:36:59.906153+00:00",
+      "end": "2026-11-15T23:36:59.954562+00:00",
+      "exit": 0
+    },
+    {
+      "label": "extended-compare",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/compare-extended.py"
+      ],
+      "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1",
+      "start": "2026-11-15T23:36:59.998690+00:00",
+      "end": "2026-11-15T23:37:00.046644+00:00",
+      "exit": 0
+    },
+    {
+      "label": "browser-smoke",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1200",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/browser-smoke.py"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:38:08.036821+00:00",
+      "end": "2026-11-15T23:40:16.224437+00:00",
+      "exit": 0
+    },
+    {
+      "label": "browser-smoke",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1200",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/browser-smoke.py"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:42:43.996221+00:00",
+      "end": "2026-11-15T23:44:03.902909+00:00",
+      "exit": 0
+    },
+    {
+      "label": "packed-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1800",
+        "npm",
+        "run",
+        "test:packed:fastify"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-15T23:46:09.252500+00:00",
+      "end": "2026-11-15T23:55:34.189381+00:00",
+      "exit": 0
+    },
+    {
+      "label": "core-full",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "4200",
+        "npm",
+        "test",
+        "--",
+        "--reporter",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-039-implementation/reporter.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-15T23:55:34.260522+00:00",
+      "end": "2026-11-16T00:06:22.639440+00:00",
+      "exit": -15
+    },
+    {
+      "label": "logger-startup-control",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "60",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/logging-startup-control.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T00:07:18.408461+00:00",
+      "end": "2026-11-16T00:07:18.491875+00:00",
+      "exit": 0
+    },
+    {
+      "label": "logger-full-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node_modules/.bin/mocha",
+        "--no-config",
+        "--node-option",
+        "no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "test/http/fastify/loggingSurvival.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-16T00:07:47.576932+00:00",
+      "end": "2026-11-16T00:09:28.308019+00:00",
+      "exit": -15
+    },
+    {
+      "label": "logger-full-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "node_modules/.bin/mocha",
+        "--no-config",
+        "--node-option",
+        "no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "test/http/fastify/loggingSurvival.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-16T00:09:29.036212+00:00",
+      "end": "2026-11-16T00:11:35.469826+00:00",
+      "exit": 0
+    },
+    {
+      "label": "logger-fixture-capture",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/capture.py"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T00:11:35.516050+00:00",
+      "end": "2026-11-16T00:11:40.366922+00:00",
+      "exit": 0
+    },
+    {
+      "label": "core-full",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "4200",
+        "npm",
+        "test",
+        "--",
+        "--reporter",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-039-implementation/reporter.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-16T00:11:40.436719+00:00",
+      "end": "2026-11-16T00:54:26.653237+00:00",
+      "exit": 0
+    },
+    {
+      "label": "progress-full-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "1200",
+        "node_modules/.bin/mocha",
+        "--no-config",
+        "--node-option",
+        "no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--reporter",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-039-implementation/reporter.cjs",
+        "test/http/fastify/ProgressDifferentialMongo.test.ts"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core",
+      "start": "2026-11-16T00:54:37.709549+00:00",
+      "end": "2026-11-16T01:00:44.217831+00:00",
+      "exit": 0
+    },
+    {
+      "label": "core-identity-comparison",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "120",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/compare-core.py"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T01:00:44.257894+00:00",
+      "end": "2026-11-16T01:00:44.532265+00:00",
+      "exit": 0
+    },
+    {
+      "label": "post-core-capture",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/capture.py"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T01:00:44.568915+00:00",
+      "end": "2026-11-16T01:00:49.187537+00:00",
+      "exit": 0
+    },
+    {
+      "label": "cleanup-bucket",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/cleanup-bucket.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T01:00:49.225971+00:00",
+      "end": "2026-11-16T01:01:09.676433+00:00",
+      "exit": 1
+    },
+    {
+      "label": "cleanup-bucket",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/cleanup-bucket.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T01:02:19.013616+00:00",
+      "end": "2026-11-16T01:02:41.040930+00:00",
+      "exit": 1
+    },
+    {
+      "label": "cleanup-bucket",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "180",
+        "node",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/cleanup-bucket.cjs"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T01:03:42.999749+00:00",
+      "end": "2026-11-16T01:03:43.181637+00:00",
+      "exit": 0
+    },
+    {
+      "label": "cleanup",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "600",
+        "python3",
+        "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/cleanup.py"
+      ],
+      "cwd": "/home/ubuntu/work/github/redbox-portal",
+      "start": "2026-11-16T01:03:56.332303+00:00",
+      "end": "2026-11-16T01:04:03.986477+00:00",
+      "exit": 0
+    }
+  ],
+  "failureClassification": [
+    {
+      "gate": "core-build",
+      "classification": "implementation import-path error; fixed",
+      "detail": "Moving the helper required adjusting its type-only SiemTypes relative import; rebuilt successfully."
+    },
+    {
+      "gate": "hook-compile",
+      "classification": "conversion dependency declaration defect; fixed",
+      "detail": "Clean npm ci exposed missing Fastify authoring/peer dependency; exact 5.12.8 now matches the v6 generator."
+    },
+    {
+      "gate": "offline preflight probes",
+      "classification": "exploration harness setup; fixed",
+      "detail": "Source-linked offline inspection needed the supported shared module path, process-level synthetic S3 inputs and session secret. Never used for installed qualification."
+    },
+    {
+      "gate": "hook-unit-clean",
+      "classification": "conversion child-test module-path defect; fixed and complete clean suite passed",
+      "detail": "Two isolated child-test files dropped the supported runner module path. They now forward NODE_PATH along with PATH and synthetic inputs, retaining all assertions. Final command reruns npm ci and the complete suite.",
+      "result": "Exploratory 559 passing / 6 failing; after second npm ci, 565 passing / 0 failing / 0 pending, exit 0; retained Mocha exit:true."
+    },
+    {
+      "gate": "http-extended-express first probe",
+      "classification": "differential harness expectation; corrected to retained Express contract",
+      "detail": "Authenticated progress If-None-Match:* returns 304 on Express. The initial expected 200 was copied from publication endpoints without validators; the extended gate now requires 304 and an empty body on both hosts."
+    },
+    {
+      "gate": "http-extended-express progress stop first probe",
+      "classification": "differential client framing defect; fixed",
+      "detail": "The raw Node HTTP helper did not send Content-Length for DELETE, so its progress identifier body was not framed. It now sends exact byte lengths for all request bodies. The server contract remains a successful real DELETE and Socket.IO stop event."
+    },
+    {
+      "gate": "http-extended-express TUS first probe",
+      "classification": "differential harness setup; corrected to real CSRF admission",
+      "detail": "Retained Express requires session CSRF even for TUS OPTIONS. OPTIONS now sends the valid session token; anonymous TUS create obtains an anonymous CSRF token to reach its 401 actor guard."
+    },
+    {
+      "gate": "installed Fastify extended progress conditional read",
+      "classification": "portal migration defect; fixed with core regression, final gates required",
+      "detail": "ProgressController bypassed the shared conditional GET/HEAD publisher. It now delegates freshness after guarded serialization to sendFreshResponse. Six production-composition differential tests (root/prefixed/reduced, both hosts) cover GET/HEAD freshness, request no-cache, invalid query and anonymous admission.",
+      "finalResult": "Six focused regressions and complete dedicated progress file 1252/0/0 passed naturally; installed extended HTTP matched; normal unfiltered core 25286/0/103 passed naturally (dedicated progress excluded by normal configuration)."
+    },
+    {
+      "gate": "progress-focused first regression run",
+      "classification": "new regression fixture expectation; corrected, final rerun required",
+      "detail": "1250 passing / 2 failing. The reduced policy fixture deliberately omits isAuthenticated, so bearer actor resolution is unselected and both hosts correctly return 401 even for conditional reads. New reduced-profile assertions now require 401 for every variant; normal profiles still require 304/200/400/401 as appropriate.",
+      "finalResult": "Six focused regressions and complete dedicated progress file 1252/0/0 passed naturally; installed extended HTTP matched; normal unfiltered core 25286/0/103 passed naturally (dedicated progress excluded by normal configuration)."
+    },
+    {
+      "gate": "progress focused command scheduling",
+      "classification": "exploratory orchestration interruption; not qualification",
+      "detail": "The first full progress file had already exited naturally with 1250 passing / 2 failing (exit 2). Its queued corrected full-file repeat had started when it was explicitly interrupted while narrowing the focused rerun to the six new cases. The interrupted log is preserved separately; no passing result is claimed. Final focused run checks all six new cases; normal unfiltered core runs separately; its configuration excludes this dedicated Mongo file. The final complete progress/socket file is therefore also run separately and must exit naturally.",
+      "finalResult": "Six focused regressions and complete dedicated progress file 1252/0/0 passed naturally; installed extended HTTP matched; normal unfiltered core 25286/0/103 passed naturally (dedicated progress excluded by normal configuration)."
+    },
+    {
+      "gate": "baseline-prepare-final first refresh",
+      "classification": "external baseline preparation reuse error; fixed",
+      "detail": "The preparer assumed a fresh directory and hit EEXIST on its previously created dependency links. Removed only the owned round baseline before rebuilding it; installed runtime and source checkouts unaffected."
+    },
+    {
+      "gate": "optional screenshot contact sheet",
+      "classification": "optional external visualization helper unavailable; original PNGs inspected directly",
+      "detail": "Host Python has no Pillow. No dependency installed; individual original screenshots were inspected with view_image. This was not a qualification gate or a waived test."
+    },
+    {
+      "gate": "round-1 first full core / logger worker survival",
+      "classification": "portal branch test-fixture startup-fence defect; fixed, final logger/core gates required",
+      "lastReportedPartialCounts": {
+        "passing": 6975,
+        "failing": 1,
+        "pending": 0
+      },
+      "completion": "Explicitly stopped with SIGTERM after the reported failure for diagnosis; this incomplete run is not qualification.",
+      "detail": "thread-stream 4.0.0 flush() acknowledges only the shared buffer and may return before queued main-thread startup writes. This allowed a pre-arm startup write to run after fault arming and collide with the live fault probe, exposing vendor nextFlush offset -2. The retained control deterministically observes zero processed startup writes after flush(), one after flushSync(). The fixture now flushSyncs only while healthy, drains the scheduled empty flush with setImmediate, and asserts a real worker-side healthy-write counter before arm. All asynchronous post-arm fault injections, live survival/redaction/drop assertions and original timeouts remain unchanged; no production logger or dependency version changes.",
+      "finalResult": "Deterministic startup control passed; complete logger 134/0 and normal unfiltered core 25286/0/103 passed naturally after the two-fixture startup-fence correction. Production packages unchanged."
+    },
+    {
+      "gate": "logger focused first invocation",
+      "classification": "external invocation environment omission; corrected, incomplete run not qualification",
+      "detail": "The direct focused command omitted HTTP_PILOT_TEST_MONGO_URL and HTTP_READ_SOLR_PORT. All 80 native Fastify fault cells passed, then Express production-oracle fixtures could not connect to the default Mongo port and hit the existing safeguard. Explicitly stopped the incomplete focused run and reran with the same disposable Mongo/Solr environment used by core; no assertion or timeout changed.",
+      "finalResult": "Corrected invocation includes the core disposable Mongo/Solr environment; complete logger suite 134/0 passed naturally."
+    },
+    {
+      "gate": "Seaweed disposable bucket cleanup",
+      "classification": "fixture-provider delayed bucket deletion; final S3 retry passed without filer deletion",
+      "detail": "S3 deleted all objects but DeleteBucket returned BucketNotEmpty for twenty retries. Fresh object/version/delete-marker/multipart listings were empty. Read-only filer listings showed only attachments and six nested record directories; the shallow-directory maintenance guard refused deletion. A later S3 DeleteBucket retry succeeded immediately and HeadBucket returned404. No filer deletion command ran (maintenance array is empty). The first invocation object count was not retained; the final invocation deleted zero objects.",
+      "finalResult": "Bucket deleted and absence verified; no filer writes performed."
+    },
+    {
+      "gate": "final retained-artifact audit",
+      "classification": "receipt path after scratch cleanup; corrected without changing artifact bytes",
+      "detail": "Hook was installed from packs/ while its identical selected tarball was retained in packs-final/. Initial audit followed the deleted scratch path. All eight selected pack hashes match qualification, including hook a8daf56c859e443b962e80d073961c8467953da8f52ad78d2c9e5f38740ee7bd. Added retainedPath without changing the original install path; no artifact loss or runtime/source change."
+    }
+  ],
+  "historicalOnly": {
+    "agentvmArchivedPasses": 565,
+    "legacyV5QualificationReused": false
+  },
+  "deferredPreExisting": [
+    "15px horizontal overflow on narrow researcher home/data-record edit; identical Express CSS, review browser-comparison-summary.json",
+    "Unsupported author skipLibCheck:false probe retained from initial evidence; supported author compile, public controller/application and packed declarations pass"
+  ],
+  "priorRound1ArtifactsDirectory": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1",
+  "reviewRound2": {
+    "task": "FM-040",
+    "reviewRound": 2,
+    "localQualification": "PASSED",
+    "institutionalProductionAcceptance": "PENDING",
+    "recordedAt": "2026-11-16T03:01:58.888033+00:00",
+    "artifactsDirectory": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2",
+    "scope": "Local reproduction of the actual CircleCI unit command and actual hook Dockerfile builder target; not execution in CircleCI or a production runtime deployment. Portal runtime and portal tests unchanged; prior full-core/HTTP/browser evidence retains its original scope.",
+    "sources": {
+      "at": "2026-11-16T02:45:11.197023+00:00",
+      "repositories": {
+        "portal": {
+          "path": "/home/ubuntu/work/github/redbox-portal",
+          "head": "8d7a0dd4d69c8aea1364de8fc3743dfd6de8b3b9",
+          "branch": "feature/fastify-migration",
+          "patchSha256": "f01c3f5f24d26b074c2622ad095508d88eca6a9278364895bc1ebd4b2ca7126e",
+          "sourceManifestSha256": "99b8e909ebfe8ce890a32b45a2a996ee7977e660dae8a3630122546b76c495ca",
+          "sourceFiles": 1482,
+          "indexSha256": "ef23d32b309ae5e397efd0f7d375604af2ea16bc630bc950fb0524cf2b419c1e"
+        },
+        "hook": {
+          "path": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+          "head": "764851e98cd2ae2d6938c41b18b8abcc081e0656",
+          "branch": "feature/v6-api2",
+          "patchSha256": "0679792dc56d573a4b13b50a54283009cff6bab87e6d838a3a336f4e171b0177",
+          "sourceManifestSha256": "2cdfee6a4a0d102cb24200ee10450ab1110d777de54d20bd8e6dfb85accd944b",
+          "sourceFiles": 238,
+          "indexSha256": "1914ce7d7a9aca9d0620a1cf1bfe6bdde1acb2489ec4bf13327f1102b1b8b2aa"
+        }
+      },
+      "round2DeltaSha256": "4609ec472c517461dfb7c1dac9fb653322e9969f0d9837cc56e359e7e7ed852e",
+      "round2ChangedFiles": [
+        "Dockerfile",
+        "support/build/test.sh",
+        "support/v6/docker-compose.unit.yml",
+        "support/v6/README.md",
+        "test/unit/build-entrypoints.test.ts"
+      ]
+    },
+    "node": "v26.12.1",
+    "npm": "11.20.0",
+    "basePackages": [
+      {
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+        "sha256": "fbd053c112286839f00c694e0427390d937d5092b97d45f878b91d864bf3cb09",
+        "filesMatchCurrentPortal": 20
+      },
+      {
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+        "sha256": "20feaf4686d8f568e74f218555b2156316e82b879fc46dede8df0e53914193f4",
+        "filesMatchCurrentPortal": 12
+      },
+      {
+        "name": "@researchdatabox/redbox-core",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+        "sha256": "899d98a1b0a46d766a26c13e5f49a6335b00a384fbc8e395e03c850e1177a5a1",
+        "filesMatchCurrentPortal": 1381
+      },
+      {
+        "name": "@researchdatabox/redbox-dev-tools",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-redbox-dev-tools-4.5.1.tgz",
+        "sha256": "0b051fe39f85aefabc7a5a92d59b3280bfc45b6e826c684db69c5ce301de4493",
+        "filesMatchCurrentPortal": 97
+      },
+      {
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+        "sha256": "b5c52176f275107ceab116b1471afd5a96af63c79ad41def991fc54bc1f910a1",
+        "filesMatchCurrentPortal": 11
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+        "sha256": "678981fcb1dd795b598ffbbdbae00a2dc6ea2ef047d437d6b127a5fa10a735b0",
+        "filesMatchCurrentPortal": 39
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+        "sha256": "776a79e677d5ff81a67d03e5d9e60b8e357d04469d0db78eefd923545024e7a2",
+        "filesMatchCurrentPortal": 42
+      },
+      {
+        "name": "@researchdatabox/sails-ng-common",
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/researchdatabox-sails-ng-common-0.2.1.tgz",
+        "sha256": "d186c3854c2b39f0d8b7e28e74437722a79a3e13dbd8eed70d983f4a46e10649",
+        "filesMatchCurrentPortal": 568
+      }
+    ],
+    "images": {
+      "localPortalBuild": "sha256:43b5d25d1438b0c8f20b5a3ef79f4581f5afe475222df3e550852bc3c55eb870",
+      "hookBuilder": "sha256:2b3b5fcba03b5caba7c9dfdedc88fc3dc4e819cd15178774c07b313958ab6483",
+      "inheritedBase": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+      "mongo": "mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+      "solr": "solr@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb"
+    },
+    "lockfilesSha256": {
+      "before-package-lock.json": "8dd5b4efd9084a1cbf79d4f5a6d1858465ff32778a2a59fe9f90050ca538fdfb",
+      "author-portal-packages-redbox-core-package-lock.json": "1eaa7285311c12037edbef6ff59d1879bed6fab29b5e7ad5b8eccd8099ab9bc2",
+      "builder-hook-package-lock.json": "fd09e7a170a84cbcd7837f5357fe295c49ffb00c902b5257438be39bfb43b535",
+      "qualified-package-lock.json": "8dd5b4efd9084a1cbf79d4f5a6d1858465ff32778a2a59fe9f90050ca538fdfb",
+      "author-portal-package-lock.json": "3e7e3fd39c986cddf4337523f636c9949ae82f4a735269e7ce1ab2e6f97e0ced",
+      "author-portal-packages-redbox-dev-tools-package-lock.json": "695f4550d277525cd1a45142cb16ab91581968a55019ddd5cfe3cfc9dc23b250",
+      "builder-portal-package-lock.json": "a2610063a8c6e3c21e858c4e26e6f9f3683937b28ce212cb455a4dc403400882"
+    },
+    "builderLayout": {
+      "node": "v26.12.1",
+      "npm": "11.20.0",
+      "cwd": "/opt/redbox-hook-wsu",
+      "githubExists": false,
+      "links": {
+        "redbox-core": {
+          "target": "../../../redbox-portal/packages/redbox-core",
+          "realpath": "/opt/redbox-portal/packages/redbox-core",
+          "entry": "/opt/redbox-portal/packages/redbox-core/dist/application/portal/index.js"
+        },
+        "redbox-dev-tools": {
+          "target": "../../../redbox-portal/packages/redbox-dev-tools",
+          "realpath": "/opt/redbox-portal/packages/redbox-dev-tools",
+          "entry": "/opt/redbox-portal/packages/redbox-dev-tools/index.js"
+        },
+        "sails-hook-redbox-pdfgen": {
+          "target": "../../../redbox-portal/packages/sails-hook-redbox-pdfgen",
+          "realpath": "/opt/redbox-portal/packages/sails-hook-redbox-pdfgen",
+          "entry": "/opt/redbox-portal/packages/sails-hook-redbox-pdfgen/dist/extension.js"
+        },
+        "sails-hook-redbox-storage-mongo": {
+          "target": "../../../redbox-portal/packages/sails-hook-redbox-storage-mongo",
+          "realpath": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo",
+          "entry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/extension.js"
+        }
+      }
+    },
+    "builderSourceMatch": {
+      "command": [
+        "timeout",
+        "60",
+        "docker",
+        "exec",
+        "--workdir",
+        "/opt/redbox-hook-wsu",
+        "redbox-wsu-unit-879307-runner",
+        "node",
+        "-e",
+        "const fs=require(\"node:fs\"),crypto=require(\"node:crypto\");console.log(JSON.stringify(Object.fromEntries([\"Dockerfile\", \"support/build/test.sh\", \"support/v6/README.md\", \"support/v6/docker-compose.unit.yml\", \"test/unit/build-entrypoints.test.ts\", \"test/support/http-fixture.cjs\", \"test/unit/.mocharc.cjs\"].map(f=>[f,crypto.createHash(\"sha256\").update(fs.readFileSync(f)).digest(\"hex\")]))))"
+      ],
+      "exit": 0,
+      "sourceAndImageFilesMatch": {
+        "Dockerfile": "9569a99b5cfa4cb97dba8ca6ba3a178e5812c3d918e93d82ec0941738e6b8059",
+        "support/build/test.sh": "e80c4fef45e08c5c6060739dfc6b1adc1cf6300d041a1955fdbdbeca0a248bf0",
+        "support/v6/README.md": "6d1f725cb43b112314b2315e020155b6b0c2aafa7d8854a6251aa17c4ce6c16a",
+        "support/v6/docker-compose.unit.yml": "a1432e691ae84e4392803955a15d1dfc914bc724bfa34655383156e8ecff0bdd",
+        "test/unit/build-entrypoints.test.ts": "cd6488ef5e52b161e690f37fb3b03ca15f5b47c583ac319203057708b20ace7a",
+        "test/support/http-fixture.cjs": "5a603c3e689471aa6e49135eb6f09a6af4f1124e5827887e0dc66c7422937a38",
+        "test/unit/.mocharc.cjs": "23d34ff2cfdcf46b9e7c4fd0964d72989e544b5e7c227de04b4033c87f203407"
+      }
+    },
+    "newHookPack": {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/receipts/builder-hook.tgz",
+      "sha256": "857cc56513fe01037557c80db0dec2956040edeca5bb7e68739b8cce43bbf054"
+    },
+    "runtimePackComparison": {
+      "oldPath": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r1/packs-final/redbox-hook-wsu-2.0.0-v6.0.tgz",
+      "newPath": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/receipts/builder-hook.tgz",
+      "oldSha256": "a8daf56c859e443b962e80d073961c8467953da8f52ad78d2c9e5f38740ee7bd",
+      "newSha256": "857cc56513fe01037557c80db0dec2956040edeca5bb7e68739b8cce43bbf054",
+      "added": [
+        "package/support/v6/docker-compose.unit.yml"
+      ],
+      "removed": [],
+      "changed": [
+        "package/support/v6/README.md"
+      ],
+      "unchangedFiles": 312
+    },
+    "ciCommand": {
+      "label": "ci-unit-final",
+      "cmd": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=20",
+        "3000",
+        "env",
+        "-u",
+        "WSU_TEST_CORE",
+        "-u",
+        "WSU_TEST_STORAGE",
+        "-u",
+        "WSU_TEST_SOLR",
+        "-u",
+        "WSU_TEST_SCRATCH",
+        "REDBOX_BUILD_IMAGE=fm040-r2-portal-build:local",
+        "REDBOX_PORTAL_IMAGE=fm040-r2-portal-build:local",
+        "WSU_TEST_PULL_POLICY=never",
+        "WSU_TEST_ORIGIN=http://nam-oci-agent-2.tail4a7c3.ts.net:49440",
+        "BUILDKIT_PROGRESS=plain",
+        "bash",
+        "support/build/test.sh"
+      ],
+      "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+      "start": "2026-11-16T02:44:58.033143+00:00",
+      "end": "2026-11-16T02:57:44.039195+00:00",
+      "exit": 0
+    },
+    "wsuSuite": {
+      "passing": 565,
+      "failing": 0,
+      "pending": 0,
+      "exit": 0,
+      "runnerNote": "Existing Mocha exit:true retained; no natural-exit claim."
+    },
+    "ciInputs": {
+      "externallySuppliedServiceInputs": [],
+      "originOverride": "http://nam-oci-agent-2.tail4a7c3.ts.net:49440",
+      "runnerServiceInputs": [
+        "WSU_TEST_SOLR=32991",
+        "WSU_TEST_SCRATCH=/tmp",
+        "WSU_TEST_ORIGIN=http://nam-oci-agent-2.tail4a7c3.ts.net:49440",
+        "WSU_TEST_CORE=mongodb://127.0.0.1:32990",
+        "WSU_TEST_STORAGE=mongodb://127.0.0.1:32992"
+      ],
+      "pullPolicy": "never (locally loaded integration images)",
+      "network": "Linux host; default CI alias wsu-unit.test is added as loopback; service ports published on loopback",
+      "seaweed": "Not required or provisioned: unit fixture primary/staging disks use filesystem storage."
+    },
+    "commandLedger": [
+      {
+        "label": "base-build",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "1800",
+          "docker",
+          "buildx",
+          "build",
+          "--pull=false",
+          "--load",
+          "--progress",
+          "plain",
+          "-t",
+          "fm040-r2-portal-build:local",
+          "."
+        ],
+        "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/build-context",
+        "start": "2026-11-16T02:25:23.466544+00:00",
+        "end": "2026-11-16T02:27:13.581462+00:00",
+        "exit": 1
+      },
+      {
+        "label": "base-build-qualified",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "1800",
+          "docker",
+          "buildx",
+          "build",
+          "--pull=false",
+          "--load",
+          "--progress",
+          "plain",
+          "-t",
+          "fm040-r2-portal-build:local",
+          "."
+        ],
+        "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/build-context",
+        "start": "2026-11-16T02:27:43.826478+00:00",
+        "end": "2026-11-16T02:29:55.126881+00:00",
+        "exit": 1
+      },
+      {
+        "label": "base-build-with-git",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "1800",
+          "docker",
+          "buildx",
+          "build",
+          "--pull=false",
+          "--load",
+          "--progress",
+          "plain",
+          "-t",
+          "fm040-r2-portal-build:local",
+          "."
+        ],
+        "cwd": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/build-context",
+        "start": "2026-11-16T02:30:53.606520+00:00",
+        "end": "2026-11-16T02:38:18.429222+00:00",
+        "exit": 0
+      },
+      {
+        "label": "ci-unit",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "3000",
+          "env",
+          "-u",
+          "WSU_TEST_CORE",
+          "-u",
+          "WSU_TEST_STORAGE",
+          "-u",
+          "WSU_TEST_SOLR",
+          "-u",
+          "WSU_TEST_SCRATCH",
+          "REDBOX_BUILD_IMAGE=fm040-r2-portal-build:local",
+          "REDBOX_PORTAL_IMAGE=fm040-r2-portal-build:local",
+          "WSU_TEST_PULL_POLICY=never",
+          "WSU_TEST_ORIGIN=http://nam-oci-agent-2.tail4a7c3.ts.net:49440",
+          "BUILDKIT_PROGRESS=plain",
+          "bash",
+          "support/build/test.sh"
+        ],
+        "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+        "start": "2026-11-16T02:38:18.432551+00:00",
+        "end": "2026-11-16T02:44:12.690885+00:00",
+        "exit": 1
+      },
+      {
+        "label": "ci-unit-final",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "3000",
+          "env",
+          "-u",
+          "WSU_TEST_CORE",
+          "-u",
+          "WSU_TEST_STORAGE",
+          "-u",
+          "WSU_TEST_SOLR",
+          "-u",
+          "WSU_TEST_SCRATCH",
+          "REDBOX_BUILD_IMAGE=fm040-r2-portal-build:local",
+          "REDBOX_PORTAL_IMAGE=fm040-r2-portal-build:local",
+          "WSU_TEST_PULL_POLICY=never",
+          "WSU_TEST_ORIGIN=http://nam-oci-agent-2.tail4a7c3.ts.net:49440",
+          "BUILDKIT_PROGRESS=plain",
+          "bash",
+          "support/build/test.sh"
+        ],
+        "cwd": "/home/ubuntu/work/bitbucket/redbox-hook-wsu-api2",
+        "start": "2026-11-16T02:44:58.033143+00:00",
+        "end": "2026-11-16T02:57:44.039195+00:00",
+        "exit": 0
+      },
+      {
+        "label": "cleanup",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "600",
+          "python3",
+          "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/cleanup.py"
+        ],
+        "cwd": "/home/ubuntu/work/github/redbox-portal",
+        "start": "2026-11-16T02:58:29.251323+00:00",
+        "end": "2026-11-16T02:58:54.121850+00:00",
+        "exit": 1
+      },
+      {
+        "label": "cleanup-final",
+        "cmd": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=20",
+          "600",
+          "python3",
+          "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/cleanup.py"
+        ],
+        "cwd": "/home/ubuntu/work/github/redbox-portal",
+        "start": "2026-11-16T03:00:41.620629+00:00",
+        "end": "2026-11-16T03:00:44.842758+00:00",
+        "exit": 0
+      }
+    ],
+    "failureClassification": [
+      {
+        "gate": "base-build",
+        "classification": "external qualification harness setup; fixed",
+        "detail": "Disposable overlay omitted the existing qualified runtime Prisma CLI peer overrides. Retained overrides were restored; strict peer checks stayed enabled."
+      },
+      {
+        "gate": "base-build-qualified",
+        "classification": "external qualification harness setup; fixed",
+        "detail": "Inherited runtime-derived base has no Git. Added build-only Git in the disposable overlay for the already pinned ro-crate Git dependency; no repository dependency or image pull was added."
+      },
+      {
+        "gate": "ci-unit",
+        "classification": "hook test expectations for changed CI contract; corrected",
+        "detail": "Two existing cases expected the old fixed test-image tag and bare Docker run. Updated them to assert generated image/project identity, all fixture inputs, readiness order and cleanup on success/readiness failure/test failure. The already-failed first full attempt was stopped via Docker and exited 1; it is incomplete and not qualification. Its trap cleaned its services, volumes, network and image. Final unfiltered suite passes."
+      },
+      {
+        "gate": "cleanup",
+        "classification": "external cleanup ordering; corrected",
+        "detail": "The first bounded selective prune stopped with six dependent new cache records remaining after three passes. The final pass removed those records, preserved all 63 inherited cache records and restored initial Docker inventories. No global prune was used."
+      }
+    ],
+    "cleanup": {
+      "at": "2026-11-16T03:00:44.832494+00:00",
+      "dockerInventoriesRestored": true,
+      "inheritedImagesPreserved": 12,
+      "inheritedVolumesPreserved": 37,
+      "inheritedNetworksPreserved": 3,
+      "inheritedBuildCacheRecordsPreserved": 63,
+      "removedImageRows": [
+        "fm040-r2-portal-build:local sha256:43b5d25d1438b0c8f20b5a3ef79f4581f5afe475222df3e550852bc3c55eb870"
+      ],
+      "removedOwnedBuildCacheIdsInFinalPass": [
+        "g2rv8qw8nk1w2f0hxfp6f280m",
+        "hvpqdv2joqx7deompvy656n6g",
+        "nnxan499es6a8jha4n3gv9kg1",
+        "pipgj9ugdwtgxfc30t35xkk14",
+        "pxmdh0wtg3dwr3c14a6vh2ge3",
+        "y0uz5fj5wb6mhuxd6ts2p4awt"
+      ],
+      "initialPartialCleanup": {
+        "at": "2026-11-16T03:00:41.583584+00:00",
+        "exit": 1,
+        "reason": "Three selective cache-prune passes were insufficient for six remaining dependent cache records. Inherited caches were preserved; repeat enough passes for the remaining dependency chain.",
+        "remainingCacheIds": [
+          "g2rv8qw8nk1w2f0hxfp6f280m",
+          "hvpqdv2joqx7deompvy656n6g",
+          "nnxan499es6a8jha4n3gv9kg1",
+          "pipgj9ugdwtgxfc30t35xkk14",
+          "pxmdh0wtg3dwr3c14a6vh2ge3",
+          "y0uz5fj5wb6mhuxd6ts2p4awt"
+        ],
+        "removedImageRows": [
+          "fm040-r2-portal-build:local sha256:43b5d25d1438b0c8f20b5a3ef79f4581f5afe475222df3e550852bc3c55eb870"
+        ]
+      },
+      "scratchRemoved": true,
+      "portsClosed": {
+        "49440": true,
+        "32991": true,
+        "32990": true,
+        "32992": true,
+        "32987": true,
+        "32989": true,
+        "32988": true
+      }
+    },
+    "preservationAudit": "final-audit.json",
+    "priorQualification": {
+      "reviewSummary": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-review-r2/review-summary.json",
+      "core": {
+        "passing": 25286,
+        "failing": 0,
+        "pending": 103,
+        "rerunInThisRound": false
+      },
+      "installedHttpMatches": 97,
+      "progressPasses": 1252,
+      "browser": "Retained round-1 evidence; not rerun for CI-only changes.",
+      "oldReceipt": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-040-r2/receipts/round1-FM-040.qualification.json"
+    },
+    "historicalOnly": {
+      "archivedAgentvmPasses": 565,
+      "usedAsNewQualification": false
+    },
+    "noAgentvmAccess": true,
+    "stageCommitPushPerformed": false
+  },
+  "scopeNote": "Existing detailed source/artifact/runtime fields describe round 1; reviewRound2 contains the current CI/builder qualification and current hook patch. Original round-1 receipt retained unchanged at reviewRound2.priorQualification.oldReceipt."
+}

@@ -32,24 +32,7 @@ export interface AuthenticationHttpInput {
   readonly credentialFields?: readonly [string, string];
   readonly sessionCookie?: { readonly name: string; readonly path?: string; readonly domain?: string };
 }
-/** Select only a bounded username; credential bodies never enter security events. */
-export function authenticationFailureEvent(
-  req: Pick<Request, 'method' | 'path' | 'body'>,
-  context: { brandId: string; portalId?: string },
-  usernameField = 'username'
-): import('../../services/siem/SiemTypes').SecurityEventInput {
-  const username: unknown = req.body?.[usernameField];
-  return {
-    ...context,
-    eventType: 'authentication.login.failure',
-    category: 'authentication',
-    source: 'Authentication',
-    ...(typeof username === 'string' && username.length > 0 && username.length <= 4096
-      ? { subject: { username } }
-      : {}),
-    requestContext: { method: req.method, path: req.path },
-  };
-}
+export { authenticationFailureEvent } from '../../authentication/events';
 
 function sessionOperation(operation: (done: (error?: unknown) => void) => void): Promise<void> {
   return new Promise((resolve, reject) => operation(error => (error ? reject(error) : resolve())));

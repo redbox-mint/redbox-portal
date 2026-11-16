@@ -1718,7 +1718,8 @@
         "OidcAuthConfig"
       ],
       "added": [
-        "HttpIdentity"
+        "HttpIdentity",
+        "authenticationFailureEvent"
       ]
     },
     {
@@ -4981,7 +4982,10 @@
         "DoiPublishingConfigData",
         "createDefaultBinding"
       ],
-      "added": []
+      "added": [
+        "BrandingThemeServices",
+        "buildDoiPayload"
+      ]
     },
     {
       "package": "@researchdatabox/redbox-core",
@@ -5268,7 +5272,16 @@
         "storageAuditFields",
         "writeGridFSStream"
       ],
-      "added": []
+      "added": [
+        "decodeConfiguration",
+        "decodeReference",
+        "decodeVocabulary",
+        "encodeConfiguration",
+        "encodeReference",
+        "prepareVocabulary",
+        "prismaVocabularyRepositories",
+        "referenceId"
+      ]
     },
     {
       "package": "@researchdatabox/redbox-core",
@@ -5594,7 +5607,16 @@
         "vocabularyController",
         "workspaceTypesController"
       ],
-      "added": []
+      "added": [
+        "RoutePrecedence",
+        "identityAdministrationDeclarations",
+        "integrationDeclarations",
+        "mutationDeclarations",
+        "recordQueryReadDeclarations",
+        "sendReadStream",
+        "sendRedirect",
+        "uploadDeclarations"
+      ]
     },
     {
       "package": "@researchdatabox/redbox-core",
@@ -5816,7 +5838,9 @@
         "prepareSelectedPersistenceIndexes",
         "selectedAgendaMongoOptions"
       ],
-      "added": []
+      "added": [
+        "portalHttpPolicies"
+      ]
     },
     {
       "package": "@researchdatabox/redbox-core",

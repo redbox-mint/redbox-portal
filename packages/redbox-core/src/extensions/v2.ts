@@ -116,6 +116,10 @@ export interface ExtensionResolutionV2Options {
   readonly hookLoadPriority?: readonly string[];
   readonly bindings: readonly BoundControllerFactory[];
   readonly routing: Parameters<typeof composeRoutes>[1];
+  /** Explicitly order registrations for installed institution/core overlaps.
+   * Otherwise retain declaration order, including rejection of contradictory intent.
+   */
+  readonly orderRoutesByPrecedence?: boolean;
   /** Retain normalized core API security sources without copying schemas. */
   readonly coreRoutes?: readonly RouteRegistration[];
   readonly apiConfiguration?: PoliciesConfig;
@@ -251,7 +255,10 @@ export async function resolveExtensionsV2(
       declaration,
     }))
   );
-  const routeRegistrations = routeRegistrationsV2(ordered, options);
+  const registrations = routeRegistrationsV2(ordered, options);
+  const routeRegistrations = options.orderRoutesByPrecedence
+    ? orderRouteRegistrations(registrations, options.routing.precedence ?? [])
+    : registrations;
   const routePlan = await composeRoutes(routeRegistrations, options.routing);
   const hookRegistrations = ordered.flatMap(provider =>
     (provider.declaration.hooks ?? []).map(declaration => ({ provider: provider.name, declaration }))
@@ -295,4 +302,32 @@ export async function resolveExtensionsV2(
     registry,
     moduleNames,
   };
+}
+
+/** Resolve replacement/provider order first, then explicit dispatch precedence.
+ * Keep every registration of a name together and in provider order so a losing
+ * declaration can never become a replacement of its higher-priority provider.
+ * composeRoutes still validates names, actual overlap and native route winners.
+ */
+function orderRouteRegistrations(
+  registrations: readonly RouteRegistration[],
+  precedence: readonly import('../http/fastify/routes').RoutePrecedence[]
+): RouteRegistration[] {
+  const groups = new Map<string, RouteRegistration[]>();
+  for (const registration of registrations) {
+    const name = registration.declaration.name;
+    const group = groups.get(name) ?? [];
+    group.push(registration);
+    groups.set(name, group);
+  }
+  const remaining = [...groups.keys()];
+  const result: RouteRegistration[] = [];
+  while (remaining.length) {
+    const index = remaining.findIndex(
+      name => !precedence.some(edge => edge.over === name && remaining.includes(edge.winner))
+    );
+    if (index < 0) fail('host', 'route precedence contains a cycle');
+    result.push(...groups.get(remaining.splice(index, 1)[0]!)!);
+  }
+  return result;
 }

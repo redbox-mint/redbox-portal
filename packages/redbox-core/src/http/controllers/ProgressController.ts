@@ -4,6 +4,7 @@ import { defineController } from '../controllers';
 import { executeProgressGrant } from '../actions/progressGrant';
 import { executeProgressOperation, type ProgressOperationInput } from '../actions/progressOperations';
 import { nativeActionReply } from '../fastify/actionReply';
+import { sendFreshResponse } from '../fastify/responses';
 export class ProgressController {
   constructor(private readonly input: ProgressOperationInput) {}
   async subscribe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -55,7 +56,9 @@ export class ProgressController {
         headers: request.headers,
         context: () => requestContext(request),
       },
-      nativeActionReply(reply)
+      nativeActionReply(reply, bytes => {
+        if (!sendFreshResponse(request, reply, reply.statusCode)) reply.send(bytes);
+      })
     );
   }
 }

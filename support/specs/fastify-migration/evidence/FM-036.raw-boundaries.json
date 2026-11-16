@@ -6121,8 +6121,8 @@
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
-    "packages/redbox-core/src/application/portal/index.ts": "2627866a4d858e7a5a2b0f69f5089cd55fdfbea7fa06689102acd8fe63268f7f",
-    "packages/redbox-core/src/application/portal/installation.ts": "72e17c5a0f9967fc44501f98ca22bf291b8192c327dd8f202e28ef5c9b037706",
+    "packages/redbox-core/src/application/portal/index.ts": "0382e6cdbea08293d12e0691a1b33d3ad18e51f1a155a36ba15bccccdce7546f",
+    "packages/redbox-core/src/application/portal/installation.ts": "a467e5cd3af8cacb3ba94ac6b44b0251d1af4b33d5d041b16e561843aa74e2a8",
     "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "c39a2e343feb74b735c2f7214b3a16c28fa3cea449a93bee5b0238012378524c",
     "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "ab10714e86594737893a7969e7acd78c32db22ac1c26b85f00adef72c387bda0",
     "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "7c47a1438b729768983014aaf4dada9b13815c97ca33f8e1a5a9a021f50bd4af",
@@ -6135,7 +6135,8 @@
     "packages/redbox-core/src/async.d.ts": "bb533213ab0bacc4db82adc6c70f46cf3d27e1a320edad7601643b27c6c4aa69",
     "packages/redbox-core/src/authentication/Accounts.ts": "2d4259e1851fb2d1f319ab9c04530a287db2edc882073e63a900fb7eedb4a86c",
     "packages/redbox-core/src/authentication/HttpIdentity.ts": "7cfbce90d6194db213bdf5261d3ea292b46c4f9ef6b87d26fecfda6fc9321988",
-    "packages/redbox-core/src/authentication/index.ts": "7fe6290cdc1e2c958fe0b8e576ab98d62700875631fa0ffd3d735c8a6375569e",
+    "packages/redbox-core/src/authentication/events.ts": "af58c6dd0a20b1a75867a422aa272565cab1b74c82b3d5c40dae8cae540d4fe7",
+    "packages/redbox-core/src/authentication/index.ts": "de00b48607a76602d81bb71070273ebd26ee11898145e33c0a23240d2d8dddf0",
     "packages/redbox-core/src/authorization/PathRules.ts": "c02b304060622d5913851712b1fedd690e4404f8d6fdc7902f2c310a4178e888",
     "packages/redbox-core/src/branding/Branding.ts": "918efe256ee58e374ee366a5e3ac80f31d24c4cce91390982f731c60f4b8852f",
     "packages/redbox-core/src/branding/BrandingLogo.ts": "13f6a08621800061848b06ea1196532c4b3cbfa3964a789bde8733f82cfa7464",
@@ -6237,7 +6238,7 @@
     "packages/redbox-core/src/decorator/index.ts": "16ac7fb38948c927da673f1122c7873e013f9528a51c5b7687a74693d7e14b05",
     "packages/redbox-core/src/extensions/bindings.ts": "eaccd3db776c7d02c7d747e8a70bed8f36a854c23b961d8d739996f50c3761c7",
     "packages/redbox-core/src/extensions/composition.ts": "d2ae6140e1c5389cda3d1c5686e90f22c9b34f6a0c219c1600409ae6af53a9a5",
-    "packages/redbox-core/src/extensions/config.ts": "eefe9292c8eb59a3466bb57b2c51f906fd4170fd8ecebc81e07636fe5ade4996",
+    "packages/redbox-core/src/extensions/config.ts": "86e741ef38ffb3da3c62f11772c15c87aadaffb0db4029f7d3c3e7975a50b24f",
     "packages/redbox-core/src/extensions/contract.ts": "a7a662fa66d0e9bade814a3a7d6f3a80b14ec756f0e52e44155a0d87a263a9ad",
     "packages/redbox-core/src/extensions/exports.ts": "52248700fa015cfb08685662b790876a55a8ab05bf1babb0d493f37d779301f9",
     "packages/redbox-core/src/extensions/index.ts": "dcabb113818ba6d4464304982f9d73eba306d1db2047612f062577c07a014875",
@@ -6245,8 +6246,8 @@
     "packages/redbox-core/src/extensions/legacyContract.ts": "6ffdfe9e17cfcb340df596f8804835cd4891c655c0a63c6f1896390e6dd02170",
     "packages/redbox-core/src/extensions/loading.ts": "28bd41f8c84504cb8ad5851bd5b46c3094c34ba69f743048afb0bca26c41a672",
     "packages/redbox-core/src/extensions/resolution.ts": "4f4123b94993c4230aeb26aaf2ae871399792d6057f1116265f794e72bb8fe9b",
-    "packages/redbox-core/src/extensions/storage.ts": "6baae36567e571e1f714ab1df4df4e35c28747b3d83af429e503c54ab97cad7c",
-    "packages/redbox-core/src/extensions/v2.ts": "b6393d5dd61c66767e9d0f2f01d03a2a90a1b1f71c8747045a0852fcb719889a",
+    "packages/redbox-core/src/extensions/storage.ts": "2558c743af2c36a52d45d974bdb3f7aafac6457a0ef87abf21cfe728a02c0e47",
+    "packages/redbox-core/src/extensions/v2.ts": "2c54e7af18c6732f0007a6cfdc8dabaa0894fddac376faf94a05ed588f3f6284",
     "packages/redbox-core/src/form-config/generated-view-only.ts": "2e562b328cf229a55cf3fe5136a29ae5ebac303e698e780b6024ce52fec98dd0",
     "packages/redbox-core/src/form-config/index.ts": "831f73a8bf88c106ce8de630a738bf7bc52b96d10129aeb0a4aac057fc012ba4",
     "packages/redbox-core/src/forms/ContextVariables.ts": "5520f614751d52912471569eea62260679e06e0477ca7afc3dca8ce478266421",
@@ -6306,7 +6307,7 @@
     "packages/redbox-core/src/http/controllers/IntegrationControllers.ts": "ea19fed4d21607b901c50a356e3fcf3ba8d019ae49705e9282bbdde5d9091f15",
     "packages/redbox-core/src/http/controllers/MutationControllers.ts": "2987f75547193ab44331a05a8fac8438a9fbd499faabd34abebe54a7ca24e11f",
     "packages/redbox-core/src/http/controllers/PageController.ts": "3c24571990273364b5e65c21850f2de47da0af2319055e167c4b36ade55a4753",
-    "packages/redbox-core/src/http/controllers/ProgressController.ts": "85052fb88fc74a256ffa057985ce277c9939ae2f17d788c71407c7d3bbde4386",
+    "packages/redbox-core/src/http/controllers/ProgressController.ts": "617693f2afb16a41f1b052a0259cd33c8d688c28bbfa3e7224688e6accc5787f",
     "packages/redbox-core/src/http/controllers/ReadControllers.ts": "611ec0c051b10f10d894536c8d3cac44a4ee698ea7f381e7538b670ba5bab101",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "a5b9b2fdda355fdd72e7a6bdcfe5d520f6307e138f25789ff9bcc3e130f2a7b6",
     "packages/redbox-core/src/http/controllers/UploadControllers.ts": "69581c515ccd4239737de759b9865ee1ea7d33f0aae3f751aeebb438730e1dc4",
@@ -6341,7 +6342,7 @@
     "packages/redbox-core/src/http/express/identityProviders.ts": "1ac43bc01e995e2e2b2b0e105044a8221216394b19c01410b7a6ef06d9b3012b",
     "packages/redbox-core/src/http/express/index.ts": "587e9e8a1e27eae3f3bfd09a84e97c9963747fa99bad813e063bd3fb1418ca70",
     "packages/redbox-core/src/http/express/integrationOperations.ts": "fc86eb1dbbc2681f42d566a3e60edb3f8ee3a74fa9d20e0cebbc5f5d0aa56253",
-    "packages/redbox-core/src/http/express/login.ts": "6061ba201bd4ff852ef4cc8a7813ff608d29e0d1d859750b47b0ec435a6627e0",
+    "packages/redbox-core/src/http/express/login.ts": "dbd12e9394ec667ccc7bdee39b0b46f1a1094e8c977f53535e18b0c6dd15a533",
     "packages/redbox-core/src/http/express/metadata.ts": "96455a2cfe7a63fd02cdd4b52bd34410c727bb33a55079d14634bdf479982711",
     "packages/redbox-core/src/http/express/middleware.ts": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
     "packages/redbox-core/src/http/express/multipart.ts": "78afe9a4d39e919923bbcde10527c65b666b94dcb78963bb996af64b803c5d39",
@@ -6407,7 +6408,7 @@
     "packages/redbox-core/src/http/fastify/targetNames.ts": "17b7eb243aab350a84fd1fa0ac4d38a9a5bd6425fbb3a0f5f37c2c45a60625d5",
     "packages/redbox-core/src/http/fastify/validation.ts": "83e03cbd92be82209f9fcac8c5adfd9220815ff93ede845e838e9ee2d5d42ed0",
     "packages/redbox-core/src/http/identityRoutes.ts": "f629a9f39de55db579166b8c17a871f4e985c4356a978134637365140873aa0e",
-    "packages/redbox-core/src/http/index.ts": "768e37a10d2711b534fa26802bab86702ac3b2aae5450b860386e1ea9a044af8",
+    "packages/redbox-core/src/http/index.ts": "d895d2e46053a3de403f2f582222085c2e9bec2b60ec387f112a225afa2afe2c",
     "packages/redbox-core/src/http/integrationRoutes.ts": "a674e73178d4dcc502bb0044d1c63db5ea7defbf517770fd689ce6a46565887f",
     "packages/redbox-core/src/http/integrations/companion/actions.ts": "ba833386dd007739ce75a4f95ef4b68148ce938c4bfe4a4b216d08242540a303",
     "packages/redbox-core/src/http/integrations/companion/companionLogging.ts": "7fa7f64f7217c75b56c047f760c91c86921bbfbcc37b6dccd6d2e2130ba05c8b",
@@ -39606,7 +39607,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/installation.ts",
       "kind": "typed-return",
-      "line": 134,
+      "line": 136,
       "call": "pages!.csrfToken(request)",
       "scopes": [
         "resolvePortalInstallation"
@@ -39636,7 +39637,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/installation.ts",
       "kind": "typed-handoff",
-      "line": 134,
+      "line": 136,
       "call": "pages!.csrfToken(request)",
       "scopes": [
         "resolvePortalInstallation"
@@ -87931,7 +87932,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-call",
-      "line": 11,
+      "line": 12,
       "call": "( request.routeOptions.config as { redboxRoute?: { route: { declaration: { path: string } } } } ).redboxRoute?.route.declaration.path.includes(':roomId')",
       "scopes": [
         "ProgressController",
@@ -87962,7 +87963,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 12,
+      "line": 13,
       "call": "request.routeOptions",
       "scopes": [
         "ProgressController",
@@ -87993,7 +87994,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 15,
+      "line": 16,
       "call": "return this.operation('subscribe', request, reply);",
       "scopes": [
         "ProgressController",
@@ -88024,7 +88025,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 15,
+      "line": 16,
       "call": "this.operation('subscribe', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88056,7 +88057,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 15,
+      "line": 16,
       "call": "this.operation('subscribe', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88088,7 +88089,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 16,
+      "line": 17,
       "call": "return executeProgressGrant( this.input, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, headers: request.headers, sessionId: request.session?.sessionId, context: () => requestContext(request), }, nativeActionReply(reply) );",
       "scopes": [
         "ProgressController",
@@ -88119,7 +88120,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 16,
+      "line": 17,
       "call": "executeProgressGrant( this.input, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, headers: request.headers, sessionId: request.session?.sessionId, context: () => requestContext(request), }, nativeActionReply(reply) )",
       "scopes": [
         "ProgressController",
@@ -88151,7 +88152,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 16,
+      "line": 17,
       "call": "executeProgressGrant( this.input, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, headers: request.headers, sessionId: request.session?.sessionId, context: () => requestContext(request), }, nativeActionReply(reply) )",
       "scopes": [
         "ProgressController",
@@ -88183,7 +88184,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 19,
+      "line": 20,
       "call": "request.params",
       "scopes": [
         "ProgressController",
@@ -88214,7 +88215,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 20,
+      "line": 21,
       "call": "request.query",
       "scopes": [
         "ProgressController",
@@ -88245,7 +88246,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 21,
+      "line": 22,
       "call": "request.headers",
       "scopes": [
         "ProgressController",
@@ -88276,7 +88277,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 22,
+      "line": 23,
       "call": "request.session?.sessionId",
       "scopes": [
         "ProgressController",
@@ -88307,7 +88308,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 22,
+      "line": 23,
       "call": "request.session",
       "scopes": [
         "ProgressController",
@@ -88338,7 +88339,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 23,
+      "line": 24,
       "call": "requestContext(request)",
       "scopes": [
         "ProgressController",
@@ -88369,7 +88370,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 23,
+      "line": 24,
       "call": "requestContext(request)",
       "scopes": [
         "ProgressController",
@@ -88401,7 +88402,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 25,
+      "line": 26,
       "call": "nativeActionReply(reply)",
       "scopes": [
         "ProgressController",
@@ -88433,7 +88434,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 29,
+      "line": 30,
       "call": "return this.operation('start', request, reply);",
       "scopes": [
         "ProgressController",
@@ -88464,7 +88465,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 29,
+      "line": 30,
       "call": "this.operation('start', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88496,7 +88497,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 29,
+      "line": 30,
       "call": "this.operation('start', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88528,7 +88529,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 32,
+      "line": 33,
       "call": "return this.operation('update', request, reply);",
       "scopes": [
         "ProgressController",
@@ -88559,7 +88560,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 32,
+      "line": 33,
       "call": "this.operation('update', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88591,7 +88592,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 32,
+      "line": 33,
       "call": "this.operation('update', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88623,7 +88624,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 35,
+      "line": 36,
       "call": "return this.operation('stop', request, reply);",
       "scopes": [
         "ProgressController",
@@ -88654,7 +88655,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 35,
+      "line": 36,
       "call": "this.operation('stop', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88686,7 +88687,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 35,
+      "line": 36,
       "call": "this.operation('stop', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88718,7 +88719,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 38,
+      "line": 39,
       "call": "return this.operation('progress', request, reply);",
       "scopes": [
         "ProgressController",
@@ -88749,7 +88750,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 38,
+      "line": 39,
       "call": "this.operation('progress', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88781,7 +88782,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 38,
+      "line": 39,
       "call": "this.operation('progress', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88813,7 +88814,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 41,
+      "line": 42,
       "call": "return this.operation('unsubscribe', request, reply);",
       "scopes": [
         "ProgressController",
@@ -88844,7 +88845,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 41,
+      "line": 42,
       "call": "this.operation('unsubscribe', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88876,7 +88877,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 41,
+      "line": 42,
       "call": "this.operation('unsubscribe', request, reply)",
       "scopes": [
         "ProgressController",
@@ -88908,17 +88909,17 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 48,
-      "call": "return executeProgressOperation( this.input, operation, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, body: request.body, headers: request.headers, context: () => requestContext(request), }, nativeActionReply(reply) );",
+      "line": 49,
+      "call": "return executeProgressOperation( this.input, operation, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, body: request.body, headers: request.headers, context: () => requestContext(request), }, nativeActionReply(reply, bytes => { if (!sendFreshRes",
       "scopes": [
         "ProgressController",
         "operation"
       ],
       "iterations": [],
-      "syntaxSha256": "c32df5b1c20475169588b0401d3f2bc5ca5a1329be2e5b21abefc051add8631a",
+      "syntaxSha256": "b7b828ee76404aeba29699d1423836655f2185da5ebd0dedc0b9342124876225",
       "operation": "return",
       "receiverType": "Promise<void>",
-      "receiver": "executeProgressOperation(\n      this.input,\n      operation,\n      {\n        params: request.params as Record<string, unknown>,\n        query: request.query as Record<string, unknown>,\n        body: request.body,\n        headers: request.headers,\n        context: () => requestContext(request),\n      },\n      nativeActionReply(reply)\n    )",
+      "receiver": "executeProgressOperation(\n      this.input,\n      operation,\n      {\n        params: request.params as Record<string, unknown>,\n        query: request.query as Record<string, unknown>,\n        body: request.body,\n        headers: request.headers,\n        context: () => requestContext(request),\n      },\n      nativeActionReply(reply, bytes => {\n        if (!sendFreshResponse(request, reply, reply.statusCode)) reply.send(bytes);\n      })\n    )",
       "profile": "native",
       "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
       "bypassed": [],
@@ -88939,14 +88940,14 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 48,
-      "call": "executeProgressOperation( this.input, operation, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, body: request.body, headers: request.headers, context: () => requestContext(request), }, nativeActionReply(reply) )",
+      "line": 49,
+      "call": "executeProgressOperation( this.input, operation, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, body: request.body, headers: request.headers, context: () => requestContext(request), }, nativeActionReply(reply, bytes => { if (!sendFreshResponse(r",
       "scopes": [
         "ProgressController",
         "operation"
       ],
       "iterations": [],
-      "syntaxSha256": "01673da3559ae7a519fe958209155d3a695698f3b929ceb956a6e1dcff8edd64",
+      "syntaxSha256": "342f4dbbe4e47ce73fcfd9e7ec890b63d495027a38f5b83906095c871a003868",
       "operation": "executeProgressOperation",
       "receiverType": "{ params: Record<string, unknown>; query: Record<string, unknown>; body: unknown; headers: IncomingHttpHeaders; context: () => HttpRequestContext; }",
       "receiver": "{\n        params: request.params as Record<string, unknown>,\n        query: request.query as Record<string, unknown>,\n        body: request.body,\n        headers: request.headers,\n        context: () => requestContext(request),\n      }",
@@ -88971,17 +88972,17 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 48,
-      "call": "executeProgressOperation( this.input, operation, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, body: request.body, headers: request.headers, context: () => requestContext(request), }, nativeActionReply(reply) )",
+      "line": 49,
+      "call": "executeProgressOperation( this.input, operation, { params: request.params as Record<string, unknown>, query: request.query as Record<string, unknown>, body: request.body, headers: request.headers, context: () => requestContext(request), }, nativeActionReply(reply, bytes => { if (!sendFreshResponse(r",
       "scopes": [
         "ProgressController",
         "operation"
       ],
       "iterations": [],
-      "syntaxSha256": "01673da3559ae7a519fe958209155d3a695698f3b929ceb956a6e1dcff8edd64",
+      "syntaxSha256": "342f4dbbe4e47ce73fcfd9e7ec890b63d495027a38f5b83906095c871a003868",
       "operation": "executeProgressOperation",
       "receiverType": "ActionReply",
-      "receiver": "nativeActionReply(reply)",
+      "receiver": "nativeActionReply(reply, bytes => {\n        if (!sendFreshResponse(request, reply, reply.statusCode)) reply.send(bytes);\n      })",
       "argumentIndex": 3,
       "profile": "native",
       "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
@@ -89003,7 +89004,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 52,
+      "line": 53,
       "call": "request.params",
       "scopes": [
         "ProgressController",
@@ -89034,7 +89035,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 53,
+      "line": 54,
       "call": "request.query",
       "scopes": [
         "ProgressController",
@@ -89065,7 +89066,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 54,
+      "line": 55,
       "call": "request.body",
       "scopes": [
         "ProgressController",
@@ -89096,7 +89097,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-reference",
-      "line": 55,
+      "line": 56,
       "call": "request.headers",
       "scopes": [
         "ProgressController",
@@ -89127,7 +89128,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-return",
-      "line": 56,
+      "line": 57,
       "call": "requestContext(request)",
       "scopes": [
         "ProgressController",
@@ -89158,7 +89159,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 56,
+      "line": 57,
       "call": "requestContext(request)",
       "scopes": [
         "ProgressController",
@@ -89190,18 +89191,239 @@
     {
       "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
       "kind": "typed-handoff",
-      "line": 58,
-      "call": "nativeActionReply(reply)",
+      "line": 59,
+      "call": "nativeActionReply(reply, bytes => { if (!sendFreshResponse(request, reply, reply.statusCode)) reply.send(bytes); })",
       "scopes": [
         "ProgressController",
         "operation"
       ],
       "iterations": [],
-      "syntaxSha256": "da612d4d373369e6e5579a7a01abc6f93a6a399d9710e7d633ea8ffcb156f826",
+      "syntaxSha256": "40fb24c61f4d716bcbc51dde0915802c5308a10aef6915169db63a568a90ebef",
       "operation": "nativeActionReply",
       "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
       "receiver": "reply",
       "argumentIndex": 0,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-handoff",
+      "line": 60,
+      "call": "sendFreshResponse(request, reply, reply.statusCode)",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "096a51f48c6cc54136d0d8ec2e785f7b46398d9f31f270885b37777e4246227e",
+      "operation": "sendFreshResponse",
+      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
+      "receiver": "request",
+      "argumentIndex": 0,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-handoff",
+      "line": 60,
+      "call": "sendFreshResponse(request, reply, reply.statusCode)",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "096a51f48c6cc54136d0d8ec2e785f7b46398d9f31f270885b37777e4246227e",
+      "operation": "sendFreshResponse",
+      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
+      "receiver": "reply",
+      "argumentIndex": 1,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-handoff",
+      "line": 60,
+      "call": "sendFreshResponse(request, reply, reply.statusCode)",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "096a51f48c6cc54136d0d8ec2e785f7b46398d9f31f270885b37777e4246227e",
+      "operation": "sendFreshResponse",
+      "receiverType": "number",
+      "receiver": "reply.statusCode",
+      "argumentIndex": 2,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-reference",
+      "line": 60,
+      "call": "reply.statusCode",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "da14f523e504b2760ddd43216270c04c340d95e116fd869445f809631515ad26",
+      "operation": "statusCode",
+      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
+      "receiver": "reply",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-call",
+      "line": 60,
+      "call": "reply.send(bytes)",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "1bd2b6c5ed62904f5286726d42df16c76ae47cb715c1fe9f20fd5620dd45ce9d",
+      "operation": "send",
+      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
+      "receiver": "reply",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-handoff",
+      "line": 60,
+      "call": "reply.send(bytes)",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "1bd2b6c5ed62904f5286726d42df16c76ae47cb715c1fe9f20fd5620dd45ce9d",
+      "operation": "send",
+      "receiverType": "Buffer<ArrayBufferLike> | undefined",
+      "receiver": "bytes",
+      "argumentIndex": 0,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/controllers/ProgressController.ts",
+      "kind": "typed-reference",
+      "line": 60,
+      "call": "reply.send",
+      "scopes": [
+        "ProgressController",
+        "operation"
+      ],
+      "iterations": [],
+      "syntaxSha256": "282c9153bb38a87945ac9d7791b56f2e658359324ac9772e2736f713391766e6",
+      "operation": "send",
+      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
+      "receiver": "reply",
       "profile": "native",
       "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
       "bypassed": [],
@@ -252137,7 +252359,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 75,
+      "line": 58,
       "call": "return lookup(req.body) || lookup(req.query);",
       "scopes": [
         "localCredential"
@@ -252172,7 +252394,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 75,
+      "line": 58,
       "call": "lookup(req.body)",
       "scopes": [
         "localCredential"
@@ -252208,7 +252430,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 75,
+      "line": 58,
       "call": "req.body",
       "scopes": [
         "localCredential"
@@ -252243,7 +252465,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 75,
+      "line": 58,
       "call": "lookup(req.query)",
       "scopes": [
         "localCredential"
@@ -252279,7 +252501,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 75,
+      "line": 58,
       "call": "req.query",
       "scopes": [
         "localCredential"
@@ -252314,7 +252536,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 82,
+      "line": 65,
       "call": "req.params",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252349,7 +252571,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 82,
+      "line": 65,
       "call": "req.body",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252384,7 +252606,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 82,
+      "line": 65,
       "call": "req.query",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252419,7 +252641,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 82,
+      "line": 65,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252454,7 +252676,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 82,
+      "line": 65,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252489,7 +252711,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 84,
+      "line": 67,
       "call": "req.params",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252524,7 +252746,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 84,
+      "line": 67,
       "call": "req.body",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252559,7 +252781,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 84,
+      "line": 67,
       "call": "req.query",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252594,7 +252816,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 84,
+      "line": 67,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252629,7 +252851,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 84,
+      "line": 67,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252664,7 +252886,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 85,
+      "line": 68,
       "call": "input.validContext(brand, portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252700,7 +252922,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 85,
+      "line": 68,
       "call": "input.validContext(brand, portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252736,7 +252958,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 89,
+      "line": 72,
       "call": "req.query",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252771,7 +252993,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 91,
+      "line": 74,
       "call": "/[\\r\\n]/.test(id)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252807,7 +253029,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 91,
+      "line": 74,
       "call": "id.includes('\\u0000')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252842,7 +253064,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 93,
+      "line": 76,
       "call": "return 'oidc-' + id;",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252877,7 +253099,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 97,
+      "line": 80,
       "call": "RequestChronicleHelper.existing(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252913,7 +253135,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 98,
+      "line": 81,
       "call": "chronicle?.addInfo({ userLoginType: local ? 'local' : oidc ? 'oidc' : 'aaf', userLoginSuccess: false })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252948,7 +253170,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 100,
+      "line": 83,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -252983,7 +253205,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 100,
+      "line": 83,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253018,7 +253240,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 101,
+      "line": 84,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253053,7 +253275,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 101,
+      "line": 84,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253088,7 +253310,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 102,
+      "line": 85,
       "call": "input.validContext(req.session.branding, req.session.portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253124,7 +253346,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 102,
+      "line": 85,
       "call": "input.validContext(req.session.branding, req.session.portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253160,7 +253382,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 102,
+      "line": 85,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253195,7 +253417,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 102,
+      "line": 85,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253230,7 +253452,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 102,
+      "line": 85,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253265,7 +253487,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 102,
+      "line": 85,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253300,7 +253522,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 103,
+      "line": 86,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253335,7 +253557,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 103,
+      "line": 86,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253370,7 +253592,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 103,
+      "line": 86,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253405,7 +253627,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 103,
+      "line": 86,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253440,7 +253662,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 105,
+      "line": 88,
       "call": "context(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253476,7 +253698,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 107,
+      "line": 90,
       "call": "res.status(400).json({ message: 'Invalid branding or portal' })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253511,7 +253733,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 107,
+      "line": 90,
       "call": "res.status(400).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253546,7 +253768,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 107,
+      "line": 90,
       "call": "res.status(400)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253581,7 +253803,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 107,
+      "line": 90,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253616,7 +253838,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-property-write",
-      "line": 113,
+      "line": 96,
       "call": "req.params.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253651,7 +253873,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 113,
+      "line": 96,
       "call": "req.params",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253686,7 +253908,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-property-write",
-      "line": 114,
+      "line": 97,
       "call": "req.params.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253721,7 +253943,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 114,
+      "line": 97,
       "call": "req.params",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253756,7 +253978,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 118,
+      "line": 101,
       "call": "localCredential(req, input.credentialFields?.[index] || fallbackField)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253792,7 +254014,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 119,
+      "line": 102,
       "call": "return typeof value !== 'string' || !value || value.length > 4096;",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253827,7 +254049,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 122,
+      "line": 105,
       "call": "input.loginFailure(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253863,7 +254085,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 123,
+      "line": 106,
       "call": "res.status(400).json({ message: 'Invalid login parameters' })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253898,7 +254120,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 123,
+      "line": 106,
       "call": "res.status(400).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253933,7 +254155,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 123,
+      "line": 106,
       "call": "res.status(400)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -253968,7 +254190,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 123,
+      "line": 106,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254003,7 +254225,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 127,
+      "line": 110,
       "call": "input.passport.authenticate(name(req), (error: unknown, user: unknown) => error ? reject(error) : resolve(user) )(req, res, reject)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254038,7 +254260,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 127,
+      "line": 110,
       "call": "input.passport.authenticate(name(req), (error: unknown, user: unknown) => error ? reject(error) : resolve(user) )(req, res, reject)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254074,7 +254296,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 127,
+      "line": 110,
       "call": "input.passport.authenticate(name(req), (error: unknown, user: unknown) => error ? reject(error) : resolve(user) )(req, res, reject)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254110,7 +254332,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 127,
+      "line": 110,
       "call": "input.passport.authenticate(name(req), (error: unknown, user: unknown) => error ? reject(error) : resolve(user) )",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254146,7 +254368,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 127,
+      "line": 110,
       "call": "name(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254182,7 +254404,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 145,
+      "line": 128,
       "call": "input.loginFailure(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254218,7 +254440,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 149,
+      "line": 132,
       "call": "role.brandId === input.brandId(selected.brand)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254253,7 +254475,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 149,
+      "line": 132,
       "call": "input.brandId(selected.brand)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254289,7 +254511,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 151,
+      "line": 134,
       "call": "input.loginFailure(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254325,7 +254547,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 152,
+      "line": 135,
       "call": "res.set(apiNoCacheHeaders).json({ message: 'Incorrect username/password', user: false })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254360,7 +254582,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 152,
+      "line": 135,
       "call": "res.set(apiNoCacheHeaders).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254395,7 +254617,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 152,
+      "line": 135,
       "call": "res.set(apiNoCacheHeaders)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254430,7 +254652,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 152,
+      "line": 135,
       "call": "res.set",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254465,7 +254687,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 153,
+      "line": 136,
       "call": "req.accepts(['html', 'json'])",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254500,7 +254722,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 153,
+      "line": 136,
       "call": "req.accepts",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254535,7 +254757,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 154,
+      "line": 137,
       "call": "input.renderAuthenticationFailure(req, res, deniedReason)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254571,7 +254793,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 154,
+      "line": 137,
       "call": "input.renderAuthenticationFailure(req, res, deniedReason)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254607,7 +254829,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 155,
+      "line": 138,
       "call": "res.set(apiNoCacheHeaders).status(403).json({ message: 'Authentication rejected', user: false })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254642,7 +254864,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 155,
+      "line": 138,
       "call": "res.set(apiNoCacheHeaders).status(403).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254677,7 +254899,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 155,
+      "line": 138,
       "call": "res.set(apiNoCacheHeaders).status(403)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254712,7 +254934,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 155,
+      "line": 138,
       "call": "res.set(apiNoCacheHeaders).status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254747,7 +254969,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 155,
+      "line": 138,
       "call": "res.set(apiNoCacheHeaders)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254782,7 +255004,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 155,
+      "line": 138,
       "call": "res.set",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254817,7 +255039,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 161,
+      "line": 144,
       "call": "res.status(403).end()",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254852,7 +255074,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 161,
+      "line": 144,
       "call": "res.status(403).end",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254887,7 +255109,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 161,
+      "line": 144,
       "call": "res.status(403)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254922,7 +255144,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 161,
+      "line": 144,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254957,7 +255179,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 164,
+      "line": 147,
       "call": "Reflect.get(req.session, 'logoutUrl')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -254993,7 +255215,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 164,
+      "line": 147,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255028,7 +255250,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 165,
+      "line": 148,
       "call": "input.postLoginPath(selected.brand, selected.portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255064,7 +255286,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 165,
+      "line": 148,
       "call": "input.postLoginPath(selected.brand, selected.portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255100,7 +255322,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 166,
+      "line": 149,
       "call": "safeLocalRedirect(Reflect.get(req.session, 'redirUrl') ?? req.query.redirUrl, root, fallback)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255136,7 +255358,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 166,
+      "line": 149,
       "call": "safeLocalRedirect(Reflect.get(req.session, 'redirUrl') ?? req.query.redirUrl, root, fallback)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255172,7 +255394,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 166,
+      "line": 149,
       "call": "Reflect.get(req.session, 'redirUrl')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255208,7 +255430,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 166,
+      "line": 149,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255243,7 +255465,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 166,
+      "line": 149,
       "call": "req.query",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255278,7 +255500,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 168,
+      "line": 151,
       "call": "req.logIn(actorSnapshot, done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255313,7 +255535,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 168,
+      "line": 151,
       "call": "req.logIn(actorSnapshot, done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255348,7 +255570,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 168,
+      "line": 151,
       "call": "req.logIn",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255383,7 +255605,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 169,
+      "line": 152,
       "call": "Reflect.set(req.session, 'authenticationVersion', 6)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255419,7 +255641,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 169,
+      "line": 152,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255454,7 +255676,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-property-write",
-      "line": 170,
+      "line": 153,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255489,7 +255711,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 170,
+      "line": 153,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255524,7 +255746,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 170,
+      "line": 153,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255559,7 +255781,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-property-write",
-      "line": 171,
+      "line": 154,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255594,7 +255816,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 171,
+      "line": 154,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255629,7 +255851,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 171,
+      "line": 154,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255664,7 +255886,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 173,
+      "line": 156,
       "call": "URL.parse(logoutUrl)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255700,7 +255922,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 174,
+      "line": 157,
       "call": "input.logoutOrigins?.includes(url.origin)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255736,7 +255958,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 174,
+      "line": 157,
       "call": "Reflect.set(req.session, 'logoutUrl', url.toString())",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255772,7 +255994,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 174,
+      "line": 157,
       "call": "Reflect.set(req.session, 'logoutUrl', url.toString())",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255808,7 +256030,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 174,
+      "line": 157,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255843,7 +256065,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 174,
+      "line": 157,
       "call": "url.toString()",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255878,7 +256100,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 176,
+      "line": 159,
       "call": "req.session.save(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255913,7 +256135,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 176,
+      "line": 159,
       "call": "req.session.save(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255948,7 +256170,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 176,
+      "line": 159,
       "call": "req.session.save",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -255983,7 +256205,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 176,
+      "line": 159,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256018,7 +256240,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 177,
+      "line": 160,
       "call": "input.audit('login', actorSnapshot, req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256054,7 +256276,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 179,
+      "line": 162,
       "call": "input.loginFailure(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256090,7 +256312,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 180,
+      "line": 163,
       "call": "req.session.destroy(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256125,7 +256347,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 180,
+      "line": 163,
       "call": "req.session.destroy(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256160,7 +256382,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 180,
+      "line": 163,
       "call": "req.session.destroy",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256195,7 +256417,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 180,
+      "line": 163,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256230,7 +256452,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 181,
+      "line": 164,
       "call": "res.clearCookie(input.sessionCookie?.name ?? 'redbox.v6.sid', { path: input.sessionCookie?.path ?? '/', domain: input.sessionCookie?.domain, })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256265,7 +256487,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 181,
+      "line": 164,
       "call": "res.clearCookie",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256300,7 +256522,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 187,
+      "line": 170,
       "call": "chronicle?.addInfo({ userLoginSuccess: true })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256335,7 +256557,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 188,
+      "line": 171,
       "call": "req.get('x-source')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256370,7 +256592,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 188,
+      "line": 171,
       "call": "req.get",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256405,7 +256627,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 189,
+      "line": 172,
       "call": "res.set(apiNoCacheHeaders).json({ user: profile, message: 'Login OK', url: redirect })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256440,7 +256662,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 189,
+      "line": 172,
       "call": "res.set(apiNoCacheHeaders).json({ user: profile, message: 'Login OK', url: redirect })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256476,7 +256698,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 189,
+      "line": 172,
       "call": "res.set(apiNoCacheHeaders).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256511,7 +256733,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 189,
+      "line": 172,
       "call": "res.set(apiNoCacheHeaders)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256546,7 +256768,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 189,
+      "line": 172,
       "call": "res.set",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256581,7 +256803,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 190,
+      "line": 173,
       "call": "res.redirect(redirect)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256616,7 +256838,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 190,
+      "line": 173,
       "call": "res.redirect(redirect)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256652,7 +256874,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 190,
+      "line": 173,
       "call": "res.redirect",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256687,7 +256909,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 201,
+      "line": 184,
       "call": "req.body",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256722,7 +256944,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 201,
+      "line": 184,
       "call": "req.body",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256757,7 +256979,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 201,
+      "line": 184,
       "call": "req.body",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256792,7 +257014,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 202,
+      "line": 185,
       "call": "res.status(400).json({ message: 'Invalid assertion' })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256827,7 +257049,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 202,
+      "line": 185,
       "call": "res.status(400).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256862,7 +257084,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 202,
+      "line": 185,
       "call": "res.status(400)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256897,7 +257119,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 202,
+      "line": 185,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256932,7 +257154,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 211,
+      "line": 194,
       "call": "res.sendStatus(405)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -256967,7 +257189,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 211,
+      "line": 194,
       "call": "res.sendStatus",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257002,7 +257224,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 216,
+      "line": 199,
       "call": "context(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257038,7 +257260,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 218,
+      "line": 201,
       "call": "res.status(400).json({ message: 'Invalid branding or portal' })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257073,7 +257295,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 218,
+      "line": 201,
       "call": "res.status(400).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257108,7 +257330,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 218,
+      "line": 201,
       "call": "res.status(400)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257143,7 +257365,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 218,
+      "line": 201,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257178,7 +257400,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-property-write",
-      "line": 221,
+      "line": 204,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257213,7 +257435,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 221,
+      "line": 204,
       "call": "req.session.branding",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257248,7 +257470,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 221,
+      "line": 204,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257283,7 +257505,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-property-write",
-      "line": 222,
+      "line": 205,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257318,7 +257540,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 222,
+      "line": 205,
       "call": "req.session.portal",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257353,7 +257575,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 222,
+      "line": 205,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257388,7 +257610,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 223,
+      "line": 206,
       "call": "req.query",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257423,7 +257645,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 224,
+      "line": 207,
       "call": "Reflect.set( req.session, 'redirUrl', safeLocalRedirect(req.query.redirUrl, root, input.postLoginPath(selected.brand, selected.portal)) )",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257459,7 +257681,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 224,
+      "line": 207,
       "call": "Reflect.set( req.session, 'redirUrl', safeLocalRedirect(req.query.redirUrl, root, input.postLoginPath(selected.brand, selected.portal)) )",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257495,7 +257717,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 225,
+      "line": 208,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257530,7 +257752,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 227,
+      "line": 210,
       "call": "safeLocalRedirect(req.query.redirUrl, root, input.postLoginPath(selected.brand, selected.portal))",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257566,7 +257788,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 227,
+      "line": 210,
       "call": "safeLocalRedirect(req.query.redirUrl, root, input.postLoginPath(selected.brand, selected.portal))",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257602,7 +257824,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 227,
+      "line": 210,
       "call": "req.query",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257637,7 +257859,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 227,
+      "line": 210,
       "call": "input.postLoginPath(selected.brand, selected.portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257673,7 +257895,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 227,
+      "line": 210,
       "call": "input.postLoginPath(selected.brand, selected.portal)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257709,7 +257931,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 230,
+      "line": 213,
       "call": "input.passport.authenticate(strategy(req))(req, res, next)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257744,7 +257966,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 230,
+      "line": 213,
       "call": "input.passport.authenticate(strategy(req))(req, res, next)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257780,7 +258002,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 230,
+      "line": 213,
       "call": "input.passport.authenticate(strategy(req))(req, res, next)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257816,7 +258038,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 230,
+      "line": 213,
       "call": "input.passport.authenticate(strategy(req))",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257852,7 +258074,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 230,
+      "line": 213,
       "call": "strategy(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257888,7 +258110,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 234,
+      "line": 217,
       "call": "input.identity.session( req.user && typeof Reflect.get(req.user, 'id') === 'string' ? Reflect.get(req.user, 'id') : '' )",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257924,7 +258146,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 235,
+      "line": 218,
       "call": "req.user",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257959,7 +258181,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 235,
+      "line": 218,
       "call": "Reflect.get(req.user, 'id')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -257995,7 +258217,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 235,
+      "line": 218,
       "call": "req.user",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258030,7 +258252,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 235,
+      "line": 218,
       "call": "Reflect.get(req.user, 'id')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258066,7 +258288,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 235,
+      "line": 218,
       "call": "req.user",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258101,7 +258323,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 238,
+      "line": 221,
       "call": "res.status(403).json({ message: 'error-please-login' })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258136,7 +258358,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 238,
+      "line": 221,
       "call": "res.status(403).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258171,7 +258393,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 238,
+      "line": 221,
       "call": "res.status(403)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258206,7 +258428,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 238,
+      "line": 221,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258241,7 +258463,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 241,
+      "line": 224,
       "call": "req.params",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258276,7 +258498,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 242,
+      "line": 225,
       "call": "context(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258312,7 +258534,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 243,
+      "line": 226,
       "call": "actor.roles.some(role => role.brandId === input.brandId(selected.brand))",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258347,7 +258569,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 243,
+      "line": 226,
       "call": "role.brandId === input.brandId(selected.brand)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258382,7 +258604,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 243,
+      "line": 226,
       "call": "input.brandId(selected.brand)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258418,7 +258640,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 244,
+      "line": 227,
       "call": "res.status(403).end()",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258453,7 +258675,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 244,
+      "line": 227,
       "call": "res.status(403).end",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258488,7 +258710,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 244,
+      "line": 227,
       "call": "res.status(403)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258523,7 +258745,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 244,
+      "line": 227,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258558,7 +258780,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 248,
+      "line": 231,
       "call": "RequestChronicleHelper.existing(req)?.addInfo({ userInfoSuccess: true, userUsername: actor.username })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258593,7 +258815,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 248,
+      "line": 231,
       "call": "RequestChronicleHelper.existing(req)?.addInfo({ userInfoSuccess: true, userUsername: actor.username })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258629,7 +258851,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 248,
+      "line": 231,
       "call": "RequestChronicleHelper.existing(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258665,7 +258887,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 249,
+      "line": 232,
       "call": "res.set(apiNoCacheHeaders).json({ user: await input.identity.profile(actor.id) })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258700,7 +258922,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 249,
+      "line": 232,
       "call": "res.set(apiNoCacheHeaders).json({ user: await input.identity.profile(actor.id) })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258736,7 +258958,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 249,
+      "line": 232,
       "call": "res.set(apiNoCacheHeaders).json",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258771,7 +258993,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 249,
+      "line": 232,
       "call": "res.set(apiNoCacheHeaders)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258806,7 +259028,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 249,
+      "line": 232,
       "call": "res.set",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258841,7 +259063,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 249,
+      "line": 232,
       "call": "input.identity.profile(actor.id)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258877,7 +259099,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 254,
+      "line": 237,
       "call": "res.set('Allow', 'POST').sendStatus(405)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258912,7 +259134,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 254,
+      "line": 237,
       "call": "res.set('Allow', 'POST').sendStatus",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258947,7 +259169,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 254,
+      "line": 237,
       "call": "res.set('Allow', 'POST')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -258982,7 +259204,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 254,
+      "line": 237,
       "call": "res.set",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259017,7 +259239,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 260,
+      "line": 243,
       "call": "context(req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259053,7 +259275,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 262,
+      "line": 245,
       "call": "res.status(400).end()",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259088,7 +259310,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 262,
+      "line": 245,
       "call": "res.status(400).end",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259123,7 +259345,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 262,
+      "line": 245,
       "call": "res.status(400)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259158,7 +259380,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 262,
+      "line": 245,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259193,7 +259415,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 265,
+      "line": 248,
       "call": "input.identity.session( req.user && typeof Reflect.get(req.user, 'id') === 'string' ? Reflect.get(req.user, 'id') : '' )",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259229,7 +259451,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 266,
+      "line": 249,
       "call": "req.user",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259264,7 +259486,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 266,
+      "line": 249,
       "call": "Reflect.get(req.user, 'id')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259300,7 +259522,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 266,
+      "line": 249,
       "call": "req.user",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259335,7 +259557,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 266,
+      "line": 249,
       "call": "Reflect.get(req.user, 'id')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259371,7 +259593,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 266,
+      "line": 249,
       "call": "req.user",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259406,7 +259628,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 268,
+      "line": 251,
       "call": "actor.roles.some(role => role.brandId === input.brandId(selected.brand))",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259441,7 +259663,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 268,
+      "line": 251,
       "call": "role.brandId === input.brandId(selected.brand)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259476,7 +259698,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 268,
+      "line": 251,
       "call": "input.brandId(selected.brand)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259512,7 +259734,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 269,
+      "line": 252,
       "call": "res.status(403).end()",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259547,7 +259769,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 269,
+      "line": 252,
       "call": "res.status(403).end",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259582,7 +259804,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 269,
+      "line": 252,
       "call": "res.status(403)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259617,7 +259839,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 269,
+      "line": 252,
       "call": "res.status",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259652,7 +259874,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 273,
+      "line": 256,
       "call": "Reflect.get(req.session, 'logoutUrl')",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259688,7 +259910,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 273,
+      "line": 256,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259723,7 +259945,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 275,
+      "line": 258,
       "call": "URL.parse(candidate)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259759,7 +259981,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 276,
+      "line": 259,
       "call": "input.logoutOrigins?.includes(url.origin)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259795,7 +260017,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 276,
+      "line": 259,
       "call": "url.toString()",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259830,7 +260052,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 278,
+      "line": 261,
       "call": "req.logout(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259865,7 +260087,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 278,
+      "line": 261,
       "call": "req.logout(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259900,7 +260122,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 278,
+      "line": 261,
       "call": "req.logout",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259935,7 +260157,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-return",
-      "line": 279,
+      "line": 262,
       "call": "req.session.destroy(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -259970,7 +260192,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 279,
+      "line": 262,
       "call": "req.session.destroy(done)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260005,7 +260227,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 279,
+      "line": 262,
       "call": "req.session.destroy",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260040,7 +260262,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 279,
+      "line": 262,
       "call": "req.session",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260075,7 +260297,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 280,
+      "line": 263,
       "call": "input.audit('logout', actor, req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260111,7 +260333,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 280,
+      "line": 263,
       "call": "input.audit('logout', actor, req)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260147,7 +260369,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 281,
+      "line": 264,
       "call": "res.clearCookie(input.sessionCookie?.name ?? 'redbox.v6.sid', { path: input.sessionCookie?.path ?? '/', domain: input.sessionCookie?.domain, })",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260182,7 +260404,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 281,
+      "line": 264,
       "call": "res.clearCookie",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260217,7 +260439,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 285,
+      "line": 268,
       "call": "res.set(apiNoCacheHeaders).redirect(redirect)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260252,7 +260474,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-handoff",
-      "line": 285,
+      "line": 268,
       "call": "res.set(apiNoCacheHeaders).redirect(redirect)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260288,7 +260510,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 285,
+      "line": 268,
       "call": "res.set(apiNoCacheHeaders).redirect",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260323,7 +260545,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-call",
-      "line": 285,
+      "line": 268,
       "call": "res.set(apiNoCacheHeaders)",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -260358,7 +260580,7 @@
     {
       "file": "packages/redbox-core/src/http/express/login.ts",
       "kind": "typed-reference",
-      "line": 285,
+      "line": 268,
       "call": "res.set",
       "scopes": [
         "mountAuthenticationRoutes"
@@ -281309,30 +281531,34 @@
       ]
     },
     "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts": {
-      "sha256": "a34624c73a62da5ff4105e1f63fe2fa090fdbe85ededa7045990fcb4a3d80214",
+      "sha256": "04c1c3571a11e4e5fec5691d2521424d0b4f3055d3792aa1c7489f96afe8f025",
       "cases": [
         {
           "line": 121,
           "title": "`${route.method} ${route.path} v${version} ${variant}`"
         },
         {
-          "line": 160,
+          "line": 159,
+          "title": "'preserves conditional progress reads and admission for GET and HEAD'"
+        },
+        {
+          "line": 182,
           "title": "'preserves raw Engine.IO upgrade ownership with hostile Host and absolute targets'"
         },
         {
-          "line": 190,
+          "line": 212,
           "title": "`client bytes and headers ${file} ${method} ${encoding}`"
         },
         {
-          "line": 213,
+          "line": 235,
           "title": "`reads body/query/params replaced by beforeAction v${version}`"
         },
         {
-          "line": 244,
+          "line": 266,
           "title": "'denies invalid, expired, reused and changed-user grants; reconnect requires a fresh grant'"
         },
         {
-          "line": 294,
+          "line": 316,
           "title": "'delivers real start/update/stop events, authorizes rooms and reconnects with a new grant'"
         }
       ]
@@ -281591,78 +281817,78 @@
       ]
     },
     "packages/redbox-core/test/http/fastify/loggingSurvival.test.ts": {
-      "sha256": "980bcf9cc6971c37fe3048afaa434623927e30f170a1c340dc111372598ffd74",
+      "sha256": "90cc9c8fb4c29be3ff7077cceb71ae92a7cded3ee04996c5e6dfd3da3104b367",
       "cases": [
         {
-          "line": 100,
+          "line": 104,
           "title": "`${failure} × ${shape} × ${point}: strict native child survives and drops later diagnostics`"
         },
         {
-          "line": 124,
+          "line": 128,
           "title": "'the unchanged production Express oracle serves a normal request with a healthy destination'"
         },
         {
-          "line": 139,
+          "line": 143,
           "title": "`records the existing Express production destination failure: ${failure}`"
         },
         {
-          "line": 180,
+          "line": 184,
           "title": "'retains bounded request correlation for export disposal failures without diagnostics or query values'"
         },
         {
-          "line": 195,
+          "line": 199,
           "title": "`preserves 00511d68b shared logger output and runtime/namespace levels: ${shape}`"
         },
         {
-          "line": 229,
+          "line": 233,
           "title": "'shares one stream error listener across hosts and observes delayed errors without retaining diagnostics'"
         },
         {
-          "line": 248,
+          "line": 252,
           "title": "'registers explicit callback destinations before any diagnostic is written'"
         },
         {
-          "line": 262,
+          "line": 266,
           "title": "'stays visibly degraded until restart, even after pipe repair'"
         },
         {
-          "line": 295,
+          "line": 299,
           "title": "'drops persistent failures and rate-limits fixed fallback codes without retries'"
         },
         {
-          "line": 325,
+          "line": 329,
           "title": "'contains a broken stderr fd without recursively logging its exception'"
         },
         {
-          "line": 348,
+          "line": 352,
           "title": "'exposes degradation and rising counters on status/health without failing readiness, until operator restart'"
         },
         {
-          "line": 397,
+          "line": 401,
           "title": "`retains ${point} ${rejects ? 'rejection' : 'fulfillment'} until the borrowed resource is safe to close`"
         },
         {
-          "line": 549,
+          "line": 553,
           "title": "`${mode} × ${fault}: visible loss until operator restart`"
         },
         {
-          "line": 569,
+          "line": 573,
           "title": "`${mode} × real /dev/full: failed destination stays degraded and stop completes`"
         },
         {
-          "line": 585,
+          "line": 589,
           "title": "'failed asynchronous SonicBoom open (ENOENT) cannot hold host.stop or borrowed cleanup'"
         },
         {
-          "line": 601,
+          "line": 605,
           "title": "'contains an actual stdout pipe EPIPE until operator restart'"
         },
         {
-          "line": 627,
+          "line": 631,
           "title": "`contains silent ${key} without dispatch or false recovery`"
         },
         {
-          "line": 651,
+          "line": 655,
           "title": "`contains ${event} before the next write and stays visible until restart`"
         }
       ]
@@ -283150,8 +283376,8 @@
     }
   },
   "counts": {
-    "boundaries": 6519,
+    "boundaries": 6526,
     "retainedExpress": 1131,
-    "sources": 813
+    "sources": 814
   }
 }

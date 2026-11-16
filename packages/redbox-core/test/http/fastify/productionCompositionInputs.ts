@@ -66,6 +66,7 @@ export function productionCompositionInputCases() {
     const loginRoutes = sandbox.spy(module('http/fastify/authentication'), 'installNativeAuthenticationRoutes');
     try {
       const f = await fixture(true, {
+        routePrecedence: [],
         policyConfiguration: { '*': true, ProbeController: { read: false } },
         server: {
           rootContext: '/composition',
@@ -123,6 +124,7 @@ export function productionCompositionInputCases() {
         const prepared = productionHost.firstCall.args[1];
         inputs<PortalFastifySelection>(selected.http, {
           declarations: same(selected.http.declarations),
+          routePrecedence: same(selected.http.routePrecedence),
           progress: same(false),
           pages: same(undefined),
           actions: same(undefined),
@@ -213,6 +215,7 @@ export function productionCompositionInputCases() {
           hookLoadPriority: equal(resolved.hookLoadPriority),
           bindings: same(resolved.bindings),
           routing: same(resolved.routing),
+          orderRoutesByPrecedence: same(!!selected.http.routePrecedence?.length),
           coreRoutes: equal(
             api.firstCall.returnValue.map((route: object) => ({
               ...route,
@@ -246,20 +249,30 @@ export function productionCompositionInputCases() {
           rootContext: same(configuration.server.rootContext),
           policyNames: same(module('http/fastify/policies').nativePolicyNames),
           legacyOrder: same(true),
-          precedence: equal(
-            module('http/fastify/precedence').coreRoutePrecedence.filter(
+          precedence: equal([
+            ...module('http/fastify/precedence').coreRoutePrecedence.filter(
               (entry: { winner: string; over: string }) =>
                 resolver.coreRoutes.some((route: object) => Reflect.get(route, 'declaration').name === entry.winner) &&
                 resolver.coreRoutes.some((route: object) => Reflect.get(route, 'declaration').name === entry.over)
-            )
-          ),
+            ),
+            ...selected.http.routePrecedence,
+          ]),
         });
         const routePlan = await routes.firstCall.returnValue;
         const fallbackPlan = fallbacks.firstCall.returnValue;
         assert.strictEqual(resolved.routePlan, routePlan);
         assert.strictEqual(resolved.fallbackPlan, fallbackPlan);
+        assert(resolved.registry.ownership);
+        // Native captures join ownership during host preparation, after this
+        // controller-security plan was bound; their handlers bind security separately.
+        const guardedRoutes = [
+          ...routePlan.routes,
+          ...fallbackPlan.routes,
+          ...resolved.registry.ownership.routes.filter(route => route.declaration.action !== 'native'),
+        ];
+        assert.equal(bindSecurity.firstCall.args[0].routes.length, guardedRoutes.length);
         assert.deepEqual(bindSecurity.firstCall.args, [
-          { routes: [...routePlan.routes, ...fallbackPlan.routes] },
+          { routes: guardedRoutes },
           policies.firstCall.returnValue,
           csrf.firstCall.returnValue,
         ]);

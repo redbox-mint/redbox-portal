@@ -48,6 +48,8 @@ import type {
 
 export interface PortalFastifySelection {
   readonly declarations: readonly ApiRouteSource[];
+  /** Institution/core overlaps require named intent, checked against the native router. */
+  readonly routePrecedence?: readonly import('../../http/fastify/routes').RoutePrecedence[];
   /** Select the owned Socket.IO progress channel and its grant endpoint. */
   readonly progress?: boolean;
   /** Browser controller families and reusable rendering infrastructure. */
@@ -503,9 +505,10 @@ export async function resolvePortalInstallation(
     rootContext: context.config.server.rootContext,
     policyNames: nativePolicyNames,
     legacyOrder: true,
-    precedence: Object.freeze(
-      coreRoutePrecedence.filter(entry => selected.has(entry.winner) && selected.has(entry.over))
-    ),
+    precedence: Object.freeze([
+      ...coreRoutePrecedence.filter(entry => selected.has(entry.winner) && selected.has(entry.over)),
+      ...(input.routePrecedence ?? []),
+    ]),
   } satisfies ProductionRoutingOptions);
   // Reserve configured integration namespaces even while their transports are
   // outside this conversion scope. Never silently reserve the default paths.
@@ -554,6 +557,7 @@ export async function resolvePortalInstallation(
       bindings,
       coreRoutes,
       routing,
+      orderRoutesByPrecedence: !!input.routePrecedence?.length,
       apiConfiguration: plan.policyConfiguration,
       fallbackReservedPrefixes,
       namespaceConfiguration,
