@@ -664,6 +664,9 @@ describe('Report configuration workspace', () => {
     component.filterDraft = null;
     component.editColumn(0);
     render();
+    // The first focused editor can focus the browser window and refresh diagnostics.
+    await fixture.whenStable();
+    render();
     expect(query('[data-location="columns.0.property"]')).toBeTruthy();
   });
   it('refreshes descriptions after external edits on focus and the explicit action, preserving draft edits', async () => {
