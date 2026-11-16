@@ -261,9 +261,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
     this.errorDisplayDeferred = this.shouldDeferErrorDisplay();
     const errors = await this.collectValidationErrors();
-    this.bindValidationControlTouchStreams(errors);
+    const errorControls = this.getValidationErrorControls(errors);
+    this.bindValidationControlTouchStreams(errorControls);
     this.hasValidationErrors = errors.length > 0;
-    this.validationErrorsDisplay$.next(this.visibleValidationErrors(errors));
+    this.validationErrorsDisplay$.next(this.visibleValidationErrors(errors, errorControls));
     this.changeDetectorRef.markForCheck();
   }
 
@@ -271,17 +272,37 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return this.getFormComponent.getValidationErrors() ?? [];
   }
 
-  private bindValidationControlTouchStreams(errors: FormValidatorSummaryErrors[]): void {
+  private getValidationErrorControls(errors: FormValidatorSummaryErrors[]): Map<FormValidatorSummaryErrors, AbstractControl> {
     const form = this.getFormComponent;
-    const controls = new Set<AbstractControl>();
-    if (this.deferErrorsOnNewRecord && !form.trimmedParams.oid() &&
-        !this.errorsRevealed && !form.saveAttempted()) {
-      for (const error of errors) {
-        const control = error.lineagePaths &&
-          form.getComponentDefByName(error.lineagePaths)?.model?.formControl;
-        if (control) controls.add(control);
-      }
+    const errorControls = new Map<FormValidatorSummaryErrors, AbstractControl>();
+    if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() ||
+        this.errorsRevealed || form.saveAttempted()) {
+      return errorControls;
     }
+
+    // Index the current component tree once per refresh. Rebuilding also handles
+    // repeatable additions, removals and moves without retaining stale controls.
+    const controlsByPath = new Map<string, AbstractControl>();
+    const entries = [...form.componentDefArr];
+    for (const entry of entries) {
+      const path = entry.lineagePaths?.angularComponents;
+      const control = entry.model?.formControl;
+      if (path && control) {
+        const key = JSON.stringify(path.map(String));
+        if (!controlsByPath.has(key)) controlsByPath.set(key, control);
+      }
+      entries.push(...entry.component?.formFieldCompMapEntries ?? []);
+    }
+    for (const error of errors) {
+      const path = error.lineagePaths?.angularComponents;
+      const control = path && controlsByPath.get(JSON.stringify(path.map(String)));
+      if (control) errorControls.set(error, control);
+    }
+    return errorControls;
+  }
+
+  private bindValidationControlTouchStreams(errorControls: ReadonlyMap<FormValidatorSummaryErrors, AbstractControl>): void {
+    const controls = new Set(errorControls.values());
     // Root touched events stop when the root is already touched. Observe each
     // invalid control so later sibling/row touches also update the summary.
     for (const [control, subscription] of this.validationControlSubscriptions) {
@@ -300,7 +321,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     }
   }
 
-  private visibleValidationErrors(errors: FormValidatorSummaryErrors[]): FormValidatorSummaryErrors[] {
+  private visibleValidationErrors(
+    errors: FormValidatorSummaryErrors[],
+    errorControls: ReadonlyMap<FormValidatorSummaryErrors, AbstractControl>,
+  ): FormValidatorSummaryErrors[] {
     const form = this.getFormComponent;
     if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() ||
         this.errorsRevealed || form.saveAttempted()) {
@@ -309,8 +333,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     // Programmatic population can dirty the form without user interaction.
     // Resolve the error's own control, including nested groups/repeatable rows;
     // a touched sibling must never reveal an untouched field's errors.
-    return errors.filter(error => error.lineagePaths &&
-      form.getComponentDefByName(error.lineagePaths)?.model?.formControl?.touched === true);
+    return errors.filter(error => errorControls.get(error)?.touched === true);
   }
 
   private isValidationSnapshotReady(): boolean {

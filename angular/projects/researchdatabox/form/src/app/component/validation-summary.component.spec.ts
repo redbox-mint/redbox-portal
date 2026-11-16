@@ -235,6 +235,21 @@ describe('ValidationSummaryFieldComponent', () => {
       first.setValue('Populated name');
       await fixture.whenStable();
       expect((await summary.allValidationErrorsDisplay()).length).toBe(1);
+
+      // Refreshing many errors must not search the component tree per error.
+      const lookup = spyOn(formComponent, 'getComponentDefByName').and.callThrough();
+      await (summary as any).refreshValidationErrors();
+      expect(lookup).not.toHaveBeenCalled();
+
+      const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+      await repeatable.replaceAllElements(['', '']);
+      await fixture.whenStable();
+      expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+      const replacement = formComponent.form!.get(['people', 1])!;
+      expect(replacement).not.toBe(second);
+      replacement.markAsTouched();
+      await fixture.whenStable();
+      expect((await summary.allValidationErrorsDisplay()).length).toBe(1);
     });
 
     it('shows errors on load for a new record with the flag explicitly false', async () => {
