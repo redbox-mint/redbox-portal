@@ -190,7 +190,7 @@ mode. Its `component.config` accepts these options:
 | --- | --- | --- |
 | `includeTabLabel` | `false` | Include tab labels in summary field labels. Group labels are always included. |
 | `showWhenValid` | `false` | Show an informational message when the form has no blocking validation errors. |
-| `deferErrorsOnNewRecord` | `false` | Hide both the error summary and the informational message on a new record until the first field edit or touch, save request, or save failure. |
+| `deferErrorsOnNewRecord` | `false` | On a new record, show errors only for touched fields until a save is attempted or fails. Hide the informational message while untouched errors remain. |
 
 For example, to defer the summary on a new record:
 
@@ -204,25 +204,23 @@ For example, to defer the summary on a new record:
 }
 ```
 
-With `deferErrorsOnNewRecord: true`, a new record has no oid and its summary
-stays hidden while the form is pristine and untouched. Editing or touching any
-field, requesting a save, or receiving a save failure reveals it. Once revealed,
-it stays visible according to the current validation errors and `showWhenValid`,
-even if the form becomes pristine and untouched again.
+With `deferErrorsOnNewRecord: true`, a new record has no oid and the summary
+lists only errors belonging to touched controls. Touching one field does not
+reveal errors for untouched siblings, other tabs, or other repeatable rows.
+Programmatic population may make a control dirty; dirty state alone does not
+reveal its errors. Correcting a field removes its summary entry while other
+eligible errors remain visible. Resetting a control to untouched hides its errors
+again until a save is attempted.
+
+A save attempt or save failure reveals the full validation summary, including
+untouched fields and form-level errors. Save events are scoped to their form;
+direct saves follow the same rule. `showWhenValid` never reports success merely
+because invalid untouched fields have been filtered out.
 
 Existing records show the summary from load as usual. After the first successful
 save assigns an oid to a new record, the same existing-record behaviour applies.
 Leaving the flag out or setting it to `false` keeps the current behaviour on all
-records.
-
-Save buttons stay disabled while the form is invalid. The summary returns on the
-first interaction so the user can see which fields need attention. Deferring the
-summary does not change field-level errors or form validation.
-
-The summary treats any dirty or touched state as an interaction, whatever its
-source. A form that marks itself dirty while loading, for example a behaviour
-that sets a value on form ready, or a typeahead with an on-select config that
-starts with a selected item, reveals the summary straight away.
+records. Validators and save eligibility remain active throughout.
 
 ## Authoritative server validation operations
 

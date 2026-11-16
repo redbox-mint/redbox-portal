@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { PristineChangeEvent, TouchedChangeEvent } from '@angular/forms';
+import { AbstractControl, TouchedChangeEvent } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
@@ -18,7 +18,7 @@ import {
   ValidationSummaryFieldComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus, createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state';
-import {BehaviorSubject, filter, merge} from 'rxjs';
+import {BehaviorSubject, filter, merge, Subscription} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {FormService} from "../form.service";
 
@@ -27,7 +27,7 @@ import {FormService} from "../form.service";
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = (validationErrorsDisplay$ | async) ?? [];
-    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length === 0 && showWhenValid) {
+    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length === 0 && !hasValidationErrors && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
       </div>
@@ -124,12 +124,14 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
   /** True while a new record's summary is held back. Read by the template. */
   public errorDisplayDeferred = false;
-  /** Set on the first interaction, save request or save failure. Never cleared. */
+  public hasValidationErrors = false;
+  /** Save failures also reveal all errors even when no save-request event preceded them. */
   private errorsRevealed = false;
   private validationRefreshQueued = false;
   private validationRefreshDeferred = false;
   private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
   private formChangesBound = false;
+  private readonly validationControlSubscriptions = new Map<AbstractControl, Subscription>();
   private readonly focusableSelector = [
     'input:not([type="hidden"]):not([disabled])',
     'select:not([disabled])',
@@ -141,7 +143,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   constructor() {
     super();
-    this.destroyRef.onDestroy(() => this.clearDeferredValidationErrorsRefresh());
+    this.destroyRef.onDestroy(() => {
+      this.clearDeferredValidationErrorsRefresh();
+      this.validationControlSubscriptions.forEach(subscription => subscription.unsubscribe());
+    });
   }
 
   public get deferErrorsOnNewRecord(): boolean {
@@ -158,11 +163,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     const formComponent = this.getFormComponent;
     const isNewRecord = (formComponent.trimmedParams.oid() ?? '') === '';
     const form = formComponent.form;
-    if (!isNewRecord || form?.dirty || form?.touched) {
-      this.errorsRevealed = true;
-      return false;
-    }
-    return true;
+    return isNewRecord && !form?.touched && !formComponent.saveAttempted();
   }
 
   private revealErrors(): void {
@@ -227,18 +228,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       form.statusChanges,
       form.events.pipe(
         filter(event => this.deferErrorsOnNewRecord &&
-          (event instanceof TouchedChangeEvent || event instanceof PristineChangeEvent))
+          event instanceof TouchedChangeEvent)
       )
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(event => {
-        // Capture interaction before a reset can clear it during the queued refresh.
-        if ((event instanceof TouchedChangeEvent && event.touched) ||
-            (event instanceof PristineChangeEvent && !event.pristine)) {
-          this.revealErrors();
-        }
-        this.queueValidationErrorsRefresh();
-      });
+      .subscribe(() => this.queueValidationErrorsRefresh());
   }
 
   protected queueValidationErrorsRefresh(): void {
@@ -266,12 +260,57 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     }
 
     this.errorDisplayDeferred = this.shouldDeferErrorDisplay();
-    this.validationErrorsDisplay$.next(await this.collectValidationErrors());
+    const errors = await this.collectValidationErrors();
+    this.bindValidationControlTouchStreams(errors);
+    this.hasValidationErrors = errors.length > 0;
+    this.validationErrorsDisplay$.next(this.visibleValidationErrors(errors));
     this.changeDetectorRef.markForCheck();
   }
 
   protected async collectValidationErrors(): Promise<FormValidatorSummaryErrors[]> {
     return this.getFormComponent.getValidationErrors() ?? [];
+  }
+
+  private bindValidationControlTouchStreams(errors: FormValidatorSummaryErrors[]): void {
+    const form = this.getFormComponent;
+    const controls = new Set<AbstractControl>();
+    if (this.deferErrorsOnNewRecord && !form.trimmedParams.oid() &&
+        !this.errorsRevealed && !form.saveAttempted()) {
+      for (const error of errors) {
+        const control = error.lineagePaths &&
+          form.getComponentDefByName(error.lineagePaths)?.model?.formControl;
+        if (control) controls.add(control);
+      }
+    }
+    // Root touched events stop when the root is already touched. Observe each
+    // invalid control so later sibling/row touches also update the summary.
+    for (const [control, subscription] of this.validationControlSubscriptions) {
+      if (!controls.has(control)) {
+        subscription.unsubscribe();
+        this.validationControlSubscriptions.delete(control);
+      }
+    }
+    for (const control of controls) {
+      if (!this.validationControlSubscriptions.has(control)) {
+        this.validationControlSubscriptions.set(control, control.events.pipe(
+          filter(event => event instanceof TouchedChangeEvent),
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe(() => this.queueValidationErrorsRefresh()));
+      }
+    }
+  }
+
+  private visibleValidationErrors(errors: FormValidatorSummaryErrors[]): FormValidatorSummaryErrors[] {
+    const form = this.getFormComponent;
+    if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() ||
+        this.errorsRevealed || form.saveAttempted()) {
+      return errors;
+    }
+    // Programmatic population can dirty the form without user interaction.
+    // Resolve the error's own control, including nested groups/repeatable rows;
+    // a touched sibling must never reveal an untouched field's errors.
+    return errors.filter(error => error.lineagePaths &&
+      form.getComponentDefByName(error.lineagePaths)?.model?.formControl?.touched === true);
   }
 
   private isValidationSnapshotReady(): boolean {

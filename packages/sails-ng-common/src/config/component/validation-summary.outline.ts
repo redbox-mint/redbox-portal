@@ -28,8 +28,9 @@ export interface ValidationSummaryFieldComponentConfigFrame extends FieldCompone
      */
     showWhenValid?: boolean;
     /**
-     * Whether to hide the summary on a new record (one with no oid) until the user
-     * edits or touches a field, or a save is requested or fails.
+     * On a new record (one with no oid), show errors only for touched fields
+     * until a save is attempted or fails. Programmatic dirty state does not
+     * reveal errors, and hidden errors do not count as a valid form.
      * Existing records always show the summary from load.
      * Defaults to false.
      */
