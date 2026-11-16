@@ -200,7 +200,7 @@ test.describe('schema-assisted editor release workflows', () => {
       await expect(page.locator('[data-column]')).toHaveCount(2);
       await page.locator('[data-edit-column="0"]').click();
       await page.locator('#report-column-heading').fill('Project');
-      await page.locator('#report-column-advanced summary').click();
+      await page.locator('#report-column-advanced > summary').click();
       await page.locator('#report-display-template').fill('<b>{{metadata.projectTitle}}</b>');
       await page.locator('#report-csv-template').fill('{{recordTableMeta.val}}');
       await page.locator('#report-column-done').click();
@@ -218,7 +218,7 @@ test.describe('schema-assisted editor release workflows', () => {
       await page.locator('[data-edit-column="1"]').click();
       await page.locator('#report-column-heading').fill('People');
       await page.locator('rb-admin-side-panel').getByRole('checkbox', { name: /multiple/i }).check();
-      await page.locator('#report-column-advanced summary').click();
+      await page.locator('#report-column-advanced > summary').click();
       await page.locator('#report-column-path').fill('metadata.people');
       await page.locator('#report-display-template').fill('{{recordTableMeta.val}}');
       await page.locator('#report-csv-template').fill('{{recordTableMeta.val}}');
@@ -319,7 +319,7 @@ test.describe('schema-assisted editor release workflows', () => {
     await shot(page, '05-user-query-narrow');
     page.once('dialog', dialog => dialog.dismiss());
     await page.locator('.nq-workspace-actions').getByRole('button', { name: 'Cancel', exact: true }).click();
-    await expect(page.locator('.nq-workspace')).toBeVisible();
+    await expect(page.locator('.nq-workspace:visible')).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.getByRole('tab', { name: /Result Mappings/i }).click();
     const mapping = page.locator('result-mapping-editor .nq-add-row');

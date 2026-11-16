@@ -153,7 +153,7 @@ test('A05 creates a report with filters and columns, previews real data, reopens
   await app.getByRole('searchbox').fill(name);
   const row = app.getByRole('row').filter({ hasText: name });
   await row.getByRole('button', { name: /Edit/i }).click();
-  await expect(modal.locator('#report-name')).toBeDisabled();
+  await expect(modal.locator('#report-name')).toHaveAttribute('readonly', '');
   await expect(modal.locator('#report-section-filters')).toContainText('Owned title');
   await expect(modal.locator('[data-column="0"] code')).toHaveText('title');
   await modal.locator('#report-title').fill(`${name} edited`);
