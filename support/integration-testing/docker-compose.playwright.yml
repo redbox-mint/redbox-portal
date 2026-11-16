@@ -33,8 +33,6 @@ x-playwright-service: &playwright-service
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
   - REDBOX_MCP_ENABLED=true
-  - sails_brandingConfigurationDefaults__mcp__enabled=true
-  - sails_brandingConfigurationDefaults__mcp__brand=default
   - RBPORTAL_PLAYWRIGHT_MODE=${RBPORTAL_PLAYWRIGHT_MODE:-image}
   # Scenario registrations are opt-in. The lifecycle wrapper sets this to true
   # for acceptance runs; a direct portal start remains free of test forms.
@@ -87,6 +85,7 @@ x-rbportal-service: &rbportal-service
     - '../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js'
     - '../../.tmp/playwright/attachments:/attachments'
     - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+    - '../../test/resources/config/playwright-mcp.js:/opt/redbox-portal/config/playwright-mcp.js:ro'
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     - '../../coverage/playwright:/tmp/coverage/playwright'
     - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
@@ -145,6 +144,7 @@ services:
       - '../../.tmp/playwright/attachments:/attachments'
       - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
       - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+      - '../../test/resources/config/playwright-mcp.js:/opt/redbox-portal/config/playwright-mcp.js:ro'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:$${PORT}/default/rdmp/home']
