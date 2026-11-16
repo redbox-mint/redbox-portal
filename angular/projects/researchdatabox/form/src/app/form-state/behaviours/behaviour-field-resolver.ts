@@ -11,7 +11,7 @@ import { FormComponent } from '../../form.component';
  * same JSON pointer source of truth.
  */
 export interface BehaviourFieldResolverContext {
-  formComponent: Pick<FormComponent, 'form' | 'getQuerySource'> & Partial<Pick<FormComponent, 'isActiveRelatedDisplayControl'>>;
+  formComponent: Pick<FormComponent, 'form' | 'getQuerySource'> & Partial<Pick<FormComponent, 'isActiveRelatedDisplayControl' | 'eventScopeId'>>;
 }
 
 export interface ResolvedField {
