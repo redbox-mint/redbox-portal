@@ -257,7 +257,7 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "1.65.0",
+    "@playwright/test": "1.65.1",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.1",
     "@types/lodash-es": "4.17.12",
