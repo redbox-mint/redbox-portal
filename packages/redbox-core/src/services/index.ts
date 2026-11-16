@@ -1,3 +1,4 @@
+import * as ReportingServiceModule from './ReportingService';
 import * as SavedGridServiceModule from './SavedGridService';
 export { SavedGridServiceModule as SavedGridService };
 import * as PartyImportServiceModule from './PartyImportService';
@@ -213,7 +214,12 @@ function getOrCreateService(name: string, factory: () => unknown): unknown {
   return serviceCache[name];
 }
 
+export { ReportingServiceModule as ReportingService };
+
 export const ServiceExports = {
+  get ReportingService() {
+    return getOrCreateService('ReportingService', () => new ReportingServiceModule.Services.Reporting().exports());
+  },
   get SavedGridService() { return getOrCreateService('SavedGridService', () => new SavedGridServiceModule.Services.SavedGrids().exports()); },
   get ExportService() {
     return getOrCreateService('ExportService', () => new ExportServiceModule.Services.Export().exports());

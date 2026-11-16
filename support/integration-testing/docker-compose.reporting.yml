@@ -1,0 +1,24 @@
+services:
+  reporting-tests:
+    image: ${RBPORTAL_IMAGE:?Set RBPORTAL_IMAGE to a test image built from this checkout (docker build --target test -t redbox-portal:test .)}
+    pull_policy: never
+    init: true
+    working_dir: /opt/redbox-portal
+    environment:
+      REDBOX_REPORTING_MONGO_URL: mongodb://reporting-mongo:27017
+    volumes:
+      - ../../coverage/reporting:/opt/redbox-portal/coverage/reporting
+      - ./run-reporting-tests.sh:/opt/redbox-portal/support/integration-testing/run-reporting-tests.sh:ro
+      - ../../packages/redbox-core/test/reporting:/opt/redbox-portal/packages/redbox-core/test/reporting:ro
+      - ../../packages/redbox-mcp/test:/opt/redbox-portal/packages/redbox-mcp/test:ro
+    depends_on:
+      reporting-mongo:
+        condition: service_healthy
+    entrypoint: [bash, support/integration-testing/run-reporting-tests.sh]
+  reporting-mongo:
+    image: mongo:latest@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, 'db.runCommand({ping:1}).ok']
+      interval: 3s
+      timeout: 5s
+      retries: 20

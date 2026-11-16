@@ -1,3 +1,4 @@
+import { reportingApiRoutes } from './groups/reporting';
 import { updateFigshareSourceRoute } from './groups/figshare-source-update';
 import { partyImportApiRoutes } from './groups/party-import';
 import { dashboardRecordsApiRoutes } from './groups/dashboard-records';
@@ -38,6 +39,7 @@ const apiDocumentInfo = {
 } as const;
 
 const coreApiRouteGroups = [
+  reportingApiRoutes,
   recordApiRoutes,
   relatedRecordsApiRoutes,
   partyImportApiRoutes,

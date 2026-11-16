@@ -8,8 +8,10 @@ import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } f
 describe('NavigationService', function () {
   let mockSails: any;
   let NavigationService: any;
+  let previousMcpFlag: string | undefined;
 
   beforeEach(function () {
+    previousMcpFlag = process.env.REDBOX_MCP_ENABLED;
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -65,6 +67,8 @@ describe('NavigationService', function () {
   });
 
   afterEach(function () {
+    if (previousMcpFlag === undefined) delete process.env.REDBOX_MCP_ENABLED;
+    else process.env.REDBOX_MCP_ENABLED = previousMcpFlag;
     cleanupServiceTestGlobals();
     delete (global as any).BrandingService;
     delete (global as any).RolesService;
@@ -208,6 +212,25 @@ describe('NavigationService', function () {
       expect(result.header).to.have.property('iconClass');
     });
 
+    it('shows the MCP setup link only for an enabled deployment and the explicitly enabled active brand', async function () {
+      const request = { isAuthenticated: () => true, user: { roles: ['Admin'] }, path: '/admin' };
+      const hasLink = async () => (await NavigationService.resolveAdminSidebar(request)).sections
+        .flatMap((section: { items: Array<{ href: string }> }) => section.items)
+        .some((item: { href: string }) => item.href === '/default/portal/admin/mcp');
+      mockSails.config.brandingAware.returns({ mcp: { enabled: true, brand: 'default' } });
+      for (const flag of [undefined, 'false', 'invalid']) {
+        if (flag === undefined) delete process.env.REDBOX_MCP_ENABLED;
+        else process.env.REDBOX_MCP_ENABLED = flag;
+        expect(await hasLink()).to.equal(false);
+      }
+      process.env.REDBOX_MCP_ENABLED = ' TRUE ';
+      expect(await hasLink()).to.equal(true);
+      for (const mcp of [undefined, { enabled: false, brand: 'default' }, { enabled: true, brand: 'other' }]) {
+        mockSails.config.brandingAware.returns({ mcp });
+        expect(await hasLink()).to.equal(false);
+      }
+    });
+
     it('uses one default layout for runtime branding and the config editor', function () {
       const { brandingConfigurationDefaults } = require('../../src/config/brandingConfigurationDefaults.config');
       expect(brandingConfigurationDefaults.adminSidebar).to.equal(NavigationService.getDefaultAdminSidebarConfig());
@@ -217,7 +240,8 @@ describe('NavigationService', function () {
     });
 
     it('highlights every default route, including each app-config and report detail', async function () {
-      mockSails.config.brandingAware.returns({});
+      process.env.REDBOX_MCP_ENABLED = 'true';
+      mockSails.config.brandingAware.returns({ mcp: { enabled: true, brand: 'default' } });
       const config = NavigationService.getDefaultAdminSidebarConfig();
       for (const section of config.sections) {
         for (const item of section.items) {

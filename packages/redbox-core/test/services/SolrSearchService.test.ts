@@ -92,6 +92,67 @@ describe('SolrSearchService', function () {
     };
   }
 
+  describe('searchReportingText', function () {
+    const role = { id: 'reporter-1', name: 'Reporter', branding: 'brand-1' };
+    const principal = {
+      brand: { id: 'brand-1', name: 'default', roles: [role] },
+      user: { id: 'user-1', username: 'reporter', type: 'local', roles: [role] },
+      roles: [role],
+    };
+
+    async function ready() {
+      sinon.stub(SolrSearchService, 'waitForSolr').resolves();
+      sinon.stub(SolrSearchService, 'getSchema').resolves({ schema: exactSchema() });
+      await SolrSearchService.buildSchema();
+    }
+
+    it('fails closed before the exact ACL schema is ready', async function () {
+      const get = sinon.stub(require('axios'), 'get');
+      await assert.rejects(
+        SolrSearchService.searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21),
+        { code: 'UNAVAILABLE' }
+      );
+      expect(get.called).to.equal(false);
+    });
+
+    it('uses exact ACL parameters and literal text while retaining stable pagination and public IDs', async function () {
+      await ready();
+      const get = sinon.stub(require('axios'), 'get').resolves({ data: {
+        responseHeader: { partialResults: false },
+        response: { docs: [{ redboxOid: 'record-1' }, { redboxOid: ['record-2'] }, { storage_id: 'internal-only' }] },
+      } });
+      const result = await SolrSearchService.searchReportingText(
+        principal, 'default', 'rdmp', 'machine learning" OR *:*', 20, 21
+      );
+      expect(result).to.deep.equal(['record-1', 'record-2']);
+      const params = get.firstCall.args[1].params as URLSearchParams;
+      expect(params.get('q')).to.equal('full_text:"machine learning\\" OR *:*"');
+      expect(params.get('sort')).to.equal('date_object_modified desc,storage_id asc');
+      expect(params.get('start')).to.equal('20');
+      expect(params.get('rows')).to.equal('21');
+      expect(params.get('fl')).to.equal('redboxOid');
+      expect(params.get('rbAclVersion')).to.equal(SOLR_EXACT_ACL_VERSION);
+      expect(params.get('rbAclBrand')).to.equal('brand-1');
+      expect(params.get('rbAclUser')).to.equal('reporter');
+      expect(params.get('rbAclRole0')).to.equal('Reporter');
+      expect(params.getAll('fq').at(-1)).to.include('f=redbox_acl2_view_roles v=$rbAclRole0');
+      expect(params.getAll('fq').join(' ')).not.to.include('authorization_viewRoles:');
+    });
+
+    for (const partialResults of [true, 'true', 'omitted']) {
+      it(`rejects partial reporting pages (${partialResults})`, async function () {
+        await ready();
+        sinon.stub(require('axios'), 'get').resolves({ data: {
+          responseHeader: { partialResults }, response: { docs: [{ redboxOid: 'incomplete' }] },
+        } });
+        await assert.rejects(
+          SolrSearchService.searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21),
+          { code: 'UNAVAILABLE' }
+        );
+      });
+    }
+  });
+
   describe('constructor', function() {
     it('should create instance with logHeader', function() {
       expect(SolrSearchService.logHeader).to.equal('SolrIndexer::');

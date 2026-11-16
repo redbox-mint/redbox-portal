@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { reportDisplayValue } from '@researchdatabox/sails-ng-common';
+import { reportDisplayValue } from '@researchdatabox/sails-ng-common/dist/src/report-display';
 import { AdminDateService } from './admin-date.service';
 import {Component, Input, Inject, TemplateRef, ViewChildren, QueryList, inject} from '@angular/core';
 import { BaseComponent } from './base.component';

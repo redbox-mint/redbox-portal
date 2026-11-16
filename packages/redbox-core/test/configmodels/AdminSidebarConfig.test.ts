@@ -28,6 +28,16 @@ describe('AdminSidebarConfig', function() {
       .to.include('/admin/appconfig/edit/raidPublishing');
   });
 
+  it('allows librarians to find MCP without exposing the other integration settings', function() {
+    const integrations = DEFAULT_ADMIN_SIDEBAR_CONFIG.sections.find(section => section.id === 'integrations')!;
+    expect(integrations.requiredRoles).to.deep.equal(['Admin', 'Librarians']);
+    const mcp = integrations.items.find(item => item.id === 'mcp-connect')!;
+    expect(mcp.href).to.equal('/admin/mcp');
+    expect(mcp.requiredRoles).to.deep.equal(['Admin', 'Librarians']);
+    for (const item of integrations.items.filter(item => item !== mcp))
+      expect(item.requiredRoles).to.deep.equal(['Admin']);
+  });
+
   it('should export schema', function() {
     expect(ADMIN_SIDEBAR_CONFIG_SCHEMA).to.have.property('type', 'object');
   });

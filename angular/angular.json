@@ -3,6 +3,82 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
+    "@researchdatabox/mcp-connect": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/mcp-connect",
+      "sourceRoot": "projects/researchdatabox/mcp-connect/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/mcp-connect"
+            },
+            "index": "projects/researchdatabox/mcp-connect/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/mcp-connect/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/mcp-connect/src/favicon.ico",
+              "projects/researchdatabox/mcp-connect/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/mcp-connect/src/styles.scss"
+            ],
+            "scripts": [],
+            "browser": "projects/researchdatabox/mcp-connect/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "650kb",
+                  "maximumError": "800kb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kb",
+                  "maximumError": "20kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "karmaConfig": "projects/researchdatabox/mcp-connect/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/mcp-connect/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/mcp-connect/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/mcp-connect/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/portal-ng-common": {
       "projectType": "library",
       "root": "projects/researchdatabox/portal-ng-common",

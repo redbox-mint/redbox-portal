@@ -32,6 +32,7 @@ COPY packages/sails-ng-common/package.json packages/sails-ng-common/package-lock
 COPY packages/raido/package.json packages/raido/package-lock.json ./packages/raido/
 COPY packages/rva-registry/package.json packages/rva-registry/package-lock.json ./packages/rva-registry/
 COPY packages/redbox-core/package.json packages/redbox-core/package-lock.json ./packages/redbox-core/
+COPY packages/redbox-mcp/package.json packages/redbox-mcp/package-lock.json ./packages/redbox-mcp/
 COPY packages/sails-hook-redbox-storage-mongo/package.json packages/sails-hook-redbox-storage-mongo/package-lock.json ./packages/sails-hook-redbox-storage-mongo/
 COPY packages/redbox-dev-tools/package.json packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/
 COPY packages/redbox-hook-dev/package.json packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/
@@ -50,6 +51,7 @@ RUN --mount=type=bind,source=.npmrc,target=/opt/redbox-portal/.npmrc npm ci --no
  && (cd packages/raido && npm ci --no-audit) \
  && (cd packages/rva-registry && npm ci --no-audit) \
  && (cd packages/redbox-core && npm install --no-save --no-audit) \
+ && (cd packages/redbox-mcp && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit) \
  && (cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit) \
  && (cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit) \
@@ -101,6 +103,7 @@ COPY --from=dev-deps /opt/redbox-portal/packages/sails-ng-common/package-lock.js
 COPY --from=dev-deps /opt/redbox-portal/packages/raido/package-lock.json ./packages/raido/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/rva-registry/package-lock.json ./packages/rva-registry/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-core/package-lock.json ./packages/redbox-core/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/redbox-mcp/package-lock.json ./packages/redbox-mcp/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/package-lock.json ./packages/sails-hook-redbox-storage-mongo/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/package-lock.json
@@ -117,6 +120,7 @@ RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
+RUN cd packages/redbox-mcp && npm run build
 RUN cd packages/redbox-dev-tools && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
@@ -266,6 +270,7 @@ COPY --from=angular-builder --chown=node:node /opt/redbox-portal/packages/sails-
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-mcp/node_modules ./packages/redbox-mcp/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev/node_modules ./packages/redbox-hook-dev/node_modules
