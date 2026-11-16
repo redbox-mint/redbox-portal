@@ -15,7 +15,7 @@ export class TextAreaModel extends FormFieldModel<string> {
       <textarea [formControl]="formControl" [attr.id]="labelableControlId"
         class="form-control"
         [class.is-valid]="showValidState"
-        [class.is-invalid]="!isValid"
+        [class.is-invalid]="showInvalidState"
         [readonly]="isReadonly"
         [title]="tooltip | i18next"
         [rows]="rows"

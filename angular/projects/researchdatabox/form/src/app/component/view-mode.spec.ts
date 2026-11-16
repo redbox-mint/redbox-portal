@@ -88,6 +88,7 @@ describe('View mode editing prompts', () => {
       }, { editMode: false });
       const element: HTMLElement = fixture.nativeElement;
       expect(element.querySelector('.custom-answer')?.textContent).toBe('kept');
+      formComponent.form!.get('answer')!.markAsTouched();
       expect(element.querySelector('redbox-field-error-summary')).toBeNull();
       formComponent.editMode.set(true);
       fixture.detectChanges();

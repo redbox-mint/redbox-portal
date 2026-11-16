@@ -80,6 +80,7 @@ describe('Aggregate maximum-length form validation', () => {
       const input = element.querySelectorAll<HTMLInputElement>('input[type="text"]')[index];
       input.value = value;
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('blur'));
       await fixture.whenStable();
     };
 

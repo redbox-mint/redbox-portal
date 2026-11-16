@@ -264,6 +264,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The FormGroup instance
    */
   form?: FormGroup;
+  /** Reveal inline failures after a save request, including on fields added later. */
+  readonly saveAttempted = signal(false);
   /**
    * The form group status signal
    */
@@ -596,6 +598,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private clearLoadedForm(): void {
     // A reused form host must release the previous record before loading another.
     this.componentsLoaded.set(false);
+    this.saveAttempted.set(false);
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.subMaps = {};
     this.behaviourManager.destroy();
@@ -699,6 +702,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   protected initSubscriptions() {
     this.focusRequestCoordinator.bind(this);
+
+    this.subMaps['saveAttemptedSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_SAVE_REQUESTED)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
+      .subscribe(() => this.saveAttempted.set(true));
 
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
@@ -1403,6 +1411,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.trimmedParams.oid() === saveOid && this.trimmedParams.recordType() === recordType &&
       this.trimmedParams.formName() === formName;
     if (!ownsSave()) return;
+    this.saveAttempted.set(true);
     const conflict = this.formConflictState();
     if (conflict && this.saveBlockedByConflict()) {
       this.eventBus.publish(createFormSaveFailureEvent({

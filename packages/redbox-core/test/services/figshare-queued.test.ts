@@ -286,9 +286,11 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   it('advances a delayed save delivery when the dispatcher finds durable work due', async () => {
     const agenda = await useMongoQueue();
     config.processing!.coalesceMs = 900000;
+    const requestedAt = Date.now();
     await service.wakeFigshareRecord('record-1');
     const before = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
-    assert.ok(before); assert.ok(before.nextRunAt.getTime() > Date.now() + 890000);
+    assert.ok(before); assert.ok(before.nextRunAt.getTime() >= requestedAt + 900000);
+    assert.ok(before.nextRunAt.getTime() <= Date.now() + 900000);
     await dispatchFigshare();
     const after = await db.collection('agendaJobs').findOne({ _id: before._id });
     assert.ok(after); assert.ok(after.nextRunAt.getTime() <= Date.now());
