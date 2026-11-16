@@ -17,7 +17,17 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Input, Inject, TemplateRef, ViewChildren, QueryList, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  Inject,
+  TemplateRef,
+  ViewChildren,
+  QueryList,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import { reportDisplayValue } from '@researchdatabox/sails-ng-common/runtime';
 import { AdminDateService } from './admin-date.service';
 
 import { BaseComponent } from './base.component';
@@ -28,7 +38,7 @@ import { RecordSource } from './record.model';
 import { RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { HandlebarsTemplateService } from './handlebars-template.service';
 import { NgModel } from '@angular/forms';
-import {HeaderSortComponent} from "./header-sort.component";
+import { HeaderSortComponent } from './header-sort.component';
 
 /**
  * This component displays records in a table.
@@ -45,10 +55,10 @@ import {HeaderSortComponent} from "./header-sort.component";
  * * Author: <a href='https://github.com/shilob' target='_blank'>Shilo B</a>
  */
 @Component({
-    selector: 'record-table',
-    templateUrl: './record-table.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+  selector: 'record-table',
+  templateUrl: './record-table.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class RecordTableComponent extends BaseComponent {
   public templatesUnavailable = false;
@@ -70,15 +80,16 @@ export class RecordTableComponent extends BaseComponent {
   @Input() actionTemplate?: TemplateRef<{ $implicit: any }>;
   // pagination
   @Input() paginationItemsPerPage: number = 10;
-  @Input() paginationDirectionLinks:boolean = false;
+  @Input() paginationDirectionLinks: boolean = false;
   @Input() paginationBoundaryLinks: boolean = true;
   @Input() paginationClass: string = 'pagination-sm';
-  @Input() paginationMaxSize:number = 10;
+  @Input() paginationMaxSize: number = 10;
   @Input() paginationRotate: boolean = true;
   @Input() paginationDisabled: boolean = false;
+  @Input() showPagination = true;
   paginationPending = false;
   // which actions to show in the table
-  @Input() showActions: {name:string, classes: string, label:string}[] = [];
+  @Input() showActions: { name: string; classes: string; label: string }[] = [];
   // whether to enable table sorting
   @Input() enableSort: boolean = false;
   // whether to enable actions column
@@ -86,24 +97,26 @@ export class RecordTableComponent extends BaseComponent {
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
 
-  get adminTotalPages(): number { return Math.max(1, Math.ceil(this.dataSource.getCurrentPage().total / this.paginationItemsPerPage)); }
+  get adminTotalPages(): number {
+    return Math.max(1, Math.ceil((this.dataSource.getCurrentPage().total ?? 0) / this.paginationItemsPerPage));
+  }
 
   get adminPageEnd(): number {
     const page = this.dataSource.getCurrentPage();
-    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total);
+    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total ?? 0);
   }
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,
-    @Inject(HandlebarsTemplateService) private handlebarsTemplateService: HandlebarsTemplateService,
-    ) {
+    @Inject(HandlebarsTemplateService) private handlebarsTemplateService: HandlebarsTemplateService
+  ) {
     super();
     // no deps
     this.initDependencies = [];
   }
 
-  protected override async initComponent():Promise<void> {
+  protected override async initComponent(): Promise<void> {
     if (_isEmpty(this.dataSource)) {
       this.loggerService.error(`RecordTableComponent is missing a datasource parameter!`);
       throw new Error(`RecordTableComponent is missing a datasource parameter!`);
@@ -128,12 +141,13 @@ export class RecordTableComponent extends BaseComponent {
     if (col.multivalue) {
       let retVal = [];
       const values = _get(row, col.property);
+      if (col.format && !Array.isArray(values)) return this.getEntryValue(row, col);
       if (Array.isArray(values) || typeof values === 'string') {
         for (let val of values) {
           retVal.push(this.getEntryValue(row, col, val));
         }
       }
-      return retVal.join('');
+      return retVal.join(Array.isArray(values) && col.format && !col.template ? '<br>' : '');
     } else {
       return this.getEntryValue(row, col);
     }
@@ -164,23 +178,33 @@ export class RecordTableComponent extends BaseComponent {
 
   getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
-    if (this.adminPresentation && !col.template && /(?:^|\.)(?:dateCreated|dateModified|lastSaveDate|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
+    if (
+      this.adminPresentation &&
+      !col.template &&
+      !col.format &&
+      /(?:^|\.)(?:dateCreated|dateModified|lastSaveDate|dateDeleted|date_object_created|date_object_modified)$/.test(
+        col.property
+      )
+    ) {
       return this.adminDates.format(_get(row, col.property, val));
     }
     if (!_isEmpty(col.template)) {
       const data = _merge({}, row, {
         recordTableMeta: {
           col: col,
-          val: val
+          val: val,
         },
-        optTemplateData: this.optTemplateData
+        optTemplateData: this.optTemplateData,
       });
 
       // Build template key parts for pre-compiled template lookup
       const keyParts = this.buildTemplateKeyParts(col);
       retVal = this.handlebarsTemplateService.compileAndRunTemplate(col.template, data, keyParts);
     } else {
-      retVal = _get(row, col.property, val);
+      retVal = reportDisplayValue(
+        col.multivalue && col.format && val !== undefined ? val : _get(row, col.property, val),
+        col
+      ) as string;
     }
     return retVal;
   }
@@ -212,6 +236,6 @@ export class RecordTableComponent extends BaseComponent {
         return;
       }
       item.sort = '';
-    })
+    });
   }
 }

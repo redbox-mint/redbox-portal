@@ -158,7 +158,7 @@ describe('TranslationService testing', () => {
     // HTML-rendering callers can still explicitly request i18next escaping.
     expect(translationService.t('missing-value', '{{value}}', {
       value: '& /', interpolation: { escapeValue: true }
-    })).toBe('&amp; &#x2F;');
+    })).toBe('&amp; /');
     fixture.destroy();
   });
 

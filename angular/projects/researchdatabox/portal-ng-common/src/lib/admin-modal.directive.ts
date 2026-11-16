@@ -6,6 +6,7 @@ import { AfterViewInit, booleanAttribute, Directive, ElementRef, Input, OnChange
 @Directive({ selector: '[rbAdminModal]', standalone: true })
 export class AdminModalDirective implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ transform: booleanAttribute }) rbAdminModal = true;
+  @Input({ transform: booleanAttribute }) rbAdminModalRestoreFocus = true;
   private static locks = new Map<HTMLElement, { count: number; wasInert: boolean }>();
   private locked: HTMLElement[] = [];
   private trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -13,17 +14,33 @@ export class AdminModalDirective implements AfterViewInit, OnChanges, OnDestroy 
 
   constructor(private element: ElementRef<HTMLElement>) {}
 
-  ngAfterViewInit(): void { this.ready = true; this.sync(); }
-  ngOnChanges(): void { if (this.ready) this.sync(); }
-  ngOnDestroy(): void { this.release(); }
+  ngAfterViewInit(): void {
+    this.ready = true;
+    this.sync();
+  }
+  ngOnChanges(): void {
+    if (this.ready) this.sync();
+  }
+  ngOnDestroy(): void {
+    this.release();
+  }
 
   private sync(): void {
-    if (!this.rbAdminModal) { this.release(); return; }
+    if (!this.rbAdminModal) {
+      this.release();
+      return;
+    }
     if (this.locked.length) return;
     let branch = this.element.nativeElement;
     while (branch.parentElement) {
       for (const sibling of Array.from(branch.parentElement.children)) {
-        if (sibling === branch || sibling.classList.contains('cdk-focus-trap-anchor') || !(sibling instanceof HTMLElement) || ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName)) continue;
+        if (
+          sibling === branch ||
+          sibling.classList.contains('cdk-focus-trap-anchor') ||
+          !(sibling instanceof HTMLElement) ||
+          ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName)
+        )
+          continue;
         // A template may already own this inert region; never restore its old
         // value after Angular has cleared it while closing the dialog.
         if (sibling.inert && !AdminModalDirective.locks.has(sibling)) continue;
@@ -51,7 +68,8 @@ export class AdminModalDirective implements AfterViewInit, OnChanges, OnDestroy 
     const trigger = this.trigger;
     // Angular and ngx-bootstrap finish removing their inert regions on this turn.
     setTimeout(() => {
-      if (trigger?.isConnected && !trigger.closest('[inert]')) trigger.focus({ preventScroll: true });
+      if (this.rbAdminModalRestoreFocus && trigger?.isConnected && !trigger.closest('[inert]'))
+        trigger.focus({ preventScroll: true });
     });
   }
 }

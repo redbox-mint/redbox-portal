@@ -1062,10 +1062,10 @@ export interface RepeatableElementEntry {
       }
     </div>
     <ng-template #afterComponentTemplate>
-      @if (isVisible) {
+      @if (isVisible && formComponent.editMode()) {
         @let componentValidationList = getFormValidatorComponentErrors;
         <redbox-field-error-summary
-          [errors]="componentValidationList"
+          [errors]="showValidationErrors ? componentValidationList : []"
           [fieldName]="componentName"
         ></redbox-field-error-summary>
       }

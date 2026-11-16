@@ -5,6 +5,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   this.timeout(30_000);
 
   let agent: supertest.Agent;
+  let csrf: string;
   let lookupStub: sinon.SinonStub | undefined;
 
   afterEach(function () {
@@ -16,8 +17,10 @@ describe("Form vocabulary service lookup AJAX routes", function () {
     const app = (sails as any).hooks.http.app;
     agent = supertest.agent(app);
 
+    const loginCsrf = (await agent.get("/csrfToken?branding=default&portal=rdmp")).body._csrf;
     await agent
       .post("/user/login_local")
+      .set("X-CSRF-Token", loginCsrf)
       .set("X-Source", "jsclient")
       .send({
         username: "admin",
@@ -26,6 +29,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
         portal: "rdmp"
       })
       .expect(200);
+    csrf = (await agent.get("/csrfToken?branding=default&portal=rdmp")).body._csrf;
   });
 
   it("returns service-backed typeahead results", async function () {
@@ -55,6 +59,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
       .post("/default/rdmp/service/vocab/dataciteDois")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
+      .set("X-CSRF-Token", csrf)
       .send({
         search: "10.5438/0014",
         start: 0,
@@ -86,6 +91,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
       .post("/default/rdmp/service/vocab/dataciteDois")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
+      .set("X-CSRF-Token", csrf)
       .send({
         search: "10.5438/0014",
         start: -1,
@@ -101,6 +107,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
       .post("/default/rdmp/service/vocab/notConfigured")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
+      .set("X-CSRF-Token", csrf)
       .send({
         search: "smith",
         start: 0,
@@ -125,6 +132,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
       .post("/default/rdmp/service/vocab/dataciteDois")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
+      .set("X-CSRF-Token", csrf)
       .send({
         search: "10.5438/broken",
         start: 0,

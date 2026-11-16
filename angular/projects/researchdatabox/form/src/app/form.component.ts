@@ -87,8 +87,13 @@ import {
 import {
   DynamicScriptResponse,
   FormConfigFrame,
+  FormRuntimeMeta,
   FormRequestParamsMap,
   FormRequestParamValue,
+  FormRuntimeRequestContext,
+  FormRuntimeAction,
+  GenerationLaunchDefinition,
+  GenerationRuntimeSession,
   FormStatus,
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
@@ -146,6 +151,8 @@ import {
   FormConflictReviewProjection,
   FormConflictReviewService,
 } from './form-conflict-review.service';
+import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
+import * as GenerationActions from './generation/state/generation.actions';
 
 interface ServerControlCandidate {
   field: string;
@@ -262,6 +269,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The FormGroup instance
    */
   form?: FormGroup;
+  /** Reveal inline failures after a save request, including on fields added later. */
+  readonly saveAttempted = signal(false);
   /**
    * The form group status signal
    */
@@ -329,6 +338,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private readonly formConflictReviewState = signal<FormConflictReviewProjection | null>(null);
   public readonly conflictReview = this.formConflictReviewState.asReadonly();
   public readonly manualConflictResolutionPending = signal(false);
+  private readonly generationProvenance = inject(GenerationProvenanceStoreService);
 
   readonly viewAuditRoles = signal<string[]>(['Admin', 'Librarians']);
   // Backward-compatible aliases for existing tests and callers.
@@ -535,6 +545,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const revision = ++this.formLoadRevision;
     const isCurrentLoad = () => !this.isDestroyed && revision === this.formLoadRevision;
     this.clearLoadedForm();
+    this.store.dispatch(GenerationActions.reset());
+    this.generationProvenance.clear();
     try {
       let formDefMap: FormComponentsMap;
       if (!formConfig) {
@@ -544,7 +556,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.trimmedParams.recordType(),
           this.editMode(),
           this.trimmedParams.formName(),
-          this.modulePaths
+          this.modulePaths,
+          this.getGenerationRuntimeContext(),
         );
       } else {
         this.loggerService.info(`${this.logName}: creating form definition from provided config`);
@@ -561,6 +574,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // Store the form recordType if the recordType was not provided by the page.
       if (!this.trimmedParams.recordType() && formDefMap.formConfig?.type) {
         this.recordType.set(formDefMap.formConfig.type);
+      }
+      // The server can resolve a generation-pinned form even when the embedding
+      // view does not provide formName. Keep the resolved name so execution
+      // submits the same target descriptor that was authorised at launch.
+      if (!formConfig && !this.trimmedParams.formName() && formDefMap.formConfig?.name) {
+        this.formName.set(formDefMap.formConfig.name);
       }
       this.componentDefArr = formDefMap.components;
       this.requestRender();
@@ -600,6 +619,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.eventBus.publish(createFormDefinitionReadyEvent({}));
       // Finally set the flag indicating components are loaded
       this.componentsLoaded.set(true);
+      const meta = this.formDefMap?.formConfigMeta as FormRuntimeMeta | undefined;
+      this.store.dispatch(GenerationActions.configure({
+        actions: meta?.runtimeActions ?? [],
+        session: meta?.generationSession ?? null,
+      }));
+      if (meta?.generationEnabled === true && this.trimmedParams.oid()) {
+        try {
+          await this.generationProvenance.load(this.trimmedParams.oid());
+        } catch (error) {
+          this.loggerService.warn(`${this.logName}: Unable to load generation provenance`, error);
+        }
+      }
     } catch (error) {
       // A superseded request must not report failure against the replacement form.
       if (isCurrentLoad()) throw error;
@@ -609,6 +640,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private clearLoadedForm(): void {
     // A reused form host must release the previous record before loading another.
     this.componentsLoaded.set(false);
+    this.saveAttempted.set(false);
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.subMaps = {};
     this.behaviourManager.destroy();
@@ -656,6 +688,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public getRequestParam(name: string): FormRequestParamValue | undefined {
     return this.requestParams()[name];
+  }
+
+  private getGenerationRuntimeContext(): FormRuntimeRequestContext | undefined {
+    const value = this.requestParams()['generationRunId'];
+    return typeof value === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(value)
+      ? { generationRunId: value }
+      : undefined;
   }
   /**
    * Initialize reactive effects
@@ -705,6 +744,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   protected initSubscriptions() {
     this.focusRequestCoordinator.bind(this);
+
+    this.subMaps['saveAttemptedSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_SAVE_REQUESTED)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
+      .subscribe(() => this.saveAttempted.set(true));
 
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
@@ -1419,6 +1463,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.trimmedParams.oid() === saveOid && this.trimmedParams.recordType() === recordType &&
       this.trimmedParams.formName() === formName;
     if (!ownsSave()) return;
+    this.saveAttempted.set(true);
     const conflict = this.formConflictState();
     if (conflict && this.saveBlockedByConflict()) {
       this.eventBus.publish(createFormSaveFailureEvent({
@@ -3001,6 +3046,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public get formConfigMeta(): Record<string, unknown> {
     return this.formDefMap?.formConfigMeta ?? {};
+  }
+
+  public get runtimeActions(): FormRuntimeAction[] {
+    return this.formDefMap?.formConfigMeta?.runtimeActions ?? [];
+  }
+
+  public get generationSession(): GenerationRuntimeSession | null {
+    return this.formDefMap?.formConfigMeta?.generationSession ?? null;
+  }
+
+  public get generationLaunches(): GenerationLaunchDefinition[] {
+    return this.formDefMap?.formConfigMeta?.generationLaunches ?? [];
   }
 
   private parseRequestParamsFromUrl(rawHref?: string): FormRequestParamsMap {

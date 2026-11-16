@@ -1,10 +1,18 @@
-import {TestBed} from '@angular/core/testing';
-import {ChangeDetectionStrategy, Component, ViewChild, ViewContainerRef, provideZonelessChangeDetection, signal} from '@angular/core';
-import {FormFieldComponentStatus, SimpleInputFormComponentDefinitionFrame} from '@researchdatabox/sails-ng-common';
-import {LoggerService} from '../logger.service';
-import {UtilityService} from '../utility.service';
-import {FormFieldCompMapEntry, FormFieldBaseComponent} from './form-field-base.component';
-import {FormFieldModel} from "./base.model";
+import { TestBed } from '@angular/core/testing';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ViewChild,
+  ViewContainerRef,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
+import { Validators } from '@angular/forms';
+import { FormFieldComponentStatus, SimpleInputFormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
+import { LoggerService } from '../logger.service';
+import { UtilityService } from '../utility.service';
+import { FormFieldCompMapEntry, FormFieldBaseComponent } from './form-field-base.component';
+import { FormFieldModel } from './base.model';
 
 @Component({
   template: `<p [hidden]="!isVisible">{{ label }}</p>
@@ -12,7 +20,7 @@ import {FormFieldModel} from "./base.model";
       <output [class.invalid]="!isValid" [class.touched]="formControl.touched">{{ renderedValue }}</output>
     }`,
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
   valueReads = 0;
@@ -20,6 +28,11 @@ class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
   get renderedValue(): unknown {
     this.valueReads++;
     return this.model?.getValue();
+  }
+  public formHost: { saveAttempted?: () => boolean } = {};
+
+  protected override get formComponent(): { saveAttempted?: () => boolean } {
+    return this.formHost;
   }
 
   public waitForViewReady(): Promise<void> {
@@ -30,17 +43,16 @@ class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
 @Component({
   template: '{{ unrelated() }}<ng-container #fields />',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class FormFieldsHostComponent {
   readonly unrelated = signal(0);
-  @ViewChild('fields', {read: ViewContainerRef, static: true}) fields!: ViewContainerRef;
+  @ViewChild('fields', { read: ViewContainerRef, static: true }) fields!: ViewContainerRef;
 }
 
 class TestFormFieldModel extends FormFieldModel<unknown> {
-  protected override logName = "TestFormFieldModel";
+  protected override logName = 'TestFormFieldModel';
 }
-
 
 describe('FormFieldBaseComponent', () => {
   let component: TestFormFieldBaseComponent;
@@ -48,15 +60,85 @@ describe('FormFieldBaseComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestFormFieldBaseComponent, FormFieldsHostComponent],
-      providers: [LoggerService, UtilityService, provideZonelessChangeDetection()]
+      providers: [LoggerService, UtilityService, provideZonelessChangeDetection()],
     });
     component = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
   });
 
+  describe('inline validation feedback', () => {
+    beforeEach(() => {
+      component.model = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: null } });
+      component.formControl.setValidators(Validators.required);
+      component.formControl.updateValueAndValidity();
+    });
+
+    it('keeps an untouched invalid field hidden even when it is dirty', () => {
+      expect(component.formControl.invalid).toBeTrue();
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+
+      component.formControl.markAsDirty();
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+      expect(component.formControl.invalid).toBeTrue();
+    });
+
+    it('reveals a touched field without revealing an untouched sibling', () => {
+      const sibling = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
+      sibling.model = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: null } });
+      sibling.formControl.setValidators(Validators.required);
+      sibling.formControl.updateValueAndValidity();
+
+      component.formControl.markAsTouched();
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeTrue();
+      expect(sibling.formControl.invalid).toBeTrue();
+      expect(sibling.showValidationErrors).toBeFalse();
+      expect(sibling.showInvalidState).toBeFalse();
+
+      component.formControl.setValue('Project');
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeFalse();
+    });
+
+    it('reveals untouched failures after a save attempt and hides them when that state resets', () => {
+      const saveAttempted = signal(false);
+      component.formHost = { saveAttempted };
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+
+      saveAttempted.set(true);
+      expect(component.formControl.untouched).toBeTrue();
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeTrue();
+      component.formControl.markAsPristine();
+      expect(component.showInvalidState).toBeTrue();
+
+      component.formControl.setValue('Project');
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeFalse();
+
+      component.formControl.reset();
+      saveAttempted.set(false);
+      expect(component.formControl.invalid).toBeTrue();
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+    });
+
+    it('keeps an unbound field hidden on a host without save-attempt tracking', () => {
+      component.model = undefined;
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+    });
+  });
+
   it('shares a stable label target between layout and control for one runtime entry', () => {
-    const entry: FormFieldCompMapEntry = { compConfigJson: {
-      name: 'title', component: { class: 'SimpleInputComponent' }
-    } };
+    const entry: FormFieldCompMapEntry = {
+      compConfigJson: {
+        name: 'title',
+        component: { class: 'SimpleInputComponent' },
+      },
+    };
     component.formFieldCompMapEntry = entry;
     const layout = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
     layout.formFieldCompMapEntry = entry;
@@ -72,7 +154,8 @@ describe('FormFieldBaseComponent', () => {
   it('does not generate label targets for hidden inputs or components with their own label handling', () => {
     expect(component.labelableControlId).toBeUndefined();
     const hiddenInput: SimpleInputFormComponentDefinitionFrame = {
-      name: 'field', component: { class: 'SimpleInputComponent', config: { type: 'hidden' } }
+      name: 'field',
+      component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
     };
     const definitions: FormFieldCompMapEntry['compConfigJson'][] = [
       hiddenInput,
@@ -121,8 +204,8 @@ describe('FormFieldBaseComponent', () => {
       componentRef: fixture.componentRef,
       compConfigJson: {
         name: 'external-properties',
-        component: {class: 'SimpleInputComponent', config: {label: 'Initial label'}}
-      }
+        component: { class: 'SimpleInputComponent', config: { label: 'Initial label' } },
+      },
     });
     await fixture.whenStable();
     const paragraph: HTMLParagraphElement = fixture.nativeElement.querySelector('p');
@@ -152,13 +235,16 @@ describe('FormFieldBaseComponent', () => {
     await fixture.whenStable();
     const left = fixture.componentInstance.fields.createComponent(TestFormFieldBaseComponent);
     const right = fixture.componentInstance.fields.createComponent(TestFormFieldBaseComponent);
-    const leftModel = new TestFormFieldModel({class: 'SimpleInputModel', config: {value: 'Left'}});
-    const rightModel = new TestFormFieldModel({class: 'SimpleInputModel', config: {value: 'Right'}});
-    for (const [ref, model] of [[left, leftModel], [right, rightModel]] as const) {
+    const leftModel = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: 'Left' } });
+    const rightModel = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: 'Right' } });
+    for (const [ref, model] of [
+      [left, leftModel],
+      [right, rightModel],
+    ] as const) {
       await ref.instance.initComponent({
         componentRef: ref,
         model,
-        compConfigJson: {name: 'field', component: {class: 'SimpleInputComponent', config: {}}}
+        compConfigJson: { name: 'field', component: { class: 'SimpleInputComponent', config: {} } },
       });
     }
     await fixture.whenStable();
@@ -166,7 +252,7 @@ describe('FormFieldBaseComponent', () => {
 
     leftModel.setValue('Updated remotely');
     leftModel.formControl!.markAsTouched();
-    leftModel.formControl!.setErrors({required: true});
+    leftModel.formControl!.setErrors({ required: true });
     await fixture.whenStable();
     const output: HTMLOutputElement = left.location.nativeElement.querySelector('output');
     expect(output.textContent).toBe('Updated remotely');
@@ -188,11 +274,11 @@ describe('FormFieldBaseComponent', () => {
   it('should set formControl to disabled', async () => {
     await component.initComponent({
       modelClass: TestFormFieldModel,
-      model: new TestFormFieldModel({class: "SimpleInputModel"}),
+      model: new TestFormFieldModel({ class: 'SimpleInputModel' }),
       compConfigJson: {
-        name: "testing-component-model-disabled",
-        component: {class: "SimpleInputComponent", config: {}}
-      }
+        name: 'testing-component-model-disabled',
+        component: { class: 'SimpleInputComponent', config: {} },
+      },
     });
     expect(component.isDisabled).toBeFalse();
 
@@ -204,11 +290,11 @@ describe('FormFieldBaseComponent', () => {
   it('should set formControl.disabled when component.disabled is set', async () => {
     await component.initComponent({
       modelClass: TestFormFieldModel,
-      model: new TestFormFieldModel({class: "SimpleInputModel"}),
+      model: new TestFormFieldModel({ class: 'SimpleInputModel' }),
       compConfigJson: {
-        name: "testing-component-model-disabled",
-        component: {class: "SimpleInputComponent", config: {}}
-      }
+        name: 'testing-component-model-disabled',
+        component: { class: 'SimpleInputComponent', config: {} },
+      },
     });
     expect(component.isDisabled).toBeFalse();
 

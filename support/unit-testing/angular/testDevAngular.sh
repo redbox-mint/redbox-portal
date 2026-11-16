@@ -44,7 +44,19 @@ if [ $# -ne 0 ]; then
   fi
 else
   testAngular "portal-ng-common" "frontend-core-lib"
-  ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
+  # Only run registered Angular projects that expose a test target. The source
+  # tree also contains support-only and generated directories that `ng test`
+  # cannot execute.
+  ng2apps=( $(node -e '
+    const workspace = require("./angular.json");
+    for (const [projectName, project] of Object.entries(workspace.projects)) {
+      const prefix = "@researchdatabox/";
+      const targets = project.architect || project.targets || {};
+      if (projectName.startsWith(prefix) && targets.test) {
+        console.log(projectName.slice(prefix.length));
+      }
+    }
+  ') )
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then

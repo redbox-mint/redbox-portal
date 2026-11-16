@@ -1,0 +1,659 @@
+type Query {
+  record(oid: ID!): Record
+}
+
+type Record {
+  oid: ID!
+  recordType: String!
+  workflowStep: String!
+  form: String!
+  metadata: RecordMetadata
+}
+
+union RecordMetadata = M_dataPublication_draft_fe0d67f3a72c | M_dataPublication_draft_90497600e8a3 | M_dataPublication_queued_491084ffbc12 | M_dataPublication_queued_6d74bb8488c6 | M_dataPublication_published_6bf05cdb8de3 | M_dataPublication_published_893ccb0d7067
+
+type M_dataPublication_draft_fe0d67f3a72c {
+  """Stored metadata pointer: /title"""
+  title: String
+}
+
+type M_dataPublication_draft_90497600e8a3 {
+  """Stored metadata pointer: /9start"""
+  rb_397374617274: String
+
+  """Stored metadata pointer: /__private"""
+  rb_5f5f70726976617465: String
+
+  """Stored metadata pointer: /access_questions"""
+  access_questions: M_dataPublication_draft_90497600e8a3_O_b53a450c730a
+
+  """Stored metadata pointer: /amount"""
+  amount: Float
+
+  """Stored metadata pointer: /attachments"""
+  attachments: [M_dataPublication_draft_90497600e8a3_O_c9280e8e64a1]
+
+  """Stored metadata pointer: /conditional_details"""
+  conditional_details: M_dataPublication_draft_90497600e8a3_O_3e643a54ee7d
+
+  """Stored metadata pointer: /contact_email"""
+  contact_email: String
+
+  """Stored metadata pointer: /contributors"""
+  contributors: [M_dataPublication_draft_90497600e8a3_O_9b19a654e06f]
+
+  """Stored metadata pointer: /count"""
+  count: MetadataInteger
+
+  """Stored metadata pointer: /custom_hook_value"""
+  custom_hook_value: M_dataPublication_draft_90497600e8a3_O_0ab6d4b6d136
+
+  """Stored metadata pointer: /data_locations"""
+  data_locations: [M_dataPublication_draft_90497600e8a3_O_bf2206964304]
+
+  """Stored metadata pointer: /dc~1title"""
+  rb_64632f7469746c65: String
+
+  """Stored metadata pointer: /dc:title"""
+  rb_64633a7469746c65: String
+
+  """Stored metadata pointer: /details"""
+  details: M_dataPublication_draft_90497600e8a3_O_7c9760d92695
+
+  """Stored metadata pointer: /fixed_choice"""
+  fixed_choice: String
+
+  """Stored metadata pointer: /geographic_coverage"""
+  geographic_coverage: M_dataPublication_draft_90497600e8a3_O_274ad4da07fc
+
+  """Stored metadata pointer: /is_public"""
+  is_public: Boolean
+
+  """Stored metadata pointer: /nullable_status"""
+  nullable_status: String
+
+  """Stored metadata pointer: /rb_64633a7469746c65"""
+  rb_72625f36343633336137343639373436633635: String
+
+  """Stored metadata pointer: /static_typeahead"""
+  static_typeahead: String
+
+  """Stored metadata pointer: /title"""
+  title: String
+
+  """Stored metadata pointer: /vocabulary_choice"""
+  vocabulary_choice: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_b53a450c730a {
+  """Stored metadata pointer: /access_questions/consent"""
+  consent: [String]
+
+  """Stored metadata pointer: /access_questions/questiontree-outcome-info"""
+  rb_7175657374696f6e747265652d6f7574636f6d652d696e666f: MetadataJSON
+
+  """Stored metadata pointer: /access_questions/restricted_reason"""
+  restricted_reason: String
+
+  """Stored metadata pointer: /access_questions/sensitive"""
+  sensitive: [String]
+}
+
+"""
+An opaque stored JSON region. Its children cannot be selected as typed fields.
+"""
+scalar MetadataJSON
+
+type M_dataPublication_draft_90497600e8a3_O_c9280e8e64a1 {
+  """Stored metadata pointer: /attachments/*/attachmentId"""
+  attachmentId: String
+
+  """Stored metadata pointer: /attachments/*/fileId"""
+  fileId: String
+
+  """Stored metadata pointer: /attachments/*/location"""
+  location: String
+
+  """Stored metadata pointer: /attachments/*/mimeType"""
+  mimeType: String
+
+  """Stored metadata pointer: /attachments/*/name"""
+  name: String
+
+  """Stored metadata pointer: /attachments/*/notes"""
+  notes: String
+
+  """Stored metadata pointer: /attachments/*/pending"""
+  pending: Boolean
+
+  """Stored metadata pointer: /attachments/*/size"""
+  size: Float
+
+  """Stored metadata pointer: /attachments/*/type"""
+  type: String
+
+  """Stored metadata pointer: /attachments/*/uploadUrl"""
+  uploadUrl: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_3e643a54ee7d {
+  """Stored metadata pointer: /conditional_details/explanation"""
+  explanation: String
+
+  """Stored metadata pointer: /conditional_details/review_score"""
+  review_score: Float
+}
+
+type M_dataPublication_draft_90497600e8a3_O_9b19a654e06f {
+  """Stored metadata pointer: /contributors/*/name"""
+  name: String
+}
+
+"""
+A JSON safe integer, including values outside GraphQL Int’s signed 32-bit range.
+"""
+scalar MetadataInteger
+
+type M_dataPublication_draft_90497600e8a3_O_0ab6d4b6d136 {
+  """Stored metadata pointer: /custom_hook_value/owner-id"""
+  rb_6f776e65722d6964: MetadataInteger
+
+  """Stored metadata pointer: /custom_hook_value/value"""
+  value: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_bf2206964304 {
+  """Stored metadata pointer: /data_locations/*/attachmentId"""
+  attachmentId: String
+
+  """Stored metadata pointer: /data_locations/*/fileId"""
+  fileId: String
+
+  """Stored metadata pointer: /data_locations/*/isc"""
+  isc: String
+
+  """Stored metadata pointer: /data_locations/*/location"""
+  location: String
+
+  """Stored metadata pointer: /data_locations/*/mimeType"""
+  mimeType: String
+
+  """Stored metadata pointer: /data_locations/*/name"""
+  name: String
+
+  """Stored metadata pointer: /data_locations/*/notes"""
+  notes: String
+
+  """Stored metadata pointer: /data_locations/*/pending"""
+  pending: Boolean
+
+  """Stored metadata pointer: /data_locations/*/size"""
+  size: Float
+
+  """Stored metadata pointer: /data_locations/*/type"""
+  type: String
+
+  """Stored metadata pointer: /data_locations/*/uploadUrl"""
+  uploadUrl: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_7c9760d92695 {
+  """Stored metadata pointer: /details/description"""
+  description: String
+
+  """Stored metadata pointer: /details/edit_only_note"""
+  edit_only_note: String
+
+  """Stored metadata pointer: /details/role_only_note"""
+  role_only_note: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_274ad4da07fc {
+  """Stored metadata pointer: /geographic_coverage/features"""
+  features: [M_dataPublication_draft_90497600e8a3_O_9201555c9734]
+
+  """Stored metadata pointer: /geographic_coverage/type"""
+  type: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_9201555c9734 {
+  """Stored metadata pointer: /geographic_coverage/features/*/geometry"""
+  geometry: M_dataPublication_draft_90497600e8a3_O_7f8791988ed4
+
+  """Stored metadata pointer: /geographic_coverage/features/*/properties"""
+  properties: MetadataJSON
+
+  """Stored metadata pointer: /geographic_coverage/features/*/type"""
+  type: String
+}
+
+type M_dataPublication_draft_90497600e8a3_O_7f8791988ed4 {
+  """Stored metadata pointer: /geographic_coverage/features/*/geometry/type"""
+  type: String
+}
+
+type M_dataPublication_queued_491084ffbc12 {
+  """Stored metadata pointer: /title"""
+  title: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6 {
+  """Stored metadata pointer: /9start"""
+  rb_397374617274: String
+
+  """Stored metadata pointer: /__private"""
+  rb_5f5f70726976617465: String
+
+  """Stored metadata pointer: /access_questions"""
+  access_questions: M_dataPublication_queued_6d74bb8488c6_O_b53a450c730a
+
+  """Stored metadata pointer: /amount"""
+  amount: Float
+
+  """Stored metadata pointer: /attachments"""
+  attachments: [M_dataPublication_queued_6d74bb8488c6_O_c9280e8e64a1]
+
+  """Stored metadata pointer: /conditional_details"""
+  conditional_details: M_dataPublication_queued_6d74bb8488c6_O_3e643a54ee7d
+
+  """Stored metadata pointer: /contact_email"""
+  contact_email: String
+
+  """Stored metadata pointer: /contributors"""
+  contributors: [M_dataPublication_queued_6d74bb8488c6_O_9b19a654e06f]
+
+  """Stored metadata pointer: /count"""
+  count: MetadataInteger
+
+  """Stored metadata pointer: /custom_hook_value"""
+  custom_hook_value: M_dataPublication_queued_6d74bb8488c6_O_0ab6d4b6d136
+
+  """Stored metadata pointer: /data_locations"""
+  data_locations: [M_dataPublication_queued_6d74bb8488c6_O_bf2206964304]
+
+  """Stored metadata pointer: /dc~1title"""
+  rb_64632f7469746c65: String
+
+  """Stored metadata pointer: /dc:title"""
+  rb_64633a7469746c65: String
+
+  """Stored metadata pointer: /details"""
+  details: M_dataPublication_queued_6d74bb8488c6_O_7c9760d92695
+
+  """Stored metadata pointer: /fixed_choice"""
+  fixed_choice: String
+
+  """Stored metadata pointer: /geographic_coverage"""
+  geographic_coverage: M_dataPublication_queued_6d74bb8488c6_O_274ad4da07fc
+
+  """Stored metadata pointer: /is_public"""
+  is_public: Boolean
+
+  """Stored metadata pointer: /nullable_status"""
+  nullable_status: String
+
+  """Stored metadata pointer: /queue_note"""
+  queue_note: String
+
+  """Stored metadata pointer: /rb_64633a7469746c65"""
+  rb_72625f36343633336137343639373436633635: String
+
+  """Stored metadata pointer: /static_typeahead"""
+  static_typeahead: String
+
+  """Stored metadata pointer: /title"""
+  title: String
+
+  """Stored metadata pointer: /vocabulary_choice"""
+  vocabulary_choice: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_b53a450c730a {
+  """Stored metadata pointer: /access_questions/consent"""
+  consent: [String]
+
+  """Stored metadata pointer: /access_questions/questiontree-outcome-info"""
+  rb_7175657374696f6e747265652d6f7574636f6d652d696e666f: MetadataJSON
+
+  """Stored metadata pointer: /access_questions/restricted_reason"""
+  restricted_reason: String
+
+  """Stored metadata pointer: /access_questions/sensitive"""
+  sensitive: [String]
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_c9280e8e64a1 {
+  """Stored metadata pointer: /attachments/*/attachmentId"""
+  attachmentId: String
+
+  """Stored metadata pointer: /attachments/*/fileId"""
+  fileId: String
+
+  """Stored metadata pointer: /attachments/*/location"""
+  location: String
+
+  """Stored metadata pointer: /attachments/*/mimeType"""
+  mimeType: String
+
+  """Stored metadata pointer: /attachments/*/name"""
+  name: String
+
+  """Stored metadata pointer: /attachments/*/notes"""
+  notes: String
+
+  """Stored metadata pointer: /attachments/*/pending"""
+  pending: Boolean
+
+  """Stored metadata pointer: /attachments/*/size"""
+  size: Float
+
+  """Stored metadata pointer: /attachments/*/type"""
+  type: String
+
+  """Stored metadata pointer: /attachments/*/uploadUrl"""
+  uploadUrl: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_3e643a54ee7d {
+  """Stored metadata pointer: /conditional_details/explanation"""
+  explanation: String
+
+  """Stored metadata pointer: /conditional_details/review_score"""
+  review_score: Float
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_9b19a654e06f {
+  """Stored metadata pointer: /contributors/*/name"""
+  name: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_0ab6d4b6d136 {
+  """Stored metadata pointer: /custom_hook_value/owner-id"""
+  rb_6f776e65722d6964: MetadataInteger
+
+  """Stored metadata pointer: /custom_hook_value/value"""
+  value: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_bf2206964304 {
+  """Stored metadata pointer: /data_locations/*/attachmentId"""
+  attachmentId: String
+
+  """Stored metadata pointer: /data_locations/*/fileId"""
+  fileId: String
+
+  """Stored metadata pointer: /data_locations/*/isc"""
+  isc: String
+
+  """Stored metadata pointer: /data_locations/*/location"""
+  location: String
+
+  """Stored metadata pointer: /data_locations/*/mimeType"""
+  mimeType: String
+
+  """Stored metadata pointer: /data_locations/*/name"""
+  name: String
+
+  """Stored metadata pointer: /data_locations/*/notes"""
+  notes: String
+
+  """Stored metadata pointer: /data_locations/*/pending"""
+  pending: Boolean
+
+  """Stored metadata pointer: /data_locations/*/size"""
+  size: Float
+
+  """Stored metadata pointer: /data_locations/*/type"""
+  type: String
+
+  """Stored metadata pointer: /data_locations/*/uploadUrl"""
+  uploadUrl: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_7c9760d92695 {
+  """Stored metadata pointer: /details/description"""
+  description: String
+
+  """Stored metadata pointer: /details/edit_only_note"""
+  edit_only_note: String
+
+  """Stored metadata pointer: /details/role_only_note"""
+  role_only_note: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_274ad4da07fc {
+  """Stored metadata pointer: /geographic_coverage/features"""
+  features: [M_dataPublication_queued_6d74bb8488c6_O_9201555c9734]
+
+  """Stored metadata pointer: /geographic_coverage/type"""
+  type: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_9201555c9734 {
+  """Stored metadata pointer: /geographic_coverage/features/*/geometry"""
+  geometry: M_dataPublication_queued_6d74bb8488c6_O_7f8791988ed4
+
+  """Stored metadata pointer: /geographic_coverage/features/*/properties"""
+  properties: MetadataJSON
+
+  """Stored metadata pointer: /geographic_coverage/features/*/type"""
+  type: String
+}
+
+type M_dataPublication_queued_6d74bb8488c6_O_7f8791988ed4 {
+  """Stored metadata pointer: /geographic_coverage/features/*/geometry/type"""
+  type: String
+}
+
+type M_dataPublication_published_6bf05cdb8de3 {
+  """Stored metadata pointer: /title"""
+  title: String
+}
+
+type M_dataPublication_published_893ccb0d7067 {
+  """Stored metadata pointer: /9start"""
+  rb_397374617274: String
+
+  """Stored metadata pointer: /__private"""
+  rb_5f5f70726976617465: String
+
+  """Stored metadata pointer: /access_questions"""
+  access_questions: M_dataPublication_published_893ccb0d7067_O_b53a450c730a
+
+  """Stored metadata pointer: /amount"""
+  amount: Float
+
+  """Stored metadata pointer: /attachments"""
+  attachments: [M_dataPublication_published_893ccb0d7067_O_c9280e8e64a1]
+
+  """Stored metadata pointer: /conditional_details"""
+  conditional_details: M_dataPublication_published_893ccb0d7067_O_3e643a54ee7d
+
+  """Stored metadata pointer: /contact_email"""
+  contact_email: String
+
+  """Stored metadata pointer: /contributors"""
+  contributors: [M_dataPublication_published_893ccb0d7067_O_9b19a654e06f]
+
+  """Stored metadata pointer: /count"""
+  count: MetadataInteger
+
+  """Stored metadata pointer: /custom_hook_value"""
+  custom_hook_value: M_dataPublication_published_893ccb0d7067_O_0ab6d4b6d136
+
+  """Stored metadata pointer: /data_locations"""
+  data_locations: [M_dataPublication_published_893ccb0d7067_O_bf2206964304]
+
+  """Stored metadata pointer: /dc~1title"""
+  rb_64632f7469746c65: String
+
+  """Stored metadata pointer: /dc:title"""
+  rb_64633a7469746c65: String
+
+  """Stored metadata pointer: /details"""
+  details: M_dataPublication_published_893ccb0d7067_O_7c9760d92695
+
+  """Stored metadata pointer: /doi"""
+  doi: String
+
+  """Stored metadata pointer: /fixed_choice"""
+  fixed_choice: String
+
+  """Stored metadata pointer: /geographic_coverage"""
+  geographic_coverage: M_dataPublication_published_893ccb0d7067_O_274ad4da07fc
+
+  """Stored metadata pointer: /is_public"""
+  is_public: Boolean
+
+  """Stored metadata pointer: /nullable_status"""
+  nullable_status: String
+
+  """Stored metadata pointer: /rb_64633a7469746c65"""
+  rb_72625f36343633336137343639373436633635: String
+
+  """Stored metadata pointer: /static_typeahead"""
+  static_typeahead: String
+
+  """Stored metadata pointer: /title"""
+  title: String
+
+  """Stored metadata pointer: /vocabulary_choice"""
+  vocabulary_choice: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_b53a450c730a {
+  """Stored metadata pointer: /access_questions/consent"""
+  consent: [String]
+
+  """Stored metadata pointer: /access_questions/questiontree-outcome-info"""
+  rb_7175657374696f6e747265652d6f7574636f6d652d696e666f: MetadataJSON
+
+  """Stored metadata pointer: /access_questions/restricted_reason"""
+  restricted_reason: String
+
+  """Stored metadata pointer: /access_questions/sensitive"""
+  sensitive: [String]
+}
+
+type M_dataPublication_published_893ccb0d7067_O_c9280e8e64a1 {
+  """Stored metadata pointer: /attachments/*/attachmentId"""
+  attachmentId: String
+
+  """Stored metadata pointer: /attachments/*/fileId"""
+  fileId: String
+
+  """Stored metadata pointer: /attachments/*/location"""
+  location: String
+
+  """Stored metadata pointer: /attachments/*/mimeType"""
+  mimeType: String
+
+  """Stored metadata pointer: /attachments/*/name"""
+  name: String
+
+  """Stored metadata pointer: /attachments/*/notes"""
+  notes: String
+
+  """Stored metadata pointer: /attachments/*/pending"""
+  pending: Boolean
+
+  """Stored metadata pointer: /attachments/*/size"""
+  size: Float
+
+  """Stored metadata pointer: /attachments/*/type"""
+  type: String
+
+  """Stored metadata pointer: /attachments/*/uploadUrl"""
+  uploadUrl: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_3e643a54ee7d {
+  """Stored metadata pointer: /conditional_details/explanation"""
+  explanation: String
+
+  """Stored metadata pointer: /conditional_details/review_score"""
+  review_score: Float
+}
+
+type M_dataPublication_published_893ccb0d7067_O_9b19a654e06f {
+  """Stored metadata pointer: /contributors/*/name"""
+  name: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_0ab6d4b6d136 {
+  """Stored metadata pointer: /custom_hook_value/owner-id"""
+  rb_6f776e65722d6964: MetadataInteger
+
+  """Stored metadata pointer: /custom_hook_value/value"""
+  value: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_bf2206964304 {
+  """Stored metadata pointer: /data_locations/*/attachmentId"""
+  attachmentId: String
+
+  """Stored metadata pointer: /data_locations/*/fileId"""
+  fileId: String
+
+  """Stored metadata pointer: /data_locations/*/isc"""
+  isc: String
+
+  """Stored metadata pointer: /data_locations/*/location"""
+  location: String
+
+  """Stored metadata pointer: /data_locations/*/mimeType"""
+  mimeType: String
+
+  """Stored metadata pointer: /data_locations/*/name"""
+  name: String
+
+  """Stored metadata pointer: /data_locations/*/notes"""
+  notes: String
+
+  """Stored metadata pointer: /data_locations/*/pending"""
+  pending: Boolean
+
+  """Stored metadata pointer: /data_locations/*/size"""
+  size: Float
+
+  """Stored metadata pointer: /data_locations/*/type"""
+  type: String
+
+  """Stored metadata pointer: /data_locations/*/uploadUrl"""
+  uploadUrl: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_7c9760d92695 {
+  """Stored metadata pointer: /details/description"""
+  description: String
+
+  """Stored metadata pointer: /details/edit_only_note"""
+  edit_only_note: String
+
+  """Stored metadata pointer: /details/role_only_note"""
+  role_only_note: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_274ad4da07fc {
+  """Stored metadata pointer: /geographic_coverage/features"""
+  features: [M_dataPublication_published_893ccb0d7067_O_9201555c9734]
+
+  """Stored metadata pointer: /geographic_coverage/type"""
+  type: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_9201555c9734 {
+  """Stored metadata pointer: /geographic_coverage/features/*/geometry"""
+  geometry: M_dataPublication_published_893ccb0d7067_O_7f8791988ed4
+
+  """Stored metadata pointer: /geographic_coverage/features/*/properties"""
+  properties: MetadataJSON
+
+  """Stored metadata pointer: /geographic_coverage/features/*/type"""
+  type: String
+}
+
+type M_dataPublication_published_893ccb0d7067_O_7f8791988ed4 {
+  """Stored metadata pointer: /geographic_coverage/features/*/geometry/type"""
+  type: String
+}

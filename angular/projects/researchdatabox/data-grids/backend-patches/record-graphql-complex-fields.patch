@@ -1,0 +1,223 @@
+diff --git i/packages/redbox-core/src/record-graphql/catalogue.ts w/packages/redbox-core/src/record-graphql/catalogue.ts
+index 724540a23..90d179573 100644
+--- i/packages/redbox-core/src/record-graphql/catalogue.ts
++++ w/packages/redbox-core/src/record-graphql/catalogue.ts
+@@ -106,10 +106,21 @@ function nodeHints(
+   }
+   return output;
+ }
+-function selection(contract: RecordContract, tokens: readonly (string | null)[]): GridSelection {
++// Only declared shapes can be projected in collection reads; opaque JSON remains unavailable.
++function declaredSelection(shape: ReadShape): string | null {
++  if (shape.kind === 'json') return null;
++  if (shape.kind === 'array') return declaredSelection(shape.items);
++  if (shape.kind !== 'object') return '';
++  const children = Object.entries(shape.properties).map(([name, child]) => {
++    const nested = declaredSelection(child);
++    return nested === null ? null : `${fieldName(name)}${nested ? ` { ${nested} }` : ''}`;
++  });
++  return children.some(child => child === null) ? null : children.join(' ');
++}
++function selection(contract: RecordContract, tokens: readonly (string | null)[], shape: ReadShape): GridSelection {
+   const names = tokens.filter((token): token is string => token !== null);
+   const aliases = names.map((_, index) => `g_${hash(JSON.stringify([contract.context, names.slice(0, index + 1)]))}`);
+-  let result = '';
++  let result = shape.kind === 'array' ? (declaredSelection(shape) ?? '') : '';
+   for (let index = names.length - 1; index >= 0; index--)
+     result = `${aliases[index]}: ${fieldName(names[index])}${result ? ` { ${result} }` : ''}`;
+   return {
+@@ -236,8 +247,11 @@ export function buildCatalogue(
+         const existing = fields.get(id);
+         if (existing) {
+           existing.repeating ||= repeating;
++          existing.selectable &&=
++            !tokens.includes(null) &&
++            (shape.kind === 'array' ? declaredSelection(shape) !== null : !['OBJECT', 'JSON'].includes(type));
+           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
+-          existing.selections.push(selection(contract, tokens));
++          existing.selections.push(selection(contract, tokens, shape));
+           existing.choices.push(...(hint?.choices ?? []).map(value => ({ label: String(value), value })));
+         } else
+           fields.set(id, {
+@@ -247,7 +261,9 @@ export function buildCatalogue(
+             labelKey: rawLabel?.startsWith('@') ? rawLabel : null,
+             scalarType: type,
+             availableInAllVariants: false,
+-            selectable: !repeating && !['OBJECT', 'JSON'].includes(type),
++            selectable:
++              !tokens.includes(null) &&
++              (shape.kind === 'array' ? declaredSelection(shape) !== null : !['OBJECT', 'JSON'].includes(type)),
+             nullable: true,
+             nested: tokens.length > 1,
+             repeating,
+@@ -255,7 +271,7 @@ export function buildCatalogue(
+             operators: [],
+             sortable: false,
+             choices: (hint?.choices ?? []).map(value => ({ label: String(value), value })),
+-            selections: [selection(contract, tokens)],
++            selections: [selection(contract, tokens, shape)],
+             unavailableReason: null,
+           });
+         if (fields.size > GRID_LIMITS.catalogueFields)
+diff --git i/packages/redbox-core/test/unit/record-graphql/grid.test.ts w/packages/redbox-core/test/unit/record-graphql/grid.test.ts
+index 05390ed45..33c8ee8ce 100644
+--- i/packages/redbox-core/test/unit/record-graphql/grid.test.ts
++++ w/packages/redbox-core/test/unit/record-graphql/grid.test.ts
+@@ -4,6 +4,7 @@ import { createRecordYoga } from '../../../src/record-graphql/schema';
+ import { metadataTypeName } from '../../../src/record-graphql/renderer';
+ import { GRID_LIMITS } from '../../../src/record-graphql/grid-types';
+ import { buildCatalogue } from '../../../src/record-graphql/catalogue';
++import { gridIndexBindings, gridSourceValue } from '../../../src/record-graphql/index-bindings';
+ import { queryPlan } from '../../../src/record-graphql/collection';
+ import { gridHarness, gridCaller, gridEnvironment, gridContracts } from '../../fixtures/record-grid.fixtures';
+ 
+@@ -41,6 +42,117 @@ describe('Record grid catalogue and pagination', () => {
+       false
+     );
+   });
++  it('projects declared repeated groups with pairing and nulls, and rejects repeated scalar operations', async () => {
++    const h = gridHarness(['a', 'b', 'c']);
++    h.records.get('a')!.metadata.people = [{ name: 'One' }, { name: null }];
++    h.records.get('b')!.metadata.people = [];
++    const field = buildCatalogue(gridContracts(), 'grid-fixture', [], h.environment).catalogue.fields.find(
++      field => field.id === 'metadata:/people'
++    )!;
++    assert.equal(field.selectable, true);
++    assert.equal(field.filterable, false);
++    assert.equal(field.sortable, false);
++    const result = await h.query(
++      `{records(recordType:"grid-fixture",first:2){nodes{oid metadata{__typename ${field.selections.map(s => s.selection).join(' ')}}} hasNextPage endCursor}}`
++    );
++    assert.equal(result.body.errors, undefined);
++    const rows = result.body.data!.records!.nodes;
++    assert.equal(rows.length, 2);
++    assert.deepEqual(Reflect.get(rows[0].metadata!, field.selections[0].responsePath[1]), [
++      { name: 'One' },
++      { name: null },
++    ]);
++    assert.deepEqual(Reflect.get(rows[1].metadata!, field.selections[0].responsePath[1]), []);
++    assert.equal(result.body.data!.records!.hasNextPage, true);
++    const rejected = await h.query(
++      '{records(recordType:"grid-fixture",filters:[{field:"metadata:/people",exists:true}]){nodes{oid}}}'
++    );
++    assert.ok(rejected.body.errors?.length);
++  });
++  it('keeps nested repeated projections aligned and closes opaque regions', async () => {
++    const h = gridHarness(['a']);
++    const contracts = gridContracts().map<ReturnType<typeof gridContracts>[number]>(contract => {
++      if (contract.root.kind !== 'object') throw Error('fixture');
++      return {
++        ...contract,
++        root: {
++          ...contract.root,
++          properties: {
++            ...contract.root.properties,
++            people: {
++              kind: 'array',
++              nullable: true,
++              items: {
++                kind: 'object',
++                nullable: true,
++                unknownProperties: 'allow',
++                properties: {
++                  name: { kind: 'scalar', scalarType: 'string', nullable: true },
++                  email: { kind: 'scalar', scalarType: 'string', nullable: true },
++                  children: {
++                    kind: 'array',
++                    nullable: true,
++                    items: {
++                      kind: 'object',
++                      nullable: true,
++                      unknownProperties: 'allow',
++                      properties: {
++                        name: { kind: 'scalar', scalarType: 'string', nullable: true },
++                        flags: {
++                          kind: 'array',
++                          nullable: true,
++                          items: { kind: 'scalar', scalarType: 'boolean', nullable: true },
++                        },
++                      },
++                    },
++                  },
++                  private: { kind: 'scalar', scalarType: 'string', nullable: true, annotations: { writeOnly: true } },
++                },
++              },
++            },
++            opaque: { kind: 'array', nullable: true, items: { kind: 'any', nullable: true } },
++          },
++        },
++      };
++    });
++    const catalogue = buildCatalogue(contracts, 'grid-fixture', [], h.environment).catalogue;
++    assert.equal(catalogue.fields.find(f => f.id === 'metadata:/opaque')!.selectable, false);
++    const field = catalogue.fields.find(f => f.id === 'metadata:/people')!;
++    assert.equal(field.selectable, true);
++    assert.ok(!field.selections[0].selection.includes('private'));
++    const people = [
++      {
++        name: 'One',
++        email: 'one@example.invalid',
++        children: [{ name: 'Child', flags: [false, true, null] }],
++        private: 'hidden',
++      },
++      { name: 'Two', children: [] },
++    ];
++    h.records.get('a')!.metadata.people = people;
++    const { yoga } = createRecordYoga(
++      contracts,
++      { getRecord: async oid => h.records.get(oid), hasViewAccess: () => true },
++      { getGridEnvironment: async () => h.environment }
++    );
++    const response = await yoga.fetch(
++      'http://redbox/graphql',
++      {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({
++          query: `{records(recordType:"grid-fixture"){nodes{oid metadata{__typename ${field.selections.map(s => s.selection).join(' ')}}}}}`,
++        }),
++      },
++      { caller: gridCaller }
++    );
++    const result = await response.json();
++    assert.equal(result.errors, undefined);
++    assert.deepEqual(result.data.records.nodes[0].metadata[field.selections[0].responsePath[1]], [
++      { name: 'One', email: 'one@example.invalid', children: [{ name: 'Child', flags: [false, true, null] }] },
++      { name: 'Two', email: null, children: [] },
++    ]);
++  });
+   it('does not advertise mappings polluted by search-engine copy rules', () => {
+     const env = gridEnvironment();
+     env.schema.copyFields = [{ source: 'unrelated', dest: '*_title' }];
+@@ -457,3 +569,31 @@ describe('Typed grid search planning', () => {
+       assert.throws(() => plan([], sort as Parameters<typeof plan>[1]));
+   });
+ });
++
++describe('Namespaced scalar index bindings', () => {
++  it('accepts literal namespace colons and hyphens but rejects ambiguous paths and prototype keys', () => {
++    const env = gridEnvironment();
++    const names = [
++      'uon:ethicsApprovalStatus',
++      'dc:coverage_vivo:DateTimeInterval_vivo:start',
++      'data-owner',
++      'nested.value',
++      'array[0]',
++      '__proto__',
++      'constructor',
++      'prototype',
++    ];
++    env.config.recordGraphqlFields = Object.fromEntries(
++      names.map((name, index) => ['metadata:/' + name, 'grid_namespace_' + index])
++    );
++    env.config.preIndex = {
++      copy: names.map((name, index) => ({ source: 'metadata.' + name, dest: 'grid_namespace_' + index })),
++    };
++    const bindings = gridIndexBindings(env.config);
++    assert.deepEqual(
++      [...bindings.keys()],
++      names.slice(0, 3).map(name => 'metadata:/' + name)
++    );
++    assert.equal(gridSourceValue({ 'uon:ethicsApprovalStatus': 'approved' }, ['uon:ethicsApprovalStatus']), 'approved');
++  });
++});

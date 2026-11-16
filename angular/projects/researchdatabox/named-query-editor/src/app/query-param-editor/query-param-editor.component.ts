@@ -1,16 +1,13 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
-import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
-
-
-interface NamedQueryParam {
-  type: string;
-  path: string;
-  queryType?: string;
-  whenUndefined: string;
-  defaultValue?: unknown;
-  format?: string;
-  template?: string;
-}
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import type { ContextSchemaField, EditorDiagnostic, NamedQueryParam } from '@researchdatabox/sails-ng-common';
 
 interface ParamEntry extends NamedQueryParam {
   id: number;
@@ -92,8 +89,8 @@ export class QueryParamEditorComponent implements OnChanges {
     this.addingNew = false;
   }
 
-  onFieldChange(entry: ParamEntry, field: keyof NamedQueryParam, value: unknown): void {
-    (entry as unknown as Record<string, unknown>)[field as string] = value;
+  onFieldChange<K extends keyof NamedQueryParam>(entry: ParamEntry, field: K, value: NamedQueryParam[K]): void {
+    Object.assign(entry, { [field]: value });
     if (field === 'type' || field === 'template' || field === 'whenUndefined') this.defaultValidity(entry.id, true);
     this.emitFromEntries();
   }

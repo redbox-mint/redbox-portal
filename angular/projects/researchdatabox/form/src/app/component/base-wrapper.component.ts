@@ -1,4 +1,16 @@
-import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
+import {
+  Component,
+  Type,
+  Input,
+  ViewChild,
+  OnDestroy,
+  inject,
+  Injector,
+  Signal,
+  HostBinding,
+  ChangeDetectionStrategy,
+  DestroyRef,
+} from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
@@ -17,7 +29,7 @@ import { FormComponentUIAttributeChangeEventProducer } from '../form-state/event
 import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
 import { FormComponentItemSelectEventProducer } from '../form-state/events/form-component-item-select-event-producer';
 import { FormComponentItemSelectEventConsumer } from '../form-state/events/form-component-item-select-event-consumer';
-import {FormComponent} from "../form.component";
+import { FormComponent } from '../form.component';
 
 const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
   RecordMetadataRetrieverComponentName,
@@ -40,7 +52,12 @@ const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
  */
 @Component({
   selector: 'redbox-form-base-wrapper',
-  template: ` <ng-template redboxFormBaseWrapper></ng-template> `,
+  template: `
+    <ng-template redboxFormBaseWrapper></ng-template>
+    @if (renderProvenanceBadge && metadataPointer) {
+      <redbox-generation-provenance-badge [metadataPointer]="metadataPointer" />
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
@@ -48,6 +65,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   protected override logName = 'FormBaseWrapperComponent';
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
+  public renderProvenanceBadge = false;
 
   @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
 
@@ -64,6 +82,18 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
+  }
+
+  public get metadataPointer(): string {
+    const path = this.formFieldCompMapEntry?.lineagePaths?.dataModel ?? [];
+    return path.length > 0
+      ? `/${path.map(part => String(part).replaceAll('~', '~0').replaceAll('/', '~1')).join('/')}`
+      : '';
+  }
+
+  @HostBinding('attr.data-metadata-pointer')
+  public get hostMetadataPointer(): string | null {
+    return this.metadataPointer || null;
   }
 
   @HostBinding('style.display')
@@ -90,8 +120,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Store the form field details.
     this.formFieldCompMapEntry = formFieldCompMapEntry;
+    // Layouts create a second wrapper around the same field. Render provenance only
+    // on the inner wrapper that owns the actual control.
+    this.renderProvenanceBadge = omitLayout;
     const componentName = this.formFieldConfigName();
-    this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${componentName}'.`, this.formFieldCompMapEntry);
+    this.loggerService.debug(
+      `${this.logName}: Starting initWrapperComponent for '${componentName}'.`,
+      this.formFieldCompMapEntry
+    );
     this.componentClass = this.formFieldCompMapEntry.componentClass as typeof FormFieldBaseComponent<ValueType>;
 
     // If the wrapper has already been initialised, provide the component instance.
@@ -161,14 +197,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       this.syncSourceEventConsumer.bind({
         isLayout: isLayout,
         component: compRef.instance,
-        definition: this.formFieldCompMapEntry
+        definition: this.formFieldCompMapEntry,
       });
     } else if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
       this.valueChangeEventConsumer.formComponent = this.getFormComponent;
       this.valueChangeEventConsumer.bind({
         isLayout: isLayout,
         component: compRef.instance,
-        definition: this.formFieldCompMapEntry
+        definition: this.formFieldCompMapEntry,
       });
     }
 
@@ -206,11 +242,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       this.uiAttributeChangeEventConsumer.bind({
         isLayout: isLayout,
         component: compRef.instance,
-        definition: this.formFieldCompMapEntry
+        definition: this.formFieldCompMapEntry,
       });
     }
 
-    this.loggerService.debug(`${this.logName}: Finished initComponent for '${componentName}'.`, this.formFieldCompMapEntry);
+    this.loggerService.debug(
+      `${this.logName}: Finished initComponent for '${componentName}'.`,
+      this.formFieldCompMapEntry
+    );
 
     // Set the host binding CSS classes for the wrapper element.
     const wrapperCssClasses = this.formFieldCompMapEntry.compConfigJson?.component?.config?.wrapperCssClasses;
@@ -277,9 +316,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
     // These components publish synthetic/broadcast events themselves rather than
     // participating in the default model-driven value producer wiring.
-    return !VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS.has(
-      entry.compConfigJson?.component?.class ?? ''
-    );
+    return !VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS.has(entry.compConfigJson?.component?.class ?? '');
   }
 
   /**
@@ -299,15 +336,15 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   /**
- *
- * Returns true for both component and layout, as both can have UI attributes that need to be listened to.
- *
- * TODO: Improve to have more explicit control over when to attach the producer.
- *
- * @param entry
- * @param instance
- * @returns
- */
+   *
+   * Returns true for both component and layout, as both can have UI attributes that need to be listened to.
+   *
+   * TODO: Improve to have more explicit control over when to attach the producer.
+   *
+   * @param entry
+   * @param instance
+   * @returns
+   */
   private shouldAttachUIAttributeChangeProducer(
     entry: FormFieldCompMapEntry | undefined,
     instance: FormFieldBaseComponent<ValueType>

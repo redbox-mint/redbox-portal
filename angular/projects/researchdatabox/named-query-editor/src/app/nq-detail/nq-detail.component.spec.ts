@@ -1,5 +1,5 @@
 import { ChangeDetectorRef } from '@angular/core';
-import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
+import { NamedQueryNameFieldComponent, AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { QueryAssistanceModule } from '../query-assistance.module';
 import {
   TranslationService as AssistanceTranslationService,
@@ -11,7 +11,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform, NO_ERRORS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NqDetailComponent } from './nq-detail.component';
-import { NamedQueryDefinition } from '../named-query-api.service';
+import { NamedQueryDatabaseDefinition as NamedQueryDefinition } from '../named-query-api.service';
 
 @Pipe({ name: 'i18next', standalone: false })
 class I18NextPipeStub implements PipeTransform {
@@ -33,7 +33,14 @@ describe('NqDetailComponent', () => {
           useValue: { t: (v: string) => v, isInitializing: () => false, translationChanges$: of(undefined) },
         },
       ],
-      imports: [AdminTabsDirective, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule],
+      imports: [
+        NamedQueryNameFieldComponent,
+        AdminTabsDirective,
+        QueryAssistanceModule,
+        FieldTreeComponent,
+        SchemaTargetSelectorComponent,
+        FormsModule,
+      ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
@@ -67,7 +74,7 @@ describe('NqDetailComponent', () => {
     expect(panel.getAttribute('aria-labelledby')).toBe(tabs[1].id);
   });
 
-  it('sets active tab' , () => {
+  it('sets active tab', () => {
     expect(component.activeTab).toBe('basics');
     component.setTab('mongo');
     expect(component.activeTab).toBe('mongo');
@@ -130,7 +137,9 @@ describe('NqDetailComponent', () => {
   it('shows the Used by section with links when editing an existing query', () => {
     component.isNew = false;
     component.brandingAndPortalUrl = '/brand/portal';
-    component.draft.usedBy = [{ type: 'dashboard', name: 'Party · Draft', path: '/admin/dashboard-config#target=party' }];
+    component.draft.usedBy = [
+      { type: 'dashboard', name: 'Party · Draft', path: '/admin/dashboard-config#target=party' },
+    ];
     fixture.detectChanges();
     const section = fixture.nativeElement.querySelector('[aria-labelledby="nq-used-by-title"]');
     expect(section.textContent).toContain('Party · Draft');
@@ -139,5 +148,4 @@ describe('NqDetailComponent', () => {
     fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('[aria-labelledby="nq-used-by-title"]')).toBeNull();
   });
-
 });

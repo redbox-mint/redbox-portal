@@ -16,19 +16,19 @@
     "maxReportBytes": 65536
   },
   "summary": {
-    "formsChecked": 10,
-    "schemasChecked": 20,
-    "completeSchemas": 14,
+    "formsChecked": 12,
+    "schemasChecked": 24,
+    "completeSchemas": 18,
     "partialSchemas": 6,
     "unsupportedComponents": 0,
-    "schemaWarnings": 20,
-    "unknownPropertyProbesAccepted": 20
+    "schemaWarnings": 24,
+    "unknownPropertyProbesAccepted": 24
   },
   "limitHeadroom": {
     "cacheEntries": {
       "limit": 128,
-      "observedMaximum": 20,
-      "remaining": 108
+      "observedMaximum": 24,
+      "remaining": 104
     },
     "maxDepth": {
       "limit": 64,
@@ -305,6 +305,32 @@
       "shadowWarningCodes": ["record-schema.type"]
     },
     {
+      "form": "dev-hook/demoRdmp-1.0-draft",
+      "kind": "create",
+      "digest": "b41336f81cceb93fb4f04e5087d49ec7970aee4c930c2093c208d4993fc252e0",
+      "completeness": "complete",
+      "byteLength": 1266,
+      "observedNodeDepth": 2,
+      "observedProperties": 12,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/demoRdmp-1.0-draft",
+      "kind": "update",
+      "digest": "0646cd096fd0e857ea833095ab572b3e60570b857a59a372bc067a1b15179b19",
+      "completeness": "complete",
+      "byteLength": 1266,
+      "observedNodeDepth": 2,
+      "observedProperties": 12,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
       "form": "dev-hook/existing-locations-1.0-draft",
       "kind": "create",
       "digest": "ba5b0857ac923eb886155bb760ca930b4d78b488e395ecb341907822002787c5",
@@ -379,6 +405,32 @@
       "observedProperties": 15,
       "diagnosticCount": 3,
       "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/researchActivity-1.0-draft",
+      "kind": "create",
+      "digest": "4959370b1d0c9375de4dede6f35ba2944a4986d455eaed3ea542d2d8501822e0",
+      "completeness": "complete",
+      "byteLength": 1032,
+      "observedNodeDepth": 2,
+      "observedProperties": 8,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/researchActivity-1.0-draft",
+      "kind": "update",
+      "digest": "62cdc16101adb0d707fbd8377c0e881bc76dfd7154f844ef15ff7cde431bcc3d",
+      "completeness": "complete",
+      "byteLength": 1032,
+      "observedNodeDepth": 2,
+      "observedProperties": 8,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
       "unknownPropertyProbe": "accepted",
       "shadowWarningCodes": ["record-schema.type"]
     }

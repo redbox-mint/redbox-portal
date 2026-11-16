@@ -238,8 +238,9 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
     {
       id: 'records', titleKey: 'admin-nav-records', defaultExpanded: true,
       items: [
-        { id: 'reports', labelKey: 'admin-nav-reports', href: '/admin/reports' },
+        { id: 'data-grids', labelKey: 'data-grids-title', href: '/admin/data-grids', requiredRoles: ['Admin'] },
         { id: 'named-query', labelKey: 'admin-nav-named-query', href: '/admin/named-query' },
+        { id: 'reports', labelKey: 'admin-nav-reports', href: '/admin/reports' },
         { id: 'harvest-runs', labelKey: 'admin-nav-harvest-runs', href: '/admin/harvest-runs' },
         { id: 'export', labelKey: 'admin-nav-export', href: '/admin/export' },
         { id: 'deleted', labelKey: 'admin-nav-deleted', href: '/admin/deletedRecords' },
@@ -281,13 +282,14 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
     },
     {
       id: 'integrations', titleKey: 'admin-nav-integrations', defaultExpanded: true,
-      requiredRoles: ['Admin'],
+      requiredRoles: ['Admin', 'Librarians'],
       items: [
-        { id: 'figsharepublishing', labelKey: 'admin-nav-figsharepublishing', href: '/admin/appconfig/edit/figsharePublishing' },
-        { id: 'onipublishing', labelKey: 'admin-nav-onipublishing', href: '/admin/appconfig/edit/oniPublishing' },
-        { id: 'doipublishing', labelKey: 'admin-nav-doipublishing', href: '/admin/appconfig/edit/doiPublishing' },
-        { id: 'raidpublishing', labelKey: 'admin-nav-raidpublishing', href: '/admin/appconfig/edit/raidPublishing' },
-        { id: 'notifications', labelKey: 'admin-nav-notifications', href: '/admin/appconfig/edit/integrationNotification' },
+        { id: 'mcp-connect', labelKey: 'mcp-connect-title', href: '/admin/mcp', requiredRoles: ['Admin', 'Librarians'] },
+        { id: 'figsharepublishing', labelKey: 'admin-nav-figsharepublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/figsharePublishing' },
+        { id: 'onipublishing', labelKey: 'admin-nav-onipublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/oniPublishing' },
+        { id: 'doipublishing', labelKey: 'admin-nav-doipublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/doiPublishing' },
+        { id: 'raidpublishing', labelKey: 'admin-nav-raidpublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/raidPublishing' },
+        { id: 'notifications', labelKey: 'admin-nav-notifications', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/integrationNotification' },
       ]
     },
     {

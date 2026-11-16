@@ -98,3 +98,8 @@ Generated output is evidence of the current source contracts, not a replacement
 for runtime permission, transition or persistence tests. Health findings remain
 advisory. Review any source documentation gaps in the health report; do not change
 unrelated packages or mark untested runtime behavior complete during regeneration.
+The named-query reference now includes source-discriminated definitions, scoped GraphQL
+schema assistance, detached explorer preparation and signed breaking-update review.
+Regenerate both REST and composed references when changing those contracts. The standard
+Mocha CI runner typechecks the cold-bootstrap/restart fixtures before running any tests;
+a lifecycle type error intentionally fails the run before Mocha.

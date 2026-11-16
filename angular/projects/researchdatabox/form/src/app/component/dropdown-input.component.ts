@@ -23,7 +23,7 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
         [formControl]="formControl"
         class="form-select"
         [class.is-valid]="showValidState"
-        [class.is-invalid]="!isValid"
+        [class.is-invalid]="showInvalidState"
         [title]="tooltip | i18next"
       >
         @if (placeholder) {

@@ -1,0 +1,14 @@
+{
+  "name": "redbox-graphql-record-metadata-investigation",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "TS_NODE_PROJECT=tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only --test prototype/*.test.ts",
+    "evidence": "TS_NODE_PROJECT=tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only prototype/evidence.ts"
+  },
+  "dependencies": {
+    "graphql": "16.14.2",
+    "graphql-yoga": "5.24.2"
+  }
+}

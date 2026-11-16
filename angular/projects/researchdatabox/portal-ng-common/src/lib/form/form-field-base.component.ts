@@ -335,6 +335,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return Object.keys(this.formControl?.errors ?? {}).length === 0;
   }
 
+  /** Validation stays active, but inline feedback waits for touch or a save attempt. */
+  get showValidationErrors(): boolean {
+    return this.model?.formControl?.touched === true || this.formComponent?.saveAttempted?.() === true;
+  }
+
+  get showInvalidState(): boolean {
+    return this.showValidationErrors && !this.isValid;
+  }
+
   get showValidIndicator(): boolean {
     return this.getBooleanProperty('showValidIndicator', false);
   }

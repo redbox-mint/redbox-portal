@@ -1,8 +1,8 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { PristineChangeEvent, TouchedChangeEvent } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from "@researchdatabox/portal-ng-common";
-import type { FormComponent } from "../form.component";
+import { AbstractControl, TouchedChangeEvent } from '@angular/forms';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from '@researchdatabox/portal-ng-common';
+import type { FormComponent } from '../form.component';
 import {
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
@@ -14,23 +14,28 @@ import {
   TabContentLayoutName,
   ValidationSummaryComponentName,
   ValidationSummaryFieldComponentDefinitionFrame,
-} from "@researchdatabox/sails-ng-common";
+} from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state';
-import {BehaviorSubject, filter, merge} from 'rxjs';
+import { BehaviorSubject, filter, merge, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {FormService} from "../form.service";
-
+import { FormService } from '../form.service';
 
 @Component({
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = (validationErrorsDisplay$ | async) ?? [];
-    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length === 0 && showWhenValid) {
+    @if (
+      formComponent.editMode() &&
+      !errorDisplayDeferred &&
+      validationList.length === 0 &&
+      !hasValidationErrors &&
+      showWhenValid
+    ) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
       </div>
     }
-    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length > 0) {
+    @if (formComponent.editMode() && validationList.length > 0) {
       <div class="alert alert-danger validation-summary mt-3" role="alert">
         <i class="fa-solid fa-circle-exclamation validation-summary__icon" aria-hidden="true"></i>
         <div class="validation-summary__content">
@@ -40,22 +45,35 @@ import {FormService} from "../form.service";
               @if (summary.errors.length > 0) {
                 <div class="validation-summary-item">
                   @if (summary.id) {
-                    <a [attr.data-validation-summary-id]="summary.id"
-                       [attr.data-validation-summary-message]="summary.message"
-                       [attr.href]="'#' + summary.id"
-                       (click)="onValidationSummaryClick($event, summary)">{{ getValidationSummaryLabel(summary) }}</a>
+                    <a
+                      [attr.data-validation-summary-id]="summary.id"
+                      [attr.data-validation-summary-message]="summary.message"
+                      [attr.href]="'#' + summary.id"
+                      (click)="onValidationSummaryClick($event, summary)"
+                      >{{ getValidationSummaryLabel(summary) }}</a
+                    >
                   } @else if (summary.message) {
-                    <span [attr.data-validation-summary-id]="summary.id"
-                          [attr.data-validation-summary-message]="summary.message">{{ getValidationSummaryLabel(summary) }}</span>
+                    <span
+                      [attr.data-validation-summary-id]="summary.id"
+                      [attr.data-validation-summary-message]="summary.message"
+                      >{{ getValidationSummaryLabel(summary) }}</span
+                    >
                   } @else {
-                    <span [attr.data-validation-summary-id]="summary.id"
-                          [attr.data-validation-summary-message]="summary.message">{{ getValidationSummaryLabel(summary) }}</span>
+                    <span
+                      [attr.data-validation-summary-id]="summary.id"
+                      [attr.data-validation-summary-message]="summary.message"
+                      >{{ getValidationSummaryLabel(summary) }}</span
+                    >
                   }
                   <ul class="validation-summary-errors mb-0">
                     @for (error of summary.errors; track trackValidationError(error, $index)) {
                       @if (error.message) {
-                        <li [attr.data-validation-error-class]="error.class"
-                            [attr.data-validation-error-message]="error.message">{{ error.message | i18next: error.params }}</li>
+                        <li
+                          [attr.data-validation-error-class]="error.class"
+                          [attr.data-validation-error-message]="error.message"
+                        >
+                          {{ error.message | i18next: error.params }}
+                        </li>
                       }
                     }
                   </ul>
@@ -67,48 +85,50 @@ import {FormService} from "../form.service";
       </div>
     }
   `,
-  styles: [`
-    .validation-summary {
-      display: flex;
-      gap: 0.75rem;
-      align-items: flex-start;
-      border-color: #f1a5a5;
-      border-left: 0.35rem solid #dc2626;
-      background-color: #fff5f5;
-      color: #1f2933;
-      padding: 1rem 1.25rem;
-    }
-    .validation-summary__icon {
-      display: inline-block;
-      flex: 0 0 auto;
-      margin-top: 0;
-      color: #b91c1c;
-      font-size: 18px;
-      line-height: 1.1;
-    }
-    .validation-summary__content {
-      min-width: 0;
-    }
-    .validation-summary__header {
-      color: #1f2933;
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.4;
-    }
-    .validation-summary-list {
-      margin: 0;
-    }
-    .validation-summary-item + .validation-summary-item {
-      margin-top: 0.5rem;
-    }
-    .validation-summary-errors {
-      margin-top: 0.25rem;
-      margin-left: 2rem;
-      padding-left: 1.25rem;
-    }
-  `],
+  styles: [
+    `
+      .validation-summary {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        border-color: #f1a5a5;
+        border-left: 0.35rem solid #dc2626;
+        background-color: #fff5f5;
+        color: #1f2933;
+        padding: 1rem 1.25rem;
+      }
+      .validation-summary__icon {
+        display: inline-block;
+        flex: 0 0 auto;
+        margin-top: 0;
+        color: #b91c1c;
+        font-size: 18px;
+        line-height: 1.1;
+      }
+      .validation-summary__content {
+        min-width: 0;
+      }
+      .validation-summary__header {
+        color: #1f2933;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+      .validation-summary-list {
+        margin: 0;
+      }
+      .validation-summary-item + .validation-summary-item {
+        margin-top: 0.5rem;
+      }
+      .validation-summary-errors {
+        margin-top: 0.25rem;
+        margin-left: 2rem;
+        padding-left: 1.25rem;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  standalone: false,
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ValidationSummaryComponentName;
@@ -121,39 +141,51 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   protected readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
-  /** True while a new record's summary is held back. Read by the template. */
+  /** True while a new record's valid-form message is held back. */
   public errorDisplayDeferred = false;
-  /** Set on the first interaction, save request or save failure. Never cleared. */
+  public hasValidationErrors = false;
+  /** Save failures also reveal all errors even when no save-request event preceded them. */
   private errorsRevealed = false;
   private validationRefreshQueued = false;
   private validationRefreshDeferred = false;
   private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
   private formChangesBound = false;
+  private readonly validationControlSubscriptions = new Map<AbstractControl, Subscription>();
+  private readonly focusableSelector = [
+    'input:not([type="hidden"]):not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'button:not([disabled])',
+    'a[href]:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
 
   constructor() {
     super();
-    this.destroyRef.onDestroy(() => this.clearDeferredValidationErrorsRefresh());
+    this.destroyRef.onDestroy(() => {
+      this.clearDeferredValidationErrorsRefresh();
+      this.validationControlSubscriptions.forEach(subscription => subscription.unsubscribe());
+    });
   }
 
   public get deferErrorsOnNewRecord(): boolean {
     const component = this.formFieldCompMapEntry?.compConfigJson?.component;
-    return isTypeFieldDefinitionName<ValidationSummaryFieldComponentDefinitionFrame>(
-      component, ValidationSummaryComponentName
-    ) && component.config?.deferErrorsOnNewRecord === true;
+    return (
+      isTypeFieldDefinitionName<ValidationSummaryFieldComponentDefinitionFrame>(
+        component,
+        ValidationSummaryComponentName
+      ) && component.config?.deferErrorsOnNewRecord === true
+    );
   }
 
-  private shouldDeferErrorDisplay(): boolean {
+  private shouldDeferErrorDisplay(hasTouchedControl = false): boolean {
     if (this.errorsRevealed || !this.deferErrorsOnNewRecord) {
       return false;
     }
     const formComponent = this.getFormComponent;
     const isNewRecord = (formComponent.trimmedParams.oid() ?? '') === '';
     const form = formComponent.form;
-    if (!isNewRecord || form?.dirty || form?.touched) {
-      this.errorsRevealed = true;
-      return false;
-    }
-    return true;
+    return isNewRecord && !form?.touched && !hasTouchedControl && !formComponent.saveAttempted();
   }
 
   private revealErrors(): void {
@@ -179,14 +211,16 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     this.bindFormChangeStreamsIfReady();
     this.queueValidationErrorsRefresh();
 
-    this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY)
+    this.eventBus
+      .select$(FormComponentEventType.FORM_DEFINITION_READY)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.bindFormChangeStreamsIfReady();
         this.queueValidationErrorsRefresh();
       });
 
-    this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+    this.eventBus
+      .select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.queueValidationErrorsRefresh());
 
@@ -195,8 +229,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       this.eventBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
     )
       .pipe(
-        filter(event => this.deferErrorsOnNewRecord &&
-          (!event.formScopeId || event.formScopeId === this.getFormComponent.eventScopeId)),
+        filter(
+          event =>
+            this.deferErrorsOnNewRecord &&
+            (!event.formScopeId || event.formScopeId === this.getFormComponent.eventScopeId)
+        ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => this.revealErrors());
@@ -216,20 +253,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     merge(
       form.valueChanges,
       form.statusChanges,
-      form.events.pipe(
-        filter(event => this.deferErrorsOnNewRecord &&
-          (event instanceof TouchedChangeEvent || event instanceof PristineChangeEvent))
-      )
+      form.events.pipe(filter(event => this.deferErrorsOnNewRecord && event instanceof TouchedChangeEvent))
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(event => {
-        // Capture interaction before a reset can clear it during the queued refresh.
-        if ((event instanceof TouchedChangeEvent && event.touched) ||
-            (event instanceof PristineChangeEvent && !event.pristine)) {
-          this.revealErrors();
-        }
-        this.queueValidationErrorsRefresh();
-      });
+      .subscribe(() => this.queueValidationErrorsRefresh());
   }
 
   protected queueValidationErrorsRefresh(): void {
@@ -244,7 +271,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private triggerValidationErrorsRefresh(source: 'init' | 'queue'): void {
-    void this.refreshValidationErrors().catch((error) => {
+    void this.refreshValidationErrors().catch(error => {
       this.loggerService.error(`${this.logName}: Failed to refresh validation errors during ${source}.`, error);
     });
   }
@@ -256,13 +283,86 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return;
     }
 
-    this.errorDisplayDeferred = this.shouldDeferErrorDisplay();
-    this.validationErrorsDisplay$.next(await this.collectValidationErrors());
+    const errors = await this.collectValidationErrors();
+    const controlsByPath = this.getValidationControls();
+    this.bindValidationControlTouchStreams(controlsByPath);
+    this.errorDisplayDeferred = this.shouldDeferErrorDisplay(
+      [...controlsByPath.values()].some(control => control.touched)
+    );
+    this.hasValidationErrors = errors.length > 0;
+    this.validationErrorsDisplay$.next(this.visibleValidationErrors(errors, controlsByPath));
     this.changeDetectorRef.markForCheck();
   }
 
   protected async collectValidationErrors(): Promise<FormValidatorSummaryErrors[]> {
     return this.getFormComponent.getValidationErrors() ?? [];
+  }
+
+  private getValidationControls(): Map<string, AbstractControl> {
+    const form = this.getFormComponent;
+    const controlsByPath = new Map<string, AbstractControl>();
+    if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() || this.errorsRevealed || form.saveAttempted()) {
+      return controlsByPath;
+    }
+
+    // Index the current component tree once per refresh. Rebuilding also handles
+    // repeatable additions, removals and moves without retaining stale controls.
+    // Untargeted form errors have an empty lineage: reveal them when the root
+    // is touched, while targeted errors continue to follow their own controls.
+    if (form.form) controlsByPath.set(JSON.stringify([]), form.form);
+    const entries = [...form.componentDefArr];
+    for (const entry of entries) {
+      const path = entry.lineagePaths?.angularComponents;
+      const control = entry.model?.formControl;
+      if (path && control) {
+        const key = JSON.stringify(path.map(String));
+        if (!controlsByPath.has(key)) controlsByPath.set(key, control);
+      }
+      entries.push(...(entry.component?.formFieldCompMapEntries ?? []));
+    }
+    return controlsByPath;
+  }
+
+  private bindValidationControlTouchStreams(controlsByPath: ReadonlyMap<string, AbstractControl>): void {
+    const controls = new Set(controlsByPath.values());
+    // Root touched events stop when the root is already touched. Observe each
+    // control so onlySelf touches also update errors and the valid-form message.
+    for (const [control, subscription] of this.validationControlSubscriptions) {
+      if (!controls.has(control)) {
+        subscription.unsubscribe();
+        this.validationControlSubscriptions.delete(control);
+      }
+    }
+    for (const control of controls) {
+      if (!this.validationControlSubscriptions.has(control)) {
+        this.validationControlSubscriptions.set(
+          control,
+          control.events
+            .pipe(
+              filter(event => event instanceof TouchedChangeEvent),
+              takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe(() => this.queueValidationErrorsRefresh())
+        );
+      }
+    }
+  }
+
+  private visibleValidationErrors(
+    errors: FormValidatorSummaryErrors[],
+    controlsByPath: ReadonlyMap<string, AbstractControl>
+  ): FormValidatorSummaryErrors[] {
+    const form = this.getFormComponent;
+    if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() || this.errorsRevealed || form.saveAttempted()) {
+      return errors;
+    }
+    // Programmatic population can dirty the form without user interaction.
+    // Resolve the error's own control, including nested groups/repeatable rows;
+    // a touched sibling must never reveal an untouched field's errors.
+    return errors.filter(error => {
+      const path = error.lineagePaths?.angularComponents;
+      return path && controlsByPath.get(JSON.stringify(path.map(String)))?.touched === true;
+    });
   }
 
   private isValidationSnapshotReady(): boolean {
@@ -304,7 +404,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           lineagePath,
           requestId: this.buildFocusRequestId(),
           source: 'validation-summary',
-          sourceId: this.getFormComponent.eventScopeId
+          sourceId: this.getFormComponent.eventScopeId,
         })
       );
       return;
@@ -316,9 +416,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     const lineageLabels = this.getLineageLabels(summary);
     const leafLabel = this.getLeafValidationLabel(summary);
     if (lineageLabels.length > 0) {
-      const shouldAppendLeaf =
-        !!leafLabel &&
-        (summary.message !== null || !summary.id || leafLabel !== summary.id);
+      const shouldAppendLeaf = !!leafLabel && (summary.message !== null || !summary.id || leafLabel !== summary.id);
       if (shouldAppendLeaf && lineageLabels[lineageLabels.length - 1] !== leafLabel) {
         lineageLabels.push(leafLabel);
       }
@@ -328,7 +426,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private async focusValidationTarget(elementId: string | null): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0));
     const linkedElement = elementId ? this.doc.getElementById(elementId) : null;
     if (linkedElement instanceof HTMLElement) {
       linkedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -349,7 +447,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     for (let index = 0; index < path.length; index++) {
       const segment = path[index];
       const segmentName = String(segment);
-      const entry = currentEntries.find((item) => item.compConfigJson?.name === segmentName);
+      const entry = currentEntries.find(item => item.compConfigJson?.name === segmentName);
       if (!entry) {
         if (typeof segment === 'number' || /^\d+$/.test(segmentName)) {
           continue;
@@ -417,7 +515,9 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     if (this.isTabEntry(entry)) {
       return layoutConfig?.label ?? layoutConfig?.buttonLabel ?? null;
     }
-    return layoutConfig?.label ?? (entry.compConfigJson?.component?.config as { label?: string } | undefined)?.label ?? null;
+    return (
+      layoutConfig?.label ?? (entry.compConfigJson?.component?.config as { label?: string } | undefined)?.label ?? null
+    );
   }
 
   private getDefinitionLabel(definition: unknown): string | null {
@@ -440,7 +540,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     if (!definition || typeof definition !== 'object') {
       return false;
     }
-    const byComponent = isTypeFieldDefinitionName((definition as { component?: unknown }).component, GroupFieldComponentName);
+    const byComponent = isTypeFieldDefinitionName(
+      (definition as { component?: unknown }).component,
+      GroupFieldComponentName
+    );
     const model = (definition as { model?: unknown }).model;
     const byModel = isTypeFieldDefinitionName(model, GroupFieldModelName);
     return byComponent || byModel;
@@ -450,7 +553,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     if (!definition || typeof definition !== 'object') {
       return false;
     }
-    const byComponent = isTypeFieldDefinitionName((definition as { component?: unknown }).component, TabContentComponentName);
+    const byComponent = isTypeFieldDefinitionName(
+      (definition as { component?: unknown }).component,
+      TabContentComponentName
+    );
     const layout = (definition as { layout?: unknown }).layout;
     const byLayout = isTypeFieldDefinitionName(layout, TabContentLayoutName);
     return byComponent || byLayout;
@@ -476,12 +582,16 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private get includeTabLabel(): boolean {
-    const config = this.formFieldCompMapEntry?.compConfigJson?.component?.config as { includeTabLabel?: boolean } | undefined;
+    const config = this.formFieldCompMapEntry?.compConfigJson?.component?.config as
+      | { includeTabLabel?: boolean }
+      | undefined;
     return config?.includeTabLabel === true;
   }
 
   public get showWhenValid(): boolean {
-    const config = this.formFieldCompMapEntry?.compConfigJson?.component?.config as { showWhenValid?: boolean } | undefined;
+    const config = this.formFieldCompMapEntry?.compConfigJson?.component?.config as
+      | { showWhenValid?: boolean }
+      | undefined;
     return config?.showWhenValid === true;
   }
 
@@ -492,7 +602,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     if (summary.id) {
       return labelToPlainText(this.formService.translate(summary.id));
     }
-    return labelToPlainText(this.formService.translate("@validator-label-default"));
+    return labelToPlainText(this.formService.translate('@validator-label-default'));
   }
 
   private get getFormComponent(): FormComponent {

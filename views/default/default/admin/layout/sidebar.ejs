@@ -15,7 +15,7 @@
     <i class="fa fa-search" aria-hidden="true"></i>
     <input type="search" class="form-control" aria-label="<%= TranslationService.t('admin-setting-filter') %>" placeholder="<%= TranslationService.t('admin-setting-filter') %>" data-admin-filter>
   </div>
-  <nav>
+  <nav aria-label="<%= TranslationService.t('admin-sidebar-navigation-label') %>">
     <a class="rb-admin-sidebar-item rb-admin-sidebar-home<%= overviewActive ? ' active' : '' %>" href="<%= overviewHref %>" <% if (overviewActive) { %>aria-current="page"<% } %> data-admin-filter-item>
       <i class="fa fa-home" aria-hidden="true"></i> <%= TranslationService.t('admin-overview') %>
     </a>

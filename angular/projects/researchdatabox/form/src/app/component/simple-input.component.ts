@@ -24,7 +24,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
       <input [type]="inputType" [formControl]="formControl" [attr.id]="labelableControlId"
             class="form-control"
             [class.is-valid]="showValidState"
-            [class.is-invalid]="!isValid"
+            [class.is-invalid]="showInvalidState"
             [readonly]="isReadonly"
             [title]="tooltip | i18next"
             [placeholder]="placeholder | i18next" />

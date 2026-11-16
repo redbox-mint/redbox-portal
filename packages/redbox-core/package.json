@@ -31,7 +31,10 @@
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
     "doc:api": "npm run generate-openapi --",
-    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
+    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080",
+    "test:record-graphql": "tsc --noEmit -p test/tsconfig.record-graphql.json && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/RecordGraphqlService.test.ts test/unit/record-graphql/**/*.test.ts",
+    "test:reporting": "npm run typecheck:reporting && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 15000 test/reporting/*.test.ts",
+    "typecheck:reporting": "tsc --noEmit -p test/tsconfig.reporting.json"
   },
   "author": "",
   "license": "ISC",
@@ -78,8 +81,10 @@
     "flydrive": "2.2.0",
     "fs-extra": "11.4.1",
     "genson-js": "0.0.8",
-    "glob": "14.0.3",
+    "glob": "14.0.4",
     "graceful-fs": "4.2.11",
+    "graphql": "16.14.2",
+    "graphql-yoga": "6.0.1",
     "handlebars": "4.7.10",
     "i18next": "26.7.1",
     "js-yaml": "5.5.0",
@@ -110,7 +115,7 @@
     "rxjs": "7.8.2",
     "sails": "1.5.18",
     "sails-mongo": "2.1.2",
-    "sass": "1.108.0",
+    "sass": "1.108.1",
     "sass-loader": "17.1.0",
     "skipper": "0.9.8",
     "skipper-gridfs": "1.0.2",
@@ -129,7 +134,13 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "redoc": "3.0.1",
-    "react-router": "8.5.1"
+    "react-router": "8.5.1",
+    "@ai-sdk/amazon-bedrock": "5.0.58",
+    "@ai-sdk/openai-compatible": "3.0.31",
+    "@aws-sdk/credential-provider-node": "3.972.93",
+    "ai": "7.0.68",
+    "mammoth": "1.13.0",
+    "pdfjs-dist": "6.3.289"
   },
   "overrides": {
     "axios": "1.21.0",

@@ -5,7 +5,11 @@ import type { ContractJsonObject } from '../record-contract/types';
 
 export const BuildResponseFormat = ['json', 'raw-json'] as const;
 export type BuildResponseFormatType = (typeof BuildResponseFormat)[number];
-export const RawJsonResponseMediaTypes = ['application/schema+json', 'application/problem+json'] as const;
+export const RawJsonResponseMediaTypes = [
+  'application/schema+json',
+  'application/problem+json',
+  'application/graphql-response+json',
+] as const;
 export type RawJsonResponseMediaType = (typeof RawJsonResponseMediaTypes)[number];
 
 /**
@@ -54,7 +58,7 @@ export interface BuildJsonResponseType extends BuildResponseCommon {
   prehydrate?: unknown;
 }
 
-/** A deliberately narrow raw JSON response for schema and Problem Details documents. */
+/** A deliberately narrow raw JSON response for schema, Problem Details and GraphQL documents. */
 export interface BuildRawJsonResponseType extends BuildResponseCommon {
   format: 'raw-json';
   mediaType: RawJsonResponseMediaType;

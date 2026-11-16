@@ -23,7 +23,7 @@ import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import {
     guessType, FormValidatorSummaryErrors,
-    FormConfigFrame, TemplateCompileInput, FormModesConfig,
+    FormConfigFrame, FormConfigOutline, TemplateCompileInput, FormModesConfig,
     ReusableFormDefinitions, arrayStartsWithArray, diffRecordValues,
     RecordValueChange, RecordValuePath
 } from "@researchdatabox/sails-ng-common";
@@ -147,8 +147,7 @@ export namespace Services {
             formMode: FormModesConfig,
             reusableFormDefs?: ReusableFormDefinitions
         ): Promise<BasicRedboxRecord> {
-            const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
+            const permittedChanges = await this.buildSchemaForClientFormConfig(clientFormConfig, formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);
@@ -381,11 +380,24 @@ export namespace Services {
         }
 
         /**
-         * Convert a form config into a schema describing the data model it creates.
-         * @param item The form config.
+         * Build the metadata contract of an already filtered client form without repeating view transforms.
+         * Serialized outlines retain the existing model-value normalization.
+         * @param item The effective client form config.
          * @param formMode The form mode.
          * @param reusableFormDefs The reusable form definitions.
          */
+        public async buildSchemaForClientFormConfig(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Promise<Record<string, unknown>> {
+            // The client visitor has already pruned and transformed constructed forms.
+            // Reconstructing them would apply mode transforms a second time after constraints were removed.
+            if (typeof (item as Partial<FormConfigOutline>).accept === 'function') {
+                return new JsonTypeDefSchemaFormConfigVisitor(this.logger).start({ form: item as FormConfigOutline });
+            }
+            return this.buildSchemaForFormConfig(this.stripModelValuesFromFormConfig(item), formMode, reusableFormDefs);
+        }
+
+        /** Convert an authored form outline into a schema describing its data model. */
         public async buildSchemaForFormConfig(
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
         ): Promise<Record<string, unknown>> {

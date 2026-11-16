@@ -50,6 +50,13 @@ export function reportStructure(config: unknown): EditorDiagnostic[] {
         return;
       }
       if (key === 'columns') {
+        const format = _.get(item, 'format');
+        if (format != null && !['text', 'date', 'datetime'].includes(format))
+          error(`${key}.${i}.format`, 'report-ux-invalid-format');
+        const labels: unknown = _.get(item, 'valueLabels');
+        if (labels != null && (!Array.isArray(labels) || labels.some(choice =>
+          !_.isPlainObject(choice) || typeof choice.value !== 'string' || typeof choice.label !== 'string')))
+          error(`${key}.${i}.valueLabels`, 'report-ux-invalid-labels');
         for (const name of ['label', 'property'])
           if (typeof _.get(item, name) !== 'string' || !_.get(item, name))
             error(`${key}.${i}.${name}`, 'Column label and property are required.');

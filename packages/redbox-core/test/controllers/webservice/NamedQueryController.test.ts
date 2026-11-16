@@ -11,6 +11,7 @@ describe('Webservice NamedQueryController', () => {
   let originalSails: any;
   let originalBrandingService: any;
   let originalNamedQueryService: any;
+  let previousEditor: unknown;
 
   before(async () => {
     const chai = await import('chai');
@@ -18,6 +19,8 @@ describe('Webservice NamedQueryController', () => {
   });
 
   beforeEach(() => {
+    previousEditor = Reflect.get(globalThis, 'NamedQueryEditorService');
+    Reflect.set(globalThis, 'NamedQueryEditorService', { canCreate: () => true });
     originalSails = (global as any).sails;
     originalBrandingService = (global as any).BrandingService;
     originalNamedQueryService = (global as any).NamedQueryService;
@@ -48,6 +51,7 @@ describe('Webservice NamedQueryController', () => {
 
   afterEach(() => {
     sinon.restore();
+    Reflect.set(globalThis, 'NamedQueryEditorService', previousEditor);
     (global as any).sails = originalSails;
     (global as any).BrandingService = originalBrandingService;
     (global as any).NamedQueryService = originalNamedQueryService;
@@ -125,9 +129,39 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
   });
 
+  for (const name of ['', 'has spaces', 'collections', 'a'.repeat(121), ['valid']]) {
+    it(`rejects invalid creation name ${JSON.stringify(name)} before persistence`, async () => {
+      const req = {
+        session: { branding: 'default' },
+        isAuthenticated: () => true,
+        param: () => 'rdmp',
+        user: { username: 'admin' },
+        body: { name, collectionName: 'record' }
+      } as unknown as Sails.Req;
+      const response = sinon.stub(controller as any, 'sendResp');
+      await controller.createQuery(req, {} as Sails.Res);
+      expect(response.firstCall.args[2]?.status).to.equal(400);
+      expect((global as any).NamedQueryService.create.called).to.be.false;
+    });
+  }
+  it('accepts a name at the 120 character boundary', async () => {
+    const req = {
+      session: { branding: 'default' },
+      isAuthenticated: () => true,
+      param: () => 'rdmp',
+      user: { username: 'admin' },
+      body: { name: 'a'.repeat(120), collectionName: 'record' }
+    } as unknown as Sails.Req;
+    const response = sinon.stub(controller as any, 'sendResp');
+    await controller.createQuery(req, {} as Sails.Res);
+    expect(response.firstCall.args[2]?.status).to.equal(201);
+  });
   it('creates a named query', async () => {
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
+      param: () => 'rdmp',
       body: { name: 'new-query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
@@ -144,6 +178,9 @@ describe('Webservice NamedQueryController', () => {
   it('returns 400 when name is reserved in create body', async () => {
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
+      param: () => 'rdmp',
       body: { name: 'collections', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
@@ -160,6 +197,9 @@ describe('Webservice NamedQueryController', () => {
   it('returns 400 when name is missing in create body', async () => {
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
+      param: () => 'rdmp',
       body: { collectionName: 'record' }
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
@@ -177,6 +217,9 @@ describe('Webservice NamedQueryController', () => {
     (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Named query 'new-query' already exists"));
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
+      param: () => 'rdmp',
       body: { name: 'new-query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
@@ -192,6 +235,9 @@ describe('Webservice NamedQueryController', () => {
     (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Invalid collectionName 'unscopedmodel': model does not expose a brand scope"));
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
+      param: () => 'rdmp',
       body: { name: 'unsafe-query', collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
@@ -207,6 +253,9 @@ describe('Webservice NamedQueryController', () => {
     (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Invalid collectionName 'badmodel': model not found"));
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
+      param: () => 'rdmp',
       body: { name: 'bad-query', collectionName: 'badmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
@@ -224,6 +273,8 @@ describe('Webservice NamedQueryController', () => {
     (global as any).NamedQueryService.update = sinon.stub().throws(new Error("Invalid collectionName 'unscopedmodel': model does not expose a brand scope"));
     const req = {
       session: { branding: 'default' },
+      isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] },
       param,
       body: { collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
@@ -366,6 +417,21 @@ describe('Webservice NamedQueryController', () => {
     expect(send.firstCall.args[2].status).to.equal(409);
     expect(send.firstCall.args[2].meta.usedBy).to.deep.equal(consumers);
     expect(send.firstCall.args[2].displayErrors[0].detail).to.include('Remove its configured references');
+  });
+
+  it('keeps unclassified validation details out of client display errors', async () => {
+    Reflect.get(globalThis, 'NamedQueryService').create = sinon.stub().throws(new Error('Invalid private database attribute secret_value'));
+    const req = {
+      session: { branding: 'default' }, isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] }, param: () => 'rdmp',
+      body: { name: 'test-query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
+    } as unknown as Sails.Req;
+    const send = sinon.stub(controller, 'sendResp');
+    await controller.createQuery(req, {} as Sails.Res);
+    const response = send.firstCall.args[2];
+    expect(response?.status).to.equal(400);
+    expect(response?.displayErrors).to.deep.equal([{ detail: 'Invalid named query request', status: '400' }]);
+    expect(response?.errors).to.have.length(1);
   });
 
 });

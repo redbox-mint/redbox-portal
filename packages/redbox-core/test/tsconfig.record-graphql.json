@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./services/RecordGraphqlService.test.ts",
+    "./unit/record-graphql/**/*.test.ts",
+    "./fixtures/record-contract.fixtures.ts",
+    "./setup.ts",
+    "../src/**/*.ts"
+  ]
+}

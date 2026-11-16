@@ -1,0 +1,35 @@
+meta {
+  name: AI Generation 9 - Read provenance
+  type: http
+  seq: 68
+}
+
+get {
+  url: {{host}}/default/rdmp/record/{{generationTargetOid}}/generation-provenance
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Returns generated provenance and its pending review", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.recordOid).to.equal(bru.getEnvVar("generationTargetOid"));
+    expect(data.fields).to.have.length(9);
+    expect(data.fields.every((field) => field.displayState === "generated")).to.equal(true);
+    const pending = data.fields.find((field) => field.profileFieldId === "sharingAccess");
+    expect(pending.reviewRequired).to.equal(true);
+    bru.setEnvVar("generationProvenanceId", pending.id);
+  });
+}

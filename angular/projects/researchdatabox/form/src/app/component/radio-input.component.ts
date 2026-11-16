@@ -32,8 +32,9 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
             (change)="onOptionChange(opt)"
+            (blur)="formControl.markAsTouched()"
             [class.is-valid]="showValidState"
-            [class.is-invalid]="!isValid"
+            [class.is-invalid]="showInvalidState"
             [title]="tooltip | i18next"
           />
           <label class="form-check-label" [attr.for]="getOptionId(opt)">

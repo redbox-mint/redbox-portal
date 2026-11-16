@@ -1,0 +1,29 @@
+{
+  "kind": "binding",
+  "key": "create-demo-rdmp-from-activity",
+  "name": "Create data management plan",
+  "description": "Creates a fresh AI-assisted RDMP intent from a Research Activity.",
+  "enabled": true,
+  "profileKey": "research-activity-to-demo-rdmp",
+  "sourceRecordType": "researchActivity",
+  "sourceWorkflowStages": ["draft"],
+  "sourceModes": ["view", "edit"],
+  "targetRecordType": "demoRdmp",
+  "targetFormName": "demoRdmp-1.0-draft",
+  "targetStartingWorkflowStage": "draft",
+  "allowedRoles": ["Researcher", "Librarians", "Admin"],
+  "action": {
+    "kind": "generation.launch",
+    "labelKey": "generation-action-create-rdmp",
+    "helpTextKey": "generation-action-create-rdmp-help",
+    "icon": "fa-solid fa-wand-magic-sparkles",
+    "placement": "record.primary",
+    "order": 30
+  },
+  "sourceRelationship": {
+    "sourceSlotId": "activity",
+    "metadataPointer": "/researchActivity/oid"
+  },
+  "allowMultipleTargetsPerSource": true,
+  "maxSuccessfulRunsPerIntent": 1
+}

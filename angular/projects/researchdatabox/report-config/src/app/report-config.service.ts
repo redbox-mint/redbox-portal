@@ -11,6 +11,8 @@ import {
 import { merge as _merge } from 'lodash-es';
 import { firstValueFrom, Observable } from 'rxjs';
 
+export interface ReportQueryChoice { name: string; source?: string; sourceSavedQuery?: { id: string; name: string | null }; graphql?: import('@researchdatabox/sails-ng-common').GraphqlNamedQueryOperation; }
+
 type DataEnvelope<T> = { data?: T };
 
 @Injectable()
@@ -92,8 +94,8 @@ export class ReportConfigService extends HttpClientService {
     );
   }
 
-  public async listNamedQueries(): Promise<{ name: string }[]> {
-    const queries = await this.unwrapResponse<{ name: string }[]>(
+  public async listNamedQueries(): Promise<ReportQueryChoice[]> {
+    const queries = await this.unwrapResponse<ReportQueryChoice[]>(
       this.http.get(`${this.brandingAndPortalUrl}/api/named-query`, this.reqOptsJsonBodyOnly)
     );
     return Array.isArray(queries) ? queries : [];

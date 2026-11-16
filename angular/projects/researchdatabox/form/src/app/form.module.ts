@@ -82,6 +82,10 @@ import { ConfirmationDialogService } from './confirmation-dialog.service';
 import { ConfirmationDialogComponent } from './component/confirmation-dialog.component';
 import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
+import { FormRuntimeActionsComponent } from './generation/form-runtime-actions.component';
+import { GenerationSidePanelComponent } from './generation/generation-side-panel.component';
+import { GenerationProvenanceBadgeComponent } from './generation/generation-provenance-badge.component';
+import { provideGenerationFeature } from './generation/state/providers';
 
 // Angular replaces ngDevMode with false in optimized builds, removing the provider and its code.
 declare const ngDevMode: boolean;
@@ -142,6 +146,9 @@ declare const ngDevMode: boolean;
     ConfirmationDialogComponent,
     FormConflictPresenterComponent,
     RecordAuditLauncherComponent,
+    FormRuntimeActionsComponent,
+    GenerationSidePanelComponent,
+    GenerationProvenanceBadgeComponent,
   ],
   imports: [
     CommonModule,
@@ -170,8 +177,13 @@ declare const ngDevMode: boolean;
     provideStore(),
     provideEffects(),
     provideFormFeature(),
-    ...((typeof ngDevMode === 'undefined' || ngDevMode) ? [provideStoreDevtools({ maxAge: 25 })] : []),
+    provideGenerationFeature(),
+    ...(typeof ngDevMode === 'undefined' || ngDevMode ? [provideStoreDevtools({ maxAge: 25 })] : []),
   ],
   bootstrap: [FormComponent],
 })
 export class FormModule {}
+
+// Integration contract only: an SPA host must register this on its form route.
+export { formConflictCanDeactivateGuard } from './form-conflict-navigation.guard';
+export type { ConflictNavigationAwareForm } from './form-conflict-navigation.guard';

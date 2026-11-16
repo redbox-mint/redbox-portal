@@ -1,3 +1,4 @@
+import type { GraphqlNamedQueryBinding, GraphqlNamedQueryResult, NamedQuerySource } from './named-query.model';
 import type { ContextSchemaField, EditorDiagnostic, FieldDescription, SchemaSelection } from './schema-assist.model';
 
 /** Guidance is ephemeral: selecting a schema never adds a query constraint. */
@@ -25,6 +26,8 @@ export interface NamedQueryDraftRequest {
 }
 
 export interface NamedQueryValidation {
+  source?: NamedQuerySource;
+  capabilities?: { lookup: boolean; diagnostics: EditorDiagnostic[] };
   valid: boolean;
   diagnostics: EditorDiagnostic[];
 }
@@ -42,6 +45,7 @@ export interface NamedQueryParameterDescription {
 }
 
 export interface NamedQueryDescription extends NamedQueryValidation {
+  source?: 'database';
   name?: string;
   collectionName: string;
   parameters: NamedQueryParameterDescription[];
@@ -54,6 +58,7 @@ export interface NamedQueryPreviewRequest extends NamedQueryDraftRequest {
 
 /** Data records use the existing NamedQueryResponseRecord wrapper, also consumed by reports. */
 export interface NamedQueryPreview<T = unknown> extends NamedQueryValidation {
+  source?: 'database';
   records: T[];
   summary: { numFound: number; start: number; page: number };
   truncated: boolean;
@@ -69,3 +74,44 @@ export interface NamedQueryPreview<T = unknown> extends NamedQueryValidation {
     mappings: number;
   };
 }
+
+/** Existing description/preview names remain database DTOs for legacy consumers. */
+/** Derived from the current schema and selected operation; never persisted. */
+export interface NamedQueryOperationVariableDescription {
+  variable: string;
+  inputType: string;
+  required: boolean;
+  consumerSupported: boolean;
+  hasOperationDefault: boolean;
+  /** Omission is satisfied by nullable input or a valid operation default. */
+  omissionSatisfied: boolean;
+  enumValues?: string[];
+}
+export interface NamedQueryConsumer {
+  type: 'report' | 'dashboard' | 'vocabulary' | 'form' | 'configuration';
+  name: string;
+  path: string;
+}
+export type NamedQueryBreakingChange = 'source' | 'parameters' | 'bindings' | 'document' | 'mappings' | 'lookup';
+export interface NamedQueryUpdateReview {
+  required: boolean;
+  changes: NamedQueryBreakingChange[];
+  usedBy: NamedQueryConsumer[];
+  /** Dynamic hooks, direct API/config callers and opaque references cannot be enumerated. */
+  usageComplete: false;
+  confirmation?: string;
+}
+export interface GraphqlNamedQueryDescription extends NamedQueryValidation {
+  source: 'graphql';
+  name?: string;
+  operationName?: string;
+  parameters: Array<GraphqlNamedQueryBinding & { variable: string; hasOperationDefault?: boolean; omissionSatisfied?: boolean }>;
+  operationVariables?: NamedQueryOperationVariableDescription[];
+  result: FieldDescription;
+}
+export type NamedQuerySourceDescription = NamedQueryDescription | GraphqlNamedQueryDescription;
+
+export type GraphqlNamedQueryPreview<T = unknown> = NamedQueryValidation &
+  GraphqlNamedQueryResult<T> &
+  Pick<NamedQueryPreview<T>, 'truncated' | 'truncationReasons' | 'limits'>;
+export type NamedQuerySourcePreview<T = unknown> = NamedQueryPreview<T> | GraphqlNamedQueryPreview<T>;

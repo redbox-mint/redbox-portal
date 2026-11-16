@@ -3,6 +3,73 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
+    "@researchdatabox/mcp-connect": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/mcp-connect",
+      "sourceRoot": "projects/researchdatabox/mcp-connect/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/mcp-connect"
+            },
+            "index": "projects/researchdatabox/mcp-connect/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/mcp-connect/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/mcp-connect/src/favicon.ico",
+              "projects/researchdatabox/mcp-connect/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/mcp-connect/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/mcp-connect/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "650kb",
+                  "maximumError": "800kb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kb",
+                  "maximumError": "20kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/mcp-connect/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/mcp-connect/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": ["projects/researchdatabox/mcp-connect/src/assets"],
+            "styles": ["projects/researchdatabox/mcp-connect/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/portal-ng-common": {
       "projectType": "library",
       "root": "projects/researchdatabox/portal-ng-common",
@@ -168,10 +235,7 @@
             "tsConfig": "projects/researchdatabox/export/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/export/src/favicon.ico", "projects/researchdatabox/export/src/assets"],
-            "styles": [
-              "projects/researchdatabox/export/src/styles.scss",
-              "ngx-bootstrap/datepicker/bs-datepicker.css"
-            ],
+            "styles": ["projects/researchdatabox/export/src/styles.scss", "ngx-bootstrap/datepicker/bs-datepicker.css"],
             "scripts": [],
             "browser": "projects/researchdatabox/export/src/main.ts"
           },
@@ -343,10 +407,7 @@
             "tsConfig": "projects/researchdatabox/report/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/report/src/favicon.ico", "projects/researchdatabox/report/src/assets"],
-            "styles": [
-              "projects/researchdatabox/report/src/styles.scss",
-              "ngx-bootstrap/datepicker/bs-datepicker.css"
-            ],
+            "styles": ["projects/researchdatabox/report/src/styles.scss", "ngx-bootstrap/datepicker/bs-datepicker.css"],
             "scripts": [],
             "browser": "projects/researchdatabox/report/src/main.ts"
           },
@@ -938,7 +999,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "700kb"
+                  "maximumError": "900kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -1098,10 +1159,7 @@
             "polyfills": [],
             "tsConfig": "projects/researchdatabox/form/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "projects/researchdatabox/form/src/favicon.ico",
-              "projects/researchdatabox/form/src/assets"
-            ],
+            "assets": ["projects/researchdatabox/form/src/favicon.ico", "projects/researchdatabox/form/src/assets"],
             "styles": [
               "projects/researchdatabox/form/src/styles.scss",
               "ngx-bootstrap/datepicker/bs-datepicker.css",
@@ -1120,8 +1178,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "20kb",
-                  "maximumError": "20kb"
+                  "maximumWarning": "50kb",
+                  "maximumError": "50kb"
                 }
               ],
               "optimization": true,
@@ -1163,10 +1221,7 @@
             "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "projects/researchdatabox/form/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "projects/researchdatabox/form/src/favicon.ico",
-              "projects/researchdatabox/form/src/assets"
-            ],
+            "assets": ["projects/researchdatabox/form/src/favicon.ico", "projects/researchdatabox/form/src/assets"],
             "styles": ["projects/researchdatabox/form/src/styles.scss", "node_modules/ol/ol.css"],
             "scripts": []
           }
@@ -1380,9 +1435,7 @@
             "polyfills": [],
             "tsConfig": "projects/researchdatabox/harvest-runs/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "projects/researchdatabox/harvest-runs/src/assets"
-            ],
+            "assets": ["projects/researchdatabox/harvest-runs/src/assets"],
             "styles": ["projects/researchdatabox/harvest-runs/src/styles.scss"],
             "scripts": [],
             "browser": "projects/researchdatabox/harvest-runs/src/main.ts"
@@ -1442,9 +1495,7 @@
             "karmaConfig": "projects/researchdatabox/harvest-runs/karma.conf.js",
             "tsConfig": "projects/researchdatabox/harvest-runs/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "projects/researchdatabox/harvest-runs/src/assets"
-            ],
+            "assets": ["projects/researchdatabox/harvest-runs/src/assets"],
             "styles": ["projects/researchdatabox/harvest-runs/src/styles.scss"],
             "scripts": []
           }
@@ -1535,6 +1586,91 @@
               "projects/researchdatabox/branding/src/assets"
             ],
             "styles": ["projects/researchdatabox/branding/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "@researchdatabox/data-grids": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/data-grids",
+      "sourceRoot": "projects/researchdatabox/data-grids/src",
+      "prefix": "data-grids",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/data-grids"
+            },
+            "index": "projects/researchdatabox/data-grids/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/data-grids/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/data-grids/src/favicon.ico",
+              "projects/researchdatabox/data-grids/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/data-grids/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/data-grids/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2.5mb",
+                  "maximumError": "3mb"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/data-grids:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/data-grids:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/data-grids:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/data-grids/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/data-grids/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/data-grids/src/favicon.ico",
+              "projects/researchdatabox/data-grids/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/data-grids/src/styles.scss"],
             "scripts": []
           }
         }
@@ -1822,12 +1958,8 @@
             "polyfills": [],
             "tsConfig": "projects/researchdatabox/siem-admin/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "projects/researchdatabox/siem-admin/src/assets"
-            ],
-            "styles": [
-              "projects/researchdatabox/siem-admin/src/styles.scss"
-            ],
+            "assets": ["projects/researchdatabox/siem-admin/src/assets"],
+            "styles": ["projects/researchdatabox/siem-admin/src/styles.scss"],
             "scripts": [],
             "browser": "projects/researchdatabox/siem-admin/src/main.ts"
           },
@@ -1882,19 +2014,12 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "polyfills": ["zone.js", "zone.js/testing"],
             "karmaConfig": "projects/researchdatabox/siem-admin/karma.conf.js",
             "tsConfig": "projects/researchdatabox/siem-admin/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "projects/researchdatabox/siem-admin/src/assets"
-            ],
-            "styles": [
-              "projects/researchdatabox/siem-admin/src/styles.scss"
-            ],
+            "assets": ["projects/researchdatabox/siem-admin/src/assets"],
+            "styles": ["projects/researchdatabox/siem-admin/src/styles.scss"],
             "scripts": []
           }
         }

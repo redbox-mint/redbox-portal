@@ -22,6 +22,8 @@ import pw09RapidSaveRetry from './pw-09-rapid-save-retry';
 import pw10SaveCompletions from './pw-10-save-completions';
 import pw11TransportValidation from './pw-11-transport-validation';
 import pw12ConflictResolution from './pw-12-conflict-resolution';
+import researchActivityDraft from './researchActivity-1.0-draft';
+import demoRdmpDraft from './demoRdmp-1.0-draft';
 
 /**
  * Demo form configurations.
@@ -60,4 +62,6 @@ export const FormConfigExports: Record<string, FormConfigFrame> = {
   'dataPublication-1.0-published': dataPublicationPublished,
   'dataPublication-1.0-retired': dataPublicationRetired,
   'existing-locations-1.0-draft': existingLocationsDraft,
+  'researchActivity-1.0-draft': researchActivityDraft,
+  'demoRdmp-1.0-draft': demoRdmpDraft,
 };

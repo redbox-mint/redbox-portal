@@ -58,7 +58,8 @@ export const recordtype: RecordTypeConfig = {
               templates: [
                 {
                   field: 'metadata.date',
-                  template: "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
+                  template:
+                    "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
                 },
               ],
             },
@@ -120,6 +121,20 @@ export const recordtype: RecordTypeConfig = {
       namePlural: 'PW-01 chained calculated field records',
     },
   },
+  researchActivity: {
+    packageType: 'researchActivity',
+    labels: { name: 'Research Activity', namePlural: 'Research Activities' },
+    relatedTo: [{ recordType: 'demoRdmp', foreignField: 'metadata.researchActivity.oid' }],
+    searchFilters: [],
+  },
+  demoRdmp: {
+    packageType: 'demoRdmp',
+    labels: { name: 'AI-assisted RDMP', namePlural: 'AI-assisted RDMPs' },
+    relatedTo: [
+      { recordType: 'researchActivity', localField: 'metadata.researchActivity.oid', foreignField: 'redboxOid' },
+    ],
+    searchFilters: [],
+  },
   'related-activity': {
     packageType: 'related-activity',
     labels: { name: 'Related activity', namePlural: 'Related activities' },
@@ -129,15 +144,22 @@ export const recordtype: RecordTypeConfig = {
     labels: { name: 'Related plan', namePlural: 'Related plans' },
     relatedTo: [
       {
-        id: 'primaryActivity', recordType: 'related-activity',
-        localField: 'metadata.primaryActivity', foreignField: 'redboxOid',
-        cardinality: 'one', direction: 'outbound',
+        id: 'primaryActivity',
+        recordType: 'related-activity',
+        localField: 'metadata.primaryActivity',
+        foreignField: 'redboxOid',
+        cardinality: 'one',
+        direction: 'outbound',
         resolution: { metadataFields: ['/title', '/startDate', '/endDate'] },
       },
       {
-        id: 'activities', recordType: 'related-activity',
-        localField: 'metadata.activities', foreignField: 'redboxOid', oidProperty: 'oid',
-        cardinality: 'many', direction: 'outbound',
+        id: 'activities',
+        recordType: 'related-activity',
+        localField: 'metadata.activities',
+        foreignField: 'redboxOid',
+        oidProperty: 'oid',
+        cardinality: 'many',
+        direction: 'outbound',
         resolution: { metadataFields: ['/title', '/startDate', '/endDate'] },
       },
     ],

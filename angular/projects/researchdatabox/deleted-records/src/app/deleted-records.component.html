@@ -67,9 +67,9 @@
     <section class="card">
       <div class="card-header">
         <h2>{{ 'admin-deleted-title' | i18next }}</h2>
-        <span role="status" aria-live="polite">{{ deletedRecordsResult.total | adminCount: 'record' }}</span>
+        <span role="status" aria-live="polite">{{ deletedRecordsResult.total ?? 0 | adminCount: 'record' }}</span>
       </div>
-      @if (deletedRecordsResult.total > 0 || hasFilters) {
+      @if ((deletedRecordsResult.total ?? 0) > 0 || hasFilters) {
         <form class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filter()" (ngSubmit)="filter()">
           <div class="rb-admin-field rb-admin-field-grow">
             <label for="title">{{ 'admin-deleted-title-filter' | i18next }}</label

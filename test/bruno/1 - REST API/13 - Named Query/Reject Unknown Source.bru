@@ -1,0 +1,37 @@
+meta {
+  name: Reject Unknown Source
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "name": "invalidUnknownSourceMustNotPersist",
+    "source": "unknown",
+    "collectionName": "record",
+    "mongoQuery": {},
+    "queryParams": {},
+    "resultObjectMapping": {}
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Unknown sources fail structural validation", () => expect(res.getStatus()).to.equal(400));
+}

@@ -1,3 +1,5 @@
+import * as WSReportingControllerModule from './webservice/ReportingController';
+import * as SavedGridControllerModule from './SavedGridController';
 import * as PartyImportControllerModule from './PartyImportController';
 /**
  * Controllers index - exports all controller classes
@@ -25,6 +27,7 @@ import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 import * as FormVocabularyControllerModule from './FormVocabularyController';
+import * as GenerationControllerModule from './GenerationController';
 import * as DashboardConfigControllerModule from './DashboardConfigController';
 import * as NamedQueryControllerModule from './NamedQueryController';
 
@@ -40,6 +43,7 @@ import * as WSIntegrationAuditControllerModule from './webservice/IntegrationAud
 import * as WSHarvestRunControllerModule from './webservice/HarvestRunController';
 import * as WSRecordControllerModule from './webservice/RecordController';
 import * as WSRecordSchemaControllerModule from './webservice/RecordSchemaController';
+import * as WSRecordGraphqlControllerModule from './webservice/RecordGraphqlController';
 import * as WSRecordTypeControllerModule from './webservice/RecordTypeController';
 import * as WSReportControllerModule from './webservice/ReportController';
 import * as WSSearchControllerModule from './webservice/SearchController';
@@ -59,6 +63,7 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
+    get SavedGridController() { return getOrCreate('SavedGridController', () => new SavedGridControllerModule.Controllers.SavedGrid().exports()); },
     get PartyImportController() { return getOrCreate('PartyImportController', () => new PartyImportControllerModule.Controllers.PartyImport().exports()); },
     get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
@@ -81,12 +86,14 @@ export const ControllerExports: Record<string, unknown> = {
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
     get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
+    get GenerationController() { return getOrCreate('GenerationController', () => new GenerationControllerModule.Controllers.Generation().exports()); },
     get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
     get NamedQueryController() { return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports()); },
 };
 
 // Webservice Controllers export (separate object, not prefixed)
 export const WebserviceControllerExports: Record<string, unknown> = {
+    get ReportingController() { return getOrCreate('WSReportingController', () => new WSReportingControllerModule.Controllers.Reporting().exports()); },
     get AdminController() { return getOrCreate('WS_AdminController', () => new WSAdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
@@ -97,6 +104,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get HarvestRunController() { return getOrCreate('WS_HarvestRunController', () => new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()); },
     get IntegrationAuditController() { return getOrCreate('WS_IntegrationAuditController', () => new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()); },
     get RecordController() { return getOrCreate('WS_RecordController', () => new WSRecordControllerModule.Controllers.Record().exports()); },
+    get RecordGraphqlController() { return getOrCreate('WS_RecordGraphqlController', () => new WSRecordGraphqlControllerModule.Controllers.RecordGraphql().exports()); },
     get RecordSchemaController() { return getOrCreate('WS_RecordSchemaController', () => new WSRecordSchemaControllerModule.Controllers.RecordSchema().exports()); },
     get RecordTypeController() { return getOrCreate('WS_RecordTypeController', () => new WSRecordTypeControllerModule.Controllers.RecordType().exports()); },
     get ReportController() { return getOrCreate('WS_ReportController', () => new WSReportControllerModule.Controllers.Report().exports()); },
@@ -111,6 +119,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
+    'SavedGridController',
     'PartyImportController',
     'ActionController',
     'AdminController',
@@ -124,6 +133,7 @@ export const ControllerNames = [
     'EmailController',
     'ExportController',
     'FormVocabularyController',
+    'GenerationController',
     'RecordAuditController',
     'RecordController',
     'RenderViewController',
@@ -138,6 +148,7 @@ export const ControllerNames = [
 ];
 
 export const WebserviceControllerNames = [
+    'ReportingController',
     'AdminController',
     'AppConfigController',
     'BrandingController',
@@ -150,6 +161,7 @@ export const WebserviceControllerNames = [
     'IntegrationAuditController',
     'RecordController',
     'RecordSchemaController',
+    'RecordGraphqlController',
     'RecordTypeController',
     'ReportController',
     'SearchController',

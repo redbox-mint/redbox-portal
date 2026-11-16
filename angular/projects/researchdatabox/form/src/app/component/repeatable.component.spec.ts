@@ -1185,7 +1185,10 @@ describe('RepeatableComponent', () => {
         },
       ]
     };
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, { editMode: true });
+    expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).toBeNull();
+    formComponent.form!.markAllAsTouched();
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('redbox-field-error-summary')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).toBeTruthy();
   });

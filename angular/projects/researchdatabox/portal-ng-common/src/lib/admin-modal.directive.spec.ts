@@ -58,4 +58,14 @@ describe('AdminModalDirective', () => {
     expect(background.inert).toBeFalse();
   }));
 
+  it('allows the owning editor to restore focus after a review dialog closes', fakeAsync(() => {
+    directive.rbAdminModalRestoreFocus = false;
+    directive.ngAfterViewInit();
+    const cancel = dialog.querySelector('button')!;
+    cancel.focus();
+    directive.ngOnDestroy(); tick();
+    expect(host.querySelector('header')!.inert).toBeFalse();
+    expect(document.activeElement).toBe(cancel);
+  }));
+
 });

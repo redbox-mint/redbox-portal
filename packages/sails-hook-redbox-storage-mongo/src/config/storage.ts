@@ -2,6 +2,7 @@ export const storage = {
   serviceName: 'mongostorageservice',
   mongodb: {
     indices: [
+      { key: { 'metaMetadata.brandId': 1, 'metaMetadata.type': 1, 'metaMetadata.createdOn': 1 }, name: 'reporting_brand_type_created' },
       { key: { harvestId: 1 } },
       { key: { harvestId: 1, 'metaMetadata.brandId': 1, 'metaMetadata.type': 1 } },
       { key: { dateCreated: 1 } },

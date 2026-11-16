@@ -1,4 +1,4 @@
-import {Component, DoCheck, DestroyRef, inject, Input, signal, ChangeDetectionStrategy} from '@angular/core';
+import { Component, DoCheck, DestroyRef, inject, Input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormResetEvent } from '@angular/forms';
 import {
@@ -12,6 +12,7 @@ import {
   DynamicScriptResponse,
   handlebarsTemplate,
   HistoricalVocabMode,
+  NamedQueryLookupResult,
   TypeaheadInputComponentName,
   TypeaheadInputDefaultNoResultsMessageKey,
   TypeaheadInputFieldComponentConfig,
@@ -26,7 +27,7 @@ import { get as _get } from 'lodash-es';
 import { TypeaheadMatch } from 'ngx-bootstrap/typeahead';
 import { defer, from, Observable } from 'rxjs';
 import { FormComponent } from '../form.component';
-import { TypeaheadDataService } from '../service/typeahead-data.service';
+import { TypeaheadDataService, TypeaheadLookupError } from '../service/typeahead-data.service';
 
 type TypeaheadStatus = 'idle' | 'loading' | 'no-results' | 'error' | 'misconfigured';
 
@@ -44,12 +45,11 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         class="form-control"
         [formControl]="displayControl"
         [class.is-valid]="showValidState"
-        [class.is-invalid]="!isValid"
+        [class.is-invalid]="showInvalidState"
         [placeholder]="placeholder | i18next"
         [title]="tooltip | i18next"
         [readonly]="isReadonly || readOnlyAfterSelectLocked"
         [attr.role]="'combobox'"
-        [attr.aria-expanded]="isOpen"
         [attr.aria-autocomplete]="'list'"
         [attr.aria-busy]="searchState === 'loading'"
         [attr.aria-describedby]="statusElementId"
@@ -57,7 +57,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [typeaheadAsync]="true"
         [typeaheadMinLength]="minChars"
         [typeaheadWaitMs]="debounceMs"
-        [typeaheadOptionsLimit]="maxResults"
+        [typeaheadOptionsLimit]="displayLimit"
         [typeaheadOptionField]="'label'"
         [typeaheadSingleWords]="false"
         [dropup]="false"
@@ -77,6 +77,9 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         }
         @if (searchState === 'error') {
           {{ statusMessage || '@form-typeahead-lookup-failed' | i18next }}
+        }
+        @if (searchState === 'idle' && hasNextPage) {
+          {{ '@form-typeahead-refine-search' | i18next }}
         }
         @if (searchState === 'misconfigured') {
           {{ statusMessage || '@form-typeahead-misconfigured' | i18next }}
@@ -112,6 +115,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public set searchState(value: TypeaheadStatus) {
     this.searchStateValue.set(value);
   }
+  public hasNextPage = false;
   public statusMessage = '';
   public statusElementId = 'typeahead-status';
   public noResultsMessageKey: string = TypeaheadInputDefaultNoResultsMessageKey;
@@ -197,6 +201,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.minChars = Number.isInteger(cfg.minChars) && (cfg.minChars ?? 0) >= 0 ? Number(cfg.minChars) : 2;
     this.debounceMs = Number.isInteger(cfg.debounceMs) && (cfg.debounceMs ?? 0) >= 0 ? Number(cfg.debounceMs) : 250;
     this.maxResults = Number.isInteger(cfg.maxResults) && (cfg.maxResults ?? 0) > 0 ? Number(cfg.maxResults) : 25;
+    this.graphqlLookup = false;
     this.valueMode = cfg.valueMode === 'optionObject' ? 'optionObject' : 'value';
     this.allowFreeText = cfg.requireSelection !== true && this.canStoreFreeTextValue();
     this.cacheResults = cfg.cacheResults ?? (this.sourceType !== 'namedQuery' && this.sourceType !== 'service');
@@ -230,7 +235,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     await this.prepareLabelTemplate();
   }
 
-
   public ngDoCheck(): void {
     // Silent record writes do not emit valueChanges. Reconcile before rendering,
     // including non-empty displays left over from a previous selection.
@@ -251,6 +255,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     this.lookupRequestId += 1;
+    this.hasNextPage = false;
     this.isOpen = false;
     this.searchState = 'idle';
     this.statusMessage = '';
@@ -272,6 +277,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     // Lookup feedback belongs to the active interaction. Clear it as focus leaves,
     // while retaining configuration errors that the form author needs to see.
     this.lookupRequestId += 1;
+    this.hasNextPage = false;
     this.isOpen = false;
     if (this.searchState !== 'misconfigured') {
       this.searchState = 'idle';
@@ -324,17 +330,22 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     this.lookupRequestId += 1;
+    this.hasNextPage = false;
     this.isOpen = text.length >= this.minChars;
     if (!text.trim()) {
-      this.searchState = 'idle';
-      this.statusMessage = '';
+      if (this.searchState !== 'misconfigured') {
+        this.searchState = 'idle';
+        this.statusMessage = '';
+      }
       this.isOpen = false;
       this.setModelValue(null);
       return;
     }
     if (text.length < this.minChars) {
-      this.searchState = 'idle';
-      this.statusMessage = '';
+      if (this.searchState !== 'misconfigured') {
+        this.searchState = 'idle';
+        this.statusMessage = '';
+      }
       this.isOpen = false;
     }
   }
@@ -347,7 +358,22 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.isOpen = false;
   }
 
+  private graphqlLookup = false;
+
+  public get displayLimit(): number {
+    return this.graphqlLookup ? Math.min(this.maxResults, 25) : this.maxResults;
+  }
+
   private validateConfiguration(): boolean {
+    this.hasNextPage = false;
+    if (
+      this.sourceType === 'namedQuery' &&
+      (this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.lookupDiagnostics?.length
+    ) {
+      this.searchState = 'misconfigured';
+      this.statusMessage = '@form-typeahead-incompatible-query';
+      return false;
+    }
     if (this.sourceType === 'vocabulary' && !this.vocabRef) {
       this.searchState = 'misconfigured';
       this.statusMessage = '@form-typeahead-missing-vocab-ref';
@@ -387,15 +413,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return [];
     }
     const trimmedTerm = term.trim();
-    if (trimmedTerm.length < this.minChars) {
+    if ((this.sourceType === 'namedQuery' && !trimmedTerm) || trimmedTerm.length < this.minChars) {
       return [];
     }
     const cacheKey = `${this.sourceType}:${includeHistoricalValues ? 'historical' : 'current'}:${trimmedTerm}`;
     if (this.cacheResults && this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey) ?? [];
-      if (requestId === this.lookupRequestId) {
-        this.searchState = cached.length > 0 ? 'idle' : 'no-results';
-      }
+      this.searchState = cached.length > 0 ? 'idle' : 'no-results';
       return cached;
     }
 
@@ -403,6 +427,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.statusMessage = '';
     try {
       let options: TypeaheadOption[] = [];
+      let result: NamedQueryLookupResult<TypeaheadOption> | undefined;
       if (this.sourceType === 'static') {
         options = await this.typeaheadDataService.searchStatic(trimmedTerm, this.staticOptions, this.maxResults);
       } else if (this.sourceType === 'vocabulary') {
@@ -424,7 +449,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       } else if (this.sourceType === 'service') {
         options = await this.typeaheadDataService.searchService(this.serviceId, trimmedTerm, 0, this.maxResults);
       } else {
-        options = await this.typeaheadDataService.searchNamedQuery(
+        result = await this.typeaheadDataService.searchNamedQueryLookup(
           this.queryId,
           trimmedTerm,
           0,
@@ -433,23 +458,24 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
           this.valueField
         );
       }
+      if (requestId !== this.lookupRequestId) return [];
+      this.graphqlLookup = result?.source === 'graphql';
+      options = result?.options ?? options;
       options = this.filterHistoricalOptions(options);
       options = this.applyTemplateLabels(options);
 
-      // A newer input value, blur, selection, or request invalidates this UI status,
-      // although its options may still be safely cached below for a future lookup.
-      if (requestId === this.lookupRequestId) {
-        this.searchState = options.length > 0 ? 'idle' : 'no-results';
-      }
-      if (this.cacheResults) {
-        this.cache.set(cacheKey, options);
-      }
+      // Options, status and continuation all belong to this current interaction.
+      this.searchState = options.length > 0 ? 'idle' : 'no-results';
+      this.hasNextPage = result?.pagination?.hasNextPage === true;
+      // GraphQL results are reauthorized on every search, including configs with caching enabled.
+      if (this.cacheResults && result?.source !== 'graphql') this.cache.set(cacheKey, options);
       return options;
     } catch (error) {
       this.loggerService.warn(`${this.logName}: typeahead lookup failed`, error);
       if (requestId === this.lookupRequestId) {
-        this.searchState = 'error';
-        this.statusMessage = '@form-typeahead-unable-to-fetch';
+        const misconfigured = error instanceof TypeaheadLookupError && error.misconfigured;
+        this.searchState = misconfigured ? 'misconfigured' : 'error';
+        this.statusMessage = misconfigured ? '@form-typeahead-incompatible-query' : '@form-typeahead-unable-to-fetch';
       }
       return [];
     }
@@ -529,12 +555,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     // Invalidate pending autofill without publishing a clear for loaded data.
     this.selectedItem.set(undefined);
     this.lookupRequestId += 1;
+    this.hasNextPage = false;
     this.applyInitialDisplayFromModel();
     const value = this.model?.getValue();
     this.setHistoricalLookupState(this.isHistoricalOrUnknownModelValue(value));
-    this.readOnlyAfterSelectLocked = Boolean(
-      (this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.readOnlyAfterSelect
-    ) && Boolean(value);
+    this.readOnlyAfterSelectLocked =
+      Boolean((this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.readOnlyAfterSelect) &&
+      Boolean(value);
     this.requestRender();
   }
 

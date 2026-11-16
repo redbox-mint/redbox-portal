@@ -90,6 +90,15 @@ export class ReportService extends HttpClientService {
     return await firstValueFrom(req);
   }
 
+  public getReportCursorPage(name: string, params: Record<string,string>, rows = 25, cursor?: string): Promise<ReportResultDto> {
+    const query = new URLSearchParams({...params,name,start:'0',rows:String(rows),...(cursor ? {cursor} : {})});
+    return firstValueFrom(this.http.get<ReportResultDto>(`${this.brandingAndPortalUrl}/admin/getReportResults?${query}`,{ context:this.httpContext, observe:'body' as const }));
+  }
+  public downloadCSV(name: string, params: Record<string,string>): Promise<Blob> {
+    const query = new URLSearchParams({...params,name});
+    return firstValueFrom(this.http.get(`${this.brandingAndPortalUrl}/admin/downloadReportCSV?${query}`,{context:this.httpContext,responseType:'blob'}));
+  }
+
   // TODO:
   // public async getDynamicImportAdminReportTemplates(reportName: string){
   //   const path = ['dynamicAsset', 'adminReportTemplates', reportName?.toString()];

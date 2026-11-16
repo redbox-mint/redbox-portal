@@ -18,4 +18,5 @@ export const lognamespace: LogNamespaceConfig = {
     WorkflowStepsService: 'warn',
     FormsService: 'warn',
     RenderViewController: 'warn',
+    GenerationController: 'warn',
 };

@@ -101,18 +101,12 @@
       >
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label" for="nq-name">{{ 'named-query-name' | i18next }}</label>
-            <input
-              id="nq-name"
-              type="text"
-              class="form-control"
-              [(ngModel)]="draft.name"
-              (ngModelChange)="draftChange.emit()"
-              [readonly]="!isNew"
-              pattern="[A-Za-z0-9_-]+"
-              title="Letters, numbers, underscores, and hyphens only"
-              [attr.placeholder]="'named-query-name-placeholder' | i18next"
-            />
+            <rb-named-query-name
+              [name]="draft.name || ''"
+              [isNew]="isNew"
+              [attempted]="attempted"
+              (nameChange)="draft.name = $event; draftChange.emit()"
+            ></rb-named-query-name>
             @if (!isNew) {
               <div class="form-text">{{ 'named-query-name-readonly-help' | i18next }}</div>
             }
@@ -122,6 +116,9 @@
             <select
               id="nq-collection"
               class="form-select"
+              [class.is-invalid]="attempted && !draft.collectionName"
+              [attr.aria-invalid]="attempted && !draft.collectionName ? 'true' : null"
+              [attr.aria-describedby]="attempted && !draft.collectionName ? 'nq-collection-error' : null"
               [(ngModel)]="draft.collectionName"
               (ngModelChange)="collectionChange.emit()"
             >
@@ -130,6 +127,11 @@
                 <option [value]="collection">{{ collection }}</option>
               }
             </select>
+            @if (attempted && !draft.collectionName) {
+              <div id="nq-collection-error" class="invalid-feedback">
+                {{ 'named-query-error-collection-required' | i18next }}
+              </div>
+            }
           </div>
         </div>
         <div class="form-check">
@@ -242,6 +244,7 @@
       } @else {
         <span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span>
       }
+      <p class="text-muted mt-2">{{ 'named-query-untracked-callers-note' | i18next }}</p>
     </div>
   </section>
 }

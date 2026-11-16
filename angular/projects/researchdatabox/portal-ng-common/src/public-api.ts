@@ -69,3 +69,18 @@ export * from './lib/schema-assist/schema-target-selector.component';
 export * from './lib/schema-assist/latest-request';
 
 export * from './lib/portal-admin.module';
+export * from './lib/admin-side-panel.component';
+export * from './lib/named-query-sections/named-query-basics-section.component';
+export * from './lib/named-query-sections/named-query-lookup-section.component';
+export * from './lib/named-query-sections/named-query-parameters-section.component';
+export * from './lib/named-query-sections/named-query-preview-section.component';
+export * from './lib/named-query-sections/named-query-sections.model';
+
+export * from './lib/named-query-sections/named-query-publication';
+
+export * from './lib/named-query-sections/named-query-name';
+export * from './lib/named-query-sections/named-query-name-field.component';
+
+export * from './lib/columns-panel.component';
+export * from './lib/column-picker-field';
+export * from './lib/admin-source-card.component';

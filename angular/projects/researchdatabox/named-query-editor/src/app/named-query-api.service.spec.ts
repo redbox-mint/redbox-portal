@@ -191,6 +191,63 @@ describe('NamedQuery editor assistance requests', () => {
     req.flush({ fields: [] });
     expect((await pending).fields).toEqual([]);
   });
+  it('uses the named-query schema boundary and keeps review acknowledgement separate from executable data', async () => {
+    const schema = service.graphqlSchema();
+    const schemaRequest = http.expectOne(request => request.url.endsWith('/editor/graphql-schema'));
+    expect(schemaRequest.request.method).toBe('GET');
+    schemaRequest.flush({ data: { sdl: 'type Query { field: String }' } });
+    await schema;
+    const definition: NamedQueryDefinition = {
+      source: 'graphql',
+      name: 'same',
+      graphql: { document: 'query { field }', variables: {}, resultPath: [] },
+    };
+    const review = service.reviewUpdate('same', definition);
+    const request = http.expectOne(request => request.url.endsWith('/same/review-update'));
+    expect(request.request.body).toEqual({ definition });
+    expect(request.request.context).toBe(schemaRequest.request.context);
+    request.flush({
+      data: { required: true, changes: ['source'], usedBy: [], usageComplete: false, confirmation: 'bound' },
+    });
+    const reviewed = await review;
+    const update = service.update('same', definition, reviewed.confirmation);
+    const saved = http.expectOne(request => request.url.endsWith('/same'));
+    expect(saved.request.headers.get('X-ReDBox-Named-Query-Confirmation')).toBe('bound');
+    expect(saved.request.body).toEqual(definition);
+    saved.flush({ data: { name: 'same' } });
+    await update;
+  });
+  it('filters and pages saved explorer queries within the scoped editor boundary', async () => {
+    const pending = service.savedQueries({ q: 'Hunter', mode: 'graphql', after: 'opaque cursor' });
+    const request = http.expectOne(req => req.url.endsWith('/editor/saved-queries'));
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('q')).toBe('Hunter');
+    expect(request.request.params.get('mode')).toBe('graphql');
+    expect(request.request.params.get('after')).toBe('opaque cursor');
+    request.flush({ data: { grids: [], next: null } });
+    expect(await pending).toEqual({ grids: [], next: null });
+  });
+  it('prepares the exact saved revision with CSRF context and preserves conflicts', async () => {
+    const pending = service.fromSavedQuery('saved-id', 7);
+    const request = http.expectOne(req => req.url.endsWith('/editor/from-saved-query'));
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ id: 'saved-id', revision: 7 });
+    expect(request.request.context).toBe((service as unknown as { httpContext: HttpContext }).httpContext);
+    request.flush({ message: 'Revision changed' }, { status: 409, statusText: 'Conflict' });
+    await expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ status: 409 }));
+  });
+  it('keeps GraphQL response data/errors intact through the caller-scoped GraphQL endpoint', async () => {
+    const pending = service.graphqlRead('query Q { records { nodes { oid } } }', { first: 5 }, 'Q');
+    const request = http.expectOne(req => req.url.endsWith('/api/graphql'));
+    expect(request.request.body).toEqual({
+      query: 'query Q { records { nodes { oid } } }',
+      variables: { first: 5 },
+      operationName: 'Q',
+    });
+    expect(request.request.context).toBe((service as unknown as { httpContext: HttpContext }).httpContext);
+    request.flush({ data: { records: null }, errors: [{ message: 'Access denied' }] });
+    expect(await pending).toEqual({ data: { records: null }, errors: [{ message: 'Access denied' }] });
+  });
   for (const action of ['validate', 'describe', 'preview'] as const) {
     it(`POSTs an unsaved ${action} with CSRF context and preserves structured refusals`, async () => {
       const request = {

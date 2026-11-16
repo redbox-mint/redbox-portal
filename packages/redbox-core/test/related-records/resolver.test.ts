@@ -593,7 +593,7 @@ describe('related source projection and RecordsService integration', () => {
       ])
     );
     Object.assign(globalThis, {
-      sails: { config: { reusableFormDefinitions: {}, record: {} }, log: createSinonStubLogger(sinon) },
+      sails: { config: { auth: { defaultPortal: 'rdmp' }, reusableFormDefinitions: {}, record: {} }, log: createSinonStubLogger(sinon) },
       RolesService: { getRole: (_brand: unknown, name: string) => ({ id: name, name }) },
       FormsService: forms,
       FormRecordConsistencyService: { projectMetadataClientFormConfig: project },

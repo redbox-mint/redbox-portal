@@ -1,4 +1,14 @@
-import { Component, EventEmitter, Input, NgModule, Output, OnChanges, SimpleChanges } from '@angular/core';
+import {
+  inject,
+  Component,
+  ChangeDetectionStrategy,
+  EventEmitter,
+  Input,
+  NgModule,
+  Output,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -6,15 +16,18 @@ import {
   CodeEditorComponent,
   FieldTreeComponent,
   I18NextPipe,
+  TranslationService,
   type CompletionSource,
   type FieldNode,
   fieldInsertion,
 } from '@researchdatabox/portal-ng-common';
-import { ContextSchemaField, EditorDiagnostic, lookupPath, storedRecordPath } from '@researchdatabox/sails-ng-common';
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
+import { lookupPath, storedRecordPath } from '@researchdatabox/sails-ng-common/runtime';
 
 let nextAssistanceControlId = 0;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'nq-diagnostics',
   standalone: false,
   template: `@for (d of matching; track d) {
@@ -31,10 +44,10 @@ let nextAssistanceControlId = 0;
         [class.fa-circle-xmark]="d.severity !== 'warning'"
         aria-hidden="true"
       ></i>
-      <strong class="rb-ws-diagnostic-label">{{
-        (d.severity === 'warning' ? 'named-query-advisory' : 'named-query-blocking') | i18next
-      }}</strong>
-      <span>{{ d.reason }}</span>
+      <span>{{ message(d) }}</span>
+      @if (d.line > 0 && d.column > 0) {
+        <span>{{ 'named-query-diagnostic-location' | i18next: { line: d.line, column: d.column } }}</span>
+      }
       @if (d.suggestion) {
         <span>
           {{ 'named-query-suggestion' | i18next }} <code>{{ d.suggestion }}</code></span
@@ -44,6 +57,13 @@ let nextAssistanceControlId = 0;
   }`,
 })
 export class QueryDiagnosticsComponent {
+  private readonly translation = inject(TranslationService);
+  message(diagnostic: EditorDiagnostic): string {
+    return diagnostic.field.startsWith('graphql')
+      ? String(this.translation.t('nq-ux-diagnostic-' + diagnostic.code, diagnostic.reason))
+      : diagnostic.reason;
+  }
+
   @Input() diagnostics: EditorDiagnostic[] = [];
   @Input() location = '';
   get matching(): EditorDiagnostic[] {
@@ -54,6 +74,7 @@ export class QueryDiagnosticsComponent {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'nq-path-input',
   standalone: false,
   template: `<label class="visually-hidden" [for]="controlId">{{ label }}</label
@@ -129,6 +150,7 @@ export class QueryPathInputComponent implements OnChanges {
 
 /** Convert only explicit user edits; loading a typed control never rewrites legacy values. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'nq-typed-value',
   standalone: false,
   template: `<div class="nq-typed-value-row">
@@ -243,6 +265,7 @@ export class QueryTypedValueComponent implements OnChanges {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'nq-mapping-value',
   standalone: false,
   template: `<div class="d-flex mb-1">
