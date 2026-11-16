@@ -43,9 +43,8 @@ describe('RadioInputComponent', () => {
     expect(target.untouched && sibling.untouched).toBeTrue();
     expect(element.querySelector('.rb-form-field-error-summary, .is-invalid')).toBeNull();
 
-    targetInputs[0].focus();
-    expect(document.activeElement).toBe(targetInputs[0]);
-    targetInputs[0].blur();
+    // Exercise the DOM binding without depending on headless browser focus state.
+    targetInputs[0].dispatchEvent(new FocusEvent('blur'));
     await fixture.whenStable();
     fixture.detectChanges();
 
