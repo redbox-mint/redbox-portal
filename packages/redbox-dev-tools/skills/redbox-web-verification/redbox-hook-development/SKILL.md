@@ -6,7 +6,7 @@ description: 'Create and migrate ReDBox v6 extension packages with explicit decl
 # ReDBox v6 extensions
 
 Read `support/wiki/Using-a-Sails-Hook-to-customise-ReDBox.md` (historical page name)
-and `support/specs/sails-retirement/extensions-v6.md` for the implemented protocol.
+and `support/specs/fastify-migration/extension-api2.md` for the implemented protocol.
 Use `redbox-dev-tools init` with the sole v6 scaffold. Export the extension under
 `package.json` `redbox.extension` and a public `registerRedboxExtension` function.
 Declare configuration, modules, routes, jobs and migrations explicitly; select

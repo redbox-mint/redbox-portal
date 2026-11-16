@@ -33,7 +33,7 @@ export interface FastifyHostOptions {
   readonly prepare: (app: FastifyPreparation, server: Server) => Promise<void>;
 }
 
-/** Internal, late-listening composition. The production executable still uses Express. */
+/** Late-listening Fastify composition. The retained Express executable is a legacy pre-cutover baseline. */
 export class FastifyHost {
   private readonly fastify: FastifyInstance;
   private readonly owner: PersistenceOwner;

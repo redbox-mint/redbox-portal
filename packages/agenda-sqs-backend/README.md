@@ -40,9 +40,11 @@ await agenda.now('send-email', { userId: 'u1' });
 ## Configuration
 
 ```ts
+import { SqsBackend } from '@researchdatabox/agenda-sqs-backend';
+
 new SqsBackend({
-  queueUrl,
-  region,
+  queueUrl: 'https://sqs.ap-southeast-2.amazonaws.com/123456789012/jobs',
+  region: 'ap-southeast-2',
   waitTimeSeconds: 20,
   receiveBatchSize: 10,
   visibilityTimeoutSeconds: 300,

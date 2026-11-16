@@ -1,5 +1,7 @@
 # Integration Status Widget + Non-blocking DOI Triggers — Implementation Plan
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 ## Context
 
 Record save hooks (onCreate/onUpdate pre/post triggers) call third-party services — notably DataCite Fabrica DOI minting via `sails.services.doiservice.publishDoiTriggerSync` in [src/config/datapublication-recordtype.ts](src/config/datapublication-recordtype.ts). When DataCite is down or misconfigured, these **synchronous** triggers fail the user's save. Failures are recorded in the existing `IntegrationAuditService` (status `started`/`success`/`failed`, messages, trace grouping) but are only visible to brand admins via the `viewAudit` integration tab.

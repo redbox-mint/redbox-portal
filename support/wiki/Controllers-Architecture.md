@@ -1,46 +1,55 @@
-# HTTP handlers and routes
+# HTTP controllers and routes
 
-V6 runs one Express 5 host. The application composes route groups from
-`packages/redbox-core/src/http/express/`; there are no generated controller shims,
-controller singleton registries or framework request/response globals.
+API2 uses Fastify request/reply types and explicit controller classes with named
+actions. Import authoring contracts from `@researchdatabox/redbox-core/http` and
+`RedboxExtensionV2` from `@researchdatabox/redbox-core/extensions`.
 
-A route group receives a concrete input containing only its selected domain
-operations, policy implementations and request-scoped authentication context.
-Transport code validates parameters, invokes the domain and serializes the result.
-Domains own authorization-sensitive record operations and persistence lifetimes.
-Do not recover missing dependencies through a process global.
+Each controller is constructed once per application with concrete borrowed inputs.
+Constructors wire dependencies; application modules acquire and close resources.
+Keep actor, brand, portal and validated input local to each request. The public
+`requestContext(request)` accessor supplies an immutable snapshot after the route's
+brand resolution stage and throws if that stage has not run.
 
-## Core routes
+## Declaring an action
 
-API declarations in `src/api-routes/groups/` describe method, path, validation,
-response and policy contracts. `http/express/apiManifest.ts` reconciles the owned
-route groups. Browser routes and assets are mounted explicitly by the portal HTTP
-composition. Use Express `req.params`, `req.query`, `req.body`, `res.status()` and
-`res.json()`; do not depend on virtual socket requests or framework response helpers.
-`responses.ts` preserves the supported API version negotiation and error envelopes.
+Use `defineController({ name, actions, create })` to check the action allowlist,
+and supply its concrete input through `bindControllerFactory(factory, input)` in
+the application's `http.bindings` callback. A class method becomes reachable only
+when an explicit route targets that controller/action. Missing bindings, unknown
+policies and unlisted actions fail composition before listening.
 
-`createHttpPolicies()` binds branding, authenticated actor, membership and access
-policies. Unbound policies fail composition. Route metadata and input validation
-do not grant record access. Mutations bind the session-aware CSRF middleware;
-Companion shared secrets never substitute for an authenticated actor.
+Actions accept `FastifyRequest` and `FastifyReply`, read live request values after
+hooks, call domain operations and send the existing response contract. Serialize
+JSON inside the guarded action before `reply.send` so a serialization fault reaches
+the safe error boundary. Do not catch typed authorization, validation or not-found
+errors in a generic success/error mapping. Domains retain object authorization.
 
-## Extensions
+API declarations in `src/api-routes/groups/` supply executable validation, response
+metadata and method/path/target information. Native bindings derive from those
+sources. Response schemas document the contract; they do not strip fields. Browser
+controllers and assets join the explicit registration inventory.
 
-Return named `handlers` and `routes` from `registerRedboxExtension()` using the
-public `RedboxExtension` contract. A handler factory declares its prerequisites
-and receives the application's concrete selected dependencies. A route declares
-its HTTP method, path, handler name and explicit `access` policy list, or `public`.
-Duplicate registrations need intentional `replaces: true`; unknown policy and
-handler names are errors. The host owns listening, activation, draining and signals.
+## Extension routes and replacements
 
-The sole `redbox-dev-tools init` scaffold is v6. The service/controller generators
-produce ordinary exported classes. Controller generation writes named route
-declarations to `src/config/extensionRoutes.ts`; include them in the extension's
-`routes` and supply each matching handler factory and named access policy.
-Generated declarations are deliberately not a runtime discovery mechanism.
+Return `apiVersion: 2`, `controllers` and `routes` from `registerRedboxExtension()`.
+Every route declares a stable name, method, path, controller, action and complete
+`access`: `{ kind: 'public' }`, `{ kind: 'deny' }`, or a nonempty ordered
+`{ kind: 'policies', names: [...] }`. Mutations retain CSRF and canonical-origin
+guards. An empty policy list cannot make a route public.
 
-See [extension conversion](../specs/sails-retirement/hook-migration-v6.md),
+A controller replacement uses the owned name and `replaces: true`, preserves the
+action allowlist, and leaves route security and validation unchanged. Changing
+access requires a separate complete route replacement. Native hooks have explicit
+scope and order; unmatched dispatch uses a named fallback. Extensions receive no
+server or registration capability and own no listener or signals.
+
+Use the [API1 to API2 migration guide](../specs/fastify-migration/extension-api2.md)
+for the compile-checked example, generated application bindings, bundled hooks and
+WSU worked example. See [hook ordering](../specs/fastify-migration/hooks.md),
 [services](Services-Architecture.md), [loading](Redbox-Loader.md), and
-[all intentional client behavior changes](V6-Client-Compatibility.md). Generate
-and validate the [REST reference](Generated-Reference-Documentation.md) after
-changing a public route contract.
+[generated references](Generated-Reference-Documentation.md).
+
+The retained Express executable and comparison adapters are legacy development
+baselines until FM-042 cutover. Their private paths are not supported extension
+entrypoints. [Final runtime qualification](../specs/fastify-migration/tasks.md#p7--cutover-candidate-and-qualification)
+remains separate from API2 consumer qualification.

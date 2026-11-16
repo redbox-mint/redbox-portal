@@ -1,6 +1,8 @@
 # Architecture Overview
 
-ReDBox v6 uses a ReDBox-owned application runtime and Express 5 HTTP host on
+> API2 authoring and production composition use the migration qualification gates; consult revision-specific evidence for the verdict. The retained `app.express.cjs` default is a legacy pre-cutover executable; FM-042 switches startup and FM-048 records final runtime qualification. See the [migration guide](../specs/fastify-migration/extension-api2.md).
+
+ReDBox v6 uses a ReDBox-owned application runtime and Fastify HTTP composition on
 Node 26. Angular applications remain embedded in EJS pages. Prisma repositories
 provide MongoDB persistence; owned native pools serve GridFS, sessions and Agenda.
 Published package names such as `sails-ng-common` and the storage/PDF hooks are
@@ -8,10 +10,10 @@ historical names and do not imply a framework dependency.
 
 ## Application composition
 
-`app.express.cjs` loads the selected deployment modules, discovers installed v6
+The production `createPortalFastifyApplication` bootstrap loads the selected deployment modules, discovers installed v6
 extension declarations, resolves precedence and binds concrete factories before
-acquiring resources. `createPortalApplication` composes the actual domains;
-`createPortalHost` adds one HTTP listener and a process signal boundary.
+acquiring resources. `createPortalFastifyApplication` composes the actual domains;
+`createPortalFastifyHost` adds one HTTP listener and a process signal boundary.
 
 Initialization validates configuration and capabilities, prepares selected
 repositories, runs named ledger migrations and awaited bootstrap, and then
@@ -28,7 +30,7 @@ separate, documented process-lifetime limitation in [v6 client changes](V6-Clien
 | Path | Responsibility |
 |---|---|
 | `packages/redbox-core/src/application/` | Owned application lifecycle and production composition |
-| `packages/redbox-core/src/http/express/` | Transport, identity, policy, CSRF, uploads, rendering and sockets |
+| `packages/redbox-core/src/http/fastify/` and `http/controllers/` | Transport, identity, policy, CSRF, uploads, rendering and sockets |
 | `packages/redbox-core/src/extensions/` | Offline declarations, async loading and deterministic resolution |
 | `packages/redbox-core/src/configuration/` | Explicit, validated deployment configuration |
 | `packages/redbox-core/src/persistence/` | Repository contracts, clients, native resources and draining |
@@ -40,7 +42,7 @@ separate, documented process-lifetime limitation in [v6 client changes](V6-Clien
 
 ## Request flow
 
-1. Express resolves the root context, session and authenticated actor.
+1. Fastify resolves the root context, session and authenticated actor.
 2. Selected policies resolve brand/portal, membership, object grants and CSRF.
 3. Typed route adapters validate input and invoke explicitly supplied domains.
 4. Domains use owned repositories/providers; transport errors expose safe envelopes.
@@ -51,7 +53,7 @@ HTTP paths/envelopes remain compatible where specified. Review every intentional
 
 ## Extensions and builds
 
-Extensions export `registerRedboxExtension()` returning `apiVersion: 1`. Factories
+Extensions export `registerRedboxExtension()` returning `apiVersion: 2`. Factories
 receive concrete inputs from the selected application; declarations never acquire
 resources. See [Services Architecture](Services-Architecture.md),
 [extension loading](Redbox-Loader.md) and [core package](Redbox-Core-Types.md).

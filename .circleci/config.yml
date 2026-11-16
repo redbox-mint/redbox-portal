@@ -74,6 +74,7 @@ jobs:
           command: |
             sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
+            npm --prefix angular ci --ignore-scripts --strict-peer-deps
       - run:
           name: Build redbox-core assets
           command: |
@@ -91,6 +92,8 @@ jobs:
       - run:
           name: Test and audit generated contract documentation
           command: |
+            npm run docs:generate
+            npm run docs:check
             npm run docs:test
             npm run docs:audit
       - store_artifacts:
@@ -1156,6 +1159,7 @@ jobs:
           command: |
             npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
+            npm --prefix angular ci --ignore-scripts --strict-peer-deps
       - run:
           name: Build redbox-core assets
           command: |
@@ -1168,8 +1172,9 @@ jobs:
           name: Generate extension, form, and REST references
           command: |
             npm run doc:api -- --branding=default --portal=rdmp
-            npm run docs:test
             npm run docs:generate
+            DOCS_API_BRANDING=default DOCS_API_PORTAL=rdmp npm run docs:check
+            DOCS_API_BRANDING=default DOCS_API_PORTAL=rdmp npm run docs:test
       - run:
           name: Deploy generated references to gh-pages
           command: |

@@ -1,5 +1,7 @@
 # Route-group acceptance (SR-031)
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 Use this checklist for each independently reviewable read/write slice. Results belong in the [evidence summary](evidence-summary.md); original per-group and authentication reports remain on the archive branch. Unimplemented
 routes remain unmounted in the partial host. The manifest is documentation, never
 runtime dispatch and never a reason to retry a request through Sails.

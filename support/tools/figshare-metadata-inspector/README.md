@@ -134,14 +134,14 @@ Unknown types remain in every output with their untouched configuration so they 
 
 ## Library use
 
-The CLI is an adapter over reusable services:
+The CLI is an adapter over reusable services. From this tool's source directory:
 
 ```ts
 import {
   FigshareClient,
   MetadataDiscoveryService,
   MetadataNormaliser,
-} from '@researchdatabox/figshare-metadata-inspector';
+} from './src/index.js';
 
 const http = new FigshareClient({
   token: process.env.FIGSHARE_TOKEN!,

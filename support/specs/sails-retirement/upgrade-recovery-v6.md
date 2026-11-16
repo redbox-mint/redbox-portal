@@ -1,5 +1,7 @@
 # v6 upgrade and recovery runbook
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 This runbook accompanies SR-048/SR-049. The production Express entrypoint is
 `app.express.cjs`; it composes the installed selected domains and bundled hooks.
 The final Sails-free P8 artifact passes installed fresh/restart/stop and complete

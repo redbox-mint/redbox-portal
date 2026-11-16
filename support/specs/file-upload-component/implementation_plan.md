@@ -1,5 +1,7 @@
 # FileUpload Component — Uppy + TUS + Cloud Sources
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 Create a new `FileUploadComponent` for the v5 form framework, replacing the legacy `RelatedFileUploadField` / `DataLocationField`. Uses Uppy v4.x with Dashboard UI, TUS resumable uploads, and cloud source plugins (Dropbox, Google Drive, OneDrive) via **Companion running as Express middleware** on the same server.
 
 ---

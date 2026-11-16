@@ -1,8 +1,14 @@
+/** HttpLanguage authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface HttpLanguage {
   readonly code: string;
   readonly displayName: string;
   readonly enabled?: boolean;
 }
+/** LanguageInput authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface LanguageInput {
   readonly query?: unknown;
   readonly session?: unknown;
@@ -12,7 +18,9 @@ export interface LanguageInput {
 }
 
 /** Shared page/action resolver; callers explicitly persist the selected language
- * at their existing session boundary. No brand or session is invented here. */
+ * at their existing session boundary. No brand or session is invented here.
+ * @extensionPoint Supply the selected language source and persist the result through the application session owner.
+ */
 export async function resolveLanguage(
   input: LanguageInput
 ): Promise<{ readonly language: string; readonly languages: readonly HttpLanguage[] }> {

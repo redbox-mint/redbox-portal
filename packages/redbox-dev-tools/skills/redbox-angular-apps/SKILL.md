@@ -22,7 +22,7 @@ Use the `redbox-dev-tools` CLI generator `generate_angular_app`:
 ## Patterns
 - Apps are scaffolded using `@angular-devkit/build-angular:application`.
 - EJS views include the Angular component tag and the hashed JS/CSS bundles.
-- Use the request-scoped `page` context supplied by the Express page composition.
+- Use the request-scoped `page` context supplied by the Fastify page composition.
   Declare package-relative view/asset roots in the extension and bind any custom
   page handler explicitly. Read `support/wiki/Controllers-Architecture.md` and
   `support/specs/sails-retirement/hook-migration-v6.md` for installed packaging.

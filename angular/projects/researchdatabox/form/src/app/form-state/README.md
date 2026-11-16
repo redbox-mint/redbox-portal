@@ -45,6 +45,7 @@ graph TD
 
 Register the form feature state at application bootstrap:
 
+<!-- docs-example:skip partial: Bootstrap excerpt; supply application component and NgRx imports. -->
 ```typescript
 import { provideFormFeature } from '...';
 
@@ -62,6 +63,7 @@ bootstrapApplication(AppComponent, {
 
 The `FormStateFacade` provides a clean API for form lifecycle operations:
 
+<!-- docs-example:skip partial: Component excerpt; resolve the facade import from your application and supply Angular metadata. -->
 ```typescript
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Component, inject, effect } from '@angular/core';
@@ -119,6 +121,7 @@ export class FormExampleComponent {
 
 Field components should inject `FormStateFacade` (optionally) and read its reactive signals directly:
 
+<!-- docs-example:skip partial: Field component excerpt; imports, control and default value belong to the containing component. -->
 ```typescript
 @Component({
   selector: 'redbox-example-input',
@@ -179,6 +182,7 @@ All signals are reactive and automatically update when store state changes:
 
 Imperative methods that dispatch actions to the store:
 
+<!-- docs-example:skip partial: Facade signature outline; these are method descriptions rather than executable calls. -->
 ```typescript
 // Load initial form data
 facade.load(oid: string, recordType: string, formName: string): void
@@ -245,6 +249,7 @@ Note: In code, do not use raw string literals for event types. Always use the ty
 
 ### Publishing Events
 
+<!-- docs-example:skip partial: Publisher component excerpt; imports, component metadata and field name are omitted. -->
 ```typescript
 @Component({...})
 export class PublisherExampleComponent {
@@ -270,6 +275,7 @@ export class PublisherExampleComponent {
 
 #### Option 1: Observable (for effects or complex logic)
 
+<!-- docs-example:skip partial: Subscriber component excerpt; imports, metadata and dependent-value implementation are omitted. -->
 ```typescript
 
 @Component({...})
@@ -294,6 +300,7 @@ export class ReactiveFieldComponent implements OnInit {
 
 #### Option 2: Signal (for reactive templates)
 
+<!-- docs-example:skip partial: Signal component excerpt; imports, metadata, field name and input reference are omitted. -->
 ```typescript
 
 @Component({...})
@@ -321,6 +328,7 @@ export class SignalBasedFieldComponent {
 
 ⚠️ **Important**: When a field reacts to an event, it should **not** re-publish the same event type to avoid loops.
 
+<!-- docs-example:skip partial: Contrasting method bodies; place one approach in a component with its injected event bus. -->
 ```typescript
 
 // ❌ BAD: Creates infinite loop
@@ -378,6 +386,7 @@ Console output:
 
 ### Testing Components Using the Facade
 
+<!-- docs-example:skip partial: Jasmine test excerpt; application component, TestBed and store setup imports are omitted. -->
 ```typescript
 
 describe('MyFormComponent', () => {
@@ -406,6 +415,7 @@ describe('MyFormComponent', () => {
 
 ### Testing Event Bus Communication
 
+<!-- docs-example:skip partial: Jasmine test excerpt; event bus, factories and TestBed setup imports are omitted. -->
 ```typescript
 
 describe('Field Communication', () => {
@@ -436,6 +446,7 @@ describe('Field Communication', () => {
 ### From Direct Status Mutation
 
 **Before:**
+<!-- docs-example:skip partial: Before-refactor component excerpt; signal and status enum imports are omitted. -->
 ```typescript
 export class FormComponent {
   status = signal<FormStatus>(FormStatus.INIT);
@@ -453,6 +464,7 @@ export class FormComponent {
 ```
 
 **After:**
+<!-- docs-example:skip partial: After-refactor component excerpt; facade and Angular injection imports are omitted. -->
 ```typescript
 export class FormComponent {
   facade = inject(FormStateFacade);
@@ -470,6 +482,7 @@ export class FormComponent {
 ### From Component-Level Event Handling
 
 **Before:**
+<!-- docs-example:skip partial: Parent/child component outline; imports, metadata and field implementation are omitted. -->
 ```typescript
 @Component({...})
 export class ChildExampleFieldComponent {
@@ -495,6 +508,7 @@ export class ParentExampleComponent {
 ```
 
 **After:**
+<!-- docs-example:skip partial: Parent/child event-bus outline; imports, metadata and field implementation are omitted. -->
 ```typescript
 @Component({...})
 export class ChildExampleFieldComponent {
@@ -536,6 +550,7 @@ Facade signals use the store’s `selectSignal()` to expose NgRx selectors as An
 
 Events are emitted in microtasks to batch multiple publications in the same tick:
 
+<!-- docs-example:skip partial: Event-publishing excerpt; place inside a component with eventBus, name and newValue. -->
 ```typescript
 import { createFieldValueChangedEvent } from '@researchdatabox/portal-ng-common';
 
@@ -551,6 +566,7 @@ eventBus.publish(createFieldValueChangedEvent('c', 3, undefined, 'c'));
 
 The adapter effect throttles event-to-action promotion to prevent duplicate dispatches:
 
+<!-- docs-example:skip partial: Dependency-trigger excerpt; place inside a component with an injected event bus. -->
 ```typescript
 import { createFieldDependencyTriggerEvent } from '@researchdatabox/form/form-state';
 
@@ -569,6 +585,7 @@ eventBus.publish(createFieldDependencyTriggerEvent('country', ['state'], 'reason
 
 **Solution**: Ensure `provideFormFeature()` is called in app config:
 
+<!-- docs-example:skip partial: Bootstrap excerpt; application component and provider imports are omitted. -->
 ```typescript
 bootstrapApplication(AppComponent, {
   providers: [
@@ -585,6 +602,7 @@ bootstrapApplication(AppComponent, {
 
 **Solution**: Replace direct status signal with facade signal:
 
+<!-- docs-example:skip partial: Incorrect/correct call comparison; event bus and value are supplied by the containing component. -->
 ```typescript
 // ❌ Wrong
 status = signal(FormStatus.INIT);
@@ -600,6 +618,7 @@ status = this.facade.status;
 
 **Solution**: Ensure exact event type match and use sourceId for scoping:
 
+<!-- docs-example:skip partial: Publisher/subscriber excerpt; component methods and event bus setup are omitted. -->
 ```typescript
 
 // Publisher
@@ -617,6 +636,7 @@ eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED)
 
 **Solution**: Use debounce/throttle and guard against re-publishing:
 
+<!-- docs-example:skip partial: Subscription excerpt; event bus, RxJS operators and component callbacks are omitted. -->
 ```typescript
 eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED)
   .pipe(

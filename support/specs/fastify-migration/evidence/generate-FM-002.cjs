@@ -7,8 +7,14 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../../../..');
+// Include reviewable new sources before staging; ignore generated/scratch output.
 const trackedSources = new Set(
-  execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean)
+  execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+    .split('\0')
+    .filter(Boolean)
 );
 require(path.join(root, 'node_modules/ts-node')).register({
   project: path.join(root, 'packages/redbox-core/test/tsconfig.json'),
@@ -1036,7 +1042,10 @@ function collectInventory() {
       ...route,
       provider: 'documentation example (opt-in; not a bundled production route)',
       ownerTask: 'FM-037',
-      testReferences: [{ file: test('extensions/HookExample.test.ts'), scope: 'compiled example route' }],
+      testReferences: [
+        { file: test('extensions/HookExample.test.ts'), scope: 'offline API2 example resolution/lifecycle' },
+        { file: test('extensions/HookExampleMongo.test.ts'), scope: 'compiled example route on production Fastify' },
+      ],
       source: sourceReference(exampleFile, 'registerRedboxExtension'),
       head: 'implicit GET; extension explicit HEAD precedence applies',
       csrf: 'none (explicit public GET)',

@@ -1,5 +1,7 @@
 # Guided Provider Configuration for Record Ingestion
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 ## Summary
 
 Replace the raw source-JSON editor with a schema-driven, guided configuration experience. The page will follow the established ReDBox management pattern: full-width searchable source table, toolbar, status badges, and a large create/edit modal.

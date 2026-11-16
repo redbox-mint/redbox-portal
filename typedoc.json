@@ -1,6 +1,11 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["packages/redbox-core/src/index.ts", "packages/sails-ng-common/src/index.ts"],
+  "entryPoints": [
+    "packages/redbox-core/src/extensions/index.ts",
+    "packages/redbox-core/src/http/index.ts",
+    "packages/redbox-core/src/index.ts",
+    "packages/sails-ng-common/src/index.ts"
+  ],
   "entryPointStrategy": "resolve",
   "tsconfig": "support/documentation/tsconfig.typedoc.json",
   "excludeInternal": true,

@@ -1,5 +1,7 @@
 # Sails retirement: v6 implementation plan
 
+> Historical Sails-retirement / API1 baseline. Express handler, middleware and deep-export instructions below are legacy; current authoring uses the [API2 migration guide](../fastify-migration/extension-api2.md). Retain this record for preceding-build comparison and recovery context.
+
 Status: delivery plan. Executed completion is tracked in [tasks](tasks.md) and
 linked evidence. Agreed direction recorded on 2026-10-23.
 Source baseline: `stack/waterline-4-remove-waterline`, commit

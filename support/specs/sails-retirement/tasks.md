@@ -1,5 +1,7 @@
 # Sails retirement: v6 task list
 
+> Historical Sails-retirement / API1 baseline. Express handler, middleware and deep-export instructions below are legacy; current authoring uses the [API2 migration guide](../fastify-migration/extension-api2.md). Retain this record for preceding-build comparison and recovery context.
+
 The local review-stack rebuild integrates Prisma base `54218bde4`; current qualification and the archived evidence boundary are recorded in the [evidence summary](evidence-summary.md).
 
 Status: **55 of 55 tasks are complete for the recorded qualification scope.**

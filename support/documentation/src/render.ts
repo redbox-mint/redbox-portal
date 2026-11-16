@@ -139,19 +139,14 @@ function surfacePage(surface: SurfaceContract): string {
   <p class="action-row"><a class="button" href="${surface.source.url}">Open the source file</a><span class="source-path"><code>${escapeHtml(surface.source.file)}:${surface.source.line}</code></span></p>
 </div>
 ${surface.documentation.extensionSemantics ? `<aside class="callout"><p class="callout-title">How to change this contract</p><p>${prose(surface.documentation.extensionSemantics)}</p></aside>` : ''}
+${surface.declaration ? `<section><h2>Declaration</h2><pre><code>${escapeHtml(surface.declaration)}</code></pre></section>` : ''}
 <section><h2>Members</h2>${memberTable(surface)}</section>${routeTable(surface)}${relationshipList(surface)}${example}`,
     '..',
     section
   );
 }
 
-function indexPage(
-  title: string,
-  lede: string,
-  section: Section,
-  surfaces: SurfaceContract[],
-  resource = ''
-): string {
+function indexPage(title: string, lede: string, section: Section, surfaces: SurfaceContract[], resource = ''): string {
   return layout(
     title,
     `<div class="page-head">

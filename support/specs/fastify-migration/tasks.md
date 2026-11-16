@@ -336,7 +336,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     checkout and archived 565 passes are not relabeled new qualification. Actual
     institutional production acceptance stays separately pending unless performed.
 
-- [ ] **FM-041 — Generate references and close G6.**
+- [x] **FM-041 — Generate references and close G6.**
   - Dependencies: FM-039, FM-040.
   - Work: update extension/controller docs, API reference examples and migration
     guide; run existing generation/audit/test tooling.

@@ -11,10 +11,10 @@ Produce a detailed design, implementation plan, and task list for ReDBox feature
 
 ## Required Nuances (Must Apply)
 
-- **Angular apps are embedded, not SPAs.** Do not design Angular routing. Pages are routed by the owned Express host and EJS views, and Angular apps mount inside those views.
+- **Angular apps are embedded, not SPAs.** Do not design Angular routing. Pages are routed by the owned Fastify host and EJS views, and Angular apps mount inside those views.
 - **Domains, repositories and HTTP adapters live in `@researchdatabox/redbox-core`.** Use explicit factory inputs and neutral extension declarations.
 - **Handlers receive concrete inputs and use owned response functions.** Constructors and registration remain offline; the application owns initialization and shutdown.
-- **Auth and routes are explicit config.** Route groups live in `packages/redbox-core/src/http/express` and auth rules in `packages/redbox-core/src/config/auth.config.ts`.
+- **Auth and routes are explicit config.** Route groups live in `packages/redbox-core/src/http/fastify` and auth rules in `packages/redbox-core/src/config/auth.config.ts`.
 - **Hook overrides are first-class.** If the feature is delivered via a hook, declare `redbox.extension`, export `registerRedboxExtension()` and mark selected named overrides with `replaces: true`.
 - **Use Hook Kit CLI generators when possible.** Check the built v6 CLI's `generate --help` for handler/service, Angular and form generators. Declare persistence fields/repositories explicitly; the model generator is retired.
 
@@ -81,7 +81,7 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 - Endpoint list (method + path)
 - Request/response shapes and status codes
 - Authn/authz and policy usage
-- Error handling and validation (owned `sendApiData`/`sendApiErrors` contracts)
+- Error handling and validation (typed Fastify actions, explicit status codes and safe response bodies)
 - File locations and naming
 - Handler conventions (explicit typed inputs, declared policies and admitted work ownership)
 - Export/update requirements (route groups, handler factories and policy bindings)
@@ -91,7 +91,7 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 - Endpoint list (method + path or action)
 - Request/response shapes
 - Authn/authz and policy usage
-- Error handling and validation (owned `sendApiData`/`sendApiErrors` contracts)
+- Error handling and validation (typed Fastify actions, explicit status codes and safe response bodies)
 - File locations and naming
 - Handler conventions (explicit typed inputs, declared policies and admitted work ownership)
 - Export/update requirements (route groups, handler factories and policy bindings)
@@ -99,13 +99,13 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 ## 5. Angular App(s)
 
 - Apps/modules to add or modify (embedded apps only)
-- Routes: **Do not use Angular Router**; specify Express/EJS page routing instead
+- Routes: **Do not use Angular Router**; specify Fastify/EJS page routing instead
 - Components and services
 - Data flow to/from APIs
 - State management and error handling
 - File locations and naming (Angular workspace + EJS view + assets output)
 - EJS view wiring (component tag + hashed asset includes using `page.bundleHash`)
-- Render path (selected Express page handler and explicit page locals)
+- Render path (selected Fastify page controller and explicit page locals)
 
 ## 6. Additional Views
 

@@ -1,5 +1,7 @@
 # Researcher-Facing Outcome View for IntegrationStatusComponent
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 ## Context
 
 The existing IntegrationStatusComponent (see INTEGRATION_STATUS_PLAN.md) is admin/librarian-oriented: it exposes implementation details ("DOI (DataCite)", "Success", timestamps, execution time). Researchers ask outcome questions — "Do I have a DOI yet? Is it active? Has my data been deposited to Figshare?" This change adds a researcher-facing "External services" outcome summary as the default view, while Admin/Librarian users additionally get the existing technical detail rows behind an expandable "Technical details" toggle.

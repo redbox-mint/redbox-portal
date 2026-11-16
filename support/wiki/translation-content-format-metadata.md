@@ -22,6 +22,7 @@ type TranslationEntry = {
 
 Update set-entry request bodies to accept:
 
+<!-- docs-example:skip partial: Translation entry interface members; enclosing type declaration is omitted. -->
 ```ts
 {
   value: unknown;
@@ -75,6 +76,7 @@ Update [translation.component.ts](/Users/andrewbrazzatti/source/github/worktrees
 2. Extend `TranslationEntry` with `contentFormat?: TranslationContentFormat`.
 
 3. Add modal state:
+<!-- docs-example:skip partial: Component property excerpt; reuse the preceding TranslationContentFormat type. -->
    ```ts
    editContentFormat: TranslationContentFormat = 'plain';
    ```
@@ -118,6 +120,7 @@ Update content/form config support so rendering can respect metadata instead of 
    - [content.model.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.model.ts)
 
    Add:
+<!-- docs-example:skip partial: Request-body interface member excerpt; enclosing type declaration is omitted. -->
    ```ts
    translationContentFormat?: 'plain' | 'html';
    ```

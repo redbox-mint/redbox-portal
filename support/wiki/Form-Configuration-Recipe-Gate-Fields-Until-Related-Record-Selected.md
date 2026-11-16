@@ -37,6 +37,7 @@ const disableUntilRelatedRecordSelected = (
 For a Data Publication whose selector is at
 `/mainTab/about/dataRecord`, apply it like this:
 
+<!-- docs-example:skip partial: Field excerpt; reuse disableUntilRelatedRecordSelected in the containing form module. -->
 ```typescript
 {
   name: "description",
@@ -83,6 +84,7 @@ For generated configs, checking for a `model` is a useful starting point because
 editable fields and repeatables have one while most structural components do not.
 Still exclude the selector explicitly because it also has a model.
 
+<!-- docs-example:skip partial: Form finalisation excerpt; supply form and the application walkComponents helper. -->
 ```typescript
 walkComponents(form.componentDefinitions, component => {
   if (

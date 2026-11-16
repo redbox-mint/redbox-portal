@@ -1,5 +1,7 @@
 # Checkbox Tree Component for Hierarchical Vocabulary
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 A new configurable form component that renders a hierarchical vocabulary as an expandable/collapsible tree with checkboxes. Replaces the legacy `ANDSVocabComponent`. Supports two data-loading strategies: **inline** (small vocabs baked into form config at build time) and **lazy** (large vocabs fetched on-demand as the user expands tree branches).
 
 ---

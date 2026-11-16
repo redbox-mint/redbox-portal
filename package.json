@@ -107,7 +107,9 @@
     "persistence:indexes": "node node_modules/@researchdatabox/redbox-core/bin/persistence-indexes.cjs",
     "check:prisma": "npm --prefix packages/redbox-core run check:prisma",
     "compile:host": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
-    "test:packed:fastify": "node support/integration-testing/qualify-fastify-packages.cjs"
+    "test:packed:fastify": "node support/integration-testing/qualify-fastify-packages.cjs",
+    "docs:examples": "ts-node --transpile-only --project support/documentation/tsconfig.json support/documentation/src/examples.ts",
+    "docs:check": "ts-node --transpile-only --project support/documentation/tsconfig.json support/documentation/src/check.ts"
   },
   "main": "app.express.cjs",
   "repository": {

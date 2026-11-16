@@ -9,7 +9,7 @@ Read `support/wiki/Services-Architecture.md` and `support/wiki/Redbox-Core-Types
 for supported classes, exported contracts and composition. Domains live in named
 source folders under `packages/redbox-core/src` and receive repositories, logger,
 configuration and collaborators explicitly. Extension modules declare their
-requirements and bind factories through `RedboxExtension`.
+requirements and bind factories through `RedboxExtensionV2`.
 
 Constructors remain offline. Initialization prepares state; activation starts
 producers; quiesce refuses new work; drain awaits accepted work; close releases

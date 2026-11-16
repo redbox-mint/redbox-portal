@@ -1,5 +1,7 @@
 # TUS Server Upgrade: `tus-node-server` → `@tus/server`
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 Upgrade the server-side TUS resumable upload implementation from the deprecated `tus-node-server` (^0.9.0) to the modular `@tus/server` ecosystem.
 
 > [!NOTE]

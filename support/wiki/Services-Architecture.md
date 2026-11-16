@@ -38,7 +38,7 @@ They do not provide default construction, globals or lifecycle discovery.
 
 ## Extending behavior
 
-Register named factories through `RedboxExtension`. A selected application binds
+Register named factories through `RedboxExtensionV2`. A selected application binds
 its concrete dependencies and must explicitly accept extension-specific contracts.
 Do not pass a general service locator. Overrides declare `replaces: true` and
 preserve the selected contract's security, errors, concurrency, schema, audit and

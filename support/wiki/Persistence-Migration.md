@@ -1,7 +1,7 @@
 # Persistence migration for institutions
 
 All persistence groups use Prisma and the application owns their pools. V6 uses
-the standalone Express host. Framework hooks, model/service/controller globals,
+the owned application runtime and Fastify composition. Framework hooks, model/service/controller globals,
 `.sailsrc` and generated shims have been removed.
 
 Remove `persistence`, `models` and `orm` configuration, including empty objects,

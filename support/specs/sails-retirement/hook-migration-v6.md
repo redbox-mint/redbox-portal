@@ -1,5 +1,7 @@
 # Initial v5-to-v6 hook conversion
 
+> Historical Sails-retirement / API1 baseline. Express handler, middleware and deep-export instructions below are legacy; current authoring uses the [API2 migration guide](../fastify-migration/extension-api2.md). Retain this record for preceding-build comparison and recovery context.
+
 The FM-037 scaffold/controller examples below target the production Fastify
 composition and API2. The default executable still selects Express until FM-042;
 remaining rollout/reference guidance is reconciled in FM-041/FM-048.
@@ -319,8 +321,9 @@ conversions, nested declarations, opaque templates, idempotence and unknown-name
 rejection, then rehearse the lexical ordering against that checkpoint. WSU's four
 expression mapping is an example, not a generic institution conversion table.
 
-A real hook needs an institution composition executable using `createPortalHost`
-and its concrete `bindings`. The default `app.express.cjs` has no application-specific
+In the **legacy Express composition**, a real hook needs an institution executable
+using the private `createPortalHost` and its concrete `bindings`. The retained
+`app.express.cjs` has no application-specific
 binding discovery. Use that same explicit composition with `createPortalApplication`
 for index maintenance and initialize-only; otherwise maintenance can fail on the
 unbound institution handlers before it reaches index inspection. Configuration

@@ -26,7 +26,9 @@ export interface ExtensionWork {
   run(input: never): Promise<void>;
 }
 
-/** Transport-independent extension contributions, shared by both hosts. */
+/** Transport-independent extension contributions, shared by both hosts.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface ExtensionData {
   readonly config?: Readonly<Record<string, unknown>>;
   readonly modules?: readonly ExtensionFactory[];
@@ -42,7 +44,9 @@ export interface ExtensionData {
   readonly assets?: readonly string[];
 }
 
-/** Current Fastify extension contract. */
+/** Current Fastify extension contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface RedboxExtensionV2 extends ExtensionData {
   readonly apiVersion: 2;
   readonly controllers?: readonly ControllerRegistration[];

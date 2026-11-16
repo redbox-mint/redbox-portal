@@ -1,6 +1,6 @@
 # TUS and Uppy Companion setup
 
-V6 uses the owned Express `ResumableUploads` and `CompanionUploads` adapters.
+API2 uses the owned native TUS upload and isolated Companion adapters.
 Browser integrations must follow [v6 client compatibility](V6-Client-Compatibility.md)
 and [upload ownership and maintenance](../specs/sails-retirement/maintenance-v6.md#uploadprogress-cutover-qualification).
 
@@ -86,8 +86,8 @@ retained for explicit reconciliation or an authorized restart of the upload.
 
 ## Code paths
 
-- `packages/redbox-core/src/http/express/resumableUploads.ts`: routes and owned tus adapter.
-- `packages/redbox-core/src/http/express/companion.ts`: provider HTTP/socket admission and cleanup.
-- `packages/redbox-core/src/application/portal/http.ts`: production composition and policies.
+- `packages/redbox-core/src/http/fastify/resumableUploads.ts`: routes and owned tus adapter.
+- `packages/redbox-core/src/http/integrations/companion/`: provider HTTP/socket admission and cleanup.
+- `packages/redbox-core/src/application/portal/host.ts`: production composition and policies.
 - `packages/redbox-core/src/configuration/portal.ts`: explicit configuration validation.
 - `angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts`: browser client.

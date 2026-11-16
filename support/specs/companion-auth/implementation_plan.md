@@ -1,5 +1,7 @@
 # Implement Auth Guards for Uppy Companion
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 ## Goal
 
 Secure Uppy Companion endpoints (`/companion/*`) so only authenticated ReDBox users can use provider flows (e.g. Google Drive, OneDrive, Dropbox), while preserving optional role/path-rule restrictions for authenticated users.

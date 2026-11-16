@@ -20,6 +20,7 @@ The event bus is designed following these principles:
 
 The central event bus service, provided at root level.
 
+<!-- docs-example:skip partial: Event-bus API outline; implementations and Angular/RxJS type imports are omitted. -->
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class FormComponentEventBus {
@@ -41,6 +42,7 @@ export class FormComponentEventBus {
 
 A scoped view of the event bus filtered to a specific channel (typically a field ID).
 
+<!-- docs-example:skip partial: Scoped event-bus API outline; implementations and shared event types are omitted. -->
 ```typescript
 export class ScopedEventBus {
     // Publish with automatic sourceId
@@ -97,6 +99,7 @@ Event producers emit events when component state changes.
 
 Listens to form control `valueChanges` and publishes `field.value.changed` events.
 
+<!-- docs-example:skip partial: Producer API outline; implementation and binding-options type are omitted. -->
 ```typescript
 export class FormComponentValueChangeEventProducer {
     // Bind to a component and start producing events
@@ -190,6 +193,7 @@ Event consumers listen for events and execute expressions.
 
 Consumes `field.value.changed` events and evaluates expressions.
 
+<!-- docs-example:skip partial: Consumer API outline; implementation and binding-options type are omitted. -->
 ```typescript
 export class FormComponentValueChangeEventConsumer {
     // Bind to a component and start consuming events
@@ -216,6 +220,7 @@ export class FormComponentValueChangeEventConsumer {
 
 The wrapper component creates and manages producer/consumer instances:
 
+<!-- docs-example:skip partial: Component setup excerpt; injected event bus, component fields and binding inputs are omitted. -->
 ```typescript
 // Create producer and consumer for a component
 this.eventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
@@ -234,6 +239,7 @@ this.eventConsumer.formComponent = formComponent;
 
 The root form component provides the query source and manages form-level events:
 
+<!-- docs-example:skip partial: Form method signatures; containing class, implementations and return type imports are omitted. -->
 ```typescript
 // Get the query source for JSONata Query conditions
 getQuerySource(): JSONataQuerySource;
@@ -252,6 +258,7 @@ publishFormChanged(): void;
 
 Extracts and catalogs expressions for server-side compilation:
 
+<!-- docs-example:skip partial: Visitor method excerpt; containing visitor, path, templates and expression type imports are omitted. -->
 ```typescript
 protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
     expressions?.forEach((expression, index) => {
@@ -297,6 +304,7 @@ protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
 
 Enable diagnostic logging in `FormComponentEventBus`:
 
+<!-- docs-example:skip partial: Class property excerpt; place inside the diagnostic owner class. -->
 ```typescript
 private readonly diagnosticsEnabled = true;
 ```

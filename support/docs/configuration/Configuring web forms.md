@@ -1,5 +1,7 @@
 # Configuring web forms
 
+> Legacy documentation snapshot for earlier Sails/Express releases. Use the tracked [wiki](../../wiki/Home.md) and [API2 migration guide](../../specs/fastify-migration/extension-api2.md) for v6 authoring. Examples below are historical.
+
 ## Introduction
 
 ReDBox has a flexible and configurable framework that allows you to capture as metadata for a variety different purposes such as data management plans, provisioned workspaces and data collections. Metadata is stored in the [JSON-LD](https://json-ld.org/) format and has a very loose schema to support this flexibility.

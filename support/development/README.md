@@ -1,5 +1,7 @@
 # Internal v6 development workflow
 
+> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
+
 The development Compose services run `app.express.cjs` on Node 26.12.1. Both
 mount and build modes use the `rehearsal` image target: it installs the bundled
 demo and PDF hooks in the production dependency graph. The pristine production

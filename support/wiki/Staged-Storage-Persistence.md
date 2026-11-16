@@ -70,14 +70,12 @@ their independently qualified owners. All network pools are app-owned; native re
 
 ## HTTP shutdown ownership
 
-The session middleware and exported core controller actions share request ownership.
+The native session boundary and bound Fastify controller actions share request ownership.
 Socket closure alone does not finish accepted controller work. Shutdown waits for
 returned action promises, including writes after an early response, and for work
-registered with `recordBackgroundOperation`. Callback/Observable actions remain
-owned until they attempt `res.end`, including after client disconnection.
-An async action that hands its response to a callback calls
-`retainRequestCallback(req)` before that handoff. New code should instead return a
-promise covering the complete operation. Return the existing promise when a
+registered with `recordBackgroundOperation`. Legacy Express callback actions were retained through their response handoff.
+API2 actions return a promise covering the complete operation, including after
+client disconnection. Qualified core adapters explicitly retain callback work. Return the existing promise when a
 synchronous action delegates to an async implementation.
 
 A handler that cancels after disconnection without ending the response must return
@@ -85,6 +83,7 @@ a promise that settles after cancellation/cleanup; this includes streamed downlo
 The framework cannot infer completion of an arbitrary detached callback that never
 attempts a response. Register auxiliary work before returning or ending the response;
 do not assume a returned RxJS subscription includes nested subscriptions or async
-observer callbacks. Custom raw Express handlers need the same explicit ownership
-when they bypass the exported controller seam. No timeout declares unfinished
+observer callbacks. Raw HTTP adapters are qualified core integrations with explicit ownership;
+extension actions use the public controller seam. See the
+[API2 guide](../specs/fastify-migration/extension-api2.md). No timeout declares unfinished
 accepted database writes complete.

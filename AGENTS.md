@@ -54,6 +54,9 @@ All project documentation is maintained in the tracked `support/wiki/` snapshot.
 - **General Usage/Install**: [README.md](README.md)
   - Consult for: Getting started, installation, and project summary.
 
+- **API2 Controller / Hook Migration**: [support/specs/fastify-migration/extension-api2.md](support/specs/fastify-migration/extension-api2.md)
+  - Consult for: Fastify controllers, generated hooks, explicit bindings, API1 rejection and worked examples.
+
 ## Key Configuration Files
 
 - `package.json`: Scripts and dependencies.

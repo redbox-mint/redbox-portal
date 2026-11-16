@@ -9,7 +9,7 @@ Use the [built-source quick start](Redbox-Hook-Kit.md) to generate, compile,
 check and pack the supported scaffold with the qualified v6 artifacts.
 The CLI command is `init institution-name`; `--template v6` is equivalent. The former `standard` template is rejected.
 The package declares `redbox.extension` and exports
-`registerRedboxExtension(): RedboxExtension` with `apiVersion: 1`.
+`registerRedboxExtension(): RedboxExtensionV2` with `apiVersion: 2`.
 
 Registration is safe to inspect offline: return data and named factories, with
 explicit prerequisites and replacements. Acquire native resources in awaited
@@ -28,8 +28,8 @@ artifact. EJS receives the request-scoped `page` object; use `page.root`,
 `page.base`, `page.t()` and the supplied nonce. Forms and workflows are ordinary
 extension declarations, resolved in documented precedence order.
 
-Follow the [complete conversion guide](../specs/sails-retirement/hook-migration-v6.md),
-[extension contract](../specs/sails-retirement/extensions-v6.md),
+Follow the [complete conversion guide](../specs/fastify-migration/extension-api2.md),
+[extension contract](../specs/fastify-migration/extension-api2.md),
 [configuration guide](Configuration-Guide.md) and [loading guide](Redbox-Loader.md).
 Operators and client developers must review the
 [v6 behavior changes](V6-Client-Compatibility.md) before upgrading.

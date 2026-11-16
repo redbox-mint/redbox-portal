@@ -114,6 +114,7 @@ fails closed in both modes rather than persisting the raw value.
 
 Conditional group expressions receive one JSON-like object:
 
+<!-- docs-example:skip partial: Validation input shape; values are supplied by the containing validation operation. -->
 ```typescript
 {
   formData,
@@ -205,6 +206,8 @@ Bypass is not an HTTP parameter. Internal TypeScript callers construct a save
 context with the runtime-checked capability:
 
 ```typescript
+import { createRecordSaveContext } from '@researchdatabox/redbox-core';
+
 createRecordSaveContext({
   routeFamily: 'internal',
   operation: 'update',

@@ -280,6 +280,7 @@ operation with no public route.
 Use a stable operator-supplied `now` so repeated runs are comparable. Scan
 storage-owned pages:
 
+<!-- docs-example:skip partial: Internal operator excerpt; obtain the application-owned RecordSchemaService instance first. -->
 ```typescript
 await RecordSchemaService.reportRetention({
   mode: 'paginated',
@@ -291,6 +292,7 @@ await RecordSchemaService.reportRetention({
 
 Or inspect a known set of at most 100 digests:
 
+<!-- docs-example:skip partial: Internal operator excerpt; obtain the application-owned RecordSchemaService instance first. -->
 ```typescript
 await RecordSchemaService.reportRetention({
   mode: 'targeted',

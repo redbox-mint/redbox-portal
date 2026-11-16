@@ -1,5 +1,7 @@
 # Implemented v6 extension declarations
 
+> Historical Sails-retirement / API1 baseline. Express handler, middleware and deep-export instructions below are legacy; current authoring uses the [API2 migration guide](../fastify-migration/extension-api2.md). Retain this record for preceding-build comparison and recovery context.
+
 Packages opt in with `"redbox": { "extension": "./extension" }` in their installed
 manifest and expose that public subpath through `exports` (or use `"."` for the
 main public entry). Export `registerRedboxExtension()` returning a fresh

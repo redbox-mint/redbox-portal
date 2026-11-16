@@ -11,7 +11,7 @@ Use this skill whenever new business logic or routes are merged so the functiona
 
 ## Analyze first
 
-- Inspect the new/updated code in `packages/redbox-core/src/services` (for services) or `packages/redbox-core/src/http/express` plus `src/api-routes` (for routes) to understand the happy path, dependencies, and any edge cases the feature must cover.
+- Inspect the new/updated code in `packages/redbox-core/src/services` (for services) or `packages/redbox-core/src/http/fastify` plus `src/api-routes` (for routes) to understand the happy path, dependencies, and any edge cases the feature must cover.
 - Take notes on expected inputs, persisted entities, authorization requirements, and downstream effects; those points become the assertions in the new test.
 
 ## Mocha service integration coverage

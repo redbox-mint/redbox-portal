@@ -73,6 +73,7 @@ subscribe: {
 
 v5:
 
+<!-- docs-example:skip partial: Expression helper and field excerpt; insert into a form module with the shared expression types. -->
 ```typescript
 const storageQuestion1Changed =
   "/mainTab/storage/storage-question1::field.value.changed";
@@ -204,6 +205,7 @@ example, Data Publication licence fields were shown only when:
 In v5, add one expression for each source field that can change the answer. Each
 expression writes the same final boolean to the target.
 
+<!-- docs-example:skip partial: Field excerpt; reuse visibilityExpression from the earlier form module. -->
 ```typescript
 const datasetWillBePublishedChanged = "/mainTab/licence/dataset-will-be-published";
 const accessRightsChanged = "/mainTab/licence/access-rights";
@@ -247,6 +249,7 @@ template: 'formData["dataset-will-be-published"] = "yes"'
 If a field should start hidden until a condition is true, set the field's initial
 `visible` values to `false` and use `runOnFormReady: true`.
 
+<!-- docs-example:skip partial: Field excerpt; reuse visibilityExpression from the earlier form module. -->
 ```typescript
 {
   name: "mergedFromDataRecordOid",
@@ -283,6 +286,8 @@ Use `target: "model.value"` when the old form populated a field from another
 field or from fetched metadata.
 
 ```typescript
+import { type FormExpressionsConfigFrame, ExpressionsConditionKind } from '@researchdatabox/sails-ng-common';
+
 const modelValueExpression = (
   name: string,
   condition: string,
@@ -319,6 +324,7 @@ const buildExpressionsForRdmpChange = (opts?: {
 
 Usage:
 
+<!-- docs-example:skip partial: Field excerpt; reuse the visibility and related-record helpers from the form module. -->
 ```typescript
 {
   name: "ip-external-involvement-details",
@@ -366,6 +372,7 @@ Do not mutate a field's validators directly from an expression. Instead:
 3. Use an expression to include or exclude the group from
    `form.enabledValidationGroups`.
 
+<!-- docs-example:skip partial: Form mutation and field excerpts; formConfig is supplied by the containing form module. -->
 ```typescript
 const PHYSICAL_STORAGE_REQUIRED_GROUP = "physical-storage-required";
 
@@ -425,6 +432,8 @@ When the old form disabled a field until another value existed, use a boolean
 expression with a disabled target.
 
 ```typescript
+import { type FormExpressionsConfigFrame, ExpressionsConditionKind } from '@researchdatabox/sails-ng-common';
+
 const disabledExpression = (
   name: string,
   condition: string,

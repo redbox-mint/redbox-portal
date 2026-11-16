@@ -1,5 +1,7 @@
 # Preparing persistence indexes
 
+> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
+
 Fresh default dev/test stacks mount `support/resources/mongodb-persistence-indexes.js`
 into MongoDB's official init directory. Use the same qualified script when provisioning fresh deployment databases.
 It creates the cache/M name indexes, R key indexes, Q dashboard/UID indexes and

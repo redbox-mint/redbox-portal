@@ -257,6 +257,7 @@ Publication form factors them into a small builder so each field just declares t
 source/target property names. This is worth copying for any form with more than a
 handful of populated fields:
 
+<!-- docs-example:skip partial: Helper signature and field excerpt; implementation and form module context are intentionally omitted. -->
 ```typescript
 // dataPublication-1.0-common.ts
 const buildExpressionsForDataRecordChange = function (opts?: {

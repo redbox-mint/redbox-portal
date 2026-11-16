@@ -1,5 +1,7 @@
 # @researchdatabox/sails-hook-redbox-pdfgen
 
+> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../../support/specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
+
 A ReDBox v6 extension that renders record view pages to PDF with headless Chromium (Puppeteer) and attaches the result to the record as a datastream.
 
 It is typically wired into a record type's `onCreate`/`onUpdate` post-save triggers so that every save produces an up-to-date PDF snapshot of the record, without blocking the workflow if rendering fails.
@@ -51,7 +53,7 @@ npm install --save-exact ./qualified-pdf-hook.tgz
 ```
 
 The historical package name is retained. The public `redbox.extension` entry
-exports an offline `RedboxExtension` declaration. Application composition selects
+exports an offline `RedboxExtensionV2` declaration. Application composition selects
 the PDF factory and supplies configuration, logger, datastreams, brand lookup,
 staging, audit and accepted-work lifetime. The declaration supplies:
 

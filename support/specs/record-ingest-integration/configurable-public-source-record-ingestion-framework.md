@@ -1,5 +1,7 @@
 # Configurable Public-Source Record Ingestion Framework
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 ## Summary
 
 Build a brand-scoped ingestion framework that converts records from external authoritative providers into ordinary ReDBox record types through configurable, versioned crosswalks.

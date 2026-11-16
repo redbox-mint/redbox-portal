@@ -1,40 +1,96 @@
-# Extension API2 loading and replacement
+# Migrating hooks from API1 / Express to API2 / Fastify
 
-FM-017 adds the API2 loading/composition path for the Fastify migration. The
-production Express entrypoint continues to load API1 until cutover. API1 is rejected
-by `loadInstalledExtensionProvidersV2` and `resolveExtensionsV2`, including declarations
-containing only non-HTTP data. Trusted entrypoints and async registration must be
-offline: importing packages and reading declarations must not acquire application
-resources. The loader is not a JavaScript sandbox; it never runs factories or work.
+API2 is the supported v6 extension authoring contract. The production Fastify
+composition is qualified through generated, bundled, packed and local WSU consumers.
+The retained Express executable is a legacy development baseline pending FM-042;
+this guide does not claim executable cutover or institution production acceptance.
+
+API1 is rejected by `loadInstalledExtensionProvidersV2` and `resolveExtensionsV2`,
+including data-only declarations. The refusal identifies the package and HTTP
+fields and links here. Regenerate with the FM-037 CLI or convert each contribution
+using the table below. Importing or inspecting declarations must not acquire
+resources; factories wire borrowed operations and application lifecycle owns work.
+
+| API1 / Express contribution | API2 / Fastify conversion |
+| --- | --- |
+| `RedboxExtension`, `apiVersion: 1` | `RedboxExtensionV2`, `apiVersion: 2`, including data-only packages |
+| `handlers`, `RequestHandler`, `req`/`res` callbacks | `defineController`, named typed actions, explicit concrete inputs |
+| `routes[].handler`, string/array access | `controller`/`action`, stable name and complete `RouteAccess` |
+| `res.status().json()` | `reply.code().type().send()`; serialize JSON within the guarded action |
+| request-local controller fields | Live request values and immutable `requestContext(request)` |
+| `beforeRoutes` middleware | Review actual behavior; use scoped `afterAuthentication` or `beforeAction` at the documented guard boundary |
+| `afterRoutes` unmatched dispatch | Named `fallbacks`; never `onResponse` |
+| response/error middleware | Detached `HttpObservationRequest` observations; safe errors and ignored return values |
+| raw-server `integrations` | Qualified core integration owner; no extension server or Express bridge |
+
+The complete example below is compiled against public package entrypoints by both
+`docs:generate` and `docs:audit`. `docs:test` checks that this block matches its
+fixture. Bind `example` with `bindExtensionFactory` through application `bindings`,
+then use `bindHealthController` in `http.bindings`. The declared prerequisite orders
+ownership; it does not look up or inject a constructor input automatically.
 
 Import `RedboxExtensionV2`, `loadInstalledExtensionProvidersV2` and
 `resolveExtensionsV2` from `@researchdatabox/redbox-core/extensions`. Import
 `defineController` and `bindControllerFactory` from `@researchdatabox/redbox-core/http`.
 
+<!-- api2-example:start -->
 ```ts
-const greeting = defineController({
-  name: 'GreetingController',
-  actions: ['greet'],
-  create: (input: GreetingInput) => new GreetingController(input),
-});
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { ApplicationModule } from '@researchdatabox/redbox-core/application';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
+import { bindControllerFactory, defineController } from '@researchdatabox/redbox-core/http';
 
+export class Example implements ApplicationModule {
+  private ready = false;
+  async initialize(): Promise<void> {
+    this.ready = true;
+  }
+  async close(): Promise<void> {
+    this.ready = false;
+  }
+  health(): boolean {
+    return this.ready;
+  }
+}
+
+export interface HealthInput {
+  example: Pick<Example, 'health'>;
+}
+export class HealthController {
+  constructor(private readonly input: HealthInput) {}
+  async read(_request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
+    const result = { ready: this.input.example.health() };
+    return reply.type('application/json; charset=utf-8').send(JSON.stringify(result));
+  }
+}
+export const healthController = defineController({
+  name: 'ExampleHealthController',
+  requires: ['example'],
+  actions: ['read'],
+  create: (input: HealthInput) => new HealthController(input),
+});
+export function bindHealthController(example: HealthInput['example']) {
+  return bindControllerFactory(healthController, { example });
+}
 export function registerRedboxExtension(): RedboxExtensionV2 {
   return {
     apiVersion: 2,
-    controllers: [greeting],
+    modules: [{ name: 'example', create: () => new Example() }],
+    controllers: [healthController],
     routes: [
       {
-        name: 'example-greeting',
+        name: 'example-health',
         method: 'get',
-        path: '/greeting',
-        controller: greeting.name,
-        action: 'greet',
+        path: '/example/health',
+        controller: healthController.name,
+        action: 'read',
         access: { kind: 'public' },
       },
     ],
   };
 }
 ```
+<!-- api2-example:end -->
 
 Convert each API1 `handlers` factory to a controller factory with explicit actions
 using Fastify request/reply methods. Replace `routes[].handler` with
@@ -81,10 +137,15 @@ the first `hookLoadPriority` entry is highest, with deterministic package orderi
 for unlisted providers. Views/assets search highest first. CJS exports, ESM public
 exports, top-level await and async registration remain supported.
 
-Bundled development, PDF and Mongo storage hooks still return API1. FM-038 must
-update their public declaration type/version and rebuild/qualify them. Their current
-declarations contribute no HTTP handlers/routes/middleware/integrations, so no HTTP
-conversion is needed at this revision. They remain unchanged for Express production.
+## Worked example: bundled data-only hooks (FM-038)
+
+The development, PDF and Mongo storage hooks return API2 through their public
+extension entrypoints. They had no HTTP contributions: conversion changed their
+version/type without inventing controllers. Configuration, forms/workflows,
+storage module/migration and PDF module/job are preserved. The
+[contribution inventory](evidence/FM-038.inventory.json) and
+[public export audit](evidence/FM-038.exports.json) record their actual declarations.
+Do the same for a data-only institution hook; retaining API1 is not supported.
 
 HTTP route/fallback names share one offline target namespace with reserved core
 owners; hook scopes resolve against it. `redbox.internal.*`, `portal.automatic-*`
@@ -122,3 +183,42 @@ guide describe the preceding host. For API2 use `FastifyRequest`/`FastifyReply`,
 above. Generate JSON before calling `reply.send` so serialization errors remain
 inside the action boundary. Source-linked generator qualification is FM-037;
 clean packed-consumer qualification is FM-039.
+
+## Worked example: WSU (FM-040)
+
+The locally converted `redbox-hook-wsu` API2 source is branch `feature/v6-api2`
+at `37b64b9` (local qualification, not published production acceptance). Its
+`src/controllers.ts`, `src/routes.ts` and `src/deployment.ts` declare one controller,
+five named actions/routes and concrete production bindings. The two regeneration
+mutations retain API metadata, policy/actor checks and CSRF; verified bearer and
+cookie/session requests keep their distinct admission rules. Public publication
+files retain eligibility and path-containment checks. Explicit WSU/core route
+precedence preserves overlapping URLs without depending on import order.
+
+`createWsuPortal` uses public `createPortalFastifyApplication` and
+`createPortalFastifyHost` composition, and binds domain operations after their
+owners initialize. Progress, uploads, pages and persisted authentication-field
+configuration remain selected. No Sails global or Express request/response shim is
+required. See [FM-040 qualification](evidence/FM-040.md) for exact source/artifact
+identities, the existing 565-case hook suite, installed route/restart/drain procedure
+and separate pending institutional production acceptance. The legacy v5 checkout,
+recovery source and archived agentvm passes are not converted-source evidence.
+
+## Verification and deployment
+
+Run builds serially with the repository's Node/npm versions, then `npm run doc:api`,
+`npm run docs:generate`, `npm run docs:audit`, `npm run docs:check` and
+`npm run docs:test`. The checked catalogue uses public API2 exports; the REST check
+compares generated operations and metadata with executable API declarations and
+their normalized controller bindings. Run `npm run test:packed:fastify` to prove a
+clean generated consumer compiles, installs, starts, restarts and drains without
+private core imports. Institution hooks also need their own full suite and an
+installed production-composition rehearsal against current portal packages.
+
+Do not replace the executable or deployment image merely by installing a hook.
+Follow the [migration gates](implementation_plan.md#p7--cutover-candidate-and-final-qualification)
+and [upgrade/recovery runbook](../sails-retirement/upgrade-recovery-v6.md). Preserve
+canonical origins, explicit proxy trust, intentional session invalidation and
+late-listen startup probes. Companion's private Express provider boundary is the
+only supported exception; it requires process affinity and a fresh process after
+full stop. No generic middleware bridge is supplied.

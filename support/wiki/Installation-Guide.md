@@ -1,5 +1,7 @@
 # Installation Guide
 
+> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
+
 V6 runs the owned Express 5 host (`app.express.cjs`) with Node 26.12.1 and
 MongoDB 8+. Select an immutable, qualified application image and exact converted
 hook artifacts. Internal-default promotion is not production release acceptance;

@@ -38,6 +38,7 @@ No database/model changes.
 
 Angular component state additions:
 
+<!-- docs-example:skip partial: Component property excerpt; Editor import and containing class are omitted. -->
 ```ts
 filterText = '';
 
@@ -130,6 +131,7 @@ Editor behavior:
 
 Tiptap extensions:
 
+<!-- docs-example:skip partial: Tiptap extension-array excerpt; use the imports shown in the next snippet. -->
 ```ts
 StarterKit,
 Table.configure({ resizable: true }),
@@ -140,6 +142,7 @@ TableCell
 
 Imports to add in `translation.component.ts`:
 
+<!-- docs-example:context angular/projects/researchdatabox/translation/src/app -->
 ```ts
 import { OnDestroy } from '@angular/core';
 import { Editor, type AnyExtension } from '@tiptap/core';
@@ -153,6 +156,7 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
 
 Update standalone `imports`:
 
+<!-- docs-example:skip partial: Angular component metadata excerpt; use the containing application imports. -->
 ```ts
 imports: [CommonModule, FormsModule, HttpClientModule, TiptapEditorDirective]
 ```
@@ -179,6 +183,7 @@ Add a compact toolbar above the editor:
 
 Use the same Tiptap command style as the form app:
 
+<!-- docs-example:skip partial: Editor method-body excerpt; the containing component supplies richTextEditor. -->
 ```ts
 this.richTextEditor.chain().focus().toggleBold().run();
 ```

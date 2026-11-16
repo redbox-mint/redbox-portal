@@ -6,6 +6,7 @@ module.exports = {
   // These real-Mongo fixtures use isolated commands with required URLs; see test:*:mongo.
   // Real-service suites require the dedicated commands and disposable database URLs.
   ignore: [
+    'test/extensions/HookExampleMongo.test.ts',
     'test/http/fastify/securityMongo.test.ts',
     'test/http/fastify/rawSocketMongo.test.ts',
     'test/http/fastify/companionMongo.test.ts',

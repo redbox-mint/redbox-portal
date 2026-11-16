@@ -1,5 +1,7 @@
 # ReDBox Automated Tests
 
+> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
+
 This repository uses a mix of testing strategies including unit, integration, and API tests, largely orchestrated via Docker Compose.
 
 ## Test Suites

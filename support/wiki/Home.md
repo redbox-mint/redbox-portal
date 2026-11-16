@@ -51,7 +51,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for creating and maintaining ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
 - **[Figshare Service Technical Guide](https://github.com/redbox-mint/redbox-portal/wiki/Figshare-Service-Technical-Guide)**: Public service surface, orchestration flows, and Figshare-specific config and type reference.
-- **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Express route groups, concrete handler inputs, policy binding and v6 extension routes.
+- **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Fastify controller actions, concrete inputs, policy binding and API2 extension routes.
 
 ## Contributing
 
@@ -83,7 +83,10 @@ Thank you for visiting the RedBox Portal project wiki! We hope you find this res
 
 ## ReDBox v6 runtime migration
 
-The backend uses the owned Express 5 application runtime. Start with
+The backend uses the owned application runtime and API2 Fastify composition.
+The retained Express executable is a legacy pre-cutover baseline (FM-042). Start with
 [Architecture](Architecture-Overview.md), [Configuration](Configuration-Guide.md),
 [extension loading](Redbox-Loader.md), [operator/API-client changes](V6-Client-Compatibility.md)
 and the [upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md).
+
+For API1 hook conversion, use the [API2 / Fastify migration guide](../specs/fastify-migration/extension-api2.md).

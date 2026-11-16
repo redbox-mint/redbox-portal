@@ -66,6 +66,8 @@ export interface SurfaceContract {
   documentation: Documentation;
   source: SourceLocation;
   members: MemberContract[];
+  /** Complete public type declaration, including union branches and call signatures. */
+  declaration?: string;
   routes?: RouteContract[];
   relationships?: FormRelationships;
   example?: string;

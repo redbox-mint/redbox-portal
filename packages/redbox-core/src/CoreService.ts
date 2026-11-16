@@ -77,8 +77,8 @@ export namespace Services.Core {
       // Override in sub class as needed
     }
     /**
-     * Returns an object that contains all exported methods of the controller.
-     * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
+     * Returns the explicitly listed service utility methods.
+     * This helper does not register HTTP actions; API2 controllers use defineController.
      *
      * @returns {*}
      */

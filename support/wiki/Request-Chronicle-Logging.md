@@ -1,5 +1,10 @@
 # Request Chronicle Logging
 
+This page documents the **legacy Express request chronicle** and its service
+helpers. For the current Fastify logging configuration, see [Retention settings](#retention-settings).
+The chronicle lifecycle and event fields below describe the retained legacy host;
+Fastify emits bounded HTTP diagnostics instead.
+
 A request chronicle is one structured log event per HTTP request. It records what happened during the request, including the request and response, the outcome, the duration, errors, and details added by controllers and services. The event is logged once, when the request finishes. Use it as the first place to look when investigating a request, instead of relating many separate log lines.
 
 The approach follows the "wide event" or "canonical log line" pattern.
@@ -10,7 +15,7 @@ The approach follows the "wide event" or "canonical log line" pattern.
 | --- | --- |
 | Helper, sanitisation, and error normalisation | `packages/redbox-core/src/utilities/RequestChronicle.ts` |
 | Retention settings and defaults | `packages/redbox-core/src/utilities/RequestChronicleSettings.ts` |
-| HTTP middleware and sanitized errors | `packages/redbox-core/src/http/express/middleware.ts` |
+| Native HTTP logging and sanitized errors | `packages/redbox-core/src/http/fastify/logging.ts` and `errorBoundary.ts` |
 | Service summaries | `packages/redbox-core/src/utilities/serviceChronicle.ts` |
 | Async request context | `packages/redbox-core/src/utilities/RequestChronicleContext.ts` |
 
@@ -52,21 +57,34 @@ Service warnings raise `client-error` and `aborted` events to `warn` without cha
 
 ## Retention settings
 
-Pass retention settings through the `requestLogging` option of `createPortalHost`:
+The public Fastify application uses the supplied `PortalApplicationOptions.log`
+logger for bounded HTTP diagnostics. Set `logging.level` in application JSON (or
+`REDBOX_LOG_LEVEL` in the environment), then apply the resolved level to that
+logger in the composition root. This compile-checked example shows the supported
+configuration shape:
 
 ```typescript
-const portal = await createPortalHost({
-  appPath,
-  log,
-  requestLogging: {
-    successSampleRate: 1,
-    slowThresholdMs: 2000,
-    successSampleExcludePattern: '',
-  },
-});
+import type { PortalConfiguration } from '@researchdatabox/redbox-core/configuration';
+
+export const applicationConfig = {
+  logging: { level: 'warn' },
+} satisfies Pick<PortalConfiguration, 'logging'>;
 ```
 
-These are host options, separate from the validated startup configuration loaded from application files and extensions. The startup `log` section accepts `level` and `format`; `log.requestChronicle` is rejected as an unknown field. Invalid retention values supplied through `requestLogging` use the documented defaults.
+The production Fastify host forwards warning/error/fatal HTTP diagnostics to the
+supplied logger at `warn`. A threshold of `warn` retains these diagnostics; `error`,
+`fatal` or `silent` suppresses them. Log storage duration and rotation belong to
+your log collector. Fastify does not expose successful-request sampling or slow
+request retention settings through the public portal API. For current extension
+observations, use the [API2 HTTP hooks](../specs/fastify-migration/extension-api2.md).
+
+### Legacy chronicle retention
+
+The following settings belong to the **legacy Express host** only. Its private
+`createPortalHost({ requestLogging: ... })` API is not exported by the public
+portal entrypoint. These settings do not configure Fastify. The startup schema
+uses `logging.level`; `log.requestChronicle` and `requestLogging` are not supported
+startup configuration keys.
 
 | Setting | Default | Description |
 | --- | --- | --- |
@@ -106,10 +124,13 @@ Pino also adds `time`, `pid`, and `hostname`. These, along with `level`, `name`,
 
 ## Adding details
 
-In an explicitly bound Express handler, use the request's existing helper and the
-owned response functions. This complete TypeScript example can be compiled in a
-hook with the qualified core installed:
+The following is a **legacy API1 / Express example**, retained to explain the
+historical chronicle helper. Its removed public imports do not compile against
+API2. Use [API2 controllers and detached observations](../specs/fastify-migration/extension-api2.md)
+for current hooks; bounded HTTP logging is host-owned. No public Express handler
+or middleware entrypoint remains:
 
+<!-- docs-example:skip legacy: Removed API1 Express handler and helper imports retained only for historical explanation. -->
 ```ts
 import type { RequestHandler } from '@researchdatabox/redbox-core/extensions';
 import { sendApiErrors } from '@researchdatabox/redbox-core/http/express';
@@ -133,8 +154,10 @@ Keys are top-level and a later value replaces an earlier one. Use a prefix for t
 
 ### Service details
 
-In a service that extends `Services.Core.Service`, use the inherited helper:
+The following partial service-body example uses the inherited `updateChronicle`
+helper on `Services.Core.Service`. It assumes the operation values are already available:
 
+<!-- docs-example:skip partial: Service method-body excerpt; collectionName, rows and error come from the containing operation. -->
 ```ts
 this.updateChronicle({ namedQueryCollection: collectionName, namedQueryRows: rows });
 this.updateChronicle({ emailSendOutcome: 'failed' }, [error]);
@@ -184,9 +207,11 @@ These limits are a safeguard, not a replacement for choosing safe, concise detai
 ## Work that outlives the response
 
 Work that can outlive the response, such as an audit, must remain tracked by the
-application's admitted-work owner. Capture the existing chronicle before starting
-that work; report its settlement through `addOperationResult`:
+application's admitted-work owner. In the **legacy Express host**, capture the
+existing chronicle before starting that work; report its settlement through
+`addOperationResult`:
 
+<!-- docs-example:skip legacy: Legacy Express chronicle operation excerpt; the admitted operation supplies the captured helper. -->
 ```ts
 // Inside an already admitted and application-tracked async operation:
 chronicle?.addOperationResult('userAuditEventLogin');

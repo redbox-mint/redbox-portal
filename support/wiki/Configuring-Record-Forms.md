@@ -147,11 +147,11 @@ The startup `form` section contains prehydration settings only; it does not
 accept the v5 `forms`, `formConfigRegistry` or `defaultForm` registry.
 
 ```ts
-import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 
-export function registerRedboxExtension(): RedboxExtension {
+export function registerRedboxExtension(): RedboxExtensionV2 {
   return {
-    apiVersion: 1,
+    apiVersion: 2,
     forms: {
       'institution-1.0-draft': {
         name: 'institution-1.0-draft', type: 'rdmp', fields: [],
@@ -402,6 +402,7 @@ be combined into one string, use `aggregateMaxLength` on the **repeatable model*
 `maxLength` on an array counts rows; `aggregateMaxLength` counts characters in the
 normalized, joined value, including separators.
 
+<!-- docs-example:skip partial: Field definition excerpt; insert into componentDefinitions in the containing form. -->
 ```ts
 {
   name: 'names',
@@ -474,6 +475,7 @@ Adding, editing or removing a row recalculates the aggregate. Errors appear next
 to the repeatable field and in a configured `ValidationSummaryComponent`, using
 the standard ReDBox error shape:
 
+<!-- docs-example:skip partial: Validator error payload shape; insert into the containing validation result. -->
 ```ts
 {
   aggregateMaxLength: {

@@ -396,11 +396,13 @@ For categories, `metadata.ts` calls `resolveCrosswalkBinding()` directly rather 
 `evaluateBinding`'s `unknown` return cannot carry it. `createFigshareBindings({ crosswalk, log })` receives the selected crosswalk
 resolver explicitly. The implementation is in
 `packages/redbox-core/src/integrations/figshare/bindings.ts`; there is no global
-service registration. For a hook with a deliberately selected crosswalk input:
+service registration. The following is a partial **internal core implementation**
+example with a deliberately selected crosswalk input. The binding factory is not
+a public hook import; configure Figshare through the selected integration provider:
 
+<!-- docs-example:skip partial: Internal core binding excerpt; local resolver and binding-factory imports are omitted, not public hook APIs. -->
 ```ts
-import { createFigshareBindings, type CrosswalkResolver }
-  from '@researchdatabox/redbox-core/dist/integrations/figshare/bindings';
+// Inside core, using the local createFigshareBindings and CrosswalkResolver.
 
 export async function resolveExampleCrosswalk(crosswalk: CrosswalkResolver) {
   const bindings = createFigshareBindings({ crosswalk, log: { warn() {} } });

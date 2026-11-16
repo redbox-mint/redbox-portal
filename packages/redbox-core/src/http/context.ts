@@ -3,6 +3,9 @@ import type { BrandRow } from '../persistence/branding/BrandingRepository';
 import type { AuthenticatedActor } from './express/identity';
 
 export type { BrandRow, AuthenticatedActor };
+/** HttpRequestContext authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface HttpRequestContext {
   readonly brand: BrandRow;
   readonly portal: string;
@@ -11,7 +14,9 @@ export interface HttpRequestContext {
 
 const contexts = new WeakMap<FastifyRequest, HttpRequestContext>();
 
-/** Available only after the route's explicit brand resolution policy. */
+/** Available only after the route's explicit brand resolution policy.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export function requestContext(request: FastifyRequest): HttpRequestContext {
   const context = contexts.get(request);
   if (!context) throw new Error('Request context has not been resolved.');

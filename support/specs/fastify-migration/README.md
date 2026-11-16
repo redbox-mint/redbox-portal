@@ -1,6 +1,7 @@
 # Fastify migration
 
-Status: agreed design; implementation and qualification have not started.
+Status: implementation through P6; see task evidence for qualified revisions.
+Executable cutover, final-artifact qualification and institutional production acceptance remain separate gates.
 
 The design was agreed through the Grill Me discussion on 2026-11-04. Fastify will
 ship as part of v6. The release is planned for late 2027; that is planning context,
@@ -15,10 +16,10 @@ Read these documents in order:
 3. [Task list](tasks.md): actionable work and evidence required for completion.
 
 [The original proposal](proposal.md) records the discussion input. Where it differs
-from the agreed design, the design takes precedence. Current runtime documentation
-in [the wiki](../../wiki/Home.md) continues to describe the implemented Express
-composition until the Fastify cutover; these specifications do not claim a working
-Fastify implementation.
+from the agreed design, the design takes precedence. The [API2 migration guide](extension-api2.md) documents current extension authoring,
+generators, bundled hooks and the local WSU conversion. The wiki labels retained
+Express executable instructions as legacy pre-cutover material; FM-042–048 own
+startup selection, source closure and final runtime qualification.
 
-No runtime code, package versions, external institution checkout, or deployment
-has been changed by writing this specification.
+Evidence is revision-specific. [FM-041](evidence/FM-041.md) records G6 reference
+and consumer qualification; it does not close G7/G8 or production acceptance.

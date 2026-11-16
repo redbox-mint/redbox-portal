@@ -41,6 +41,7 @@ client with the form.
 Dropdowns, radios, and checkboxes all accept an `options` array. Each option has
 at least a `label` and a `value`; `disabled` is optional.
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "requestIdentifier",
@@ -125,6 +126,7 @@ The `slug` is the value used by form config `vocabRef`.
 Once the vocabulary exists, replace the field-local option list with `vocabRef`
 and `inlineVocab`.
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "dc:accessRights",
@@ -156,6 +158,7 @@ become the source of the rendered options.
 Multiple fields can point at the same slug. For example a publication form can
 use one datatype vocabulary for both:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "datatype",
@@ -170,6 +173,7 @@ use one datatype vocabulary for both:
 }
 ```
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "citation_datatype",
@@ -194,6 +198,7 @@ definition.
 
 Dropdowns store one selected value by default:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 component: { class: "DropdownInputComponent", config: { vocabRef: "license-identifiers", inlineVocab: true, options: [] } },
 model: { class: "DropdownInputModel", config: { defaultValue: "" } }
@@ -201,6 +206,7 @@ model: { class: "DropdownInputModel", config: { defaultValue: "" } }
 
 Radio buttons store one selected value:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 component: { class: "RadioInputComponent", config: { vocabRef: "data-publication-access-rights", inlineVocab: true, options: [] } },
 model: { class: "RadioInputModel", config: { defaultValue: "@dataPublication-dc:accessRights-open-val" } }
@@ -209,6 +215,7 @@ model: { class: "RadioInputModel", config: { defaultValue: "@dataPublication-dc:
 Checkboxes can represent a single toggle or a multi-value list, depending on the
 model and component settings already used by the field:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 component: { class: "CheckboxInputComponent", config: { vocabRef: "data-record-retention-period-reason", inlineVocab: true, options: [] } },
 model: { class: "CheckboxInputModel", config: { validators: [] } }

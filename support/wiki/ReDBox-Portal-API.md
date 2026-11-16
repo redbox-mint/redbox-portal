@@ -25,6 +25,12 @@ These endpoints are intended for brand-admin user management rather than general
 
 For the full REST API reference, see the [REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation) page.
 
+API endpoint response versions (`X-ReDBox-Api-Version`) are separate from extension
+API2. Hook authors use typed Fastify controllers and explicit route declarations;
+see the [API1 to API2 migration guide](../specs/fastify-migration/extension-api2.md).
+The generated REST reference comes from the same executable API declarations.
+Run `npm run doc:api` and `npm run docs:check` after changing them.
+
 ### Record schema contracts
 
 When record schema contracts are enabled, API clients can resolve authenticated

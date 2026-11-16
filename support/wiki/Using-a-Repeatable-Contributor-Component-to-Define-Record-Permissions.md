@@ -189,6 +189,7 @@ module.exports.recordtype = {
 Use the core `contributor-permissions` reusable component and rename its nested
 repeatable to the metadata property:
 
+<!-- docs-example:skip partial: Reusable field override excerpt; insert into the containing form. -->
 ```ts
 {
   name: 'contributors_dmp_permissions',
@@ -220,6 +221,7 @@ one permission row.
 
 Listen only for the aggregate source event:
 
+<!-- docs-example:skip partial: Expression configuration excerpt; insert into the containing field expressions array. -->
 ```ts
 {
   name: 'sync-contributors-dmp-permissions',

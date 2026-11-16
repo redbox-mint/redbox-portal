@@ -10,6 +10,8 @@ import {
   SurfaceContract,
 } from './catalogue';
 import { extractCatalogue } from './extract';
+import { checkCatalogue } from './check';
+import { checkDocumentationExamples } from './examples';
 import { catalogueMarkdown, healthMarkdown, renderSite } from './render';
 import { createProgram, repositoryRoot, sourceCommit } from './source';
 
@@ -169,12 +171,13 @@ async function validateExamples(
     ],
     'Hook example type check'
   );
+  checkDocumentationExamples();
   const hookExample = fs
     .readFileSync(path.join(repositoryRoot, 'support/documentation/examples/hook-override.ts'), 'utf8')
     .trim();
   for (const surface of surfaces.filter(candidate =>
     [
-      'hook-protocol:RedboxExtension',
+      'hook-protocol:RedboxExtensionV2',
       'hook-protocol:ExtensionFactory',
       'hook-protocol:ApplicationModule',
       'base-service:Service',
@@ -262,6 +265,7 @@ async function main(): Promise<void> {
     surfaces: publishedSurfaces,
     diagnostics,
   };
+  checkCatalogue(program, catalogue);
   const health: DocumentationHealth = {
     schemaVersion: CATALOGUE_SCHEMA_VERSION,
     generatedAt,

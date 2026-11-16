@@ -1,5 +1,7 @@
 # Vocabulary Bootstrap Data Loading
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 Load vocabulary data from JSON files and trigger RVA imports during application bootstrap.
 
 ## Proposed Changes

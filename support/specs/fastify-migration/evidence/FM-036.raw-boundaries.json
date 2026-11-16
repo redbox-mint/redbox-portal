@@ -6044,7 +6044,7 @@
     "packages/redbox-core/src/Attachment.ts": "b9a323ad167585b3037741298ae80940c4fcfb3ccb8cbfffb4ce09d5b44ae73d",
     "packages/redbox-core/src/AttachmentStagingIdentity.ts": "bfd0057e990cedf4e9e31cd5547a239c1d00f248adeb849838b6ecede004e96d",
     "packages/redbox-core/src/CoreBase.ts": "d85dea28b1cb2395f6dbe2322334f18a191a8c2d45550ed1f47e967623cd2c7e",
-    "packages/redbox-core/src/CoreService.ts": "e9030158d5afdb51f0786f285423658731fd71b20b834883456840194bf1f513",
+    "packages/redbox-core/src/CoreService.ts": "2282a3ec915caf8ad1bac465812c33f5bcf26ac6e33202587070290765e620d6",
     "packages/redbox-core/src/Datastream.ts": "44ae8147e4d66970b2fcb4c6510cae0b955cccda31196b0ba5864027e251159d",
     "packages/redbox-core/src/DatastreamService.ts": "a056775319588f0cf44c68bdf1be0bbeb578ab06fbef585a04cd5b1e0d5f4d05",
     "packages/redbox-core/src/DatastreamServiceResponse.ts": "b8eb2ad7a9e936a5d2f1eef5fae86a8936899f8cf12f0a513eed4d639411d8bc",
@@ -6239,7 +6239,7 @@
     "packages/redbox-core/src/extensions/bindings.ts": "eaccd3db776c7d02c7d747e8a70bed8f36a854c23b961d8d739996f50c3761c7",
     "packages/redbox-core/src/extensions/composition.ts": "d2ae6140e1c5389cda3d1c5686e90f22c9b34f6a0c219c1600409ae6af53a9a5",
     "packages/redbox-core/src/extensions/config.ts": "86e741ef38ffb3da3c62f11772c15c87aadaffb0db4029f7d3c3e7975a50b24f",
-    "packages/redbox-core/src/extensions/contract.ts": "a7a662fa66d0e9bade814a3a7d6f3a80b14ec756f0e52e44155a0d87a263a9ad",
+    "packages/redbox-core/src/extensions/contract.ts": "703643da1811fbdc249c17fe9fed63706eecf8a07414e8098cd199c37056a2cd",
     "packages/redbox-core/src/extensions/exports.ts": "52248700fa015cfb08685662b790876a55a8ab05bf1babb0d493f37d779301f9",
     "packages/redbox-core/src/extensions/index.ts": "dcabb113818ba6d4464304982f9d73eba306d1db2047612f062577c07a014875",
     "packages/redbox-core/src/extensions/integrationModule.ts": "84bf53dea810d3654954fcc2973d5072cd8687ce338cd7650de0575502040cfd",
@@ -6297,9 +6297,9 @@
     "packages/redbox-core/src/http/assetRoutes.ts": "7415c6fc1071f7154b9529dbb2d777f1b61110611289c48b192e0a86d979a2e2",
     "packages/redbox-core/src/http/authenticationRoutes.ts": "c43a7b30234dbf378c30932757f7c6de73686d78762b4713b4920da1fa129bb8",
     "packages/redbox-core/src/http/brandingDeliveryCache.ts": "d804e84540f5f26526a870c54499fdc68eb95edfeb713a5a3b88ae6f9d621cf5",
-    "packages/redbox-core/src/http/context.ts": "f0b15b9456a8ebb91b238ddb4354b6265549b91ba564b0ab61a7c43a3e5b37af",
-    "packages/redbox-core/src/http/contracts.ts": "fee36c6cdaf8faed488165c983c1386316bc73b2c20630b8131387e980708349",
-    "packages/redbox-core/src/http/controllers.ts": "4295649161b5d152609c007a22727d683f386a51210e29131bbbf3a7bb856ba3",
+    "packages/redbox-core/src/http/context.ts": "8b6c158e962ec590c6eebdecad9c806fbf9ce5caafed36bded0e40628e9c0c81",
+    "packages/redbox-core/src/http/contracts.ts": "744e1b648e758eb05afc059cc10a5ed1f69a0294eb528701eea45b81221ee391",
+    "packages/redbox-core/src/http/controllers.ts": "ae64b30160903c9434c2918573eadfd5630bb317259d6425d92f7b28dcab8f19",
     "packages/redbox-core/src/http/controllers/ApplicationStatusController.ts": "a1d098cfdc540f7ce08c9309ebe4186c6b9fb73ba7f576aad347d646f83252ac",
     "packages/redbox-core/src/http/controllers/AssetControllers.ts": "bbfab210e65ded1009983ec3ecc8160fc5f72a0c4b6af932702ae7fce3b0cd25",
     "packages/redbox-core/src/http/controllers/BrowserControllers.ts": "0f27980944c38bf08b97c9036103fac34b2b13ba89dd681b1759e7383a95670e",
@@ -6368,7 +6368,7 @@
     "packages/redbox-core/src/http/express/siemWrites.ts": "1eccbb16f037aa92792be86a785d34091826267fd38933aa42bb072bcab0b305",
     "packages/redbox-core/src/http/express/vocabularyAdministration.ts": "1efef5723379f3563da57443e1653943536f157ba6770ea9ac70431b00f77587",
     "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "17899dbdbb6aacc59e2fe9310336a48feb4f98ba15fbd75913f7e397bae41a99",
-    "packages/redbox-core/src/http/fastify/FastifyHost.ts": "1a9c441aecfc74092da3a0444f8d365936384f4a25d41d124d3679555357b519",
+    "packages/redbox-core/src/http/fastify/FastifyHost.ts": "000ffb97671bc3d63e0cc65762d3643127136f7beff9958e4bfd5066c0047b74",
     "packages/redbox-core/src/http/fastify/actionReply.ts": "49fd0f32e55a234a38dc6aae6d2b908e21989de747186a93e3616b3d5f47df2e",
     "packages/redbox-core/src/http/fastify/assetCookies.ts": "0d5f692761a54910e34b5b27bfc4f80a509d774f5fd104280b88ed977e8f1e4b",
     "packages/redbox-core/src/http/fastify/assets.ts": "224706e6b6bf561c92850ab7130ba7d86cb9c9376fcb74c339f2fa819c7482e3",
@@ -6416,7 +6416,7 @@
     "packages/redbox-core/src/http/integrations/companion/fastify.ts": "077d9d8777570ac90420703cdcf3380dbbd18a092dcd928f5e82c23588dba0e9",
     "packages/redbox-core/src/http/integrations/companion/uploads.ts": "bbb815ac879c0191faf8a8c844510854b767285a3880c5372e7f2e2515648e77",
     "packages/redbox-core/src/http/integrations/upgrades.ts": "0fe0621ef6c0926398dc1f8bdc8074956547e1e983ce231942d9cdaf22c65efe",
-    "packages/redbox-core/src/http/language.ts": "293f7d0b0b00080a3f269f9183c73c3dd051ae78c523323849bc04848b669db7",
+    "packages/redbox-core/src/http/language.ts": "66fb6f24657673d68521b9621429bd4b3307c5148b161e4e7c6ae641e6507ec2",
     "packages/redbox-core/src/http/mutationRoutes.ts": "3c810038bf0b1aba1f88177e884fd690a2b524f55a3954b9807b147a180d1a88",
     "packages/redbox-core/src/http/pageRoutes.ts": "3a12eb0c29ba3524005b0c3cca641afe9cea4cefbac24edfd724af2299791875",
     "packages/redbox-core/src/http/policyConfiguration.ts": "a4d9223d24f2c2e978f1d984f4120eed3866766f0722b6a90a19e2cec3662c54",
@@ -51660,7 +51660,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 16,
+      "line": 21,
       "call": "contexts.get(request)",
       "scopes": [
         "requestContext"
@@ -51691,7 +51691,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-return",
-      "line": 18,
+      "line": 23,
       "call": "return context;",
       "scopes": [
         "requestContext"
@@ -51721,7 +51721,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 32,
+      "line": 37,
       "call": "contexts.has(request)",
       "scopes": [
         "resolveRequestBrand"
@@ -51752,7 +51752,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 33,
+      "line": 38,
       "call": "contexts.set(request, Object.freeze({ brand: freeze(structuredClone(brand)), portal }))",
       "scopes": [
         "resolveRequestBrand"
@@ -51783,7 +51783,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 39,
+      "line": 44,
       "call": "requestContext(request)",
       "scopes": [
         "clearRequestActor"
@@ -51814,7 +51814,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 40,
+      "line": 45,
       "call": "contexts.set(request, Object.freeze({ brand: selected.brand, portal: selected.portal }))",
       "scopes": [
         "clearRequestActor"
@@ -51845,7 +51845,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 40,
+      "line": 45,
       "call": "contexts.set(request, Object.freeze({ brand: selected.brand, portal: selected.portal }))",
       "scopes": [
         "clearRequestActor"
@@ -51876,7 +51876,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 40,
+      "line": 45,
       "call": "Object.freeze({ brand: selected.brand, portal: selected.portal })",
       "scopes": [
         "clearRequestActor"
@@ -51907,7 +51907,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 45,
+      "line": 50,
       "call": "requestContext(request)",
       "scopes": [
         "resolveRequestActor"
@@ -51938,7 +51938,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 46,
+      "line": 51,
       "call": "contexts.set( request, Object.freeze({ ...context, actor: Object.freeze({ id: actor.id, username: actor.username, type: actor.type, name: actor.name, email: actor.email, roles: Object.freeze( actor.roles .filter(role => role.brandId === context.brand.id) .map(role => Object.freeze({ id: role.id, bra",
       "scopes": [
         "resolveRequestActor"
@@ -51969,7 +51969,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 46,
+      "line": 51,
       "call": "contexts.set( request, Object.freeze({ ...context, actor: Object.freeze({ id: actor.id, username: actor.username, type: actor.type, name: actor.name, email: actor.email, roles: Object.freeze( actor.roles .filter(role => role.brandId === context.brand.id) .map(role => Object.freeze({ id: role.id, bra",
       "scopes": [
         "resolveRequestActor"
@@ -52000,7 +52000,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-handoff",
-      "line": 48,
+      "line": 53,
       "call": "Object.freeze({ ...context, actor: Object.freeze({ id: actor.id, username: actor.username, type: actor.type, name: actor.name, email: actor.email, roles: Object.freeze( actor.roles .filter(role => role.brandId === context.brand.id) .map(role => Object.freeze({ id: role.id, brandId: role.brandId, nam",
       "scopes": [
         "resolveRequestActor"
@@ -52031,7 +52031,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-spread",
-      "line": 49,
+      "line": 54,
       "call": "...context",
       "scopes": [
         "resolveRequestActor"
@@ -52061,7 +52061,7 @@
     {
       "file": "packages/redbox-core/src/http/context.ts",
       "kind": "typed-return",
-      "line": 58,
+      "line": 63,
       "call": "role.brandId === context.brand.id",
       "scopes": [
         "resolveRequestActor"

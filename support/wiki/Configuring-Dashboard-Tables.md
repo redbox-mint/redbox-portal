@@ -14,6 +14,7 @@ Hidden workflow stages appear in the editor (labelled *hidden stage*) so they ca
 
 ### Settings reference
 
+<!-- docs-example:skip partial: Dashboard interface outline; referenced column, filter and rule types are omitted. -->
 ```ts
 interface DashboardSettings {
   searchable: boolean;       // Show the search box (workflow stage dashboards)

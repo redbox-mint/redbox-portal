@@ -2,13 +2,22 @@ import type { FastifyReply, FastifyRequest, RouteGenericInterface } from 'fastif
 import type { ExtensionFactory } from '../extensions/contract';
 import type { ApiRouteDefinition } from '../api-routes/types';
 
+/** RouteAccess authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export type RouteAccess =
   | { readonly kind: 'public' }
   | { readonly kind: 'policies'; readonly names: readonly [string, ...string[]] }
   | { readonly kind: 'deny' };
 
+/** PortalHttpMethod authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export type PortalHttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
 
+/** HttpRouteDeclaration authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface HttpRouteDeclaration extends ControllerTarget {
   readonly name: string;
   readonly method: PortalHttpMethod;
@@ -40,37 +49,54 @@ export type ForbiddenControllerAction =
   | 'toString'
   | 'valueOf';
 
-/** Callable keys only; action-specific Fastify signatures are checked by authors/fixtures. */
+/** Callable keys only; action-specific Fastify signatures are checked by authors/fixtures.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export type ControllerMethodName<C extends object> = Exclude<
   { [K in keyof C]-?: C[K] extends (...args: never[]) => unknown ? K : never }[keyof C] & string,
   ForbiddenControllerAction
 >;
 
+/** ControllerFactory authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface ControllerFactory<Input, C extends object> extends ExtensionFactory<Input, C> {
   readonly actions: readonly ControllerMethodName<C>[];
 }
 
-/** Heterogeneous declaration collection. Concrete input types stay on the original factory. */
+/** Heterogeneous declaration collection. Concrete input types stay on the original factory.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface ControllerRegistration extends ExtensionFactory<never, object> {
   readonly actions: readonly string[];
 }
 
+/** ControllerTarget authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface ControllerTarget {
   readonly controller: string;
   readonly action: string;
 }
 
+/** ControllerAction authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export type ControllerAction<RouteGeneric extends RouteGenericInterface = RouteGenericInterface> = (
   request: FastifyRequest<RouteGeneric>,
   reply: FastifyReply
 ) => unknown;
 
-/** Explicit application scope includes admitted unmatched requests, never host probes. */
+/** Explicit application scope includes admitted unmatched requests, never host probes.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export type HttpHookScope =
   | { readonly kind: 'routes'; readonly names: readonly string[] }
   | { readonly kind: 'application' };
 
-/** Detached, immutable observation data. No live request, transport, session or logger. */
+/** Detached, immutable observation data. No live request, transport, session or logger.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface HttpObservationRequest {
   readonly id: string;
   readonly method: string;
@@ -78,6 +104,9 @@ export interface HttpObservationRequest {
   readonly routeName?: string;
   readonly statusCode: number;
 }
+/** SafeHttpError authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface SafeHttpError {
   readonly code: string;
   readonly statusCode: number;
@@ -90,6 +119,9 @@ interface HttpHookBase {
   readonly requires?: readonly string[];
   readonly replaces?: true;
 }
+/** HttpHookContribution authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export type HttpHookContribution = HttpHookBase &
   (
     | {
@@ -99,6 +131,9 @@ export type HttpHookContribution = HttpHookBase &
     | { readonly stage: 'onResponse'; observe(request: HttpObservationRequest): Promise<void> }
     | { readonly stage: 'onError'; observe(request: HttpObservationRequest, error: SafeHttpError): Promise<void> }
   );
+/** HttpFallbackContribution authoring contract.
+ * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
+ */
 export interface HttpFallbackContribution extends ControllerTarget {
   readonly name: string;
   /** Literal, segment-bounded prefix, relative to the configured root context. */

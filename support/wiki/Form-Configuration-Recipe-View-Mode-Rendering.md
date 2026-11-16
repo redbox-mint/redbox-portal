@@ -70,6 +70,7 @@ rendered verbatim.
 
 The workflow-stage badge from `dataPublication-1.0-common`:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "view-workflow-stage",
@@ -105,6 +106,7 @@ The mirror image: restrict with `allowModes: ["edit"]`. This is the pattern for
 help text, instructions, and action buttons that make no sense on a read-only
 record.
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "dataPub-dm-suffix-0",
@@ -143,6 +145,7 @@ The context available to the template is:
 
 Reading a value straight out of `formData` — the record title heading:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "heading",
@@ -159,6 +162,7 @@ Reading a value straight out of `formData` — the record title heading:
 Displaying a value under a different label, with a fallback path (the data
 manager's name on the licensing/access section):
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "dataLicensingAccess_manager",
@@ -179,6 +183,7 @@ manager's name on the licensing/access section):
 
 Building a route-aware action link (from `generated-view-only`):
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "view_audit",
@@ -214,6 +219,7 @@ must remain in `formData` so a sibling `ContentComponent` (as in section 3) can
 render it. Keep the source component as a **hidden `SimpleInputComponent`** and
 stop the automatic view transform from turning it into content:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   name: "contributor_data_manager",
@@ -264,7 +270,9 @@ value to the read-only component as `content`. This also lets the normal view
 transforms resolve option values to labels. A simplified shape is:
 
 ```typescript
-const editField = {
+import type { FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
+
+const editField: FormComponentDefinitionFrame = {
   name: "conditional_note",
   constraints: { allowModes: ["edit"] },
   expressions: [/* field.visible and field.disabled JSONata expressions */],
@@ -302,6 +310,7 @@ Keep the original notice or heading as `allowModes: ["edit"]`, then add its
 view markup to the driving field's `formModeClasses.view.template`. Evaluate
 the condition against the driving field's transformed `content`:
 
+<!-- docs-example:skip partial: Field configuration excerpt; insert into the containing form componentDefinitions. -->
 ```typescript
 {
   component: {

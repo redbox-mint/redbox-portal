@@ -1,5 +1,7 @@
 # Custom Brand Typeface Implementation Plan
 
+> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+
 Status: implementation under review; see [review validation](branding-typeface-review-validation.md)
 Depends on: [design.md](design.md)
 Executable work items: [tasklist.md](tasklist.md)

@@ -23,7 +23,7 @@ npm pack --ignore-scripts
 `init` writes into the current directory. Its name argument sets the package
 name. The scaffold has exact compiler/type pins, a neutral `redbox.extension`
 manifest, a public runtime export, and package-relative views/assets. It declares
-`registerRedboxExtension()` with `apiVersion: 1`; it does not generate Sails
+`registerRedboxExtension()` with `apiVersion: 2`; it does not generate Sails
 controllers, service registrations, model shims or a standalone deployment.
 
 The `file:` core reference is for local development. Before publication, replace
@@ -46,9 +46,9 @@ workers and HTTP, then owns drain and close. EJS receives `page`; configuration
 and services are explicit inputs. Old `sails.hasControllers`,
 `registerRedboxControllers()` and `Core.Controller` examples are unsupported.
 
-Follow the [complete conversion guide](../specs/sails-retirement/hook-migration-v6.md)
+Follow the [complete conversion guide](../specs/fastify-migration/extension-api2.md)
 for compiler conversion, factory/work bindings, policies, persisted expressions,
-packaged pages and installed verification. The [extension contract](../specs/sails-retirement/extensions-v6.md)
+packaged pages and installed verification. The [extension contract](../specs/fastify-migration/extension-api2.md)
 and [loading guide](Redbox-Loader.md) define the supported runtime. CLI help and
 completion are available through the same built CLI; form migration tools have
 separate input-specific guidance.

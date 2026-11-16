@@ -3,9 +3,7 @@
   "compilerOptions": {
     "baseUrl": "../../..",
     "noEmit": true,
-    "paths": {
-      "@researchdatabox/redbox-core": ["packages/redbox-core/src/index.ts"]
-    },
+    "paths": {},
     "rootDir": "../../..",
     "types": ["node"]
   },

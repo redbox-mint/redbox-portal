@@ -340,6 +340,19 @@ function basicSurface(
   if (ts.isClassDeclaration(declaration)) return surfaceFromClass(checker, declaration, id, displayName, kind);
   const docs = parseDocumentation(declaration);
   const members: MemberContract[] = [];
+  if (ts.isFunctionDeclaration(declaration)) {
+    const signature = checker.getSignatureFromDeclaration(declaration);
+    members.push({
+      id: `${id}.${declarationName}`,
+      name: declarationName,
+      lifecycle: docs.lifecycle,
+      signature: signature
+        ? normalizeType(checker.signatureToString(signature, declaration, ts.TypeFormatFlags.NoTruncation))
+        : undefined,
+      description: docs.summary,
+      source: sourceLocation(declaration),
+    });
+  }
   if (
     ts.isInterfaceDeclaration(declaration) ||
     ts.isTypeAliasDeclaration(declaration) ||
@@ -348,11 +361,24 @@ function basicSurface(
     const type = checker.getTypeAtLocation(declaration);
     for (const property of checker.getPropertiesOfType(type)) {
       const member = property.valueDeclaration ?? property.declarations?.[0] ?? declaration;
+      // Literal/conditional string aliases also expose String's library members.
+      // They are not authored contract fields (and TS's Symbol IDs are unstable).
+      if (
+        program.isSourceFileFromExternalLibrary(member.getSourceFile()) ||
+        program.isSourceFileDefaultLibrary(member.getSourceFile())
+      )
+        continue;
       members.push({
         id: `${id}.${property.name}`,
         name: property.name,
         lifecycle: docs.lifecycle,
-        type: normalizeType(checker.typeToString(checker.getTypeOfSymbolAtLocation(property, member))),
+        type: normalizeType(
+          checker.typeToString(
+            checker.getTypeOfSymbolAtLocation(property, member),
+            member,
+            ts.TypeFormatFlags.NoTruncation
+          )
+        ),
         optional: Boolean(property.flags & ts.SymbolFlags.Optional),
         description: ts.displayPartsToString(property.getDocumentationComment(checker)) || undefined,
         source: sourceLocation(member),
@@ -372,6 +398,10 @@ function basicSurface(
     },
     source: sourceLocation(declaration),
     members,
+    declaration:
+      ts.isInterfaceDeclaration(declaration) || ts.isTypeAliasDeclaration(declaration)
+        ? declaration.getText()
+        : undefined,
   };
 }
 
@@ -458,11 +488,8 @@ export function extractCatalogue(program: ts.Program): ExtractionResult {
   const surfaces: SurfaceContract[] = [];
   // v6 publishes classified declarations, not removed singleton/shim registries.
   const contracts = [
-    ['extensions/contract.ts', 'RedboxExtension', 'hook-protocol', 'hook-protocol:RedboxExtension'],
     ['extensions/contract.ts', 'ExtensionFactory', 'hook-protocol', 'hook-protocol:ExtensionFactory'],
-    ['extensions/contract.ts', 'ExtensionRoute', 'hook-protocol', 'hook-protocol:ExtensionRoute'],
     ['extensions/contract.ts', 'ExtensionWork', 'hook-protocol', 'hook-protocol:ExtensionWork'],
-    ['extensions/contract.ts', 'ExtensionHostIntegration', 'hook-protocol', 'hook-protocol:ExtensionHostIntegration'],
     ['application/Application.ts', 'ApplicationModule', 'hook-protocol', 'hook-protocol:ApplicationModule'],
     ['CoreService.ts', 'Service', 'base-service', 'base-service:Service'],
     ['records/Records.ts', 'Records', 'service', 'service:RecordsService'],
@@ -472,7 +499,37 @@ export function extractCatalogue(program: ts.Program): ExtractionResult {
     const surface = basicSurface(checker, program, `packages/redbox-core/src/${file}`, name, id, kind);
     if (surface) surfaces.push(surface);
   }
+  for (const { file, name } of publicProtocolDeclarations(program)) {
+    if (surfaces.some(surface => surface.id === `hook-protocol:${name}`)) continue;
+    const surface = basicSurface(checker, program, file, name, `hook-protocol:${name}`, 'hook-protocol');
+    if (!surface) throw new Error(`Public protocol has no documentation declaration: ${name}`);
+    surfaces.push(surface);
+  }
   surfaces.push(...extractForms(program, checker));
   surfaces.sort((left, right) => left.id.localeCompare(right.id));
   return { surfaces, diagnostics: diagnosticsFor(surfaces) };
+}
+
+/** Read the authoring protocols through their real public barrels, including aliases. */
+export function publicProtocolDeclarations(program: ts.Program): Array<{ file: string; name: string }> {
+  const checker = program.getTypeChecker();
+  const files = new Set(
+    ['extensions/contract.ts', 'http/contracts.ts', 'http/controllers.ts', 'http/context.ts', 'http/language.ts'].map(
+      file => `packages/redbox-core/src/${file}`
+    )
+  );
+  const declarations = new Map<string, { file: string; name: string }>();
+  for (const entry of ['extensions', 'http']) {
+    const file = sourceFile(program, `packages/redbox-core/src/${entry}/index.ts`);
+    const module = checker.getSymbolAtLocation(file);
+    if (!module) throw new Error(`Missing public ${entry} module`);
+    for (const exported of checker.getExportsOfModule(module)) {
+      const symbol = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+      const declaration = symbol.declarations?.[0];
+      if (!declaration) continue;
+      const relative = path.relative(repositoryRoot, declaration.getSourceFile().fileName).replaceAll(path.sep, '/');
+      if (files.has(relative)) declarations.set(exported.name, { file: relative, name: symbol.name });
+    }
+  }
+  return [...declarations.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

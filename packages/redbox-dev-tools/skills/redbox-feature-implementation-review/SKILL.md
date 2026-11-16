@@ -98,10 +98,10 @@ Example payload when issues exist:
 "rule": "HTTP handlers select safe display errors through the owned response contract.",
 "severity": "major",
 "message": "Handler exposes the original provider error to the client.",
-"file": "packages/redbox-core/src/http/express/institution.ts",
+"file": "packages/redbox-core/src/http/fastify/institution.ts",
 "lines": "L88-L96",
-"evidence": "res.status(500).json(error)",
-"suggested_fix": "Use sendApiErrors with a safe code/title and record the original error in the existing request chronicle."
+"evidence": "reply.code(500).send(error)",
+"suggested_fix": "Preserve the safe host error contract and bounded diagnostics; never serialize the provider error."
 }
 ]
 }

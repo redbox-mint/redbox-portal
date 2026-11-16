@@ -61,10 +61,12 @@ rendering owners must prepare their templates before publishing helper HTML:
 ```ts
 import { loadMarkdownParser } from '@researchdatabox/sails-ng-common/handlebars-runtime';
 
-if (outputFormat === 'markdown' && content) {
-  await loadMarkdownParser();
+export async function prepareMarkdown(outputFormat: string, content: string) {
+  if (outputFormat === 'markdown' && content) {
+    await loadMarkdownParser();
+  }
+  // Execute the precompiled template using the existing runtime and sanitize output.
 }
-// Execute the precompiled template using the existing runtime and sanitize output.
 ```
 
 The portal's `HandlebarsTemplateService.prepareTemplates(configuredTemplates)`

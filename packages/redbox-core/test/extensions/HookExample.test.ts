@@ -1,43 +1,44 @@
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
-import express from 'express';
-import { resolveExtensions } from '../../src/extensions/resolution';
-import { type RedboxExtension } from '../../src/extensions/legacyContract';
+import { resolveExtensionsV2 } from '../../src/extensions/v2';
+import type { RedboxExtensionV2 } from '../../src/extensions';
+import type { BoundControllerFactory } from '../../src/http';
 
-// The published source lives outside this package's compiler root. Its own
-// documentation audit typechecks it; this regression exercises it at runtime.
-const registerRedboxExtension: () => RedboxExtension =
-  require('../../../../support/documentation/examples/hook-override').registerRedboxExtension;
+// Public-import compilation belongs to docs:audit; real HTTP qualification is
+// HookExampleMongo.test.ts through production composition with disposable services.
+const published: {
+  registerRedboxExtension(): RedboxExtensionV2;
+  bindHealthController(example: { health(): boolean }): BoundControllerFactory;
+} = require('../../../../support/documentation/examples/hook-override');
 
 describe('published hook override example', () => {
-  it('resolves and serves the example through its owned module lifecycle', async () => {
-    const result = resolveExtensions([
-      { name: 'example', root: process.cwd(), declaration: registerRedboxExtension() },
-    ]);
+  it('resolves the example and owns its module lifecycle', async () => {
+    const result = await resolveExtensionsV2(
+      [{ name: 'example', root: process.cwd(), declaration: published.registerRedboxExtension() }],
+      {
+        bindings: [published.bindHealthController({ health: () => false })],
+        routing: { rootContext: '', policyNames: [], precedence: [], legacyOrder: false },
+      }
+    );
     assert.equal(result.modules.length, 1);
-    assert.equal(result.handlers.length, 1);
-    assert.equal(result.routes.length, 1);
-    assert.equal(result.routes[0].declaration.handler, result.handlers[0].declaration.name);
-    const example = result.modules[0].declaration.create(undefined as never);
-    await example.initialize();
-    const app = express();
-    app.get('/example/health', result.handlers[0].declaration.create({ example } as never));
-    const server = app.listen(0, '127.0.0.1');
+    assert.equal(result.controllerRegistrations.length, 1);
+    assert.equal(result.routeRegistrations.length, 1);
+    const controller = result.controllerRegistrations[0].declaration;
+    const route = result.routeRegistrations[0].declaration;
+    assert.equal(route.controller, controller.name);
+    assert.equal(route.action, 'read');
+    assert.deepEqual(controller.actions, ['read']);
+    const example = result.modules[0].declaration.create(undefined as never) as {
+      initialize(): Promise<void>;
+      close(): Promise<void>;
+      health(): boolean;
+    };
+    assert.equal(example.health(), false);
     try {
-      await once(server, 'listening');
-      const address = server.address();
-      assert(address && typeof address === 'object');
-      const url = `http://127.0.0.1:${address.port}/example/health`;
-      const ready = await fetch(url);
-      assert.equal(ready.status, 200);
-      assert.deepEqual(await ready.json(), { ready: true });
-      await example.close();
-      const closed = await fetch(url);
-      assert.equal(closed.status, 200);
-      assert.deepEqual(await closed.json(), { ready: false });
+      await example.initialize();
+      assert.equal(example.health(), true);
     } finally {
-      server.closeAllConnections();
-      await new Promise<void>(resolve => server.close(() => resolve()));
+      await example.close();
     }
+    assert.equal(example.health(), false);
   });
 });

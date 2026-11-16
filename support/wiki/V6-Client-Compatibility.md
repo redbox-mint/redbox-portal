@@ -56,7 +56,7 @@ WSU's mapping does not convert other institutions' expressions.
 | Branded logout requires **POST** plus session CSRF; GET returns **405**, `Allow: POST`. | Navbar overrides and login/logout scripts | Fetch `/csrfToken` within the configured root context and submit `_csrf` or `X-CSRF-Token` with the session. Use the coordinated POST logout form. |
 | Local malformed credentials return **400**; provider denials/debug mode return safe **403** instead of provider-dependent redirects/error rendering. AAF assertions enforce the configured issuer. | Local login scripts, OIDC/AAF clients and IdP operators | Send scalar local credentials; handle a denial without expecting provider exception text. Configure the exact AAF issuer, validated local redirects and trusted IdP logout origin. |
 | Browser REST writes require session CSRF even where old route config said `csrf: false`. An Authorization header alone never exempts a request; only independently verified API bearer auth does. | Custom AJAX, forms and mixed cookie/bearer clients | Send `_csrf` or `X-CSRF-Token`; query-string tokens are rejected. Obtain a new token after session rotation. |
-| The CSRF token endpoint is the owned **GET `/csrfToken`** (under the deployment root), returning `{ _csrf }` with no-store headers. Framework-generated CSRF endpoints/helpers are retired. Token fetches and browser writes deny unconfigured origins and sibling sites. | Custom token fetchers, Angular integrations and reverse-proxy operators | Retain the supported JSON/header contract, configure canonical browser origins explicitly and include the session cookie. Do not derive trust from forwarded headers or cache tokens. Page hosts supply `res.locals._csrf`. |
+| The CSRF token endpoint is the owned **GET `/csrfToken`** (under the deployment root), returning `{ _csrf }` with no-store headers. Framework-generated CSRF endpoints/helpers are retired. Token fetches and browser writes deny unconfigured origins and sibling sites. | Custom token fetchers, Angular integrations and reverse-proxy operators | Retain the supported JSON/header contract, configure canonical browser origins explicitly and include the session cookie. Do not derive trust from forwarded headers or cache tokens. Page rendering supplies `page._csrf` through the owned request-scoped context. |
 | Tus resumptions bind actor, brand and record and recheck current edit permission. Browser raw requests, including HEAD resume checks, require CSRF; callback/shared secrets cannot replace actor authentication. Locations are root-relative. | Uppy/tus uploaders, callback handlers and reverse proxies | Use a current authenticated actor and CSRF on every applicable raw request, or verified bearer exemption. Resolve returned Locations against the configured origin/root. |
 | Unbound v5 staging objects cannot acquire ownership from client-supplied metadata; their bytes remain retained. | Operators and clients with unfinished transfers | Drain v5 uploads before cutover or reconcile ownership from trusted operator records. Do not delete staging during forced login or reassign it from untrusted input. |
 | Metadata saves and missing-primary read recovery verify persisted staging ownership before byte access. Read recovery requires the exact record binding; metadata promotion also requires a completed declared tus length/offset. Cancelled-save cleanup retains foreign/unbound staging and historical journal rows without trusted ownership. | Upload clients, attachment readers and storage operators | Finish the upload before saving its metadata. Use the owning actor and brand for recovery, and reconcile historical ownership from trusted records. Retained incomplete uploads can resume; a submitted file ID never authorizes adoption or deletion. |
@@ -108,10 +108,36 @@ The [complete conversion table](../specs/sails-retirement/configuration-v6.md#ba
 covers every inventoried legacy family. Convert `form.forms/defaultForm/formConfigRegistry`
 and executable validator/workspace registries to neutral declarations; HTTP
 routes/controllers/policies/views/dynamic assets, CORS, `security`, middleware and
-service/queue wiring become explicit host/extension inputs. Logging uses
-`logging.level`, selected/domain loggers and `PortalHttpOptions.requestLogging`,
-including the former `log.requestChronicle` options. Convert `crontab` and bootstrap
-callbacks/timeouts/readiness polling to named schedules and awaited owned work.
+service/queue wiring become explicit host/extension inputs.
+
+Logging uses `logging.level` (or `REDBOX_LOG_LEVEL`) and the logger explicitly
+supplied through `PortalApplicationOptions.log`. Apply the resolved level to that
+logger in the application composition root. This public-import example keeps the
+configuration and logger inputs typed:
+
+```ts
+import type { PortalConfiguration } from '@researchdatabox/redbox-core/configuration';
+import type { PortalApplicationOptions } from '@researchdatabox/redbox-core/portal';
+
+export const applicationConfig = {
+  logging: { level: 'warn' },
+} satisfies Pick<PortalConfiguration, 'logging'>;
+
+export function applicationLogging(log: PortalApplicationOptions['log']) {
+  return { log } satisfies Pick<PortalApplicationOptions, 'log'>;
+}
+```
+
+Chronicle sampling settings such as `successSampleRate`, `slowThresholdMs` and
+`successSampleExcludePattern` belong to the **legacy Express host**. Its private
+`PortalHttpOptions.requestLogging` option is not part of the public Fastify portal
+API; `PortalApplicationOptions` has no `requestLogging` property. Fastify forwards
+bounded HTTP diagnostics through the supplied logger and has no public chronicle
+sampling option. See [Request Chronicle Logging](Request-Chronicle-Logging.md#retention-settings)
+for supported levels, retention behavior and the explicitly legacy settings.
+
+Convert `crontab` and bootstrap callbacks/timeouts/readiness polling to named
+schedules and awaited owned work.
 Sails reload/blueprint/global/hook/pubsub/compiler/webpack and legacy loader copying
 settings are retired. Authentication/brand/lifecycle registries and generated
 runtime state (`passport`, `brandingAware`, `beforeShutdown`, `appPath`,
@@ -211,14 +237,14 @@ that injected collaborator.
 The unreferenced deep-export helpers `getRouteParam` and `toParamString` in
 `dist/utilities/RequestParamUtils`, and `cleanupCachePersistenceAfterFailure` in
 `dist/persistence/cache/runtime`, are intentionally removed too. HTTP adapters
-read their declared Express inputs; application startup failures use the owned
+read their declared Fastify inputs; application startup failures use the owned
 runtime's cleanup. `AgendaQueue.registerOwnership`, an empty protected extension
 hook, is removed: queue resources belong to the selected application owner.
 
-Deep callers of `BrandingDelivery` must supply the declared Express capture
+Legacy deep callers of `BrandingDelivery` supplied the declared Express capture
 names: `token` for preview CSS and `sha256` for fonts. The old `tokenCss` and
 mangled `sha256*` parameter guesses are intentionally removed; the declared
-Express routes already supply the supported names.
+API2 asset controllers supply the supported names.
 
 Developer-tool helpers also drop unused typed inputs: `updateControllerIndex`
 and `updateServiceIndex` no longer take `root`/`className`, and `updateRoutes`
@@ -234,7 +260,7 @@ and deep exports: `ApiRouteMap`, `buildCoreApiRouteConfig`,
 `getMatchedRoutePath` (including the `api-routes/route-resolution` module).
 `ApiRouteConfiguration.routes` and its legacy route-table check are also removed.
 Declare extension routes through the supported extension HTTP registration
-contract. Express receives each contract at registration; no legacy route table
+contract. Fastify receives each contract at registration; no legacy route table
 or request-based contract resolver is required. `getMergedApiRoutes`, `toRouteMap`,
 duplicate detection, request validation and generated API documents remain.
 

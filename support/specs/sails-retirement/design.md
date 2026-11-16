@@ -1,5 +1,7 @@
 # Sails retirement: v6 application runtime and Express design
 
+> Historical Sails-retirement / API1 baseline. Express handler, middleware and deep-export instructions below are legacy; current authoring uses the [API2 migration guide](../fastify-migration/extension-api2.md). Retain this record for preceding-build comparison and recovery context.
+
 Status: agreed design. Executed implementation and qualification are tracked in
 [tasks](tasks.md) and linked evidence; a description alone is not completion.
 Prepared on 2026-10-23 against `stack/waterline-4-remove-waterline`, commit
