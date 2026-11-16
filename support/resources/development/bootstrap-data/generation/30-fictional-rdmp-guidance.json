@@ -1,0 +1,22 @@
+{
+  "kind": "knowledge",
+  "key": "fictional-rdmp-guidance",
+  "name": "Fictional RDMP demonstration guidance",
+  "description": "Synthetic policy material for the AI-assisted form-generation demonstration.",
+  "manifest": {
+    "purpose": "demo-only",
+    "fictional": true,
+    "version": 1
+  },
+  "documents": [
+    {
+      "documentKey": "fictional-storage-sharing-policy",
+      "title": "Fictional Research Data Stewardship Guide",
+      "authority": "institutionPolicy",
+      "classification": "public",
+      "owner": "Fictional Office of Research Data",
+      "file": "fictional-rdmp-guidance.md",
+      "tags": ["storage", "sharing", "retention", "ethics"]
+    }
+  ]
+}

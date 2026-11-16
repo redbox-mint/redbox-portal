@@ -1,0 +1,17 @@
+{
+  "kind": "deployment",
+  "key": "demo-bedrock-rdmp-v1",
+  "version": 1,
+  "name": "Amazon Nova Lite RDMP demo",
+  "connectionKey": "demo-bedrock-generation",
+  "modelId": "amazon.nova-lite-v1:0",
+  "requiredCapabilities": {
+    "structuredOutput": true,
+    "nonStreaming": true,
+    "textInput": true
+  },
+  "parameters": {
+    "maxOutputTokens": 4096,
+    "temperature": 0.2
+  }
+}

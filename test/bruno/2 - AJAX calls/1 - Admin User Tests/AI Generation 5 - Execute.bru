@@ -1,0 +1,50 @@
+meta {
+  name: AI Generation 5 - Execute
+  type: http
+  seq: 64
+}
+
+post {
+  url: {{host}}/default/rdmp/generation/runs/{{generationRunId}}/execute
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "answers": [
+      { "id": "projectPurpose", "value": "Explore fictional coastal community wellbeing." },
+      { "id": "humanParticipants", "value": true },
+      { "id": "sensitiveData", "value": true },
+      { "id": "expectedDataTypes", "value": ["De-identified survey responses", "Synthetic interview transcripts", "Aggregate statistics"] },
+      { "id": "retentionPeriod", "value": "7 years" }
+    ],
+    "targetForm": {
+      "recordType": "demoRdmp",
+      "formName": "demoRdmp-1.0-draft",
+      "mode": "create"
+    },
+    "targetDraft": {
+      "researchActivity": { "oid": "{{generationSourceOid}}" }
+    }
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Queues generation", function () {
+    expect(res.getStatus()).to.equal(202);
+    expect(["queued", "running", "validating", "completed"]).to.include(res.getBody().data.status);
+  });
+}

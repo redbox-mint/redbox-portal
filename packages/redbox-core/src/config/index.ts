@@ -81,6 +81,7 @@ export * from './recordValidation.config';
 export * from './recordSchema.config';
 export * from './recordGraphql.config';
 export * from './harvestRuns.config';
+export * from './generation.config';
 
 import type { ApiRouteProvider } from '../api-routes';
 import type { RecordContractContributorDiscoveryState } from '../record-contract/contributor-registry';
@@ -160,6 +161,7 @@ import { recordValidation, RecordValidationConfig } from './recordValidation.con
 import { recordSchema, RecordSchemaConfig } from './recordSchema.config';
 import { recordGraphql, RecordGraphqlConfig } from './recordGraphql.config';
 import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
+import { generation, GenerationConfig, validateGenerationConfig } from './generation.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { WebAnalytics } from '../configmodels/WebAnalytics';
 
@@ -271,6 +273,7 @@ export interface SailsConfig {
     recordSchema: RecordSchemaConfig;
     recordGraphql: RecordGraphqlConfig;
     harvestRuns: HarvestRunsConfig;
+    generation: GenerationConfig;
 
     // Auth-related configs
     auth: AuthConfig;
@@ -368,6 +371,7 @@ export const Config = {
     recordSchema,
     recordGraphql,
     harvestRuns,
+    generation: validateGenerationConfig(generation),
 } as const;
 
 // Type for the Config object

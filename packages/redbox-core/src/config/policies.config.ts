@@ -136,6 +136,9 @@ export const policies: PoliciesConfig = {
   RenderViewController: {
     render: noCachePlusDefaultPolicies,
   },
+  GenerationController: {
+    '*': noCachePlusDefaultPolicies,
+  },
   'webservice/RecordController': {
     '*': noCachePlusDefaultPolicies,
   },
