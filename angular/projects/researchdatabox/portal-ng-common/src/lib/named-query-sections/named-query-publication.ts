@@ -5,6 +5,8 @@ import {
   print,
   valueFromASTUntyped,
   type ValueNode,
+  type ObjectFieldNode,
+  type ArgumentNode,
   type OperationDefinitionNode,
   parseType,
   visit,
@@ -60,13 +62,13 @@ export function initializePublish(
   const draft = structuredClone(prepared.definition);
   draft.name = suggestNamedQueryName(exploration?.name ?? draft.name ?? '');
   const values = structuredClone(prepared.variableValues);
-  const ast = parse(draft.graphql.document, { maxTokens: 2000 });
+  const ast = parse(draft.graphql.document, { maxLexicalTokens: 2000 });
   let operation = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION) as OperationDefinitionNode;
   const customLabels: Record<string, string> = {};
   if (exploration && exploration.mode !== 'graphql' && Array.isArray(values['filters'])) {
     const filters = values['filters'];
     const definitions = [...(operation.variableDefinitions ?? [])].filter(v => v.variable.name.value !== 'filters');
-    const inputs = filters.map((filter, index) => {
+    const inputs = filters.map((filter, index): ValueNode => {
       const object = filter as Record<string, unknown>;
       const operator = Object.keys(object).find(k => k !== 'field')!;
       const value = object[operator];
@@ -93,24 +95,25 @@ export function initializePublish(
         const variable: ValueNode = { kind: Kind.VARIABLE, name: { kind: Kind.NAME, value: name } };
         return {
           ...node,
-          fields: node.fields.map(field =>
-            field.name.value !== operator
-              ? field
-              : {
-                  ...field,
-                  value: scalarKey
-                    ? {
-                        kind: Kind.OBJECT as const,
-                        fields: [
-                          {
-                            kind: Kind.OBJECT_FIELD as const,
-                            name: { kind: Kind.NAME as const, value: scalarKey },
-                            value: variable,
-                          },
-                        ],
-                      }
-                    : variable,
-                }
+          fields: node.fields.map(
+            (field): ObjectFieldNode =>
+              field.name.value !== operator
+                ? field
+                : {
+                    ...field,
+                    value: scalarKey
+                      ? {
+                          kind: Kind.OBJECT,
+                          fields: [
+                            {
+                              kind: Kind.OBJECT_FIELD,
+                              name: { kind: Kind.NAME, value: scalarKey },
+                              value: variable,
+                            },
+                          ],
+                        }
+                      : variable,
+                  }
           ),
         };
       }
@@ -129,10 +132,11 @@ export function initializePublish(
           text('op-' + operator).replace(/^./, c => c.toLocaleLowerCase());
         return {
           ...node,
-          fields: node.fields.map(field =>
-            field.name.value !== operator
-              ? field
-              : { ...field, value: { kind: Kind.VARIABLE as const, name: { kind: Kind.NAME as const, value: name } } }
+          fields: node.fields.map(
+            (field): ObjectFieldNode =>
+              field.name.value !== operator
+                ? field
+                : { ...field, value: { kind: Kind.VARIABLE, name: { kind: Kind.NAME, value: name } } }
           ),
         };
       }
@@ -148,8 +152,9 @@ export function initializePublish(
             ? root
             : {
                 ...root,
-                arguments: root.arguments?.map(arg =>
-                  arg.name.value === 'filters' ? { ...arg, value: { kind: Kind.LIST as const, values: inputs } } : arg
+                arguments: root.arguments?.map(
+                  (arg): ArgumentNode =>
+                    arg.name.value === 'filters' ? { ...arg, value: { kind: Kind.LIST, values: inputs } } : arg
                 ),
               }
         ),
@@ -274,7 +279,7 @@ export function visualPublicationProjection<T extends PublicationField>(
         aliases.set(alias, common.get(key)!);
       }
   }
-  const ast = visit(parse(document, { maxTokens: 2000 }), {
+  const ast = visit(parse(document, { maxLexicalTokens: 2000 }), {
     Field(node) {
       const alias = node.alias && aliases.get(node.alias.value);
       return alias ? { ...node, alias: { ...node.alias!, value: alias } } : undefined;

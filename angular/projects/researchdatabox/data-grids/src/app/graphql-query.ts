@@ -30,7 +30,7 @@ export function editorErrors(schema: GraphQLSchema | null, document: string, var
     const vars: unknown = JSON.parse(variables);
     if (!vars || typeof vars !== 'object' || Array.isArray(vars)) return ['Variables must be a JSON object.'];
     parseQueryVariables(vars);
-    const ast = parse(document, { maxTokens: 2000 });
+    const ast = parse(document, { maxLexicalTokens: 2000 });
     const operations = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
     if (operations.length !== 1 || operations[0].operation !== 'query') return ['Use exactly one read-only query.'];
     if (!schema) return ['Load the current schema before running or saving.'];
@@ -68,7 +68,7 @@ export { cursorBinding } from './cursor-binding';
  * Conservatively require direct, unconditional, unaliased records/nodes/oid selections. */
 export function recordIdentityKey(document: string, path: string[]): 'oid' | null {
   try {
-    const ast = parse(document, { maxTokens: 2000 });
+    const ast = parse(document, { maxLexicalTokens: 2000 });
     const operations = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
     if (operations.length !== 1 || operations[0].operation !== 'query') return null;
     const root = operations[0].selectionSet.selections.find(
@@ -166,7 +166,7 @@ export { rawDefinition } from './raw-definition';
 
 export function queryRecordType(document: string, variables: Record<string, unknown>): string | null {
   try {
-    const ast = parse(document, { maxTokens: 2000 });
+    const ast = parse(document, { maxLexicalTokens: 2000 });
     const op = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION);
     if (!op || op.kind !== Kind.OPERATION_DEFINITION) return null;
     const root = op.selectionSet.selections.find(n => n.kind === Kind.FIELD && n.name.value === 'records');
@@ -180,7 +180,7 @@ export function queryRecordType(document: string, variables: Record<string, unkn
   }
 }
 export function insertRecordField(document: string, selections: { selection: string }[], metadata: boolean): string {
-  const ast = parse(document, { maxTokens: 2000 });
+  const ast = parse(document, { maxLexicalTokens: 2000 });
   const snippets = [...new Set(selections.map(s => s.selection))].join(' ');
   if (!snippets) return document;
   const addition = parse(`{ ${metadata ? 'metadata { __typename ' + snippets + ' }' : snippets} }`);
@@ -211,7 +211,7 @@ export function selectedResultFields(
 ): { label: string; path: string[]; type: string; sourcePath?: string }[] {
   if (!schema) return [];
   try {
-    const ast = parse(document, { maxTokens: 2000 });
+    const ast = parse(document, { maxLexicalTokens: 2000 });
     const op = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION);
     if (!op || op.kind !== Kind.OPERATION_DEFINITION) return [];
     let set = op.selectionSet,
