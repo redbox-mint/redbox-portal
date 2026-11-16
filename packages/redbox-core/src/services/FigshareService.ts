@@ -340,7 +340,8 @@ export namespace Services {
       await importRecordIntent(store, fresh);
       const state = await store.get(oid);
       if (state?.nextActionAt != null) {
-        await scheduleFigshareDelivery(oid, fresh.metaMetadata.brandId, `in ${Math.min(config.processing.coalesceMs, 900000)} milliseconds`);
+        // Pass a Date: Agenda's date.js misparses "in N milliseconds" as a clock time, which can land in the past.
+        await scheduleFigshareDelivery(oid, fresh.metaMetadata.brandId, new Date(Date.now() + Math.min(config.processing.coalesceMs, 900000)));
       }
       return record;
     }
