@@ -1,5 +1,5 @@
 import {Component, inject, Injector, Input} from '@angular/core';
-import { Subscription, merge, auditTime, filter } from "rxjs";
+import { Subscription, merge, switchMap, timer, takeUntil, filter } from "rxjs";
 import { FormComponentEventBus } from "../form-state/events/form-component-event-bus.service";
 import { FormComponentEventType } from "../form-state/events/form-component-event.types";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
@@ -125,12 +125,13 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
           this.formValueChangesSub?.unsubscribe();
           // Expression/behaviour writes can notify only the leaf control. Their
           // field events still reach us even when root valueChanges stays silent.
-          // Batch field notifications after silent writes; keep root changes synchronous.
+          // Batch silent field writes, cancelling their queued refresh when the
+          // root emits and renders synchronously instead.
           this.formValueChangesSub = merge(
             form.valueChanges,
             this.contentEventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).pipe(
               filter(event => event.formScopeId === this.getFormComponent.eventScopeId && event.isCurrent?.() !== false),
-              auditTime(0)
+              switchMap(() => timer(0).pipe(takeUntil(form.valueChanges)))
             )
           ).subscribe(() => {
             if (!this.contentDestroyed) this.renderContent?.();

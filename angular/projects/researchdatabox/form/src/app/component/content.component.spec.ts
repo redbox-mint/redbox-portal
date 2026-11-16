@@ -183,10 +183,39 @@ describe('ContentComponent', () => {
     })();
   });
 
-  it('renders ordinary root value changes synchronously', async () => {
-    const { control, content } = await createPeopleSummary();
-    control.setValue('immediate <value>');
-    expect(content.content).toBe('immediate &lt;value&gt;');
+  it('renders root changes synchronously once and still handles later silent writes', async () => {
+    const { control, content, render } = await createPeopleSummary();
+    fakeAsync(() => {
+      render.calls.reset();
+      control.setValue('immediate <value>');
+      expect(content.content).toBe('immediate &lt;value&gt;');
+      expect(render).toHaveBeenCalledTimes(1);
+      tick(0);
+      expect(render).toHaveBeenCalledTimes(1);
+      void withExpressionValueNotifications(control, async options => control.setValue('later silent value', options));
+      flushMicrotasks();
+      tick(0);
+      expect(content.content).toBe('later silent value');
+      expect(render).toHaveBeenCalledTimes(2);
+    })();
+  });
+
+  it('ignores stale and unscoped notifications even when they refer to a local field', async () => {
+    const { formComponent, control, content, render } = await createPeopleSummary();
+    fakeAsync(() => {
+      const bus = TestBed.inject(FormComponentEventBus);
+      render.calls.reset();
+      control.setValue('silent value', { emitEvent: false, onlySelf: true });
+      // Custom publishers must identify their owning form; field IDs alone are not unique.
+      bus.publish(createFieldValueChangedEvent({ fieldId: '/person', sourceId: '*', value: control.value }));
+      bus.publish(createFieldValueChangedEvent({
+        fieldId: '/person', sourceId: '*', value: control.value,
+        formScopeId: formComponent.eventScopeId, isCurrent: () => false
+      }));
+      tick(0);
+      expect(render).not.toHaveBeenCalled();
+      expect(content.content).toBe('before');
+    })();
   });
 
   it('refreshes content after an asynchronous refresh behaviour finishes its silent write', async () => {
