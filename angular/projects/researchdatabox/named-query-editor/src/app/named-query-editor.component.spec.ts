@@ -1544,6 +1544,7 @@ describe('NamedQueryEditorComponent', () => {
     const f = TestBed.createComponent(NamedQueryEditorComponent);
     f.detectChanges();
     await f.componentInstance.waitForInit();
+    f.detectChanges();
     f.nativeElement.querySelector('#named-query-create').click();
     f.detectChanges();
     expect(f.componentInstance.chooserOpen).toBeTrue();
