@@ -9,7 +9,7 @@ valid_id() { [[ "$1" =~ ^sha256:[a-f0-9]{64}$ ]]; }
 # Classic Docker exposes the config digest as .Id; containerd exposes a manifest
 # digest there. Compare the immutable config on both engines after save/load.
 image_config_id() {
-  docker image inspect --format '{{if .Descriptor}}{{index .Descriptor.annotations "config.digest"}}{{else}}{{.Id}}{{end}}' redbox-portal:test
+  docker image inspect --format '{{with index . "Descriptor"}}{{index .annotations "config.digest"}}{{else}}{{.Id}}{{end}}' redbox-portal:test
 }
 
 case "$action" in
