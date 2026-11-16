@@ -1,3 +1,6 @@
+import { executeBehaviourAction, BehaviourActionExecutionContext } from '../form-state/behaviours/behaviour-actions';
+import { BehaviourPipelineContext } from '../form-state/behaviours/behaviour-processors';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { withExpressionValueNotifications } from '../form-state/control-value-notifications';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { createFieldValueChangedEvent } from '../form-state/events/form-component-event.types';
@@ -7,7 +10,7 @@ import {ContentComponent} from "./content.component";
 import { FormService } from "../form.service";
 import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, setUpDynamicAssets} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import {TestBed, fakeAsync, flushMicrotasks, tick} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
 
 
@@ -130,6 +133,35 @@ describe('ContentComponent', () => {
     expect(formComponent.form!.pristine).toBeTrue();
     expect(formComponent.form!.untouched).toBeTrue();
     sub.unsubscribe();
+  });
+
+  it('refreshes content after a silent behaviour write and explicit emitEvent action', async () => {
+    const { fixture, formComponent, content } = await createPeopleSummary();
+    fakeAsync(() => {
+      const rootChanged = jasmine.createSpy('rootChanged');
+      const sub = formComponent.form!.valueChanges.subscribe(rootChanged);
+      const context: BehaviourActionExecutionContext = {
+        behaviourIndex: 0, behaviourChain: [0], actionIndex: 0, listName: 'actions',
+        eventBus: TestBed.inject(FormComponentEventBus), logger: TestBed.inject(LoggerService),
+        fieldResolverContext: { formComponent }, getLogicalFieldEntry: () => undefined
+      };
+      const pipeline: BehaviourPipelineContext = {
+        value: 'behaviour <value>', event: undefined, formData: {}, requestParams: {}, runtimeContext: {}
+      };
+      void executeBehaviourAction({ type: 'setValue', config: { fieldPath: '/person' } }, pipeline, context);
+      flushMicrotasks();
+      expect(formComponent.form!.get('person')!.value).toBe('behaviour <value>');
+      expect(content.content).toBe('before');
+      expect(rootChanged).not.toHaveBeenCalled();
+      void executeBehaviourAction({ type: 'emitEvent', config: { eventType: 'field.value.changed', fieldId: '/person', sourceId: '*' } }, pipeline, context);
+      flushMicrotasks();
+      tick(0);
+      fixture.detectChanges();
+      expect(content.content).toBe('behaviour &lt;value&gt;');
+      expect(fixture.nativeElement.textContent).toContain('behaviour <value>');
+      expect(rootChanged).not.toHaveBeenCalled();
+      sub.unsubscribe();
+    })();
   });
 
   it('coalesces field notifications, ignores other forms and cancels pending refresh on destroy', async () => {

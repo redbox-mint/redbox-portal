@@ -125,7 +125,8 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options);
+    const formComponent = jasmine.createSpyObj<FormComponent>('FormComponent', ['broadcastFormStatus'], { eventScopeId: 'selection-form' });
+    consumer.bind({ ...options, formComponent });
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: {
@@ -135,6 +136,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
     });
     await Promise.resolve();
 
+    expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({ formScopeId: 'selection-form' }));
     expect(control.value).toBe('https://example.org/funder/123');
     expect(control.dirty).toBeTrue();
     expect(control.touched).toBeTrue();
