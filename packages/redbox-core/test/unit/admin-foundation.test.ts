@@ -154,7 +154,6 @@ describe('Admin foundation views', function () {
       expect(document.querySelectorAll('.rb-admin-sidebar')).to.have.lengthOf(1);
       const modules = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="module"]'));
       expect(modules.map(script => script.getAttribute('src'))).to.deep.equal([
-        '/context/angular/data-grids/browser/polyfills-bundle.js',
         '/context/angular/data-grids/browser/main-bundle.js'
       ]);
       expect(modules.every(script => script.nonce === 'test-nonce')).to.equal(true);
