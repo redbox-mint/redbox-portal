@@ -204,6 +204,10 @@ flatten: {
 }
 ```
 
+## GraphQL grid index capabilities
+
+Record grids use per-core `recordGraphqlFields` mappings backed by explicit scalar `preIndex.copy` rules and live schema verification. The protected `redbox_grid_*` envelope fields require index-only reprocessing of existing records. See [Record GraphQL Grids](Record-GraphQL-Grids) for setup, mapping restrictions and freshness semantics.
+
 ## See Also
 
 - [Configuration Guide](Configuration-Guide)

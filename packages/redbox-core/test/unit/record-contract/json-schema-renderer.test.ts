@@ -42,6 +42,12 @@ function contract(
 }
 
 describe('RecordJsonSchemaRenderer', function () {
+  it('preserves explicit write-only annotations independently of nullable types', () => {
+    const document = renderRecordJsonSchema(
+      contract({ secret: { kind: 'scalar', scalarType: 'string', nullable: true, annotations: { writeOnly: true } } })
+    );
+    expect(document.properties?.secret).to.deep.include({ writeOnly: true });
+  });
   it('renders every IR node kind, null unions, annotations, arrays, objects, and local definitions', function () {
     const address: ContractNode = {
       kind: 'object',

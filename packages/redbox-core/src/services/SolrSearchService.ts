@@ -20,7 +20,9 @@
 import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
 import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition, SolrCopyFieldDefinition } from '../config/solr.config';
-import { SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION } from '../config/solr.config';
+import { SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION, SOLR_RECORD_GRID_FIELDS, SOLR_RECORD_GRID_VERSION } from '../config/solr.config';
+import { gridIndexBindings, gridSourceValue } from '../record-graphql/index-bindings';
+import type { GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { RoleModel } from '../model/storage/RoleModel';
@@ -169,6 +171,8 @@ export namespace Services {
       'solrAddOrUpdate',
       'solrDelete',
       'searchAdvanced',
+      'getRecordQuerySchema',
+      'searchRecordPage',
       'preIndex',
       'init'
     ]
@@ -275,7 +279,7 @@ export namespace Services {
 
     private getMissingSchemaDefinitions(coreId: string, core: SolrCore, liveSchema: SolrSchema, ref: SolrSearchService = this): SolrCoreSchema {
       const configuredFields = [...(core.schema['add-field'] || [])];
-      for (const field of SOLR_EXACT_ACL_FIELDS) {
+      for (const field of [...SOLR_EXACT_ACL_FIELDS, ...(sails.config.recordGraphql?.enabled && sails.config.recordGraphql.cursorSecret ? SOLR_RECORD_GRID_FIELDS : [])]) {
         if (!configuredFields.some(configured => configured.name === field.name)) {
           configuredFields.push({ ...field });
         }
@@ -430,6 +434,80 @@ export namespace Services {
       }
     }
 
+    /** Private structured-query adapter. Caller supplies only server-generated parameters. */
+    public async getRecordQuerySchema(coreId: string, deadline: number): Promise<GridIndexSchema> {
+      const core = sails.config.solr.cores[coreId];
+      if (!core || Date.now() >= deadline) throw new Error('Search scope is unavailable.');
+      const timeout = Math.max(1, Math.min(5_000, deadline - Date.now()));
+      const url = `${this.getBaseUrl(core.options)}${core.options.core}/schema`;
+      const options = {
+        params: { showDefaults: true },
+        maxContentLength: 2_097_152,
+        timeout,
+        signal: AbortSignal.timeout(timeout),
+      };
+      // /schema ignores showDefaults for its field lists. These dedicated
+      // endpoints return effective inherited properties such as DocValues.
+      const [definition, fields, dynamic] = await Promise.all([
+        axios.get(url, options),
+        axios.get(`${url}/fields`, options),
+        axios.get(`${url}/dynamicfields`, options),
+      ]);
+      const schema: GridIndexSchema = definition.data.schema;
+      if (
+        !schema ||
+        typeof schema.uniqueKey !== 'string' ||
+        !Array.isArray(fields.data.fields) ||
+        !Array.isArray(dynamic.data.dynamicFields) ||
+        !Array.isArray(schema.fieldTypes)
+      )
+        throw new Error('Invalid search schema.');
+      return { ...schema, fields: fields.data.fields, dynamicFields: dynamic.data.dynamicFields };
+    }
+
+    public async searchRecordPage(coreId: string, params: URLSearchParams, deadline: number): Promise<GridIndexPage> {
+      const core = sails.config.solr.cores[coreId];
+      const rows = Number(params.get('rows'));
+      if (!core || !Number.isInteger(rows) || rows < 1 || rows > 50 || Date.now() >= deadline)
+        throw new Error('Invalid bounded search request.');
+      const timeout = Math.max(1, Math.min(5_000, deadline - Date.now()));
+      const request = new URLSearchParams(params);
+      request.set('timeAllowed', String(timeout));
+      const response: {
+        data: {
+          responseHeader?: { partialResults?: boolean | string };
+          response?: { docs?: Array<Record<string, unknown>> };
+          nextCursorMark?: string;
+        };
+      } = await axios.post(`${this.getBaseUrl(core.options)}${core.options.core}/select`, request.toString(), {
+        // Default scope can contain every registered workflow stage. Keep
+        // generated parameters out of the URL while bounding the request body.
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        maxBodyLength: 262_144,
+        maxContentLength: 262_144,
+        timeout,
+        signal: AbortSignal.timeout(timeout),
+      });
+      const data = response.data;
+      if (
+        data.responseHeader?.partialResults ||
+        !Array.isArray(data.response?.docs) ||
+        data.response.docs.length > rows ||
+        typeof data.nextCursorMark !== 'string'
+      )
+        throw new Error('Incomplete search page.');
+      const oids = data.response.docs.map(doc => {
+        const oid = doc.redbox_grid_oid;
+        if (typeof oid !== 'string' || !oid || oid.length > 256) throw new Error('Invalid indexed record identifier.');
+        return oid;
+      });
+      return {
+        oids,
+        nextCursor: data.nextCursorMark,
+        exhausted: data.nextCursorMark === params.get('cursorMark') || oids.length < rows,
+      };
+    }
+
     public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
@@ -581,6 +659,22 @@ export namespace Services {
         redbox_acl2_version: SOLR_EXACT_ACL_VERSION
       };
       const exactBrand = typeof data.metaMetadata?.brandId === 'string' ? data.metaMetadata.brandId : undefined;
+      const gridEnvelope: Record<string, unknown> = { redbox_grid_oid: data.redboxOid, redbox_grid_type: data.metaMetadata?.type, redbox_grid_stage: data.workflow?.stage, redbox_grid_form: data.metaMetadata?.form, redbox_grid_version: SOLR_RECORD_GRID_VERSION };
+      for (const [key, value] of [['created', data.metaMetadata?.createdOn ?? data.dateCreated], ['modified', data.lastSaveDate]] as const) {
+        const input: unknown = value;
+        const date = input instanceof Date ? DateTime.fromJSDate(input) : typeof input === 'string' ? DateTime.fromISO(input, { zone: 'utc', setZone: true }) : undefined;
+        if (date?.isValid) gridEnvelope[`redbox_grid_${key}`] = date.toUTC().toISO();
+      }
+      const gridCore = sails.config.solr.cores[String(data.metaMetadata?.searchCore || 'default')];
+      const gridCopies = new Map<string, unknown>();
+      if (gridCore && data.metadata && typeof data.metadata === 'object') {
+        for (const binding of gridIndexBindings(gridCore).values()) {
+          const original = gridSourceValue(data.metadata, binding.tokens);
+          const definition = gridCore.schema['add-field']?.find(field => field.name === binding.field);
+          const value = definition?.type === 'pdate' || binding.field.startsWith('date_') ? normalizeSolrDateValue(original) : original;
+          gridCopies.set(binding.field, value);
+        }
+      }
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
 
       const coreId = _.get(data, 'metaMetadata.searchCore', 'default');
@@ -676,6 +770,18 @@ export namespace Services {
       for (const name of RETIRED_EXACT_ACL_FIELD_NAMES) delete processedData[name];
       Object.assign(processedData, exactAuthorization);
       if (exactBrand) processedData.redbox_acl2_brand = exactBrand;
+      for (const field of SOLR_RECORD_GRID_FIELDS) delete processedData[field.name];
+      if (sails.config.recordGraphql?.enabled && sails.config.recordGraphql.cursorSecret) {
+        for (const [key, value] of Object.entries(gridEnvelope)) if (value !== undefined) processedData[key] = value;
+      }
+      // Opted-in grid copies retain their declared original scalar meaning even
+      // if a later template or special flatten would overwrite the same field.
+      for (const [field, value] of gridCopies) {
+        delete processedData[field];
+        if (typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) processedData[field] = value;
+      }
+      // The default Solr unique key must not be replaced by metadata/templates.
+      if (typeof data.id === 'string' && data.id) processedData.id = data.id;
       return processedData;
     }
 

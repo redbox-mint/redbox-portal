@@ -101,6 +101,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/figshare-crosswalks(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/dashboard-config(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/named-query(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/api/graphql', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/home', role: 'Guest', can_read: true },
         { path: '/:branding/:portal/app/email-templates(/*)', role: 'Admin', can_update: true },

@@ -13,6 +13,8 @@ If you're new to RedBox Portal, here's where you can get started:
 
 ## Developer Reference
 
+- **[Record GraphQL Grids](Record-GraphQL-Grids)**: Authenticated single-record reads, field discovery, typed indexed filters and permission-safe bounded pagination.
+
 - **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: High-level system structure and key components.
 - **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Shared language and style expectations.
 - **[Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)**: Portal configuration and environment settings.

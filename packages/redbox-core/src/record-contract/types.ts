@@ -23,6 +23,8 @@ export type RecordContractPointer = string & {
 };
 
 export interface ContractNodeAnnotations {
+  /** Explicit read exclusion; distinct from UI edit/view mode constraints. */
+  readonly writeOnly?: boolean;
   readonly description?: string;
   readonly default?: ContractJsonValue;
   readonly examples?: readonly ContractJsonValue[];
@@ -58,7 +60,7 @@ export interface ContractArrayNode extends ContractNodeBase {
 
 export interface ContractAnyNode extends ContractNodeBase {
   readonly kind: 'any';
-  readonly reason?: 'unsupported-component' | 'unrepresentable-condition';
+  readonly reason?: 'unsupported-component' | 'unrepresentable-condition' | 'incompatible-read-variants';
 }
 
 export type ContractCondition =
