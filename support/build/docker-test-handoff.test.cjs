@@ -19,7 +19,12 @@ function run(action, overrides = {}, metadata) {
 printf '%s\\n' "$*" >> "$TEST_CALLS"
 case "$1 $2" in
   'login --username') cat >/dev/null ;;
-  'image inspect') echo "\${PULLED_ID:-${id}}" ;;
+  'image inspect')
+    if [[ "$*" == *'config.digest'* ]]; then
+      echo "\${CONFIG_ID:-\${PULLED_ID:-${id}}}"
+    else
+      echo "\${PULLED_ID:-${id}}"
+    fi ;;
   'save -o') touch "$3" ;;
 esac
 `, { mode: 0o755 });
@@ -117,4 +122,14 @@ test('all automatic Docker release gates include every test and docs; manual pub
   assert.doesNotMatch(manual, /test-|generate-api-docs|            - build/);
   assert.match(manual, /- publish-runtime-amd64\n            - publish-runtime-arm64/);
   assert.match(manual, /- publish-runtime-pdfgen-amd64\n            - publish-runtime-pdfgen-arm64/);
+});
+
+test('containerd manifest IDs use the same config identity as classic Docker', () => {
+  const manifestId = `sha256:${'b'.repeat(64)}`;
+  const received = run('receive', { PULLED_ID: manifestId, CONFIG_ID: id }, `${id}\n`);
+  assert.equal(received.status, 0, received.stderr);
+  const published = run('publish', { PULLED_ID: manifestId, CONFIG_ID: id });
+  assert.equal(published.status, 0, published.stderr);
+  assert.equal(published.metadata, `${id}\n`);
+  assert.notEqual(run('receive', { PULLED_ID: manifestId, CONFIG_ID: manifestId }, `${id}\n`).status, 0);
 });

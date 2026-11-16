@@ -6,13 +6,18 @@ directory="${2:-/tmp/docker-images}"
 metadata="$directory/test-image.txt"
 archive="$directory/redbox-portal-test.tar"
 valid_id() { [[ "$1" =~ ^sha256:[a-f0-9]{64}$ ]]; }
+# Classic Docker exposes the config digest as .Id; containerd exposes a manifest
+# digest there. Compare the immutable config on both engines after save/load.
+image_config_id() {
+  docker image inspect --format '{{if .Descriptor}}{{index .Descriptor.annotations "config.digest"}}{{else}}{{.Id}}{{end}}' redbox-portal:test
+}
 
 case "$action" in
   publish)
     mkdir -p "$directory"
     # A failed retry must not leave stale metadata identifying an earlier archive.
     rm -f "$metadata" "$archive"
-    tested_id="$(docker image inspect --format '{{.Id}}' redbox-portal:test)"
+    tested_id="$(image_config_id)"
     valid_id "$tested_id" || { echo 'Invalid tested image ID' >&2; exit 1; }
     echo "Build tested image ID: $tested_id"
     # Runtime layers are already in test; branch test jobs need only this tag.
@@ -32,7 +37,7 @@ case "$action" in
     start=$SECONDS
     docker load -i "$archive"
     echo "Test image load seconds: $((SECONDS - start))"
-    actual="$(docker image inspect --format '{{.Id}}' redbox-portal:test)"
+    actual="$(image_config_id)"
     [[ "$actual" == "$tested_id" ]] || { echo "Test image identity mismatch: expected $tested_id, received $actual" >&2; exit 1; }
     echo "Verified tested image ID: $actual"
     ;;
