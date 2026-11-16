@@ -89,6 +89,14 @@ describe('ValidationSummaryFieldComponent', () => {
       expectTitleError(fixture.nativeElement);
     });
 
+    it('shows a field touched with onlySelf while the root remains untouched', async () => {
+      const { fixture, formComponent } = await createDeferredForm();
+      formComponent.form!.get('title')!.markAsTouched({ onlySelf: true });
+      await fixture.whenStable();
+      expect(formComponent.form!.untouched).toBeTrue();
+      expectTitleError(fixture.nativeElement);
+    });
+
     it('T3: auto-population and editing an unrelated field do not reveal untouched errors', async () => {
       const { fixture, formComponent } = await createDeferredForm({ deferErrorsOnNewRecord: true, showWhenValid: true });
       const optional = formComponent.form!.get('optional')!;
@@ -251,6 +259,71 @@ describe('ValidationSummaryFieldComponent', () => {
       await fixture.whenStable();
       expect((await summary.allValidationErrorsDisplay()).length).toBe(1);
     });
+
+    it('keeps a touched repeatable error with its control after reordering', async () => {
+      const { fixture, formComponent } = await createFormAndWaitForReady({
+        name: 'reordered-people',
+        componentDefinitions: [
+          {
+            name: 'people', model: { class: 'RepeatableModel', config: { value: ['', ''] } },
+            component: { class: 'RepeatableComponent', config: {
+              canSort: true,
+              elementTemplate: {
+                name: '', model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } },
+                component: { class: 'SimpleInputComponent' },
+              },
+            } },
+          },
+          { name: 'summary', component: { class: 'ValidationSummaryComponent', config: { deferErrorsOnNewRecord: true } } },
+        ],
+      }, { editMode: true, oid: '' });
+      const summary = formComponent.componentDefArr[1].component as ValidationSummaryFieldComponent;
+      const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+      const second = formComponent.form!.get(['people', 1])!;
+      second.markAsTouched({ onlySelf: true });
+      await fixture.whenStable();
+      expect((await summary.allValidationErrorsDisplay())[0].lineagePaths?.angularComponents).toEqual(['people', '1']);
+      repeatable.moveElementFn((repeatable as any).compDefMapEntries[1], -1)();
+      await fixture.whenStable();
+      expect(formComponent.form!.get(['people', 0])).toBe(second);
+      const errors = await summary.allValidationErrorsDisplay();
+      expect(errors.length).toBe(1);
+      expect(errors[0].lineagePaths?.angularComponents).toEqual(['people', '0']);
+      expect(fixture.nativeElement.querySelectorAll('.validation-summary-item').length).toBe(1);
+    });
+
+    for (const formLevel of [false, true]) {
+      it(`filters ${formLevel ? 'form-targeted' : 'group-level'} errors by the group control touch state`, async () => {
+        const validator = { class: 'different-values', config: { controlNames: ['left', 'right'] } };
+        const { fixture, formComponent } = await createFormAndWaitForReady({
+          name: 'group-validation',
+          validators: formLevel ? [{
+            class: 'different-values', config: { controlNames: ['pair.left', 'pair.right'] },
+            targetField: { formConfig: ['componentDefinitions', 0] },
+          }] : [],
+          componentDefinitions: [
+            {
+              name: 'pair', model: { class: 'GroupModel', config: { validators: formLevel ? [] : [validator] } },
+              component: { class: 'GroupComponent', config: { componentDefinitions: ['left', 'right'].map(name => ({
+                name, model: { class: 'SimpleInputModel', config: { value: '' } },
+                component: { class: 'SimpleInputComponent' },
+              })) } },
+            },
+            { name: 'summary', component: { class: 'ValidationSummaryComponent', config: { deferErrorsOnNewRecord: true } } },
+          ],
+        }, { editMode: true, oid: '' });
+        const summary = formComponent.componentDefArr[1].component as ValidationSummaryFieldComponent;
+        expect(formComponent.getValidationErrors().length).toBe(1);
+        formComponent.form!.get(['pair', 'left'])!.markAsTouched({ onlySelf: true });
+        await fixture.whenStable();
+        expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+        // Normal child interaction touches the group; onlySelf deliberately does not.
+        formComponent.form!.get(['pair', 'right'])!.markAsTouched();
+        await fixture.whenStable();
+        expect((await summary.allValidationErrorsDisplay()).length).toBe(1);
+        expect(fixture.nativeElement.querySelector('.validation-summary')).not.toBeNull();
+      });
+    }
 
     it('shows errors on load for a new record with the flag explicitly false', async () => {
       const { fixture } = await createDeferredForm({ deferErrorsOnNewRecord: false });

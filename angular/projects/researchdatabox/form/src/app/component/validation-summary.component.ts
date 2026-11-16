@@ -32,7 +32,7 @@ import {FormService} from "../form.service";
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
       </div>
     }
-    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length > 0) {
+    @if (formComponent.editMode() && validationList.length > 0) {
       <div class="alert alert-danger validation-summary mt-3" role="alert">
         <i class="fa-solid fa-circle-exclamation validation-summary__icon" aria-hidden="true"></i>
         <div class="validation-summary__content">
@@ -122,7 +122,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   protected readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
-  /** True while a new record's summary is held back. Read by the template. */
+  /** True while a new record's valid-form message is held back. */
   public errorDisplayDeferred = false;
   public hasValidationErrors = false;
   /** Save failures also reveal all errors even when no save-request event preceded them. */
