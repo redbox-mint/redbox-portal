@@ -16,7 +16,7 @@ services:
         condition: service_healthy
     entrypoint: [bash, support/integration-testing/run-reporting-tests.sh]
   reporting-mongo:
-    image: mongo:latest@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    image: mongo:7.0.45-jammy@sha256:94aea1479556ad4e5aba7a31a6d53eb7b0ae76741950da45a13d5df5cddf1b3b
     healthcheck:
       test: [CMD, mongosh, --quiet, --eval, 'db.runCommand({ping:1}).ok']
       interval: 3s

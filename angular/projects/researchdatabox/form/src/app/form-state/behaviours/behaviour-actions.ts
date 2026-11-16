@@ -170,6 +170,7 @@ async function executeEmitEventAction(
   ctx.eventBus.publish(
     createFieldValueChangedEvent({
       fieldId: action.config.fieldId,
+      formScopeId: ctx.fieldResolverContext.formComponent.eventScopeId,
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,

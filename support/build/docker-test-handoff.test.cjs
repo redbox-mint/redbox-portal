@@ -1,12 +1,14 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const script = join(__dirname, 'docker-test-handoff.sh');
-const id = `sha256:${'a'.repeat(64)}`;
+const content = 'tested-image-archive';
+const id = `sha256:${createHash('sha256').update(content).digest('hex')}`;
 const sha = 'c'.repeat(40);
 const pipeline = '12345678-1234-1234-1234-123456789abc';
 
@@ -15,12 +17,16 @@ function run(action, overrides = {}, metadata) {
   const log = join(dir, 'calls');
   const file = join(dir, 'test-image.txt');
   if (metadata !== undefined) writeFileSync(file, metadata);
+  if (action === 'receive' && !overrides.MISSING_ARCHIVE)
+    writeFileSync(join(dir, 'redbox-portal-test.tar'), overrides.ARCHIVE_CONTENT ?? content);
   writeFileSync(join(dir, 'docker'), `#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$TEST_CALLS"
 case "$1 $2" in
-  'login --username') cat >/dev/null ;;
   'image inspect') echo "\${PULLED_ID:-${id}}" ;;
-  'save -o') touch "$3" ;;
+  'save -o')
+    [[ "\${FAIL_SAVE:-}" != true ]] || exit 1
+    printf '%s' '${content}' > "$3" ;;
+  'load -i') [[ "\${FAIL_LOAD:-}" != true ]] ;;
 esac
 `, { mode: 0o755 });
   try {
@@ -37,7 +43,7 @@ esac
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-test('all branches save only test regardless of credentials, and verify the loaded identity', () => {
+test('all branches save only test and verify the exact archive before loading', () => {
   for (const overrides of [{}, { DOCKER_USER: '' }, { DOCKER_PASS: '' }, { CIRCLE_BRANCH: 'develop' }]) {
     const result = run('publish', overrides);
     assert.equal(result.status, 0, result.stderr);
@@ -48,7 +54,14 @@ test('all branches save only test regardless of credentials, and verify the load
     const received = run('receive', overrides, result.metadata);
     assert.equal(received.status, 0, received.stderr);
     assert.ok(received.calls.some(c => c.startsWith('load -i ')));
-    assert.notEqual(run('receive', { ...overrides, PULLED_ID: 'invalid' }, result.metadata).status, 0);
+  }
+});
+
+test('corrupt, substituted or missing archives fail before Docker loads them', () => {
+  for (const overrides of [{ ARCHIVE_CONTENT: `${content}corrupt` }, { ARCHIVE_CONTENT: 'different-image' }, { MISSING_ARCHIVE: true }]) {
+    const result = run('receive', overrides, `${id}\n`);
+    assert.notEqual(result.status, 0);
+    assert.deepEqual(result.calls, []);
   }
 });
 
@@ -58,9 +71,20 @@ test('malformed/missing metadata fails before Docker, and failed producers remov
     assert.notEqual(result.status, 0);
     assert.deepEqual(result.calls, []);
   }
-  const failed = run('publish', { PULLED_ID: 'invalid' }, 'stale metadata');
+  const failed = run('publish', { FAIL_SAVE: 'true' }, 'stale metadata');
   assert.notEqual(failed.status, 0);
   assert.equal(failed.metadata, undefined);
+});
+
+test('verified archives still require a successful Docker load', () => {
+  assert.notEqual(run('receive', { FAIL_LOAD: 'true' }, `${id}\n`).status, 0);
+});
+
+test('handoff is independent of Docker manifest IDs and config annotations', () => {
+  for (const PULLED_ID of ['<no value>', `sha256:${'b'.repeat(64)}`]) {
+    const result = run('receive', { PULLED_ID }, `${id}\n`);
+    assert.equal(result.status, 0, result.stderr);
+  }
 });
 
 test('v tags retain test and pristine runtime for legacy deployment', () => {

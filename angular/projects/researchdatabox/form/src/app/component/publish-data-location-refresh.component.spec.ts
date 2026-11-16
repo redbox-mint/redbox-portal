@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { RecordService } from '@researchdatabox/portal-ng-common';
-import { createTestbedModule } from '../helpers.spec';
+import { FormComponent } from '../form.component';
+import { ensureApplicationRefFormComponent, createTestbedModule } from '../helpers.spec';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { GroupFieldComponent } from './group.component';
 import { PublishDataLocationRefreshComponent } from './publish-data-location-refresh.component';
@@ -33,6 +34,8 @@ describe('PublishDataLocationRefreshComponent', () => {
   });
 
   it('clicks the refresh button and publishes a timestamped field.value.changed event', () => {
+    const formFixture = TestBed.createComponent(FormComponent);
+    ensureApplicationRefFormComponent(formFixture.componentRef);
     const eventBus = TestBed.inject(FormComponentEventBus);
     spyOn(eventBus, 'publish');
 
@@ -52,6 +55,7 @@ describe('PublishDataLocationRefreshComponent', () => {
       jasmine.objectContaining({
         type: 'field.value.changed',
         fieldId: '/mainTab/data/dataPubLocationRefresherTrigger',
+        formScopeId: formFixture.componentInstance.eventScopeId,
         sourceId: '*',
         value: jasmine.any(Number),
       })
