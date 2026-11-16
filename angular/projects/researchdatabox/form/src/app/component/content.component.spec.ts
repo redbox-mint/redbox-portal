@@ -6,6 +6,7 @@ import { FormComponentEventBus } from '../form-state/events/form-component-event
 import { createFieldValueChangedEvent } from '../form-state/events/form-component-event.types';
 import { By } from '@angular/platform-browser';
 import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
+import { PublishDataLocationRefreshComponent } from './publish-data-location-refresh.component';
 import {ContentComponent} from "./content.component";
 import { FormService } from "../form.service";
 import {SimpleInputComponent} from "./simple-input.component";
@@ -30,7 +31,7 @@ describe('ContentComponent', () => {
   beforeEach(async () => {
     lastTemplateContext = undefined;
     await createTestbedModule({
-      declarations: {"ContentComponent": ContentComponent, "SimpleInputComponent": SimpleInputComponent},
+      declarations: {"ContentComponent": ContentComponent, "SimpleInputComponent": SimpleInputComponent, PublishDataLocationRefreshComponent},
       providers: {
         "UtilityService": null,
         "HandlebarsTemplateService": {provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService}
@@ -102,10 +103,25 @@ describe('ContentComponent', () => {
     });
   }
 
-  async function createPeopleSummary() {
+  async function createPeopleSummary(refreshValue?: Promise<string>) {
     const template = '{{formData.person}}';
-    const render = jasmine.createSpy('render').and.callFake((_key, _path, context) => handlebarsCompile(template)(context));
-    const config: FormConfigFrame = { name: 'testing', componentDefinitions: [
+    let contentReady!: () => void;
+    const ready = new Promise<void>(resolve => { contentReady = resolve; });
+    const render = jasmine.createSpy('render').and.callFake((_key, path, context) => {
+      if (path[0] === 'behaviours') return refreshValue;
+      const output = handlebarsCompile(template)(context);
+      if (context.formData?.person === 'before') contentReady();
+      return output;
+    });
+    const config: FormConfigFrame = { name: 'testing', behaviours: refreshValue ? [{
+      name: 'refresh-person', condition: '/refresh::field.value.changed', conditionKind: 'jsonpointer', runOnFormReady: false,
+      processors: [{ type: 'jsonataTransform', config: { hasTemplate: true } }],
+      actions: [
+        { type: 'setValue', config: { fieldPath: '/person' } },
+        { type: 'emitEvent', config: { eventType: 'field.value.changed', fieldId: '/person', sourceId: '*' } }
+      ]
+    }] : [], componentDefinitions: [
+      { name: 'refresh', component: { class: 'PublishDataLocationRefreshComponent' } },
       { name: 'summary', component: { class: 'ContentComponent', config: { content: {}, template } } },
       { name: 'person', component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
         model: { class: 'SimpleInputModel', config: { value: 'before' } } }
@@ -114,25 +130,28 @@ describe('ContentComponent', () => {
       urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-', callable: render
     }] };
     const result = await createFormAndWaitForReady(config, undefined, undefined, assets);
-    await new Promise(resolve => setTimeout(resolve, 75));
+    await ready;
     return { ...result, render, control: result.formComponent.form!.get('person')!,
       content: result.fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent };
   }
 
   it('refreshes asynchronously populated content without requiring a root value-change event', async () => {
     const { fixture, formComponent, control, content } = await createPeopleSummary();
-    expect(content.content).toBe('before');
-    const rootChanged = jasmine.createSpy('rootChanged');
-    const sub = formComponent.form!.valueChanges.subscribe(rootChanged);
-    await withExpressionValueNotifications(control, async options => control.setValue('after <script>', options));
-    await new Promise(resolve => setTimeout(resolve, 10));
-    fixture.detectChanges();
-    expect(rootChanged).not.toHaveBeenCalled();
-    expect(content.content).toBe('after &lt;script&gt;');
-    expect(fixture.nativeElement.textContent).toContain('after <script>');
-    expect(formComponent.form!.pristine).toBeTrue();
-    expect(formComponent.form!.untouched).toBeTrue();
-    sub.unsubscribe();
+    fakeAsync(() => {
+      expect(content.content).toBe('before');
+      const rootChanged = jasmine.createSpy('rootChanged');
+      const sub = formComponent.form!.valueChanges.subscribe(rootChanged);
+      void withExpressionValueNotifications(control, async options => control.setValue('after <script>', options));
+      flushMicrotasks();
+      tick(0);
+      fixture.detectChanges();
+      expect(rootChanged).not.toHaveBeenCalled();
+      expect(content.content).toBe('after &lt;script&gt;');
+      expect(fixture.nativeElement.textContent).toContain('after <script>');
+      expect(formComponent.form!.pristine).toBeTrue();
+      expect(formComponent.form!.untouched).toBeTrue();
+      sub.unsubscribe();
+    })();
   });
 
   it('refreshes content after a silent behaviour write and explicit emitEvent action', async () => {
@@ -164,29 +183,58 @@ describe('ContentComponent', () => {
     })();
   });
 
+  it('renders ordinary root value changes synchronously', async () => {
+    const { control, content } = await createPeopleSummary();
+    control.setValue('immediate <value>');
+    expect(content.content).toBe('immediate &lt;value&gt;');
+  });
+
+  it('refreshes content after an asynchronous refresh behaviour finishes its silent write', async () => {
+    let complete!: (value: string) => void;
+    const value = new Promise<string>(resolve => { complete = resolve; });
+    const { fixture, formComponent, content } = await createPeopleSummary(value);
+    const refresh = fixture.debugElement.query(By.directive(PublishDataLocationRefreshComponent)).componentInstance as PublishDataLocationRefreshComponent;
+    fakeAsync(() => {
+      const rootChanged = jasmine.createSpy('rootChanged');
+      const sub = formComponent.form!.valueChanges.subscribe(rootChanged);
+      refresh.onClick();
+      flushMicrotasks();
+      tick(0);
+      expect(content.content).toBe('before');
+      complete('refreshed <value>');
+      flushMicrotasks();
+      tick(0);
+      expect(content.content).toBe('refreshed &lt;value&gt;');
+      expect(rootChanged).not.toHaveBeenCalled();
+      sub.unsubscribe();
+    })();
+  });
+
   it('coalesces field notifications, ignores other forms and cancels pending refresh on destroy', async () => {
     const { fixture, formComponent, control, content, render } = await createPeopleSummary();
-    const bus = TestBed.inject(FormComponentEventBus);
-    const publish = (formScopeId: string) => bus.publish(createFieldValueChangedEvent({
-      fieldId: '/person', sourceId: '*', value: control.value, formScopeId
-    }));
-    render.calls.reset();
-    control.setValue('after', { emitEvent: false, onlySelf: true });
-    publish('another-form');
-    await new Promise(resolve => setTimeout(resolve, 10));
-    expect(render).not.toHaveBeenCalled();
-    for (const name of ['first', 'second', 'final']) {
-      control.setValue(name, { emitEvent: false, onlySelf: true });
+    fakeAsync(() => {
+      const bus = TestBed.inject(FormComponentEventBus);
+      const publish = (formScopeId: string) => bus.publish(createFieldValueChangedEvent({
+        fieldId: '/person', sourceId: '*', value: control.value, formScopeId
+      }));
+      render.calls.reset();
+      control.setValue('after', { emitEvent: false, onlySelf: true });
+      publish('another-form');
+      tick(0);
+      expect(render).not.toHaveBeenCalled();
+      for (const name of ['first', 'second', 'final']) {
+        control.setValue(name, { emitEvent: false, onlySelf: true });
+        publish(formComponent.eventScopeId);
+      }
+      tick(0);
+      expect(render).toHaveBeenCalledTimes(1);
+      expect(content.content).toBe('final');
+      render.calls.reset();
       publish(formComponent.eventScopeId);
-    }
-    await new Promise(resolve => setTimeout(resolve, 10));
-    expect(render).toHaveBeenCalledTimes(1);
-    expect(content.content).toBe('final');
-    render.calls.reset();
-    publish(formComponent.eventScopeId);
-    fixture.destroy();
-    await new Promise(resolve => setTimeout(resolve, 10));
-    expect(render).not.toHaveBeenCalled();
+      fixture.destroy();
+      tick(0);
+      expect(render).not.toHaveBeenCalled();
+    })();
   });
 
   it('awaits explicit content refresh without a form control change', async () => {

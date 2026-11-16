@@ -125,13 +125,14 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
           this.formValueChangesSub?.unsubscribe();
           // Expression/behaviour writes can notify only the leaf control. Their
           // field events still reach us even when root valueChanges stays silent.
-          // Batch broadcast/scoped duplicates and read the completed raw values.
+          // Batch field notifications after silent writes; keep root changes synchronous.
           this.formValueChangesSub = merge(
             form.valueChanges,
             this.contentEventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).pipe(
-              filter(event => event.formScopeId === this.getFormComponent.eventScopeId && event.isCurrent?.() !== false)
+              filter(event => event.formScopeId === this.getFormComponent.eventScopeId && event.isCurrent?.() !== false),
+              auditTime(0)
             )
-          ).pipe(auditTime(0)).subscribe(() => {
+          ).subscribe(() => {
             if (!this.contentDestroyed) this.renderContent?.();
           });
         };
