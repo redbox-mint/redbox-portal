@@ -93,7 +93,7 @@ test('A11 creates a parameterised query with nested filters and mappings, verifi
   const app = adminPage.locator('named-query-editor');
   await app.getByRole('button', { name: /Create.*query/i }).click();
   const chooser = app.locator('nq-saved-query-chooser');
-  await chooser.locator('input[value="database"]').check();
+  await chooser.getByRole('radio', { name: /^Database query/ }).check();
   await chooser.getByRole('button', { name: 'Continue', exact: true }).click();
   const modal = app.locator('.nq-workspace');
   await modal.locator('#nq-name').fill(name);

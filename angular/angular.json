@@ -21,7 +21,7 @@
               "base": "../assets/angular/mcp-connect"
             },
             "index": "projects/researchdatabox/mcp-connect/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/mcp-connect/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1609,7 +1609,7 @@
               "base": "../assets/angular/data-grids"
             },
             "index": "projects/researchdatabox/data-grids/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/data-grids/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [

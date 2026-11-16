@@ -32,6 +32,7 @@ x-playwright-service: &playwright-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
+  - REDBOX_MCP_ENABLED=true
   - RBPORTAL_PLAYWRIGHT_MODE=${RBPORTAL_PLAYWRIGHT_MODE:-image}
   # Scenario registrations are opt-in. The lifecycle wrapper sets this to true
   # for acceptance runs; a direct portal start remains free of test forms.

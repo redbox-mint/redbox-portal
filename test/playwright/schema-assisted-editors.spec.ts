@@ -129,6 +129,8 @@ test.describe('schema-assisted editor release workflows', () => {
     try {
       await page.goto(queryPage);
       await page.locator('#named-query-create').click();
+      await page.locator('nq-saved-query-chooser').getByRole('radio', { name: /^Database query/ }).check();
+      await page.locator('nq-saved-query-chooser').getByRole('button', { name: 'Continue', exact: true }).click();
       await expect(page.locator('#named-query-workspace-title')).toBeFocused();
       await page.locator('#nq-name').fill(name);
       await page.locator('#nq-collection').selectOption('record');
@@ -189,65 +191,61 @@ test.describe('schema-assisted editor release workflows', () => {
       await page.locator('#report-name').fill(name);
       await page.locator('#report-title').fill('Schema-assisted browser report');
       await page.locator('#report-named-query').selectOption(name);
-      await page
-        .locator('.report-output-list label')
-        .filter({ hasText: 'metadata.projectTitle' })
-        .locator('input')
-        .check();
-      await page.getByRole('button', { name: 'Add columns from selected output fields', exact: true }).click();
-      // Angular ngModel updates DOM properties, so locate the appended column by its property value.
-      const titleIndex = await page
-        .locator('[id^=column-property-]')
-        .evaluateAll(inputs =>
-          inputs.findIndex(input => (input as HTMLInputElement).value === 'metadata.projectTitle')
-        );
-      expect(titleIndex).toBeGreaterThanOrEqual(0);
-      await page.locator(`#column-label-${titleIndex}`).fill('Project');
-      await page.locator(`[data-column="${titleIndex}"] > details > summary`).click();
-      await page.locator(`#column-display-${titleIndex}`).fill('<b>{{metadata.projectTitle}}</b>');
-      await page.locator(`#column-csv-${titleIndex}`).fill('{{recordTableMeta.val}}');
+      await page.locator('#report-columns-open').click();
+      const picker = page.locator('rb-explorer-columns');
+      for (const field of ['metadata.projectTitle', 'metadata.people']) {
+        await picker.locator('.grid-field').filter({ has: page.locator('code').filter({ hasText: new RegExp(`^${field.replaceAll('.', '\\.')}\\s*$`) }) }).getByRole('checkbox').check();
+      }
+      await picker.getByRole('button', { name: 'Apply', exact: true }).click();
+      await expect(page.locator('[data-column]')).toHaveCount(2);
+      await page.locator('[data-edit-column="0"]').click();
+      await page.locator('#report-column-heading').fill('Project');
+      await page.locator('#report-column-advanced summary').click();
+      await page.locator('#report-display-template').fill('<b>{{metadata.projectTitle}}</b>');
+      await page.locator('#report-csv-template').fill('{{recordTableMeta.val}}');
+      await page.locator('#report-column-done').click();
       await page.getByRole('button', { name: 'Add filter', exact: true }).click();
-      await page.locator('#filter-type-0').selectOption('date-range');
-      await page.locator('#filter-param-0').fill('created');
-      await page.locator('#filter-label-0').fill('Created');
-      await page.locator('#filter-from-0').fill('createdAfter');
-      await page.locator('#filter-to-0').fill('createdBefore');
+      const filterPanel = page.locator('rb-admin-side-panel');
+      await filterPanel.locator('select').selectOption('date-range');
+      await page.locator('#filter-param--1').fill('created');
+      await page.locator('#filter-label--1').fill('Created');
+      await page.locator('#filter-from--1').fill('createdAfter');
+      await page.locator('#filter-to--1').fill('createdBefore');
+      await filterPanel.getByRole('button', { name: 'Done', exact: true }).click();
       await page.locator('#preview-from-0').fill('2000-01-01');
       await page.locator('#preview-to-0').fill('2999-12-31');
-      // Add an unknown/array output manually, preserving custom mapping support.
-      const last = await page.locator('[data-column]').count();
-      await page.getByRole('button', { name: 'Add column', exact: true }).click();
-      await expect(page.locator('[data-column]')).toHaveCount(last + 1);
-      await page.locator(`#column-label-${last}`).fill('People');
-      await page.locator(`#column-property-${last}`).fill('metadata.people');
-      await page
-        .locator(`[data-column="${last}"]`)
-        .getByRole('checkbox', { name: /multivalue|multiple/i })
-        .check();
-      await page.locator(`[data-column="${last}"] > details > summary`).click();
-      await page.locator(`#column-display-${last}`).fill('{{recordTableMeta.val}}');
-      await page.locator(`#column-csv-${last}`).fill('{{recordTableMeta.val}}');
+      // Keep custom paths, array rendering and templates editable through the side panel.
+      await page.locator('[data-edit-column="1"]').click();
+      await page.locator('#report-column-heading').fill('People');
+      await page.locator('rb-admin-side-panel').getByRole('checkbox', { name: /multiple/i }).check();
+      await page.locator('#report-column-advanced summary').click();
+      await page.locator('#report-column-path').fill('metadata.people');
+      await page.locator('#report-display-template').fill('{{recordTableMeta.val}}');
+      await page.locator('#report-csv-template').fill('{{recordTableMeta.val}}');
+      await page.locator('#report-column-done').click();
       const reportPreviewWait = page.waitForResponse(
         response => response.url().includes('/report-config/preview') && response.request().method() === 'POST'
       );
-      await page.locator('.report-workspace-actions').getByRole('button', { name: 'Preview', exact: true }).click();
+      await page.locator('#report-preview-refresh').click();
       const reportPreview = await (await reportPreviewWait).json();
       expect(reportPreview.success).toBe(true);
       expect(reportPreview.deadlineEnforced).toBe(true);
       await expect(page.locator('.report-display-preview tbody')).toContainText(title);
       await expect(page.locator('.report-display-preview tbody')).toContainText('Ada');
-      await expect(page.locator('.report-export-preview tbody')).toContainText('Grace');
       const previewDisplay = await page.locator('.report-display-preview tbody td').allInnerTexts();
+      await page.locator('#report-section-preview').getByRole('button', { name: 'CSV', exact: true }).click();
+      await expect(page.locator('.report-export-preview tbody')).toContainText('Grace');
+      await page.locator('#report-section-preview').getByRole('button', { name: 'On screen', exact: true }).click();
       await shot(page, '02-report-desktop');
       await page.setViewportSize({ width: 390, height: 844 });
       await noHorizontalOverflow(page);
       await shot(page, '03-report-narrow');
       // Unsaved change rejection keeps the full draft and current focusable controls.
       page.once('dialog', dialog => dialog.dismiss());
-      await page.locator('.report-workspace-actions').getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.locator('report-config .rb-admin-save-bar').getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(page.locator('#report-title')).toHaveValue('Schema-assisted browser report');
       await page.setViewportSize({ width: 1440, height: 960 });
-      await page.locator('.report-workspace-actions').getByRole('button', { name: 'Save report', exact: true }).click();
+      await page.locator('report-config .rb-admin-save-bar').getByRole('button', { name: 'Save report', exact: true }).click();
       await expect(page.locator('.report-workspace')).toHaveCount(0);
       const savedReportResponse = await page.request.get(`${api}/report-config/${name}`);
       const savedReport = await savedReportResponse.json();
@@ -301,6 +299,8 @@ test.describe('schema-assisted editor release workflows', () => {
     const headers = await token(page);
     await page.goto(queryPage);
     await page.locator('#named-query-create').click();
+      await page.locator('nq-saved-query-chooser').getByRole('radio', { name: /^Database query/ }).check();
+      await page.locator('nq-saved-query-chooser').getByRole('button', { name: 'Continue', exact: true }).click();
     await page.locator('#nq-name').fill(name);
     await page.locator('#nq-collection').selectOption('user');
     await expect(page.locator('#nq-field-panel rb-schema-target-selector')).toHaveCount(0);
@@ -348,6 +348,8 @@ test.describe('schema-assisted editor release workflows', () => {
     try {
       await page.goto(queryPage);
       await page.locator('#named-query-create').click();
+      await page.locator('nq-saved-query-chooser').getByRole('radio', { name: /^Database query/ }).check();
+      await page.locator('nq-saved-query-chooser').getByRole('button', { name: 'Continue', exact: true }).click();
       await page.locator('#nq-name').fill(`scu_fixture_${Date.now()}`);
       await page.locator('#nq-collection').selectOption('record');
       await page.locator('#nq-field-panel rb-schema-target-selector select').first().selectOption('rdmp');
