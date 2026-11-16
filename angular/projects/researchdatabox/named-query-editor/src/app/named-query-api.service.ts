@@ -3,6 +3,8 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import type {
+  SavedExplorerQueryPage,
+  NamedQueryPromotionDraft,
   NamedQueryDraftRequest,
   NamedQueryPreviewRequest,
   NamedQueryValidation,
@@ -20,7 +22,10 @@ import type {
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
 
 export type {
-  NamedQueryParam, RelatedRecordFilterDefinition, NamedQueryConsumer, NamedQueryUpdateReview,
+  NamedQueryParam,
+  RelatedRecordFilterDefinition,
+  NamedQueryConsumer,
+  NamedQueryUpdateReview,
 } from '@researchdatabox/sails-ng-common';
 export type NamedQueryDefinition = SharedNamedQueryDefinition & { usedBy?: NamedQueryConsumer[] };
 export type NamedQueryDatabaseDefinition = DatabaseNamedQueryDefinition & { usedBy?: NamedQueryConsumer[] };
@@ -70,11 +75,60 @@ export class NamedQueryApiService extends HttpClientService {
     return `${this.brandingAndPortalUrl}/api/named-query${path}`;
   }
 
+  async savedQueries(
+    filters: { q?: string; mode?: 'visual' | 'graphql'; after?: string } = {}
+  ): Promise<SavedExplorerQueryPage> {
+    return this.unwrap(
+      await firstValueFrom(
+        this.http.get<SavedExplorerQueryPage>(this.apiUrl('/editor/saved-queries'), {
+          ...this.getJsonRequestOptions(),
+          params: filters,
+        })
+      )
+    );
+  }
+  async fromSavedQuery(id: string, revision: number): Promise<NamedQueryPromotionDraft> {
+    return this.unwrap(
+      await firstValueFrom(
+        this.http.post<NamedQueryPromotionDraft>(
+          this.apiUrl('/editor/from-saved-query'),
+          { id, revision },
+          this.getJsonRequestOptions()
+        )
+      )
+    );
+  }
+  async graphqlRead(
+    document: string,
+    variables: Record<string, unknown>,
+    operationName?: string
+  ): Promise<{ data?: Record<string, unknown>; errors?: unknown[] }> {
+    return firstValueFrom(
+      this.http.post<{ data?: Record<string, unknown>; errors?: unknown[] }>(
+        this.brandingAndPortalUrl + '/api/graphql',
+        { query: document, variables, ...(operationName ? { operationName } : {}) },
+        this.getJsonRequestOptions()
+      )
+    );
+  }
+
   async graphqlSchema(): Promise<{ sdl: string }> {
-    return this.unwrap(await firstValueFrom(this.http.get<{ sdl: string }>(this.apiUrl('/editor/graphql-schema'), this.getJsonRequestOptions())));
+    return this.unwrap(
+      await firstValueFrom(
+        this.http.get<{ sdl: string }>(this.apiUrl('/editor/graphql-schema'), this.getJsonRequestOptions())
+      )
+    );
   }
   async reviewUpdate(name: string, definition: NamedQueryDefinition): Promise<NamedQueryUpdateReview> {
-    return this.unwrap(await firstValueFrom(this.http.post<NamedQueryUpdateReview>(this.apiUrl(`/${encodeURIComponent(name)}/review-update`), { definition }, this.getJsonRequestOptions())));
+    return this.unwrap(
+      await firstValueFrom(
+        this.http.post<NamedQueryUpdateReview>(
+          this.apiUrl(`/${encodeURIComponent(name)}/review-update`),
+          { definition },
+          this.getJsonRequestOptions()
+        )
+      )
+    );
   }
 
   async schemaTargets(): Promise<{ recordTypes: SchemaTarget[] }> {
@@ -113,7 +167,11 @@ export class NamedQueryApiService extends HttpClientService {
   async describe(request: NamedQueryDraftRequest): Promise<NamedQuerySourceDescription> {
     return this.unwrap(
       await firstValueFrom(
-        this.http.post<NamedQuerySourceDescription>(this.apiUrl('/editor/describe'), request, this.getJsonRequestOptions())
+        this.http.post<NamedQuerySourceDescription>(
+          this.apiUrl('/editor/describe'),
+          request,
+          this.getJsonRequestOptions()
+        )
       )
     );
   }
@@ -160,11 +218,10 @@ export class NamedQueryApiService extends HttpClientService {
 
   async update(name: string, data: NamedQueryDefinition, confirmation?: string): Promise<{ name: string }> {
     const response = await firstValueFrom(
-      this.http.put<ApiResponse<{ name: string }>>(
-        this.apiUrl(`/${encodeURIComponent(name)}`),
-        data,
-        { ...this.getJsonRequestOptions(), ...(confirmation ? { headers: { 'X-ReDBox-Named-Query-Confirmation': confirmation } } : {}) }
-      )
+      this.http.put<ApiResponse<{ name: string }>>(this.apiUrl(`/${encodeURIComponent(name)}`), data, {
+        ...this.getJsonRequestOptions(),
+        ...(confirmation ? { headers: { 'X-ReDBox-Named-Query-Confirmation': confirmation } } : {}),
+      })
     );
     return this.unwrap(response);
   }

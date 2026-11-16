@@ -129,6 +129,33 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
   });
 
+  for (const name of ['', 'has spaces', 'collections', 'a'.repeat(121), ['valid']]) {
+    it(`rejects invalid creation name ${JSON.stringify(name)} before persistence`, async () => {
+      const req = {
+        session: { branding: 'default' },
+        isAuthenticated: () => true,
+        param: () => 'rdmp',
+        user: { username: 'admin' },
+        body: { name, collectionName: 'record' }
+      } as unknown as Sails.Req;
+      const response = sinon.stub(controller as any, 'sendResp');
+      await controller.createQuery(req, {} as Sails.Res);
+      expect(response.firstCall.args[2]?.status).to.equal(400);
+      expect((global as any).NamedQueryService.create.called).to.be.false;
+    });
+  }
+  it('accepts a name at the 120 character boundary', async () => {
+    const req = {
+      session: { branding: 'default' },
+      isAuthenticated: () => true,
+      param: () => 'rdmp',
+      user: { username: 'admin' },
+      body: { name: 'a'.repeat(120), collectionName: 'record' }
+    } as unknown as Sails.Req;
+    const response = sinon.stub(controller as any, 'sendResp');
+    await controller.createQuery(req, {} as Sails.Res);
+    expect(response.firstCall.args[2]?.status).to.equal(201);
+  });
   it('creates a named query', async () => {
     const req = {
       session: { branding: 'default' },

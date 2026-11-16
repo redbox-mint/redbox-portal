@@ -1,3 +1,4 @@
+import { z } from '../zod-openapi';
 import { namedQueryDefinitionSchema, namedQueryDraftSchema } from '../schemas/named-query';
 import { apiRoute } from '../route-factory';
 import { anyField, arrayField, objectField, responseField, stringField } from '../schemas/common';
@@ -131,6 +132,16 @@ const assistanceQuery = objectField(
 );
 
 export const namedQueryEditorRoutes = [
+  apiRoute('get', '/:branding/:portal/api/named-query/editor/saved-queries',
+    'webservice/NamedQueryController', 'savedExplorations',
+    { query: z.object({ q: z.string().max(120).optional(), mode: z.enum(['visual', 'graphql']).optional(), after: z.string().regex(/^[a-f0-9]{24}$/).optional() }) },
+    { tags: ['NamedQuery'], summary: 'List saved explorer queries in the current brand and portal',
+      description: 'Admin session required. Literal case-insensitive search by saved name or visual record type; filter mode visual/graphql. Same ascending ObjectId cursor and 100-row page as the saved-grid catalogue. Returns grids summaries including updatedBy/At and publishedAs, and next. No query execution. Responses are no-store.', responses: { 200: namedQueryResponse } }),
+  { ...apiRoute('post', '/:branding/:portal/api/named-query/editor/from-saved-query',
+    'webservice/NamedQueryController', 'prepareSavedExploration',
+    { body: { required: true, content: { 'application/json': { schema: z.strictObject({ id: z.string().regex(/^[a-f0-9]{24}$/), revision: z.number().int().positive() }) } } } },
+    { tags: ['NamedQuery'], summary: 'Build an unsaved named-query draft from a saved explorer query',
+      description: 'Admin browser session, CSRF and independent named-query create permission required. Resolves the exact current brand/portal source and revision (409 on drift), then reuses explorer promotion. Returns definition and unclassified variableValues. Does not write or execute raw GraphQL. Provenance includes the source portal. Responses are no-store.', responses: { 200: namedQueryResponse, 403: namedQueryResponse, 404: namedQueryResponse, 409: namedQueryResponse } }), csrf: true },
   { ...apiRoute('post', '/:branding/:portal/api/named-query/editor/from-explorer',
     'webservice/NamedQueryController', 'preparePromotion',
     { body: { required: true, content: { 'application/json': { schema: objectField({ exploration: anyField('Current unsaved visual or GraphQL explorer definition') }, ['exploration']) } } } },

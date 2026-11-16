@@ -42,6 +42,148 @@ describe('Record grid catalogue and pagination', () => {
       false
     );
   });
+  it('adds short labels, form hierarchy, repeating-child hints and friendly type labels without changing capabilities', async () => {
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          title: {
+            ...contract.root.properties.title,
+            annotations: {
+              extensions: {
+                'x-redbox-label': 'What is the complete title of this research project?',
+                'x-redbox-short-label': 'Title',
+                'x-redbox-group-path': ['@project-tab', 'Project details'],
+              },
+            },
+          },
+          people: {
+            ...contract.root.properties.people,
+            annotations: { extensions: { 'x-redbox-label': 'People', 'x-redbox-group-path': ['Project'] } },
+          },
+          amount: {
+            ...contract.root.properties.amount,
+            annotations: { extensions: { 'x-redbox-label': 'How much will the project cost?' } },
+          },
+        },
+      },
+    }));
+    const env = { ...gridEnvironment(), recordTypeLabel: '@friendly-plan' };
+    const { catalogue } = buildCatalogue(contracts, 'grid-fixture', [], env);
+    const title = catalogue.fields.find(field => field.id === 'metadata:/title')!;
+    assert.equal(title.label, 'What is the complete title of this research project?');
+    assert.equal(title.displayLabel, 'Title');
+    assert.equal(title.group, 'Project details');
+    assert.deepEqual(title.groupPath, ['@project-tab', 'Project details']);
+    assert.equal(catalogue.fields.find(field => field.id === 'metadata:/amount')!.displayLabel, 'Amount');
+    assert.equal(
+      catalogue.fields.find(field => field.id === 'metadata:/active')!.groupKey,
+      '@data-grids-field-group-metadata'
+    );
+    const repeated = catalogue.fields.find(field => field.path === '/people/*/name')!;
+    assert.equal(repeated.repeatingSubfield, true);
+    assert.equal(repeated.repeatingGroupId, 'metadata:/people');
+    assert.deepEqual(repeated.groupPath, ['Project', 'People']);
+    assert.equal(repeated.selectable, false);
+    assert.equal(catalogue.fields.find(field => field.id === 'metadata:/people')!.repeatingSubfield, false);
+    assert.equal(catalogue.fields.find(field => field.id === 'record:oid')!.groupKey, '@data-grids-field-group-record');
+    assert.equal(catalogue.recordTypeLabelKey, '@friendly-plan');
+    assert.equal(
+      catalogue.fields.some(field => field.id.includes('secret')),
+      false
+    );
+    const h = gridHarness();
+    const response = await h.query(
+      '{recordFields(recordType:"grid-fixture"){recordTypeLabel recordTypeLabelKey fields{id displayLabel displayLabelKey group groupKey groupPath repeatingSubfield repeatingGroupId}}}'
+    );
+    assert.equal(response.body.errors, undefined);
+  });
+  it('derives sentence-case property labels and preserves configured choices and workflow labels', () => {
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          'uon:declarationDate': {
+            kind: 'scalar' as const,
+            scalarType: 'string' as const,
+            nullable: true,
+            annotations: { extensions: { 'x-redbox-label': 'uon:declarationDate' } },
+          },
+          'dmpt-data_collection_description': {
+            kind: 'scalar' as const,
+            scalarType: 'string' as const,
+            nullable: true,
+            annotations: { extensions: { 'x-redbox-label': '@dmpt-data_collection_description' } },
+          },
+          title: {
+            ...contract.root.properties.title,
+            annotations: { extensions: { 'x-redbox-choice-labels': [{ value: 'first', label: 'First plan' }] } },
+          },
+        },
+      },
+    }));
+    const fields = buildCatalogue(contracts, 'grid-fixture', [], {
+      ...gridEnvironment(),
+      workflowLabels: [{ value: 'draft', label: 'Draft' }],
+    }).catalogue.fields;
+    assert.equal(fields.find(f => f.id === 'metadata:/uon:declarationDate')!.displayLabel, 'Declaration date');
+    assert.equal(
+      fields.find(f => f.id === 'metadata:/dmpt-data_collection_description')!.displayLabel,
+      'Data collection description'
+    );
+    assert.equal(fields.find(f => f.id === 'metadata:/title')!.displayLabel, 'Title');
+    assert.deepEqual(
+      fields.find(f => f.id === 'metadata:/title')!.choices.find(c => c.value === 'first'),
+      { value: 'first', label: 'First plan' }
+    );
+    assert.deepEqual(fields.find(f => f.id === 'record:workflowStep')!.choices, [{ value: 'draft', label: 'Draft' }]);
+  });
+  it('resolves only readable, requested vocabulary references within the caller brand', async () => {
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          title: {
+            ...contract.root.properties.title,
+            annotations: { extensions: { 'x-redbox-vocabulary': 'retention' } },
+          },
+          secret: {
+            ...contract.root.properties.secret,
+            annotations: { writeOnly: true, extensions: { 'x-redbox-vocabulary': 'secret' } },
+          },
+        },
+      },
+    }));
+    const getChoiceLabels = sinon.stub().resolves([{ value: 'first', label: 'First plan' }]);
+    const { yoga } = createRecordYoga(
+      contracts,
+      { getRecord: async () => undefined, hasViewAccess: () => false },
+      { getGridEnvironment: async () => gridEnvironment(), getChoiceLabels }
+    );
+    const response = await yoga.fetch(
+      'http://redbox/graphql',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: '{recordFields(recordType:"grid-fixture",ids:["metadata:/title"]){fields{id choices{label value}}}}',
+        }),
+      },
+      { caller: gridCaller }
+    );
+    const result = await response.json();
+    assert.equal(result.errors, undefined);
+    assert.deepEqual(result.data.recordFields.fields[0].choices, [{ value: 'first', label: 'First plan' }]);
+    assert.equal(getChoiceLabels.callCount, 1);
+    assert.equal(getChoiceLabels.firstCall.args[0].brand.id, gridCaller.brand.id);
+    assert.equal(getChoiceLabels.firstCall.args[1], 'retention');
+  });
   it('projects declared repeated groups with pairing and nulls, and rejects repeated scalar operations', async () => {
     const h = gridHarness(['a', 'b', 'c']);
     h.records.get('a')!.metadata.people = [{ name: 'One' }, { name: null }];

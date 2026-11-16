@@ -1,3 +1,4 @@
+import { publishedExplorations } from '../services/named-query/explorer-links';
 import { z } from 'zod';
 import { Controllers as controllers } from '../CoreController';
 import { getRouteParam } from '../utilities/RequestParamUtils';
@@ -47,12 +48,11 @@ export namespace Controllers {
       return result.data;
     }
     public list(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () =>
-        SavedGridService.list(
-          savedGridContext(req).scope,
-          req.query.after === undefined ? undefined : this.parse(savedGridId, req.query.after)
-        )
-      );
+      return this.run(req, res, async () => {
+        const { scope } = savedGridContext(req);
+        const page = await SavedGridService.list(scope, req.query.after === undefined ? undefined : this.parse(savedGridId, req.query.after));
+        return { ...page, grids: await publishedExplorations(scope, page.grids) };
+      });
     }
     public schema(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, () => SavedGridService.schema(savedGridContext(req).caller));
@@ -66,27 +66,31 @@ export namespace Controllers {
       );
     }
     public read(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () =>
-        SavedGridService.read(savedGridContext(req).scope, this.parse(savedGridId, getRouteParam(req, 'gridId')))
-      );
+      return this.run(req, res, async () => {
+        const { scope } = savedGridContext(req);
+        const grid = await SavedGridService.read(scope, this.parse(savedGridId, getRouteParam(req, 'gridId')));
+        return (await publishedExplorations(scope, [grid]))[0];
+      });
     }
     public create(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () => {
+      return this.run(req, res, async () => {
         const { scope, caller } = savedGridContext(req);
-        return SavedGridService.create(scope, this.parse(createBody, req.body).definition, caller);
+        const grid = await SavedGridService.create(scope, this.parse(createBody, req.body).definition, caller);
+        return (await publishedExplorations(scope, [grid]))[0];
       });
     }
     public update(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () => {
+      return this.run(req, res, async () => {
         const { scope, caller } = savedGridContext(req);
         const body = this.parse(updateBody, req.body);
-        return SavedGridService.update(
+        const grid = await SavedGridService.update(
           scope,
           this.parse(savedGridId, getRouteParam(req, 'gridId')),
           body.revision,
           body.definition,
           caller
         );
+        return (await publishedExplorations(scope, [grid]))[0];
       });
     }
     public remove(req: Sails.Req, res: Sails.Res) {

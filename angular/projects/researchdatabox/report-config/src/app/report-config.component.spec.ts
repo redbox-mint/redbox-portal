@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick, flush } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
@@ -5,6 +6,10 @@ import { FormsModule } from '@angular/forms';
 import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import {
+  AdminSidePanelComponent,
+  AdminSourceCardComponent,
+  ColumnsPanelComponent,
+  AdminOverflowDirective,
   AutocompleteComponent,
   CodeEditorComponent,
   FieldTreeComponent,
@@ -22,6 +27,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ReportConfigComponent } from './report-config.component';
 import { ReportConfigService } from './report-config.service';
+import { RecordGridService } from '../../../data-grids/src/app/record-grid.service';
 import { ReportDiagnosticsComponent, ReportTemplateInputComponent } from './report-assistance.component';
 
 @Pipe({ name: 'i18next', standalone: false })
@@ -155,6 +161,7 @@ describe('Report configuration workspace', () => {
   let fixture: ComponentFixture<ReportConfigComponent>;
   let component: ReportConfigComponent;
   let api: ApiStub;
+  let gridApi: { waitForInit: jasmine.Spy; read: jasmine.Spy; fields: jasmine.Spy; selections: jasmine.Spy };
   let confirm: jasmine.Spy;
   const settle = async () => {
     await Promise.resolve();
@@ -170,18 +177,31 @@ describe('Report configuration workspace', () => {
     render();
   };
   const change = (selector: string, value: string) => {
+    let filterEdit = false;
+    if (/^#filter-/.test(selector)) {
+      component.openFilter(Number(selector.split('-').pop()));
+      render();
+      filterEdit = true;
+    }
     const input = query(selector) as HTMLInputElement;
     input.value = value;
     input.dispatchEvent(new Event(input.tagName === 'SELECT' ? 'change' : 'input'));
+    if (filterEdit) component.doneFilter();
     render();
   };
   beforeEach(async () => {
     api = new ApiStub();
+    gridApi = jasmine.createSpyObj('RecordGridService', ['waitForInit', 'read', 'fields', 'selections']);
+    gridApi.waitForInit.and.resolveTo();
     await TestBed.configureTestingModule({
       declarations: [ReportConfigComponent, TranslationPipe],
       imports: [
         CommonModule,
         FormsModule,
+        AdminSidePanelComponent,
+        AdminSourceCardComponent,
+        ColumnsPanelComponent,
+        AdminOverflowDirective,
         AutocompleteComponent,
         ReportDiagnosticsComponent,
         ReportTemplateInputComponent,
@@ -198,6 +218,7 @@ describe('Report configuration workspace', () => {
           },
         },
         { provide: ReportConfigService, useValue: api },
+        { provide: RecordGridService, useValue: gridApi },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(ReportConfigComponent);
@@ -261,7 +282,7 @@ describe('Report configuration workspace', () => {
     await settle();
     render();
     expect(api.describeQuery).toHaveBeenCalledWith('other');
-    expect(text()).toContain('createdAfter');
+    expect(component.parameters.map(p => p.key)).toContain('createdAfter');
     expect(text()).toContain('metadata.projectTitle');
     expect(api.preview).not.toHaveBeenCalled();
     expect(query('.modal')).toBeNull();
@@ -273,7 +294,7 @@ describe('Report configuration workspace', () => {
   it('shows manage-query links only with explicit page permission', async () => {
     component.canManageQueries = true;
     await edit();
-    expect(query('a[href$="/admin/named-query"]')).toBeTruthy();
+    expect(query('a[href*="/admin/named-query"]')).toBeTruthy();
   });
   it('preserves an unlisted legacy query as a selectable option', async () => {
     await edit({ ...report(), databaseQuery: { queryName: 'hookQuery' } });
@@ -283,14 +304,15 @@ describe('Report configuration workspace', () => {
   });
   it('selecting output fields does not add columns until the explicit action', async () => {
     await edit();
-    const checkbox = fixture.nativeElement.querySelector('.report-output-list input') as HTMLInputElement;
-    checkbox.click();
+    component.columnsOpen = true;
     render();
+    const panel = fixture.debugElement.query(By.directive(ColumnsPanelComponent))
+      .componentInstance as ColumnsPanelComponent;
+    panel.toggle('oid');
     expect(component.selectedReport!.columns.length).toBe(1);
-    expect(component.selectedOutputs.size).toBe(1);
-    component.addSelectedColumns();
+    component.applyColumns(panel.columns);
     expect(component.selectedReport!.columns.length).toBe(2);
-    expect(component.selectedOutputs.size).toBe(0);
+    expect(component.columnsOpen).toBeFalse();
   });
   it('adds suggested labels and real report paths, preserving existing columns', async () => {
     const original = report();
@@ -336,6 +358,8 @@ describe('Report configuration workspace', () => {
   });
   it('suggests text bindings by parameter key while allowing free text', async () => {
     await edit();
+    component.openFilter(0);
+    render();
     const choices = Array.from(fixture.nativeElement.querySelectorAll('#report-parameters option')).map(
       (o: any) => o.value
     );
@@ -378,7 +402,9 @@ describe('Report configuration workspace', () => {
       fromProperty: 'createdAfter',
       toProperty: 'createdBefore',
     });
-    expect(query('label[for="filter-from-0"]').textContent).toBe('report-filter-from-parameter');
+    component.openFilter(0);
+    render();
+    expect(query('#filter-from-0').closest('label')!.textContent).toContain('report-filter-from-parameter');
   });
   it('does not suggest ambiguous, mismatched or unknown date pairs', async () => {
     await edit();
@@ -402,46 +428,52 @@ describe('Report configuration workspace', () => {
   });
   it('uses shared template editors with distinct actual display and CSV value contexts', async () => {
     await edit();
+    component.editColumn(0);
+    render();
     const editors = fixture.debugElement
       .queryAll(By.directive(ReportTemplateInputComponent))
       .map(d => d.componentInstance as ReportTemplateInputComponent);
     expect(editors.length).toBe(2);
-    const display = editors.find(e => e.kind === 'display')!,
-      csv = editors.find(e => e.kind === 'csv')!;
-    expect(display.source.fields.find(f => f.path === 'recordTableMeta.val')!.type).toBe('undefined');
-    expect(csv.source.fields.find(f => f.path === 'recordTableMeta.val')!.type).toBe('string');
-    expect(display.source.fields.some(f => f.path === 'metadata.projectTitle')).toBeTrue();
-    expect(csv.source.fields.some(f => f.path === 'optTemplateData.brandingAndPortalUrl')).toBeTrue();
-    expect(display.source.roots).not.toContain('record');
-    expect(csv.source.roots).not.toContain('imports');
+    expect(
+      editors.find(e => e.kind === 'display')!.source.fields.find(f => f.path === 'recordTableMeta.val')!.type
+    ).toBe('undefined');
+    expect(editors.find(e => e.kind === 'csv')!.source.fields.find(f => f.path === 'recordTableMeta.val')!.type).toBe(
+      'string'
+    );
+    expect(component.dirty).toBeFalse();
   });
   it('updates autocomplete contexts after property or multivalue edits and explains arrays', async () => {
     await edit();
-    change('#column-property-0', 'metadata.tags');
-    expect(text()).toContain('report-array-help');
-    component.selectedReport!.columns[0].multivalue = true;
+    component.editColumn(0);
+    component.columnDraft!.property = 'metadata.tags';
+    component.columnDraft!.multivalue = true;
     render();
-    const editors = fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent));
-    for (const editor of editors)
+    for (const editor of fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent)))
       expect(
         editor.componentInstance.source.fields.find((f: ContextSchemaField) => f.path === 'recordTableMeta.val').type
       ).toBe('string');
+    expect(component.columnFields.some(f => f.path === 'metadata.tags')).toBeTrue();
+    expect(component.columnFields.some(f => f.path === 'metadata')).toBeFalse();
   });
-  it('inserts a template field through the keyboard-operable shared field tree', async () => {
+  it('inserts a friendly field without changing the saved column until Done', async () => {
     await edit();
-    for (const details of fixture.nativeElement.querySelectorAll('.report-templates, .report-templates details'))
-      details.open = true;
-    const editor = fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent))[0];
-    const tree = editor.query(By.directive(FieldTreeComponent));
-    const node = tree.componentInstance.nodes.find((n: any) => n.path === 'oid');
-    tree.componentInstance.choose(node);
+    component.editColumn(0);
     render();
+    const editor = fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent))[0];
+    const button = editor.nativeElement.querySelector('[data-template-field="oid"]');
+    expect(button.textContent).toContain('data-grids-oid');
+    button.click();
+    render();
+    expect(component.columnDraft!.template).toContain('{{oid}}');
+    expect(component.selectedReport!.columns[0].template).toBe('{{metadata.projectTitle}}');
+    component.doneColumn();
     expect(component.selectedReport!.columns[0].template).toContain('{{oid}}');
-    expect(document.activeElement?.id).toBe('column-display-0');
   });
   it('autocompletes a real report row field from the keyboard', async () => {
     await edit();
-    const input = query('#column-display-0') as HTMLTextAreaElement;
+    component.editColumn(0);
+    render();
+    const input = query('#report-display-template') as HTMLTextAreaElement;
     input.focus();
     input.value = '{{metadata.pro';
     input.setSelectionRange(input.value.length, input.value.length);
@@ -450,32 +482,25 @@ describe('Report configuration workspace', () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     render();
-    expect(component.selectedReport!.columns[0].template).toBe('{{metadata.projectTitle}}');
+    expect(component.columnDraft!.template).toBe('{{metadata.projectTitle}}');
   });
   it('places structured diagnostics beside the relevant filter, column and each template', async () => {
     await edit();
     api.validate.and.resolveTo({
       valid: true,
-      diagnostics: [
-        diagnostic('filter.0.paramName'),
-        diagnostic('columns.0.property'),
-        diagnostic('columns.0.template'),
-        diagnostic('columns.0.exportTemplate'),
-      ],
+      diagnostics: ['filter.0.paramName', 'columns.0.property', 'columns.0.template', 'columns.0.exportTemplate'].map(
+        f => diagnostic(f)
+      ),
     });
     await component.validateDraft();
+    component.editColumn(0);
     render();
-    for (const location of [
-      'filter.0.paramName',
-      'columns.0.property',
-      'columns.0.template',
-      'columns.0.exportTemplate',
-    ])
+    for (const location of ['columns.0.property', 'columns.0.template', 'columns.0.exportTemplate'])
       expect(query(`[data-location="${location}"]`)).toBeTruthy();
-    expect(query('[data-filter="0"] [data-location="filter.0.paramName"]')).toBeTruthy();
-    expect(query('[data-column="0"] [data-location="columns.0.template"]')).toBeTruthy();
-    expect(text()).toContain('report-advisory');
-    expect(text()).toContain('manualSuggestion');
+    component.columnDraft = null;
+    component.openFilter(0);
+    render();
+    expect(query('[data-location="filter.0.paramName"]')).toBeTruthy();
     expect(component.selectedReport).toEqual(report());
   });
   it('shows date binding diagnostics next to their separate bound controls', async () => {
@@ -487,6 +512,8 @@ describe('Report configuration workspace', () => {
       diagnostics: [diagnostic('filter.0.database.fromProperty'), diagnostic('filter.0.database.toProperty')],
     });
     await component.validateDraft();
+    render();
+    component.openFilter(0);
     render();
     expect(query('[data-location="filter.0.database.fromProperty"]')).toBeTruthy();
     expect(query('[data-location="filter.0.database.toProperty"]')).toBeTruthy();
@@ -556,9 +583,11 @@ describe('Report configuration workspace', () => {
     await component.previewReport();
     render();
     expect(fixture.nativeElement.querySelectorAll('.report-display-preview td').length).toBe(1);
+    component.previewMode = 'csv';
+    render();
     const cells = fixture.nativeElement.querySelectorAll('.report-export-preview td');
     expect(cells.length).toBe(2);
-    expect(cells[1].textContent).toBe('<b>Export text</b>');
+    expect(cells[1].textContent.trim()).toBe('<b>Export text</b>');
     expect(cells[1].querySelector('b')).toBeNull();
     expect(query('.report-raw-results pre').textContent).toContain('Real title');
   });
@@ -592,7 +621,7 @@ describe('Report configuration workspace', () => {
     api.preview.and.resolveTo(result);
     await component.previewReport();
     render();
-    expect(query('.report-truncation').textContent).toContain('rows, bytes');
+    expect(query('.report-truncation').textContent).toContain('report-ux-preview-bounded');
     expect(query('.report-deadline').textContent).toContain('report-preview-no-deadline');
   });
   it('omits truncation and deadline warnings for an untruncated bounded preview', async () => {
@@ -629,7 +658,12 @@ describe('Report configuration workspace', () => {
     render();
     expect(component.selectedReport!.filter).toEqual(before.filter);
     expect(component.selectedReport!.columns).toEqual(before.columns);
+    component.openFilter(0);
+    render();
     expect(query('[data-location="filter.0.paramName"]')).toBeTruthy();
+    component.filterDraft = null;
+    component.editColumn(0);
+    render();
     expect(query('[data-location="columns.0.property"]')).toBeTruthy();
   });
   it('refreshes descriptions after external edits on focus and the explicit action, preserving draft edits', async () => {
@@ -889,9 +923,11 @@ describe('Report configuration workspace', () => {
     for (const input of Array.from(
       fixture.nativeElement.querySelectorAll('input:not([type="checkbox"]), select, textarea')
     ) as HTMLElement[])
-      expect(!!input.getAttribute('aria-label') || !!query(`label[for="${input.id}"]`))
+      expect(!!input.getAttribute('aria-label') || !!query(`label[for="${input.id}"]`) || !!input.closest('label'))
         .withContext(input.outerHTML)
         .toBeTrue();
+    component.editColumn(0);
+    render();
     expect(fixture.debugElement.queryAll(By.directive(CodeEditorComponent)).length).toBe(2);
   });
   it('a report reopened during post-save list reload must retain the saved edits', async () => {
@@ -910,7 +946,7 @@ describe('Report configuration workspace', () => {
     // Cancel can still expose the list during reload; it must already contain the server response.
     component.cancelEdit();
     render();
-    query('.report-actions button:not(:disabled)').click();
+    query('.report-row-actions button:not(:disabled)').click();
     await settle();
     expect(component.selectedReport!.title).toBe('Saved title');
     reload.resolve([{ ...report(), title: 'Saved title' }]);
@@ -964,8 +1000,10 @@ describe('Report configuration workspace', () => {
   for (const literal of ['literal.alias', 'dc:title']) {
     it(`offers and inserts the literal ${literal} output alias in column autocomplete`, async () => {
       await edit();
-      const input = query('#column-property-0') as HTMLInputElement;
-      change('#column-property-0', 'metadata.');
+      component.editColumn(0);
+      render();
+      const input = query('#report-column-path') as HTMLInputElement;
+      change('#report-column-path', 'metadata.');
       input.scrollIntoView({ block: 'center' });
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
@@ -979,7 +1017,7 @@ describe('Report configuration workspace', () => {
       expect(index).toBeGreaterThanOrEqual(0);
       autocomplete.active = index;
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
-      expect(component.selectedReport!.columns[0].property).toBe(`metadata["${literal}"]`);
+      expect(component.columnDraft!.property).toBe(`metadata["${literal}"]`);
     });
   }
 
@@ -1070,5 +1108,377 @@ describe('Report configuration workspace', () => {
     await component.saveReport();
     expect(api.create).toHaveBeenCalledTimes(1);
     expect(api.update).toHaveBeenCalledTimes(1);
+  });
+  it('pins a newly selected GraphQL query and previews its first page without saving', async () => {
+    await edit();
+    api.describeQuery.and.resolveTo({ ...description(), source: 'graphql', queryVersion: 'version-one' });
+    component.selectQuery('other');
+    await settle();
+    render();
+    expect(component.selectedReport?.databaseQuery?.queryVersion).toBe('version-one');
+    expect(api.preview).toHaveBeenCalled();
+    expect(api.create).not.toHaveBeenCalled();
+    expect(api.update).not.toHaveBeenCalled();
+    expect(component.previewResult).not.toBeNull();
+  });
+  it('requires explicit review when the named query version changes', async () => {
+    const saved = report();
+    saved.databaseQuery!.queryVersion = 'version-one';
+    api.describeQuery.and.resolveTo({ ...description(), source: 'graphql', queryVersion: 'version-two' });
+    await edit(saved);
+    expect(component.queryVersionChanged).toBeTrue();
+    expect(component.selectedReport?.databaseQuery?.queryVersion).toBe('version-one');
+    expect(api.preview).not.toHaveBeenCalled();
+    component.reviewQueryVersion();
+    await settle();
+    expect(component.queryVersionChanged).toBeFalse();
+    expect(api.preview).toHaveBeenCalled();
+  });
+  it('chooses GraphQL columns and filters with labels while preserving paths and caller parameter keys', async () => {
+    await edit();
+    component.description = { ...description(), source: 'graphql', queryVersion: 'one' };
+    component.selectedReport!.columns = [];
+    component.toggleOutput('metadata.projectTitle', true);
+    component.addSelectedColumns();
+    component.addParameterFilter(component.parameters[0]);
+    await settle();
+    render();
+    expect(component.selectedReport!.columns[0]).toEqual({ label: 'Project title', property: 'metadata.projectTitle' });
+    component.editColumn(0);
+    render();
+    expect(query('#report-column-field')).not.toBeNull();
+    expect(component.selectedReport!.filter.filter(filter => filter.paramName === 'titleSearch').length).toBe(1);
+    expect(component.parameterLabel(component.parameters[0])).toBe('Title Search');
+  });
+
+  const graphqlReportCodes = [
+    'GRAPHQL_REPORT_PAGING_REQUIRED',
+    'GRAPHQL_LOOKUP_UNSUPPORTED',
+    'GRAPHQL_CONTEXT_REQUIRED',
+    'GRAPHQL_OFFSET_UNSUPPORTED',
+    'GRAPHQL_PAGE_INVALID',
+    'GRAPHQL_EXECUTION_FAILED',
+    'GRAPHQL_RESULT_INVALID',
+    'GRAPHQL_ROW_INVALID',
+    'GRAPHQL_DISABLED',
+    'UNAVAILABLE',
+    'QUERY_TIMEOUT',
+    'QUERY_LIMIT',
+    'COLLECTION_LIMIT',
+    'INVALID_GRAPHQL_NAMED_QUERY',
+    'INVALID_GRAPHQL_PARAMETER',
+    'REPORT_QUERY_CHANGED',
+    'REPORT_CURSOR_INVALID',
+    'REPORT_EXPORT_ROW_LIMIT',
+    'REPORT_EXPORT_PAGE_LIMIT',
+    'REPORT_EXPORT_BYTE_LIMIT',
+    'REPORT_EXPORT_TIMEOUT',
+    'REPORT_OFFSET_UNSUPPORTED',
+    'REPORT_PAGE_INVALID',
+    'REPORT_CURSOR_UNAVAILABLE',
+    'REPORT_LIMIT_CONFIG_INVALID',
+    'INPUT_LIMIT',
+    'COMPLEXITY_LIMIT',
+    'MAPPING_LIMIT',
+    'PREVIEW_TIMEOUT',
+    'FORBIDDEN',
+  ];
+  for (const code of graphqlReportCodes) {
+    it(`translates the known GraphQL report code ${code} in preview failures`, async () => {
+      await edit();
+      const key = 'report-graphql-error-' + code;
+      spyOn(TestBed.inject(TranslationService), 't').and.callFake((value: string) =>
+        value === key ? 'Specific translated explanation' : value
+      );
+      api.preview.and.rejectWith({ error: { message: code } });
+      await component.previewReport();
+      expect(component.errorMessage).toBe('Specific translated explanation');
+    });
+  }
+  for (const envelope of [
+    { message: 'GRAPHQL_REPORT_PAGING_REQUIRED' },
+    { data: { message: 'GRAPHQL_REPORT_PAGING_REQUIRED' } },
+    { message: 'failure', errors: [{ code: 'GRAPHQL_REPORT_PAGING_REQUIRED' }] },
+  ]) {
+    it('shows the paging remedy when description fails with a known code', async () => {
+      const key = 'report-graphql-error-GRAPHQL_REPORT_PAGING_REQUIRED';
+      spyOn(TestBed.inject(TranslationService), 't').and.callFake((value: string) =>
+        value === key ? 'Re-publish this query from the Record explorer.' : value
+      );
+      api.describeQuery.and.rejectWith({ error: envelope });
+      await edit();
+      expect(component.assistanceError).toBe('Re-publish this query from the Record explorer.');
+      expect(component.errorMessage).toBe('');
+    });
+  }
+  it('does not automatically preview a GraphQL query whose description is blocked', async () => {
+    api.describeQuery.and.resolveTo({
+      ...description(),
+      source: 'graphql',
+      valid: false,
+      queryVersion: 'version-one',
+      diagnostics: [
+        {
+          ...diagnostic('databaseQuery.queryName', 'error'),
+          code: 'GRAPHQL_REPORT_PAGING_REQUIRED',
+          reason: 'report-graphql-paging-required',
+        },
+      ],
+    });
+    await edit();
+    expect(api.preview).not.toHaveBeenCalled();
+    expect(component.errorMessage).toBe('');
+  });
+
+  it('labels ActivePlans repeated inline-fragment output fields from the explorer catalogue', async () => {
+    const fields = [
+      { id: 'record:oid', label: 'OID', type: 'text', selectable: true, selections: [{ responsePath: ['oid'] }] },
+      {
+        id: 'metadata:/title',
+        label: 'Title',
+        type: 'text',
+        selectable: true,
+        selections: [{ responsePath: ['metadata', 'catalogue_title'] }],
+      },
+      {
+        id: 'metadata:/uon:ethicsApprovalStatus',
+        groupPath: ['Ethical considerations'],
+        label: 'Ethics approval status',
+        type: 'text',
+        selectable: true,
+        selections: [{ responsePath: ['metadata', 'catalogue_ethics'] }],
+      },
+      {
+        id: 'metadata:/dc:coverage_vivo:DateTimeInterval_vivo:start',
+        label: 'Start Date',
+        type: 'date',
+        selectable: true,
+        selections: [{ responsePath: ['metadata', 'catalogue_start'] }],
+      },
+    ];
+    gridApi.read.and.resolveTo({ mode: 'visual', workflowStage: 'active', columns: fields.map(f => f.id) });
+    gridApi.fields.and.resolveTo([{ fields }]);
+    gridApi.selections.and.resolveTo(fields);
+    const output = [
+      field('oid', 'string', 'Oid'),
+      field('metadata', 'object', 'Metadata'),
+      ...[1, 2, 3].map(i => field('metadata.explorer_field_' + i, 'string', 'Explorer field ' + i)),
+    ];
+    api.describeQuery.and.resolveTo({
+      ...description(),
+      source: 'graphql',
+      queryVersion: 'version-one',
+      result: { ...description().result, fields: output },
+    });
+    component.namedQueries = [
+      {
+        name: 'query',
+        source: 'graphql',
+        sourceSavedQuery: { id: 'active-source', name: 'UON — Active research plans' },
+        graphql: {
+          document: `query($type:String!,$stages:[String!],$sort:[RecordSortInput!],$first:Int,$after:String){
+          records(recordType:$type,workflowStages:$stages,sort:$sort,first:$first,after:$after){
+            nodes{oid metadata{
+              ... on ActiveMetadata {explorer_field_1:title}
+              ... on ActiveMetadata {explorer_field_2:rb_75006f006e003a0065007400680069006300730041007000700072006f00760061006c00530074006100740075007300}
+              ... on ActiveMetadata {explorer_field_3:rb_640063003a0063006f007600650072006100670065005f007600690076006f003a004400610074006500540069006d00650049006e00740065007200760061006c005f007600690076006f003a0073007400610072007400}
+            }}hasNextPage endCursor}}`,
+          variables: {
+            type: { ownership: 'fixed', value: 'rdmp' },
+            stages: { ownership: 'fixed', value: ['active'] },
+            sort: { ownership: 'fixed', value: [{ field: 'metadata:/title', direction: 'ASC' }] },
+            first: { ownership: 'fixed', value: 25 },
+            after: { ownership: 'fixed', value: null },
+          },
+          resultPath: ['records', 'nodes'],
+          mappings: { oid: ['oid'], metadata: ['metadata'] },
+        },
+      },
+    ];
+    await edit();
+    await component.refreshAssistance();
+    expect(gridApi.fields.calls.mostRecent().args[0].workflowStage).toBe('active');
+    expect(component.pickerFields.find(f => f.id === 'metadata.explorer_field_2')!.groupPath).toEqual([
+      'Ethical considerations',
+    ]);
+    expect(component.fieldLabel('oid')).toBe('data-grids-oid');
+    expect(component.fields.map(f => f.title)).toEqual([
+      'OID',
+      'Metadata',
+      'Title',
+      'Ethics approval status',
+      'Start Date',
+    ]);
+    component.selectedReport!.columns = [];
+    for (const path of output.slice(2).map(f => f.path)) component.toggleOutput(path, true);
+    component.addSelectedColumns();
+    expect(component.selectedReport!.columns.map(c => [c.label, c.property])).toEqual([
+      ['Title', 'metadata.explorer_field_1'],
+      ['Ethics approval status', 'metadata.explorer_field_2'],
+      ['Start Date', 'metadata.explorer_field_3'],
+    ]);
+  });
+  it('keeps the Reports crumb as a link and honours discard and modified clicks', async () => {
+    await edit();
+    component.selectedReport!.title = 'Unsaved';
+    render();
+    const crumb = fixture.nativeElement.querySelector('.rb-admin-crumbs a[href$="/admin/reports"]');
+    expect(crumb).not.toBeNull();
+    confirm.and.returnValue(false);
+    const event = new MouseEvent('click', { cancelable: true });
+    component.reportsCrumb(event);
+    expect(event.defaultPrevented).toBeTrue();
+    expect(component.selectedReport).not.toBeNull();
+    const modified = new MouseEvent('click', { ctrlKey: true, cancelable: true });
+    component.reportsCrumb(modified);
+    expect(modified.defaultPrevented).toBeFalse();
+    confirm.and.returnValue(true);
+    component.reportsCrumb(new MouseEvent('click'));
+    expect(component.selectedReport).toBeNull();
+  });
+  it('suggests filters inside a detached Add panel and commits them only on Done', async () => {
+    await edit();
+    const before = JSON.stringify(component.selectedReport!.filter);
+    expect(query('.report-parameter-actions')).toBeNull();
+    component.openFilter();
+    component.suggestFilter(component.parameters[1]);
+    render();
+    expect(query('#report-filter-suggestions')).not.toBeNull();
+    expect(component.filterDraft!.type).toBe('date-range');
+    expect(component.filterDraft!.database).toEqual({ fromProperty: 'createdAfter', toProperty: 'createdBefore' });
+    expect(JSON.stringify(component.selectedReport!.filter)).toBe(before);
+    component.doneFilter();
+    expect(component.selectedReport!.filter.length).toBe(2);
+    component.openFilter(0);
+    render();
+    expect(query('#report-filter-suggestions')).toBeNull();
+  });
+  it('inserts Current item and the report web address with the real template syntax', async () => {
+    await edit();
+    component.editColumn(0);
+    component.columnDraft!.multivalue = true;
+    render();
+    const editor = fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent))[0];
+    editor.nativeElement.querySelector('[data-template-field="recordTableMeta.val"]').click();
+    render();
+    editor.nativeElement.querySelector('[data-template-field="optTemplateData.brandingAndPortalUrl"]').click();
+    render();
+    expect(component.columnDraft!.template).toContain('{{recordTableMeta.val}}');
+    expect(component.columnDraft!.template).toContain('{{optTemplateData.brandingAndPortalUrl}}');
+    editor.nativeElement.querySelector('[data-template-report-url]').click();
+    render();
+    expect(component.columnDraft!.template).toContain('{{optTemplateData.brandingAndPortalUrl}}/admin/report/report');
+    expect(editor.nativeElement.querySelector('[data-template-field="recordTableMeta.col.property"]')).toBeNull();
+    expect(component.dirty).toBeFalse();
+  });
+});
+
+describe('WP7 shared report interactions', () => {
+  let c: ReportConfigComponent;
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: ChangeDetectorRef, useValue: { markForCheck: () => undefined } }],
+    });
+    c = TestBed.runInInjectionContext(
+      () =>
+        new ReportConfigComponent(
+          { nativeElement: { getAttribute: () => 'true', querySelectorAll: () => [] } } as any,
+          {} as any,
+          { warn: () => undefined } as any,
+          { t: (k: string, args: any) => (args ? JSON.stringify(args) : k) } as any,
+          { validate: async () => ({ valid: true, diagnostics: [] }) } as any
+        )
+    );
+    c.selectedReport = report();
+    c.description = description();
+  });
+  afterEach(() => c?.ngOnDestroy());
+  it('keeps panel edits detached until Done and preserves original templates', () => {
+    const original = structuredClone(c.selectedReport);
+    c.editColumn(0);
+    c.columnDraft!.format = 'date';
+    c.columnDraft!.label = 'Changed';
+    expect(c.selectedReport).toEqual(original);
+    c.columnDraft = null;
+    expect(c.selectedReport).toEqual(original);
+    c.editColumn(0);
+    c.columnDraft!.format = 'date';
+    c.doneColumn();
+    expect(c.selectedReport!.columns[0].format).toBe('date');
+    expect(c.selectedReport!.columns[0].template).toBe(original!.columns[0].template);
+  });
+  it('reuses existing columns in picker order and excludes object containers', () => {
+    const column = c.selectedReport!.columns[0];
+    c.applyColumns(['oid', column.property]);
+    expect(c.selectedReport!.columns[1]).toBe(column);
+    expect(c.columnFields.some(f => f.path === 'metadata')).toBeFalse();
+    expect(c.selectedReport!.columns[0].label).toBe('data-grids-oid');
+  });
+  it('announces keyboard reordering and prevents moving outside the table', fakeAsync(() => {
+    c.selectedReport!.columns.push({ label: 'OID', property: 'oid' });
+    const event = new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, cancelable: true });
+    c.reorderColumn(event, 0);
+    tick();
+    expect(event.defaultPrevented).toBeTrue();
+    expect(c.selectedReport!.columns.map(col => col.label)).toEqual(['OID', 'Title']);
+    expect(c.columnAnnouncement).toContain('Title');
+    c.moveColumn(0, -1);
+    expect(c.selectedReport!.columns[0].label).toBe('OID');
+    flush();
+  }));
+  it('debounces automatic preview and cancels obsolete scheduled work on teardown', fakeAsync(() => {
+    const preview = spyOn(c, 'previewReport').and.resolveTo();
+    c.draftChanged();
+    tick(300);
+    c.draftChanged();
+    tick(599);
+    expect(preview).not.toHaveBeenCalled();
+    tick(1);
+    expect(preview).toHaveBeenCalledTimes(1);
+    c.draftChanged();
+    c.ngOnDestroy();
+    tick(600);
+    expect(preview).toHaveBeenCalledTimes(1);
+  }));
+  it('accepts unchanged legacy query versions and still blocks changed definitions', () => {
+    c.selectedReport!.databaseQuery!.queryVersion = 'legacy';
+    c.description = {
+      ...description(),
+      source: 'graphql',
+      queryVersion: 'v2:new',
+      compatibleQueryVersions: ['v2:new', 'legacy'],
+    };
+    expect(c.queryVersionChanged).toBeFalse();
+    c.description.compatibleQueryVersions = ['v2:new', 'different'];
+    expect(c.queryVersionChanged).toBeTrue();
+  });
+  it('renders only ten preview rows and includes hidden columns only in CSV mode', () => {
+    c.previewResult = preview();
+    c.previewResult.renderedRows = Array.from({ length: 25 }, () => preview().renderedRows[0]);
+    c.selectedReport!.columns.push({ label: 'Hidden', property: 'oid', hide: true });
+    expect(c.previewRows.length).toBe(10);
+    expect(c.previewColumns.length).toBe(1);
+    c.previewMode = 'csv';
+    expect(c.previewColumns.length).toBe(2);
+  });
+  it('separates GraphQL source counts from the database storage adapter', () => {
+    c.reports = [report(), report('other')];
+    c.namedQueries = [{ name: 'query', source: 'graphql' }];
+    expect(c.graphqlReports).toBe(2);
+    expect(c.databaseReports).toBe(0);
+    c.setSourceFilter('graphql');
+    expect(c.filteredReports.length).toBe(2);
+  });
+  it('explains custom-column checks by heading without exposing developer paths', () => {
+    const message = c.checkMessage({
+      code: 'UNKNOWN_OUTPUT_COLUMN',
+      field: 'columns.0.property',
+      reason: 'metadata.<alias>',
+      severity: 'warning',
+      line: 0,
+      column: 0,
+    });
+    expect(message).toContain('Title');
+    expect(message).not.toContain('metadata');
   });
 });

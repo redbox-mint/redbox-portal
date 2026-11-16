@@ -19,6 +19,7 @@ export class ReportConfig {
   
   export class ReportDatabaseQueryConfig {
     queryName: string = '';
+    queryVersion?: string;
   }
   
   export class ReportSolrQueryConfig {
@@ -42,6 +43,8 @@ export class ReportConfig {
   }
   
   class ReportColumnConfig {
+    format?: 'text' | 'date' | 'datetime';
+    valueLabels?: { value: string; label: string }[];
     label: string = '';
     property: string = '';
     hide: boolean = false;
@@ -50,7 +53,7 @@ export class ReportConfig {
   }
   
   export class ReportResult {
-    total: number = 0;
+    total: number | null = 0;
     pageNum: number = 0;
     recordsPerPage: number = 0;
     records: Record<string, unknown>[] = [];

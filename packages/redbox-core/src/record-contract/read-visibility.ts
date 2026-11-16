@@ -24,6 +24,7 @@ export function mergeReadNodes(left: ContractNode, right: ContractNode): Contrac
     return {
       kind: 'object',
       nullable,
+      annotations: left.annotations ?? right.annotations,
       unknownProperties:
         left.unknownProperties === 'allow' || right.unknownProperties === 'allow' ? 'allow' : 'declared',
       properties: Object.fromEntries(
@@ -41,7 +42,7 @@ export function mergeReadNodes(left: ContractNode, right: ContractNode): Contrac
     };
   }
   if (left.kind === 'array' && right.kind === 'array')
-    return { kind: 'array', nullable, items: mergeReadNodes(left.items, right.items) };
+    return { kind: 'array', nullable, annotations: left.annotations ?? right.annotations, items: mergeReadNodes(left.items, right.items) };
   if (left.kind === 'scalar' && right.kind === 'scalar' && left.scalarType === right.scalarType) {
     return {
       kind: 'scalar',

@@ -301,7 +301,7 @@ describe('ReportComponent', () => {
     expect(app.activeFilters).toEqual([]);
   });
 
-  it('renders the safe source type and named-query name in the description', async () => {
+  it('renders the source badge and linked named-query subtitle', async () => {
     const fixture = TestBed.createComponent(ReportComponent);
     fixture.detectChanges();
     await fixture.componentInstance.waitForInit();
@@ -311,8 +311,10 @@ describe('ReportComponent', () => {
     translationService.translationMap['report-source-database'] = 'Database';
     fixture.detectChanges();
     const description = fixture.nativeElement.querySelector('.rb-admin-page-header p');
-    expect(description.textContent).toContain('Source: Database');
-    expect(description.querySelector('code').textContent).toBe('listRDMPRecords');
+    expect(fixture.nativeElement.querySelector('.report-title-line .badge').textContent).toBe('Database');
+    const query = description.querySelector('a');
+    expect(query.textContent).toBe('listRDMPRecords');
+    expect(query.getAttribute('href')).toContain('/admin/named-query#query=listRDMPRecords');
   });
 
   it('requests global sorting in both directions, resets paging and preserves applied filters and CSV order', async () => {
@@ -663,5 +665,59 @@ describe('ReportComponent', () => {
     expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).not.toBeNull();
     fixture.destroy();
   });
+
+  it('pages GraphQL results by issued cursors, keeps totals unknown and resets navigation on filtering', async () => {
+    const fixture=TestBed.createComponent(ReportComponent),app=fixture.componentInstance;
+    fixture.autoDetectChanges(true);await app.waitForInit();app.report.querySource='graphql';
+    const pages=[{records:[{oid:'one'}],total:null,pageNum:1,recordsPerPage:1,pagination:{mode:'cursor',start:0,hasNextPage:true,nextCursor:'opaque'}},{records:[{oid:'two'}],total:null,pageNum:1,recordsPerPage:1,pagination:{mode:'cursor',start:1,hasNextPage:false,nextCursor:null}}];
+    reportService.getReportCursorPage=jasmine.createSpy('cursor').and.callFake(async (_name: string,_params: unknown,_rows:number,cursor?:string)=>cursor?pages[1]:pages[0]);
+    await app.gotoPage(1);fixture.detectChanges();
+    const next = fixture.nativeElement.querySelector('.report-cursor-pager button:last-child') as HTMLButtonElement;
+    next.focus();next.click();await fixture.whenStable();fixture.detectChanges();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.report-cursor-pager button:first-of-type'));
+    expect(reportService.getReportCursorPage.calls.mostRecent().args[3]).toBe('opaque');expect(app.reportResult.total).toBeNull();expect(app.rangeStart).toBe(2);expect(app.rangeEnd).toBe(2);
+    expect(fixture.nativeElement.querySelector('rb-admin-pager')).toBeNull();
+    await app.cursorPage(-1);expect(app.rangeStart).toBe(1);await app.filter();expect(app.cursorIndex).toBe(0);fixture.destroy();
+  });
+  it('shows a wait state and a translated limit error without downloading a partial CSV', async () => {
+    const fixture=TestBed.createComponent(ReportComponent),app=fixture.componentInstance;
+    fixture.detectChanges();await app.waitForInit();app.report.querySource='graphql';app.report.exportMaxRows=10000;
+    let reject!: (error:unknown)=>void;reportService.downloadCSV=jasmine.createSpy('csv').and.returnValue(new Promise((_yes,no)=>{reject=no;}));
+    const createUrl=spyOn(URL,'createObjectURL');const pending=app.downloadCsv();fixture.detectChanges();
+    expect(app.exporting).toBeTrue();expect(fixture.nativeElement.querySelector('#report-export').disabled).toBeTrue();expect(fixture.nativeElement.querySelector('#report-export-status').getAttribute('role')).toBe('status');
+    reject({error:new Blob([JSON.stringify({message:'REPORT_EXPORT_ROW_LIMIT'})],{type:'application/json'})});await pending;fixture.detectChanges();
+    expect(app.exporting).toBeFalse();expect(app.exportError).toBeTrue();expect(createUrl).not.toHaveBeenCalled();fixture.destroy();
+  });
+
+  it('explains a changed query on initial load while retaining retry', async () => {
+    mockReportData.reportConfig.querySource = 'graphql';
+    reportService.getReportCursorPage = jasmine.createSpy('cursor').and.rejectWith({error: {message: 'REPORT_QUERY_CHANGED'}});
+    translationService.t = (key: string) => key === 'report-graphql-error-REPORT_QUERY_CHANGED' ? 'Review the changed query.' : key;
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await expectAsync(fixture.componentInstance.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Review the changed query.');
+    expect(fixture.nativeElement.querySelector('[role="alert"] button')).not.toBeNull();
+    fixture.destroy();
+  });
+
+  for (const code of ['GRAPHQL_LOOKUP_UNSUPPORTED', 'GRAPHQL_REPORT_PAGING_REQUIRED', 'INVALID_GRAPHQL_NAMED_QUERY', 'INVALID_GRAPHQL_PARAMETER', 'UNAVAILABLE']) {
+    it(`shows a translated ${code} CSV failure without downloading a file`, async () => {
+      const fixture = TestBed.createComponent(ReportComponent);
+      const app = fixture.componentInstance;
+      fixture.detectChanges();
+      await app.waitForInit();
+      app.report.querySource = 'graphql';
+      translationService.t = (key: string) => key === 'report-graphql-error-' + code ? 'Specific translated explanation' : key;
+      reportService.downloadCSV = jasmine.createSpy('csv').and.rejectWith({error: new Blob([JSON.stringify({message: code})], {type: 'application/json'})});
+      const createUrl = spyOn(URL, 'createObjectURL');
+      await app.downloadCsv();
+      expect(app.exportMessage).toBe('Specific translated explanation');
+      expect(app.exportError).toBeTrue();
+      expect(createUrl).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
 
 });

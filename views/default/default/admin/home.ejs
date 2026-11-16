@@ -35,7 +35,7 @@
   <% }); %>
 </div>
 <% if ((homeSidebar.footerLinks || []).length) { %>
-  <nav class="rb-admin-page-actions mt-3">
+  <nav class="rb-admin-page-actions mt-3" aria-label="<%= TranslationService.t('admin-page-actions-label') %>">
     <% homeSidebar.footerLinks.forEach(function(item) { %>
       <a class="btn btn-outline-secondary" href="<%= item.href %>" <% if (item.external) { %>target="<%= item.target || '_blank' %>" rel="noopener noreferrer"<% } %>><%= item.label %></a>
     <% }); %>

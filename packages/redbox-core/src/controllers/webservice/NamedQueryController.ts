@@ -1,3 +1,5 @@
+import { namedQueryExplorerSources } from '../../services/named-query/explorer-links';
+import { savedGridId, savedGridListOptions } from '../../services/SavedGridService';
 import { savedGridContext } from '../SavedGridController';
 import { SavedGridError } from '../../services/SavedGridService';
 import { NamedQueryUpdateConfirmationError, NamedQueryUpdateConflictError } from '../../services/named-query/update-review';
@@ -27,6 +29,8 @@ export namespace Controllers {
   export class NamedQuery extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [
       'preparePromotion',
+      'savedExplorations',
+      'prepareSavedExploration',
       'listQueries',
       'getCollections',
       'getQuery',
@@ -107,11 +111,10 @@ export namespace Controllers {
       }
     }
 
-    public async preparePromotion(req: Sails.Req, res: Sails.Res) {
+    private async promotionResponse(req: Sails.Req, res: Sails.Res, action: (caller: ReadCaller) => Promise<unknown>) {
       try {
         const { caller } = savedGridContext(req);
-        const body = req.body as { exploration?: unknown };
-        const data = await NamedQueryEditorService.preparePromotion(body?.exploration, caller);
+        const data = await action(caller);
         return this.sendResp(req, res, { data, headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       } catch (error) {
         const status = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.status : 500;
@@ -124,6 +127,23 @@ export namespace Controllers {
         }
         return this.sendResp(req, res, { status, displayErrors: [{ code, title: code, status: String(status) }], headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       }
+    }
+
+    public preparePromotion(req: Sails.Req, res: Sails.Res) {
+      return this.promotionResponse(req, res, caller => NamedQueryEditorService.preparePromotion(
+        (req.body as { exploration?: unknown })?.exploration, caller));
+    }
+    public prepareSavedExploration(req: Sails.Req, res: Sails.Res) {
+      return this.promotionResponse(req, res, caller => NamedQueryEditorService.prepareSavedExploration(req.body, caller));
+    }
+    public savedExplorations(req: Sails.Req, res: Sails.Res) {
+      return this.promotionResponse(req, res, caller => {
+        const options = savedGridListOptions.safeParse({ q: req.query.q, mode: req.query.mode });
+        const after = req.query.after;
+        if (!options.success || (after !== undefined && !savedGridId.safeParse(after).success))
+          throw new SavedGridError(400, 'invalid-definition');
+        return NamedQueryEditorService.savedExplorations(caller, typeof after === 'string' ? after : undefined, options.data);
+      });
     }
 
     public graphqlSchema(req: Sails.Req, res: Sails.Res) {
@@ -190,6 +210,7 @@ export namespace Controllers {
     }
 
     private statusForError(error: unknown): number {
+      if (error instanceof SavedGridError) return error.status;
       if (error instanceof NamedQueryInUseError) return 409;
       if (error instanceof NamedQueryDefinitionError || error instanceof GraphqlNamedQueryValidationError) return 400;
       const message = this.asError(error).message;
@@ -227,6 +248,9 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      if (error instanceof SavedGridError) return this.sendResp(req, res, {
+        status: error.status, displayErrors: [{ code: error.code, title: error.code, status: String(error.status) }], headers: this.getNoCacheHeaders(),
+      });
       if (error instanceof NamedQueryUpdateConfirmationError || error instanceof NamedQueryUpdateConflictError) {
         return this.sendResp(req, res, { status: 409,
           ...(error instanceof NamedQueryUpdateConfirmationError ? { meta: { review: error.review } } : {}),
@@ -264,7 +288,7 @@ export namespace Controllers {
     public async listQueries(req: Sails.Req, res: Sails.Res) {
       try {
         const brand = this.resolveBrand(req);
-        const queries = await NamedQueryService.list(brand);
+        const queries = await namedQueryExplorerSources({ brandId: String(brand.id), portal: String(req.param?.('portal') ?? '') }, await NamedQueryService.list(brand));
         const usage = await NamedQueryService.getUsage(brand);
         return this.sendResp(req, res, { data: queries.map(query => ({ ...query, usedBy: usage[query.name ?? ''] ?? [] })), headers: this.getNoCacheHeaders() });
       } catch (error) {
@@ -301,7 +325,7 @@ export namespace Controllers {
           });
         }
         const usage = await NamedQueryService.getUsage(brand);
-        return this.sendResp(req, res, { data: { ...query, usedBy: usage[name] ?? [] }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { ...(await namedQueryExplorerSources({ brandId: String(brand.id), portal: String(req.param?.('portal') ?? '') }, [query]))[0], usedBy: usage[name] ?? [] }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
       }
@@ -315,10 +339,10 @@ export namespace Controllers {
         }
         const body = (req.body as Record<string, unknown>) || {};
         const name = body['name'] as string;
-        if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {
+        if (typeof name !== 'string' || !name || name.length > 120 || !/^[A-Za-z0-9_-]+$/.test(name)) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: 'name is required and must be URL safe', status: '400' }],
+            displayErrors: [{ detail: 'name is required, must be URL safe and at most 120 characters', status: '400' }],
             headers: this.getNoCacheHeaders(),
           });
         }

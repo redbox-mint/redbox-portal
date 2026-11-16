@@ -1,5 +1,9 @@
 import type { ContextSchemaField } from '@researchdatabox/sails-ng-common';
-import { pathParent, pathSegments, templatePathTokenEnd } from '@researchdatabox/sails-ng-common';
+import {
+  pathParent,
+  pathSegments,
+  templatePathTokenEnd,
+} from '@researchdatabox/sails-ng-common/dist/src/template-path';
 
 /** What the editor can suggest: schema fields, plus the allowlisted roots and helpers. */
 export interface CompletionSource {

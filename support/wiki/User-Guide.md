@@ -6,7 +6,8 @@ Welcome to the RedBox Portal User Guide! This document is your resource for sett
 - Dive into **[Configuring Record Workflows](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Workflows)** for process management.
 - Understand **[Configuring Record Forms](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms)** for data entry.
 - Configure **[Reports](Configuring-Reports)** with query parameter bindings and display/CSV previews.
-- Configure **[Named Queries](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Named-Queries)** for reporting.
+- Use the **[Record explorer](Record-GraphQL-Grids#record-explorer-workspace)** to build, run and save record queries.
+- Manage **[Named queries](Configuring-Named-Queries#create-and-edit-in-admin)** from saved explorer queries, hand-written GraphQL or database queries; review source changes before publishing an update.
 - Prepare and download large CSV files with **[Background admin CSV exports](Admin-CSV-Exports)**.
 - Customize your experience with the **[Theme Customization Guide](https://github.com/redbox-mint/redbox-portal/wiki/Theme-Customization-Guide)**.
 - Integrate systems using the **[ReDBox Portal API](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Portal-API)**.

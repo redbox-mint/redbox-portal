@@ -416,22 +416,21 @@ describe('GraphQL named query execution over HTTP', function () {
       assert.ok(!bounded.body.data);
     }
   });
-  it('guards report/CSV/accumulation before query execution, sorting and numeric totals', async () => {
+  it('rejects unversioned reports and retains the first-page accumulation guard', async () => {
     const report = {
       name,
-      title: 'Unsupported GraphQL report',
+      title: 'Versioned GraphQL report',
       reportSource: 'database',
       databaseQuery: { queryName: name },
       columns: [],
       filter: [],
     };
     const execute = sinon.spy(sails.services.recordgraphqlservice, 'execute');
-    await request().post(`${base}/api/report-config`).set(auth(adminToken)).send(report).expect(400);
+    await request().post(`${base}/api/report-config`).set(auth(adminToken)).send(report).expect(409);
     await RBReport.create({ ...report, branding: brand.id }); // legacy/imported report
     for (const path of ['admin/getReportResults', 'admin/downloadReportCSV']) {
-      const response = await session.get(`${base}/${path}`).set(auth(adminToken)).query({ name }).expect(200);
-      assert.equal(response.body.data.status, false);
-      assert.match(response.body.data.message, /GraphQL named queries do not support reports or CSV/);
+      const response = await session.get(`${base}/${path}`).set(auth(adminToken)).query({ name }).expect(409);
+      assert.equal(response.body.errors[0].code, 'REPORT_QUERY_CHANGED');
     }
     const saved = await NamedQueryService.getNamedQueryConfig(brand, name);
     await assert.rejects(
@@ -440,4 +439,40 @@ describe('GraphQL named query execution over HTTP', function () {
     );
     assert.equal(execute.callCount, 0);
   });
+  it('runs cursor report pages and complete CSV as an authorized ordinary viewer over HTTP',async()=>{
+    const description=await session.get(`${base}/api/report-config/named-query/${name}/description`).set(auth(adminToken)).expect(200);
+    const version=description.body.data.queryVersion;assert.equal(typeof version,'string');
+    const report={name,title:'GraphQL HTTP report fixture',reportSource:'database',databaseQuery:{queryName:name,queryVersion:version},solrQuery:null,filter:[{type:'text',paramName:'search',message:'Search',property:''}],columns:[{label:'OID',property:'oid'}]};
+    await request().put(`${base}/api/report-config/${name}`).set(auth(adminToken)).send(report).expect(200);
+    await session.post(`${base}/api/report-config/preview`).set(auth(adminToken)).query({search:main}).send(report).expect(403);
+    const previewed=await session.post(`${base}/api/report-config/preview`).set({...auth(adminToken),'X-CSRF-Token':csrf}).query({search:main}).send(report).expect(200);
+    assert.equal(previewed.body.data.total,null);assert.equal(previewed.body.data.records.length,25);
+    await Record.updateOne({redboxOid:ids[25]}).set({authorization:{view:[username],edit:[],viewRoles:[],editRoles:[]}});
+    for(const path of ['admin/getReport','admin/getReportResults','admin/downloadReportCSV'])await ruleFor(`${base}/${path}`);
+    await firstValueFrom(PathRulesService.loadRules());
+    const viewer=supertest.agent(app);const loginCsrf=(await viewer.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
+    await viewer.post('/user/login_local').set({'X-Source':'jsclient','X-CSRF-Token':loginCsrf}).send({username,password:'RBTest123!',branding:'default',portal:'rdmp'}).expect(200);
+    const engine=sinon.spy(sails.services.recordgraphqlservice,'execute');
+    const first=await viewer.get(`${base}/admin/getReportResults`).set('X-Source','jsclient').query({name,search:main,rows:25}).expect(200);
+    assert.equal(first.body.total,null);assert.equal(first.body.records.length,25);assert.equal(first.body.pagination.hasNextPage,true);
+    assert.equal(engine.lastCall.args[0].user.username,username);
+    const cursor=first.body.pagination.nextCursor;
+    const second=await viewer.get(`${base}/admin/getReportResults`).set('X-Source','jsclient').query({name,search:main,rows:25,cursor}).expect(200);
+    assert.deepEqual(second.body.records.map(row=>row.oid),[ids[25]]);assert.equal(second.body.pagination.start,25);
+    for(const candidate of [cursor.slice(0,20)+'!'+cursor.slice(21),cursor+'='])await viewer.get(`${base}/admin/getReportResults`).set('X-Source','jsclient').query({name,search:main,rows:25,cursor:candidate}).expect(400);
+    await session.get(`${base}/admin/getReportResults`).set(auth(adminToken)).query({name,search:main,rows:25,cursor}).expect(400);
+    const csv=await viewer.get(`${base}/admin/downloadReportCSV`).set('X-Source','jsclient').query({name,search:main}).expect(200);
+    assert.match(csv.headers['content-type'],/text\/csv/);assert.equal(csv.text.trim().split('\n').length,27);assert.ok(csv.text.includes(ids[25]));assert.ok(!csv.text.includes(ids[26]));assert.ok(!csv.text.includes(ids[27]));
+    const previous=sails.config.recordGraphql.reportExport;
+    try {sails.config.recordGraphql.reportExport={maxRows:25,maxPages:400,timeoutMs:30000,maxBytes:16777216};
+      const limited=await viewer.get(`${base}/admin/downloadReportCSV`).set('X-Source','jsclient').query({name,search:main}).expect(413);
+      assert.equal(limited.body.message,'REPORT_EXPORT_ROW_LIMIT');assert.ok(!limited.headers['content-disposition']);
+    } finally {sails.config.recordGraphql.reportExport=previous;}
+    const changed={...definition.graphql,document:definition.graphql.document+' '};
+    await NamedQuery.updateOne({key:`${brand.id}_${name}`}).set({graphql:JSON.stringify(changed)});
+    try {await viewer.get(`${base}/admin/getReportResults`).set('X-Source','jsclient').query({name,search:main}).expect(409);}finally{await NamedQuery.updateOne({key:`${brand.id}_${name}`}).set({graphql:JSON.stringify(definition.graphql)});}
+    const anonymous=await request().get(`${base}/admin/getReportResults`).set('Accept','application/json').query({name,search:main}).expect(302);
+    assert.match(anonymous.headers.location,/user\/login/);
+  });
+
 });

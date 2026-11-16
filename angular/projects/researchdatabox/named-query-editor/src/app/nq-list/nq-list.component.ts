@@ -10,7 +10,7 @@ export type NamedQueryListQueryState = {
   selector: 'nq-list',
   templateUrl: './nq-list.component.html',
   styleUrls: ['./nq-list.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class NqListComponent implements OnChanges, OnDestroy {
   @Input() brandingAndPortalUrl = '';
@@ -58,7 +58,10 @@ export class NqListComponent implements OnChanges, OnDestroy {
   }
 
   setCollection(collection: string): void {
-    if (this.searchDebounceTimer) { clearTimeout(this.searchDebounceTimer); this.searchDebounceTimer = null; }
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.queryChanged.emit({ searchTerm: this.searchTerm, collection });
   }
 
@@ -69,21 +72,35 @@ export class NqListComponent implements OnChanges, OnDestroy {
     }
     this.searchDebounceTimer = setTimeout(() => {
       this.searchDebounceTimer = null;
-      this.queryChanged.emit({ searchTerm: this.searchTerm, ...(this.query.collection ? { collection: this.query.collection } : {}) });
+      this.queryChanged.emit({
+        searchTerm: this.searchTerm,
+        ...(this.query.collection ? { collection: this.query.collection } : {}),
+      });
     }, 250);
   }
 
+  sourceOf(query: NamedQueryCatalogueRow) {
+    return query.valid !== false && query.source === 'graphql' ? query.sourceSavedQuery : null;
+  }
+
   sourceLabel(query: NamedQueryCatalogueRow): string {
-    return query.valid === false ? 'named-query-invalid-source' : query.source === 'graphql' ? 'named-query-source-graphql' : 'named-query-source-database';
+    return query.valid === false
+      ? 'named-query-invalid-source'
+      : query.source === 'graphql'
+        ? 'named-query-source-graphql'
+        : 'named-query-source-database';
   }
   collectionLabel(query: NamedQueryCatalogueRow): string {
     if (query.valid === false || query.source === 'graphql') return '—';
-    return ['record', 'user'].includes(query.collectionName) ? 'admin-query-collection-' + query.collectionName : query.collectionName || '—';
+    return ['record', 'user'].includes(query.collectionName)
+      ? 'admin-query-collection-' + query.collectionName
+      : query.collectionName || '—';
   }
 
   paramCount(q: NamedQueryCatalogueRow): number {
     if (q.valid === false) return 0;
-    if (q.source === 'graphql') return Object.values(q.graphql?.variables ?? {}).filter(binding => binding?.ownership === 'consumer').length;
+    if (q.source === 'graphql')
+      return Object.values(q.graphql?.variables ?? {}).filter(binding => binding?.ownership === 'consumer').length;
     return q.queryParams ? Object.keys(q.queryParams).length : 0;
   }
 

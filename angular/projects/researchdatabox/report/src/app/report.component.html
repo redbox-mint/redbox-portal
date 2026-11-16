@@ -11,18 +11,23 @@
     <li><span aria-current="page">{{ report.title }}</span></li>
   </ol></nav>
   <header class="rb-admin-page-header">
-    <div><h1>{{ report.title }}</h1><p>
-      @if (!report.reportSource && !report.databaseQuery?.queryName) { {{ 'admin-report-description' | i18next }} }
-      @if (report.reportSource) { {{ 'admin-report-source-description' | i18next: { source: ('report-source-' + report.reportSource) | i18next } }} }
-      @if (report.databaseQuery?.queryName) { · {{ 'report-field-named-query' | i18next }} <code>{{ report.databaseQuery?.queryName }}</code> }
+    <div><div class="report-title-line"><h1>{{ report.title }}</h1><span class="badge rb-admin-badge-primary">{{ sourceLabelKey | i18next }}</span></div><p>
+      @if (report.databaseQuery?.queryName) {
+        {{ 'report-ux-built-on' | i18next }} <a [href]="queryUrl">{{ report.databaseQuery?.queryName }}</a>
+      } @else { {{ 'admin-report-description' | i18next }} }
     </p></div>
-    <div class="rb-admin-page-actions"><a class="btn btn-primary" [class.disabled]="!!dateRangeError"
+    <div class="rb-admin-page-actions">
+    @if (graphqlReport) {
+      <div><button id="report-export" type="button" class="btn btn-primary" [disabled]="exporting || !!dateRangeError" aria-describedby="report-export-limit" (click)="downloadCsv()">{{ 'report-csv-download' | i18next }}</button><p id="report-export-limit" class="rb-admin-hint">{{ 'report-graphql-export-limit' | i18next: { count: (report.exportMaxRows | number) } }}</p></div>
+    } @else { <a class="btn btn-primary" [class.disabled]="!!dateRangeError"
       [attr.aria-disabled]="dateRangeError ? 'true' : null" [attr.tabindex]="dateRangeError ? -1 : null" [attr.href]="getDownloadCSVUrl()"
-      (click)="dateRangeError ? $event.preventDefault() : null">{{ 'report-csv-download' | i18next }}</a></div>
+      (click)="dateRangeError ? $event.preventDefault() : null">{{ 'report-csv-download' | i18next }}</a> }</div>
   </header>
+  @if (graphqlReport) {<p class="rb-admin-hint">{{ 'report-graphql-live-data' | i18next }}</p>}
+  <div id="report-export-status" role="status" aria-live="polite" [class.alert]="!!exportMessage" [class.alert-info]="!!exportMessage && !exportError" [class.alert-danger]="exportError">{{ exportMessage }}</div>
   <section class="card" [attr.aria-busy]="!initTracker.resultsReturned">
     <div class="card-header"><h2>{{ 'admin-report-results' | i18next }}</h2>
-      <span role="status">@if (!initTracker.resultsReturned) { {{ 'report-retrieving-results' | i18next }} } @else { {{ reportResult.total | adminCount: 'record' }} }</span>
+      <span role="status">@if (!initTracker.resultsReturned) { {{ 'report-retrieving-results' | i18next }} } @else { @if (graphqlReport) { {{ 'report-graphql-range' | i18next: { start: rangeStart, end: rangeEnd } }} } @else { {{ (reportResult.total ?? 0) | adminCount: 'record' }} } }</span>
     </div>
     @if (report.filter.length) {
       <form class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filter()" (ngSubmit)="filter()">
@@ -52,11 +57,18 @@
         }
       </div>
     }
-    @if (reportResult.total === 0 && initTracker.resultsReturned) {
+    @if ((reportResult.total === 0 || (graphqlReport && !reportResult.records.length)) && initTracker.resultsReturned) {
       <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'admin-report-empty' | i18next }}</h3><p>{{ 'admin-report-empty-help' | i18next }}</p><button *ngIf="hasFilters" class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear-filters' | i18next }}</button></div>
-      <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: 0, end: 0, total: 0 } }}</div>
+      <div *ngIf="!graphqlReport" class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: 0, end: 0, total: 0 } }}</div>
     } @else {
-      <record-table [adminPresentation]="true" [enableSort]="true" [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize"></record-table>
+      <record-table [adminPresentation]="true" [enableSort]="!graphqlReport" [showPagination]="!graphqlReport" [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize"></record-table>
+    }
+    @if (graphqlReport) {
+      <div class="card-footer rb-admin-filter-bar report-cursor-pager" aria-live="polite" aria-atomic="true">
+        <span>{{ 'report-graphql-range' | i18next: { start: rangeStart, end: rangeEnd } }}</span>
+        <button type="button" class="btn btn-outline-secondary" [disabled]="cursorIndex === 0 || !initTracker.resultsReturned" (click)="cursorPage(-1)">{{ 'report-graphql-previous' | i18next }}</button>
+        <button type="button" class="btn btn-outline-secondary" [disabled]="!reportResult.pagination?.hasNextPage || !initTracker.resultsReturned" (click)="cursorPage(1)">{{ 'report-graphql-next' | i18next }}</button>
+      </div>
     }
   </section>
 }

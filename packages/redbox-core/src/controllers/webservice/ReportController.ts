@@ -1,3 +1,4 @@
+import { GraphqlReportError } from '../../services/reports/graphql';
 import { namedQueryRequestCaller, GraphqlNamedQueryExecutionError, GRAPHQL_NAMED_QUERY_ROWS } from '../../services/named-query/graphql-execution';
 import { GraphqlNamedQueryInputError } from '../../services/named-query/graphql-input';
 import { GraphqlNamedQueryValidationError } from '../../services/named-query/graphql-validation';
@@ -193,6 +194,7 @@ export namespace Controllers {
         }, {
           portal,
           caller,
+          graphqlCaller: namedQueryRequestCaller(req, brand),
         })
       );
     }
@@ -239,6 +241,10 @@ export namespace Controllers {
           throw new NamedQueryAssistanceError('RESPONSE_LIMIT', 413);
         return this.sendResp(req, res, { data, status: 200, headers });
       } catch (error) {
+        if (error instanceof GraphqlReportError || error instanceof GraphqlNamedQueryExecutionError || error instanceof GraphqlNamedQueryInputError || error instanceof GraphqlNamedQueryValidationError) {
+          const status = 'status' in error ? error.status : 422;
+          return this.sendResp(req,res,{status, displayErrors:[{code:error.code,status:String(status)}],headers});
+        }
         const known = error instanceof NamedQueryAssistanceError || error instanceof FieldDescriptionError;
         const reportError = error instanceof ReportServices.ReportConfigServiceError;
         const code = known ? error.code : reportError ? 'INVALID_REPORT' : 'ASSISTANCE_UNAVAILABLE';

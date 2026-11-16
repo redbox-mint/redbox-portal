@@ -18,6 +18,7 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
 export class NqDetailComponent {
   @Input() brandingAndPortalUrl = '';
   @Input() draft!: NamedQueryDefinition;
+  @Input() attempted = false;
   @Input() isNew = false;
   @Input() collections: string[] = [];
 

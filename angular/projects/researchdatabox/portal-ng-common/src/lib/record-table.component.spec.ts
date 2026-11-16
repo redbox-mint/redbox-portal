@@ -305,4 +305,8 @@ describe('RecordTableComponent multivalue columns', () => {
     spyOn(component, 'getEntryValue').and.callFake((_row, _col, value) => `[${value}]`);
     expect(component.getColValue({ metadata: { funders: 'AB' } }, column)).toBe('[A][B]');
   });
+  it('formats a single value once when the multiple-values option is enabled', () => {
+    expect(component.getColValue({ metadata: { funders: '2025-03-01' } },
+      { ...column, format: 'date' })).toBe('1 Mar 2025');
+  });
 });

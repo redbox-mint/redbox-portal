@@ -48,7 +48,9 @@ interface CacheEntry {
 
 export class RecordGraphqlDisabledError extends Error {
   readonly code = 'GRAPHQL_DISABLED';
-  constructor() { super('Record GraphQL is disabled.'); }
+  constructor() {
+    super('Record GraphQL is disabled.');
+  }
 }
 
 export interface RecordGraphqlResponse {
@@ -86,13 +88,34 @@ export namespace Services {
               extensions: { code: 'COLLECTION_UNAVAILABLE' },
             });
           const schema = await search.getRecordQuerySchema(coreId, deadline);
+          const steps = await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(type));
           return {
             coreId,
+            recordTypeLabel: sails.config.recordtype?.[recordType]?.labels?.name || recordType,
+            workflowLabels: steps.flatMap(step => {
+              const workflow = isObject(step.config) && isObject(step.config.workflow) ? step.config.workflow : {};
+              return typeof workflow.stage === 'string' && typeof workflow.stageLabel === 'string'
+                ? [{ value: workflow.stage, label: workflow.stageLabel }]
+                : [];
+            }),
             config,
             schema,
             search: (params, until) => search.searchRecordPage(coreId, params, until),
             cursorSecret: this.dependencies.getConfig().cursorSecret,
           };
+        },
+        getChoiceLabels: async (caller, reference, deadline) => {
+          if (Date.now() > deadline) throw new Error('Field vocabulary lookup timed out.');
+          // Only references on readable contract fields reach this port. This
+          // local, brand-scoped read never executes an external/named query.
+          const page = await VocabularyService.getEntries(String(caller.brand.id), reference, {
+            limit: 1000,
+            includeHistoricalValues: true,
+          });
+          if (Date.now() > deadline) throw new Error('Field vocabulary lookup timed out.');
+          return page && page.meta.total <= 1000
+            ? page.entries.map(entry => ({ label: entry.label, value: entry.value }))
+            : [];
         },
         getRecord: oid => RecordsService.getMeta(oid),
         hasViewAccess: (caller, record) =>
@@ -115,10 +138,15 @@ export namespace Services {
      */
     public async getReadSchema(caller: ReadCaller): Promise<GraphQLSchema> {
       if (
-        !caller?.brand?.id || !caller.brand.name || !caller.portal ||
-        !isObject(caller.user) || typeof caller.user.username !== 'string' || !caller.user.username ||
+        !caller?.brand?.id ||
+        !caller.brand.name ||
+        !caller.portal ||
+        !isObject(caller.user) ||
+        typeof caller.user.username !== 'string' ||
+        !caller.user.username ||
         !Array.isArray(caller.roles)
-      ) throw new Error('GraphQL validation requires authenticated context.');
+      )
+        throw new Error('GraphQL validation requires authenticated context.');
       return (await this.resolveReadSchema(caller)).schema;
     }
 

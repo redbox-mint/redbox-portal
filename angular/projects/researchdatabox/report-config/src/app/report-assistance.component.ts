@@ -2,7 +2,9 @@ import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core
 import { CommonModule } from '@angular/common';
 import {
   CodeEditorComponent,
-  FieldTreeComponent,
+  buildFieldTree,
+  type FieldNode,
+  TranslationService,
   I18NextPipe,
   fieldInsertion,
   type CompletionSource,
@@ -36,7 +38,7 @@ import {
       <strong class="rb-ws-diagnostic-label">{{
         (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next
       }}</strong>
-      <span>{{ d.reason }}</span>
+      <span>{{ d.reason | i18next }}</span>
       @if (d.line) {
         <span>({{ d.line }}:{{ d.column }})</span>
       }
@@ -64,8 +66,10 @@ export class ReportDiagnosticsComponent {
 @Component({
   selector: 'report-template-input',
   standalone: true,
-  imports: [CodeEditorComponent, FieldTreeComponent, ReportDiagnosticsComponent, I18NextPipe],
-  template: ` <label class="form-label" [for]="inputId">{{ label }}</label>
+  imports: [CodeEditorComponent, ReportDiagnosticsComponent, I18NextPipe],
+  template: ` <h3 class="report-template-heading">
+      <label [for]="inputId">{{ label }}</label>
+    </h3>
     <rb-template-editor
       #editor
       [inputId]="inputId"
@@ -83,19 +87,35 @@ export class ReportDiagnosticsComponent {
     <report-diagnostics [diagnostics]="diagnostics" [location]="location"></report-diagnostics>
     <details class="rb-ws-disclosure">
       <summary>{{ 'report-insert-template-field' | i18next }}</summary>
-      <rb-field-tree
-        [fields]="source.fields"
-        [roots]="source.roots"
-        [initialExpanded]="source.roots"
-        [insertion]="insertion"
-        (insert)="editor.insertAtCursor($event)"
-      ></rb-field-tree>
+      <div class="report-template-fields">
+        @if (reportKey) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-template-report-url
+            (click)="editor.insertAtCursor(reportUrlTemplate)"
+          >
+            {{ 'report-ux-report-address' | i18next }}
+          </button>
+        }
+        @for (field of insertableFields; track field.path) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            [attr.data-template-field]="field.path"
+            (click)="editor.insertAtCursor(fieldInsertion(field))"
+          >
+            {{ field.title }}
+          </button>
+        }
+      </div>
     </details>`,
-  styles: [':host { display: block; } .form-text { margin: 6px 0 0; font-size: 12px; }'],
+  styleUrls: ['./report-assistance.component.scss'],
 })
 export class ReportTemplateInputComponent implements OnChanges {
   @Input() fields: ContextSchemaField[] = [];
   @Input() property = '';
+  @Input() reportKey = '';
   @Input() multivalue = false;
   @Input() kind: 'display' | 'csv' = 'display';
   @Input() value = '';
@@ -104,10 +124,15 @@ export class ReportTemplateInputComponent implements OnChanges {
   @Input() diagnostics: EditorDiagnostic[] = [];
   @Input() location = '';
   @Output() valueChange = new EventEmitter<string>();
-  insertion = fieldInsertion;
+  constructor(private i18n: TranslationService) {}
+  fieldInsertion = fieldInsertion;
+  insertableFields: FieldNode[] = [];
   source: CompletionSource = { fields: [], roots: [], helpers: Object.keys(handlebarsInstance().helpers) };
   warningLines: number[] = [];
   errorLines: number[] = [];
+  get reportUrlTemplate(): string {
+    return '{{optTemplateData.brandingAndPortalUrl}}/admin/report/' + encodeURIComponent(this.reportKey);
+  }
   ngOnChanges(): void {
     this.source = {
       ...this.source,
@@ -118,6 +143,33 @@ export class ReportTemplateInputComponent implements OnChanges {
         this.multivalue
       ),
     };
+    const friendlyFields = this.source.fields.map(field => ({
+      ...field,
+      title:
+        field.path === 'recordTableMeta.val'
+          ? String(this.i18n.t('report-ux-current-item'))
+          : field.path === 'optTemplateData.brandingAndPortalUrl'
+            ? String(this.i18n.t('report-ux-web-address'))
+            : field.path === 'oid'
+              ? String(this.i18n.t('data-grids-oid'))
+              : field.title ||
+                field.path
+                  .split('.')
+                  .pop()!
+                  .replace(/([a-z])([A-Z])/g, '$1 $2')
+                  .replace(/[_-]+/g, ' '),
+    }));
+    const flatten = (nodes: FieldNode[]): FieldNode[] => nodes.flatMap(node => [node, ...flatten(node.children)]);
+    this.insertableFields = flatten(buildFieldTree(friendlyFields, []))
+      .filter(field =>
+        field.path === 'recordTableMeta.val'
+          ? this.multivalue || this.kind === 'csv'
+          : field.path === 'optTemplateData.brandingAndPortalUrl' || this.fields.some(row => row.path === field.path)
+      )
+      .filter(field => field.type !== 'undefined' && (field.isArray || !['object', 'array'].includes(field.type)))
+      .sort(
+        (a, b) => Number(b.path.startsWith('recordTableMeta.val')) - Number(a.path.startsWith('recordTableMeta.val'))
+      );
     const matching = this.diagnostics.filter(d => d.field === this.location && d.line > 0);
     this.warningLines = matching.filter(d => d.severity !== 'error').map(d => d.line);
     this.errorLines = matching.filter(d => d.severity === 'error').map(d => d.line);

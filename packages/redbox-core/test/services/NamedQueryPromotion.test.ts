@@ -91,7 +91,7 @@ describe('Detached explorer named-query promotion', () => {
     assert.deepEqual(result.definition.graphql.variables, {});
     assert.deepEqual(result.definition.graphql.mappings, { oid: ['identity'] });
     assert.deepEqual(result.definition.graphql.resultPath, ['matches', 'items']);
-    assert.deepEqual(result.definition.graphql.provenance, { explorerId: input.id, explorerRevision: 7 });
+    assert.deepEqual(result.definition.graphql.provenance, { explorerId: input.id, explorerRevision: 7, explorerPortal: caller.portal });
     assert.deepEqual(result.variableValues, input.variables);
     assert.equal(result.definition.name, '');
     const filters = result.variableValues.filters;

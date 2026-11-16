@@ -125,10 +125,55 @@ describe('RecordGridService HTTP contract', () => {
       const data = { records: [{ name: 'plan' }] };
       req.flush(wrapped ? { data } : data);
       flushMicrotasks();
-      expect(result).toEqual({ scopes: [scope], persistence: true });
+      expect(result).toEqual({ scopes: [{ ...scope, recordTypeLabel: 'plan' }], persistence: true });
       http.expectNone(url);
     }));
   }
+  it('batches publication selections into one scoped discovery request', fakeAsync(() => {
+    let fields: unknown;
+    service.selections(scope, [title.id, oid.id]).then(value => (fields = value));
+    flushMicrotasks();
+    const req = http.expectOne(url);
+    expect(req.request.body.variables.ids).toEqual([title.id, oid.id]);
+    expect(req.request.headers.get('X-CSRF-Token')).toBe('current-token');
+    req.flush({ data: { recordFields: discovery() } });
+    flushMicrotasks();
+    expect((fields as unknown[]).length).toBe(2);
+  }));
+  it('uses short display labels and translated group/choice hints without restoring legacy question labels', () => {
+    const raw = {
+      ...title,
+      path: '/uon:declarationDate',
+      label: 'What date was this declaration completed?',
+      labelKey: '@legacy-question',
+      displayLabel: 'Declaration date',
+      displayLabelKey: null,
+      group: 'Record',
+      groupKey: '@record',
+      groupPath: ['@record'],
+      choices: [{ label: '@five-years', value: '5_years' }],
+    };
+    const result = parseDiscovery(
+      discovery([raw]),
+      key => ({ '@legacy-question': 'Long old question', '@record': 'Record', '@five-years': 'Five years' })[key] ?? key
+    ).fields[0];
+    expect(result.label).toBe('Declaration date');
+    expect(result.groupPath).toEqual(['Record']);
+    expect(result.group).toBe('Record');
+    expect(result.choices).toEqual([{ label: 'Five years', value: '5_years' }]);
+    const namespacedInput = { ...raw, displayLabel: 'uon:declarationDate' };
+    const namespaced = parseDiscovery(discovery([namespacedInput]), key => key).fields[0];
+    expect(namespaced.label).toBe('Declaration date');
+    expect(namespaced.groupPath).toEqual(['Record']);
+    expect(
+      parseDiscovery(discovery([{ ...title, labelKey: '@title' }]), key => (key === '@title' ? 'Title' : key)).fields[0]
+        .label
+    ).toBe('Title');
+    const placeholderInput = { ...raw, displayLabelKey: '@uon-declaration-date' };
+    expect(
+      parseDiscovery(discovery([placeholderInput]), key => key.replace(/^@/, '').replace(/-/g, ' ')).fields[0].label
+    ).toBe('Declaration date');
+  });
   it('loads stage choices independently before an all-stage CATALOGUE_LIMIT failure', fakeAsync(() => {
     let stages: GridScope[] = [],
       error: GridRequestError | undefined;
@@ -203,6 +248,27 @@ describe('RecordGridService HTTP contract', () => {
     flushMicrotasks();
     expect(result).toEqual({ grids: [parseSavedQuery(saved)], next: null });
   }));
+  it('accepts read-only publication metadata without allowing it into editable definitions', () => {
+    const saved = {
+      version: 1,
+      mode: 'graphql',
+      id: '123456789012345678901234',
+      revision: 2,
+      name: 'Published query',
+      document: '{ __typename }',
+      variables: {},
+      resultPath: [],
+    };
+    expect(
+      parseSavedQuery({
+        ...saved,
+        updatedAt: '2026-11-12T00:00:00Z',
+        updatedBy: { username: 'admin', displayName: 'Local Admin' },
+        publishedAs: [{ name: 'public_query', publishedRevision: 1, changedSincePublished: true }],
+      })?.publishedAs
+    ).toEqual([{ name: 'public_query', publishedRevision: 1, changedSincePublished: true }]);
+    expect(() => parseSavedQuery({ ...saved, executionOptions: { bypassAcl: true } })).toThrow();
+  });
   it('requests bounded later catalogue pages', fakeAsync(() => {
     const after = '123456789012345678901234';
     let page: unknown;

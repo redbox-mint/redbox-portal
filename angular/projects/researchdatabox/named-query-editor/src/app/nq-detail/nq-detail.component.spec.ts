@@ -1,4 +1,4 @@
-import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
+import { NamedQueryNameFieldComponent, AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { QueryAssistanceModule } from '../query-assistance.module';
 import {
   TranslationService as AssistanceTranslationService,
@@ -32,7 +32,7 @@ describe('NqDetailComponent', () => {
           useValue: { t: (v: string) => v, isInitializing: () => false, translationChanges$: of(undefined) },
         },
       ],
-      imports: [AdminTabsDirective, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule],
+      imports: [NamedQueryNameFieldComponent, AdminTabsDirective, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 

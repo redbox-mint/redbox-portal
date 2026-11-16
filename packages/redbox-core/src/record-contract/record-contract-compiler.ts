@@ -717,6 +717,34 @@ export class RecordContractCompiler {
         contributionState
       );
       commitCompilerState(state, contributionState);
+      // Layout containers have no stored node of their own. Retain their
+      // presentation hierarchy on readable children without inventing paths.
+      const config = asRecord(component.component?.config);
+      const layout = asRecord(component.layout?.config);
+      const label = layout.buttonLabel ?? layout.label ?? config.label ?? config.title ?? config.heading;
+      if (
+        request.fieldMode === 'read' &&
+        typeof label === 'string' &&
+        label.trim() &&
+        ['TabComponent', 'TabContentComponent', 'AccordionComponent', 'AccordionPanelComponent'].includes(componentType)
+      ) {
+        return Object.entries(childNode.properties).map(([name, node]) => {
+          const groups = node.annotations?.extensions?.['x-redbox-group-path'];
+          return [
+            name,
+            {
+              ...node,
+              annotations: {
+                ...node.annotations,
+                extensions: {
+                  ...node.annotations?.extensions,
+                  'x-redbox-group-path': [label, ...(Array.isArray(groups) ? groups : [])],
+                },
+              },
+            },
+          ] as const;
+        });
+      }
       return Object.entries(childNode.properties);
     }
 
@@ -793,14 +821,37 @@ export class RecordContractCompiler {
       contributionState.partial = true;
     }
     commitCompilerState(state, contributionState);
-    const label = asRecord(component.layout?.config).label ?? asRecord(component.component?.config).label;
+    const layout = asRecord(component.layout?.config),
+      config = asRecord(component.component?.config);
+    const label = layout.label ?? config.label;
+    const shortLabel = layout.shortLabel ?? config.shortLabel;
+    // Presentation only: preserve option labels without changing the stored
+    // scalar/enum or hydrating remote vocabularies during contract compilation.
+    const options = config.options ?? config.staticOptions;
+    const choiceLabels = Array.isArray(options)
+      ? options.flatMap(option => {
+          const item = asRecord(option);
+          return typeof item.label === 'string' &&
+            (typeof item.value === 'string' || typeof item.value === 'number' || typeof item.value === 'boolean')
+            ? [{ label: item.label, value: item.value }]
+            : [];
+        })
+      : [];
+    const vocabulary = config.inlineVocab === true && typeof config.vocabRef === 'string' ? config.vocabRef : undefined;
     const node =
-      request.fieldMode === 'read' && typeof label === 'string'
+      request.fieldMode === 'read' &&
+      (typeof label === 'string' || typeof shortLabel === 'string' || choiceLabels.length || vocabulary)
         ? {
             ...contribution.node,
             annotations: {
               ...contribution.node.annotations,
-              extensions: { ...contribution.node.annotations?.extensions, 'x-redbox-label': label },
+              extensions: {
+                ...contribution.node.annotations?.extensions,
+                ...(typeof label === 'string' ? { 'x-redbox-label': label } : {}),
+                ...(typeof shortLabel === 'string' ? { 'x-redbox-short-label': shortLabel } : {}),
+                ...(choiceLabels.length ? { 'x-redbox-choice-labels': choiceLabels } : {}),
+                ...(vocabulary ? { 'x-redbox-vocabulary': vocabulary } : {}),
+              },
             },
           }
         : contribution.node;

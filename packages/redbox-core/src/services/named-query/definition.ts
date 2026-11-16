@@ -123,7 +123,7 @@ export const graphqlNamedQueryOperationSchema: z.ZodType<GraphqlNamedQueryOperat
       .strict()
       .optional(),
     provenance: z
-      .object({ explorerId: z.string().optional(), explorerRevision: z.number().int().positive().optional() })
+      .object({ explorerId: z.string().optional(), explorerRevision: z.number().int().positive().optional(), explorerPortal: z.string().min(1).max(120).optional() })
       .strict()
       .optional(),
   })

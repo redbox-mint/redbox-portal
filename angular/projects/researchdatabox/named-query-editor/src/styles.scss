@@ -255,3 +255,13 @@ nq-diagnostics {
     white-space: nowrap;
   }
 }
+
+// Touch-sized controls in both editors, including controls owned by child views.
+.rb-admin named-query-editor {
+  .nq-workspace :is(.btn, .rb-ws-tab, summary, select, input:not([type='checkbox'], [type='radio'])) {
+    min-height: 44px;
+  }
+  .nq-workspace summary {
+    align-content: center;
+  }
+}

@@ -62,7 +62,7 @@
       }
     </div>
     <!-- Pagination -->
-    @if (currentPage.total > 0) {
+    @if (showPagination && currentPage.total !== null && currentPage.total > 0) {
       <div [class.card-footer]="adminPresentation" [class.row]="!adminPresentation">
         @if (adminPresentation) { <span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: (currentPage.pageNum - 1) * paginationItemsPerPage + 1, end: adminPageEnd, total: currentPage.total } }}</span> }
         @if (adminPresentation) {

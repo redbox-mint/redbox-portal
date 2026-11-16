@@ -1,3 +1,4 @@
+import { validateExplorerReference } from './named-query/explorer-links';
 import type { NamedQueryUpdateReview } from '@researchdatabox/sails-ng-common';
 import { namedQueryBreakingChanges, updateConfirmation, NamedQueryUpdateConfirmationError, NamedQueryUpdateConflictError } from './named-query/update-review';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
@@ -537,6 +538,7 @@ export namespace Services {
     public async create(brand: BrandingModel, name: string, input: unknown, validationCaller?: ReadCaller) {
       assertNamedQueryDefinition(input);
       if (input.source === 'graphql') {
+        if (input.graphql.provenance?.explorerPortal) await validateExplorerReference(input, validationCaller);
         const { validation } = await inspectGraphqlNamedQuery(input, validationCaller, String(brand.id));
         if (!validation.valid) throw new GraphqlNamedQueryValidationError(validation.diagnostics);
       }
@@ -617,6 +619,7 @@ export namespace Services {
       }
       const existing = await NamedQuery.findOne({ key: `${brand.id}_${name}` });
       if (!existing) throw new Error(`Named query '${name}' not found`);
+      await validateExplorerReference(input, validationCaller, existing);
       const serialized = this.serializeDefinition(brand, name, input, existing);
       const review = await this.updateReview(brand, name, input, existing);
       return { ...review, ...(review.required ? { confirmation: updateConfirmation(existing, serialized, review, validationCaller) } : {}) };
@@ -641,6 +644,7 @@ export namespace Services {
       const key = `${brand.id}_${name}`;
       const existing = await NamedQuery.findOne({ key });
       if (!existing) throw new Error(`Named query '${name}' not found`);
+      await validateExplorerReference(input, validationCaller, existing);
       const serialized = this.serializeDefinition(brand, name, input, existing);
       const review = await this.updateReview(brand, name, input, existing);
       if (review.required && (!confirmation || !updateConfirmation(existing, serialized, review, validationCaller, confirmation)))

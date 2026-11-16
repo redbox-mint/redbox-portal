@@ -239,7 +239,7 @@ describe('Saved grids persistence boundary', () => {
       }
       assert.equal(rows.length, before);
       assert.equal((await service.read(scope, saved.id)).revision, 1);
-      for (const { id, revision, ...stored } of (await service.list(scope)).grids)
+      for (const { id, revision, updatedAt, updatedBy, ...stored } of (await service.list(scope)).grids)
         assert.ok(savedGridDefinition.safeParse(stored).success);
       assert.equal((await service.list(scope)).grids.length, before);
     }

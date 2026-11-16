@@ -20,6 +20,11 @@
 
   <% /* Brand Typeface: preload Regular once for an active custom typeface, else the self-hosted default faces. */ %>
   <% const __modernAdmin = typeof body === 'string' && body.includes('id="rb-admin-main"'); %>
+  <% /* Start the workspace module graph before render-blocking theme CSS completes. Lazy editors stay lazy. */ %>
+  <% const __queryApp = __modernAdmin && (body.includes('<data-grids') ? 'data-grids' : body.includes('<named-query-editor') ? 'named-query-editor' : null); %>
+  <% if (__queryApp) { %>
+  <link rel="modulepreload" href="<%= BrandingService.getRootContext() %>/angular/<%= __queryApp %>/browser/main<%= CacheService.getNgAppFileHash(__queryApp, 'main', '-') %>.js">
+  <% } %>
   <% if (__modernAdmin && body.includes('/angular/')) { %>
   <%- include('layout/client-config.ejs') %>
   <% } %>
@@ -70,6 +75,7 @@
   <% } %>
   <!-- Branding-aware web analytics (noscript fallback) -->
   <%- include('analytics', { position: 'body' }) %>
+  <header>
   <div class="header-area">
     <div class="container">
       <div class="row">
@@ -148,6 +154,7 @@
     <%- include('layout/menu.ejs') %>
     <%}%>
   <!-- End mainmenu area -->
+  </header>
 <% if (typeof title!== 'undefined') { %>
 <% } %>
 
@@ -197,14 +204,14 @@
 
 
 
-  <div class="footer-bottom-area navbar-bottom">
+  <footer class="footer-bottom-area navbar-bottom">
     <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
         <%- include('layout/footer.ejs') %>
       <%}%>
 
-  </div>
+  </footer>
 
 
 

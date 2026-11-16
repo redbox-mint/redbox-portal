@@ -111,6 +111,7 @@ describe('Explorer named-query promotion HTTP', function () {
       assert.deepEqual(prepared.definition.graphql.provenance, {
         explorerId: saved.id,
         explorerRevision: saved.revision,
+        explorerPortal: 'rdmp',
       });
       assert.ok(JSON.stringify(prepared.variableValues).includes('CURRENT_UNSAVED'));
       assert.ok(!prepared.definition.graphql.document.includes('CURRENT_UNSAVED'));
@@ -126,9 +127,18 @@ describe('Explorer named-query promotion HTTP', function () {
       assert.equal(described.capabilities.lookup, false);
       await session.post(prefix).set(headers()).send(candidate).expect(201);
       await session.post(prefix).set(headers()).send(candidate).expect(409);
-      assert.deepEqual((await session.get(`${grids}/${saved.id}`).set(headers()).expect(200)).body.data, before);
+      const publishedAs = [{ name: candidate.name, publishedRevision: saved.revision, changedSincePublished: false }];
+      assert.deepEqual((await session.get(`${grids}/${saved.id}`).set(headers()).expect(200)).body.data, { ...before, publishedAs });
+      const catalogue = (await session.get(`${prefix}/editor/saved-queries`).query({ q: fixture, mode }).set(headers()).expect(200)).body.data;
+      assert.deepEqual(catalogue.grids.find((grid: { id: string }) => grid.id === saved.id).publishedAs, publishedAs);
       const named = (await session.get(`${prefix}/${candidate.name}`).set(headers()).expect(200)).body.data;
       assert.deepEqual(named.graphql, candidate.graphql);
+      assert.equal(named.sourceSavedQuery.name, original.name);
+      assert.equal(named.sourceSavedQuery.mode, mode);
+      assert.equal(named.sourceSavedQuery.changedSincePublished, false);
+      assert.equal(named.sourceSavedQuery.updatedBy.username, 'admin');
+      const selected = (await session.post(`${prefix}/editor/from-saved-query`).set(headers()).send({ id: saved.id, revision: saved.revision }).expect(200)).body.data;
+      assert.deepEqual(selected.definition.graphql.provenance, candidate.graphql.provenance);
       // Later explorer edits update only that saved exploration and its revision.
       const explorerEdit = structuredClone(original);
       if ('variables' in explorerEdit) explorerEdit.variables.first = 50;
@@ -142,6 +152,8 @@ describe('Explorer named-query promotion HTTP', function () {
         (await session.get(`${prefix}/${candidate.name}`).set(headers()).expect(200)).body.data.graphql,
         candidate.graphql
       );
+      assert.equal((await session.get(`${prefix}/${candidate.name}`).set(headers()).expect(200)).body.data.sourceSavedQuery.changedSincePublished, true);
+      await session.post(`${prefix}/editor/from-saved-query`).set(headers()).send({ id: saved.id, revision: saved.revision }).expect(409);
       // Later named-query changes are immediate but do not touch the explorer.
       const explorerAfterEdit = (await session.get(`${grids}/${saved.id}`).set(headers()).expect(200)).body.data;
       const edited = structuredClone(candidate);
@@ -177,9 +189,71 @@ describe('Explorer named-query promotion HTTP', function () {
         (await session.post(`${prefix}/editor/describe`).set(headers()).send({ definition: edited }).expect(200)).body
           .data.valid,
         true,
-        'informational provenance must not require the original exploration to exist'
+        'source provenance must not require the original exploration to exist'
       );
+      const missing = (await session.get(`${prefix}/${candidate.name}`).set(headers()).expect(200)).body.data.sourceSavedQuery;
+      assert.equal(missing.missing, true);
+      assert.equal(missing.changedSincePublished, null);
+      // Retaining the link remains editable after deletion without implicit relinking.
+      await session.put(`${prefix}/${candidate.name}`).set(headers()).send(edited).expect(200);
     });
+  it('lists scoped summaries with search, mode and stable 100-row paging; rejects cross-scope source links', async () => {
+    const brand = BrandingService.getBrand('default');
+    const collection = db().collection(SavedGrid.tableName);
+    const batch = Array.from({ length: 101 }, () => ({ brandId: String(brand.id), portal: 'rdmp', revision: 1, definition: raw() }));
+    await collection.insertMany(batch);
+    const elsewhere = await collection.insertMany([
+      { brandId: String(brand.id), portal: 'elsewhere', revision: 1, definition: raw() },
+      { brandId: 'another-brand', portal: 'rdmp', revision: 1, definition: raw() },
+    ]);
+    const page = (await session.get(`${prefix}/editor/saved-queries`).query({ q: fixture, mode: 'graphql' }).set(headers()).expect(200)).body.data;
+    assert.equal(page.grids.length, 100);
+    assert.equal(page.next, page.grids.at(-1).id);
+    assert.equal(Object.hasOwn(page.grids[0], 'document'), false);
+    assert.equal(page.grids[0].recordType, 'dataPublication');
+    const next = (await session.get(`${prefix}/editor/saved-queries`).query({ q: fixture, mode: 'graphql', after: page.next }).set(headers()).expect(200)).body.data;
+    assert.equal(next.grids.length, 1); assert.equal(next.next, null);
+    for (const query of [{ mode: 'invalid' }, { after: 'invalid' }, { q: 'x'.repeat(121) }])
+      await session.get(`${prefix}/editor/saved-queries`).query(query).set(headers()).expect(400);
+    const id = String(elsewhere.insertedIds[0]);
+    await session.post(`${prefix}/editor/from-saved-query`).set(headers()).send({ id, revision: 1 }).expect(404);
+    const invalid = classify(await prepare(raw()), `${fixture}_scope`);
+    invalid.graphql.provenance = { explorerId: id, explorerRevision: 1, explorerPortal: 'rdmp' };
+    await session.post(prefix).set(headers()).send(invalid).expect(404);
+    await collection.deleteMany({ 'definition.name': fixture });
+  });
+  it('requires an actual admin session for saved sources and CSRF for draft creation', async () => {
+    for (const authorization of [undefined, `Bearer ${token}`]) {
+      const list = supertest(sails.hooks.http.app).get(`${prefix}/editor/saved-queries`).set('X-ReDBox-Api-Version', '2.0');
+      if (authorization) list.set('Authorization', authorization);
+      await list.expect(403);
+      const draft = supertest(sails.hooks.http.app).post(`${prefix}/editor/from-saved-query`).send({ id: '0123456789abcdef01234567', revision: 1 });
+      if (authorization) draft.set('Authorization', authorization);
+      await draft.expect(403);
+    }
+    await session.post(`${prefix}/editor/from-saved-query`).set('X-ReDBox-Api-Version', '2.0')
+      .send({ id: '0123456789abcdef01234567', revision: 1 }).expect(403);
+    const username = `${fixture}_researcher`;
+    await firstValueFrom(UsersService.addLocalUser(username, 'WP1 HTTP Researcher', `${username}@example.invalid`, 'GridTest123!'));
+    const user = await User.findOne({ username });
+    assert.ok(user);
+    try {
+      const brand = BrandingService.getBrand('default');
+      await firstValueFrom(UsersService.updateUserRoles(user.id, RolesService.getRoleIds(brand.roles, ['Researcher'])));
+      const researcher = supertest.agent(sails.hooks.http.app);
+      const security = sails.config.security.csrf;
+      try {
+        sails.config.security.csrf = true;
+        const loginCsrf = (await researcher.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
+        await researcher.post('/user/login_local').set('X-Source', 'jsclient').set('X-CSRF-Token', loginCsrf)
+          .send({ username, password: 'GridTest123!', branding: 'default', portal: 'rdmp' }).expect(200);
+      } finally { sails.config.security.csrf = security; }
+      const researcherCsrf = (await researcher.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
+      await researcher.get(`${prefix}/editor/saved-queries`).set('X-ReDBox-Api-Version', '2.0').expect(403);
+      await researcher.post(`${prefix}/editor/from-saved-query`).set(headers()).set('X-CSRF-Token', researcherCsrf)
+        .send({ id: '0123456789abcdef01234567', revision: 1 }).expect(403);
+    } finally { await User.destroy({ id: user.id }); }
+  });
   it('requires independent destination CREATE for both preparation modes and actual save despite explorer access', async () => {
     const brand = BrandingService.getBrand('default');
     const rules = PathRulesService.getRulesFromPath(prefix, brand);
@@ -200,6 +274,8 @@ describe('Explorer named-query promotion HTTP', function () {
       const page = await session.get('/default/rdmp/admin/data-grids').expect(200);
       assert.ok(page.text.includes('can-create-named-query="false"'));
       const before = [await NamedQuery.count({}), await SavedGrid.count({})];
+      await session.post(`${prefix}/editor/from-saved-query`).set(headers())
+        .send({ id: '0123456789abcdef01234567', revision: 1 }).expect(403);
       for (const exploration of [visual(), raw()]) {
         const response = await session
           .post(`${prefix}/editor/from-explorer`)

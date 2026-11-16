@@ -1,3 +1,12 @@
+import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { SavedQueryChooserComponent } from './saved-query-chooser.component';
+import {
+  NamedQueryNameFieldComponent,
+  NamedQueryBasicsSectionComponent,
+  NamedQueryParametersSectionComponent,
+  NamedQueryLookupSectionComponent,
+  NamedQueryPreviewSectionComponent,
+} from '@researchdatabox/portal-ng-common';
 import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
 import { GraphqlSchemaComponent } from './graphql-schema.component';
 import { GraphqlJsonInputComponent } from './graphql-json-input.component';
@@ -138,7 +147,9 @@ class ApiStub {
   get = jasmine.createSpy('get').and.callFake(async (name: string) => definition(name));
   create = jasmine.createSpy('create').and.resolveTo({ name: 'query' });
   update = jasmine.createSpy('update').and.resolveTo({ name: 'query' });
-  reviewUpdate = jasmine.createSpy('reviewUpdate').and.resolveTo({ required: false, changes: [], usedBy: [], usageComplete: false });
+  reviewUpdate = jasmine
+    .createSpy('reviewUpdate')
+    .and.resolveTo({ required: false, changes: [], usedBy: [], usageComplete: false });
   schemaTargets = jasmine.createSpy('targets').and.resolveTo({
     recordTypes: [{ id: 'rdmp', label: 'Plan', stages: [{ id: 'draft', label: 'Draft', starting: true }] }],
   });
@@ -170,7 +181,25 @@ describe('Schema-assisted named query workspace behaviours', () => {
         RelatedFilterEditorComponent,
         TranslationPipe,
       ],
-      imports: [GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminCountPipe, FormsModule, A11yModule, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent],
+      imports: [
+        SavedQueryChooserComponent,
+        NamedQueryNameFieldComponent,
+        NamedQueryBasicsSectionComponent,
+        NamedQueryParametersSectionComponent,
+        NamedQueryLookupSectionComponent,
+        NamedQueryPreviewSectionComponent,
+        GraphqlDraftEditorComponent,
+        GraphqlSchemaComponent,
+        GraphqlJsonInputComponent,
+        AdminTabsDirective,
+        AdminCountPipe,
+        AdminModalDirective,
+        FormsModule,
+        A11yModule,
+        QueryAssistanceModule,
+        FieldTreeComponent,
+        SchemaTargetSelectorComponent,
+      ],
       providers: [
         LoggerService,
         { provide: NamedQueryApiService, useValue: api },
@@ -355,7 +384,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     const mapping = fixture.debugElement.query(By.directive(ResultMappingEditorComponent));
     expect(mongo.nativeElement.querySelector('.rb-ws-diagnostic-warning').textContent).toContain('metadata.title');
     expect(param.nativeElement.querySelector('[data-location="queryParams.title.type"]')).toBeTruthy();
-    expect(mapping.nativeElement.querySelector('.nq-diagnostic-error').textContent).toContain('named-query-blocking');
+    expect(mapping.nativeElement.querySelector('.nq-diagnostic-error').textContent).toContain('Check this field');
     expect(component.canSave).toBeFalse();
     expect(component.activeDatabaseBuffer.mongoQuery['metadata.title']).toBe('One');
   });
@@ -644,7 +673,11 @@ describe('Schema-assisted named query workspace behaviours', () => {
   });
 
   it('keeps invalid test JSON visible and prevents preview until corrected', () => {
-    component.activeDatabaseBuffer.queryParams['options'] = { path: 'metadata.options', type: 'object', whenUndefined: 'ignore' };
+    component.activeDatabaseBuffer.queryParams['options'] = {
+      path: 'metadata.options',
+      type: 'object',
+      whenUndefined: 'ignore',
+    };
     fixture.detectChanges();
     const controls = fixture.debugElement.queryAll(By.directive(QueryTypedValueComponent));
     const testValue = controls
@@ -751,7 +784,8 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(api.preview).not.toHaveBeenCalled();
     editor.onValueChange(entry, '{"$eq":["$a","$c"]}');
     expect(component.activeDatabaseBuffer.mongoQuery).toEqual({
-      $expr: { $eq: ['$a', '$c'] }, 'metadata.status': 'active',
+      $expr: { $eq: ['$a', '$c'] },
+      'metadata.status': 'active',
     });
     expect(component.canSave).toBeTrue();
   });
@@ -801,8 +835,11 @@ describe('Schema-assisted named query workspace behaviours', () => {
   it('saves a raw scalar default for an object parameter template', async () => {
     component.activeDatabaseBuffer.queryParams = {
       person: {
-        type: 'object', path: 'metadata.person', whenUndefined: 'defaultValue',
-        defaultValue: 'Bob', template: '{"name":"{{value}}"}',
+        type: 'object',
+        path: 'metadata.person',
+        whenUndefined: 'defaultValue',
+        defaultValue: 'Bob',
+        template: '{"name":"{{value}}"}',
       },
     };
     fixture.detectChanges();
@@ -840,7 +877,8 @@ describe('Schema-assisted named query workspace behaviours', () => {
       options: { type: 'object', path: 'metadata.options', whenUndefined: 'ignore' },
     };
     fixture.detectChanges();
-    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+    fixture.debugElement
+      .query(By.css('.nq-test-parameters textarea'))
       .triggerEventHandler('ngModelChange', '{ unfinished');
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
       .componentInstance as QueryParamEditorComponent;
@@ -853,7 +891,8 @@ describe('Schema-assisted named query workspace behaviours', () => {
 
   it('names mapping sources in both modes and uniquely associates template labels', () => {
     component.activeDatabaseBuffer.resultObjectMapping = {
-      ...component.activeDatabaseBuffer.resultObjectMapping, otherTitle: 'record.metadata.title',
+      ...component.activeDatabaseBuffer.resultObjectMapping,
+      otherTitle: 'record.metadata.title',
     };
     fixture.detectChanges();
     const mappings = fixture.debugElement.query(By.directive(ResultMappingEditorComponent));
@@ -864,7 +903,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
       (source.componentInstance as QueryMappingValueComponent).template = true;
     });
     fixture.detectChanges();
-    const areas = sources.slice(0, 2).map(source => source.nativeElement.querySelector('textarea') as HTMLTextAreaElement);
+    const areas = sources
+      .slice(0, 2)
+      .map(source => source.nativeElement.querySelector('textarea') as HTMLTextAreaElement);
     expect(areas[0].id).toBeTruthy();
     expect(areas[1].id).toBeTruthy();
     expect(areas[0].id).not.toBe(areas[1].id);
@@ -883,7 +924,8 @@ describe('Schema-assisted named query workspace behaviours', () => {
       options: { type: 'object', path: 'metadata.options', whenUndefined: 'defaultValue' },
     };
     fixture.detectChanges();
-    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+    fixture.debugElement
+      .query(By.css('.nq-test-parameters textarea'))
       .triggerEventHandler('ngModelChange', '{ unfinished test');
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
     const typed = params.query(By.directive(QueryTypedValueComponent)).componentInstance as QueryTypedValueComponent;
@@ -902,7 +944,8 @@ describe('Schema-assisted named query workspace behaviours', () => {
       options: { type: 'object', path: 'metadata.options', whenUndefined: 'ignore' },
     };
     fixture.detectChanges();
-    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+    fixture.debugElement
+      .query(By.css('.nq-test-parameters textarea'))
       .triggerEventHandler('ngModelChange', '{ unfinished');
     const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
       .componentInstance as QueryParamEditorComponent;
@@ -926,8 +969,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     params.query(By.css('nq-typed-value textarea')).triggerEventHandler('ngModelChange', '{ unfinished');
     fixture.detectChanges();
     expect(component.canSave).toBeFalse();
-    params.query(By.css('textarea[id$="-template-new"]'))
-      .triggerEventHandler('ngModelChange', '{"name":"{{value}}"}');
+    params.query(By.css('textarea[id$="-template-new"]')).triggerEventHandler('ngModelChange', '{"name":"{{value}}"}');
     fixture.detectChanges();
     params.query(By.css('nq-typed-value input')).triggerEventHandler('ngModelChange', 'Alice');
     editor.addParam();
@@ -956,8 +998,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(new Set(areas.map(a => a.id)).size).toBe(areas.length);
     for (const area of areas) {
       expect(area.id).toBeTruthy();
-      const label = Array.from(params.nativeElement.querySelectorAll('label') as NodeListOf<HTMLLabelElement>)
-        .find(l => l.htmlFor === area.id);
+      const label = Array.from(params.nativeElement.querySelectorAll('label') as NodeListOf<HTMLLabelElement>).find(
+        l => l.htmlFor === area.id
+      );
       expect(label?.textContent).toContain('named-query-param-template');
     }
   });

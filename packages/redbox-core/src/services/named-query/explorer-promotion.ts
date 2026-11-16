@@ -88,7 +88,7 @@ function candidateMappings(document: string, resultPath: string[]): GraphqlNamed
 export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCaller): Promise<NamedQueryPromotionDraft> {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Buffer.byteLength(JSON.stringify(input)) > 65536)
     throw new SavedGridError(400, 'invalid-definition');
-  const { id, revision, ...values } = input as Record<string, unknown>;
+  const { id, revision, updatedAt: _updatedAt, updatedBy: _updatedBy, publishedAs: _publishedAs, ...values } = input as Record<string, unknown>;
   if (
     (id !== undefined && !savedGridId.safeParse(id).success) ||
     (revision !== undefined && !savedGridRevision.safeParse(revision).success)
@@ -195,6 +195,7 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
           ? {
               provenance: {
                 explorerId: String(id),
+                ...(typeof revision === 'number' ? { explorerPortal: caller.portal } : {}),
                 ...(typeof revision === 'number' ? { explorerRevision: revision } : {}),
               },
             }
