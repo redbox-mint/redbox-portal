@@ -212,6 +212,12 @@ reveal its errors. Correcting a field removes its summary entry while other
 eligible errors remain visible. Resetting a control to untouched hides its errors
 again until a save is attempted.
 
+Errors without a target field belong to the root form and become visible when
+that form is touched. An `onlySelf` touch shows the touched field's own errors
+without revealing root-form errors. For a valid form, `showWhenValid` becomes
+visible after any control is touched, including an `onlySelf` touch, and hides
+again if all touches are reset before a save attempt.
+
 A save attempt or save failure reveals the full validation summary, including
 untouched fields and form-level errors. Save events are scoped to their form;
 direct saves follow the same rule. `showWhenValid` never reports success merely

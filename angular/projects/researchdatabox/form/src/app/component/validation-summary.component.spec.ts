@@ -171,6 +171,57 @@ describe('ValidationSummaryFieldComponent', () => {
       expect(fixture.nativeElement.querySelector('.alert-info')?.textContent.trim()).toBe('The form is valid.');
     });
 
+    it('shows the valid info box after an onlySelf touch and hides it after reset', async () => {
+      const { fixture, formComponent } = await createDeferredForm({
+        deferErrorsOnNewRecord: true, showWhenValid: true,
+      }, { oid: '' }, false);
+      const title = formComponent.form!.get('title')!;
+      title.markAsTouched({ onlySelf: true });
+      await fixture.whenStable();
+      expect(formComponent.form!.untouched).toBeTrue();
+      expect(fixture.nativeElement.querySelector('.alert-info')?.textContent.trim()).toBe('The form is valid.');
+      title.markAsUntouched({ onlySelf: true });
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
+    });
+
+    it('reveals untargeted form errors after root touch without revealing untouched field errors', async () => {
+      const { fixture, formComponent } = await createFormAndWaitForReady({
+        name: 'untargeted-validation',
+        validators: [{ class: 'different-values', config: { controlNames: ['left', 'right'] } }],
+        componentDefinitions: [
+          ...['left', 'right', 'required'].map(name => ({
+            name, model: { class: 'SimpleInputModel' as const, config: {
+              value: '', validators: name === 'required' ? [{ class: 'required' }] : [],
+            } }, component: { class: 'SimpleInputComponent' as const },
+          })),
+          { name: 'summary', component: { class: 'ValidationSummaryComponent', config: {
+            deferErrorsOnNewRecord: true, showWhenValid: true,
+          } } },
+        ],
+      }, { editMode: true, oid: '' });
+      const summary = formComponent.componentDefArr[3].component as ValidationSummaryFieldComponent;
+      expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+      const left = formComponent.form!.get('left')!;
+      left.setValue('conflict');
+      formComponent.form!.get('right')!.setValue('conflict');
+      left.markAsTouched({ onlySelf: true });
+      await fixture.whenStable();
+      expect(formComponent.form!.untouched).toBeTrue();
+      expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+      formComponent.form!.get('right')!.markAsTouched();
+      await fixture.whenStable();
+      const errors = await summary.allValidationErrorsDisplay();
+      expect(errors.length).toBe(1);
+      expect(errors[0].message).toBe('@validator-error-form-level');
+      expect(fixture.nativeElement.querySelectorAll('.validation-summary-item').length).toBe(1);
+      expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
+      formComponent.form!.get('right')!.setValue('different');
+      await fixture.whenStable();
+      expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
+    });
+
     const deferredStateCases: Array<[ValidationSummaryFieldComponentConfigFrame, string, boolean]> = [
       [{ deferErrorsOnNewRecord: true, showWhenValid: true }, '', true],
       [{ deferErrorsOnNewRecord: true, showWhenValid: true }, 'existing-record', false],
