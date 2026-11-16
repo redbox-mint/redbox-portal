@@ -66,7 +66,7 @@ import { FormService } from "../form.service";
     <ng-template #afterComponentTemplate>
       @if (isVisible && formComponent.editMode()) {
         @let componentValidationList = getFormValidatorComponentErrors;
-        <redbox-field-error-summary [errors]="componentValidationList" [fieldName]="componentName"></redbox-field-error-summary>
+        <redbox-field-error-summary [errors]="showValidationErrors ? componentValidationList : []" [fieldName]="componentName"></redbox-field-error-summary>
       }
     </ng-template>
   }
