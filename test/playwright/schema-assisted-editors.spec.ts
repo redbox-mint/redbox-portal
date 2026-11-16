@@ -217,7 +217,7 @@ test.describe('schema-assisted editor release workflows', () => {
       // Keep custom paths, array rendering and templates editable through the side panel.
       await page.locator('[data-edit-column="1"]').click();
       await page.locator('#report-column-heading').fill('People');
-      await page.locator('rb-admin-side-panel').getByRole('checkbox', { name: /multiple/i }).check();
+      await page.locator('rb-admin-side-panel').getByRole('checkbox', { name: 'When there are several values, show each on its own line', exact: true }).check();
       await page.locator('#report-column-advanced > summary').click();
       await page.locator('#report-column-path').fill('metadata.people');
       await page.locator('#report-display-template').fill('{{recordTableMeta.val}}');

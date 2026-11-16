@@ -162,6 +162,7 @@ test('A05 creates a report with filters and columns, previews real data, reopens
   await adminPage.reload();
   await app.getByRole('searchbox').fill(name);
   await expect(row).toContainText(`${name} edited`);
+  await row.locator('summary').click();
   adminPage.once('dialog', dialog => dialog.accept());
   await row.getByRole('button', { name: /Delete/i }).click();
   await expect(row).toHaveCount(0);
