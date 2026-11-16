@@ -249,6 +249,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       this.eventBus.publish(
         createFieldValueChangedEvent({
           fieldId: this.getEventFieldId(),
+          formScopeId: this.formComponent?.eventScopeId,
           sourceId: this.getEventFieldId(),
           value: payload,
         })

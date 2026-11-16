@@ -30,6 +30,8 @@ describe('RecordMetadataRetrieverComponent', () => {
   });
 
   function createComponent(): RecordMetadataRetrieverComponent {
+    const formFixture = TestBed.createComponent(FormComponent);
+    ensureApplicationRefFormComponent(formFixture.componentRef);
     const fixture = TestBed.createComponent(RecordMetadataRetrieverComponent);
     const component = fixture.componentInstance;
     component.formFieldCompMapEntry = {
@@ -82,7 +84,7 @@ describe('RecordMetadataRetrieverComponent', () => {
     const select = (oid: string, fieldId = '/related') => bus.publish<FieldValueChangedEvent>({
       type: FormComponentEventType.FIELD_VALUE_CHANGED, fieldId, sourceId: '*', value: oid,
     });
-    return { bus, fixture, component, published, select };
+    return { bus, fixture, component, published, select, formComponent: formFixture.componentInstance };
   }
 
   const selectionExpression = {
@@ -100,12 +102,16 @@ describe('RecordMetadataRetrieverComponent', () => {
         condition: '/related::field.value.changed',
       },
     } as FormExpressionsConfigFrame;
-    const { fixture, published, select } = await bindRealBus([expression], jasmine.createSpy('evaluate'));
+    const { bus, formComponent, fixture, published, select } = await bindRealBus([expression], jasmine.createSpy('evaluate'));
+    const publish = spyOn(bus, 'publish').and.callThrough();
     recordService.getRecordMeta.and.resolveTo({ title: 'Related record' });
 
     select('record-123', '/related/selection');
     await fixture.whenStable();
 
+    expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      fieldId: '/rdmpGetter', formScopeId: formComponent.eventScopeId
+    }));
     expect(recordService.getRecordMeta).toHaveBeenCalledOnceWith('record-123');
     expect(published).toEqual([{ title: 'Related record', oid: 'record-123' }]);
     fixture.destroy();
@@ -393,6 +399,8 @@ describe('RecordMetadataRetrieverComponent', () => {
   });
 
   it('renders an accessible retry for the previously invisible retriever', async () => {
+    const formFixture = TestBed.createComponent(FormComponent);
+    ensureApplicationRefFormComponent(formFixture.componentRef);
     const fixture = TestBed.createComponent(RecordMetadataRetrieverComponent);
     const component = fixture.componentInstance;
     recordService.getRecordMeta.and.rejectWith(new Error('offline'));
