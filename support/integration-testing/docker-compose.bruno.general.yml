@@ -34,6 +34,8 @@ x-bruno-service: &bruno-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
+  # Test-only GraphQL/lookup fixtures shared by the CI and mount portal services.
+  - sails_config=/opt/redbox-portal/test/resources/config/named-query-lookups.json
   - PORT=1500
   - NODE_OPTIONS=--max-old-space-size=1024
   - 'RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}'

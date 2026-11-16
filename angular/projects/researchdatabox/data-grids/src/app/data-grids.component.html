@@ -1,3 +1,9 @@
+<div id="explorer-promotion-status" aria-live="polite" aria-atomic="true">
+@if (promotionOpening) { <p role="status">{{ text('promotion-opening') }}</p> }
+@if (promotionError) { <p class="alert alert-danger" role="alert">{{ text(promotionError) }}</p> }
+@if (promotionSaved) { <p class="alert alert-success" role="status">{{ text('promotion-saved') }}</p> }
+</div>
+<div id="explorer-workspace" [hidden]="!!promotion" [attr.inert]="promotion || promotionOpening ? '' : null" [attr.aria-hidden]="promotion ? 'true' : null">
 @if (loadError) {
   <div class="alert alert-danger" role="alert">
     {{ loadError }} <button class="btn btn-outline-secondary" (click)="retryLoad()">{{ text('retry') }}</button>
@@ -25,6 +31,9 @@
     >
       {{ text('saved-queries') }}
     </button>
+    @if (canPromote || promotionOpening) {
+      <button #promotionButton type="button" class="btn btn-outline-secondary" [disabled]="!canPromote" (click)="createNamedQuery()">{{ text('create-named-query') }}</button>
+    }
     <button type="button" class="btn btn-outline-secondary" [disabled]="!catalogue || saving || busy" (click)="open()">
       {{ text('new') }}
     </button>
@@ -732,3 +741,8 @@
     </div>
   </form>
 </dialog>
+
+</div>
+@if (promotion; as prepared) {
+  <rb-explorer-named-query [prepared]="prepared" (closed)="closePromotion()" (saved)="closePromotion(true)"></rb-explorer-named-query>
+}

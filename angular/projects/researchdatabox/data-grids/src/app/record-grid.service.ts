@@ -1,3 +1,4 @@
+import type { NamedQueryPromotionDraft } from '@researchdatabox/sails-ng-common';
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
@@ -119,6 +120,15 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     return parsePage(data['records'], request, discovery.fields);
   }
 
+  async prepareNamedQuery(definition: SavedQuery): Promise<NamedQueryPromotionDraft> {
+    await this.waitForInit();
+    const response = await firstValueFrom(this.http.post<{ data: NamedQueryPromotionDraft }>(
+      `${this.brandingAndPortalUrl}/api/named-query/editor/from-explorer`,
+      { exploration: structuredClone(definition) },
+      { context: this.httpContext, headers: { 'X-ReDBox-Api-Version': '2.0' } }
+    ));
+    return structuredClone(response.data);
+  }
   async schema(): Promise<string> {
     return string(object(await this.persistence('GET', '/schema'))['sdl']);
   }

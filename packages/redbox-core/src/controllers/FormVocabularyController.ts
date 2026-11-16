@@ -1,3 +1,6 @@
+import { namedQueryRequestCaller, GraphqlNamedQueryExecutionError } from '../services/named-query/graphql-execution';
+import { GraphqlNamedQueryInputError } from '../services/named-query/graphql-input';
+import { GraphqlNamedQueryValidationError } from '../services/named-query/graphql-validation';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { toBoolean } from '@researchdatabox/sails-ng-common';
@@ -251,14 +254,14 @@ export namespace Controllers {
     public async getRecords(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const queryId = String(req.param('queryId') ?? '').trim();
       const searchString = String(req.param('search') ?? '');
-      this.updateChronicle(req, {formVocabularyQueryId: queryId, formVocabularySearch: searchString});
+      this.updateChronicle(req, {formVocabularyQueryId: queryId, formVocabularySearchLength: searchString.length});
 
       const rawStart = req.param('start');
       const rawRows = req.param('rows');
       const hasStart = rawStart !== undefined && rawStart !== null && rawStart !== '';
       const hasRows = rawRows !== undefined && rawRows !== null && rawRows !== '';
-      const start = Number(req.param('start'));
-      const rows = Number(req.param('rows'));
+      const start = Number(rawStart);
+      const rows = Number(rawRows);
       this.updateChronicle(req, {formVocabularyPagingStart: start, formVocabularyPagingRows: rows});
 
       if (!queryId ||
@@ -280,7 +283,8 @@ export namespace Controllers {
           searchString,
           start,
           rows,
-          req.user! as FormVocabularyUserContext
+          req.user! as FormVocabularyUserContext,
+          namedQueryRequestCaller(req, brand)
         );
         return this.sendResp(req, res, {
           data: response,
@@ -288,6 +292,13 @@ export namespace Controllers {
           chronicle: {formVocabularyRetrieveSuccess: true},
         });
       } catch (error) {
+        if (error instanceof GraphqlNamedQueryExecutionError || error instanceof GraphqlNamedQueryValidationError || error instanceof GraphqlNamedQueryInputError) {
+          return this.sendResp(req, res, {
+            status: error instanceof GraphqlNamedQueryExecutionError ? error.status : error instanceof GraphqlNamedQueryInputError ? 400 : 422,
+            displayErrors: [{ code: error.code }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const errorCode = String((error as { code?: string } | null)?.code ?? '');
         if (errorCode === 'query-vocab-not-configured') {
           return this.sendResp(req, res, {

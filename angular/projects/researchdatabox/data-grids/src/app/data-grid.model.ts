@@ -1,7 +1,16 @@
+import {
+  recordGridFilterValue,
+  RECORD_GRID_FILTER_LIMITS,
+  type RecordGridScalar,
+  type RecordGridScalarType,
+  type RecordGridOperator,
+} from '@researchdatabox/sails-ng-common';
+export { normalizeTimestamp } from '@researchdatabox/sails-ng-common';
+
 /** UI contracts, independent of AG Grid state and of the HTTP/GraphQL schema. */
-export type Scalar = string | number | boolean;
+export type Scalar = RecordGridScalar;
 export type FieldType = 'text' | 'number' | 'datetime' | 'boolean' | 'choice' | 'structured' | 'unavailable';
-export type Operator = 'eq' | 'contains' | 'gt' | 'lt' | 'between' | 'in' | 'exists';
+export type Operator = RecordGridOperator;
 export interface GridField {
   id: string;
   label: string;
@@ -23,7 +32,7 @@ export interface GridScope {
   fields: GridField[];
   revision?: string;
 }
-export type GridScalarType = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME';
+export type GridScalarType = RecordGridScalarType;
 export function scalarTypeFor(field: GridField): GridScalarType | undefined {
   if (field.type === 'text' || field.type === 'choice') return 'STRING';
   if (field.type === 'number') return field.integer ? 'INTEGER' : 'NUMBER';
@@ -92,7 +101,7 @@ export interface GridIssue {
   field?: string;
 }
 export const PAGE_SIZES = [25, 50];
-export const LIMITS = { columns: 30, filters: 10, valueLength: 256, listItems: 20 };
+export const LIMITS = { columns: 30, filters: 10, ...RECORD_GRID_FILTER_LIMITS };
 
 export function emptyGrid(): GridDefinition {
   return { version: 1, mode: 'visual', name: '', recordType: '', columns: [], filters: [], sort: null, pageSize: 25 };
@@ -104,76 +113,15 @@ export function copyGrid(grid: GridDefinition): GridDefinition {
   return structuredClone(grid);
 }
 
-/** RFC3339 subset accepted by the collection endpoint, normalized before range comparison. */
-export function normalizeTimestamp(value: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/i.exec(value);
-  if (!match) throw new Error('invalid-datetime');
-  const [, year, month, day, hour, minute, second, , zone] = match;
-  const y = Number(year),
-    m = Number(month),
-    d = Number(day);
-  const leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
-  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+/** Choice membership is a local catalogue constraint; scalar conversion is shared. */
+export function filterValue(filter: GridFilter, field: GridField): Scalar | Scalar[] {
   if (
-    y < 1 ||
-    m < 1 ||
-    m > 12 ||
-    d < 1 ||
-    d > days[m - 1] ||
-    Number(hour) > 23 ||
-    Number(minute) > 59 ||
-    Number(second) > 59 ||
-    (zone.toUpperCase() !== 'Z' && (Number(zone.slice(1, 3)) > 23 || Number(zone.slice(4)) > 59))
+    field.type === 'choice' &&
+    filter.operator !== 'exists' &&
+    filter.values.some(value => !field.choices?.some(choice => choice.value === value))
   )
-    throw new Error('invalid-datetime');
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime()) || date.getUTCFullYear() < 1 || date.getUTCFullYear() > 9999)
-    throw new Error('invalid-datetime');
-  return date.toISOString();
-}
-
-function valueFor(value: string, field: GridField): Scalar {
-  if (new TextEncoder().encode(value).length > LIMITS.valueLength) throw new Error('invalid-value');
-  switch (field.type) {
-    case 'number': {
-      // Decimal input only; do not interpret hexadecimal, Infinity or partial numbers.
-      if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) throw new Error('invalid-number');
-      const number = Number(value);
-      if (!Number.isFinite(number) || (field.integer && !Number.isSafeInteger(number)))
-        throw new Error('invalid-number');
-      return number;
-    }
-    case 'boolean':
-      if (value !== 'true' && value !== 'false') throw new Error('invalid-boolean');
-      return value === 'true';
-    case 'choice':
-      if (!field.choices?.some(choice => choice.value === value)) throw new Error('invalid-choice');
-      return value;
-    case 'datetime':
-      return normalizeTimestamp(value);
-    default:
-      return value;
-  }
-}
-
-export function filterValue(filter: GridFilter, field: GridField): Scalar | Scalar[] | undefined {
-  if (filter.operator === 'exists') {
-    if (filter.values.length !== 1 || !['true', 'false'].includes(filter.values[0])) throw new Error('invalid-exists');
-    return filter.values[0] === 'true';
-  }
-  if (filter.operator === 'contains' && !filter.values[0]?.length) throw new Error('empty-contains');
-  const expected = filter.operator === 'between' ? 2 : 1;
-  if (filter.operator === 'in') {
-    if (!filter.values.length || filter.values.length > LIMITS.listItems) throw new Error('invalid-list');
-    return filter.values.map(value => valueFor(value, field));
-  }
-  if (filter.values.length !== expected) throw new Error('invalid-value-count');
-  const values = filter.values.map(value => valueFor(value, field));
-  if (filter.operator === 'between') {
-    if (values[0] > values[1]) throw new Error('invalid-range');
-    return values;
-  }
-  return values[0];
+    throw new Error('invalid-choice');
+  return recordGridFilterValue(scalarTypeFor(field) ?? '', filter.operator, filter.values);
 }
 
 export function validateGrid(grid: GridDefinition, scope?: GridScope): GridIssue[] {
@@ -191,7 +139,7 @@ export function validateGrid(grid: GridDefinition, scope?: GridScope): GridIssue
   if (grid.filters.length > LIMITS.filters) issues.push({ key: 'too-many-filters' });
   for (const filter of grid.filters) {
     const field = scope.fields.find(item => item.id === filter.fieldId);
-    if (!field || field.repeating || !field.operators.includes(filter.operator)) {
+    if (!field || field.repeating || field.partial || !field.operators.includes(filter.operator)) {
       issues.push({ key: 'unavailable-filter', field: field?.label ?? filter.fieldId });
       continue;
     }

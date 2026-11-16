@@ -59,9 +59,6 @@ export async function coreBootstrap(): Promise<void> {
   await sails.services.reportsservice.bootstrapData(sails.services.brandingservice.getDefault());
   sails.log.verbose('Reports service, bootstrapped.');
 
-  await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
-  sails.log.verbose('Named Query service, bootstrapped.');
-
   // sails doesn't support 'populating' of nested associations
   // intentionally queried again because of nested 'users' population
   const defRoles = await lastValueFrom(
@@ -106,6 +103,10 @@ export async function coreBootstrap(): Promise<void> {
   }
 
   sails.log.verbose('Forms service, bootstrapped.');
+  // Static GraphQL import validation requires configured read forms on first lift.
+  await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
+  sails.log.verbose('Named Query service, bootstrapped.');
+
   sails.log.verbose('Record validation rollout configuration loaded.');
   await sails.services.vocabularyservice.bootstrapData();
   sails.log.verbose('Vocabulary bootstrap data, loaded.');

@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./services/NamedQueryLookup.test.ts", "./setup.ts"],
+  "exclude": []
+}

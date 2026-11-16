@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import UrlPattern from 'url-pattern';
+import { SavedGridError } from '../../../src/services/SavedGridService';
 import { Controllers } from '../../../src/controllers/webservice/NamedQueryController';
 import { namedQueryEditorRoutes } from '../../../src/api-routes/groups/named-query';
 import { policies } from '../../../src/config/policies.config';
@@ -8,6 +9,13 @@ import { routes } from '../../../src/config/routes.config';
 import { namedQueryMutationCsrf } from '../../../src/policies/namedQueryMutationCsrf';
 import { checkAuth } from '../../../src/policies/checkAuth';
 import { NamedQueryAssistanceError, NAMED_QUERY_PREVIEW_LIMITS } from '../../../src/utilities/NamedQueryPreview';
+import { GraphqlNamedQueryInputError } from '../../../src/services/named-query/graphql-input';
+import {
+  GraphqlNamedQueryValidationError,
+  graphqlDiagnostic,
+  validateGraphqlNamedQuery,
+} from '../../../src/services/named-query/graphql-validation';
+import { createRecordYoga } from '../../../src/record-graphql/schema';
 import { FieldDescriptionError } from '../../../src/services/FieldDescriptionsService';
 import { Services as PathServices } from '../../../src/services/PathRulesService';
 import { Services as EditorServices } from '../../../src/services/NamedQueryEditorService';
@@ -58,7 +66,7 @@ describe('Named query assistance HTTP boundary', () => {
     ) as Record<(typeof actions)[number], sinon.SinonStub>;
     Object.assign(globalThis, {
       BrandingService: { getBrand: sinon.stub().returns(brand) },
-      NamedQueryEditorService: service,
+      NamedQueryEditorService: { ...service, canCreate: () => true },
       TranslationService: { t: (value: string) => value },
     });
   });
@@ -71,6 +79,53 @@ describe('Named query assistance HTTP boundary', () => {
       PathRulesService: previous.rules,
       TranslationService: previous.translation,
     });
+  });
+  it('prepares only an authenticated explorer admin snapshot and returns safe no-store errors', async () => {
+    const previousRoles = Reflect.get(globalThis, 'RolesService');
+    const preparePromotion = sinon.stub().resolves({ definition: { source: 'graphql', name: '' }, variableValues: {} });
+    const req = { ...request(), params: { branding: 'brand-a', portal: 'rdmp' }, body: { exploration: { version: 1, mode: 'graphql' } } };
+    const send = sinon.stub(controller, 'sendResp');
+    Reflect.set(globalThis, 'NamedQueryEditorService', { ...service, preparePromotion });
+    Reflect.set(globalThis, 'RolesService', { getAdmin: () => ({ id: 'query-author' }) });
+    try {
+      await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(preparePromotion.firstCall.args[0], req.body.exploration);
+      assert.equal(preparePromotion.firstCall.args[1].user, req.user);
+      assert.equal(preparePromotion.firstCall.args[1].portal, 'rdmp');
+      assert.equal(send.firstCall.args[2]?.headers?.['Cache-Control'], 'no-store');
+      preparePromotion.rejects(new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403));
+      await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(send.secondCall.args[2]?.status, 403);
+      for (const [status, code] of [[503, 'GRAPHQL_DISABLED'], [503, 'UNAVAILABLE'], [503, 'QUERY_TIMEOUT'], [504, 'QUERY_TIMEOUT']] as const) {
+        preparePromotion.rejects(new SavedGridError(status, code));
+        await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+        assert.equal(send.lastCall.args[2]?.status, status);
+        assert.equal(send.lastCall.args[2]?.displayErrors?.[0]?.code, code);
+      }
+      preparePromotion.rejects(Object.assign(new TypeError('PRIVATE DOCUMENT/VALUES'), { code: 'PRIVATE CODE', name: 'PRIVATE CLASS' }));
+      await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(send.lastCall.args[2]?.status, 500);
+      assert.ok(!JSON.stringify(send.lastCall.args[2]).includes('PRIVATE'));
+      const log = sails.log.error as sinon.SinonStub;
+      assert.deepEqual(log.lastCall.args, ['Named-query promotion preparation failed', { code: 'PROMOTION_UNAVAILABLE', errorClass: 'TypeError' }]);
+      assert.ok(!JSON.stringify(log.lastCall.args).includes('PRIVATE'));
+      preparePromotion.resetHistory();
+      await controller.preparePromotion({ ...req, isAuthenticated: () => false } as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(preparePromotion.called, false);
+      assert.equal(send.lastCall.args[2]?.status, 403);
+    } finally { Reflect.set(globalThis, 'RolesService', previousRoles); }
+  });
+  it('checks independent destination CREATE on the actual persistence action', async () => {
+    const create = sinon.stub(); const previousQuery = Reflect.get(globalThis, 'NamedQueryService');
+    const canCreate = sinon.stub().returns(false);
+    Reflect.set(globalThis, 'NamedQueryEditorService', { ...service, canCreate });
+    Reflect.set(globalThis, 'NamedQueryService', { create });
+    const send = sinon.stub(controller, 'sendResp');
+    try {
+      await controller.createQuery(request() as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(canCreate.firstCall.args[0], brand); assert.equal(canCreate.firstCall.args[1], 'rdmp');
+      assert.equal(create.called, false); assert.equal(send.firstCall.args[2]?.status, 403);
+    } finally { Reflect.set(globalThis, 'NamedQueryService', previousQuery); }
   });
   for (const action of actions)
     it(`${action} uses session brand, portal and the feature caller`, async () => {
@@ -268,6 +323,105 @@ describe('Named query assistance HTTP boundary', () => {
     assert.equal(res.status.lastCall.args[0], 408);
     assert.equal(res.json.lastCall.args[0].errors[0].code, 'PREVIEW_TIMEOUT');
   });
+  it('returns the safe parameter diagnostic location through both API response versions', async () => {
+    service.previewDraft.rejects(new GraphqlNamedQueryInputError('parameters.count'));
+    for (const version of ['1.0', '2.0']) {
+      const res = {
+        status: sinon.stub().returnsThis(),
+        set: sinon.stub().returnsThis(),
+        json: sinon.stub().returnsThis(),
+      };
+      const req = {
+        ...request(),
+        headers: { 'x-redbox-api-version': version },
+        body: { ...request().body, parameters: { count: 'PRIVATE_INPUT' } },
+      };
+      await controller.previewDraft(req as unknown as Sails.Req, res as unknown as Sails.Res);
+      assert.equal(res.status.lastCall.args[0], 400);
+      const response = res.json.lastCall.args[0];
+      if (version === '2.0') {
+        assert.equal(response.meta.diagnostics[0].field, 'parameters.count');
+        assert.equal(response.meta.diagnostics[0].code, 'INVALID_GRAPHQL_PARAMETER');
+        assert.match(response.meta.diagnostics[0].reason, /declared input type/);
+      } else {
+        assert.equal(response.message, 'INVALID_GRAPHQL_PARAMETER');
+        assert.match(response.details, /parameters.count: .*declared input type/);
+      }
+      assert.ok(!JSON.stringify(response).includes('PRIVATE_INPUT'));
+    }
+  });
+  for (const action of ['previewDraft', 'createQuery', 'updateQuery'] as const)
+    it(`${action} retains safe definition diagnostics through both API response versions`, async () => {
+      const definition = {
+        name: 'query-a',
+        source: 'graphql',
+        graphql: {
+          document: 'query($count: Int) { records(recordType: "rdmp", first: $count) { nodes { oid } } }',
+          variables: { count: { ownership: 'fixed', value: 'PRIVATE_INPUT' } },
+          resultPath: ['records', 'nodes'],
+        },
+      };
+      const schema = createRecordYoga([], { getRecord: async () => null, hasViewAccess: () => false }).schema;
+      const validation = validateGraphqlNamedQuery(definition, schema).validation;
+      assert.equal(validation.valid, false);
+      const diagnostic = validation.diagnostics[0];
+      assert.equal(diagnostic.code, 'INVALID_DEFAULT');
+      const error = new GraphqlNamedQueryValidationError(validation.diagnostics);
+      service.previewDraft.rejects(error);
+      const queriesBefore = Reflect.get(globalThis, 'NamedQueryService');
+      Reflect.set(globalThis, 'NamedQueryService', {
+        create: sinon.stub().rejects(error),
+        update: sinon.stub().rejects(error),
+      });
+      try {
+        for (const version of ['1.0', '2.0']) {
+          const res = {
+            status: sinon.stub().returnsThis(),
+            set: sinon.stub().returnsThis(),
+            json: sinon.stub().returnsThis(),
+          };
+          const req = {
+            ...request(),
+            headers: { 'x-redbox-api-version': version },
+            body: action === 'previewDraft' ? { definition } : definition,
+          };
+          await controller[action](req as unknown as Sails.Req, res as unknown as Sails.Res);
+          assert.equal(res.status.lastCall.args[0], action === 'previewDraft' ? 422 : 400);
+          const response = res.json.lastCall.args[0];
+          const expected = `${diagnostic.field}: ${diagnostic.reason}`;
+          if (version === '2.0') {
+            assert.deepEqual(response.meta.diagnostics, validation.diagnostics);
+            assert.equal(response.errors[0].code, error.code);
+            assert.equal(response.errors[0].detail, expected);
+          } else {
+            assert.equal(response.message, error.code);
+            assert.equal(response.details, expected);
+          }
+          assert.ok(!JSON.stringify(response).includes('PRIVATE_INPUT'));
+        }
+      } finally {
+        Reflect.set(globalThis, 'NamedQueryService', queriesBefore);
+      }
+    });
+  it('bounds the definition diagnostic description independently of diagnostic count and text length', async () => {
+    service.previewDraft.rejects(
+      new GraphqlNamedQueryValidationError(
+        Array.from({ length: 50 }, () =>
+          graphqlDiagnostic('INVALID_DEFAULT', 'graphql.' + 'x'.repeat(1000), 'Repair input. '.repeat(1000))
+        )
+      )
+    );
+    const res = {
+      status: sinon.stub().returnsThis(),
+      set: sinon.stub().returnsThis(),
+      json: sinon.stub().returnsThis(),
+    };
+    await controller.previewDraft(request() as unknown as Sails.Req, res as unknown as Sails.Res);
+    const response = res.json.lastCall.args[0];
+    assert.equal(res.status.lastCall.args[0], 422);
+    assert.match(response.details, /^graphql:/);
+    assert.ok(response.details.length <= 770);
+  });
   it('maps guidance denial, missing saved query, size and timeout failures', async () => {
     const send = sinon.stub(controller, 'sendResp');
     for (const [error, status] of [
@@ -291,6 +445,14 @@ describe('Named query assistance HTTP boundary', () => {
       assert(chain.includes('checkAuth'));
       assert(!chain.includes('emailTemplateAdmin'));
     }
+  });
+  it('keeps explorer preparation session-only with CSRF and normal path authorization', () => {
+    const chains = policies['webservice/NamedQueryController'];
+    assert(chains && typeof chains === 'object' && !Array.isArray(chains));
+    const chain = chains.preparePromotion;
+    assert(Array.isArray(chain));
+    assert(chain.includes('namedQueryMutationCsrf')); assert(chain.includes('checkAuth'));
+    assert(chain.includes('validateApiContractRequest')); assert(!chain.includes('isWebServiceAuthenticated'));
   });
   it('allows a brand-authorized custom administration role and denies an unauthorized caller', () => {
     const next = sinon.stub();

@@ -140,8 +140,9 @@ describe('Admin foundation views', function () {
   it('mounts data grids in the shared admin shell with hashed assets and a CSP nonce', async function () {
     const html = await ejs.renderFile(path.join(views, 'data-grids.ejs'), {
       ...locals,
-      req: { path: '/brand/portal/admin/data-grids' },
-      BrandingService: { ...locals.BrandingService, getRootContext: () => '/context' },
+      req: { path: '/brand/portal/admin/data-grids', session: { branding: 'brand', portal: 'portal' }, isAuthenticated: () => true },
+      NamedQueryEditorService: { canCreate: () => true },
+      BrandingService: { ...locals.BrandingService, getRootContext: () => '/context', getBrand: () => ({ id: 'brand', name: 'brand' }) },
       CacheService: { getNgAppFileHash: () => '-bundle' }
     });
     const dom = new JSDOM(html);
@@ -149,6 +150,7 @@ describe('Admin foundation views', function () {
       const document = dom.window.document;
       const app = document.querySelector('.rb-admin .rb-admin-wrap > data-grids')!;
       expect(app).not.to.equal(null);
+      expect(app.getAttribute('can-create-named-query')).to.equal('true');
       expect(app.getAttribute('ngCspNonce')).to.equal('test-nonce');
       expect(document.querySelectorAll('.rb-admin-sidebar')).to.have.lengthOf(1);
       const modules = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="module"]'));

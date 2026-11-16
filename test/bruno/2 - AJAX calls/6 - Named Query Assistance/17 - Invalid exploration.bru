@@ -1,0 +1,48 @@
+meta {
+  name: Named queries - Invalid exploration
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/from-explorer
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "exploration": {
+      "version": 1,
+      "mode": "graphql",
+      "document": 42
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  if (!bru.getVar("queryEditorCsrf")) {
+    test("Rejects the session request before reading its invalid exploration", () => {
+      expect(res.getStatus()).to.equal(403);
+      expect(res.getBody().error.code).to.equal("CSRF_MISMATCH");
+    });
+  } else {
+    test("Rejects malformed exploration without returning its values", () => {
+      expect(res.getStatus()).to.equal(400);
+      expect(res.getBody().errors[0].code).to.equal("invalid-definition");
+      expect(res.getBody()).not.to.have.property("data");
+    });
+  }
+}

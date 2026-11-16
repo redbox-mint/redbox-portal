@@ -10643,5 +10643,432 @@
     "category": "admin",
     "description": "Record explorer: empty object marker",
     "contentFormat": "plain"
+  },
+  "@form-typeahead-refine-search": {
+    "category": "form",
+    "description": "Shown only when the current lookup has a verified next page."
+  },
+  "@form-typeahead-incompatible-query": {
+    "category": "form",
+    "description": "Lookup alias or GraphQL consumer configuration is incompatible."
+  },
+  "@validator-error-typeahead-lookup-compatibility": {
+    "category": "form",
+    "description": "Form inspection diagnostic for an incompatible named query lookup."
+  },
+  "named-query-source": {
+    "category": "Named queries",
+    "description": "Execution source"
+  },
+  "named-query-source-database": {
+    "category": "Named queries",
+    "description": "Database"
+  },
+  "named-query-source-graphql": {
+    "category": "Named queries",
+    "description": "GraphQL"
+  },
+  "named-query-source-buffers-help": {
+    "category": "Named queries",
+    "description": "Each source keeps its unsaved settings during this session. Saving stores only the selected source."
+  },
+  "named-query-immediate-save": {
+    "category": "Named queries",
+    "description": "Saved changes take effect immediately for consumers."
+  },
+  "named-query-invalid-source": {
+    "category": "Named queries",
+    "description": "Unsupported source"
+  },
+  "named-query-invalid-source-help": {
+    "category": "Named queries",
+    "description": "This saved source is unsupported. Review its diagnostics or delete it after removing known usages."
+  },
+  "named-query-review-title": {
+    "category": "Named queries",
+    "description": "Review changes before saving"
+  },
+  "named-query-review-description": {
+    "category": "Named queries",
+    "description": "This update takes effect immediately. Review the affected settings and known consumers before confirming."
+  },
+  "named-query-breaking-source": {
+    "category": "Named queries",
+    "description": "The saved execution source and its previous configuration will be replaced."
+  },
+  "named-query-breaking-parameters": {
+    "category": "Named queries",
+    "description": "Consumer parameter names, types, required values or defaults change."
+  },
+  "named-query-breaking-bindings": {
+    "category": "Named queries",
+    "description": "Confirmation reason for any changed GraphQL variable binding, including fixed values and omitted/consumer ownership transitions."
+  },
+  "named-query-breaking-document": {
+    "category": "Named queries",
+    "description": "Conservative confirmation reason for a changed GraphQL document or selected operation."
+  },
+  "named-query-breaking-mappings": {
+    "category": "Named queries",
+    "description": "Result paths or existing output mappings change."
+  },
+  "named-query-breaking-lookup": {
+    "category": "Named queries",
+    "description": "The lookup paging or search contract changes."
+  },
+  "named-query-confirm-immediate-save": {
+    "category": "Named queries",
+    "description": "Confirm and save changes"
+  },
+  "named-query-review-changed": {
+    "category": "Named queries",
+    "description": "The draft changed. Save again to review the current changes."
+  },
+  "named-query-graphql-editor": {
+    "category": "Named queries",
+    "description": "GraphQL named query settings"
+  },
+  "named-query-graphql-description": {
+    "category": "Named queries",
+    "description": "Description"
+  },
+  "named-query-graphql-tab-basics": {
+    "category": "Named queries",
+    "description": "Basics"
+  },
+  "named-query-graphql-tab-document": {
+    "category": "Named queries",
+    "description": "Query"
+  },
+  "named-query-graphql-tab-variables": {
+    "category": "Named queries",
+    "description": "Variables and parameters"
+  },
+  "named-query-graphql-tab-mappings": {
+    "category": "Named queries",
+    "description": "Results and lookup"
+  },
+  "named-query-graphql-auth-help": {
+    "category": "Named queries",
+    "description": "GraphQL runs as the authenticated caller. Saving this definition grants no additional record access. Reports and CSV do not support this source."
+  },
+  "named-query-graphql-document": {
+    "category": "Named queries",
+    "description": "Query document"
+  },
+  "named-query-graphql-operation": {
+    "category": "Named queries",
+    "description": "Operation name (optional for an unnamed query)"
+  },
+  "named-query-graphql-query-only": {
+    "category": "Named queries",
+    "description": "Use one read-only query. Current-schema validation runs without executing records."
+  },
+  "named-query-graphql-ownership-help": {
+    "category": "Named queries",
+    "description": "Choose fixed, consumer-supplied or intentionally omitted ownership for every declared variable. Configure paging variables under Results and lookup."
+  },
+  "named-query-graphql-json-help": {
+    "category": "Named queries",
+    "description": "Enter JSON values: quote strings, use arrays for lists, and use null explicitly. Fixed values are configuration, never credentials."
+  },
+  "named-query-graphql-operation-default": {
+    "category": "Named queries",
+    "description": "An operation default is declared in the query document."
+  },
+  "named-query-graphql-omission-satisfied": {
+    "category": "Named queries",
+    "description": "The current schema allows omission, or the operation default satisfies it."
+  },
+  "named-query-graphql-ownership": {
+    "category": "Named queries",
+    "description": "Variable ownership"
+  },
+  "named-query-graphql-unclassified": {
+    "category": "Named queries",
+    "description": "Choose ownership"
+  },
+  "named-query-graphql-fixed": {
+    "category": "Named queries",
+    "description": "Fixed value"
+  },
+  "named-query-graphql-consumer": {
+    "category": "Named queries",
+    "description": "Consumer parameter"
+  },
+  "named-query-graphql-omitted": {
+    "category": "Named queries",
+    "description": "Omit to use operation behavior"
+  },
+  "named-query-graphql-server": {
+    "category": "Named queries",
+    "description": "Server-owned paging"
+  },
+  "named-query-graphql-fixed-value": {
+    "category": "Named queries",
+    "description": "Fixed JSON value"
+  },
+  "named-query-graphql-parameter": {
+    "category": "Named queries",
+    "description": "Consumer parameter name"
+  },
+  "named-query-graphql-input-type": {
+    "category": "Named queries",
+    "description": "GraphQL input type"
+  },
+  "named-query-graphql-required": {
+    "category": "Named queries",
+    "description": "Requires a non-null effective value"
+  },
+  "named-query-graphql-default": {
+    "category": "Named queries",
+    "description": "Named-query default (optional JSON)"
+  },
+  "named-query-graphql-default-help": {
+    "category": "Named queries",
+    "description": "On omission, the named-query default applies first, then the operation default. Defaults never replace explicit null, false, zero or empty text. The required flag must match GraphQL nullability."
+  },
+  "named-query-graphql-remove-stale": {
+    "category": "Named queries",
+    "description": "Remove undeclared ownership"
+  },
+  "named-query-graphql-path-help": {
+    "category": "Named queries",
+    "description": "Use arrays of literal response alias segments, for example [\"matches\",\"nodes\"]. Result paths start at GraphQL data; mapping paths start at each item. [] selects the item itself."
+  },
+  "named-query-graphql-path-invalid": {
+    "category": "Named queries",
+    "description": "Enter a JSON array of string path segments."
+  },
+  "named-query-graphql-result-path": {
+    "category": "Named queries",
+    "description": "Result list path"
+  },
+  "named-query-graphql-mapping-oid": {
+    "category": "Named queries",
+    "description": "Identifier mapping (oid)"
+  },
+  "named-query-graphql-mapping-title": {
+    "category": "Named queries",
+    "description": "Label mapping (title)"
+  },
+  "named-query-graphql-mapping-metadata": {
+    "category": "Named queries",
+    "description": "Metadata mapping"
+  },
+  "named-query-graphql-mapping-dateCreated": {
+    "category": "Named queries",
+    "description": "Created date mapping"
+  },
+  "named-query-graphql-mapping-lastSaveDate": {
+    "category": "Named queries",
+    "description": "Last saved date mapping"
+  },
+  "named-query-graphql-lookup-adapter": {
+    "category": "Named queries",
+    "description": "Configure a first-page lookup adapter"
+  },
+  "named-query-graphql-page-help": {
+    "category": "Named queries",
+    "description": "Lookup previews run only compatible first-page definitions, with at most 25 records and no exact total. The server owns first and after. Valid definitions without an adapter can still be saved."
+  },
+  "named-query-graphql-collectionPath": {
+    "category": "Named queries",
+    "description": "Collection response path"
+  },
+  "named-query-graphql-hasNextPagePath": {
+    "category": "Named queries",
+    "description": "Continuation flag path"
+  },
+  "named-query-graphql-endCursorPath": {
+    "category": "Named queries",
+    "description": "End cursor path (optional)"
+  },
+  "named-query-graphql-first-variable": {
+    "category": "Named queries",
+    "description": "Server-owned page size variable"
+  },
+  "named-query-graphql-after-variable": {
+    "category": "Named queries",
+    "description": "Server-owned cursor variable"
+  },
+  "named-query-graphql-choose-variable": {
+    "category": "Named queries",
+    "description": "Choose a declared variable"
+  },
+  "named-query-graphql-search-parameter": {
+    "category": "Named queries",
+    "description": "Consumer search parameter name"
+  },
+  "named-query-graphql-schema-help": {
+    "category": "Named queries",
+    "description": "Inspect the current caller-scoped read schema. Use its field names, arguments, input types and enum values when editing the query."
+  },
+  "named-query-graphql-schema-type": {
+    "category": "Named queries",
+    "description": "Schema type"
+  },
+  "named-query-graphql-field-search": {
+    "category": "Named queries",
+    "description": "Find fields"
+  },
+  "named-query-graphql-schema-sdl": {
+    "category": "Named queries",
+    "description": "Read schema (SDL)"
+  },
+  "named-query-graphql-refresh-schema": {
+    "category": "Named queries",
+    "description": "Refresh read schema"
+  },
+  "named-query-graphql-schema-loading": {
+    "category": "Named queries",
+    "description": "Loading current GraphQL schema…"
+  },
+  "named-query-graphql-schema-error": {
+    "category": "Named queries",
+    "description": "Current GraphQL schema unavailable. Your draft is retained."
+  },
+  "named-query-graphql-lookup-ready": {
+    "category": "Named queries",
+    "description": "This definition can power an authenticated lookup."
+  },
+  "named-query-graphql-nonlookup": {
+    "category": "Named queries",
+    "description": "Valid definitions can be saved without lookup capability. Repair the following lookup settings before selecting one in a form or running a lookup preview."
+  },
+  "named-query-graphql-preview-bound": {
+    "category": "Named queries",
+    "description": "First page only, at most 25 results. The exact total is unknown. Preview uses your current record access."
+  },
+  "named-query-graphql-save-error": {
+    "category": "Named queries",
+    "description": "Failed to save GraphQL named query: {{error}}"
+  },
+  "named-query-diagnostic-location": {
+    "category": "Named queries",
+    "description": "Source line and column shown only for located diagnostics."
+  },
+  "named-query-graphql-correct-before-save": {
+    "category": "Named queries",
+    "description": "GraphQL save blocked validation guidance."
+  },
+  "named-query-untracked-callers-note": {
+    "category": "Named queries",
+    "description": "Known usage discovery is incomplete for dynamic hooks, API callers and opaque configuration references."
+  },
+  "data-grids-create-named-query": {
+    "category": "data-grids",
+    "description": "Create named query",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-help": {
+    "category": "data-grids",
+    "description": "This is an unsaved copy of your current exploration. Review candidate mappings and choose ownership for every variable before saving.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-provenance": {
+    "category": "data-grids",
+    "description": "The explorer reference is informational. Editing either saved definition leaves the other independent.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-save-help": {
+    "category": "data-grids",
+    "description": "Save creates an immediately available named query. Your exploration stays unchanged.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-current-value": {
+    "category": "data-grids",
+    "description": "Current explorer value",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-value-help": {
+    "category": "data-grids",
+    "description": "Choosing Fixed copies this value. A consumer parameter has no named-query default until you enter one.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-validation-failed": {
+    "category": "data-grids",
+    "description": "Validation is unavailable. Your detached draft is retained; change a field to retry.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-denied": {
+    "category": "data-grids",
+    "description": "Named-query create permission is required. Your exploration and detached draft are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-name-exists": {
+    "category": "data-grids",
+    "description": "That named-query name already exists. Choose a unique name and save again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-save-failed": {
+    "category": "data-grids",
+    "description": "The named query could not be saved. Your detached draft is retained; try saving again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard-heading": {
+    "category": "data-grids",
+    "description": "Discard this named-query draft?",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard-help": {
+    "category": "data-grids",
+    "description": "Your original exploration and its unsaved changes will be retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-keep-editing": {
+    "category": "data-grids",
+    "description": "Keep editing",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard": {
+    "category": "data-grids",
+    "description": "Discard named-query draft",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-invalid-values": {
+    "category": "data-grids",
+    "description": "Correct the explorer variables JSON before creating a named query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-open-failed": {
+    "category": "data-grids",
+    "description": "The named-query editor could not be opened. Your exploration is retained; check its fields and try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-opening": {
+    "category": "data-grids",
+    "description": "Preparing an unsaved named-query copy…",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-saved": {
+    "category": "data-grids",
+    "description": "Named query created. Your exploration and its unsaved changes are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-init-failed": {
+    "category": "data-grids",
+    "description": "The named-query editor could not load. Your exploration and detached draft are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-disabled": {
+    "category": "data-grids",
+    "description": "Record GraphQL is disabled. Your exploration is retained; ask an administrator to enable it before trying again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-timeout": {
+    "category": "data-grids",
+    "description": "Preparing the named query timed out. Your exploration is retained; try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-unavailable": {
+    "category": "data-grids",
+    "description": "Record GraphQL is temporarily unavailable. Your exploration is retained; try again later.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-schema-changed": {
+    "category": "data-grids",
+    "description": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again.",
+    "contentFormat": "plain"
   }
 }

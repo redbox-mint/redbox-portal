@@ -1,0 +1,81 @@
+<section
+  class="card panel-style panel-default rb-ws"
+  aria-labelledby="promotion-heading"
+  [attr.inert]="confirmCancel ? '' : null"
+  [attr.aria-hidden]="confirmCancel ? 'true' : null"
+>
+  <header class="card-header rb-ws-header">
+    <h2 #heading id="promotion-heading" class="card-title rb-ws-title" tabindex="-1">
+      {{ 'data-grids-create-named-query' | i18next }}
+    </h2>
+    <span class="rb-ws-header-badge" role="status">{{ 'named-query-unsaved' | i18next }}</span>
+  </header>
+  <div class="card-body">
+    <p class="rb-ws-lede">{{ 'data-grids-promotion-help' | i18next }}</p>
+    <p *ngIf="draft?.graphql?.provenance" class="rb-ws-lede">{{ 'data-grids-promotion-provenance' | i18next }}</p>
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error | i18next }}</div>
+    <p *ngIf="initializing" role="status">{{ 'data-grids-promotion-opening' | i18next }}</p>
+    <fieldset [disabled]="saving">
+      <div class="promotion-body">
+        <div class="rb-ws-main" role="region" aria-labelledby="promotion-heading">
+          <nq-graphql-draft-editor
+            [draft]="draft"
+            [isNew]="true"
+            [candidateValues]="variableValues"
+            [description]="description"
+            [diagnostics]="description?.diagnostics || []"
+            (draftChange)="changed()"
+            (validityChange)="pendingInput = !$event"
+          ></nq-graphql-draft-editor>
+        </div>
+        <aside class="rb-ws-help" [attr.aria-label]="'named-query-fields-help' | i18next">
+          <h3>{{ 'named-query-fields-help' | i18next }}</h3>
+          <p *ngIf="schemaError" role="status">{{ 'named-query-graphql-schema-error' | i18next }}</p>
+          <nq-graphql-schema *ngIf="sdl" [sdl]="sdl"></nq-graphql-schema>
+          <section aria-live="polite" [attr.aria-label]="'named-query-diagnostics-heading' | i18next">
+            <p *ngIf="validating" role="status">{{ 'named-query-validating' | i18next }}</p>
+            <nq-diagnostics [diagnostics]="description?.diagnostics || []"></nq-diagnostics>
+            <p *ngIf="description?.valid" role="status">
+              {{
+                (description?.capabilities?.lookup
+                  ? 'named-query-graphql-lookup-ready'
+                  : 'named-query-graphql-nonlookup'
+                ) | i18next
+              }}
+            </p>
+          </section>
+        </aside>
+      </div>
+    </fieldset>
+  </div>
+  <footer class="rb-ws-footer">
+    <p class="rb-ws-footer-status" role="status">
+      {{ (saving ? 'data-grids-saving' : 'data-grids-promotion-save-help') | i18next }}
+    </p>
+    <div class="rb-ws-footer-actions">
+      <button #cancelButton class="btn btn-outline-secondary" [disabled]="saving" (click)="cancel()">
+        {{ 'named-query-cancel' | i18next }}
+      </button>
+      <button #saveButton id="promotion-save" class="btn btn-primary" [disabled]="!canSave" (click)="save()">
+        {{ 'named-query-save' | i18next }}
+      </button>
+    </div>
+  </footer>
+</section>
+<div *ngIf="confirmCancel" class="promotion-confirm" (keydown.escape)="keepEditing()">
+  <div
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="promotion-discard-heading"
+    aria-describedby="promotion-discard-help"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+  >
+    <h3 id="promotion-discard-heading">{{ 'data-grids-promotion-discard-heading' | i18next }}</h3>
+    <p id="promotion-discard-help">{{ 'data-grids-promotion-discard-help' | i18next }}</p>
+    <button class="btn btn-outline-secondary" cdkFocusInitial (click)="keepEditing()">
+      {{ 'data-grids-promotion-keep-editing' | i18next }}
+    </button>
+    <button class="btn btn-danger ms-2" (click)="discard()">{{ 'data-grids-promotion-discard' | i18next }}</button>
+  </div>
+</div>

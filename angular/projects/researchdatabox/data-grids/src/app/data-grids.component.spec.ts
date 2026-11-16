@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { AgGridAngular } from 'ag-grid-angular';
 import { AdminTabsDirective, I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
+import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
 import { DataGridsComponent } from './data-grids.component';
 import { DATA_GRID_SOURCE, DataGridSource, GridRequestError, GridSourceUnavailable } from './data-grid-source';
 import { GridDefinition, GridPage, GridScope } from './data-grid.model';
@@ -45,7 +46,7 @@ describe('Data grid editor', () => {
     source.save.and.callFake(async grid => ({ ...grid, id: 'saved' }));
     await TestBed.configureTestingModule({
       declarations: [DataGridsComponent],
-      imports: [CommonModule, FormsModule, AgGridAngular, I18NextPipe, AdminTabsDirective],
+      imports: [CommonModule, FormsModule, AgGridAngular, I18NextPipe, AdminTabsDirective, ExplorerNamedQueryComponent],
       providers: [
         { provide: DATA_GRID_SOURCE, useValue: source },
         { provide: TranslationService, useValue: translation },

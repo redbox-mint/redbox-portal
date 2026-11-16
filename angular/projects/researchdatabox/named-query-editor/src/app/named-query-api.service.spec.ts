@@ -191,6 +191,21 @@ describe('NamedQuery editor assistance requests', () => {
     req.flush({ fields: [] });
     expect((await pending).fields).toEqual([]);
   });
+  it('uses the named-query schema boundary and keeps review acknowledgement separate from executable data', async () => {
+    const schema = service.graphqlSchema();
+    const schemaRequest = http.expectOne(request => request.url.endsWith('/editor/graphql-schema'));
+    expect(schemaRequest.request.method).toBe('GET'); schemaRequest.flush({ data: { sdl: 'type Query { field: String }' } }); await schema;
+    const definition: NamedQueryDefinition = { source: 'graphql', name: 'same', graphql: { document: 'query { field }', variables: {}, resultPath: [] } };
+    const review = service.reviewUpdate('same', definition);
+    const request = http.expectOne(request => request.url.endsWith('/same/review-update'));
+    expect(request.request.body).toEqual({ definition }); expect(request.request.context).toBe(schemaRequest.request.context);
+    request.flush({ data: { required: true, changes: ['source'], usedBy: [], usageComplete: false, confirmation: 'bound' } });
+    const reviewed = await review;
+    const update = service.update('same', definition, reviewed.confirmation);
+    const saved = http.expectOne(request => request.url.endsWith('/same'));
+    expect(saved.request.headers.get('X-ReDBox-Named-Query-Confirmation')).toBe('bound');
+    expect(saved.request.body).toEqual(definition); saved.flush({ data: { name: 'same' } }); await update;
+  });
   for (const action of ['validate', 'describe', 'preview'] as const) {
     it(`POSTs an unsaved ${action} with CSRF context and preserves structured refusals`, async () => {
       const request = {

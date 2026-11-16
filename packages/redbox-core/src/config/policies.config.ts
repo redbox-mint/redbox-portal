@@ -68,11 +68,15 @@ export function buildContractApiPolicies(
       [route.action]:
         route.controller === 'webservice/RecordGraphqlController'
           ? noCachePlusApiValidationPolicies.map(policy => (policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy))
-          : route.controller === 'webservice/NamedQueryController' &&
-              ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
-            ? namedQueryMutationPolicies
-            : route.controller === 'webservice/ReportController' &&
-                ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action)
+          : route.controller === 'webservice/NamedQueryController' && route.action === 'preparePromotion'
+            ? [
+                'namedQueryMutationCsrf',
+                ...noCachePlusApiValidationPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'),
+              ]
+            : (route.controller === 'webservice/NamedQueryController' &&
+                  ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)) ||
+                (route.controller === 'webservice/ReportController' &&
+                  ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action))
               ? namedQueryMutationPolicies
               : noCachePlusApiValidationPolicies,
     };
@@ -107,7 +111,11 @@ export const policies: PoliciesConfig = {
   // Saved definitions are a browser-admin surface. Do not promote bearer credentials
   // after the CSRF policy has decided whether this is a session mutation.
   SavedGridController: {
-    '*': ['noCache', 'namedQueryMutationCsrf', ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')],
+    '*': [
+      'noCache',
+      'namedQueryMutationCsrf',
+      ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'),
+    ],
   },
   EmailTemplateAdminController: {
     '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],

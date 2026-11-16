@@ -25,6 +25,8 @@ export interface FieldDescription extends SchemaSelection {
 }
 /** Safe identifiers and locations only; no server source excerpts or raw exception messages. */
 export interface EditorDiagnostic {
+  source?: 'database' | 'graphql';
+  capability?: 'definition' | 'lookup' | 'report';
   code: string;
   /** Omitted by older email servers; omission remains an error in those clients. */
   severity?: 'error' | 'warning';

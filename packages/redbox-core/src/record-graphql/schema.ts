@@ -35,7 +35,7 @@ export const QUERY_LIMITS = Object.freeze({
   timeoutMs: 5_000,
 });
 
-function boundedQueryRule(): ValidationRule {
+export function boundedQueryRule(): ValidationRule {
   return context => ({
     Document(document: DocumentNode) {
       const fragments = new Map<string, FragmentDefinitionNode>();
@@ -248,6 +248,15 @@ export function createRecordYoga(
     },
   });
   const schema = new GraphQLSchema({
+    // Internal static-validation metadata. Never derive generated type names from
+    // user field paths, and never infer a record permission from this catalogue.
+    extensions: {
+      recordReadVariants: contracts.map(contract => ({
+        recordType: contract.context.recordType,
+        workflowStep: contract.context.workflowStep,
+        typeName: metadataTypeName(contract),
+      })),
+    },
     query: new GraphQLObjectType({
       name: 'Query',
       fields: {

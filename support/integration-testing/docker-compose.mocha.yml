@@ -146,3 +146,5 @@ services:
       main:
         aliases:
           - 'email'
+          # The direct Sails test lift uses the core SMTP default without rc env overrides.
+          - 'integration-testing-email-1'

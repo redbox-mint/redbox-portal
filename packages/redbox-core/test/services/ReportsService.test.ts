@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -501,6 +502,34 @@ describe('ReportsService', function () {
 
       expect(mockReport.findOne.calledWith({ key: 'brand-1_report-name' })).to.be.true;
       expect(result).to.deep.equal({ id: 'report-1' });
+    });
+  });
+
+  describe('GraphQL source guards', () => {
+    const report = { name: 'graphql-report', title: 'GraphQL report', reportSource: 'database', databaseQuery: { queryName: 'graphql' }, columns: [], filter: [], solrQuery: null };
+    const brand = { id: 'brand-1' };
+    beforeEach(() => {
+      Reflect.get(globalThis, 'NamedQueryService').getNamedQueryConfig.resolves({ source: 'graphql', graphql: { document: 'query { records }', variables: {}, resultPath: [] } });
+      mockReport.findOne.returns(createQueryObject(report));
+    });
+    it('rejects create, update and preview before database execution or totals', async () => {
+      for (const operation of [
+        () => ReportsService.createConfig(brand, report),
+        () => ReportsService.updateConfig(brand, report.name, report),
+        () => ReportsService.previewConfig(brand, report, { param: sinon.stub() }),
+      ]) await assert.rejects(operation, /GraphQL named queries do not support reports/);
+      expect(Reflect.get(globalThis, 'NamedQueryService').performNamedQueryFromConfig.called).to.equal(false);
+    });
+    it('rejects saved table and CSV adapters before applying sort or numeric summary logic', async () => {
+      const req = { param: sinon.stub() };
+      await assert.rejects(() => ReportsService.getResults(brand, report.name, req), /GraphQL named queries do not support reports/);
+      await assert.rejects(() => ReportsService.getCSVResult(brand, report.name, req), /GraphQL named queries do not support reports/);
+      expect(Reflect.get(globalThis, 'NamedQueryService').performNamedQueryFromConfig.called).to.equal(false);
+    });
+    it('reports incompatible source in authoring validation', async () => {
+      const result = await ReportsService.validateConfig(brand, 'rdmp', { brand, user: { username: 'admin' } }, report);
+      expect(result.valid).to.equal(false);
+      expect(result.diagnostics[0].code).to.equal('UNSUPPORTED_QUERY_SOURCE');
     });
   });
 

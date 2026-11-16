@@ -144,6 +144,19 @@ describe('NamedQueryEditorService', () => {
     });
   });
 
+  it('refuses unknown sources and mixed definitions before database inspection or preview', async () => {
+    for (const definition of [
+      draft({ source: 'unknown' }),
+      draft({ graphql: { document: 'query { records }' } }),
+    ]) {
+      await assert.rejects(validate(definition));
+      await assert.rejects(editor.describeDraft(brand, 'rdmp', caller, { definition }));
+      await assert.rejects(editor.previewDraft(brand, 'rdmp', caller, { definition }));
+    }
+    assert.equal(collection.countDocuments.called, false);
+    assert.equal(collection.find.called, false);
+  });
+
   it('discovers targets under the feature caller, without an email Admin role', async () => {
     assert.equal((await editor.schemaTargets(brand, caller)).recordTypes[0].id, 'rdmp');
     assert.equal(fields.schemaTargets.firstCall.args[1], caller);
@@ -332,6 +345,7 @@ describe('NamedQueryEditorService', () => {
     assert.equal(type('metadata.rendered'), 'string');
     assert.equal(type('metadata.custom'), 'unknown');
     assert.equal(result.result.fields.find(field => field.path === 'metadata.issued')?.format, 'date');
+    assert.ok(result.source !== 'graphql');
     assert.equal(result.parameters[0].key, 'createdAfter');
     assert.equal(result.parameters[0].path, 'dateCreated');
     assert.equal(result.parameters[0].required, true);

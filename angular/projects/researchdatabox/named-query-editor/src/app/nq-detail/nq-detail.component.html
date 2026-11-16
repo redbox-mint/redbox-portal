@@ -171,6 +171,7 @@
     <ul *ngIf="draft.usedBy?.length; else notUsed" class="mb-0">
       <li *ngFor="let consumer of draft.usedBy"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
     </ul>
+    <p class="text-muted mt-2">{{ 'named-query-untracked-callers-note' | i18next }}</p>
     <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
   </div>
 </section>

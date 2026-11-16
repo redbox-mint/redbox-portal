@@ -92,6 +92,7 @@ type FormComponentNodeLike = {
 export interface FormRecordAccessContext {
   /** Trusted root identity/workflow; current candidate metadata is supplied separately. */
   readonly record?: Readonly<import('../model').RecordModel>;
+  readonly portal?: string;
   readonly user: FormRecordAccessUser;
   readonly brand: BrandingModel;
 }
@@ -952,6 +953,8 @@ export namespace Services {
         const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
         await vocabVisitor.resolveVocabs(constructed, branding, {
           includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
+          lookupCaller: recordAccessContext ? { ...recordAccessContext, roles: recordAccessContext.user.roles,
+            portal: recordAccessContext.portal ?? sails.config.auth.defaultPortal } : undefined,
         });
       }
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);

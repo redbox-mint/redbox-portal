@@ -7,6 +7,7 @@ import { hash, isObject } from './renderer';
 import { buildCatalogue, gridError, indexClass, scopedContracts, type CatalogueSnapshot } from './catalogue';
 import { COLLECTION_ROW, GRID_LIMITS, type GridEnvironment, type GridQuery, type GridOperator } from './grid-types';
 import type { RecordContract } from '../record-contract';
+import { foldAsciiCase } from './index-bindings';
 
 interface Position {
   mark: string;
@@ -185,6 +186,14 @@ export function queryPlan(
       // adding the two server-owned wildcards, so input cannot supply syntax.
       const escaped = text.replace(/([+\-!(){}[\]^"~*?:\\/|&\s])/g, '\\$1');
       params.append('fq', `${indexed.name}:*${escaped}*`);
+    } else if (operation === 'iprefix') {
+      const prefix = snapshot.prefixBindings.get(field.id);
+      if (!prefix) gridError('UNSUPPORTED_FILTER', `IPREFIX has no verified binding for ${field.id}.`);
+      const text = checkedString(filter.iprefix);
+      if (!text.length || !text.isWellFormed())
+        gridError('INVALID_FILTER_VALUE', 'Supply a nonempty, well-formed string prefix.');
+      // The prefix parser consumes the dereferenced value literally, including * and ?.
+      params.append('fq', literal(prefix.name, foldAsciiCase(text), 'prefix'));
     } else if (operation === 'in') {
       if (!Array.isArray(filter.in) || !filter.in.length || filter.in.length > GRID_LIMITS.values)
         gridError('INVALID_FILTER_VALUE', 'IN requires 1 to 20 typed values.');

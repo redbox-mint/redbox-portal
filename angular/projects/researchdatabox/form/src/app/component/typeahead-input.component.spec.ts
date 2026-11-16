@@ -1064,7 +1064,7 @@ describe("TypeaheadInputComponent", () => {
         }]
       };
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
-        spyOn(typeaheadDataService, "searchNamedQuery").and.resolveTo([
+        spyOn(typeaheadDataService, "searchNamedQueryLookup").and.resolveTo({ options: [
             {
                 label: "Default Label",
                 value: "abc-001",
@@ -1074,7 +1074,7 @@ describe("TypeaheadInputComponent", () => {
                     title: "Project Atlas"
                 }
             }
-        ]);
+        ] });
 
         const formConfig: FormConfigFrame = {
             name: "testing",

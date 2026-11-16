@@ -54,7 +54,7 @@ describe('QueryParamEditorComponent', () => {
   });
 
   it('ignores change if same reference as last emitted', () => {
-    const params = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' } };
+    const params: QueryParamEditorComponent['queryParams'] = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' } };
     component.queryParams = params;
     component.ngOnChanges({
       queryParams: { currentValue: params, previousValue: undefined, firstChange: true, isFirstChange: () => true },
