@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from '@researchdatabox/portal-ng-common';
@@ -13,6 +13,7 @@ import {
 
 /** Schema-only assistance uses the named-query permission boundary, without executing data. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'nq-graphql-schema',
   imports: [FormsModule, I18NextPipe],
   template: `<p class="rb-ws-lede">{{ 'named-query-graphql-schema-help' | i18next }}</p>
@@ -27,7 +28,7 @@ import {
     }}</label>
     <input id="nq-graphql-field-search" type="search" class="form-control" [(ngModel)]="search" />
     <ul class="list-unstyled mt-2">
-      @for (field of fields; track field) {
+      @for (field of fields; track field.name) {
         <li class="mb-2">
           <code>{{ field.name }}{{ field.signature }}: {{ field.type }}</code>
           <p class="small mb-0">{{ field.description }}</p>

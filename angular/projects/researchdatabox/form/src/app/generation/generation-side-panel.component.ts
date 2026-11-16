@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   DOCUMENT,
@@ -36,6 +37,7 @@ import * as GenerationActions from './state/generation.actions';
 import { selectGenerationPanelOpen } from './state/generation.selectors';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'redbox-generation-side-panel',
   templateUrl: './generation-side-panel.component.html',
   standalone: false,

@@ -95,7 +95,7 @@ describe('bounded lookup input integration', () => {
     it(`honors minChars ${minChars ?? 'default'} and never searches empty input/focus`, async () => {
       const search = spyOn(TestBed.inject(TypeaheadDataService), 'searchNamedQueryLookup').and.resolveTo(page('a'));
       const view = await render(minChars);
-      expect(view.directive.typeaheadMinLength).toBe(minChars ?? 2);
+      expect(view.directive.typeaheadMinLength()).toBe(minChars ?? 2);
       view.input.dispatchEvent(new Event('focus'));
       await settle();
       expect(search).not.toHaveBeenCalled();
@@ -198,10 +198,10 @@ describe('bounded lookup input integration', () => {
         page('match', true, effective)
       );
       const view = await render(1, configured);
-      expect(view.directive.typeaheadOptionsLimit).toBe(configured);
+      expect(view.directive.typeaheadOptionsLimit()).toBe(configured);
       await view.type('match');
       expect(search.calls.mostRecent().args[3]).toBe(configured);
-      expect(view.directive.typeaheadOptionsLimit).toBe(effective);
+      expect(view.directive.typeaheadOptionsLimit()).toBe(effective);
       expect(view.component.hasNextPage).toBeTrue();
       const status = view.fixture.nativeElement.querySelector(`#${view.component.statusElementId}`) as HTMLElement;
       expect(status.getAttribute('aria-live')).toBe('polite');
@@ -218,7 +218,7 @@ describe('bounded lookup input integration', () => {
       await view.type('match');
       expect(search.calls.mostRecent().args[3]).toBe(50);
       const count = source === 'graphql' ? 25 : 50;
-      expect(view.directive.typeaheadOptionsLimit).toBe(count);
+      expect(view.directive.typeaheadOptionsLimit()).toBe(count);
       expect(view.fixture.nativeElement.querySelectorAll('typeahead-container .dropdown-item').length).toBe(count);
       expect(view.component.hasNextPage).toBe(source === 'graphql');
     });

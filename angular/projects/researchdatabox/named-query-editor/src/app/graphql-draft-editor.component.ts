@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, signal, Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminTabsDirective, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { getOperationAST, parse, print } from 'graphql';
@@ -17,6 +17,7 @@ import { GraphqlJsonInputComponent } from './graphql-json-input.component';
 
 /** A detached draft editor: no persistence, navigation or explorer dependency. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'nq-graphql-draft-editor',
   imports: [
     CommonModule,
@@ -41,12 +42,12 @@ export class GraphqlDraftEditorComponent implements OnChanges {
     return this.advanced ? ['document', 'variables', 'mappings'] : ['basics', 'document', 'variables', 'mappings'];
   }
   readonly visitedTabs = new Set(['basics']);
-  private activeTab = 'basics';
+  private readonly activeTab = signal('basics');
   get tab(): string {
-    return this.activeTab;
+    return this.activeTab();
   }
   set tab(value: string) {
-    this.activeTab = value;
+    this.activeTab.set(value);
     this.visitedTabs.add(value);
   }
   readonly mappingTargets: Array<keyof GraphqlNamedQueryMappings> = [

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { AdminModalDirective, I18NextPipe } from '@researchdatabox/portal-ng-common';
@@ -11,6 +11,7 @@ export interface SavedQueryChoice {
   prepared: NamedQueryPromotionDraft;
 }
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'nq-saved-query-chooser',
   imports: [CommonModule, FormsModule, A11yModule, AdminModalDirective, I18NextPipe],
   templateUrl: './saved-query-chooser.component.html',

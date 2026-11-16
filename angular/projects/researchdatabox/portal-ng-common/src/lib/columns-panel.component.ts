@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { AdminSidePanelComponent } from './admin-side-panel.component';
@@ -7,6 +7,7 @@ import { TranslationService } from './translation.service';
 import { type ColumnPickerField as GridField, fieldGroups } from './column-picker-field';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-explorer-columns',
   imports: [FormsModule, NgTemplateOutlet, AdminSidePanelComponent, I18NextPipe],
   templateUrl: './columns-panel.component.html',

@@ -1,9 +1,10 @@
 import { JsonPipe } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from '../i18next.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-named-query-preview',
   imports: [FormsModule, I18NextPipe, JsonPipe],
   styleUrls: ['./named-query-sections.scss'],

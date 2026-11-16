@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from '@researchdatabox/portal-ng-common';
@@ -7,6 +7,7 @@ import type { NamedQueryJson } from '@researchdatabox/sails-ng-common';
 let nextId = 0;
 /** Explicit JSON preserves omitted, null, false, zero and empty strings. Raw invalid edits stay local. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'nq-graphql-json',
   imports: [FormsModule, I18NextPipe],
   template: `<label class="rb-ws-label" [for]="id">{{ label }}</label>

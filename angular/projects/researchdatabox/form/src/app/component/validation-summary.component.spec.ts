@@ -321,7 +321,8 @@ describe('ValidationSummaryFieldComponent', () => {
       expect(lookup).not.toHaveBeenCalled();
 
       const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
-      await repeatable.replaceAllElements(['', '']);
+      // Force a structural replacement; next retains same-shaped controls.
+      await repeatable.replaceAllElements(['', '', '']);
       await fixture.whenStable();
       expect(await summary.allValidationErrorsDisplay()).toEqual([]);
       const replacement = formComponent.form!.get(['people', 1])!;
@@ -442,7 +443,7 @@ describe('ValidationSummaryFieldComponent', () => {
     }]);
     fixture.detectChanges();
     expect(root.querySelector('.validation-summary-item a')?.textContent).toBe("Research with DFAT & Australia's partners?");
-    expect(root.querySelector('.validation-summary-errors li')?.textContent).toBe('Keep literal <value> &amp; text');
+    expect(root.querySelector('.validation-summary-errors li')?.textContent?.trim()).toBe('Keep literal <value> &amp; text');
   });
 
   for (const source of ['form config', 'component entries']) {
@@ -1538,9 +1539,9 @@ describe('ValidationSummaryFieldComponent', () => {
     const summaryItems = nativeEl.querySelectorAll('.validation-summary-item');
     expect(summaryItems.length).toEqual(3);
     expect(Array.from(summaryItems).map(l => l.textContent?.trim())).toEqual([
-      '@validator-error-form-level@validator-error-pattern',
-      'form-item-id-text-2-event@validator-error-required',
-      'form-item-id-text-1-event@validator-error-different-values',
+      '@validator-error-form-level @validator-error-pattern',
+      'form-item-id-text-2-event @validator-error-required',
+      'form-item-id-text-1-event @validator-error-different-values',
     ]);
   });
 });

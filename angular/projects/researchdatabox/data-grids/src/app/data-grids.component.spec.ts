@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { AgGridAngular } from 'ag-grid-angular';
+import { getGridApi, ModuleRegistry, RenderApiModule } from 'ag-grid-community';
 import { AdminTabsDirective, I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
 import { DataGridsComponent } from './data-grids.component';
@@ -12,6 +13,8 @@ import { editorSchema, rawDefinition } from './graphql-query';
 import { testSdl } from './data-grid.testing';
 import { parseSavedQuery } from './record-grid.protocol';
 import { scope, validGrid } from './data-grid.testing';
+
+ModuleRegistry.registerModules([RenderApiModule]);
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -37,6 +40,14 @@ describe('Data grid editor', () => {
     isInitializing: () => false,
     translationChanges$: new Subject<void>(),
   };
+
+  async function settleGrid(): Promise<void> {
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // AG Grid's renderer queue runs outside Angular's stability tracking.
+    const grid = fixture.nativeElement.querySelector('ag-grid-angular');
+    getGridApi(grid)!.flushAllAnimationFrames();
+  }
 
   beforeEach(async () => {
     source = jasmine.createSpyObj<DataGridSource>('source', ['catalogue', 'list', 'query', 'save', 'read', 'remove']);
@@ -99,16 +110,19 @@ describe('Data grid editor', () => {
   });
 
   it('renders an asynchronous query completion with OnPush after a real Run action', async () => {
-    fixture.detectChanges();
-    await fixture.whenStable();
     component.open(validGrid(), false);
+    fixture.autoDetectChanges();
+    await component.waitForInit();
+    await fixture.whenStable();
     fixture.changeDetectorRef.markForCheck();
     fixture.detectChanges();
     const response = deferred<GridPage>();
     source.query.and.returnValue(response.promise);
+    const preview = spyOn(component, 'preview').and.callThrough();
     const run = [...fixture.nativeElement.querySelectorAll('button')].find(
       b => b.textContent.trim() === 'data-grids-run'
     );
+    expect(run.disabled).toBeFalse();
     run.click();
     fixture.detectChanges();
     expect(run.disabled).toBeTrue();
@@ -116,6 +130,7 @@ describe('Data grid editor', () => {
       rows: [{ oid: 'async', values: { title: 'Async result' } }],
       pageInfo: { hasNextPage: false, endCursor: null },
     });
+    await preview.calls.mostRecent().returnValue;
     await fixture.whenStable();
     expect(run.disabled).toBeFalse();
     expect(fixture.nativeElement.querySelector('.explorer-panel-footer [role="status"]').textContent).toContain(
@@ -294,8 +309,7 @@ describe('Data grid editor', () => {
     });
     await component.preview();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settleGrid();
     for (const parent of ['owner', 'contact']) {
       const label = 'Name';
       expect(component.fieldLabel(`metadata:/${parent}/name`)).toBe(label);
@@ -336,8 +350,7 @@ describe('Data grid editor', () => {
     component.variablesText = JSON.stringify(component.rawDraft.variables);
     await component.preview();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settleGrid();
     const grid: HTMLElement = fixture.nativeElement.querySelector('ag-grid-angular');
     const rows = grid.querySelectorAll('.ag-row');
     expect(rows[0].querySelector('[col-id="title"]')!.textContent).toBe('data-grids-cell-null');
@@ -370,8 +383,7 @@ describe('Data grid editor', () => {
     });
     await component.preview();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settleGrid();
     const rows: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.ag-row');
     for (const [index, marker] of ['null', 'missing', 'empty-text'].entries()) {
       const cell = rows[index].querySelector('[col-id="metadata:/owner/title"]')!;
@@ -434,8 +446,7 @@ describe('Data grid editor', () => {
     });
     await component.preview();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settleGrid();
     const rows: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.ag-row');
     expect(rows[1].querySelector('[col-id="payload"]')!.textContent).toBe('data-grids-cell-missing');
     expect(rows[2].querySelector('[col-id="payload"]')!.textContent).toBe('data-grids-cell-null');
@@ -460,8 +471,7 @@ describe('Data grid editor', () => {
     });
     await component.preview();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settleGrid();
     const grid: HTMLElement = fixture.nativeElement.querySelector('ag-grid-angular');
     expect(grid.querySelector('.ag-cell')?.textContent).toBe(unsafe);
     expect(grid.querySelector('.ag-cell img')).toBeNull();
@@ -480,8 +490,7 @@ describe('Data grid editor', () => {
     });
     await component.preview();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settleGrid();
     const cell: HTMLElement = fixture.nativeElement.querySelector('.ag-cell');
     expect(cell.querySelector('button')).not.toBeNull();
     cell.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));

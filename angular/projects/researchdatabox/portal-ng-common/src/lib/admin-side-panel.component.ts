@@ -1,10 +1,11 @@
 import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { Component, EventEmitter, Input, OnDestroy, Output, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewEncapsulation } from '@angular/core';
 import { AdminModalDirective } from './admin-modal.directive';
 import { I18NextPipe } from './i18next.pipe';
 
 /** Bootstrap offcanvas presentation; CDK owns focus and rbAdminModal excludes portal chrome. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-admin-side-panel',
   styleUrls: ['./admin-side-panel.component.scss'],
   encapsulation: ViewEncapsulation.None,

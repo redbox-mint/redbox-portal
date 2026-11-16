@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { GraphqlNamedQueryVariable } from '@researchdatabox/sails-ng-common';
 import { I18NextPipe } from '../i18next.pipe';
 import { NamedQueryBindingChange, NamedQueryParameterRow } from './named-query-sections.model';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-named-query-parameters',
   imports: [FormsModule, I18NextPipe],
   styleUrls: ['./named-query-sections.scss'],

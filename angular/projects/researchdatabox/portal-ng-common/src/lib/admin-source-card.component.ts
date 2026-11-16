@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-admin-source-card',
   template: `<div class="rb-source-card">
     <div class="rb-source-description">

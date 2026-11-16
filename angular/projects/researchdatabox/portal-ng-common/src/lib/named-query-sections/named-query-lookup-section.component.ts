@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Input, Output, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { GraphqlNamedQueryMappings } from '@researchdatabox/sails-ng-common';
 import { I18NextPipe } from '../i18next.pipe';
 import { NamedQueryResultField } from './named-query-sections.model';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-named-query-lookup-fields',
   imports: [FormsModule, I18NextPipe],
   styleUrls: ['./named-query-sections.scss'],

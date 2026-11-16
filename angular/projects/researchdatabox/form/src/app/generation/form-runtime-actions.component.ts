@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, input, OnDestroy, QueryList, signal, ViewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, input, OnDestroy, QueryList, signal, ViewChildren } from '@angular/core';
 import { FormRuntimeAction } from '@researchdatabox/sails-ng-common';
 import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
@@ -7,6 +7,7 @@ import { createFormRuntimeActionInvokedEvent } from '../form-state/events/form-c
 import { selectGenerationBusy, selectGenerationError, selectGenerationState } from './state/generation.selectors';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'redbox-form-runtime-actions',
   template: `
     @if (orderedActions().length > 0) {

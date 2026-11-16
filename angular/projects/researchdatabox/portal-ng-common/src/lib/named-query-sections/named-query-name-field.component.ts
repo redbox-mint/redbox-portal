@@ -1,10 +1,11 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from '../i18next.pipe';
 import { suggestNamedQueryName, validateNamedQueryName } from './named-query-name';
 
 /** Shared by database, GraphQL and explorer publication forms. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'rb-named-query-name',
   imports: [FormsModule, I18NextPipe],
   template: `

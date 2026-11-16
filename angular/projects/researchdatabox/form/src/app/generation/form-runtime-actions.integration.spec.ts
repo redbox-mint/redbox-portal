@@ -1,4 +1,4 @@
-import { Component, computed, NO_ERRORS_SCHEMA, Pipe, PipeTransform, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, NO_ERRORS_SCHEMA, Pipe, PipeTransform, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -17,7 +17,8 @@ class TranslationPipe implements PipeTransform {
 
 // Exercise the production shell template with the real action component while
 // unrelated shell components remain outside this focused integration boundary.
-@Component({ templateUrl: '../form.component.html', standalone: false })
+@Component({
+  changeDetection: ChangeDetectionStrategy.Eager, templateUrl: '../form.component.html', standalone: false })
 class FormShell {
   runtimeActions: FormRuntimeAction[] = [];
   readonly conflictState = signal(null);

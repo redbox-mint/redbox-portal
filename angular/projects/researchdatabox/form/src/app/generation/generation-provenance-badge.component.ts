@@ -1,8 +1,9 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { GenerationFieldProvenanceView } from '@researchdatabox/sails-ng-common';
 import { GenerationProvenanceStoreService } from './generation-provenance-store.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'redbox-generation-provenance-badge',
   template: `
     @if (field(); as item) {

@@ -1,11 +1,12 @@
 import { of } from 'rxjs';
 import { InteractivityChecker } from '@angular/cdk/a11y';
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AdminSidePanelComponent } from './admin-side-panel.component';
 import { TranslationService } from './translation.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [AdminSidePanelComponent],
   template: `
     <rb-admin-side-panel title="Columns" [busy]="busy()" (closed)="closed()">
