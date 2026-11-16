@@ -1,3 +1,5 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { createApplication } from '@angular/platform-browser';
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
@@ -49,6 +51,34 @@ describe('Saved query chooser', () => {
         },
       ],
     }).compileComponents();
+  });
+  it('enables Continue when the catalogue arrives after a database selection in a zoneless app', async () => {
+    const pending = deferred<{ grids: SavedExplorerQuerySummary[]; next: null }>();
+    api.savedQueries.and.returnValue(pending.promise);
+    const host = document.createElement('nq-saved-query-chooser');
+    document.body.appendChild(host);
+    const app = await createApplication({ providers: [
+      provideZonelessChangeDetection(),
+      { provide: NamedQueryApiService, useValue: api },
+      { provide: TranslationService, useValue: TestBed.inject(TranslationService) },
+    ] });
+    const rendered = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    try {
+      app.bootstrap(SavedQueryChooserComponent, host);
+      app.tick();
+      await rendered();
+      const radio = host.querySelectorAll<HTMLInputElement>('input[name="nq-start"]')[2];
+      radio.click();
+      await rendered();
+      const continueButton = host.querySelector<HTMLButtonElement>('.modal-footer .btn-primary')!;
+      expect(continueButton.disabled).toBeTrue();
+      pending.resolve({ grids: [summary()], next: null });
+      await rendered();
+      expect(continueButton.disabled).toBeFalse();
+    } finally {
+      app.destroy();
+      host.remove();
+    }
   });
   it('defaults to saved queries and prepares the exact selected revision without publishing', async () => {
     const f = TestBed.createComponent(SavedQueryChooserComponent);

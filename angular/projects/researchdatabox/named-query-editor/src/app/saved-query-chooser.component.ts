@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, inject, Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { AdminModalDirective, I18NextPipe } from '@researchdatabox/portal-ng-common';
@@ -33,6 +33,7 @@ export class SavedQueryChooserComponent implements OnInit, OnDestroy {
   loading = false;
   busy = false;
   error = '';
+  private readonly cdr = inject(ChangeDetectorRef);
   private sequence = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
   constructor(@Inject(NamedQueryApiService) public api: NamedQueryApiService) {}
@@ -79,7 +80,10 @@ export class SavedQueryChooserComponent implements OnInit, OnDestroy {
     } catch {
       if (sequence === this.sequence) this.error = 'nq-ux-chooser-load-error';
     } finally {
-      if (sequence === this.sequence) this.loading = false;
+      if (sequence === this.sequence) {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     }
   }
   async continue(): Promise<void> {
@@ -117,6 +121,7 @@ export class SavedQueryChooserComponent implements OnInit, OnDestroy {
       }
     } finally {
       this.busy = false;
+      this.cdr.markForCheck();
     }
   }
   close(event?: Event): void {

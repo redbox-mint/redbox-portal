@@ -91,10 +91,19 @@ test('A11 creates a parameterised query with nested filters and mappings, verifi
   };
   await adminPage.goto('/default/rdmp/admin/named-query');
   const app = adminPage.locator('named-query-editor');
-  await app.getByRole('button', { name: /Create.*query/i }).click();
-  const chooser = app.locator('nq-saved-query-chooser');
-  await chooser.getByRole('radio', { name: /^Database query/ }).check();
-  await chooser.getByRole('button', { name: 'Continue', exact: true }).click();
+  const catalogueGate = new ResponseGate(adminPage, { url: '/api/named-query/editor/saved-queries', method: 'GET' });
+  await catalogueGate.install();
+  try {
+    await app.getByRole('button', { name: /Create.*query/i }).click();
+    expect((await catalogueGate.waitForCapture()).ok()).toBeTruthy();
+    const chooser = app.locator('nq-saved-query-chooser');
+    await chooser.getByRole('radio', { name: /^Database query/ }).check();
+    const continueButton = chooser.getByRole('button', { name: 'Continue', exact: true });
+    await expect(continueButton).toBeDisabled();
+    await catalogueGate.release();
+    await expect(continueButton).toBeEnabled();
+    await continueButton.click();
+  } finally { await catalogueGate.dispose(); }
   const modal = app.locator('.nq-workspace');
   await modal.locator('#nq-name').fill(name);
   await modal.locator('#nq-collection').selectOption('record');
