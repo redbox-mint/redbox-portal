@@ -1,5 +1,7 @@
 import {Component, inject, Injector, Input} from '@angular/core';
-import { Subscription } from "rxjs";
+import { Subscription, merge, auditTime, filter } from "rxjs";
+import { FormComponentEventBus } from "../form-state/events/form-component-event-bus.service";
+import { FormComponentEventType } from "../form-state/events/form-component-event.types";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
 import {
@@ -52,6 +54,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   private contentInitialization?: Promise<void>;
   private renderContent?: () => void;
   private contentDestroyed = false;
+  private readonly contentEventBus = inject(FormComponentEventBus);
 
   protected async refreshContent(): Promise<void> {
     await this.contentInitialization;
@@ -120,7 +123,17 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
           // Build the variables available to the template.
           renderTemplate(form.getRawValue?.() ?? form.value ?? {});
           this.formValueChangesSub?.unsubscribe();
-          this.formValueChangesSub = form.valueChanges.subscribe(() => renderTemplate(form.getRawValue?.() ?? form.value ?? {}));
+          // Expression/behaviour writes can notify only the leaf control. Their
+          // field events still reach us even when root valueChanges stays silent.
+          // Batch broadcast/scoped duplicates and read the completed raw values.
+          this.formValueChangesSub = merge(
+            form.valueChanges,
+            this.contentEventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).pipe(
+              filter(event => event.formScopeId === this.getFormComponent.eventScopeId && event.isCurrent?.() !== false)
+            )
+          ).pipe(auditTime(0)).subscribe(() => {
+            if (!this.contentDestroyed) this.renderContent?.();
+          });
         };
 
         bindRenderToForm();

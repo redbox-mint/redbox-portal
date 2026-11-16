@@ -1,3 +1,6 @@
+import { withExpressionValueNotifications } from '../form-state/control-value-notifications';
+import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { createFieldValueChangedEvent } from '../form-state/events/form-component-event.types';
 import { By } from '@angular/platform-browser';
 import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
@@ -95,6 +98,64 @@ describe('ContentComponent', () => {
       if (hasEditAccess) expect(link?.getAttribute('href')).toContain(formComponent.oid());
     });
   }
+
+  async function createPeopleSummary() {
+    const template = '{{formData.person}}';
+    const render = jasmine.createSpy('render').and.callFake((_key, _path, context) => handlebarsCompile(template)(context));
+    const config: FormConfigFrame = { name: 'testing', componentDefinitions: [
+      { name: 'summary', component: { class: 'ContentComponent', config: { content: {}, template } } },
+      { name: 'person', component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+        model: { class: 'SimpleInputModel', config: { value: 'before' } } }
+    ] };
+    const assets: DynamicAssetOptions = { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-', callable: render
+    }] };
+    const result = await createFormAndWaitForReady(config, undefined, undefined, assets);
+    await new Promise(resolve => setTimeout(resolve, 75));
+    return { ...result, render, control: result.formComponent.form!.get('person')!,
+      content: result.fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent };
+  }
+
+  it('refreshes asynchronously populated content without requiring a root value-change event', async () => {
+    const { fixture, formComponent, control, content } = await createPeopleSummary();
+    expect(content.content).toBe('before');
+    const rootChanged = jasmine.createSpy('rootChanged');
+    const sub = formComponent.form!.valueChanges.subscribe(rootChanged);
+    await withExpressionValueNotifications(control, async options => control.setValue('after <script>', options));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    fixture.detectChanges();
+    expect(rootChanged).not.toHaveBeenCalled();
+    expect(content.content).toBe('after &lt;script&gt;');
+    expect(fixture.nativeElement.textContent).toContain('after <script>');
+    expect(formComponent.form!.pristine).toBeTrue();
+    expect(formComponent.form!.untouched).toBeTrue();
+    sub.unsubscribe();
+  });
+
+  it('coalesces field notifications, ignores other forms and cancels pending refresh on destroy', async () => {
+    const { fixture, formComponent, control, content, render } = await createPeopleSummary();
+    const bus = TestBed.inject(FormComponentEventBus);
+    const publish = (formScopeId: string) => bus.publish(createFieldValueChangedEvent({
+      fieldId: '/person', sourceId: '*', value: control.value, formScopeId
+    }));
+    render.calls.reset();
+    control.setValue('after', { emitEvent: false, onlySelf: true });
+    publish('another-form');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(render).not.toHaveBeenCalled();
+    for (const name of ['first', 'second', 'final']) {
+      control.setValue(name, { emitEvent: false, onlySelf: true });
+      publish(formComponent.eventScopeId);
+    }
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(content.content).toBe('final');
+    render.calls.reset();
+    publish(formComponent.eventScopeId);
+    fixture.destroy();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(render).not.toHaveBeenCalled();
+  });
 
   it('awaits explicit content refresh without a form control change', async () => {
     const config: FormConfigFrame = { name: 'testing', componentDefinitions: [{ name: 'content',
