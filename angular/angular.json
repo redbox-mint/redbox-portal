@@ -1540,6 +1540,100 @@
         }
       }
     },
+    "@researchdatabox/data-grids": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/data-grids",
+      "sourceRoot": "projects/researchdatabox/data-grids/src",
+      "prefix": "data-grids",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/data-grids"
+            },
+            "index": "projects/researchdatabox/data-grids/src/index.html",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/data-grids/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/data-grids/src/favicon.ico",
+              "projects/researchdatabox/data-grids/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/data-grids/src/styles.scss"
+            ],
+            "scripts": [],
+            "browser": "projects/researchdatabox/data-grids/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2.5mb",
+                  "maximumError": "3mb"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/data-grids:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/data-grids:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/data-grids:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "karmaConfig": "projects/researchdatabox/data-grids/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/data-grids/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/data-grids/src/favicon.ico",
+              "projects/researchdatabox/data-grids/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/data-grids/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/email-templates": {
       "projectType": "application",
       "schematics": {

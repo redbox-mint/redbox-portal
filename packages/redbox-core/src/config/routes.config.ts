@@ -447,6 +447,18 @@ export const routes: RoutesConfig = {
     action: 'render',
     locals: { view: 'admin/branding' },
   },
+  'get /:branding/:portal/app/data-grids': { controller: 'SavedGridController', action: 'list' },
+  'post /:branding/:portal/app/data-grids': { controller: 'SavedGridController', action: 'create' },
+  'get /:branding/:portal/app/data-grids/schema': { controller: 'SavedGridController', action: 'schema' },
+  'get /:branding/:portal/app/data-grids/scopes/:recordType': { controller: 'SavedGridController', action: 'stages' },
+  'get /:branding/:portal/app/data-grids/:gridId': { controller: 'SavedGridController', action: 'read' },
+  'put /:branding/:portal/app/data-grids/:gridId': { controller: 'SavedGridController', action: 'update' },
+  'delete /:branding/:portal/app/data-grids/:gridId': { controller: 'SavedGridController', action: 'remove' },
+  'get /:branding/:portal/admin/data-grids': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { view: 'admin/data-grids', pageTitleKey: 'data-grids-title' },
+  },
   'get /:branding/:portal/admin/named-query': {
     controller: 'NamedQueryController',
     action: 'editor',

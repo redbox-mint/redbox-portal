@@ -4,6 +4,7 @@ import { createRecordYoga } from '../../../src/record-graphql/schema';
 import { metadataTypeName } from '../../../src/record-graphql/renderer';
 import { GRID_LIMITS } from '../../../src/record-graphql/grid-types';
 import { buildCatalogue } from '../../../src/record-graphql/catalogue';
+import { gridIndexBindings, gridSourceValue } from '../../../src/record-graphql/index-bindings';
 import { queryPlan } from '../../../src/record-graphql/collection';
 import { gridHarness, gridCaller, gridEnvironment, gridContracts } from '../../fixtures/record-grid.fixtures';
 
@@ -40,6 +41,186 @@ describe('Record grid catalogue and pagination', () => {
       )?.filterable,
       false
     );
+  });
+  it('projects declared repeated groups with pairing and nulls, and rejects repeated scalar operations', async () => {
+    const h = gridHarness(['a', 'b', 'c']);
+    h.records.get('a')!.metadata.people = [{ name: 'One' }, { name: null }];
+    h.records.get('b')!.metadata.people = [];
+    const field = buildCatalogue(gridContracts(), 'grid-fixture', [], h.environment).catalogue.fields.find(
+      field => field.id === 'metadata:/people'
+    )!;
+    assert.equal(field.selectable, true);
+    assert.equal(field.filterable, false);
+    assert.equal(field.sortable, false);
+    const result = await h.query(
+      `{records(recordType:"grid-fixture",first:2){nodes{oid metadata{__typename ${field.selections.map(s => s.selection).join(' ')}}} hasNextPage endCursor}}`
+    );
+    assert.equal(result.body.errors, undefined);
+    const rows = result.body.data!.records!.nodes;
+    assert.equal(rows.length, 2);
+    assert.deepEqual(Reflect.get(rows[0].metadata!, field.selections[0].responsePath[1]), [
+      { name: 'One' },
+      { name: null },
+    ]);
+    assert.deepEqual(Reflect.get(rows[1].metadata!, field.selections[0].responsePath[1]), []);
+    assert.equal(result.body.data!.records!.hasNextPage, true);
+    const rejected = await h.query(
+      '{records(recordType:"grid-fixture",filters:[{field:"metadata:/people",exists:true}]){nodes{oid}}}'
+    );
+    assert.ok(rejected.body.errors?.length);
+  });
+  it('projects declared person objects with private children excluded and no scalar operations', async () => {
+    const h = gridHarness(['a', 'b']);
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          person: {
+            kind: 'object' as const,
+            nullable: true,
+            unknownProperties: 'allow' as const,
+            properties: {
+              name: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
+              email: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
+              private: {
+                kind: 'scalar' as const,
+                scalarType: 'string' as const,
+                nullable: true,
+                annotations: { writeOnly: true },
+              },
+            },
+          },
+        },
+      },
+    }));
+    const catalogue = buildCatalogue(contracts, 'grid-fixture', [], h.environment).catalogue;
+    const person = catalogue.fields.find(f => f.id === 'metadata:/person')!;
+    const name = catalogue.fields.find(f => f.id === 'metadata:/person/name')!;
+    assert.equal(person.selectable, true);
+    assert.equal(person.repeating, false);
+    assert.equal(person.filterable, false);
+    assert.equal(person.sortable, false);
+    assert.deepEqual(person.operators, []);
+    assert.ok(!person.selections[0].selection.includes('private'));
+    assert.equal(
+      catalogue.fields.find(f => f.id === 'metadata:/person/private'),
+      undefined
+    );
+    h.records.get('a')!.metadata.person = { name: 'One', email: null, private: 'secret', undeclared: 'secret' };
+    h.records.get('b')!.metadata.person = null;
+    const { yoga } = createRecordYoga(
+      contracts,
+      { getRecord: async oid => h.records.get(oid), hasViewAccess: () => true },
+      { getGridEnvironment: async () => h.environment }
+    );
+    const response = await yoga.fetch(
+      'http://redbox/graphql',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{records(recordType:"grid-fixture", first:2){nodes{oid metadata{__typename ${[...person.selections, ...name.selections].map(s => s.selection).join(' ')}}} hasNextPage}}`,
+        }),
+      },
+      { caller: gridCaller }
+    );
+    const result = await response.json();
+    assert.equal(result.errors, undefined);
+    const key = person.selections[0].responsePath[1];
+    assert.deepEqual(
+      result.data.records.nodes.map((row: { metadata: Record<string, unknown> }) => row.metadata[key]),
+      [{ name: 'One', email: null }, null]
+    );
+    const rejected = await h.query(
+      '{records(recordType:"grid-fixture",filters:[{field:"metadata:/details",exists:true}]){nodes{oid}}}'
+    );
+    assert.ok(rejected.body.errors?.length);
+  });
+  it('keeps nested repeated projections aligned and closes opaque regions', async () => {
+    const h = gridHarness(['a']);
+    const contracts = gridContracts().map<ReturnType<typeof gridContracts>[number]>(contract => {
+      if (contract.root.kind !== 'object') throw Error('fixture');
+      return {
+        ...contract,
+        root: {
+          ...contract.root,
+          properties: {
+            ...contract.root.properties,
+            people: {
+              kind: 'array',
+              nullable: true,
+              items: {
+                kind: 'object',
+                nullable: true,
+                unknownProperties: 'allow',
+                properties: {
+                  name: { kind: 'scalar', scalarType: 'string', nullable: true },
+                  email: { kind: 'scalar', scalarType: 'string', nullable: true },
+                  children: {
+                    kind: 'array',
+                    nullable: true,
+                    items: {
+                      kind: 'object',
+                      nullable: true,
+                      unknownProperties: 'allow',
+                      properties: {
+                        name: { kind: 'scalar', scalarType: 'string', nullable: true },
+                        flags: {
+                          kind: 'array',
+                          nullable: true,
+                          items: { kind: 'scalar', scalarType: 'boolean', nullable: true },
+                        },
+                      },
+                    },
+                  },
+                  private: { kind: 'scalar', scalarType: 'string', nullable: true, annotations: { writeOnly: true } },
+                },
+              },
+            },
+            opaque: { kind: 'array', nullable: true, items: { kind: 'any', nullable: true } },
+          },
+        },
+      };
+    });
+    const catalogue = buildCatalogue(contracts, 'grid-fixture', [], h.environment).catalogue;
+    assert.equal(catalogue.fields.find(f => f.id === 'metadata:/opaque')!.selectable, false);
+    const field = catalogue.fields.find(f => f.id === 'metadata:/people')!;
+    assert.equal(field.selectable, true);
+    assert.ok(!field.selections[0].selection.includes('private'));
+    const people = [
+      {
+        name: 'One',
+        email: 'one@example.invalid',
+        children: [{ name: 'Child', flags: [false, true, null] }],
+        private: 'hidden',
+      },
+      { name: 'Two', children: [] },
+    ];
+    h.records.get('a')!.metadata.people = people;
+    const { yoga } = createRecordYoga(
+      contracts,
+      { getRecord: async oid => h.records.get(oid), hasViewAccess: () => true },
+      { getGridEnvironment: async () => h.environment }
+    );
+    const response = await yoga.fetch(
+      'http://redbox/graphql',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{records(recordType:"grid-fixture"){nodes{oid metadata{__typename ${field.selections.map(s => s.selection).join(' ')}}}}}`,
+        }),
+      },
+      { caller: gridCaller }
+    );
+    const result = await response.json();
+    assert.equal(result.errors, undefined);
+    assert.deepEqual(result.data.records.nodes[0].metadata[field.selections[0].responsePath[1]], [
+      { name: 'One', email: 'one@example.invalid', children: [{ name: 'Child', flags: [false, true, null] }] },
+      { name: 'Two', email: null, children: [] },
+    ]);
   });
   it('does not advertise mappings polluted by search-engine copy rules', () => {
     const env = gridEnvironment();
@@ -455,5 +636,33 @@ describe('Typed grid search planning', () => {
       Array.from({ length: 4 }, () => ({ field: 'metadata:/title', direction: 'ASC' })),
     ])
       assert.throws(() => plan([], sort as Parameters<typeof plan>[1]));
+  });
+});
+
+describe('Namespaced scalar index bindings', () => {
+  it('accepts literal namespace colons and hyphens but rejects ambiguous paths and prototype keys', () => {
+    const env = gridEnvironment();
+    const names = [
+      'uon:ethicsApprovalStatus',
+      'dc:coverage_vivo:DateTimeInterval_vivo:start',
+      'data-owner',
+      'nested.value',
+      'array[0]',
+      '__proto__',
+      'constructor',
+      'prototype',
+    ];
+    env.config.recordGraphqlFields = Object.fromEntries(
+      names.map((name, index) => ['metadata:/' + name, 'grid_namespace_' + index])
+    );
+    env.config.preIndex = {
+      copy: names.map((name, index) => ({ source: 'metadata.' + name, dest: 'grid_namespace_' + index })),
+    };
+    const bindings = gridIndexBindings(env.config);
+    assert.deepEqual(
+      [...bindings.keys()],
+      names.slice(0, 3).map(name => 'metadata:/' + name)
+    );
+    assert.equal(gridSourceValue({ 'uon:ethicsApprovalStatus': 'approved' }, ['uon:ethicsApprovalStatus']), 'approved');
   });
 });

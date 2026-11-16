@@ -1,0 +1,161 @@
+@use '../../portal-ng-common/src/lib/schema-assist/admin-workspace';
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-quartz-no-font.css';
+
+// The pinned upstream Quartz font is served from this origin to respect font-src 'self'.
+@font-face {
+  font-family: 'agGridQuartz';
+  src: url('./assets/ag-grid-quartz.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+// Scope AG Grid to the portal's published theme; never set body typography.
+data-grids .ag-theme-quartz {
+  --ag-font-family: inherit;
+  --ag-font-size: 13px;
+  --ag-background-color: var(--admin-bg);
+  --ag-foreground-color: var(--admin-ink);
+  --ag-header-background-color: var(--admin-surface);
+  --ag-header-foreground-color: var(--admin-muted);
+  --ag-border-color: var(--admin-line);
+  --ag-row-hover-color: var(--admin-brand-tint);
+  --ag-accent-color: var(--admin-primary);
+  --ag-wrapper-border-radius: var(--admin-radius);
+}
+
+.grid-cell-detail-button {
+  display: inline-flex;
+  gap: 0.4rem;
+  vertical-align: middle;
+  border: 0;
+  background: transparent;
+  color: #24577d;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grid-cell-preview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grid-cell-more {
+  flex: 0 0 auto;
+}
+// This modal lives on body, so it carries the admin wrapper for brand tokens.
+// Use the workspace's pixel type scale: client themes can use a 10px root rem.
+dialog.grid-cell-detail {
+  width: fit-content;
+  min-width: min(480px, calc(100vw - 32px));
+  max-width: min(1120px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  &::backdrop {
+    background: rgb(0 0 0 / 45%);
+  }
+  .grid-cell-detail-header {
+    flex: 0 0 auto;
+    padding: 16px 20px;
+    background: var(--admin-panel);
+    color: var(--admin-panel-text);
+    border-bottom: 1px solid var(--admin-line);
+  }
+  .grid-cell-detail-header h2 {
+    margin: 0;
+    color: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .grid-cell-detail-content {
+    min-height: 0;
+    padding: 20px;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .grid-cell-detail-footer {
+    display: flex;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    padding: 12px 20px;
+    border-top: 1px solid var(--admin-line);
+    background: var(--admin-surface);
+  }
+  .grid-cell-detail-close {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    padding: 7px 14px;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--admin-primary);
+    outline-offset: 3px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    font-size: 14px;
+  }
+  th,
+  td {
+    border: 1px solid var(--admin-line);
+    padding: 10px 12px;
+    vertical-align: top;
+    text-align: left;
+    min-width: 80px;
+  }
+  th {
+    background: var(--admin-surface);
+    font-weight: 600;
+  }
+  tbody th {
+    min-width: 0;
+    color: var(--admin-muted);
+  }
+  td,
+  dd,
+  li,
+  span {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  ol {
+    margin: 0;
+    padding-left: 24px;
+  }
+  li + li {
+    margin-top: 8px;
+  }
+  dl {
+    margin: 0;
+  }
+  dt {
+    font-weight: 600;
+  }
+  dd {
+    margin: 4px 0 16px;
+  }
+  dd:last-child {
+    margin-bottom: 0;
+  }
+}

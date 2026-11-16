@@ -1,0 +1,10 @@
+--- a/src/form-config/rdmp-ethics-compliance.ts
++++ b/src/form-config/rdmp-ethics-compliance.ts
+@@ -1372,7 +1372,6 @@
+         "rdmp-chief-investigator-declarations",
+         { required: true },
+       ),
+-      editValueCarrier("contributor_ci"),
+       contentField(
+         "uon:chiefInvestigatorDeclarationName",
+         "@dmpt-uon-chief-investigator-name",

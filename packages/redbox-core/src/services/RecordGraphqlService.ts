@@ -4,7 +4,7 @@ import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphq
 import { Services as services } from '../CoreService';
 import { recordGraphql, validateRecordGraphqlConfig, type RecordGraphqlConfig } from '../config/recordGraphql.config';
 import { recordSchema } from '../config/recordSchema.config';
-import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { formatRecordFormCatalogueFingerprint } from '../RecordFormFingerprint';
 import {
   RecordContractCompiler,
   type ContractJsonObject,
@@ -181,7 +181,7 @@ export namespace Services {
       const candidates = await this.dependencies.getCandidates(caller);
       if (candidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
       const reusableFormDefinitions = this.dependencies.getReusableDefinitions();
-      const fingerprint = formatRecordFormFingerprint({ candidates, reusableFormDefinitions });
+      const fingerprint = formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions);
       if (!fingerprint) throw new Error('Read configuration exceeds its fingerprint bound.');
       const key = JSON.stringify([caller.brand.id, caller.brand.name, caller.portal, fingerprint]);
       const cached = this.cache.get(key);
@@ -248,7 +248,7 @@ export namespace Services {
         if (result.kind !== 'compiled') throw new Error('Read contract compilation failed.');
         contracts.push(result.contract);
       }
-      if (formatRecordFormFingerprint({ candidates, reusableFormDefinitions }) !== fingerprint) {
+      if (formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions) !== fingerprint) {
         throw new Error('Read configuration changed during compilation.');
       }
       return createRecordYoga(contracts, this.dependencies, this.dependencies);

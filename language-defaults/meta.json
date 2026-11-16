@@ -7406,7 +7406,7 @@
   },
   "export-recent-title": {
     "category": "export",
-    "description": "Heading for the current user’s latest background CSV exports",
+    "description": "Heading for the current user\u2019s latest background CSV exports",
     "contentFormat": "plain"
   },
   "export-refresh": {
@@ -7421,7 +7421,7 @@
   },
   "export-no-jobs": {
     "category": "export",
-    "description": "Empty state for the current user’s recent export jobs",
+    "description": "Empty state for the current user\u2019s recent export jobs",
     "contentFormat": "plain"
   },
   "export-list-error": {
@@ -7491,7 +7491,7 @@
   },
   "export-prepare-again": {
     "category": "export",
-    "description": "Action to prepare a new CSV export using the failed or expired job’s options",
+    "description": "Action to prepare a new CSV export using the failed or expired job\u2019s options",
     "contentFormat": "plain"
   },
   "export-delete": {
@@ -9677,6 +9677,971 @@
   "email-templates-helper-unique-example": {
     "category": "email-templates",
     "description": "Email editor example guidance for the unique helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "data-grids-title": {
+    "category": "data-grids",
+    "description": "Data grid admin: title",
+    "contentFormat": "plain"
+  },
+  "data-grids-breadcrumbs": {
+    "category": "data-grids",
+    "description": "Data grid admin: breadcrumbs",
+    "contentFormat": "plain"
+  },
+  "data-grids-intro": {
+    "category": "data-grids",
+    "description": "Data grid admin: intro",
+    "contentFormat": "plain"
+  },
+  "data-grids-new": {
+    "category": "data-grids",
+    "description": "Data grid admin: new",
+    "contentFormat": "plain"
+  },
+  "data-grids-loading": {
+    "category": "data-grids",
+    "description": "Data grid admin: loading",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-heading": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable heading",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-load-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: load failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-retry": {
+    "category": "data-grids",
+    "description": "Data grid admin: retry",
+    "contentFormat": "plain"
+  },
+  "data-grids-persistence-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: persistence unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-scopes": {
+    "category": "data-grids",
+    "description": "Data grid admin: no scopes",
+    "contentFormat": "plain"
+  },
+  "data-grids-find-grid": {
+    "category": "data-grids",
+    "description": "Data grid admin: find grid",
+    "contentFormat": "plain"
+  },
+  "data-grids-name": {
+    "category": "data-grids",
+    "description": "Data grid admin: name",
+    "contentFormat": "plain"
+  },
+  "data-grids-scope": {
+    "category": "data-grids",
+    "description": "Data grid admin: scope",
+    "contentFormat": "plain"
+  },
+  "data-grids-status": {
+    "category": "data-grids",
+    "description": "Data grid admin: status",
+    "contentFormat": "plain"
+  },
+  "data-grids-actions": {
+    "category": "data-grids",
+    "description": "Data grid admin: actions",
+    "contentFormat": "plain"
+  },
+  "data-grids-all-stages": {
+    "category": "data-grids",
+    "description": "Data grid admin: all stages",
+    "contentFormat": "plain"
+  },
+  "data-grids-saved-config": {
+    "category": "data-grids",
+    "description": "Data grid admin: saved config",
+    "contentFormat": "plain"
+  },
+  "data-grids-edit": {
+    "category": "data-grids",
+    "description": "Data grid admin: edit",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-matches": {
+    "category": "data-grids",
+    "description": "Data grid admin: no matches",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-grids": {
+    "category": "data-grids",
+    "description": "Data grid admin: no grids",
+    "contentFormat": "plain"
+  },
+  "data-grids-unsaved-only": {
+    "category": "data-grids",
+    "description": "Data grid admin: unsaved only",
+    "contentFormat": "plain"
+  },
+  "data-grids-back": {
+    "category": "data-grids",
+    "description": "Data grid admin: back",
+    "contentFormat": "plain"
+  },
+  "data-grids-unsaved": {
+    "category": "data-grids",
+    "description": "Data grid admin: unsaved",
+    "contentFormat": "plain"
+  },
+  "data-grids-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-filters": {
+    "category": "data-grids",
+    "description": "Data grid admin: filters",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-scope": {
+    "category": "data-grids",
+    "description": "Data grid admin: choose scope",
+    "contentFormat": "plain"
+  },
+  "data-grids-scope-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: scope help",
+    "contentFormat": "plain"
+  },
+  "data-grids-available-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: available fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-find-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: find field",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-text": {
+    "category": "data-grids",
+    "description": "Data grid admin: type text",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-number": {
+    "category": "data-grids",
+    "description": "Data grid admin: type number",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-boolean": {
+    "category": "data-grids",
+    "description": "Data grid admin: type boolean",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-choice": {
+    "category": "data-grids",
+    "description": "Data grid admin: type choice",
+    "contentFormat": "plain"
+  },
+  "data-grids-repeating": {
+    "category": "data-grids",
+    "description": "Data grid admin: repeating",
+    "contentFormat": "plain"
+  },
+  "data-grids-filterable": {
+    "category": "data-grids",
+    "description": "Data grid admin: filterable",
+    "contentFormat": "plain"
+  },
+  "data-grids-display-only": {
+    "category": "data-grids",
+    "description": "Data grid admin: display only",
+    "contentFormat": "plain"
+  },
+  "data-grids-sortable": {
+    "category": "data-grids",
+    "description": "Data grid admin: sortable",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: no fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-selected-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: selected columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-column-order-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: column order help",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable field",
+    "contentFormat": "plain"
+  },
+  "data-grids-move-up": {
+    "category": "data-grids",
+    "description": "Data grid admin: move up",
+    "contentFormat": "plain"
+  },
+  "data-grids-move-down": {
+    "category": "data-grids",
+    "description": "Data grid admin: move down",
+    "contentFormat": "plain"
+  },
+  "data-grids-remove-column": {
+    "category": "data-grids",
+    "description": "Data grid admin: remove column",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: choose columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-match-all": {
+    "category": "data-grids",
+    "description": "Data grid admin: match all",
+    "contentFormat": "plain"
+  },
+  "data-grids-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: field",
+    "contentFormat": "plain"
+  },
+  "data-grids-condition": {
+    "category": "data-grids",
+    "description": "Data grid admin: condition",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-eq": {
+    "category": "data-grids",
+    "description": "Data grid admin: op eq",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-contains": {
+    "category": "data-grids",
+    "description": "Data grid admin: op contains",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-gt": {
+    "category": "data-grids",
+    "description": "Data grid admin: op gt",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-lt": {
+    "category": "data-grids",
+    "description": "Data grid admin: op lt",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-between": {
+    "category": "data-grids",
+    "description": "Data grid admin: op between",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-in": {
+    "category": "data-grids",
+    "description": "Data grid admin: op in",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-exists": {
+    "category": "data-grids",
+    "description": "Data grid admin: op exists",
+    "contentFormat": "plain"
+  },
+  "data-grids-list-values": {
+    "category": "data-grids",
+    "description": "Data grid admin: list values",
+    "contentFormat": "plain"
+  },
+  "data-grids-from": {
+    "category": "data-grids",
+    "description": "Data grid admin: from",
+    "contentFormat": "plain"
+  },
+  "data-grids-to": {
+    "category": "data-grids",
+    "description": "Data grid admin: to",
+    "contentFormat": "plain"
+  },
+  "data-grids-value": {
+    "category": "data-grids",
+    "description": "Data grid admin: value",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-value": {
+    "category": "data-grids",
+    "description": "Data grid admin: choose value",
+    "contentFormat": "plain"
+  },
+  "data-grids-yes": {
+    "category": "data-grids",
+    "description": "Data grid admin: yes",
+    "contentFormat": "plain"
+  },
+  "data-grids-no": {
+    "category": "data-grids",
+    "description": "Data grid admin: no",
+    "contentFormat": "plain"
+  },
+  "data-grids-remove-filter": {
+    "category": "data-grids",
+    "description": "Data grid admin: remove filter",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-filters": {
+    "category": "data-grids",
+    "description": "Data grid admin: no filters",
+    "contentFormat": "plain"
+  },
+  "data-grids-add-filter": {
+    "category": "data-grids",
+    "description": "Data grid admin: add filter",
+    "contentFormat": "plain"
+  },
+  "data-grids-sorting": {
+    "category": "data-grids",
+    "description": "Data grid admin: sorting",
+    "contentFormat": "plain"
+  },
+  "data-grids-sort-by": {
+    "category": "data-grids",
+    "description": "Data grid admin: sort by",
+    "contentFormat": "plain"
+  },
+  "data-grids-default-order": {
+    "category": "data-grids",
+    "description": "Data grid admin: default order",
+    "contentFormat": "plain"
+  },
+  "data-grids-direction": {
+    "category": "data-grids",
+    "description": "Data grid admin: direction",
+    "contentFormat": "plain"
+  },
+  "data-grids-ascending": {
+    "category": "data-grids",
+    "description": "Data grid admin: ascending",
+    "contentFormat": "plain"
+  },
+  "data-grids-descending": {
+    "category": "data-grids",
+    "description": "Data grid admin: descending",
+    "contentFormat": "plain"
+  },
+  "data-grids-rows-per-page": {
+    "category": "data-grids",
+    "description": "Data grid admin: rows per page",
+    "contentFormat": "plain"
+  },
+  "data-grids-results": {
+    "category": "data-grids",
+    "description": "Record explorer results heading",
+    "contentFormat": "plain"
+  },
+  "data-grids-refresh": {
+    "category": "data-grids",
+    "description": "Data grid admin: refresh",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview help",
+    "contentFormat": "plain"
+  },
+  "data-grids-loading-results": {
+    "category": "data-grids",
+    "description": "Data grid admin: loading results",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-results": {
+    "category": "data-grids",
+    "description": "Data grid admin: no results",
+    "contentFormat": "plain"
+  },
+  "data-grids-page": {
+    "category": "data-grids",
+    "description": "Data grid admin: page",
+    "contentFormat": "plain"
+  },
+  "data-grids-rows-shown": {
+    "category": "data-grids",
+    "description": "Data grid admin: rows shown",
+    "contentFormat": "plain"
+  },
+  "data-grids-previous": {
+    "category": "data-grids",
+    "description": "Data grid admin: previous",
+    "contentFormat": "plain"
+  },
+  "data-grids-next": {
+    "category": "data-grids",
+    "description": "Data grid admin: next",
+    "contentFormat": "plain"
+  },
+  "data-grids-run-preview": {
+    "category": "data-grids",
+    "description": "Data grid admin: run preview",
+    "contentFormat": "plain"
+  },
+  "data-grids-check-configuration": {
+    "category": "data-grids",
+    "description": "Data grid admin: check configuration",
+    "contentFormat": "plain"
+  },
+  "data-grids-name-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: name required",
+    "contentFormat": "plain"
+  },
+  "data-grids-scope-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: scope required",
+    "contentFormat": "plain"
+  },
+  "data-grids-columns-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: columns required",
+    "contentFormat": "plain"
+  },
+  "data-grids-duplicate-columns": {
+    "category": "data-grids",
+    "description": "Data grid admin: duplicate columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-column": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable column",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-page-size": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid page size",
+    "contentFormat": "plain"
+  },
+  "data-grids-too-many-filters": {
+    "category": "data-grids",
+    "description": "Data grid admin: too many filters",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-filter": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable filter",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-filter-value": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid filter value",
+    "contentFormat": "plain"
+  },
+  "data-grids-unavailable-sort": {
+    "category": "data-grids",
+    "description": "Data grid admin: unavailable sort",
+    "contentFormat": "plain"
+  },
+  "data-grids-saving": {
+    "category": "data-grids",
+    "description": "Data grid admin: saving",
+    "contentFormat": "plain"
+  },
+  "data-grids-no-changes": {
+    "category": "data-grids",
+    "description": "Data grid admin: no changes",
+    "contentFormat": "plain"
+  },
+  "data-grids-cancel": {
+    "category": "data-grids",
+    "description": "Data grid admin: cancel",
+    "contentFormat": "plain"
+  },
+  "data-grids-preview-results": {
+    "category": "data-grids",
+    "description": "Data grid admin: preview results",
+    "contentFormat": "plain"
+  },
+  "data-grids-save": {
+    "category": "data-grids",
+    "description": "Data grid admin: save",
+    "contentFormat": "plain"
+  },
+  "data-grids-saved": {
+    "category": "data-grids",
+    "description": "Data grid admin: saved",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: save failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-discard-confirm": {
+    "category": "data-grids",
+    "description": "Data grid admin: discard confirm",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-datetime": {
+    "category": "data-grids",
+    "description": "Data grid admin: type datetime",
+    "contentFormat": "plain"
+  },
+  "data-grids-refresh-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: refresh fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-loading-fields": {
+    "category": "data-grids",
+    "description": "Data grid admin: loading fields",
+    "contentFormat": "plain"
+  },
+  "data-grids-fields-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: fields failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-datetime-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: datetime help",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: schema changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-response": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid response",
+    "contentFormat": "plain"
+  },
+  "data-grids-auth-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: auth required",
+    "contentFormat": "plain"
+  },
+  "data-grids-cursor-expired": {
+    "category": "data-grids",
+    "description": "Data grid admin: cursor expired",
+    "contentFormat": "plain"
+  },
+  "data-grids-reindex-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: reindex required",
+    "contentFormat": "plain"
+  },
+  "data-grids-collection-limit": {
+    "category": "data-grids",
+    "description": "Data grid admin: collection limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-limit": {
+    "category": "data-grids",
+    "description": "Data grid admin: query limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: query unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-unavailable": {
+    "category": "data-grids",
+    "description": "Data grid admin: type unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-partial-field": {
+    "category": "data-grids",
+    "description": "Data grid admin: partial field",
+    "contentFormat": "plain"
+  },
+  "data-grids-view": {
+    "category": "data-grids",
+    "description": "Data grid admin: view",
+    "contentFormat": "plain"
+  },
+  "data-grids-delete": {
+    "category": "data-grids",
+    "description": "Data grid admin: delete",
+    "contentFormat": "plain"
+  },
+  "data-grids-delete-confirm": {
+    "category": "data-grids",
+    "description": "Data grid admin: delete confirm",
+    "contentFormat": "plain"
+  },
+  "data-grids-delete-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: delete failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-revision-conflict": {
+    "category": "data-grids",
+    "description": "Data grid admin: revision conflict",
+    "contentFormat": "plain"
+  },
+  "data-grids-grid-missing": {
+    "category": "data-grids",
+    "description": "Data grid admin: grid missing",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-definition": {
+    "category": "data-grids",
+    "description": "Data grid admin: invalid definition",
+    "contentFormat": "plain"
+  },
+  "data-grids-catalogue-limit": {
+    "category": "data-grids",
+    "description": "Data grid admin: catalogue limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-persistence-failed": {
+    "category": "data-grids",
+    "description": "Data grid admin: persistence failed",
+    "contentFormat": "plain"
+  },
+  "data-grids-filter-type-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: filter type changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-filter-type": {
+    "category": "data-grids",
+    "description": "Data grid admin: repair filter type",
+    "contentFormat": "plain"
+  },
+  "data-grids-load-more": {
+    "category": "data-grids",
+    "description": "Data grid admin: load more",
+    "contentFormat": "plain"
+  },
+  "data-grids-sort-type-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: sort type changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-sort-type": {
+    "category": "data-grids",
+    "description": "Data grid admin: repair sort type",
+    "contentFormat": "plain"
+  },
+  "data-grids-saved-queries": {
+    "category": "admin",
+    "description": "Record explorer: saved queries",
+    "contentFormat": "plain"
+  },
+  "data-grids-close": {
+    "category": "admin",
+    "description": "Record explorer: close",
+    "contentFormat": "plain"
+  },
+  "data-grids-untitled": {
+    "category": "admin",
+    "description": "Record explorer: untitled",
+    "contentFormat": "plain"
+  },
+  "data-grids-not-saved": {
+    "category": "admin",
+    "description": "Record explorer: not saved",
+    "contentFormat": "plain"
+  },
+  "data-grids-edit-query": {
+    "category": "admin",
+    "description": "Record explorer: edit query",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-mode": {
+    "category": "admin",
+    "description": "Record explorer: query mode",
+    "contentFormat": "plain"
+  },
+  "data-grids-visual": {
+    "category": "admin",
+    "description": "Record explorer: visual",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql": {
+    "category": "admin",
+    "description": "Record explorer: graphql",
+    "contentFormat": "plain"
+  },
+  "data-grids-raw-summary": {
+    "category": "admin",
+    "description": "Record explorer: raw summary",
+    "contentFormat": "plain"
+  },
+  "data-grids-record-type": {
+    "category": "admin",
+    "description": "Record explorer: record type",
+    "contentFormat": "plain"
+  },
+  "data-grids-workflow-stage": {
+    "category": "admin",
+    "description": "Record explorer: workflow stage",
+    "contentFormat": "plain"
+  },
+  "data-grids-run": {
+    "category": "admin",
+    "description": "Record explorer: run",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-as": {
+    "category": "admin",
+    "description": "Record explorer: save as",
+    "contentFormat": "plain"
+  },
+  "data-grids-add-columns": {
+    "category": "admin",
+    "description": "Record explorer: add columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-loaded-search-help": {
+    "category": "admin",
+    "description": "Record explorer: loaded search help",
+    "contentFormat": "plain"
+  },
+  "data-grids-results-stale": {
+    "category": "admin",
+    "description": "Record explorer: results stale",
+    "contentFormat": "plain"
+  },
+  "data-grids-results-help": {
+    "category": "admin",
+    "description": "Record explorer: results help",
+    "contentFormat": "plain"
+  },
+  "data-grids-columns-apply-help": {
+    "category": "admin",
+    "description": "Record explorer: columns apply help",
+    "contentFormat": "plain"
+  },
+  "data-grids-switch-help": {
+    "category": "admin",
+    "description": "Record explorer: switch help",
+    "contentFormat": "plain"
+  },
+  "data-grids-document": {
+    "category": "admin",
+    "description": "Record explorer: document",
+    "contentFormat": "plain"
+  },
+  "data-grids-variables": {
+    "category": "admin",
+    "description": "Record explorer: variables",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql-limits": {
+    "category": "admin",
+    "description": "Record explorer: graphql limits",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-assistance": {
+    "category": "admin",
+    "description": "Record explorer: schema assistance",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-help": {
+    "category": "admin",
+    "description": "Record explorer: schema help",
+    "contentFormat": "plain"
+  },
+  "data-grids-refresh-schema": {
+    "category": "admin",
+    "description": "Record explorer: refresh schema",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-type": {
+    "category": "admin",
+    "description": "Record explorer: schema type",
+    "contentFormat": "plain"
+  },
+  "data-grids-complete-field": {
+    "category": "admin",
+    "description": "Record explorer: complete field",
+    "contentFormat": "plain"
+  },
+  "data-grids-schema-unavailable": {
+    "category": "admin",
+    "description": "Record explorer: schema unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-generate-graphql": {
+    "category": "admin",
+    "description": "Record explorer: generate graphql",
+    "contentFormat": "plain"
+  },
+  "data-grids-replace-graphql-confirm": {
+    "category": "admin",
+    "description": "Record explorer: replace graphql confirm",
+    "contentFormat": "plain"
+  },
+  "data-grids-grid-view": {
+    "category": "admin",
+    "description": "Record explorer: grid view",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-path": {
+    "category": "admin",
+    "description": "Record explorer: result path",
+    "contentFormat": "plain"
+  },
+  "data-grids-choose-result-path": {
+    "category": "admin",
+    "description": "Record explorer: choose result path",
+    "contentFormat": "plain"
+  },
+  "data-grids-mapping-help": {
+    "category": "admin",
+    "description": "Record explorer: mapping help",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-path-invalid": {
+    "category": "admin",
+    "description": "Record explorer: result path invalid",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-columns-limit": {
+    "category": "admin",
+    "description": "Record explorer: result columns limit",
+    "contentFormat": "plain"
+  },
+  "data-grids-nonpaginated": {
+    "category": "admin",
+    "description": "Record explorer: nonpaginated",
+    "contentFormat": "plain"
+  },
+  "data-grids-run-query-help": {
+    "category": "admin",
+    "description": "Record explorer: run query help",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-help": {
+    "category": "admin",
+    "description": "Record explorer: save help",
+    "contentFormat": "plain"
+  },
+  "data-grids-invalid-document": {
+    "category": "admin",
+    "description": "Record explorer: invalid document",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-actions": {
+    "category": "admin",
+    "description": "Record explorer: query actions",
+    "contentFormat": "plain"
+  },
+  "data-grids-rename": {
+    "category": "admin",
+    "description": "Record explorer: rename",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-missing": {
+    "category": "data-grids",
+    "description": "Record cell detail: Missing",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-null": {
+    "category": "data-grids",
+    "description": "Record cell detail: No value",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-empty-text": {
+    "category": "data-grids",
+    "description": "Record cell detail: (empty text)",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-true": {
+    "category": "data-grids",
+    "description": "Record cell detail: True",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-false": {
+    "category": "data-grids",
+    "description": "Record cell detail: False",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-empty-list": {
+    "category": "data-grids",
+    "description": "Record cell detail: Empty list",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-view-details": {
+    "category": "data-grids",
+    "description": "Record cell detail: View details",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-view-group": {
+    "category": "data-grids",
+    "description": "Record cell detail: View group details",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-more": {
+    "category": "data-grids",
+    "description": "Record cell detail: more",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-item": {
+    "category": "data-grids",
+    "description": "Record cell detail: item",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-items": {
+    "category": "data-grids",
+    "description": "Record cell detail: items",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-item-heading": {
+    "category": "data-grids",
+    "description": "Record cell detail: Item",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-open-value": {
+    "category": "data-grids",
+    "description": "Record cell detail: Open full value",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-close": {
+    "category": "data-grids",
+    "description": "Record cell detail: Close details",
+    "contentFormat": "plain"
+  },
+  "data-grids-type-structured": {
+    "category": "data-grids",
+    "description": "Structured list or group field type",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-null-item": {
+    "category": "admin",
+    "description": "Record explorer: cell-null-item",
+    "contentFormat": "plain"
+  },
+  "data-grids-repeating-unavailable": {
+    "category": "admin",
+    "description": "Record explorer: repeating-unavailable",
+    "contentFormat": "plain"
+  },
+  "data-grids-cell-empty-object": {
+    "category": "admin",
+    "description": "Record explorer: empty object marker",
     "contentFormat": "plain"
   }
 }

@@ -1,3 +1,4 @@
+import * as SavedGridControllerModule from './SavedGridController';
 import * as PartyImportControllerModule from './PartyImportController';
 /**
  * Controllers index - exports all controller classes
@@ -59,6 +60,7 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
+    get SavedGridController() { return getOrCreate('SavedGridController', () => new SavedGridControllerModule.Controllers.SavedGrid().exports()); },
     get PartyImportController() { return getOrCreate('PartyImportController', () => new PartyImportControllerModule.Controllers.PartyImport().exports()); },
     get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
@@ -111,6 +113,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
+    'SavedGridController',
     'PartyImportController',
     'ActionController',
     'AdminController',

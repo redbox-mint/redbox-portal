@@ -1,3 +1,5 @@
+export * from './SavedGrid';
+import { SavedGridWLDef } from './SavedGrid';
 export * from './AttachmentAccessAudit';
 export * from './AttachmentMetadata';
 export * from './AppConfig';
@@ -89,6 +91,7 @@ import { WorkspaceTypeWLDef } from './WorkspaceType';
 // Note: Record, DeletedRecord, RecordAudit are provided by storage hooks
 // and registered via the core-loader's registerModels() mechanism
 export const WaterlineModels = {
+  SavedGrid: SavedGridWLDef,
   AttachmentAccessAudit: AttachmentAccessAuditWLDef,
   AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,

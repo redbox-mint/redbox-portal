@@ -137,6 +137,29 @@ describe('Admin foundation views', function () {
     } finally { dom.window.close(); }
   });
 
+  it('mounts data grids in the shared admin shell with hashed assets and a CSP nonce', async function () {
+    const html = await ejs.renderFile(path.join(views, 'data-grids.ejs'), {
+      ...locals,
+      req: { path: '/brand/portal/admin/data-grids' },
+      BrandingService: { ...locals.BrandingService, getRootContext: () => '/context' },
+      CacheService: { getNgAppFileHash: () => '-bundle' }
+    });
+    const dom = new JSDOM(html);
+    try {
+      const document = dom.window.document;
+      const app = document.querySelector('.rb-admin .rb-admin-wrap > data-grids')!;
+      expect(app).not.to.equal(null);
+      expect(app.getAttribute('ngCspNonce')).to.equal('test-nonce');
+      expect(document.querySelectorAll('.rb-admin-sidebar')).to.have.lengthOf(1);
+      const modules = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="module"]'));
+      expect(modules.map(script => script.getAttribute('src'))).to.deep.equal([
+        '/context/angular/data-grids/browser/polyfills-bundle.js',
+        '/context/angular/data-grids/browser/main-bundle.js'
+      ]);
+      expect(modules.every(script => script.nonce === 'test-nonce')).to.equal(true);
+    } finally { dom.window.close(); }
+  });
+
   it('escapes header labels and URLs and translates optional actions', async function () {
     const html = await ejs.renderFile(path.join(views, 'layout/page-header.ejs'), {
       ...locals, titleKey: '<script>title</script>', descriptionKey: 'description',

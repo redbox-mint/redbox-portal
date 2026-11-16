@@ -104,6 +104,11 @@ const contractApiPolicies = buildContractApiPolicies();
 const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSchemaController'] as ControllerPolicies;
 
 export const policies: PoliciesConfig = {
+  // Saved definitions are a browser-admin surface. Do not promote bearer credentials
+  // after the CSRF policy has decided whether this is a session mutation.
+  SavedGridController: {
+    '*': ['noCache', 'namedQueryMutationCsrf', ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')],
+  },
   EmailTemplateAdminController: {
     '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],
     // The page follows the portal's normal sign-in flow (checkAuth redirects to login);
