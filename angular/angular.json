@@ -1435,6 +1435,103 @@
         }
       }
     },
+    "@researchdatabox/admin-ai-models": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/admin-ai-models",
+      "sourceRoot": "projects/researchdatabox/admin-ai-models/src",
+      "prefix": "admin-ai-models",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/admin-ai-models"
+            },
+            "index": "projects/researchdatabox/admin-ai-models/src/index.html",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/admin-ai-models/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [],
+            "styles": [
+              "projects/researchdatabox/admin-ai-models/src/styles.scss"
+            ],
+            "scripts": [],
+            "browser": "projects/researchdatabox/admin-ai-models/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "optimization": {
+                "scripts": true,
+                "styles": true,
+                "fonts": true
+              },
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1200kb",
+                  "maximumError": "1400kb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb",
+                  "maximumError": "10kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/admin-ai-models:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/admin-ai-models:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/admin-ai-models:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "karmaConfig": "projects/researchdatabox/admin-ai-models/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/admin-ai-models/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [],
+            "styles": [
+              "projects/researchdatabox/admin-ai-models/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/harvest-runs": {
       "projectType": "application",
       "schematics": {

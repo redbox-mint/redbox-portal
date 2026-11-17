@@ -1,0 +1,60 @@
+.rb-admin admin-ai-models {
+  display: block; min-width: 0;
+  fieldset { min-width: 0; border: 0; margin: 0; padding: 0; }
+  fieldset.rb-admin-form-section-body { padding: 20px; }
+  legend { float: none; width: auto; font-size: 1rem; font-weight: 600; }
+  label { display: block; font-weight: 600; margin-bottom: 5px; }
+  .ai-crumb { padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-decoration: underline; }
+  .rb-admin-page-header h1 .badge { font-size: .8rem; vertical-align: middle; }
+  .rb-admin-form-section h2, .ai-section-heading h2 { font-size: 1.125rem; margin: 0; }
+  .rb-admin-form-section h3 { font-size: 1rem; margin: 0; }
+  .ai-section-heading { margin-bottom: 16px; }
+  .ai-section-heading p { margin: 6px 0 0; color: var(--admin-muted); }
+  .ai-provider-area { min-height: 420px; }
+  .ai-model-area { min-height: 220px; }
+  section[id], details[id] { scroll-margin-top: 24px; }
+  .ai-model-layout { align-items: flex-start; }
+  .rb-admin-section-rail { position: sticky; top: 16px; flex: 0 0 200px; }
+  .rb-admin-section-rail a { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .rb-admin-split-main { min-width: 0; }
+  .ai-adapter-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; margin-bottom: 20px; }
+  .ai-adapter-choices legend { grid-column: 1 / -1; }
+  .ai-adapter-choice { display: grid; grid-template-columns: 18px 1fr; align-content: start; gap: 8px; padding: 14px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); cursor: pointer; }
+  .ai-adapter-choice .rb-admin-hint { grid-column: 2; }
+  .ai-adapter-choice.selected { border-color: var(--rb-primary); background: color-mix(in srgb, var(--rb-primary) 8%, var(--admin-bg)); }
+  .ai-header-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; margin-bottom: 8px; }
+  .ai-headers { margin-top: 20px; }
+  .ai-field-error { display: block; color: var(--admin-danger-ink); margin-top: 4px; }
+  .ai-field-error:empty { display: none; }
+  .ai-connection-results { min-height: 24px; }
+  .ai-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ai-chips input { flex: 1 1 120px; min-width: 0; }
+  .rb-admin-chip { max-width: 100%; }
+  .rb-admin-chip code { overflow-wrap: anywhere; }
+  .ai-temperature { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .ai-temperature input { flex: 1 1 160px; width: auto; }
+  .ai-temperature output { min-width: 3ch; font-weight: 600; }
+  .ai-support-matrix { padding: 16px 20px; border-top: 1px solid var(--admin-line); }
+  .ai-support-matrix summary { font-weight: 600; cursor: pointer; }
+  .ai-other-providers { margin-top: 24px; }
+  .ai-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 8px 20px; margin: 12px 0; }
+  .ai-metadata dd { overflow-wrap: anywhere; margin: 0; }
+  pre { max-width: 100%; padding: 16px; margin: 16px 0; background: var(--admin-surface); color: var(--admin-ink); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ai-sdk-code { font-size: .85rem; tab-size: 2; }
+  .ai-conflict pre { max-height: 340px; overflow: auto; }
+  .ai-version-list { list-style: none; padding: 0; }
+  .ai-version-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-bottom: 12px; }
+  .ai-version-list [aria-current] { border-color: var(--rb-primary); font-weight: 600; }
+  .rb-admin-segmented { margin-bottom: 18px; }
+  table th small { display: block; font-weight: 400; }
+  table code { overflow-wrap: anywhere; }
+  .ai-loading { min-height: 700px; }
+  .ai-skeleton { min-height: 260px; margin: 20px 0; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-surface); }
+  .alert-info > span { display: block; }
+  @media (max-width: 991.98px) {
+    .ai-model-layout { flex-direction: column; flex-wrap: nowrap; }
+    .ai-model-layout > * { width: 100%; max-width: none; flex: 0 1 auto; }
+    .rb-admin-section-rail { position: static; }
+    .ai-header-row { grid-template-columns: minmax(0, 1fr); }
+  }
+}
