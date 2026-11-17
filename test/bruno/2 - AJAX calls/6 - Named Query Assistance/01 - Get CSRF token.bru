@@ -1,0 +1,33 @@
+meta {
+  name: Named queries - Get CSRF token
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/csrfToken?branding=default&portal=rdmp
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+tests {
+  test("CSRF token endpoint succeeds", () => {
+    expect(res.getStatus()).to.equal(200);
+    bru.setVar("queryEditorCsrf", res.getBody()._csrf || "");
+    const cookies = res.headers["set-cookie"] || [];
+    const stored = (bru.getVar("queryEditorCookie") || "").split(/;\s*/).filter(Boolean);
+    const merged = new Map(stored.map(value => [value.slice(0, value.indexOf("=")), value]));
+    for (const raw of (Array.isArray(cookies) ? cookies : [cookies])) {
+      const value = raw.split(";")[0];
+      merged.set(value.slice(0, value.indexOf("=")), value);
+    }
+    bru.setVar("queryEditorCookie", Array.from(merged.values()).join("; "));
+  });
+}

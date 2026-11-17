@@ -1,0 +1,51 @@
+meta {
+  name: Named queries - Validate draft
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/validate
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "record",
+      "mongoQuery": {},
+      "queryParams": {
+        "createdAfter": {
+          "type": "date",
+          "path": "dateCreated",
+          "queryType": ">=",
+          "whenUndefined": "ignore"
+        }
+      },
+      "resultObjectMapping": {
+        "projectTitle": "record.metadata.title"
+      }
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Validates without executing", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.valid).to.equal(true);
+    expect(res.getBody().data.diagnostics).to.be.an("array");
+  });
+}

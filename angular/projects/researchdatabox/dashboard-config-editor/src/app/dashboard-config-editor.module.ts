@@ -1,3 +1,4 @@
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -32,6 +33,7 @@ import { TemplatePreviewService } from './template-preview/template-preview.serv
   ],
   imports: [
     BrowserModule,
+    A11yModule,
     FormsModule,
     RedboxPortalCoreModule,
     CommonModule

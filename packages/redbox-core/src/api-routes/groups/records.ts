@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { deletedRecordListQuery } from './deleted-records';
 import { apiRoute } from '../route-factory';
 import { defineApiRoute } from '../define';
 import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
@@ -255,7 +257,9 @@ export const getMetaRoute = apiRoute(
   '/:branding/:portal/api/records/metadata/:oid',
   'webservice/RecordController',
   'getMeta',
-  { params: oidParams },
+  { params: oidParams, query: z.object({
+    consumerView: z.enum(['true', 'false']).optional().describe('Request a detached current consumer view'),
+  }).passthrough() },
   {
     tags: ['Records'],
     summary: 'Get record metadata',
@@ -311,7 +315,7 @@ export const listDeletedRecordsRoute = apiRoute(
   'webservice/RecordController',
   'listDeletedRecords',
   {
-    query: recordListQuery,
+    query: deletedRecordListQuery,
     legacyParamFallbacks: recordListLegacyFallbacks,
   },
   {

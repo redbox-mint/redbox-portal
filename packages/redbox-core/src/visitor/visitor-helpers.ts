@@ -9,14 +9,17 @@ import {TemplateFormConfigVisitor} from './template.visitor';
 import {ConstructFormConfigVisitor} from './construct.visitor';
 import {ValidatorFormConfigVisitor} from './validator.visitor';
 import {ClientFormConfigVisitor} from './client.visitor';
-// import {VocabInlineFormConfigVisitor} from './vocab-inline.visitor';
+import {VocabInlineFormConfigVisitor} from './vocab-inline.visitor';
 import {AttachmentFieldsVisitor} from './attachment-fields.visitor';
 import {reusableFormDefinitions} from '../config';
 import {cloneDeep as _cloneDeep} from 'lodash';
 import {QuestionTreeHelper} from "@researchdatabox/sails-ng-common";
 
 
-export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logger: ILogger) {
+export async function migrateFormConfigVerify(
+  formConfig: FormConfigFrame, logger: ILogger,
+  lookupScope?: { branding?: string; portal?: string }
+) {
   console.log(`ℹ️ Run form visitors to confirm migrated config is valid.`);
 
   // Also run other visitors to check for issues in the migration.
@@ -24,6 +27,23 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
   const constructResult = await constructVisitor.start({
     data: formConfig, formMode: 'edit', reusableFormDefs: reusableFormDefinitions
   });
+
+  // Dev-tools also verifies forms without Sails. Only inspect saved queries when
+  // runtime services exist or the caller explicitly requests a tooling scope.
+  const runtimeLookupsAvailable = typeof sails !== 'undefined' &&
+    Boolean(sails?.config?.auth?.defaultBrand && sails?.config?.auth?.defaultPortal) &&
+    typeof BrandingService !== 'undefined' && typeof BrandingService.getBrand === 'function' &&
+    typeof FormVocabularyService !== 'undefined' && typeof FormVocabularyService.inspectNamedQueryLookup === 'function' &&
+    typeof NamedQueryService !== 'undefined' && typeof NamedQueryService.getNamedQueryConfig === 'function' &&
+    typeof RecordGraphqlService !== 'undefined' && typeof RecordGraphqlService.getBootstrapReadSchema === 'function';
+  if (lookupScope || runtimeLookupsAvailable) {
+    await new VocabInlineFormConfigVisitor(logger).resolveVocabs(constructResult, lookupScope?.branding, {
+      portal: lookupScope?.portal,
+      validateLookupsOnly: true,
+    });
+  } else {
+    logger.warn('Named-query lookup compatibility is unverified in offline config tooling.');
+  }
 
   const templateVisitor = new TemplateFormConfigVisitor(logger);
   await templateVisitor.start({
@@ -35,9 +55,6 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
     form: constructResult,
     validatorDefinitions: formValidatorsSharedDefinitions
   });
-
-  // const vocabInlineVisitor = new VocabInlineFormConfigVisitor(logger);
-  // await vocabInlineVisitor.resolveVocabs(constructResult);
 
   const attachmentFieldsVisitor = new AttachmentFieldsVisitor(logger);
   await attachmentFieldsVisitor.start(constructResult);

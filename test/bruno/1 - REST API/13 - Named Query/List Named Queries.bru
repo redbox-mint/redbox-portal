@@ -25,4 +25,13 @@ tests {
     expect(jsonData).to.have.property("data");
     expect(jsonData.data).to.be.an("array");
   });
+  test("Each query exposes safe, brand-relative usage metadata", function () {
+    res.getBody().data.forEach(function (query) {
+      expect(query.usedBy).to.be.an("array");
+      query.usedBy.forEach(function (consumer) {
+        expect(consumer).to.have.all.keys("type", "name", "path");
+        expect(consumer.path).to.match(/^\/(admin|dashboard|dashboard-view|query|record)\//);
+      });
+    });
+  });
 }

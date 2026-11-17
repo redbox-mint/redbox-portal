@@ -23,6 +23,7 @@ tests {
     expect(res.getStatus()).to.equal(304);
     expect(res.getHeader("etag")).to.equal(bru.getEnvVar("recordSchemaUpdateEtag"));
     expect(res.getHeader("cache-control")).to.equal("private, no-cache");
-    expect(res.getHeader("vary")).to.equal("Authorization");
+    const vary = res.getHeader("vary").split(",").map(value => value.trim().toLowerCase());
+    expect(vary).to.include("authorization");
   });
 }

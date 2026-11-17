@@ -383,3 +383,18 @@ strip a fetched schema and continue to label it with the server's ETag.
 - [Generated Reference Documentation](Generated-Reference-Documentation)
 - [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
 - [Concurrent Record Modifications](Concurrent-Record-Modifications)
+
+## Advisory editor descriptions
+
+Named-query and report editors use caller-authorized type/stage discovery and
+effective field descriptions from `FieldDescriptionsService`. These descriptions
+are browser assistance DTOs with precision/completeness, not immutable write
+schemas or schema identities. Missing capabilities may fall back to authorized
+effective-form fields; authorization failure never reveals a fallback tree.
+Guidance does not constrain historical query results or change predicates.
+
+See [Named-query editor API](Configuring-Named-Queries#editor-api) and
+[Report configuration API](Configuring-Reports#api) for the new editor routes,
+CSRF/feature permissions, stored/mapping/result path differences, preview
+refusals and limits, and the report `deadlineEnforced` compatibility flag.
+Record create/update/immutable schema endpoints above retain their contracts.

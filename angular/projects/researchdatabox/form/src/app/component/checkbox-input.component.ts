@@ -32,8 +32,9 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             [checked]="isOptionSelected(opt.value)"
             [attr.disabled]="isOptionDisabled(opt) ? true : null"
             (change)="onOptionChange($any($event.target).checked, opt)"
+            (blur)="formControl.markAsTouched()"
             [class.is-valid]="showValidState"
-            [class.is-invalid]="!isValid"
+            [class.is-invalid]="showInvalidState"
             [title]="tooltip | i18next">
           <label
             class="form-check-label"

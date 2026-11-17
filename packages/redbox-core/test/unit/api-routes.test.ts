@@ -5,6 +5,9 @@ import path from 'path';
 import { z } from 'zod';
 import {
   ApiRouteDefinition,
+  cancelExportJobRoute,
+  bulkDeletedRecordsRoute,
+  deletedRecordSessionListRoute,
   buildApiBlueprint,
   buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
@@ -170,6 +173,20 @@ function responseStatuses(route: { responses?: Record<number, unknown> }): numbe
 
 describe('API routes contract layer', function () {
   this.timeout(10_000);
+  it('registers cancellation as an Admin-scoped CSRF-protected session contract', async function () {
+    expect(cancelExportJobRoute.csrf).to.equal(true);
+    expect(cancelExportJobRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(buildCoreApiRouteConfig()['post /:branding/:portal/export/jobs/:id/cancel']).to.deep.equal({
+      controller: 'ExportController', action: 'cancelJob', csrf: true,
+    });
+    expect(cancelExportJobRoute.request?.params?.safeParse({ id: 'not-a-uuid' }).success).to.equal(false);
+    const document = buildCoreApiOpenApiDocument();
+    const operation = document.paths['/{branding}/{portal}/export/jobs/{id}/cancel'].post;
+    expect(operation).to.have.property('responses');
+    expect(JSON.stringify(operation)).to.include('cancelled');
+    await SwaggerParser.validate(document as never);
+  });
+
   it('routes datastream filenames with extensions to the protected download action', function () {
     const routes = buildSailsRouteConfig([getDataStreamRoute]);
     expect(routes['get /:branding/:portal/api/records/datastreams/:oid/:datastreamId']).to.include({
@@ -292,6 +309,22 @@ describe('API routes contract layer', function () {
     const operation = document.paths['/{branding}/{portal}/api/users']?.get as Record<string, unknown>;
 
     expect(operation['x-redbox-roles']).to.deep.equal(['Admin']);
+  });
+
+  it('documents the default and effective session cookie names', function () {
+    const globalWithSails = globalThis as typeof globalThis & { sails?: { config?: Record<string, unknown> } };
+    const previousSails = globalWithSails.sails;
+    try {
+      delete globalWithSails.sails;
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('redbox.sid');
+      globalWithSails.sails = { config: { redboxSession: { name: 'custom.sid' } } };
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('custom.sid');
+    } finally {
+      if (previousSails === undefined) delete globalWithSails.sails;
+      else globalWithSails.sails = previousSails;
+    }
   });
 
   it('should derive x-redbox-roles from runtime auth rules', function () {
@@ -737,8 +770,36 @@ describe('API routes contract layer', function () {
       if (['webservice/RecordSchemaController', 'webservice/RecordGraphqlController'].includes(route.controller)) continue;
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
-      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
+      const expected =
+        route.controller === 'webservice/NamedQueryController' && ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
+          ? [...(route.method === 'get' ? [] : ['namedQueryMutationCsrf']), ...expectedPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')]
+          :
+        (route.controller === 'webservice/NamedQueryController' &&
+        ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)) ||
+        (route.controller === 'webservice/ReportController' && ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action))
+          ? expectedPolicies.flatMap(policy =>
+              policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
+            )
+          : expectedPolicies;
+      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expected);
     }
+  });
+
+  it('should retain attachment authentication when browser record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    const defaultPolicies = recordPolicies['*'];
+
+    expect(recordPolicies.doAttachment).to.deep.equal(
+      defaultPolicies.flatMap(policy => policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy])
+    );
+    expect(recordPolicies.resolveRelatedMetadata).to.deep.equal([...defaultPolicies, 'validateApiContractRequest']);
+  });
+
+  it('should retain Companion attachment authorization when record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    expect(recordPolicies.doAttachment).to.include('companionAttachmentUploadAuth');
+    expect(recordPolicies.doAttachment.indexOf('companionAttachmentUploadAuth')).to.be.lessThan(recordPolicies.doAttachment.indexOf('checkAuth'));
+    expect(recordPolicies.bulkDeletedRecords).to.include('validateApiContractRequest');
   });
 
   it('should build and merge contract validation policies for hook API routes', function () {
@@ -1532,7 +1593,10 @@ describe('API routes contract layer', function () {
 
     const reportRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/report/namedQuery']?.get);
     const reportSchema = asOpenApiSchema(reportRoute.responses?.['200']?.content?.['application/json']?.schema);
-    expect(asOpenApiSchema(reportSchema.properties?.records).items?.properties).to.have.property('metadata');
+    const namedQueryVariants = (reportSchema.anyOf ?? reportSchema.oneOf ?? []) as OpenApiSchema[];
+    expect(namedQueryVariants).to.have.length(2);
+    for (const variant of namedQueryVariants)
+      expect(asOpenApiSchema(variant.properties?.records).items?.properties).to.have.property('metadata');
 
     const integrationAuditRoute = asOpenApiOperation(
       document.paths['/{branding}/{portal}/api/integration-audit/{oid}']?.get
@@ -1551,6 +1615,11 @@ describe('API routes contract layer', function () {
     const trackedVariant = harvestVariants.find(variant => variant.properties?.run != null);
     expect(asOpenApiSchema(legacyVariant?.items).properties).to.have.property('harvestId');
     expect(trackedVariant?.properties).to.have.property('run');
+
+    const statisticsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/summary']?.get);
+    expect((statisticsRoute as Record<string, unknown>)['x-redbox-roles']).to.deep.equal(['Admin']);
+    const statisticsSchema = asOpenApiSchema(statisticsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(statisticsSchema.properties).to.have.keys('runsLast7Days', 'failedLast7Days', 'runningNow', 'lastSuccessfulRun');
 
     const harvestRunsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs']?.get);
     const harvestRunsSchema = asOpenApiSchema(
@@ -1738,7 +1807,7 @@ describe('API routes contract layer', function () {
     expect(responseStatuses(getFormRoute)).to.deep.equal([200, 400, 404, 500]);
     expect(responseStatuses(listFormsRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(sendNotificationRoute)).to.deep.equal([200, 400, 500]);
-    expect(responseStatuses(executeNamedQueryRoute)).to.deep.equal([200, 400, 500]);
+    expect(responseStatuses(executeNamedQueryRoute)).to.deep.equal([200, 400, 401, 413, 422, 500, 503]);
     expect(responseStatuses(downloadRecsRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(getRecordTypeRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(listRecordTypesRoute)).to.deep.equal([200, 400, 500]);
@@ -1850,6 +1919,16 @@ describe('API routes contract layer', function () {
         meta: { outcome: 'not-saved' },
       }).success
     ).to.equal(false);
+  });
+
+  it('keeps deleted-record bulk actions on session Admin/CSRF contracts with bounded item input', () => {
+    expect(bulkDeletedRecordsRoute.csrf).to.equal(true);
+    expect(bulkDeletedRecordsRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(deletedRecordSessionListRoute.csrf).to.equal(true);
+    const request: any = { params: {}, query: {}, headers: { 'content-type': 'application/json' }, body: { action: 'restore', items: [] } };
+    expect(validateApiRouteRequest(request, bulkDeletedRecordsRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: ['7', '30'] } }, deletedRecordSessionListRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: '7', deletedBy: 'alice', start: '0', rows: '10' } }, deletedRecordSessionListRoute).valid).to.equal(true);
   });
 
   it('should document vocabulary creation as a 201 response', function () {

@@ -1,12 +1,13 @@
 import { Services as coreServices } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import crypto from 'crypto';
+import type { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
 import { GridFSBucket, MongoClient, ObjectId } from 'mongodb';
 
 /**
  * BrandingLogoService
  * - sanitizeAndValidate(fileBuf, contentType)
- * - putLogo({branding, portal, fileBuf, contentType}) -> storage key `${branding}/${portal}/images/logo.(ext)`
+ * - putLogo / putFavicon stage immutable draft objects for the route brand.
  */
 
 export namespace Services {
@@ -53,26 +54,6 @@ export namespace Services {
       return entry.buffer;
     }
 
-    private scheduleSupersededFaviconCleanup(brandId: string, storageKey: string): void {
-      const cleanupTimer = setTimeout(async () => {
-        try {
-          const currentBrand = await BrandingConfig.findOne({ id: brandId });
-          if (_.get(currentBrand, 'favicon.storageKey') === storageKey) {
-            return;
-          }
-          const disk = StorageManagerService.primaryDisk();
-          const retainedBytes = Buffer.from(await disk.getBytes(storageKey));
-          await disk.delete(storageKey);
-          // Keep a fresh in-process copy for another full TTL so a request that
-          // captured the superseded metadata before cleanup can still complete.
-          this.setCache(storageKey, retainedBytes);
-        } catch (error) {
-          sails.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`, error);
-        }
-      }, this.getCacheTtlMs());
-      cleanupTimer.unref?.();
-    }
-
     private isStorageNotFoundError(err: unknown): boolean {
       if (!err || typeof err !== 'object') {
         return false;
@@ -80,11 +61,13 @@ export namespace Services {
 
       const storageError = err as { code?: string; message?: string; status?: number; statusCode?: number };
       const message = storageError.message?.toLowerCase() ?? '';
-      return storageError.code === 'ENOENT'
-        || storageError.status === 404
-        || storageError.statusCode === 404
-        || message.includes('not found')
-        || message.includes('enoent');
+      return (
+        storageError.code === 'ENOENT' ||
+        storageError.status === 404 ||
+        storageError.statusCode === 404 ||
+        message.includes('not found') ||
+        message.includes('enoent')
+      );
     }
 
     private isLegacyGridFsObjectId(id: string): boolean {
@@ -93,23 +76,18 @@ export namespace Services {
 
     private extForContentType(contentType: string): string {
       switch (contentType) {
-        case 'image/png': return 'png';
-        case 'image/jpeg': return 'jpg';
-        case 'image/svg+xml': return 'svg';
+        case 'image/png':
+          return 'png';
+        case 'image/jpeg':
+          return 'jpg';
+        case 'image/svg+xml':
+          return 'svg';
         case 'image/x-icon':
-        case 'image/vnd.microsoft.icon': return 'ico';
-        default: return 'png';
+        case 'image/vnd.microsoft.icon':
+          return 'ico';
+        default:
+          return 'png';
       }
-    }
-
-    private logoStorageKey(branding: string, portal: string, contentType: string): string {
-      const ext = this.extForContentType(contentType);
-      return `${branding}/${portal}/images/logo.${ext}`;
-    }
-
-    private faviconStorageKey(branding: string, portal: string, contentType: string, sha256: string): string {
-      const ext = this.extForContentType(contentType);
-      return `${branding}/${portal}/images/favicon-${sha256}-${crypto.randomUUID()}.${ext}`;
     }
 
     getMaxBytes(): number {
@@ -120,18 +98,9 @@ export namespace Services {
       return _.get(sails, 'config.branding.faviconMaxBytes', 256 * 1024);
     }
 
-    allowedContentTypes = new Set([
-      'image/png',
-      'image/jpeg',
-      'image/svg+xml'
-    ]);
+    allowedContentTypes = new Set(['image/png', 'image/jpeg', 'image/svg+xml']);
 
-    faviconAllowedContentTypes = new Set([
-      'image/png',
-      'image/svg+xml',
-      'image/x-icon',
-      'image/vnd.microsoft.icon'
-    ]);
+    faviconAllowedContentTypes = new Set(['image/png', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon']);
 
     /** Basic SVG detection */
     isSvg(buf: Buffer, ct: string): boolean {
@@ -140,7 +109,18 @@ export namespace Services {
       return /<svg[\s>]/.test(str);
     }
 
-    async sanitizeAndValidate(fileBuf: Buffer, contentType: string, opts?: { allowed?: Set<string>; maxBytes?: number }): Promise<{ ok: boolean; sha256?: string; sanitizedBuffer?: Buffer; errors?: string[]; warnings?: string[]; finalContentType?: string; }> {
+    async sanitizeAndValidate(
+      fileBuf: Buffer,
+      contentType: string,
+      opts?: { allowed?: Set<string>; maxBytes?: number }
+    ): Promise<{
+      ok: boolean;
+      sha256?: string;
+      sanitizedBuffer?: Buffer;
+      errors?: string[];
+      warnings?: string[];
+      finalContentType?: string;
+    }> {
       const errors: string[] = [];
       const warnings: string[] = [];
       const allowed = opts?.allowed ?? this.allowedContentTypes;
@@ -186,90 +166,127 @@ export namespace Services {
       return { ok: true, sha256, sanitizedBuffer: outBuffer, warnings, finalContentType: finalCt };
     }
 
-    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<{
-      hash: string;
-      gridFsId: string;
-      storageKey: string;
+    /** All upload callers stage immutable brand-scoped objects; never overwrite live bytes. */
+    async putLogo(opts: {
+      branding: string;
+      portal: string;
+      fileBuffer: Buffer;
       contentType: string;
-      updatedAt: string;
-    }> {
-      const brand = await BrandingConfig.findOne({ name: opts.branding });
-      if (!brand) throw new Error('branding-not-found');
-      const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(opts.fileBuffer, opts.contentType);
-      const errorList = errors ?? [];
-      if (!ok) throw new Error('logo-invalid: ' + errorList.join(','));
-
-      const resolvedContentType = finalContentType ?? opts.contentType;
-      const storageKey = this.logoStorageKey(opts.branding, opts.portal, resolvedContentType);
-
-      await StorageManagerService.primaryDisk().put(storageKey, sanitizedBuffer!, { contentType: resolvedContentType });
-
-      this.setCache(storageKey, sanitizedBuffer!);
-      const meta = {
-        gridFsId: storageKey,
-        storageKey,
-        sha256,
-        contentType: resolvedContentType,
-        updatedAt: new Date().toISOString(),
-      };
-      await BrandingConfig.update({ id: brand.id }, { logo: meta });
-      return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
+      expectedDraftRevision?: number;
+    }) {
+      return this.putDraftImage('logo', opts);
     }
 
-    async putFavicon(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<{
-      hash: string;
-      gridFsId: string;
-      storageKey: string;
+    async putFavicon(opts: {
+      branding: string;
+      portal: string;
+      fileBuffer: Buffer;
       contentType: string;
-      updatedAt: string;
-    }> {
-      const brand = await BrandingConfig.findOne({ name: opts.branding });
-      if (!brand) throw new Error('branding-not-found');
-      const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(
-        opts.fileBuffer,
-        opts.contentType,
-        { allowed: this.faviconAllowedContentTypes, maxBytes: this.getFaviconMaxBytes() }
+      expectedDraftRevision?: number;
+    }) {
+      return this.putDraftImage('favicon', opts);
+    }
+
+    private async putDraftImage(
+      kind: 'logo' | 'favicon',
+      opts: {
+        branding: string;
+        portal: string;
+        fileBuffer: Buffer;
+        contentType: string;
+        expectedDraftRevision?: number;
+      }
+    ) {
+      const state = await BrandingService.uploadImage({ ...opts, kind });
+      const image = state.draft.images[kind]!;
+      return {
+        hash: image.sha256!,
+        gridFsId: image.storageKey!,
+        storageKey: image.storageKey!,
+        contentType: image.contentType!,
+        updatedAt: image.updatedAt!,
+        state,
+      };
+    }
+
+    async storeDraftImage(brandId: string, kind: 'logo' | 'favicon', fileBuffer: Buffer, contentType: string) {
+      const result = await this.sanitizeAndValidate(
+        fileBuffer,
+        contentType,
+        kind === 'favicon'
+          ? { allowed: this.faviconAllowedContentTypes, maxBytes: this.getFaviconMaxBytes() }
+          : undefined
       );
-      const errorList = errors ?? [];
-      if (!ok) throw new Error('favicon-invalid: ' + errorList.join(','));
-
-      const resolvedContentType = finalContentType ?? opts.contentType;
-      const storageKey = this.faviconStorageKey(opts.branding, opts.portal, resolvedContentType, sha256!);
-
-      await StorageManagerService.primaryDisk().put(storageKey, sanitizedBuffer!, { contentType: resolvedContentType });
-
-      this.setCache(storageKey, sanitizedBuffer!);
-      const meta = {
-        gridFsId: storageKey,
+      if (!result.ok) throw new Error(kind + '-invalid: ' + (result.errors ?? []).join(','));
+      const resolvedContentType = result.finalContentType ?? contentType;
+      const storageKey = `branding-images/${brandId}/${kind}/${crypto.randomUUID()}.${this.extForContentType(resolvedContentType)}`;
+      await StorageManagerService.primaryDisk().put(storageKey, result.sanitizedBuffer!, {
+        contentType: resolvedContentType,
+      });
+      return {
         storageKey,
-        sha256,
+        gridFsId: storageKey,
+        sha256: result.sha256!,
         contentType: resolvedContentType,
         updatedAt: new Date().toISOString(),
       };
-      try {
-        await BrandingConfig.update({ id: brand.id }, { favicon: meta });
-      } catch (error) {
+    }
+
+    /** Reclaim abandoned uploads and objects pruned out of history after the same
+     * grace period as fonts. A fresh reference read precedes each deletion. */
+    async reconcileAssets(options?: {
+      now?: number;
+      graceMs?: number;
+    }): Promise<{ deleted: number; failures: number }> {
+      const disk = StorageManagerService.primaryDisk();
+      const now = options?.now ?? Date.now();
+      const grace = options?.graceMs ?? _.get(sails, 'config.branding.typefaceOrphanGraceMs', 86400000);
+      const keys: string[] = [];
+      let paginationToken: string | undefined;
+      do {
+        const page = await disk.listAll('branding-images/', {
+          recursive: true,
+          ...(paginationToken ? { paginationToken } : {}),
+        });
+        for (const entry of page.objects)
+          keys.push(typeof entry === 'string' ? entry : String((entry as { key?: string }).key ?? ''));
+        paginationToken = page.paginationToken;
+      } while (paginationToken);
+      const result = { deleted: 0, failures: 0 };
+      for (const key of keys) {
+        const match = /^branding-images\/([^/]+)\/(logo|favicon)\/[a-f0-9-]+\.(png|jpg|svg|ico)$/.exec(key);
+        if (!match) continue;
         try {
-          await StorageManagerService.primaryDisk().delete(storageKey);
-          delete this._binaryById[storageKey];
-        } catch (cleanupError) {
-          sails.log.warn(`BrandingLogoService failed to remove unreferenced favicon ${storageKey}:`, cleanupError);
+          const metadata = await disk.getMetaData(key);
+          if (now - metadata.lastModified.getTime() < grace) continue;
+          const brand = await BrandingConfig.findOne({ id: match[1] });
+          const histories = (await BrandingConfigHistory.find({
+            branding: match[1],
+          })) as BrandingConfigHistoryAttributes[];
+          const images = [
+            brand?.logo,
+            brand?.favicon,
+            ...Object.values(brand?.draftImages ?? {}),
+            ...histories.flatMap(row => Object.values(row.images ?? {})),
+          ];
+          if (images.some(image => image?.storageKey === key)) continue;
+          await disk.delete(key);
+          result.deleted += 1;
+        } catch (error) {
+          if (this.isStorageNotFoundError(error)) continue;
+          result.failures += 1;
+          sails.log.warn('Branding image reconciliation failed', error);
         }
-        throw error;
       }
-      const previousStorageKey = _.get(brand, 'favicon.storageKey') as string | undefined;
-      if (previousStorageKey && previousStorageKey !== storageKey) {
-        this.scheduleSupersededFaviconCleanup(brand.id, previousStorageKey);
-      }
-      return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
+      return result;
     }
 
     getBinary(id: string): Buffer | null {
       return this.getFromCache(id);
     }
 
-    async getBinaryAsync(id: string, expectedSha256?: string): Promise<Buffer | null> {
-      const mem = this.getFromCache(id, expectedSha256);
+    async getBinaryAsync(id: string, expectedSha256?: string, fresh = false): Promise<Buffer | null> {
+      const mem = fresh ? null : this.getFromCache(id, expectedSha256);
       if (mem) return mem;
 
       try {
@@ -301,11 +318,12 @@ export namespace Services {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         const brand = await BrandingConfig.findOne({ name: branding });
         const favicon = brand?.favicon as Record<string, unknown> | undefined;
-        const storageId = typeof favicon?.storageKey === 'string'
-          ? favicon.storageKey
-          : typeof favicon?.gridFsId === 'string'
-            ? favicon.gridFsId
-            : null;
+        const storageId =
+          typeof favicon?.storageKey === 'string'
+            ? favicon.storageKey
+            : typeof favicon?.gridFsId === 'string'
+              ? favicon.gridFsId
+              : null;
         if (!favicon || !storageId || storageId === failedStorageId) {
           return null;
         }
@@ -331,7 +349,8 @@ export namespace Services {
         const bucket = new GridFSBucket(client.db(), { bucketName: 'fs' });
         const chunks: Buffer[] = [];
         await new Promise<void>((resolve, reject) => {
-          bucket.openDownloadStream(new ObjectId(id))
+          bucket
+            .openDownloadStream(new ObjectId(id))
             .on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)))
             .on('error', reject)
             .on('end', resolve);

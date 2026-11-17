@@ -1,3 +1,5 @@
+import { defineApiRoute } from '../define';
+import { z } from '../zod-openapi';
 import { apiRoute } from '../route-factory';
 import {
   arrayField,
@@ -229,7 +231,7 @@ export const brandingLogoRoute = apiRoute(
   },
   {
     tags: ['Branding'],
-    summary: 'Upload branding logo',
+    summary: 'Upload branding draft logo (requires expectedDraftRevision)',
     responses: { 200: responseField(brandingLogoResponseSchema, 'Branding logo uploaded') },
   }
 );
@@ -253,7 +255,7 @@ export const brandingFaviconRoute = apiRoute(
   },
   {
     tags: ['Branding'],
-    summary: 'Upload branding favicon',
+    summary: 'Upload branding draft favicon (requires expectedDraftRevision)',
     responses: { 200: responseField(brandingLogoResponseSchema, 'Branding favicon uploaded') },
   }
 );
@@ -271,7 +273,52 @@ export const brandingHistoryRoute = apiRoute(
   }
 );
 
+export const brandingResetDraftRoute = defineApiRoute({
+  method: 'post',
+  path: '/:branding/:portal/app/branding/draft/reset',
+  controller: 'BrandingAppController',
+  action: 'resetDraft',
+  csrf: true,
+  request: {
+    headers: z.object({ 'x-csrf-token': z.string().optional() }),
+    body: { required: true, content: { 'application/json': { schema: brandingPublishBody } } },
+  },
+  extensions: { 'x-redbox-roles': ['Admin'] },
+  tags: ['Branding'],
+  summary: 'Reset the entire saved branding draft (brand Admin only)',
+  description:
+    'CSRF protected. Requires expectedVersion and expectedDraftRevision. A single atomic document update restores published colours, typeface and image references and advances the revision. Unreferenced draft images are deleted after commit with a durable retry queue; a storage failure never leaves partially reset state. Typeface objects use the existing orphan grace period. Published branding and history are unchanged. Stale counters return 409.',
+  responses: { 200: responseField(brandingAdminStateSchema, 'Complete reset Admin state') },
+});
+
+export const brandingDraftImageRoute = defineApiRoute({
+  method: 'get',
+  path: '/:branding/:portal/app/branding/draft/images/:kind',
+  controller: 'BrandingAppController',
+  action: 'draftImage',
+  request: {
+    params: z.object({ kind: z.enum(['logo', 'favicon']) }),
+    query: z.object({
+      default: z.enum(['true', 'false']).optional(),
+      preview: z
+        .string()
+        .regex(/^[a-f0-9]{32}$/)
+        .optional(),
+    }),
+  },
+  extensions: { 'x-redbox-roles': ['Admin'] },
+  tags: ['Branding'],
+  summary: 'Read a saved draft image (brand Admin only)',
+  description:
+    'No-store response. Falls back to the published image or the installation default when no draft image is set. The optional preview token serves an immutable image snapshot for its original brand and portal until the preview TTL expires. Visitor asset routes continue serving published bytes.',
+  responses: {
+    200: { description: 'Draft image bytes', content: { 'application/octet-stream': { schema: z.string() } } },
+  },
+});
+
 export const brandingApiRoutes = [
+  brandingResetDraftRoute,
+  brandingDraftImageRoute,
   brandingConfigRoute,
   brandingDraftRoute,
   brandingFaceUploadRoute,

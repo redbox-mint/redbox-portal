@@ -6,13 +6,14 @@
  * Only applies to HTTP requests (not WebSockets)
  */
 
-import { RequestHandler, Request, Response, NextFunction } from 'express';
+import { RequestHandler, Request, Response, NextFunction, json } from 'express';
 import { AsyncResource } from 'node:async_hooks';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 const skipper = require('skipper');
+const compression = require('compression');
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
 import type { CustomConfig } from './custom.config';
@@ -68,6 +69,10 @@ export interface HttpMiddlewareConfig {
 export interface HttpConfig {
     /** Root context path for the application */
     rootContext: string;
+
+    /** Off in production: nginx is expected to compress. On in development (including docker).
+     * Set true when deploying without a compressing proxy; Sails config/env overrides apply. */
+    compression: { enabled: boolean };
 
     /** Middleware configuration */
     middleware: HttpMiddlewareConfig;
@@ -234,6 +239,9 @@ export function isImmutableAssetPath(reqPath: string): boolean {
     // JS/CSS bundle names in Angular browser output directories. This recognizes
     // a build naming convention; it does not verify a hash against file contents.
     const pathname = reqPath.split('?')[0];
+    // Only bundled default fonts carry the checked-in SHA-256 suffix. Uploaded
+    // brand typefaces and other stable font URLs keep the existing cache policy.
+    if (/^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?fonts\/google\/[a-z0-9-]+-[a-f0-9]{12}\.woff2$/.test(pathname)) return true;
     return /^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?angular\/[A-Za-z0-9_-]+\/browser\/(?:(?:main|polyfills|scripts|chunk)-[A-Z2-7]{8}\.js|styles-[A-Z2-7]{8}\.css)$/.test(pathname);
 }
 
@@ -458,10 +466,31 @@ function decodeStaticPathPart(value: string): string | null {
     }
 }
 
+// The package also honors no-transform, existing Content-Encoding, MIME type,
+// response size and Accept-Encoding. Keep latency-sensitive streams and file
+// downloads untouched; stream producers can opt out with X-Accel-Buffering: no.
+const compressResponse: RequestHandler = compression({
+    filter: (req: Request, res: Response) => {
+        if (req.headers.range || res.statusCode === 206 ||
+            /^text\/event-stream\b/i.test(String(res.getHeader('Content-Type') || '')) ||
+            /\battachment\b/i.test(String(res.getHeader('Content-Disposition') || '')) ||
+            res.getHeader('X-Accel-Buffering') === 'no') {
+            return false;
+        }
+        return compression.filter(req, res);
+    },
+});
+
 export const http: HttpConfig = {
     rootContext: '',
+    compression: { enabled: process.env.NODE_ENV !== 'production' },
 
     middleware: {
+        compress: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            // app.js uses rc, which leaves nested environment values as strings.
+            if (String(sails.config.http.compression?.enabled) !== 'true') return next();
+            return compressResponse(req, res, next);
+        },
         // Lazy load redboxSession to support async shim generation
         redboxSession: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
@@ -738,6 +767,7 @@ export const http: HttpConfig = {
 
         order: [
             'requestChronicle',
+            'compress',
             'cacheControl',
             'redirectNoCacheHeaders',
             'cookieParser',
@@ -758,17 +788,39 @@ export const http: HttpConfig = {
         myBodyParser: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const requestPath = req.originalUrl ?? req.url;
             const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+            const root = normalizeBodyParserPath(sails.config.http?.rootContext ?? '').replace(/\/$/, '');
+            const relativePath = root && normalizedRequestPath.startsWith(`${root}/`)
+                ? normalizedRequestPath.slice(root.length) : root ? '' : normalizedRequestPath;
+            // Full route structure: root / brand / portal / app / email-templates.
+            const emailAdminPath = /^\/[^/]+\/[^/]+\/app\/email-templates(?:\/|$)/i.test(relativePath);
             const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
-            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) {
-                return next();
+            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) return next();
+            if (emailAdminPath) {
+                const parser = json({ limit: 8 * 1024 * 1024, strict: true });
+                return parser(req, res, AsyncResource.bind((error?: unknown) => {
+                    if (!error) return next();
+                    const limit = (error as { type?: string }).type === 'entity.too.large';
+                    res.set('Cache-Control', 'no-store');
+                    return res.status(limit ? 413 : 400).json({
+                        error: { code: limit ? 'LENGTH_LIMIT' : 'INVALID_TEMPLATE', message: limit ? 'Request body exceeds 8388608 bytes.' : 'A valid JSON request body is required.' },
+                        diagnostics: [],
+                    });
+                }));
             }
-            const skipperMiddleware = skipper({
-                // strict: true,
-                // ... more Skipper options here ...
-            });
+            // A 2 MiB JSON file is sent as a JSON string in the import envelope;
+            // escaped quotes/whitespace can double its transport size. Keep this
+            // allowance local to import routes; the controller checks file bytes.
+            const translationImport = /^\/[^/]+\/[^/]+\/admin\/translation\/[^/]+\/[^/]+\/import\/(preview|apply)$/.test(normalizedRequestPath);
+            const partyImport = /^\/[^/]+\/[^/]+\/admin\/parties\/import\/(inspect|preview|apply)$/.test(normalizedRequestPath);
+            const skipperMiddleware = skipper(translationImport || partyImport ? { limit: 5 * 1024 * 1024 } : {});
             // Multipart parser events originate outside the request's async context.
             return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
                 bindMultipartUploadCallbacks(req);
+                if ((translationImport || partyImport) && error) {
+                    const status = (error as { status?: number }).status === 413 ? 413 : 400;
+                    res.status(status).json({ message: status === 413 ? 'Import request exceeds the transport limit' : 'Invalid JSON request' });
+                    return;
+                }
                 next(sanitizeBodyParserError(error));
             }));
         },

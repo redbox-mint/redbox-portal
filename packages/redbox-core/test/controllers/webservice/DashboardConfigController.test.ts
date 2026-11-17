@@ -90,6 +90,15 @@ describe('Webservice DashboardConfigController', () => {
     expect(svc.saveTargetSettings.firstCall.args[2]).to.deep.equal({ expectedRevision: 3, settings: {} });
   });
 
+  it('passes a page-size edit with its revision and route brand on the session API', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.saveWorkflowTarget(request({ recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 3, settings: { rowsPerPage: 25 } }), {} as Sails.Res);
+    const args = (global as any).DashboardConfigService.saveTargetSettings.firstCall.args;
+    expect(args[0].id).to.equal('brand-1');
+    expect(args[2]).to.deep.equal({ expectedRevision: 3, settings: { rowsPerPage: 25 } });
+    expect(sendResp.firstCall.args[2].data.revision).to.equal(4);
+  });
+
   it('rejects a non-object body', async () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
     await controller.applyCopy(request({}, 'nope'), {} as Sails.Res);

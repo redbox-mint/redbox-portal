@@ -1,3 +1,4 @@
+import type { RecordTypeReportingConfig } from '../reporting/types';
 /**
  * Record Type Config Interface
  * (sails.config.recordtype)
@@ -53,6 +54,9 @@ export interface RecordHooksConfig {
 }
 
 export interface RecordRelation {
+  /** Lodash property path for object reference identifiers. */
+  oidProperty?: string;
+  resolution?: import('../related-records/types').RelatedRelationResolutionConfig;
   id?: string;
   label?: string;
   recordType: string;
@@ -211,6 +215,7 @@ export interface RecordTypeValidationConfig {
 }
 
 export interface RecordTypeDefinition {
+  reporting?: RecordTypeReportingConfig;
   packageType: string;
   packageName?: string;
   searchable?: boolean;

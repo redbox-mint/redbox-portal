@@ -1,0 +1,18 @@
+<%
+  // Reuse the public endpoint's payload and EJS attribute escaping. This contains
+  // client configuration only; never serialize server/session configuration here.
+  const clientConfigJson = include('../../../apiClientConfig.ejs');
+  const clientConfig = JSON.parse(clientConfigJson);
+  const options = clientConfig.i18NextOpts || {};
+  // Custom backends may change URL/credentials/headers. Leave those to i18next.
+  const standardBackend = !options.backend && !options.resources &&
+    (!options.ns || options.ns.includes('translation'));
+  let language = clientConfig.lang || 'en';
+  if (options.load === 'languageOnly') language = language.split('-')[0];
+  if (options.lowerCaseLng) language = language.toLowerCase();
+  const languages = !options.supportedLngs || options.supportedLngs.includes(language) ? [language] : [];
+%>
+<meta name="rb-client-config" content="<%= clientConfigJson.trim() %>">
+<% if (standardBackend) { for (const language of languages) { %>
+<link rel="preload" as="fetch" crossorigin="anonymous" href="<%= BrandingService.getRootContext() %>/<%= clientConfig.branding %>/<%= clientConfig.portal %>/locales/<%= encodeURIComponent(language) %>/translation.json">
+<% } } %>

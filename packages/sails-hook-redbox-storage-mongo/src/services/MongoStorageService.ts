@@ -1,3 +1,4 @@
+import { MongoReportingProvider, runtimeReportingRegistry, type ReportingPrincipal, type MongoReportingQuery } from '@researchdatabox/redbox-core';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
@@ -23,10 +24,14 @@ import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
 import {
+  assertRelatedDisplayBatchAllowed,
+  normalizeRelatedReferences,
+  withoutRuntimeRecordProperties,
   Services as services,
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
   StorageService,
+  type RecordQueryOptions,
   StorageServiceResponse,
   StorageMutationResponse,
   RBValidationError,
@@ -62,6 +67,8 @@ import {
   type StorageServiceCapabilities,
 } from '@researchdatabox/redbox-core';
 import type {
+  RecordRelationQuery,
+  RecordRelationQueryResult,
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
   RecordSchemaArtifactQuery,
@@ -367,6 +374,7 @@ export namespace Services {
       'create',
       'updateMeta',
       'getCapabilities',
+      'executeReporting',
       'removeActiveRecord',
       'createTombstone',
       'updateTombstone',
@@ -386,6 +394,7 @@ export namespace Services {
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
       'getRelatedRecords',
+      'findRecordsByRelation',
       'delete',
       'updateNotificationLog',
       'getRecords',
@@ -995,6 +1004,12 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} Ready!`);
     }
 
+    /** Reporting capability: accepts only the public DSL and a mandatory server-side principal. */
+    public async executeReporting(principal: ReportingPrincipal, query: MongoReportingQuery) {
+      const provider = new MongoReportingProvider(this.getNativeRecordCollection(), runtimeReportingRegistry);
+      return provider.executeReporting(principal, query);
+    }
+
     private async createIndices(db: Db): Promise<void> {
       sails.log.verbose(`${this.logHeader} Existing indices:`);
       const currentIndices = await db.collection<MongoRecordDocument>(Record.tableName).indexes();
@@ -1586,7 +1601,7 @@ export namespace Services {
       if (precondition && (precondition.requireRevision || precondition.expectedRevision !== undefined)) {
         return this.notApplied(response, 'lifecycle-conflict', 'Record creation does not accept an existing revision');
       }
-      const serverRecord = _.cloneDeep(record);
+      const serverRecord = withoutRuntimeRecordProperties(record);
       // The storage boundary owns creation revision regardless of anything a
       // request candidate supplied.
       serverRecord.revision = INITIAL_RECORD_REVISION;
@@ -1689,7 +1704,7 @@ export namespace Services {
         );
       }
 
-      const candidate = _.cloneDeep(record);
+      const candidate = withoutRuntimeRecordProperties(record);
       // Identity, creation, and revision are owned by storage, never by the
       // candidate; lastSaveDate is reissued with the committing write.
       for (const field of [
@@ -2444,10 +2459,12 @@ export namespace Services {
       data: JsonMap[],
       harvestIdFldName: string
     ): Promise<StorageMutationResponse> {
+      await assertRelatedDisplayBatchAllowed(type, data);
       const response = new StorageMutationResponse();
       let notAppliedCount = 0;
       let unknownCount = 0;
-      for (const [rowIndex, dataItem] of data.entries()) {
+      for (const [rowIndex, inputItem] of data.entries()) {
+        const dataItem = withoutRuntimeRecordProperties(inputItem);
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
@@ -2494,6 +2511,112 @@ export namespace Services {
         'capability-unavailable',
         'Permission rewrites require the authoritative RecordsService mutation pipeline'
       );
+    }
+
+    public async findRecordsByRelation(query: RecordRelationQuery): Promise<RecordRelationQueryResult> {
+      const { context, recordType, foreignField, values, limit } = query ?? ({} as RecordRelationQuery);
+      if (
+        !context?.brand?.id ||
+        !context.user?.username ||
+        !Array.isArray(context.user.roles) ||
+        !recordType ||
+        !foreignField ||
+        !Array.isArray(values) ||
+        values.some(value => typeof value !== 'string' || !value.trim()) ||
+        !Number.isSafeInteger(limit) ||
+        limit < 1 ||
+        limit > 1000
+      ) {
+        throw new Error('Invalid authorized relation query.');
+      }
+      if (values.length === 0) return { records: [], complete: true, overflow: false };
+      const collection = this.getNativeRecordCollection();
+      if (!collection) throw new Error('Native relation reads are unavailable.');
+      const matching: JsonMap = {};
+      const tokens = _.toPath(foreignField);
+      if (tokens.some(token => token.includes('.') || token.startsWith('$') || /^(0|[1-9]\d*)$/.test(token))) {
+        // Mongo dotted selectors cannot represent literal keys and make numeric
+        // tokens ambiguous on arrays. Walk Lodash tokens,
+        // retaining any-element matching except where an explicit index selects
+        // one element. Numeric object keys still use exact field lookup.
+        const matches = (input: unknown, remaining: string[]): unknown => {
+          if (remaining.length && /^(0|[1-9]\d*)$/.test(remaining[0])) {
+            const index = Number(remaining[0]);
+            return matches(
+              {
+                $cond: [
+                  { $isArray: input },
+                  // BSON arrays cannot reach indexes beyond Mongo's signed int range.
+                  index <= 2147483647 ? { $arrayElemAt: [input, index] } : null,
+                  {
+                    $cond: [
+                      { $eq: [{ $type: input }, 'object'] },
+                      { $getField: { field: { $literal: remaining[0] }, input } },
+                      null,
+                    ],
+                  },
+                ],
+              },
+              remaining.slice(1)
+            );
+          }
+          return {
+            $anyElementTrue: {
+              $map: {
+                input: { $cond: [{ $isArray: input }, input, [input]] },
+                as: 'item',
+                in: remaining.length
+                  ? {
+                      $cond: [
+                        { $eq: [{ $type: '$$item' }, 'object'] },
+                        matches(
+                          { $getField: { field: { $literal: remaining[0] }, input: '$$item' } },
+                          remaining.slice(1)
+                        ),
+                        false,
+                      ],
+                    }
+                  : { $in: ['$$item', { $literal: [...values] }] },
+              },
+            },
+          };
+        };
+        matching.$expr = matches('$$ROOT', tokens);
+      } else {
+        matching[tokens.join('.')] = { $in: [...values] };
+      }
+      const criteria = {
+        $and: [
+          matching,
+          { 'metaMetadata.type': recordType, 'metaMetadata.brandId': context.brand.id },
+          this.buildRecordReadPermissions(context.user.username, context.user.roles, context.brand),
+        ],
+      };
+      const found = await collection
+        .find(criteria as Filter<MongoRecordDocument>)
+        .sort({ redboxOid: 1 })
+        .limit(limit + 1)
+        .maxTimeMS(10_000)
+        .toArray();
+      const overflow = found.length > limit;
+      const records = found.slice(0, limit);
+      if (foreignField === 'redboxOid') {
+        const order = new Map(values.map((value, index) => [value, index]));
+        records.sort((left, right) => order.get(left.redboxOid) - order.get(right.redboxOid));
+      }
+      return { records: records as unknown as RecordModel[], complete: !overflow, overflow };
+    }
+
+    private buildRecordReadPermissions(username: string, roles: RoleModel[], brand: BrandingModel) {
+      const roleNames = this.getRoleNames(roles, brand);
+      return {
+        $or: [
+          { 'authorization.view': username },
+          { 'authorization.edit': username },
+          { 'authorization.editRoles': { $in: roleNames } },
+          { 'authorization.viewRoles': { $in: roleNames } },
+        ],
+      };
     }
 
     public async getRelatedRecords(
@@ -2661,6 +2784,11 @@ export namespace Services {
         relationship.localField === 'redboxOid' ? record.redboxOid : undefined
       );
       const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+      if (relationship.oidProperty) {
+        const references = normalizeRelatedReferences(rawValue, relationship.oidProperty);
+        if (references.invalidIndices.length) throw new Error('Invalid relationship object reference.');
+        return references.values;
+      }
       return values.map(value => String(value ?? '').trim()).filter(value => value !== '');
     }
 
@@ -2883,11 +3011,20 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode: string = 'regex',
-      secondarySort = undefined
+      secondarySort = undefined,
+      deletionFilters: { deletedWithin?: string; deletedBy?: string } = {}
     ) {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      if (deletionFilters.deletedWithin && deletionFilters.deletedWithin !== 'any') {
+        if (!['7', '30'].includes(deletionFilters.deletedWithin)) throw new TypeError('Invalid deletion period');
+        query['dateDeleted'] = { $gte: new Date(Date.now() - Number(deletionFilters.deletedWithin) * 86400000).toISOString() };
+      }
+      if (deletionFilters.deletedBy) {
+        query['deletedBy.brandId'] = String(brand.id);
+        query['deletedBy.username'] = deletionFilters.deletedBy;
+      }
       const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
       const sortAliases = new Map([
         ['title', 'deletedRecordMetadata.metadata.title'],
@@ -2979,21 +3116,77 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode = undefined,
-      secondarySort = undefined
+      secondarySort = undefined,
+      queryOptions?: RecordQueryOptions
     ) {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
       }
+      // Legacy callers pass a one-element array; never accept query operators as paths.
+      const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
+      if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
+      const validField = (field: unknown): field is string =>
+        typeof field === 'string' &&
+        /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
+        !field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment));
+      if (
+        filterFields != null &&
+        (!Array.isArray(filterFields) || filterFields.length > 20 || filterFields.some(field => !validField(field)))
+      ) {
+        throw new Error('Invalid filter fields');
+      }
+      if (
+        queryOptions !== undefined &&
+        (!queryOptions ||
+          typeof queryOptions !== 'object' ||
+          Array.isArray(queryOptions) ||
+          Object.keys(queryOptions).some(key => !['anyOf', 'afterOid', 'count', 'authorization'].includes(key)) ||
+          (queryOptions.count !== undefined && typeof queryOptions.count !== 'boolean') ||
+          (queryOptions.authorization !== undefined && queryOptions.authorization !== 'record-view') ||
+          (queryOptions.afterOid !== undefined &&
+            queryOptions.afterOid !== null &&
+            (typeof queryOptions.afterOid !== 'string' || queryOptions.afterOid.length > 1024)) ||
+          (queryOptions.anyOf !== undefined &&
+            (!Array.isArray(queryOptions.anyOf) ||
+              queryOptions.anyOf.length > 20 ||
+              queryOptions.anyOf.some(
+                term =>
+                  !term ||
+                  typeof term !== 'object' ||
+                  Object.keys(term).some(key => !['field', 'value', 'match'].includes(key)) ||
+                  !validField(term.field) ||
+                  !['contains', 'exact'].includes(term.match) ||
+                  typeof term.value !== 'string' ||
+                  term.value.length > 1024
+              ))))
+      )
+        throw new Error('Invalid record query options');
+      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024))
+        throw new Error('Invalid filter');
       const query = {
         'metaMetadata.brandId': brand.id,
       };
-      const options = {
+      const options: FindOptions = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
         sort: this.getRecordSort(sort, secondarySort),
       };
 
-      const roleNames = this.getRoleNames(roles, brand);
+      const cursorBatch = queryOptions?.afterOid !== undefined;
+      if (cursorBatch) {
+        if (!Number.isSafeInteger(rows) || rows < 1 || rows > 100 || start !== 0) {
+          throw new Error('OID cursor batches require zero offset and 1 to 100 rows');
+        }
+        query['redboxOid'] = { $type: 'string', $gt: queryOptions.afterOid ?? '' };
+        options.sort = { redboxOid: 1 };
+        options.collation = { locale: 'simple' };
+        options.projection = { _id: 0 };
+        options.maxTimeMS = 5000;
+      }
+      const roleNames =
+        queryOptions?.authorization === 'record-view'
+          ? (brand.roles ?? []).filter(role => roles.some(held => held.id === role.id)).map(role => role.name)
+          : this.getRoleNames(roles, brand);
       const andArray = [];
       const permissions = {
         $or: [
@@ -3003,7 +3196,23 @@ export namespace Services {
           { 'authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (queryOptions?.authorization === 'record-view') {
+        // The legacy flat representation applies only without nested authorization.
+        andArray.push({
+          $or: [
+            permissions,
+            {
+              authorization: null,
+              $or: [
+                { authorization_view: username },
+                { authorization_edit: username },
+                { authorization_editRoles: { $in: roleNames } },
+                { authorization_viewRoles: { $in: roleNames } },
+              ],
+            },
+          ],
+        });
+      } else andArray.push(permissions);
       if (_.isArray(recordType)) {
         if (recordType.length > 1) {
           const typeArray = [];
@@ -3040,23 +3249,32 @@ export namespace Services {
         query['workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
-        const escapedFilterString = this.escapeRegExp(filterString);
-        sails.log.verbose('escapedFilterString ' + escapedFilterString);
-        for (const filterField of filterFields) {
-          if (filterMode == 'equal') {
-            query[filterField] = filterString;
-          } else if (filterMode == 'regex') {
-            query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
-          }
+        const value = mode === 'equal' ? filterString : new RegExp(this.escapeRegExp(filterString), 'i');
+        if (mode === 'any') {
+          // Keep search OR separate from the type and authorization OR clauses.
+          andArray.push({ $or: filterFields.map(field => ({ [field]: value })) });
+        } else {
+          // Field filters must narrow, never replace, brand/type/workflow scope.
+          for (const field of filterFields) andArray.push({ [field]: value });
         }
       }
 
+      if (queryOptions?.anyOf?.length) {
+        andArray.push({
+          $or: queryOptions.anyOf.map(term => ({
+            [term.field]: term.match === 'exact' ? term.value : new RegExp(this.escapeRegExp(term.value), 'i'),
+          })),
+        });
+      }
       query['$and'] = andArray;
 
       sails.log.verbose(query);
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
-      const { items, totalItems } = await this.runRecordQuery(Record.tableName, query, options);
+      const { items, totalItems } =
+        queryOptions?.count === false
+          ? await this.runRecordQuery(Record.tableName, query, options, false)
+          : await this.runRecordQuery(Record.tableName, query, options);
       const response = new StorageServiceResponse();
       response.success = true;
       response.items = items;
@@ -3068,10 +3286,10 @@ export namespace Services {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    protected async runRecordQuery(colName, query, options) {
+    protected async runRecordQuery(colName, query, options, includeCount = true) {
       return {
         items: await this.recordCol.find(query, options).toArray(),
-        totalItems: await this.recordCol.count(query),
+        totalItems: includeCount ? await this.recordCol.count(query) : 0,
       };
     }
 
@@ -3082,13 +3300,15 @@ export namespace Services {
       };
     }
 
-    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false) {
+    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false, checkpoint?: () => Promise<void>) {
       let skip = 0;
       const limit = options.limit;
       options.skip = skip;
+      await checkpoint?.();
       let result = await this.recordCol.find(query, options).toArray();
 
       while (result.length > 0) {
+        await checkpoint?.();
         for (const record of result) {
           if (stringifyJSON) {
             yield JSON.stringify(record);
@@ -3098,11 +3318,12 @@ export namespace Services {
         }
         skip = skip + limit;
         options.skip = skip;
+        await checkpoint?.();
         result = await this.recordCol.find(query, options).toArray();
       }
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint?: () => Promise<void>): stream.Readable {
       const andArray = [];
       const query = {
         'metaMetadata.brandId': brand.id,
@@ -3152,7 +3373,7 @@ export namespace Services {
             // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
             // bail out when it is no longer writable.
             const isCancelled = () => passThrough.destroyed;
-            const fields = await this.collectCsvFields(query, options, isCancelled);
+            const fields = await this.collectCsvFields(query, options, isCancelled, checkpoint);
             if (isCancelled()) {
               return;
             }
@@ -3172,7 +3393,10 @@ export namespace Services {
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(
-              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              stream.Readable.from(this.fetchAllRecords(query, { ...options }, false, async () => {
+                if (isCancelled()) throw new Error('Export stream closed.');
+                await checkpoint?.();
+              })),
               sanitize,
               json2csv,
               passThrough
@@ -3193,10 +3417,10 @@ export namespace Services {
     // First export pass: iterate every matching record and accumulate the union of flattened column
     // keys (first-seen order) so the CSV header covers every record. A clone of options is used
     // because fetchAllRecords mutates options.skip while paging.
-    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
+    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false, checkpoint?: () => Promise<void>): Promise<string[]> {
       const flattener = flatten();
       const fields = new Set<string>();
-      for await (const record of this.fetchAllRecords(query, { ...options })) {
+      for await (const record of this.fetchAllRecords(query, { ...options }, false, checkpoint)) {
         // Stop paging Mongo if the consumer has disconnected so cancelled exports don't keep
         // scanning every matching record.
         if (isCancelled()) {
@@ -3214,8 +3438,9 @@ export namespace Services {
 
       for (let i = 0; i < roles.length; i++) {
         const role = roles[i];
-        if (role.branding == brand.id) {
-          roleNames.push(roles[i].name);
+        const brandingId = typeof role.branding === 'object' ? role.branding?.id : role.branding;
+        if (brandingId != null && String(brandingId) === String(brand.id)) {
+          roleNames.push(role.name);
         }
       }
 

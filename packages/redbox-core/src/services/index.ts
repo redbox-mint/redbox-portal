@@ -1,3 +1,7 @@
+import * as ReportingServiceModule from './ReportingService';
+import * as SavedGridServiceModule from './SavedGridService';
+export { SavedGridServiceModule as SavedGridService };
+import * as PartyImportServiceModule from './PartyImportService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -20,6 +24,10 @@ import * as DashboardConfigServiceModule from './DashboardConfigService';
 import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
+import * as EmailTemplateAdminServiceModule from './EmailTemplateAdminService';
+import * as EmailTemplateServiceModule from './EmailTemplateService';
+import * as NamedQueryEditorServiceModule from './NamedQueryEditorService';
+import * as FieldDescriptionsServiceModule from './FieldDescriptionsService';
 import * as FigshareServiceModule from './FigshareService';
 import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
 import * as FormVocabularyServiceModule from './FormVocabularyService';
@@ -61,6 +69,21 @@ import * as RvaImportServiceModule from './RvaImportService';
 import * as StorageManagerServiceModule from './StorageManagerService';
 import * as StandardDatastreamServiceModule from './StandardDatastreamService';
 import { RecordContractContributorRegistry, type RecordContractContributorDiscoveryState } from '../record-contract';
+import * as GenerationBindingServiceModule from './GenerationBindingService';
+import * as GenerationBootstrapServiceModule from './GenerationBootstrapService';
+import * as GenerationContextServiceModule from './GenerationContextService';
+import * as GenerationCryptoServiceModule from './GenerationCryptoService';
+import * as GenerationKnowledgeServiceModule from './GenerationKnowledgeService';
+import * as GenerationModelServiceModule from './GenerationModelService';
+import * as GenerationPersistenceServiceModule from './GenerationPersistenceService';
+import * as GenerationProfileServiceModule from './GenerationProfileService';
+import * as GenerationPromptServiceModule from './GenerationPromptService';
+import * as GenerationProvenanceServiceModule from './GenerationProvenanceService';
+import * as GenerationProviderRegistryServiceModule from './GenerationProviderRegistryService';
+import * as GenerationRunServiceModule from './GenerationRunService';
+import * as GenerationSchemaServiceModule from './GenerationSchemaService';
+import * as GenerationSecretResolverServiceModule from './GenerationSecretResolverService';
+import * as GenerationWorkerServiceModule from './GenerationWorkerService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
@@ -79,6 +102,10 @@ export { DashboardConfigServiceModule as DashboardConfigService };
 export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
+export { EmailTemplateServiceModule as EmailTemplateService };
+export { EmailTemplateAdminServiceModule as EmailTemplateAdminService };
+export { NamedQueryEditorServiceModule as NamedQueryEditorService };
+export { FieldDescriptionsServiceModule as FieldDescriptionsService };
 export { FigshareServiceModule as FigshareService };
 export { FigshareVocabularyServiceModule as FigshareVocabularyService };
 export { FormVocabularyServiceModule as FormVocabularyService };
@@ -119,6 +146,21 @@ export { WorkspaceTypesServiceModule as WorkspaceTypesService };
 export { RvaImportServiceModule as RvaImportService };
 export { StorageManagerServiceModule as StorageManagerService };
 export { StandardDatastreamServiceModule as StandardDatastreamService };
+export { GenerationBindingServiceModule as GenerationBindingService };
+export { GenerationBootstrapServiceModule as GenerationBootstrapService };
+export { GenerationContextServiceModule as GenerationContextService };
+export { GenerationCryptoServiceModule as GenerationCryptoService };
+export { GenerationKnowledgeServiceModule as GenerationKnowledgeService };
+export { GenerationModelServiceModule as GenerationModelService };
+export { GenerationPersistenceServiceModule as GenerationPersistenceService };
+export { GenerationProfileServiceModule as GenerationProfileService };
+export { GenerationPromptServiceModule as GenerationPromptService };
+export { GenerationProvenanceServiceModule as GenerationProvenanceService };
+export { GenerationProviderRegistryServiceModule as GenerationProviderRegistryService };
+export { GenerationRunServiceModule as GenerationRunService };
+export { GenerationSchemaServiceModule as GenerationSchemaService };
+export { GenerationSecretResolverServiceModule as GenerationSecretResolverService };
+export { GenerationWorkerServiceModule as GenerationWorkerService };
 
 /**
  * ServiceExports - Object containing lazy-instantiated service exports for use by the redbox-core loader
@@ -172,7 +214,13 @@ function getOrCreateService(name: string, factory: () => unknown): unknown {
   return serviceCache[name];
 }
 
+export { ReportingServiceModule as ReportingService };
+
 export const ServiceExports = {
+  get ReportingService() {
+    return getOrCreateService('ReportingService', () => new ReportingServiceModule.Services.Reporting().exports());
+  },
+  get SavedGridService() { return getOrCreateService('SavedGridService', () => new SavedGridServiceModule.Services.SavedGrids().exports()); },
   get ExportService() {
     return getOrCreateService('ExportService', () => new ExportServiceModule.Services.Export().exports());
   },
@@ -231,6 +279,16 @@ export const ServiceExports = {
   },
   get DoiService() {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
+  },
+  get EmailTemplateAdminService() {
+    return getOrCreateService('EmailTemplateAdminService', () =>
+      new EmailTemplateAdminServiceModule.Services.EmailTemplateAdmin().exports()
+    );
+  },
+  get EmailTemplateService() {
+    return getOrCreateService('EmailTemplateService', () =>
+      new EmailTemplateServiceModule.Services.EmailTemplates().exports()
+    );
   },
   get EmailService() {
     return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());
@@ -312,6 +370,16 @@ export const ServiceExports = {
       new RecordTypesServiceModule.Services.RecordTypes().exports()
     );
   },
+  get NamedQueryEditorService() {
+    return getOrCreateService('NamedQueryEditorService', () =>
+      new NamedQueryEditorServiceModule.Services.NamedQueryEditor().exports()
+    );
+  },
+  get FieldDescriptionsService() {
+    return getOrCreateService('FieldDescriptionsService', () =>
+      new FieldDescriptionsServiceModule.Services.FieldDescriptions().exports()
+    );
+  },
   get RecordGraphqlService() {
     return getOrCreateService('RecordGraphqlService', () =>
       new RecordGraphqlServiceModule.Services.RecordGraphql(recordSchemaContributorDependencies).exports()
@@ -370,6 +438,11 @@ export const ServiceExports = {
       new VocabularyServiceModule.Services.VocabularyService().exports()
     );
   },
+  get PartyImportService() {
+    return getOrCreateService('PartyImportService', () =>
+      new PartyImportServiceModule.Services.PartyImport().exports()
+    );
+  },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },
@@ -402,5 +475,50 @@ export const ServiceExports = {
     return getOrCreateService('StandardDatastreamService', () =>
       new StandardDatastreamServiceModule.Services.StandardDatastream().exports()
     );
+  },
+  get GenerationBindingService() {
+    return getOrCreateService('GenerationBindingService', () => new GenerationBindingServiceModule.Services.GenerationBindingService().exports());
+  },
+  get GenerationBootstrapService() {
+    return getOrCreateService('GenerationBootstrapService', () => new GenerationBootstrapServiceModule.Services.GenerationBootstrapService().exports());
+  },
+  get GenerationContextService() {
+    return getOrCreateService('GenerationContextService', () => new GenerationContextServiceModule.Services.GenerationContextService().exports());
+  },
+  get GenerationCryptoService() {
+    return getOrCreateService('GenerationCryptoService', () => new GenerationCryptoServiceModule.Services.GenerationCryptoService().exports());
+  },
+  get GenerationKnowledgeService() {
+    return getOrCreateService('GenerationKnowledgeService', () => new GenerationKnowledgeServiceModule.Services.GenerationKnowledgeService().exports());
+  },
+  get GenerationModelService() {
+    return getOrCreateService('GenerationModelService', () => new GenerationModelServiceModule.Services.GenerationModelService().exports());
+  },
+  get GenerationPersistenceService() {
+    return getOrCreateService('GenerationPersistenceService', () => new GenerationPersistenceServiceModule.Services.GenerationPersistenceService().exports());
+  },
+  get GenerationProfileService() {
+    return getOrCreateService('GenerationProfileService', () => new GenerationProfileServiceModule.Services.GenerationProfileService().exports());
+  },
+  get GenerationPromptService() {
+    return getOrCreateService('GenerationPromptService', () => new GenerationPromptServiceModule.Services.GenerationPromptService().exports());
+  },
+  get GenerationProvenanceService() {
+    return getOrCreateService('GenerationProvenanceService', () => new GenerationProvenanceServiceModule.Services.GenerationProvenanceService().exports());
+  },
+  get GenerationProviderRegistryService() {
+    return getOrCreateService('GenerationProviderRegistryService', () => new GenerationProviderRegistryServiceModule.Services.GenerationProviderRegistry().exports());
+  },
+  get GenerationRunService() {
+    return getOrCreateService('GenerationRunService', () => new GenerationRunServiceModule.Services.GenerationRunService().exports());
+  },
+  get GenerationSchemaService() {
+    return getOrCreateService('GenerationSchemaService', () => new GenerationSchemaServiceModule.Services.GenerationSchemaService().exports());
+  },
+  get GenerationSecretResolverService() {
+    return getOrCreateService('GenerationSecretResolverService', () => new GenerationSecretResolverServiceModule.Services.GenerationSecretResolverService().exports());
+  },
+  get GenerationWorkerService() {
+    return getOrCreateService('GenerationWorkerService', () => new GenerationWorkerServiceModule.Services.GenerationWorkerService().exports());
   },
 };

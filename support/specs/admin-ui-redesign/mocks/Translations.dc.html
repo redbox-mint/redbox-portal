@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Translations</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="translations" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Site &amp; content</span><span>/</span><span>Translations</span></nav>
+      <header class="ph">
+        <div><h1>Translations</h1><p>Languages offered to users, and the text shown for every interface label.</p></div>
+        <div class="ph-actions"><button class="btn btn-secondary" type="button">Export</button><button class="btn btn-secondary" type="button">Import</button><button class="btn btn-primary" type="button">+ Add language</button></div>
+      </header>
+
+      <div class="card">
+        <div class="card-h"><h2>Languages</h2><span class="meta">1 available to users</span></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Language</th><th>Code</th><th class="num">Translated</th><th>Available to users</th><th class="act"><span style="position: absolute; left: -9999px">Actions</span></th></tr></thead>
+          <tbody><tr><td><b>English</b> <span class="badge">Default</span></td><td class="mono">en</td><td class="num">2,022 / 2,022</td><td><label class="switch on"><i></i>On</label></td><td class="act"><button class="btn btn-ghost btn-sm" type="button">Rename</button></td></tr></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Strings</h2><span class="meta">2,022 keys</span></div>
+        <div class="filters">
+          <div class="field"><label for="t-l">Editing language</label><select id="t-l" class="inp"><option>English (en)</option></select></div>
+          <div class="field"><label for="t-c">Category</label><select id="t-c" class="inp"><option>All categories</option><option>asynch</option><option>menu</option><option>admin</option></select></div>
+          <div class="field grow"><label for="t-s">Search</label><input id="t-s" class="inp" value="menu-"></div>
+          <div class="field"><span class="lbl">Show</span><div class="seg" role="group" aria-label="Show"><button type="button" class="on">All</button><button type="button">Missing</button><button type="button">Changed</button></div></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Category</th><th>Key</th><th>Value</th><th class="act"><span style="position: absolute; left: -9999px">Actions</span></th></tr></thead>
+          <tbody>
+            <tr style="background: #fff8e6"><td><span class="badge">menu</span></td><td class="mono">[menu-key-without-text]</td><td><input class="inp" aria-label="Value for missing key" placeholder="Missing: add English text" style="border-color: #f2d27a"></td><td class="act"><button class="btn btn-primary btn-sm" type="button">Save</button></td></tr>
+            <tr><td><span class="badge">menu</span></td><td class="mono">menu-onipublishingconfiguration</td><td>Oni publishing configuration <span class="badge ok">New default</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button">Edit</button></td></tr>
+            <tr><td><span class="badge">menu</span></td><td class="mono">menu-figsharepublishingconfiguration</td><td>Figshare publishing configuration</td><td class="act"><button class="btn btn-ghost btn-sm" type="button">Edit</button></td></tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 1–3 of [n] matches · 50 per page when unfiltered</span><div class="pager"><button type="button">‹</button><button type="button" class="on">1</button><button type="button">›</button></div></div>
+      </div>
+      <div class="note">Today all 2,022 rows render at once, making the page about 103,000px tall. Here the list is paginated and values edit inline. A “Missing” filter would have caught <span class="mono">menu-onipublishingconfiguration</span> and <span class="mono">party-title-label</span>, which showed as raw keys until round 1 added their defaults. A “New default” badge marks keys that bootstrap merged into the bundle.</div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

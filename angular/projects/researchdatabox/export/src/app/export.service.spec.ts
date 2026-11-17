@@ -78,6 +78,16 @@ describe('ExportService', () => {
     expect((await response).id).toBe('export-1');
   });
 
+  it('cancels an encoded job with CSRF and unwraps the response', async () => {
+    const response = service.cancel('id /?#');
+    const request = http.expectOne(`${base}/export/jobs/id%20%2F%3F%23/cancel`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF)).toBe('csrf-original');
+    expect(request.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
+    request.flush({ data: readyJob({ status: 'cancelled', downloadUrl: null }), meta: {} });
+    expect((await response).status).toBe('cancelled');
+  });
+
   it('deletes an encoded job identifier using CSRF and the v2 API', async () => {
     const response = service.remove('id /?#');
     const request = http.expectOne(`${base}/export/jobs/id%20%2F%3F%23`);

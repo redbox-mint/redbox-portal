@@ -1,0 +1,161 @@
+@if (completed() && error()) {
+  <div class="alert alert-danger" role="alert">{{ error()! | i18next }}</div>
+}
+@if (documentLaunch() && !effectiveSession() && !completed()) {
+  <button type="button" class="btn btn-outline-primary mb-3" [disabled]="busy()" (click)="startWithDocuments()">
+    {{ 'generation-use-documents' | i18next }}
+  </button>
+}
+@if (visible()) {
+  @if (!inline()) { <div class="rb-generation-panel__backdrop" aria-hidden="true"></div> }
+  <aside
+    class="rb-generation-panel"
+    [class.rb-generation-panel--inline]="inline()"
+    [attr.role]="inline() ? 'region' : 'dialog'"
+    [attr.aria-modal]="inline() ? null : 'true'"
+    aria-labelledby="generation-panel-title"
+    [cdkTrapFocus]="!inline()"
+    [cdkTrapFocusAutoCapture]="!inline()"
+  >
+    <header class="rb-generation-panel__header">
+      <div>
+        <div class="rb-generation-panel__eyebrow">{{ 'generation-panel-eyebrow' | i18next }}</div>
+        <h2 id="generation-panel-title" #panelTitle tabindex="-1">{{ 'generation-panel-title' | i18next }}</h2>
+      </div>
+      <button type="button" class="btn-close" [attr.aria-label]="'generation-close' | i18next" (click)="cancel()"></button>
+    </header>
+
+    <div class="rb-generation-panel__body">
+      @if (!completed()) {
+        <p class="rb-generation-panel__intro">{{ 'generation-panel-intro' | i18next }}</p>
+        <form [formGroup]="questionForm" (ngSubmit)="generate()">
+          @if (run()?.documentPolicy; as policy) {
+            <section class="mb-4" aria-labelledby="generation-documents-title">
+              <h3 id="generation-documents-title">{{ 'generation-documents-title' | i18next }}</h3>
+              <p>{{ 'generation-documents-help' | i18next }}</p>
+              <label for="generation-document-upload" class="form-label">{{ 'generation-upload-document' | i18next }}</label>
+              <input id="generation-document-upload" type="file" class="form-control" [accept]="documentAccept()"
+                [disabled]="busy() || documents().length >= policy.maxFiles" (change)="uploadDocument($event)" />
+              <p class="form-text">{{ 'generation-document-limits' | i18next: { files: policy.maxFiles, megabytes: policy.maxFileBytes / 1048576 } }}</p>
+              @for (document of documents(); track document.id) {
+                <article class="border rounded p-3 mt-2">
+                  <details>
+                    <summary>{{ document.name }}</summary>
+                    @for (passage of document.passages; track $index) {
+                      <p class="fw-semibold mt-2 mb-1">{{ passage.location }}</p>
+                      <pre class="rb-generation-document-passage">{{ passage.text }}</pre>
+                    }
+                  </details>
+                  <button type="button" class="btn btn-sm btn-link" [disabled]="busy()" (click)="removeDocument(document.id)">
+                    {{ 'generation-remove-document' | i18next }}
+                  </button>
+                </article>
+              }
+              @if (documents().length) {
+                <label for="generation-document-notes" class="form-label mt-3">{{ 'generation-document-notes' | i18next }}</label>
+                <textarea id="generation-document-notes" class="form-control" rows="3" maxlength="2000" [formControl]="documentNotes"></textarea>
+                <div class="form-text">{{ 'generation-document-notes-help' | i18next }}</div>
+                <div class="form-check mt-3">
+                  <input #documentReview id="generation-documents-reviewed" class="form-check-input" type="checkbox" [checked]="documentsReviewed()"
+                    (change)="documentsReviewed.set(documentReview.checked)" />
+                  <label for="generation-documents-reviewed" class="form-check-label">{{ 'generation-documents-reviewed' | i18next }}</label>
+                </div>
+              }
+            </section>
+          }
+          @for (question of questions(); track question.id; let number = $index) {
+            <div class="rb-generation-question">
+              <label [for]="'generation-question-' + question.id">
+                <span class="rb-generation-question__number">{{ number + 1 }}</span>
+                {{ question.labelKey | i18next }}
+              </label>
+              @switch (question.type) {
+                @case ('textarea') {
+                  <textarea class="form-control" rows="3" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength"></textarea>
+                }
+                @case ('boolean') {
+                  <select class="form-select" [id]="'generation-question-' + question.id" [formControlName]="question.id">
+                    <option [ngValue]="null">{{ 'generation-select-answer' | i18next }}</option>
+                    <option [ngValue]="true">{{ 'yes' | i18next }}</option>
+                    <option [ngValue]="false">{{ 'no' | i18next }}</option>
+                  </select>
+                }
+                @case ('enum') {
+                  <select class="form-select" [id]="'generation-question-' + question.id" [formControlName]="question.id">
+                    @for (option of question.options ?? []; track option.value) {
+                      <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+                    }
+                  </select>
+                }
+                @case ('multiEnum') {
+                  <select class="form-select" multiple [id]="'generation-question-' + question.id" [formControlName]="question.id">
+                    @for (option of question.options ?? []; track option.value) {
+                      <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+                    }
+                  </select>
+                }
+                @default {
+                  <input class="form-control" [type]="question.type === 'date' ? 'date' : 'text'" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength" />
+                }
+              }
+              @if (question.helpTextKey) { <div class="form-text">{{ question.helpTextKey | i18next }}</div> }
+            </div>
+          }
+
+          @if (busy()) {
+            <div class="rb-generation-progress" role="status" aria-live="polite">
+              <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+              <span>{{ progressLabel() | i18next }}</span>
+            </div>
+          }
+          @if (statusChecksPaused()) {
+            <div class="alert alert-info" role="status" aria-live="polite">
+              <p>{{ 'generation-status-checks-paused' | i18next }}</p>
+              <button type="button" class="btn btn-outline-primary" [disabled]="busy()" (click)="resumeStatusChecks()">
+                {{ 'generation-resume-status-checks' | i18next }}
+              </button>
+            </div>
+          }
+          @if (error()) {
+            <div class="alert alert-danger" role="alert">{{ error()! | i18next }}</div>
+          }
+          <div class="rb-generation-panel__actions">
+            <button type="submit" class="btn btn-primary" [disabled]="!effectiveSession() || busy() || activeRun() || questionForm.invalid || documentNotes.invalid || (documents().length > 0 && !documentsReviewed())">
+              {{ (busy() ? 'generation-generating' : restartRequired() ? 'generation-retry' : 'generation-generate') | i18next }}
+            </button>
+            <button type="button" class="btn btn-link" (click)="cancel()">{{ 'cancel' | i18next }}</button>
+          </div>
+        </form>
+      } @else {
+        <div class="rb-generation-complete" role="status" aria-live="polite">
+          <span class="rb-generation-complete__mark" aria-hidden="true">✓</span>
+          <div>
+            <h3>{{ 'generation-complete-title' | i18next }}</h3>
+            <p>{{ 'generation-complete-body' | i18next }}</p>
+          </div>
+        </div>
+        @if (reviewError()) {
+          <div class="alert alert-danger" role="alert">{{ reviewError()! | i18next }}</div>
+        }
+        @if (conflicts().length > 0) {
+          <div class="alert alert-warning" role="alert">
+            {{ 'generation-conflicts' | i18next }}: {{ conflicts().join(', ') }}
+          </div>
+        }
+        @for (item of candidate()?.items ?? []; track item.fieldId) {
+          @if (item.reviewRequired && provenance.byPointer()[item.metadataPointer]?.reviewRequired) {
+            <article class="rb-generation-review">
+              <span class="badge text-bg-warning">{{ 'generation-review-required' | i18next }}</span>
+              <h3>{{ item.fieldId }}</h3>
+              <p>{{ item.rationale }}</p>
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markReviewed(item.fieldId, item.metadataPointer)">
+                {{ 'generation-mark-reviewed' | i18next }}
+              </button>
+            </article>
+          }
+        }
+        <button type="button" class="btn btn-primary" (click)="close()">{{ 'generation-return-to-form' | i18next }}</button>
+      }
+    </div>
+  </aside>
+}

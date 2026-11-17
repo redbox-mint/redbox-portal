@@ -1,0 +1,9 @@
+<% /* The root app reads this same translated metadata before replacing its fallback DOM. */ %>
+<nav class="rb-admin-crumbs" aria-label="<%= header.breadcrumbLabel %>"><ol>
+  <li><a href="<%= header.adminUrl %>"><%= header.adminLabel %></a></li>
+  <% if (header.section) { %><li><%= header.section %></li><% } %>
+  <li><span aria-current="page"><%= header.title %></span></li>
+</ol></nav>
+<header class="rb-admin-page-header"><div><h1><%= header.title %></h1><p><%= header.description %></p></div>
+  <% if (header.refresh) { %><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" disabled><i class="fa fa-refresh" aria-hidden="true"></i> <%= header.refresh %></button></div><% } %>
+</header>

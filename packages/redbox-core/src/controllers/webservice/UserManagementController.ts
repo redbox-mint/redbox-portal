@@ -269,7 +269,7 @@ export namespace Controllers {
         userResponse.name = response.name;
         userResponse.email = response.email;
         userResponse.type = response.type;
-        userResponse.lastLogin = response.lastLogin;
+        userResponse.lastLogin = response.lastLogin ? new Date(response.lastLogin) : null;
         return this.apiRespond(req, res, userResponse, 201);
       };
 

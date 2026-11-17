@@ -97,6 +97,8 @@ export interface DashboardSettingsTableConfig {
 }
 
 export interface DashboardSettings {
+  /** Optional page size; omission preserves the legacy 10 rows per page. */
+  rowsPerPage?: 10 | 25 | 50 | 100;
   searchable: boolean;
   showStageTitle: boolean;
   tableConfig: DashboardSettingsTableConfig;
@@ -144,7 +146,8 @@ export const DASHBOARD_COPY_GROUP_FIELDS: Record<DashboardCopyGroup, string[]> =
     'tableConfig.formatRules.queryFilters',
     'tableConfig.formatRules.sortBy',
     'searchable',
-    'showStageTitle'
+    'showStageTitle',
+    'rowsPerPage'
   ],
   grouping: [
     'tableConfig.formatRules.groupBy',
@@ -154,7 +157,7 @@ export const DASHBOARD_COPY_GROUP_FIELDS: Record<DashboardCopyGroup, string[]> =
   ]
 };
 
-const KNOWN_SETTINGS_FIELDS = new Set(['searchable', 'showStageTitle', 'tableConfig']);
+const KNOWN_SETTINGS_FIELDS = new Set(['searchable', 'showStageTitle', 'rowsPerPage', 'tableConfig']);
 const KNOWN_TABLE_FIELDS = new Set(['rowConfig', 'rowRulesConfig', 'groupRowConfig', 'groupRowRulesConfig', 'formatRules']);
 const KNOWN_FORMAT_RULE_FIELDS = new Set(['filterBy', 'queryFilters', 'sortBy', 'groupBy', 'sortGroupBy']);
 
@@ -453,7 +456,8 @@ export function describeGroupChanges(before: DashboardSettings, after: Dashboard
         item('Search filters', summariseQueryFilters(b.tableConfig.formatRules.queryFilters), summariseQueryFilters(a.tableConfig.formatRules.queryFilters)),
         item('Overall sort', summariseValue(b.tableConfig.formatRules.sortBy), summariseValue(a.tableConfig.formatRules.sortBy)),
         item('Search box', b.searchable ? 'shown' : 'hidden', a.searchable ? 'shown' : 'hidden'),
-        item('Stage title', b.showStageTitle ? 'shown' : 'hidden', a.showStageTitle ? 'shown' : 'hidden')
+        item('Stage title', b.showStageTitle ? 'shown' : 'hidden', a.showStageTitle ? 'shown' : 'hidden'),
+        item('admin-dashboard-rows-per-page', String(b.rowsPerPage ?? 10), String(a.rowsPerPage ?? 10))
       ];
     } else {
       items = [
@@ -575,6 +579,9 @@ export function validateDashboardSettings(input: unknown, context: DashboardVali
   }
   if (typeof settings.showStageTitle !== 'boolean') {
     error('invalid-shape', 'showStageTitle', 'showStageTitle must be true or false.');
+  }
+  if (settings.rowsPerPage !== undefined && ![10, 25, 50, 100].includes(settings.rowsPerPage as number)) {
+    error('invalid-page-size', 'rowsPerPage', 'Rows per page must be 10, 25, 50 or 100.');
   }
   if (!isPlainObject(settings.tableConfig)) {
     error('invalid-shape', 'tableConfig', 'tableConfig must be an object.');

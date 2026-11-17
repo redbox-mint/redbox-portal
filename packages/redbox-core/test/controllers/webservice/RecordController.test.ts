@@ -1,3 +1,4 @@
+import { RelatedDisplayWriteError } from '../../../src/related-records/normalize-display-writes';
 import { createSinonStubLogger } from '../../logger.test';
 import assert from 'node:assert/strict';
 let expect: Chai.ExpectStatic;
@@ -1489,6 +1490,33 @@ describe('Webservice RecordController body source', () => {
       expect(envelope.meta).to.equal(undefined);
       expect(envelope.v1).to.deep.equal({ message: 'Update Object Metadata failed' });
     });
+
+    for (const apiVersion of ['1.0', '2.0'] as const) {
+      for (const action of ['update', 'create']) {
+        for (const code of ['related-display-field-not-writable', 'related-display-contract-invalid']) {
+          it(`maps ${action} ${code} on API ${apiVersion} without leaking source data`, async () => {
+            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [], brandId: 'brand-1' } });
+            recordsService.updateMeta.rejects(new RelatedDisplayWriteError(code));
+            recordsService.create.rejects(new RelatedDisplayWriteError(code));
+            const req = makeThrowingRequest({ params: { oid: 'record-1', recordType: 'dataset' }, query: {},
+              body: action === 'create' ? { metadata: { title: 'PRIVATE' } } : { title: 'PRIVATE' }, files: {} },
+              { headers: { 'x-redbox-api-version': apiVersion } } as Partial<Sails.Req>);
+            const send = sinon.stub(controller as any, 'sendResp');
+            if (action === 'create') { await controller.create(req, {} as Sails.Res); await flushPromises(); }
+            else await controller.updateMeta(req, {} as Sails.Res);
+            const envelope = send.firstCall.args[2];
+            if (apiVersion === '2.0' && code === 'related-display-field-not-writable') {
+              expect(envelope.status).to.equal(400);
+              expect(envelope.displayErrors[0].code).to.equal(code);
+            } else {
+              // API v1 keeps its existing contract: non-conflict save failures are server errors.
+              expect(envelope.status ?? 500).to.equal(500);
+            }
+            expect(JSON.stringify(envelope)).not.to.include('PRIVATE');
+          });
+        }
+      }
+    }
 
     it('uses req.apiRequest body in create', async () => {
       const body = {

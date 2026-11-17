@@ -109,11 +109,12 @@ export function objectField(
     {} as Record<string, ApiSchemaField>
   ) as ZodRawShape;
 
-  const objectSchema = additionalProperties === true
-    ? z.object(shape).passthrough()
-    : additionalProperties === false
-      ? z.object(shape)
-      : z.object(shape).catchall(additionalProperties);
+  const objectSchema =
+    additionalProperties === true
+      ? z.object(shape).passthrough()
+      : additionalProperties === false
+        ? z.object(shape)
+        : z.object(shape).catchall(additionalProperties);
   return description
     ? withOpenApi(
         objectSchema,
@@ -317,9 +318,29 @@ export const brandingSlotParams = objectField(
   ['branding', 'portal', 'slot']
 );
 
-export const logoUploadBody = objectField({}, [], 'Multipart logo upload body', true);
+export const logoUploadBody = objectField(
+  {
+    expectedDraftRevision: z
+      .union([z.number().int().nonnegative(), z.string().regex(/^\d+$/)])
+      .optional()
+      .describe('Required expected draft revision; checked after the multipart stream is consumed'),
+  },
+  [],
+  'Multipart draft logo upload body',
+  true
+);
 
-export const faviconUploadBody = objectField({}, [], 'Multipart favicon upload body', true);
+export const faviconUploadBody = objectField(
+  {
+    expectedDraftRevision: z
+      .union([z.number().int().nonnegative(), z.string().regex(/^\d+$/)])
+      .optional()
+      .describe('Required expected draft revision; checked after the multipart stream is consumed'),
+  },
+  [],
+  'Multipart draft favicon upload body',
+  true
+);
 
 export const datastreamUploadBody = objectField({}, [], 'Multipart datastream upload body', true);
 

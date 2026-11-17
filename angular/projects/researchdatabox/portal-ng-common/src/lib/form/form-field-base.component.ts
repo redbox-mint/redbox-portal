@@ -8,15 +8,15 @@ import {
 import { LoggerService } from '../logger.service';
 import {  isEmpty as _isEmpty, get as _get, set as _set } from 'lodash-es';
 import { UtilityService } from "../utility.service";
-import {
+import type {
   FormComponentDefinitionFrame,
-  FormFieldComponentStatus,
   LineagePaths,
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline,
   FormFieldComponentOrLayoutDefinition,
-  toBoolean,
 } from '@researchdatabox/sails-ng-common';
+import { FormFieldComponentStatus } from '@researchdatabox/sails-ng-common/dist/src/status.model';
+import { toBoolean } from '@researchdatabox/sails-ng-common/dist/src/config/helpers';
 
 export interface FormFieldFocusRequestOptions {
   scroll?: boolean;
@@ -299,6 +299,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   get isValid(): boolean {
     return Object.keys(this.formControl?.errors ?? {}).length === 0;
+  }
+
+  /** Validation stays active, but inline feedback waits for touch or a save attempt. */
+  get showValidationErrors(): boolean {
+    return this.model?.formControl?.touched === true || this.formComponent?.saveAttempted?.() === true;
+  }
+
+  get showInvalidState(): boolean {
+    return this.showValidationErrors && !this.isValid;
   }
 
   get showValidIndicator(): boolean {

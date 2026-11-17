@@ -3,7 +3,7 @@ import type { FormComponentEventBase } from './events/form-component-event.types
 import type { ControlSetValueOptions } from './custom-set-value.control';
 
 /** Handlers that caused a value notification, used to stop feedback loops. */
-export type ValueNotificationCause = Pick<FormComponentEventBase, 'behaviourChain' | 'expressionChain'>;
+export type ValueNotificationCause = Pick<FormComponentEventBase, 'behaviourChain' | 'expressionChain' | 'isCurrent'>;
 
 type ExpressionWrite = { writers: number; refreshed: boolean; value?: unknown };
 const expressionWrites = new WeakMap<AbstractControl, ExpressionWrite>();
@@ -52,7 +52,10 @@ export async function withExpressionValueNotifications(
   cause: ValueNotificationCause = {}
 ): Promise<void> {
   // A fresh object identifies this write's changes after the setter awaits.
-  const options: ControlSetValueOptions = { emitEvent: true, onlySelf: true };
+  const options: ControlSetValueOptions = {
+    emitEvent: true, onlySelf: true,
+    ...(cause.isCurrent ? { isCurrent: cause.isCurrent } : {}),
+  };
   const pending = expressionWrites.get(control) ?? { writers: 0, refreshed: false };
   expressionWrites.set(control, pending);
   pending.writers++;
@@ -118,6 +121,7 @@ function attributeOptions(control: AbstractControl, options: object, cause: Valu
       if (Object.prototype.hasOwnProperty.call(control, name)) ownMethods.set(name, original);
       methods[name] = function (this: unknown, ...args: unknown[]) {
         const token = args.find(arg => typeof arg === 'object' && arg !== null && writes.has(arg));
+        if (token && writes.get(token)!.isCurrent?.() === false) return;
         const call = () => original.apply(this, args);
         return token ? attributeTo(writes.get(token)!, call) : call();
       };

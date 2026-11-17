@@ -1,26 +1,36 @@
 <% let appName = 'report-config'; %>
 <% const userIsAdmin = (typeof isAdmin !== 'undefined' && isAdmin); %>
-<div class="row admin-layout">
-  <div class="col-md-3 col-lg-2">
-    <%- include('layout/sidebar.ejs') %>
-  </div>
-  <div class="col-md-9 col-lg-10 admin-main-content">
-    <% if (userIsAdmin) { %>
-      <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="true" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+<%
+const queryEditorBrand = BrandingService.getBrand(req.session.branding);
+const queryEditorRules = PathRulesService.getRulesFromPath(BrandingService.getBrandAndPortalPath(req) + '/admin/named-query', queryEditorBrand);
+const reportEditorRules = PathRulesService.getRulesFromPath(BrandingService.getBrandAndPortalPath(req) + '/api/report-config', queryEditorBrand);
+const canManageReports = req.isAuthenticated() && (!reportEditorRules || PathRulesService.canRead(reportEditorRules, req.user.roles || [], queryEditorBrand.name));
+const canManageNamedQueries = req.isAuthenticated() && (!queryEditorRules || PathRulesService.canRead(queryEditorRules, req.user.roles || [], queryEditorBrand.name));
+%>
+<%- include('layout/start.ejs') %>
+    <% if (userIsAdmin || canManageReports) { %>
+      <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="<%= userIsAdmin ? 'true' : 'false' %>" can-manage-named-queries="<%= canManageNamedQueries ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </report-config>
     <% } else { %>
-      <h1><%= TranslationService.t('reports-heading') %></h1>
-      <p><%= TranslationService.t('reports-description') %></p>
-      <ul>
-        <% for(var i=0; i<reports.length; i++) {%>
-          <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= reports[i].name %>"><%= reports[i].title %></a></li>
-        <% } %>
-      </ul>
+      <%- include('layout/page-header.ejs', {
+        breadcrumbs: [{ labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' }, { labelKey: 'admin-nav-records' }, { labelKey: 'reports-heading' }],
+        titleKey: 'reports-heading', descriptionKey: 'admin-reports-description'
+      }) %>
+      <section class="card">
+        <div class="card-header"><h2><%= TranslationService.t('report-configured-reports') %></h2></div>
+        <% if (reports.length) { %><div class="table-responsive"><table class="table table-hover">
+          <thead><tr><th><%= TranslationService.t('admin-report-column') %></th><th class="text-end"><%= TranslationService.t('report-col-actions') %></th></tr></thead>
+          <tbody><% reports.forEach(function(report) { %>
+            <tr><td><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= encodeURIComponent(report.name) %>"><b><%= report.title %></b></a><code class="rb-admin-sub"><%= report.name %></code></td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= encodeURIComponent(report.name) %>"><%= TranslationService.t('admin-report-run') %></a></td></tr>
+          <% }); %></tbody>
+        </table></div><% } %>
+        <% if (!reports.length) { %><div class="rb-admin-empty"><h3><%= TranslationService.t('report-none-found') %></h3></div><% } %>
+      </section>
     <% } %>
-  </div>
-</div>
-<% if (userIsAdmin) { %>
+<%- include('layout/end.ejs') %>
+<% if (userIsAdmin || canManageReports) { %>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
    type="module"></script>
 

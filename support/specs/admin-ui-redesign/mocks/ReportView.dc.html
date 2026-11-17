@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report: List RDMP records</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="reports" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><a href="Reports.dc.html">Reports</a><span>/</span><span>List RDMP records</span></nav>
+      <header class="ph">
+        <div><h1>List RDMP records</h1><p>All research data management plans. Source: database · named query <span class="mono">listRDMPRecords</span></p></div>
+        <div class="ph-actions"><button class="btn btn-secondary" type="button">Edit report</button><button class="btn btn-primary" type="button">Download CSV</button></div>
+      </header>
+
+      <div class="card">
+        <div class="card-h"><h2>Results</h2><span class="meta">4 records</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="rv-t">Title contains</label><input id="rv-t" class="inp" placeholder="Any title"></div>
+          <div class="field"><label for="rv-m1">Modified from</label><input id="rv-m1" class="inp" placeholder="dd/mm/yyyy" value="01/10/2026"></div>
+          <div class="field"><label for="rv-m2">Modified to</label><input id="rv-m2" class="inp" placeholder="dd/mm/yyyy"></div>
+          <div class="field"><label for="rv-c1">Created from</label><input id="rv-c1" class="inp" placeholder="dd/mm/yyyy"></div>
+          <div class="field"><label for="rv-c2">Created to</label><input id="rv-c2" class="inp" placeholder="dd/mm/yyyy"></div>
+          <div class="row"><button class="btn btn-primary" type="button">Apply</button><button class="btn btn-ghost" type="button">Clear</button></div>
+        </div>
+        <div style="padding: 10px 16px; border-bottom: 1px solid #ececec" class="row">
+          <span class="small muted">Active filters:</span>
+          <span class="chip">Modified from 01/10/2026 <button class="btn btn-ghost btn-sm" type="button" aria-label="Remove filter" style="padding: 0 4px">×</button></span>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Title ↕</th><th>Date modified ↓</th><th>Date created ↕</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">[Sample] Coastal sediment survey 2026</a></td><td>04/11/2026 14:12</td><td>02/10/2026 09:30</td></tr>
+            <tr><td><a href="#">[Sample] Urban heat island sensor network</a></td><td>28/10/2026 10:01</td><td>15/09/2026 11:44</td></tr>
+            <tr><td><a href="#">[Sample] Oral histories of regional Queensland</a></td><td>12/10/2026 16:20</td><td>12/10/2026 16:02</td></tr>
+            <tr><td><a href="#">[Sample] Reef fish acoustic tagging</a></td><td>03/10/2026 08:55</td><td>01/08/2026 13:17</td></tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 1–4 of 4 · dates shown in dd/mm/yyyy (portal locale)</span><div class="pager"><button type="button">‹</button><button type="button" class="on">1</button><button type="button">›</button></div></div>
+      </div>
+      <p class="note">Sample rows are for illustration; the dev environment returned 0 results. With no results, the table shows the shared empty state: “No records match these filters”, plus a Clear filters action.</p>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

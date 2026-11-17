@@ -121,6 +121,37 @@ module.exports.appmode = Config.appmode;
 
 Config shims also merge hook-provided configurations according to the installation's root `package.json` `hookLoadPriority` list. The first listed hook has the highest precedence, so generated config shims process lower-precedence hooks first and higher-precedence hooks later. If `hookLoadPriority` is missing, the loader keeps the previous package-name fallback behavior.
 
+#### Extending authorization rules
+
+Hook `auth.rules` arrays append to core rules in hook processing order. Rule
+objects remain separate, so a hook's rules cannot overwrite core rules or
+inherit flags from an unrelated rule at the same array index. For example:
+
+```javascript
+module.exports.registerRedboxConfig = () => ({
+    auth: {
+        rules: [
+            { path: '/:branding/:portal/ws/catalog(/*)', role: 'Researcher', can_update: true }
+        ]
+    }
+});
+```
+
+Ordinary appends remove exact duplicate rule objects, preserving the first
+occurrence and comparing all properties, including path, role, branding and
+permission flags. Property order does not matter. Rules with the same path and
+role but different flags or branding remain separate. Later rules do not
+replace earlier grants; `PathRulesService` accepts any matching grant. Use
+`auth: { _dontMerge: ['rules'], rules: [...] }` to supply a complete replacement
+list. That explicit list is retained exactly, including an empty list or any
+duplicates, and later hooks can append to it. Existing hooks that supply a
+combined core-and-plugin list with this directive continue to work.
+
+Other `auth` properties retain normal deep merging, including index-based
+merging for other arrays. Rules seed the database only when the `PathRule`
+collection is empty; changing configuration does not repair an already seeded
+database.
+
 #### Replacing hook configuration sections
 
 Config returned by `registerRedboxConfig()` may include `_dontMerge` at any
@@ -148,7 +179,8 @@ no effect. The marker is consumed and does not appear in the merged config.
 Directives apply only to the incoming layer: later hooks can merge into a
 replaced section unless they also request replacement. Unlisted fields retain
 the existing merge rules, including index-based array merging for ordinary
-config, array replacement for `brandingConfigurationDefaults`, and Agenda jobs
+config, append with exact de-duplication for `auth.rules`, array replacement
+for `brandingConfigurationDefaults`, and Agenda jobs
 normalized and merged by name. Agenda directives can replace the whole `jobs`
 section or fields within named jobs. Core and hook registration objects remain
 unchanged, so repeated shim evaluation is safe. Generated config shims and the

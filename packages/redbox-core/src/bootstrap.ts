@@ -45,6 +45,9 @@ export async function bootstrapRecordSchema(): Promise<void> {
 export async function coreBootstrap(): Promise<void> {
   const schedule = require('node-schedule');
 
+  await sails.services.emailtemplateservice.bootstrap();
+  sails.services.emailservice.validateExposedConfig();
+
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
   sails.log.verbose('Branding service, bootstrapped.');
 
@@ -55,9 +58,6 @@ export async function coreBootstrap(): Promise<void> {
 
   await sails.services.reportsservice.bootstrapData(sails.services.brandingservice.getDefault());
   sails.log.verbose('Reports service, bootstrapped.');
-
-  await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
-  sails.log.verbose('Named Query service, bootstrapped.');
 
   // sails doesn't support 'populating' of nested associations
   // intentionally queried again because of nested 'users' population
@@ -103,11 +103,19 @@ export async function coreBootstrap(): Promise<void> {
   }
 
   sails.log.verbose('Forms service, bootstrapped.');
+  // Static GraphQL import validation requires configured read forms on first lift.
+  await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
+  sails.log.verbose('Named Query service, bootstrapped.');
+
   sails.log.verbose('Record validation rollout configuration loaded.');
   await sails.services.vocabularyservice.bootstrapData();
   sails.log.verbose('Vocabulary bootstrap data, loaded.');
   await sails.services.recordsservice.bootstrapData();
   sails.log.verbose('Records bootstrap data, loaded.');
+
+  await sails.services.generationpersistenceservice.bootstrap();
+  await sails.services.generationbootstrapservice.bootstrap(defaultBranding);
+  sails.log.verbose('Generation services, bootstrapped.');
 
   // Schedule cronjobs
   if (sails.config.crontab.enabled) {

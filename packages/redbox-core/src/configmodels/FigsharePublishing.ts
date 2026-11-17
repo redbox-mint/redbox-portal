@@ -464,24 +464,24 @@ const CATEGORY_MAPPING_EDITOR_WIDGET = {
 const SIMPLE_BINDING_PROPERTIES = {
   kind: {
     type: 'string',
-    title: 'Binding Type',
+    title: 'admin-config-label-binding-type',
     enum: ['path', 'handlebars', 'jsonata'],
     default: 'path',
   },
   path: {
     type: 'string',
-    title: 'Record Path',
+    title: 'admin-config-label-record-path',
   },
   template: {
     type: 'string',
-    title: 'Handlebars Template',
+    title: 'admin-config-label-handlebars-template',
   },
   expression: {
     type: 'string',
-    title: 'JSONata Expression',
+    title: 'admin-config-label-jsonata-expression',
   },
   defaultValue: {
-    title: 'Default Value',
+    title: 'admin-config-label-default-value',
   },
 };
 
@@ -492,14 +492,14 @@ const SIMPLE_BINDING_PROPERTIES = {
  */
 const SIMPLE_VALUE_BINDING_SCHEMA = {
   type: 'object',
-  title: 'Source Binding',
+  title: 'admin-config-label-source-binding',
   properties: SIMPLE_BINDING_PROPERTIES,
   required: ['kind'],
 };
 
 const VALUE_BINDING_SCHEMA = {
   type: 'object',
-  title: 'Binding',
+  title: 'admin-config-label-binding',
   properties: {
     ...SIMPLE_BINDING_PROPERTIES,
     kind: {
@@ -509,17 +509,17 @@ const VALUE_BINDING_SCHEMA = {
     source: SIMPLE_VALUE_BINDING_SCHEMA,
     sourceVocabularyId: {
       type: 'string',
-      title: 'Source Vocabulary',
+      title: 'admin-config-label-source-vocabulary',
       description: 'Crosswalk kind only. Record codes are resolved against entries of exactly this vocabulary.',
     },
     crosswalkId: {
       type: 'string',
-      title: 'Approved Figshare Crosswalk',
+      title: 'admin-config-label-approved-figshare-crosswalk',
       description: 'Crosswalk kind only. Publishing always reads the approved revision.',
     },
     outputs: {
       type: 'string',
-      title: 'Output',
+      title: 'admin-config-label-output',
       description:
         'What each resolved mapping emits. The Categories binding must use categoryId; label and sourceId produce strings for fields such as keywords or custom fields.',
       enum: ['categoryId', 'label', 'sourceId'],
@@ -542,21 +542,21 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
   properties: {
     enabled: {
       type: 'boolean',
-      title: 'Enabled',
+      title: 'admin-config-label-enabled',
       default: false,
     },
     processing: {
-      type: 'object', title: 'Background Processing',
+      type: 'object', title: 'admin-config-label-background-processing',
       description: 'Enable only after migration, indexes and worker cutover. Local attachment bytes are retained.',
       properties: {
         enabled: { type: 'boolean', default: false },
         ...Object.fromEntries((['coalesceMs', 'leaseMs', 'heartbeatMs', 'maxAttempts', 'retryBaseMs', 'observationMs', 'cleanupMs'] as const).map(key => [key, { type: 'integer', minimum: 1, default: DEFAULT_FIGSHARE_PROCESSING[key] }])),
-        serviceUsername: { type: 'string', title: 'Local Service Username' },
-        serviceUserType: { type: 'string', title: 'Local Service User Type' }
+        serviceUsername: { type: 'string', title: 'admin-config-label-local-service-username' },
+        serviceUserType: { type: 'string', title: 'admin-config-label-local-service-user-type' }
       }
     },
     impersonation: {
-      type: 'object', title: 'Figshare Ownership',
+      type: 'object', title: 'admin-config-label-figshare-ownership',
       properties: {
         enabled: { type: 'boolean', default: false },
         institutionalIdPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.institutionalIdPath },
@@ -567,43 +567,43 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
     },
     connection: {
       type: 'object',
-      title: 'Connection',
+      title: 'admin-config-label-connection',
       properties: {
-        baseUrl: { type: 'string', title: 'Base URL' },
-        frontEndUrl: { type: 'string', title: 'Front End URL' },
+        baseUrl: { type: 'string', title: 'admin-config-label-base-url' },
+        frontEndUrl: { type: 'string', title: 'admin-config-label-front-end-url' },
         token: {
           type: 'string',
-          title: 'API Token',
+          title: 'admin-config-label-api-token',
           description:
             'Do not commit raw API tokens. Prefer an environment variable reference such as $FIGSHARE_TOKEN or the deployment secret manager.',
         },
-        timeoutMs: { type: 'integer', title: 'Request Timeout (ms)', default: 30000 },
+        timeoutMs: { type: 'integer', title: 'admin-config-label-request-timeout-ms', default: 30000 },
         operationTimeouts: {
           type: 'object',
-          title: 'Operation Timeouts',
+          title: 'admin-config-label-operation-timeouts',
           properties: {
-            metadataMs: { type: 'integer', title: 'Metadata Timeout (ms)', default: 30000 },
-            uploadInitMs: { type: 'integer', title: 'Upload Init Timeout (ms)', default: 30000 },
-            uploadPartMs: { type: 'integer', title: 'Upload Part Timeout (ms)', default: 120000 },
-            publishMs: { type: 'integer', title: 'Publish Timeout (ms)', default: 60000 },
+            metadataMs: { type: 'integer', title: 'admin-config-label-metadata-timeout-ms', default: 30000 },
+            uploadInitMs: { type: 'integer', title: 'admin-config-label-upload-init-timeout-ms', default: 30000 },
+            uploadPartMs: { type: 'integer', title: 'admin-config-label-upload-part-timeout-ms', default: 120000 },
+            publishMs: { type: 'integer', title: 'admin-config-label-publish-timeout-ms', default: 60000 },
           },
         },
         retry: {
           type: 'object',
-          title: 'Retry Policy',
+          title: 'admin-config-label-retry-policy',
           properties: {
-            maxAttempts: { type: 'integer', title: 'Max Attempts', default: 3 },
-            baseDelayMs: { type: 'integer', title: 'Base Delay (ms)', default: 500 },
-            maxDelayMs: { type: 'integer', title: 'Max Delay (ms)', default: 4000 },
+            maxAttempts: { type: 'integer', title: 'admin-config-label-max-attempts', default: 3 },
+            baseDelayMs: { type: 'integer', title: 'admin-config-label-base-delay-ms', default: 500 },
+            maxDelayMs: { type: 'integer', title: 'admin-config-label-max-delay-ms', default: 4000 },
             retryOnStatusCodes: {
               type: 'array',
-              title: 'Retry On Status Codes',
+              title: 'admin-config-label-retry-on-status-codes',
               items: { type: 'integer' },
               default: [408, 429, 500, 502, 503, 504],
             },
             retryOnMethods: {
               type: 'array',
-              title: 'Retry On Methods',
+              title: 'admin-config-label-retry-on-methods',
               items: { type: 'string' },
               default: ['get', 'put', 'delete'],
             },
@@ -613,11 +613,11 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
     },
     article: {
       type: 'object',
-      title: 'Article',
+      title: 'admin-config-label-article',
       properties: {
         itemType: {
           type: 'string',
-          title: 'Item Type',
+          title: 'admin-config-label-item-type',
           enum: [
             'dataset',
             'fileset',
@@ -632,78 +632,78 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           ],
           default: 'dataset',
         },
-        groupId: { type: 'integer', title: 'Group ID' },
+        groupId: { type: 'integer', title: 'admin-config-label-group-id' },
         publishMode: {
           type: 'string',
-          title: 'Publish Mode',
+          title: 'admin-config-label-publish-mode',
           enum: ['immediate', 'afterUploadsComplete', 'manual'],
           default: 'afterUploadsComplete',
         },
-        republishOnMetadataChange: { type: 'boolean', title: 'Republish On Metadata Change', default: true },
-        republishOnAssetChange: { type: 'boolean', title: 'Republish On Asset Change', default: true },
+        republishOnMetadataChange: { type: 'boolean', title: 'admin-config-label-republish-on-metadata-change', default: true },
+        republishOnAssetChange: { type: 'boolean', title: 'admin-config-label-republish-on-asset-change', default: true },
         curationLock: {
           type: 'object',
-          title: 'Curation Lock',
+          title: 'admin-config-label-curation-lock',
           properties: {
-            enabled: { type: 'boolean', title: 'Enabled', default: false },
-            statusField: { type: 'string', title: 'Status Field', default: '' },
-            targetValue: { type: 'string', title: 'Target Value', default: 'public' },
+            enabled: { type: 'boolean', title: 'admin-config-label-enabled', default: false },
+            statusField: { type: 'string', title: 'admin-config-label-status-field', default: '' },
+            targetValue: { type: 'string', title: 'admin-config-label-target-value', default: 'public' },
           },
         },
       },
     },
     record: {
       type: 'object',
-      title: 'Record',
+      title: 'admin-config-label-record',
       properties: {
-        articleIdPath: { type: 'string', title: 'Article ID Path', default: 'metadata.figshare_article_id' },
-        dataLocationsPath: { type: 'string', title: 'Data Locations Path', default: 'metadata.dataLocations' },
-        statusPath: { type: 'string', title: 'Status Path', default: 'metadata.figshareStatus' },
-        errorPath: { type: 'string', title: 'Error Path', default: 'metadata.figshareError' },
-        syncStatePath: { type: 'string', title: 'Sync State Path', default: 'metadata.figshareSyncState' },
-        allFilesUploadedPath: { type: 'string', title: 'All Files Uploaded Path', default: '' },
+        articleIdPath: { type: 'string', title: 'admin-config-label-article-id-path', default: 'metadata.figshare_article_id' },
+        dataLocationsPath: { type: 'string', title: 'admin-config-label-data-locations-path', default: 'metadata.dataLocations' },
+        statusPath: { type: 'string', title: 'admin-config-label-status-path', default: 'metadata.figshareStatus' },
+        errorPath: { type: 'string', title: 'admin-config-label-error-path', default: 'metadata.figshareError' },
+        syncStatePath: { type: 'string', title: 'admin-config-label-sync-state-path', default: 'metadata.figshareSyncState' },
+        allFilesUploadedPath: { type: 'string', title: 'admin-config-label-all-files-uploaded-path', default: '' },
       },
     },
     selection: {
       type: 'object',
-      title: 'Selection',
+      title: 'admin-config-label-selection',
       properties: {
         attachmentMode: {
           type: 'string',
-          title: 'Attachment Mode',
+          title: 'admin-config-label-attachment-mode',
           enum: ['selectedOnly', 'all'],
           default: 'selectedOnly',
         },
         urlMode: {
           type: 'string',
-          title: 'URL Mode',
+          title: 'admin-config-label-url-mode',
           enum: ['selectedOnly', 'all'],
           default: 'selectedOnly',
         },
-        selectedFlagPath: { type: 'string', title: 'Selected Flag Path', default: 'selected' },
+        selectedFlagPath: { type: 'string', title: 'admin-config-label-selected-flag-path', default: 'selected' },
       },
     },
     authors: {
       type: 'object',
-      title: 'Authors',
+      title: 'admin-config-label-authors',
       properties: {
         uniqueBy: {
           type: 'string',
-          title: 'Unique By',
+          title: 'admin-config-label-unique-by',
           enum: ['email', 'orcid', 'username', 'none'],
           default: 'email',
         },
-        externalNameField: { type: 'string', title: 'External Name Field', default: 'text_full_name' },
-        maxInlineAuthors: { type: 'integer', title: 'Max Inline Authors', default: 50 },
+        externalNameField: { type: 'string', title: 'admin-config-label-external-name-field', default: 'text_full_name' },
+        maxInlineAuthors: { type: 'integer', title: 'admin-config-label-max-inline-authors', default: 50 },
         lookup: {
           type: 'array',
-          title: 'Lookup Rules',
+          title: 'admin-config-label-lookup-rules',
           items: {
             type: 'object',
             properties: {
               matchBy: {
                 type: 'string',
-                title: 'Match By',
+                title: 'admin-config-label-match-by',
                 enum: ['email', 'orcid', 'username'],
               },
               value: VALUE_BINDING_SCHEMA,
@@ -712,7 +712,7 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         },
         contributorPaths: {
           type: 'array',
-          title: 'Contributor Paths',
+          title: 'admin-config-label-contributor-paths',
           items: { type: 'string' },
           default: [
             'metadata.contributor_ci',
@@ -724,17 +724,17 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         },
         emailTransform: {
           type: 'object',
-          title: 'Email Transform',
+          title: 'admin-config-label-email-transform',
           properties: {
-            prefix: { type: 'string', title: 'Prefix', default: '' },
-            domainOverride: { type: 'string', title: 'Domain Override', default: '' },
+            prefix: { type: 'string', title: 'admin-config-label-prefix', default: '' },
+            domainOverride: { type: 'string', title: 'admin-config-label-domain-override', default: '' },
           },
         },
       },
     },
     metadata: {
       type: 'object',
-      title: 'Metadata',
+      title: 'admin-config-label-metadata',
       properties: {
         title: VALUE_BINDING_SCHEMA,
         description: VALUE_BINDING_SCHEMA,
@@ -742,28 +742,28 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         funding: VALUE_BINDING_SCHEMA,
         license: {
           type: 'object',
-          title: 'License',
+          title: 'admin-config-label-license',
           properties: {
             source: VALUE_BINDING_SCHEMA,
             matchBy: {
               type: 'string',
-              title: 'Match By',
+              title: 'admin-config-label-match-by',
               enum: ['urlContains', 'nameExact', 'valueExact'],
               default: 'urlContains',
             },
-            required: { type: 'boolean', title: 'Required', default: true },
+            required: { type: 'boolean', title: 'admin-config-label-required', default: true },
           },
         },
         categories: {
           type: 'object',
-          title: 'Categories Binding',
+          title: 'admin-config-label-categories-binding',
           properties: {
             source: VALUE_BINDING_SCHEMA,
           },
         },
         relatedResource: {
           type: 'object',
-          title: 'Related Resource',
+          title: 'admin-config-label-related-resource',
           properties: {
             title: VALUE_BINDING_SCHEMA,
             doi: VALUE_BINDING_SCHEMA,
@@ -771,26 +771,26 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         },
         customFields: {
           type: 'array',
-          title: 'Custom Fields',
+          title: 'admin-config-label-custom-fields',
           items: {
             type: 'object',
             properties: {
-              figshareField: { type: 'string', title: 'Figshare Field' },
+              figshareField: { type: 'string', title: 'admin-config-label-figshare-field' },
               value: VALUE_BINDING_SCHEMA,
               validations: {
                 type: 'array',
-                title: 'Validations',
+                title: 'admin-config-label-validations',
                 items: {
                   type: 'object',
                   properties: {
                     type: {
                       type: 'string',
-                      title: 'Type',
+                      title: 'admin-config-label-type',
                       enum: ['maxLength', 'url', 'doi', 'required'],
                     },
                     value: {
                       type: 'integer',
-                      title: 'Value',
+                      title: 'admin-config-label-value',
                     },
                   },
                 },
@@ -802,40 +802,40 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
     },
     categories: {
       type: 'object',
-      title: 'Categories',
+      title: 'admin-config-label-categories',
       properties: {
         mappingTable: {
           type: 'array',
-          title: 'Mapping Table',
+          title: 'admin-config-label-mapping-table',
           description:
             'Used only when the Categories binding is not a crosswalk binding. Each row maps a record category code to a Figshare category ID.',
           items: {
             type: 'object',
             properties: {
-              sourceCode: { type: 'string', title: 'Source Code' },
-              figshareCategoryId: { type: 'integer', title: 'Figshare Category ID' },
+              sourceCode: { type: 'string', title: 'admin-config-label-source-code' },
+              figshareCategoryId: { type: 'integer', title: 'admin-config-label-figshare-category-id' },
             },
           },
           ...CATEGORY_MAPPING_EDITOR_WIDGET,
         },
-        allowUnmapped: { type: 'boolean', title: 'Allow Unmapped Categories', default: false },
+        allowUnmapped: { type: 'boolean', title: 'admin-config-label-allow-unmapped-categories', default: false },
       },
     },
     assets: {
       type: 'object',
-      title: 'Assets',
+      title: 'admin-config-label-assets',
       properties: {
-        enableHostedFiles: { type: 'boolean', title: 'Enable Hosted Files', default: true },
-        enableLinkFiles: { type: 'boolean', title: 'Enable Link Files', default: true },
+        enableHostedFiles: { type: 'boolean', title: 'admin-config-label-enable-hosted-files', default: true },
+        enableLinkFiles: { type: 'boolean', title: 'admin-config-label-enable-link-files', default: true },
         staging: {
           type: 'object',
-          title: 'Staging',
+          title: 'admin-config-label-staging',
           properties: {
-            disk: { type: 'string', title: 'Storage Disk', default: 'figshare-staging' },
-            keyPrefix: { type: 'string', title: 'Storage Key Prefix', default: 'figshare/' },
+            disk: { type: 'string', title: 'admin-config-label-storage-disk', default: 'figshare-staging' },
+            keyPrefix: { type: 'string', title: 'admin-config-label-storage-key-prefix', default: 'figshare/' },
             cleanupPolicy: {
               type: 'string',
-              title: 'Cleanup Policy',
+              title: 'admin-config-label-cleanup-policy',
               enum: ['deleteAfterSuccess', 'retainForRetry'],
               default: 'deleteAfterSuccess',
             },
@@ -845,18 +845,18 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
     },
     embargo: {
       type: 'object',
-      title: 'Embargo',
+      title: 'admin-config-label-embargo',
       properties: {
         mode: {
           type: 'string',
-          title: 'Mode',
+          title: 'admin-config-label-mode',
           enum: ['none', 'recordDriven'],
           default: 'recordDriven',
         },
-        forceSync: { type: 'boolean', title: 'Force Sync', default: false },
+        forceSync: { type: 'boolean', title: 'admin-config-label-force-sync', default: false },
         accessRights: {
           type: 'object',
-          title: 'Embargo Bindings',
+          title: 'admin-config-label-embargo-bindings',
           properties: {
             accessRights: VALUE_BINDING_SCHEMA,
             embargoType: VALUE_BINDING_SCHEMA,
@@ -868,56 +868,56 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
     },
     queue: {
       type: 'object',
-      title: 'Queue',
+      title: 'admin-config-label-queue',
       properties: {
-        publishAfterUploadDelay: { type: 'string', title: 'Publish After Upload Delay', default: 'in 2 minutes' },
-        uploadedFilesCleanupDelay: { type: 'string', title: 'Uploaded Files Cleanup Delay', default: 'in 5 minutes' },
+        publishAfterUploadDelay: { type: 'string', title: 'admin-config-label-publish-after-upload-delay', default: 'in 2 minutes' },
+        uploadedFilesCleanupDelay: { type: 'string', title: 'admin-config-label-uploaded-files-cleanup-delay', default: 'in 5 minutes' },
       },
     },
     workflow: {
       type: 'object',
-      title: 'Workflow',
+      title: 'admin-config-label-workflow',
       properties: {
         transitionJob: {
           type: 'object',
-          title: 'Transition Job',
+          title: 'admin-config-label-transition-job',
           properties: {
-            enabled: { type: 'boolean', title: 'Enabled', default: false },
-            namedQuery: { type: 'string', title: 'Named Query', default: '' },
-            targetStep: { type: 'string', title: 'Target Step', default: '' },
-            paramMap: { type: 'object', title: 'Parameter Map', default: {} },
-            figshareTargetFieldKey: { type: 'string', title: 'Figshare Target Field Key', default: '' },
-            figshareTargetFieldValue: { type: 'string', title: 'Figshare Target Field Value', default: '' },
-            username: { type: 'string', title: 'Username', default: '' },
-            userType: { type: 'string', title: 'User Type', default: '' },
+            enabled: { type: 'boolean', title: 'admin-config-label-enabled', default: false },
+            namedQuery: { type: 'string', title: 'admin-config-label-named-query', default: '' },
+            targetStep: { type: 'string', title: 'admin-config-label-target-step', default: '' },
+            paramMap: { type: 'object', title: 'admin-config-label-parameter-map', default: {} },
+            figshareTargetFieldKey: { type: 'string', title: 'admin-config-label-figshare-target-field-key', default: '' },
+            figshareTargetFieldValue: { type: 'string', title: 'admin-config-label-figshare-target-field-value', default: '' },
+            username: { type: 'string', title: 'admin-config-label-username', default: '' },
+            userType: { type: 'string', title: 'admin-config-label-user-type', default: '' },
           },
         },
       },
     },
     writeBack: {
       type: 'object',
-      title: 'Write Back',
+      title: 'admin-config-label-write-back',
       properties: {
-        articleId: { type: 'string', title: 'Article ID Target Path', default: 'metadata.figshare_article_id' },
+        articleId: { type: 'string', title: 'admin-config-label-article-id-target-path', default: 'metadata.figshare_article_id' },
         articleUrls: {
           type: 'array',
-          title: 'Article URL Target Paths',
+          title: 'admin-config-label-article-url-target-paths',
           items: { type: 'string' },
           default: ['metadata.figshare_article_location'],
         },
         extraFields: {
           type: 'array',
-          title: 'Extra Fields',
+          title: 'admin-config-label-extra-fields',
           items: {
             type: 'object',
             properties: {
               from: {
                 type: 'string',
-                title: 'From',
+                title: 'admin-config-label-from',
                 enum: ['article', 'publishResult', 'assetSyncResult'],
               },
-              sourcePath: { type: 'string', title: 'Source Path' },
-              targetPath: { type: 'string', title: 'Target Path' },
+              sourcePath: { type: 'string', title: 'admin-config-label-source-path' },
+              targetPath: { type: 'string', title: 'admin-config-label-target-path' },
             },
           },
         },

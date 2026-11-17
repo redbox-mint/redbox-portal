@@ -259,7 +259,8 @@ export function validateApiRouteConsistency(
 
   for (const [routePattern, runtimeTarget] of Object.entries(runtimeRoutes)) {
     const parsed = parseRoutePattern(routePattern);
-    if (!isApiRoutePath(parsed.path)) {
+    // Contract groups may also publish browser endpoints, such as session refreshes.
+    if (!isApiRoutePath(parsed.path) && !contractRoutes.some(route => route.path === parsed.path)) {
       continue;
     }
 

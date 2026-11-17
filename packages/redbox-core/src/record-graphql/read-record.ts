@@ -10,16 +10,23 @@ export interface ReadCaller {
 }
 
 export interface ReadPorts {
-  readonly getRecord: (oid: string) => Promise<RecordModel>;
+  readonly getRecord: (oid: string) => Promise<RecordModel | null | undefined>;
   readonly hasViewAccess: (caller: ReadCaller, record: RecordModel) => boolean | Promise<boolean>;
 }
 
 /** Preserve the REST service override, brand check and viewer/editor authorization. */
-export async function readAuthorizedRecord(ports: ReadPorts, caller: ReadCaller, oid: string): Promise<RecordModel> {
-  let record: RecordModel;
+export async function readAuthorizedRecord(
+  ports: ReadPorts,
+  caller: ReadCaller,
+  oid: string,
+  strictStorage = false
+): Promise<RecordModel> {
+  let record: RecordModel | null | undefined;
   try {
     record = await ports.getRecord(oid);
   } catch {
+    if (strictStorage)
+      throw new GraphQLError('Record storage is unavailable.', { extensions: { code: 'STORAGE_UNAVAILABLE' } });
     throw new GraphQLError('Record was not found.', { extensions: { code: 'NOT_FOUND' } });
   }
   if (

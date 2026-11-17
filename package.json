@@ -37,7 +37,8 @@
     "sails-mongo": "2.1.2",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
-    "typescript-require": "0.3.0"
+    "typescript-require": "0.3.0",
+    "@researchdatabox/redbox-mcp": "file:packages/redbox-mcp"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -74,6 +75,7 @@
     "test:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm run test && cd ../../",
     "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test:full && cd ../../",
     "test:config-types": "tsc --noEmit -p support/typecheck/runtime-config/tsconfig.json",
+    "test:named-query:types": "tsc --noEmit -p test/integration/tsconfig.named-query.json",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",
     "test:record-contracts": "npm --prefix packages/redbox-core run test:record-contracts",
     "test:record-schema-rollout": "npm --prefix packages/redbox-core run test:record-schema-rollout",
@@ -89,8 +91,8 @@
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng": "npm run compile:ng-apps",
     "compile:core": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
-    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails",
-    "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails && npm run compile:ng && npm run webpack",
+    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:mcp && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails",
+    "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:mcp && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails && npm run compile:ng && npm run webpack",
     "compile:core:prod": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:clean && npm run compile && cd ../../",
     "compile:raido": "cd ./packages/raido && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
@@ -101,6 +103,7 @@
     "compile:dev-tools": "cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
+    "dev:run:bedrock": "bash ./support/development/runBedrockDev.sh",
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
@@ -108,6 +111,10 @@
     "dev:prepare": "./support/development/prepareLocalDev.sh",
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
     "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
+    "compile:mcp": "npm --prefix packages/redbox-mcp ci --include=dev --ignore-scripts --strict-peer-deps && npm --prefix packages/redbox-mcp run build",
+    "test:mcp": "npm --prefix packages/redbox-mcp test",
+    "test:reporting": "bash support/integration-testing/run-reporting-compose.sh",
+    "test:reporting:local": "npm --prefix packages/redbox-core run test:reporting && npm --prefix packages/redbox-mcp run typecheck:test && npm --prefix packages/redbox-mcp test",
     "test:ingress-dependencies": "node --test --test-timeout=15000 test/dependencies/ingress.test.cjs",
     "test:outbound-dependencies": "node --test --test-timeout=15000 test/dependencies/outbound.test.cjs",
     "test:tooling-dependencies": "node --test --test-timeout=30000 test/dependencies/tooling.test.cjs test/dependencies/bruno.test.cjs test/dependencies/patterns.test.cjs",
@@ -126,14 +133,14 @@
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
         "@aws-sdk/xml-builder": {
-          "fast-xml-parser": "5.10.1"
+          "fast-xml-parser": "5.12.0"
         }
       },
       "@aws-sdk/signature-v4-multi-region": {
         "@aws-sdk/middleware-sdk-s3": {
           "@aws-sdk/core": {
             "@aws-sdk/xml-builder": {
-              "fast-xml-parser": "5.10.1"
+              "fast-xml-parser": "5.12.0"
             }
           }
         }
@@ -162,7 +169,7 @@
     "on-headers": "1.1.0",
     "serialize-javascript": "7.1.3",
     "@uppy/companion": {
-      "fast-xml-parser": "5.10.1",
+      "fast-xml-parser": "5.12.0",
       "morgan": "1.12.1",
       "serialize-javascript": "7.1.3"
     },
@@ -185,7 +192,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.10.1",
+    "fast-xml-parser": "5.12.0",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
@@ -250,7 +257,7 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "1.65.0",
+    "@playwright/test": "1.65.1",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.1",
     "@types/lodash-es": "4.17.12",
@@ -259,13 +266,14 @@
     "ajv": "8.20.0",
     "chai": "6.2.2",
     "css-loader": "7.1.4",
+    "dompurify": "3.4.17",
     "gh-pages": "6.3.0",
     "mini-css-extract-plugin": "2.10.2",
     "mocha": "11.7.6",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "oxlint": "1.63.0",
-    "oxlint-tsgolint": "7.0.2005",
+    "oxlint-tsgolint": "7.0.2006",
     "pino-test": "2.0.0",
     "prettier": "3.8.3",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
@@ -273,7 +281,8 @@
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
     "serialize-javascript": "7.1.3",
-    "supertest": "7.3.1",
+    "supertest": "7.3.2",
+    "svgo": "4.1.0",
     "ts-json-schema-generator": "2.9.0",
     "typedoc": "0.28.20"
   },

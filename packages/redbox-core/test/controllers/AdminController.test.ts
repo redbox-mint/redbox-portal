@@ -96,6 +96,43 @@ describe('AdminController', () => {
         expect(payload.data[1].effectivePrimaryUsername).to.equal('primary-user');
     });
 
+    it('paginates after literal search, role, sign-in and disabled filtering with stable sorting', async () => {
+        const role = { branding: 'brand-1', name: 'Researcher' };
+        (global as any).UsersService.getUsersForBrand.returns(of([
+            { id: 'c', username: 'zed', name: 'Same', type: 'local', roles: [role], token: 'secret', password: 'secret' },
+            { id: 'b', username: 'bee', name: 'Same', type: 'local', roles: [role] },
+            { id: 'a', username: 'disabled', name: 'Same', type: 'local', effectiveLoginDisabled: true, roles: [role] },
+            { id: 'x', username: 'other', name: 'Other', type: 'oidc', roles: [] }
+        ]));
+        (global as any).UsersService.enrichUsersWithEffectiveDisabledState.callsFake(async (rows: any[]) => rows);
+        (global as any).RolesService.getSignInMethods = () => ['local', 'oidc'];
+        const send = sinon.stub(controller as any, 'sendResp');
+        await controller.getUsers({ session: { branding: 'default' }, query: { page: '2', pageSize: '1', query: 'SAME', role: 'Researcher', signIn: 'local' } } as any, {} as any);
+        const page = send.firstCall.args[2].data;
+        expect(page.summary).to.deep.equal({ page: 2, start: 1, numFound: 2 });
+        expect(page.records.map((user: any) => user.id)).to.deep.equal(['c']);
+        expect(page.records[0]).not.to.have.property('password');
+        expect(page.records[0].token).to.equal('user-has-token-but-is-suppressed');
+        expect(page.roleCounts.Researcher).to.deep.equal({ active: 2, disabled: 1, removableActive: 2 });
+        expect((global as any).UsersService.getUsersForBrand.firstCall.args[1]).to.equal('local');
+    });
+
+    it('keeps counts for disabled members and excludes existing members and aliases from candidate searches', async () => {
+        const send = sinon.stub(controller as any, 'sendResp');
+        await controller.getUsers({ session: { branding: 'default' }, query: { page: '1', excludeRole: 'Researcher', candidates: 'true', includeDisabled: 'true' } } as any, {} as any);
+        expect(send.firstCall.args[2].data.summary.numFound).to.equal(0);
+        expect(send.firstCall.args[2].data.roleCounts.Researcher.active).to.equal(1);
+    });
+
+    it('rejects malformed or unbounded user pagination before reading users', async () => {
+        const send = sinon.stub(controller as any, 'sendResp');
+        for (const query of [{ page: '0' }, { pageSize: '101' }, { page: 'NaN' }, { sort: 'password' }, { role: ['Admin'] }]) {
+            await controller.getUsers({ session: { branding: 'default' }, query } as any, {} as any);
+            expect(send.lastCall.args[2].status).to.equal(400);
+        }
+        expect((global as any).UsersService.getUsersForBrand.called).to.equal(false);
+    });
+
     it('should render the harvest runs admin page', () => {
         const req = {} as Sails.Req;
         const res = {} as Sails.Res;

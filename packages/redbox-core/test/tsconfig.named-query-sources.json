@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./services/NamedQuerySources.test.ts",
+    "./services/NamedQuerySourcesMongo.test.ts",
+    "./unit/named-query-contracts.test.ts",
+    "./setup.ts"
+  ],
+  "exclude": []
+}

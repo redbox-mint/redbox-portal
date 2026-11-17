@@ -18,6 +18,48 @@ describe('RadioInputComponent', () => {
     expect(component).toBeDefined();
   });
 
+  it('reveals only the unanswered radio group that loses focus', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'radio-blur-validation',
+      componentDefinitions: ['target', 'sibling'].map(name => ({
+        name,
+        component: { class: 'RadioInputComponent', config: { options: [
+          { label: 'Option 1', value: 'option1' },
+          { label: 'Option 2', value: 'option2' },
+        ] } },
+        model: { class: 'RadioInputModel', config: { value: null, validators: [{ class: 'required' }] } },
+        layout: { class: 'DefaultLayout', config: { label: name } },
+      })),
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: '', editMode: true });
+    const element: HTMLElement = fixture.nativeElement;
+    const targetInputs = element.querySelectorAll<HTMLInputElement>('input[name="target"]');
+    const siblingInputs = element.querySelectorAll<HTMLInputElement>('input[name="sibling"]');
+    const target = formComponent.form!.get('target')!;
+    const sibling = formComponent.form!.get('sibling')!;
+    expect(targetInputs.length).toBe(2);
+    expect(siblingInputs.length).toBe(2);
+    expect(target.invalid && sibling.invalid).toBeTrue();
+    expect(target.untouched && sibling.untouched).toBeTrue();
+    expect(element.querySelector('.rb-form-field-error-summary, .is-invalid')).toBeNull();
+
+    // Exercise the DOM binding without depending on headless browser focus state.
+    targetInputs[0].dispatchEvent(new FocusEvent('blur'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(target.touched).toBeTrue();
+    expect(target.pristine).toBeTrue();
+    expect(target.value).toBeNull();
+    expect(target.invalid).toBeTrue();
+    expect(sibling.untouched).toBeTrue();
+    expect(formComponent.saveAttempted()).toBeFalse();
+    expect(element.querySelector('input:checked')).toBeNull();
+    expect(element.querySelectorAll('.rb-form-field-error-summary').length).toBe(1);
+    expect(Array.from(targetInputs).every(input => input.classList.contains('is-invalid'))).toBeTrue();
+    expect(Array.from(siblingInputs).some(input => input.classList.contains('is-invalid'))).toBeFalse();
+  });
+
   it('should render RadioInput component with options', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',

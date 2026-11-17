@@ -4,6 +4,8 @@ import * as sinon from 'sinon';
 import { Services } from '../../src/services/PathRulesService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { of } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+import { auth } from '../../src/config/auth.config';
 
 describe('PathRulesService', function() {
   let service: Services.PathRules;
@@ -102,6 +104,59 @@ describe('PathRulesService', function() {
       expect(result).to.deep.equal(createdRules);
       expect((global as any).PathRule.create.calledTwice).to.be.true; // 2 rules in config
     });
+  });
+
+  describe('legacy Librarian metadata permission upgrade', function() {
+    const brand = { id: 'brand1', name: 'default' };
+    const librarian = { id: 'librarian', name: 'Librarians' };
+    const researcher = { id: 'researcher', name: 'Researcher' };
+    const metadataPath = '/:branding/:portal/recordmeta(/*)';
+    let rows: any[];
+    beforeEach(function() {
+      mockSails.config.auth = structuredClone(auth);
+      rows = [
+        { path: '/:branding/:portal/record(/*)', branding: brand, role: librarian, can_update: true },
+        { path: metadataPath, branding: brand, role: researcher, can_update: true },
+      ];
+      const query: any = { populate: () => query, exec: (callback: any) => callback(null, rows) };
+      (global as any).PathRule.find = sinon.stub().returns(query);
+      (global as any).PathRule.create = sinon.stub().callsFake((data: any) => ({ exec: (callback: any) => {
+        const row = { ...data, branding: brand, role: librarian }; rows.push(row); callback(null, row);
+      } }));
+    });
+
+    it('repairs the stock upgrade once and reloads authorization without changing existing rules', async function() {
+      const before = structuredClone(rows);
+      await firstValueFrom(service.bootstrap(null, [librarian, researcher]));
+      await firstValueFrom(service.bootstrap(null, [librarian, researcher]));
+      expect((global as any).PathRule.create.calledOnce).to.equal(true);
+      expect((global as any).PathRule.create.firstCall.args[0]).to.deep.equal({ path: metadataPath, role: librarian.id, branding: brand.id, can_update: true });
+      expect(rows.slice(0, 2)).to.deep.equal(before);
+      const rules = service.getRulesFromPath('/default/rdmp/recordmeta/record-1', brand as any)!;
+      expect(service.canWrite(rules, [librarian], brand.name)).to.equal(true);
+      expect(service.canWrite(rules, [{ id: 'guest' }], brand.name)).to.equal(false);
+    });
+
+    for (const scenario of ['configured grant removed', 'configured grant disabled', 'configured record disabled', 'configured metadata restriction',
+      'stored record disabled', 'stored metadata restriction', 'stored metadata custom', 'stored explicit denial', 'stored broad denial']) {
+      it(`preserves ${scenario} without adding authorization`, async function() {
+        const configured = mockSails.config.auth.rules;
+        const grant = configured.find((rule: any) => rule.path === metadataPath && rule.role === 'Librarians');
+        if (scenario === 'configured grant removed') configured.splice(configured.indexOf(grant), 1);
+        if (scenario === 'configured grant disabled') grant.can_update = false;
+        if (scenario === 'configured record disabled') configured.find((rule: any) => rule.path === '/:branding/:portal/record(/*)' && rule.role === 'Librarians').can_update = false;
+        if (scenario === 'configured metadata restriction') configured.push({ path: '/:branding/:portal/recordmeta/restricted', role: 'Librarians', can_update: false });
+        if (scenario === 'stored record disabled') rows[0].can_update = false;
+        if (scenario === 'stored metadata restriction') rows.push({ path: '/:branding/:portal/recordmeta/restricted', branding: brand, role: researcher, can_update: true });
+        if (scenario === 'stored metadata custom') rows[1].custom = 'operator policy';
+        if (scenario === 'stored explicit denial') rows.push({ path: metadataPath, branding: brand, role: librarian, can_read: false, can_update: false });
+        if (scenario === 'stored broad denial') rows.push({ path: '/:branding/:portal(/*)', branding: brand, role: librarian, can_read: false, can_update: false });
+        const before = structuredClone(rows);
+        await firstValueFrom(service.bootstrap(null, [librarian, researcher]));
+        expect((global as any).PathRule.create.called).to.equal(false);
+        expect(rows).to.deep.equal(before);
+      });
+    }
   });
 
   describe('getRulesFromPath', function() {

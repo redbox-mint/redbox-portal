@@ -1,3 +1,6 @@
+import * as WSReportingControllerModule from './webservice/ReportingController';
+import * as SavedGridControllerModule from './SavedGridController';
+import * as PartyImportControllerModule from './PartyImportController';
 /**
  * Controllers index - exports all controller classes
  */
@@ -7,6 +10,7 @@ import * as ActionControllerModule from './ActionController';
 import * as AdminControllerModule from './AdminController';
 import * as AppConfigControllerModule from './AppConfigController';
 import * as AsynchControllerModule from './AsynchController';
+import * as EmailTemplateAdminControllerModule from './EmailTemplateAdminController';
 import * as BrandingAppControllerModule from './BrandingAppController';
 import * as BrandingControllerModule from './BrandingController';
 import * as DynamicAssetControllerModule from './DynamicAssetController';
@@ -23,6 +27,7 @@ import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 import * as FormVocabularyControllerModule from './FormVocabularyController';
+import * as GenerationControllerModule from './GenerationController';
 import * as DashboardConfigControllerModule from './DashboardConfigController';
 import * as NamedQueryControllerModule from './NamedQueryController';
 
@@ -57,10 +62,13 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
+    get SavedGridController() { return getOrCreate('SavedGridController', () => new SavedGridControllerModule.Controllers.SavedGrid().exports()); },
+    get PartyImportController() { return getOrCreate('PartyImportController', () => new PartyImportControllerModule.Controllers.PartyImport().exports()); },
     get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
     get AsynchController() { return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports()); },
+    get EmailTemplateAdminController() { return getOrCreate('EmailTemplateAdminController', () => new EmailTemplateAdminControllerModule.Controllers.EmailTemplateAdmin().exports()); },
     get BrandingAppController() { return getOrCreate('BrandingAppController', () => new BrandingAppControllerModule.Controllers.BrandingApp().exports()); },
     get BrandingController() { return getOrCreate('BrandingController', () => new BrandingControllerModule.Controllers.Branding().exports()); },
     get DynamicAssetController() { return getOrCreate('DynamicAssetController', () => new DynamicAssetControllerModule.Controllers.DynamicAsset().exports()); },
@@ -77,12 +85,14 @@ export const ControllerExports: Record<string, unknown> = {
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
     get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
+    get GenerationController() { return getOrCreate('GenerationController', () => new GenerationControllerModule.Controllers.Generation().exports()); },
     get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
     get NamedQueryController() { return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports()); },
 };
 
 // Webservice Controllers export (separate object, not prefixed)
 export const WebserviceControllerExports: Record<string, unknown> = {
+    get ReportingController() { return getOrCreate('WSReportingController', () => new WSReportingControllerModule.Controllers.Reporting().exports()); },
     get AdminController() { return getOrCreate('WS_AdminController', () => new WSAdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
@@ -107,17 +117,21 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
+    'SavedGridController',
+    'PartyImportController',
     'ActionController',
     'AdminController',
     'AppConfigController',
     'AsynchController',
     'BrandingAppController',
+    'EmailTemplateAdminController',
     'BrandingController',
     'DashboardConfigController',
     'DynamicAssetController',
     'EmailController',
     'ExportController',
     'FormVocabularyController',
+    'GenerationController',
     'RecordAuditController',
     'RecordController',
     'RenderViewController',
@@ -132,6 +146,7 @@ export const ControllerNames = [
 ];
 
 export const WebserviceControllerNames = [
+    'ReportingController',
     'AdminController',
     'AppConfigController',
     'BrandingController',

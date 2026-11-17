@@ -1,3 +1,8 @@
+import { GenerationError } from '../../src/model/generation';
+import { getEffectiveRelatedClientForm } from '../../src/related-records/effective-form';
+import { RelatedDisplayWriteError } from '../../src/related-records/normalize-display-writes';
+import { deletedRecordSummary } from '../../src/DeletedRecordSummary';
+import { bulkDeletedRecordsBody } from '../../src/api-routes/groups/deleted-records';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -107,6 +112,35 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService = originalFormsService;
     (global as any).FormRecordConsistencyService = originalFormRecordConsistencyService;
     (global as any).TranslationService = originalTranslationService;
+  });
+
+  it('maps a browser update transient display rejection to 400 on API v2 and keeps the v1 500', async () => {
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves({ redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1', type: 'dataset', form: '' }, metadata: {}, authorization: {} }),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta: sinon.stub().rejects(new RelatedDisplayWriteError()),
+    } as any;
+    const send = sinon.stub(controller as any, 'sendResp');
+    const request = (apiVersion: string) => ({ body: { title: 'PRIVATE' }, headers: { 'x-redbox-api-version': apiVersion }, params: { oid: 'oid-1' }, query: {}, session: { branding: 'default' }, user: { username: 'tester' } });
+    await (controller as any).updateInternal(request('2.0'), {});
+    expect(send.firstCall.args[2].status).to.equal(400);
+    expect(send.firstCall.args[2].displayErrors[0].code).to.equal('related-display-field-not-writable');
+    expect(JSON.stringify(send.firstCall.args[2])).not.to.include('PRIVATE');
+    // API v1 keeps its existing contract: non-conflict save failures are server errors.
+    await (controller as any).updateInternal(request('1.0'), {});
+    expect(send.secondCall.args[2].status).to.equal(500);
+    expect(JSON.stringify(send.secondCall.args[2])).not.to.include('PRIVATE');
+  });
+
+  it('renders the admin Parties route with the existing party dashboard', () => {
+    const sendView = sinon.stub(controller as any, 'sendView');
+    const req = { options: { locals: {} }, param: sinon.stub(), session: { branding: 'default' } } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    controller.renderParties(req, res);
+    expect(routes['get /:branding/:portal/admin/parties']).to.equal('RecordController.renderParties');
+    expect(sendView.firstCall.args[2]).to.equal('dashboard');
+    expect(sendView.firstCall.args[3]).to.include({ recordType: 'party', packageType: 'party', adminParties: true, showAdminSideBar: true });
   });
 
   describe('metadata update timestamps', () => {
@@ -565,7 +599,7 @@ describe('RecordController getWorkflowSteps', () => {
             Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
             const req = { param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
               query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
-              user: { username: 'reader', roles: roles.map(name => ({ name })) },
+              user: { username: 'reader', roles: roles.map(name => ({ name, branding: 'brand-1' })) },
             } as unknown as Sails.Req;
             const sendResp = sinon.stub(controller as any, 'sendResp');
             await controller[endpoint](req, {} as Sails.Res);
@@ -619,7 +653,7 @@ describe('RecordController getWorkflowSteps', () => {
             const req = {
               param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
               query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
-              user: { username: 'reader', roles: roles.map(name => ({ name })) },
+              user: { username: 'reader', roles: roles.map(name => ({ name, branding: 'brand-1' })) },
             } as unknown as Sails.Req;
             const sendResp = sinon.stub(controller as any, 'sendResp');
             await controller[endpoint](req, {} as Sails.Res);
@@ -699,7 +733,7 @@ describe('RecordController getWorkflowSteps', () => {
               .callsFake((name) => (name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined)),
             query: { edit: String(mode === 'edit'), apiVersion: '2.0' },
             session: { branding: 'default' },
-            user: { username: 'reader', roles: roles.map((name) => ({ name })) },
+            user: { username: 'reader', roles: roles.map((name) => ({ name, branding: 'brand-1' })) },
           } as unknown as Sails.Req;
           const sendResp = sinon.stub(controller as any, 'sendResp');
           await controller.getForm(req, {} as Sails.Res);
@@ -725,6 +759,23 @@ describe('RecordController getWorkflowSteps', () => {
             ...(roles.includes('Admin') ? { restricted: 'restricted-secret' } : {}),
             ...(mode === 'edit' ? { editOnly: 'edit-secret' } : {}),
           });
+          // Project before role/mode filtering: authorized related data cannot
+          // make a field removed from the caller's form visible again.
+          Object.assign(controller.recordsService, {
+            getConsumerView: sinon.stub().callsFake(async (raw: any) => ({ ...raw,
+              metadata: { ...raw.metadata, title: 'Current projected title',
+                restricted: 'projected-role-secret', serverOnly: 'projected-server-secret' },
+            })),
+          });
+          req.query.consumerView = 'true';
+          sendResp.resetHistory();
+          await controller.getMeta(req, {} as Sails.Res);
+          expect(sendResp.firstCall.args[2].data).to.deep.equal({
+            title: 'Current projected title',
+            ...(roles.includes('Admin') ? { restricted: 'projected-role-secret' } : {}),
+          });
+          expect(JSON.stringify(sendResp.firstCall.args[2])).not.to.contain('projected-server-secret');
+          expect(record.metadata.title).to.equal('Visible');
         });
       }
     }
@@ -755,7 +806,7 @@ describe('RecordController getWorkflowSteps', () => {
       const req = {
         param: sinon.stub().withArgs("oid").returns("representative-data-record"),
         query: {},
-        user: { username: "researcher", roles: [{ name: "Researcher" }] },
+        user: { username: "researcher", roles: [{ name: "Researcher", branding: "brand-1" }] },
         session: { branding: "default" },
       } as unknown as Sails.Req;
       const response = {
@@ -1597,6 +1648,146 @@ describe('RecordController getWorkflowSteps', () => {
     });
     expect(createArgs[1]).to.deep.equal({ name: 'dataset' });
     expect(createArgs[2]).to.equal(form);
+  });
+
+  describe('generation create-form metadata', () => {
+    const generationSession = {
+      runId: 'run-1', bindingKey: 'draft-from-source', autoOpen: true,
+      initialValues: [{ metadataPointer: '/source', value: 'source-1' }],
+    };
+    const generationLaunches = [{ bindingKey: 'draft-from-source', sourcePointer: '/source' }];
+    let resolveTargetSession: sinon.SinonStub;
+    let resolveCreateLaunches: sinon.SinonStub;
+    let sendResp: sinon.SinonStub;
+
+    beforeEach(() => {
+      const form = {
+        id: 'form-1', name: 'dataset-draft', branding: 'brand-1',
+        configuration: { type: 'dataset', componentDefinitions: [] },
+      };
+      resolveTargetSession = sinon.stub().resolves(generationSession);
+      resolveCreateLaunches = sinon.stub().resolves(generationLaunches);
+      Object.assign(sails.config, {
+        generation: { enabled: true }, reusableFormDefinitions: {}, validators: { definitions: [] },
+      });
+      Reflect.set(sails, 'services', {
+        formpayloadprehydrateservice: { build: sinon.stub().resolves({}) },
+        generationbindingservice: {
+          resolveActions: sinon.stub().resolves([]), resolveTargetSession, resolveCreateLaunches,
+        },
+      });
+      (FormsService.getFormByStartingWorkflowStep as sinon.SinonStub).returns(of(form));
+      (FormsService.buildClientFormConfig as sinon.SinonStub).resolves(form.configuration);
+      (FormsService.discoverValidationOperations as sinon.SinonStub).resolves([]);
+      (RecordTypesService.get as sinon.SinonStub).returns(of({ name: 'dataset' }));
+      Reflect.set(WorkflowStepsService, 'getFirst', sinon.stub().returns(of({ name: 'draft', config: { form: 'dataset-draft' } })));
+      Reflect.set(controller.recordsService, 'getRecordFormFingerprint', sinon.stub().returns('form-fingerprint-1'));
+      sendResp = sinon.stub(controller, 'sendResp');
+    });
+
+    const request = (query: Record<string, string>): Sails.Req => ({
+      param: sinon.stub().callsFake((name: string) => name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined),
+      query, session: { branding: 'default' },
+      user: { id: 'user-1', username: 'alice', roles: [{ name: 'Researcher' }] },
+    } as unknown as Sails.Req);
+
+    it('includes authorized launch definitions with the target session so an unsaved draft can restart', async () => {
+      await controller.getForm(request({ edit: 'true', generationRunId: ' run-1 ' }), {} as Sails.Res);
+
+      expect(sendResp.calledOnce).to.equal(true);
+      expect(sendResp.firstCall.args[2].meta).to.deep.include({ generationEnabled: true, generationSession, generationLaunches });
+      expect(resolveTargetSession.firstCall.args.slice(1)).to.deep.equal(['run-1', 'dataset', 'dataset-draft']);
+      expect(resolveCreateLaunches.calledOnce).to.equal(true);
+      expect(resolveCreateLaunches.firstCall.args).to.deep.equal([
+        resolveTargetSession.firstCall.args[0], 'dataset', 'dataset-draft',
+      ]);
+    });
+
+    it('signals disabled generation without resolving optional metadata', async () => {
+      sails.config.generation.enabled = false;
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+      expect(sendResp.firstCall.args[2].meta.generationEnabled).to.equal(false);
+      expect(resolveCreateLaunches.called).to.equal(false);
+      expect(resolveTargetSession.called).to.equal(false);
+    });
+
+    it('keeps launch definitions available for an ordinary editable create form', async () => {
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+
+      expect(sendResp.firstCall.args[2].meta.generationLaunches).to.deep.equal(generationLaunches);
+      expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationSession');
+      expect(resolveTargetSession.called).to.equal(false);
+    });
+
+    it('does not expose create launches for a read-only target form', async () => {
+      await controller.getForm(request({ edit: 'false', generationRunId: 'run-1' }), {} as Sails.Res);
+
+      expect(sendResp.firstCall.args[2].meta.generationSession).to.deep.equal(generationSession);
+      expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationLaunches');
+      expect(resolveCreateLaunches.called).to.equal(false);
+    });
+
+    it('loads an ordinary create form when optional launch metadata lookup fails', async () => {
+      resolveCreateLaunches.rejects(new Error('MongoDB credential must remain private'));
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+      const response = sendResp.firstCall.args[2];
+      expect(response.data).to.deep.equal({ type: 'dataset', componentDefinitions: [] });
+      expect(response.meta.generationEnabled).to.equal(false);
+      expect(response.meta).not.to.have.property('generationLaunches');
+      expect(response.meta).not.to.have.property('generationSession');
+      expect((sails.log.warn as sinon.SinonStub).calledWithExactly('record_generation_metadata_unavailable')).to.equal(true);
+    });
+
+    for (const edit of ['true', 'false']) {
+      it(`loads an ordinary stored-record form in edit=${edit} when optional action lookup fails`, async () => {
+        (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+          redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' }, metadata: {},
+        });
+        (FormsService.getForm as sinon.SinonStub).resolves({ name: 'dataset-draft', configuration: { type: 'dataset', componentDefinitions: [] } });
+        (sails.services.generationbindingservice as any).resolveActions.rejects(new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Private source details'));
+        const req = request({ edit });
+        (req.param as sinon.SinonStub).withArgs('oid').returns('oid-1');
+        await controller.getForm(req, {} as Sails.Res);
+        const response = sendResp.firstCall.args[2];
+        expect(response.data).to.deep.equal({ type: 'dataset', componentDefinitions: [] });
+        expect(response.meta).not.to.have.property('runtimeActions');
+        expect((sails.log.warn as sinon.SinonStub).calledWithExactly('record_generation_metadata_unavailable')).to.equal(true);
+      });
+    }
+
+    it('loads an ordinary form without a generation service during an optional subsystem outage', async () => {
+      Reflect.deleteProperty(sails.services, 'generationbindingservice');
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+      expect(sendResp.firstCall.args[2].data).to.deep.equal({ type: 'dataset', componentDefinitions: [] });
+      expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationLaunches');
+    });
+
+    it('preserves explicit missing-run errors without returning form or partial launch metadata', async () => {
+      resolveTargetSession.rejects(new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Run not available'));
+      await controller.getForm(request({ edit: 'true', generationRunId: 'missing-run' }), {} as Sails.Res);
+      expect(sendResp.firstCall.args[2].status).to.equal(404);
+      expect(sendResp.firstCall.args[2].data.error.code).to.equal('GENERATION_ACTION_NOT_AVAILABLE');
+      expect(sendResp.firstCall.args[2]).not.to.have.property('meta');
+      expect(resolveCreateLaunches.called).to.equal(false);
+    });
+
+    it('keeps explicit run requests strict if later launch metadata fails', async () => {
+      resolveCreateLaunches.rejects(new Error('Generation database unavailable'));
+      await controller.getForm(request({ edit: 'true', generationRunId: 'run-1' }), {} as Sails.Res);
+      expect(resolveTargetSession.calledOnce).to.equal(true);
+      expect(sendResp.firstCall.args[2].status).to.equal(500);
+      expect(sendResp.firstCall.args[2]).not.to.have.property('meta');
+    });
+
+    it('does not resolve or expose launch definitions when target-session authorization fails', async () => {
+      resolveTargetSession.rejects(new Error('Session is not authorized'));
+      await controller.getForm(request({ edit: 'true', generationRunId: 'run-1' }), {} as Sails.Res);
+
+      expect(sendResp.calledOnce).to.equal(true);
+      expect(sendResp.firstCall.args[2].status).to.equal(500);
+      expect(sendResp.firstCall.args[2]).not.to.have.property('meta');
+      expect(resolveCreateLaunches.called).to.equal(false);
+    });
   });
 
   for (const roleNames of [undefined, [], ['Researcher'], ['Admin', 'Librarians']]) {
@@ -2489,7 +2680,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('includes the authoritative revision on browser actionable list rows', async function () {
     controller.recordsService = {
-      getRecords: sinon.stub().resolves({
+      getRecordsForDisplay: sinon.stub().resolves({
         isSuccessful: () => true,
         totalItems: 1,
         items: [
@@ -2521,7 +2712,8 @@ describe('RecordController getWorkflowSteps', () => {
           {
             redboxOid: 'oid-1',
             revision: 12,
-            deletedRecordMetadata: { metadata: { title: 'Deleted record' } },
+            deletedRecordMetadata: { metadata: { title: 'Deleted record' }, metaMetadata: { type: 'rdmp' } },
+            deletedBy: { id: 'user-1', username: 'alice', brandId: 'brand-1' },
             dateDeleted: '2026-01-03T00:00:00Z',
           },
         ],
@@ -2538,7 +2730,63 @@ describe('RecordController getWorkflowSteps', () => {
       { id: 'brand-1' }
     );
 
-    expect(response.items[0]).to.deep.include({ oid: 'oid-1', revision: 12 });
+    expect(response.items[0]).to.deep.include({ oid: 'oid-1', revision: 12, recordType: 'rdmp', deletedBy: { id: 'user-1', username: 'alice' } });
+  });
+
+  it('only exposes an actor from the active brand and resolves available type labels', () => {
+    const doc = { deletedRecordMetadata: { metaMetadata: { type: 'rdmp' } }, deletedBy: { brandId: 'other', username: 'private' } };
+    expect(deletedRecordSummary(doc, 'brand-1', key => key === 'rdmp-title' ? 'Plans' : key)).to.deep.equal({ recordType: 'rdmp', recordTypeLabel: 'Plans', deletedBy: null });
+    expect(deletedRecordSummary({}, 'brand-1', key => key)).to.deep.equal({ recordType: '', deletedBy: null });
+  });
+
+  it('bounds batches and rejects duplicates, invalid actions and missing preconditions', () => {
+    const item = { oid: 'one', entityTag: formatRecordEntityTag('one', 3) };
+    for (const body of [{ action: 'restore', items: [] }, { action: 'other', items: [item] }, { action: 'restore', items: [item, item] }, { action: 'destroy', items: [{ oid: 'one' }] }, { action: 'restore', items: Array.from({ length: 101 }, (_, i) => ({ ...item, oid: String(i) })) }]) {
+      expect(bulkDeletedRecordsBody.safeParse(body).success).to.equal(false);
+    }
+    expect(bulkDeletedRecordsBody.safeParse({ action: 'restore', items: Array.from({ length: 100 }, (_, i) => ({ ...item, oid: String(i) })) }).success).to.equal(true);
+  });
+
+  for (const action of ['restore', 'destroy']) {
+    it(`bulk ${action} checks each brand/edit permission and continues through failures and unknown outcomes`, async () => {
+      const unavailable = new Set(['missing', 'other-brand']);
+      const read = sinon.stub().callsFake(async (oid, brand) => unavailable.has(oid) ? null : { redboxOid: oid, metaMetadata: { brandId: brand.id } });
+      const mutate = sinon.stub().callsFake(async (oid) => {
+        if (oid === 'throw') throw new Error('private exception');
+        return { outcome: oid === 'stale' ? 'not-saved' : 'saved', wasPersisted: () => oid !== 'stale', problems: oid === 'stale' ? [{ kind: 'conflict' }] : [] };
+      });
+      controller.recordsService = { getDeletedRecordMeta: read, hasEditAccess: (_brand, _user, _roles, record) => record.redboxOid !== 'denied', restoreRecord: mutate, destroyDeletedRecord: mutate } as any;
+      const ids = ['ok', 'missing', 'denied', 'other-brand', 'stale', 'throw', 'last'];
+      const req: any = { body: { action, items: ids.map(oid => ({ oid, entityTag: formatRecordEntityTag(oid, 3) })) }, headers: {}, params: {}, query: {}, user: { username: 'alice' }, session: { branding: 'default' } };
+      const send = sinon.stub(controller as any, 'sendResp');
+      await controller.bulkDeletedRecords(req, {} as any);
+      expect(mutate.getCalls().map(call => call.args[0])).to.deep.equal(['ok', 'stale', 'throw', 'last']);
+      for (const call of mutate.getCalls()) {
+        expect(call.args[3]).to.include({ operation: action === 'restore' ? 'restore' : 'purge', routeFamily: 'browser' });
+        expect(call.args[3].concurrency).to.include({ expectedRevision: 3 });
+      }
+      expect(read.getCalls().every(call => call.args[1].id === 'brand-1')).to.equal(true);
+      expect(send.firstCall.args[2].v1.results.map(item => item.status)).to.deep.equal(['succeeded', 'failed', 'failed', 'failed', 'failed', 'unknown', 'succeeded']);
+      expect(send.firstCall.args[2].v1.results[4].reason).to.equal('record-changed');
+      expect(JSON.stringify(send.firstCall.args[2])).not.to.include('private exception');
+    });
+  }
+
+  it('returns an invalid precondition for one item without dispatching its mutation', async () => {
+    (controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).resolves({ metaMetadata: { brandId: 'brand-1' } });
+    const mutate = sinon.stub();
+    Object.assign(controller.recordsService, { restoreRecord: mutate });
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.bulkDeletedRecords({ body: { action: 'restore', items: [{ oid: 'one', entityTag: 'invalid' }] }, user: {}, session: { branding: 'default' } } as any, {} as any);
+    expect(mutate.notCalled).to.equal(true);
+    expect(send.firstCall.args[2].v1.results).to.deep.equal([{ oid: 'one', status: 'failed', reason: 'invalid-precondition' }]);
+  });
+
+  it('rejects malformed bulk input without reading or mutating records', async () => {
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.bulkDeletedRecords({ body: { action: 'destroy', items: [] } } as any, {} as any);
+    expect(send.firstCall.args[2].status).to.equal(400);
+    expect((controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).notCalled).to.equal(true);
   });
 
   it('preserves the form-configuration failure response before operation discovery', async function () {
@@ -2713,17 +2961,21 @@ describe('RecordController getWorkflowSteps', () => {
     expect((res.redirect as any).calledWith('/default/rdmp/dashboard-view/consolidated')).to.be.true;
   });
 
-  it('builds an effective client form config with the record brand and user roles', async () => {
+  it('uses the record brand for form lookup and scopes form role names to the active brand', async () => {
     const formConfig = { componentDefinitions: [] };
     const clientFormConfig = { componentDefinitions: [{ name: 'title' }] };
     (global as any).sails.config = { reusableFormDefinitions: { shared: {} } };
     (global as any).FormsService.getFormByName.returns(of({ configuration: formConfig }));
     (global as any).FormsService.buildClientFormConfig.returns(clientFormConfig);
-    const req = { user: { roles: [{ name: 'admin' }, { name: '' }, {}] } } as unknown as Sails.Req;
+    const req = { user: { roles: [
+      { name: 'researcher', branding: { id: 'fallback-brand' } },
+      { name: 'admin', branding: 'record-brand' },
+      { name: 'unscoped-admin' }, { name: '', branding: 'fallback-brand' }, {},
+    ] } } as unknown as Sails.Req;
     const record = { metaMetadata: { brandId: 'record-brand' }, metadata: { title: 'A title' } };
     const brand = { id: 'fallback-brand', name: 'fallback' };
 
-    const result = await (controller as any).getEffectiveClientFormConfig(req, brand, record, 'form-1', false, 'edit');
+    const result = await getEffectiveRelatedClientForm(req, brand as any, record, 'form-1', false, 'edit');
 
     expect(result).to.equal(clientFormConfig);
     expect((global as any).FormsService.getFormByName.calledWith('form-1', false, 'record-brand')).to.be.true;
@@ -2731,12 +2983,12 @@ describe('RecordController getWorkflowSteps', () => {
       (global as any).FormsService.buildClientFormConfig.calledWith(
         formConfig,
         'edit',
-        ['admin'],
+        ['researcher'],
         record.metadata,
         { shared: {} },
         'fallback',
         sinon.match.any,
-        { user: req.user, brand }
+        { user: req.user, brand, record }
       )
     ).to.be.true;
   });
@@ -2773,7 +3025,8 @@ describe('RecordController getWorkflowSteps', () => {
     const brand = { id: 'brand-1', name: 'default' };
     const savedRecord = { redboxOid: 'oid-1', metaMetadata: { form: 'form-1' }, metadata: { title: 'server title' } };
     const clientFormConfig = { componentDefinitions: [] };
-    sinon.stub(controller as any, 'getEffectiveClientFormConfig').resolves(clientFormConfig);
+    (global as any).FormsService.getFormByName.returns(of({ configuration: clientFormConfig }));
+    (global as any).FormsService.buildClientFormConfig.returns(clientFormConfig);
     (global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.resolves({ title: 'projected' });
 
     expect(await (controller as any).getPostSaveMetadata(req, brand, savedRecord, null)).to.deep.equal({

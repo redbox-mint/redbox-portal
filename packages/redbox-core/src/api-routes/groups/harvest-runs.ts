@@ -5,6 +5,7 @@ import {
   harvestRunEventSchema,
   harvestRunChunkSummarySchema,
   harvestRunSummarySchema,
+  harvestRunStatisticsSchema,
   idParams,
   listApiResponseSchema,
   objectField,
@@ -16,6 +17,22 @@ const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 const notFoundResponse = responseField(apiErrorResponseSchema, 'Harvest run not found');
 const bodyFallback = ['body'] as const;
+
+export const getHarvestRunStatisticsRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/harvest-runs/summary',
+  'webservice/HarvestRunController',
+  'getStatistics',
+  {},
+  {
+    tags: ['Harvest Runs'],
+    summary: 'Get global harvest run statistics for the current brand (Admin only)',
+    responses: {
+      200: responseField(harvestRunStatisticsSchema, 'Global harvest run statistics'),
+      500: internalServerErrorResponse,
+    },
+  }
+);
 
 export const listHarvestRunsRoute = apiRoute(
   'get',
@@ -134,6 +151,7 @@ export const listHarvestRunChunksRoute = apiRoute(
 );
 
 export const harvestRunApiRoutes = [
+  getHarvestRunStatisticsRoute,
   listHarvestRunsRoute,
   getHarvestRunRoute,
   listHarvestRunEventsRoute,

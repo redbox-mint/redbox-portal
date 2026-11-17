@@ -39,7 +39,8 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.getResolvedLabel('menu-rolemgmt')).toBe('Role management');
     expect(component.getResolvedLabel('menu-create-rdmp')).toBe('Create a new RDMP');
     expect(component.getResolvedLabel('Untranslated literal')).toBe('Untranslated literal');
-    expect(component.getResolvedLabel('missing-key')).toBe('missing-key');
+    expect(component.getResolvedLabel('missing-key')).toBe('Missing key');
+    expect(component.getResolvedLabel('admin-nav-API-docs')).toBe('API docs');
     expect(component.getResolvedLabel('')).toBe('');
 
     component.resolveTranslations = false;
@@ -126,17 +127,20 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.sections[0].titleKey).toBe('new-title');
   });
 
-  it('toggles section expansion', () => {
+  it('keeps one section selected when selecting the same row again', () => {
     const { component } = setup({ header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' } });
     
     // Initially 0 is expanded by default in component
     expect(component.isSectionExpanded(0)).toBeTrue();
     
-    component.toggleSection(0);
+    component.selectParent(1);
     expect(component.isSectionExpanded(0)).toBeFalse();
+    expect(component.isSectionExpanded(1)).toBeTrue();
     
-    component.toggleSection(0);
+    component.selectParent(0);
+    component.selectParent(0);
     expect(component.isSectionExpanded(0)).toBeTrue();
+    expect(component.isSectionExpanded(1)).toBeFalse();
   });
 
   it('adds section items via the editor', () => {
@@ -287,6 +291,16 @@ describe('AdminSidebarEditorTypeComponent', () => {
     
     component.moveFooterLink(1, 'down');
     expect(component.footerLinks[1].id).toBe('f2');
+  });
+
+  it('preserves inactive header and expansion values when a sidebar section is edited', () => {
+    const header = { titleKey: 'stored-title', iconClass: 'fa fa-star' };
+    const { component } = setup({ header, sections: [{ id: 'section', titleKey: 'Before', defaultExpanded: false, requiresAuth: false, items: [{ labelKey: 'Link', href: '/admin', requiresAuth: false }] }] });
+    component.updateSectionField(0, 'titleKey', 'After');
+    expect(component.header).toEqual(header);
+    expect(component.sections[0].defaultExpanded).toBeFalse();
+    expect(component.getVisibleSections().length).toBe(1);
+    expect(component.getVisibleItems(component.sections[0]).length).toBe(1);
   });
 
   it('filters visible sections/items and resolves labels', () => {

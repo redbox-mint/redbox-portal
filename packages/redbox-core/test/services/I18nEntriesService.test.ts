@@ -79,6 +79,175 @@ describe('I18nEntriesService', function () {
     sinon.restore();
   });
 
+  describe('leaf and prefix preservation', function () {
+    for (const entries of [
+      [{ key: '@dataPublication-dc:accessRights', value: 'Access rights' }, { key: '@dataPublication-dc:accessRights.help', value: 'Help' }],
+      [{ key: '@dataPublication-dc:accessRights.help', value: 'Help' }, { key: '@dataPublication-dc:accessRights', value: 'Access rights' }],
+    ]) {
+      it('round trips parent labels and dotted child keys in either order', function () {
+        const data = I18nEntriesService.composeNamespace(entries);
+        expect(I18nEntriesService.flatten(data)).to.deep.equal(Object.fromEntries(entries.map(e => [e.key, e.value])));
+      });
+    }
+    it('saving or deleting a child preserves its parent and siblings', function () {
+      const data = { label: 'Parent', 'label.help': 'Help', 'label.other': 'Other' };
+      I18nEntriesService.setNested(data, 'label.help', 'Updated');
+      expect(I18nEntriesService.flatten(data)).to.deep.equal({ label: 'Parent', 'label.help': 'Updated', 'label.other': 'Other' });
+      I18nEntriesService.removeNested(data, 'label.help');
+      expect(I18nEntriesService.flatten(data)).to.deep.equal({ label: 'Parent', 'label.other': 'Other' });
+    });
+    it('full bundle sync does not prune a label after saving its child', async function () {
+      const data = { label: 'Parent', 'label.help': 'Help' };
+      I18nEntriesService.setNested(data, 'label.help', 'Updated');
+      const entries = [{ key: 'label', value: 'Parent' }, { key: 'label.help', value: 'Help' }];
+      mockI18nTranslation.find.returns(Promise.resolve(entries));
+      sinon.stub(I18nEntriesService, 'getEntry').callsFake(async (_b, _l, _n, key) => entries.find(e => e.key === key));
+      sinon.stub(I18nEntriesService, 'setEntry').resolves({});
+      const remove = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
+      await I18nEntriesService.syncEntriesFromBundle({ id: 'b', branding: 'brand-1', locale: 'en', namespace: 'translation', data }, true);
+      expect(remove.called).to.equal(false);
+    });
+  });
+
+  it('updates only metadata with one brand-scoped write', async function () {
+    const set = sinon.stub().resolves({ locale: 'en', namespace: 'translation', displayName: 'English' });
+    mockI18nBundle.updateOne.returns({ set });
+    const result = await I18nEntriesService.updateDisplayName({ id: 'brand-1' }, 'en', 'translation', 'English');
+    expect(mockI18nBundle.updateOne.firstCall.args).to.deep.equal([{ branding: 'brand-1', locale: 'en', namespace: 'translation' }]);
+    expect(set.firstCall.args).to.deep.equal([{ displayName: 'English' }]);
+    expect(result).to.deep.equal({ locale: 'en', namespace: 'translation', displayName: 'English' });
+    expect(mockI18nTranslation.find.called).to.equal(false);
+    expect(mockI18nBundle.findOne.called).to.equal(false);
+    expect((global as any).TranslationService.reloadResources.called).to.equal(false);
+  });
+
+  describe('editor provenance', function () {
+    beforeEach(function () {
+      fs.mkdirSync(path.join(testLocalesDir, 'en'), { recursive: true });
+      fs.mkdirSync(path.join(testLocalesDir, 'fr'), { recursive: true });
+      fs.writeFileSync(path.join(testLocalesDir, 'en', 'translation.json'), JSON.stringify({ same: 'Default', changed: 'Original', missing: 'Missing', absent: 'Absent', label: 'Parent', 'label.help': 'Help', _meta: { same: { category: 'ignored' } } }));
+      fs.writeFileSync(path.join(testLocalesDir, 'fr', 'translation.json'), JSON.stringify({ same: 'Par défaut' }));
+      mockI18nBundle.findOne.resolves({ id: 'b', data: { same: 'Par défaut', changed: 'Custom', missing: '', label: 'Parent', 'label.help': 'Help', extra: 'Extra' } });
+    });
+    it('classifies locale defaults, overrides, empty and absent default keys in one batch', async function () {
+      const rows = await I18nEntriesService.editorEntries({ id: 'brand-1' }, 'fr', 'translation');
+      expect(Object.fromEntries(rows.map(row => [row.key, row.provenance]))).to.deep.equal({ same: 'default', changed: 'override', missing: 'missing', absent: 'missing', label: 'default', 'label.help': 'default', extra: 'override' });
+      expect(rows.find(row => row.key === 'extra').hasDefault).to.equal(false);
+      expect(mockI18nTranslation.find.callCount).to.equal(1);
+      expect(mockI18nTranslation.findOne.called).to.equal(false);
+    });
+    it('counts non-empty values against the union of default and custom keys', async function () {
+      mockI18nBundle.find.resolves([{ locale: 'fr', namespace: 'translation', displayName: 'French', data: { same: 'Par défaut', changed: 'Custom', missing: '  ', extra: 'Extra' } }]);
+      const result = await I18nEntriesService.languageSummaries({ id: 'brand-1' });
+      expect(result.find(row => row.code === 'fr')).to.include({ translated: 3, total: 7 });
+      expect(mockI18nTranslation.find.called).to.equal(false);
+      expect(mockI18nBundle.find.callCount).to.equal(1);
+    });
+    it('reverts using the current localized default and existing sanitization', async function () {
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({ value: 'Par défaut' });
+      await I18nEntriesService.revertEntry({ id: 'brand-1' }, 'fr', 'translation', 'same');
+      expect(save.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'fr', 'translation', 'same', 'Par défaut']);
+      expect(await I18nEntriesService.revertEntry({ id: 'brand-1' }, 'fr', 'translation', 'extra')).to.equal(null);
+      expect(save.calledOnce).to.equal(true);
+    });
+    it('rejects traversal before reading defaults', async function () {
+      let error;
+      try { await I18nEntriesService.defaultValues('../en', 'translation'); } catch (e) { error = e; }
+      expect(error.message).to.equal('Invalid translation target');
+    });
+  });
+
+  describe('JSON import/export', function () {
+    let bundle: any;
+    beforeEach(function () {
+      bundle = { id: 'b', locale: 'en', namespace: 'translation', data: { same: 'Same', change: 'Before', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>', _meta: { rich: { contentFormat: 'html' } } } };
+      mockI18nBundle.findOne.callsFake(async () => bundle);
+      sinon.stub(I18nEntriesService, 'defaultValues').resolves({ same: 'Same', change: 'Default', added: 'Default', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>' });
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ rich: { contentFormat: 'html' } });
+      mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([{ key: 'rich', contentFormat: 'html' }]) });
+    });
+    const brand = { id: 'brand-1' };
+    async function rejected(operation: Promise<any>, status: number) {
+      let failure;
+      try { await operation; } catch (error) { failure = error; }
+      expect(failure?.status).to.equal(status);
+    }
+    for (const json of ['{', 'null', '[]', '"text"', '{"key":42}', '{"key":true}', '{"key":null}', '{"key":{}}', '{"key":[]}', '{"__proto__":"bad"}', '{"a.constructor.b":"bad"}', '{"_meta":"bad"}', '{"<script>":"bad"}', '{" ":"bad"}']) {
+      it('rejects malformed or non-flat/string-valued JSON: ' + json, async function () {
+        await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', json), 400);
+        expect(mockI18nBundle.updateOne.called).to.equal(false);
+        expect(mockI18nTranslation.create.called).to.equal(false);
+      });
+    }
+    it('rejects oversized UTF-8 input including multibyte characters', async function () {
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify({ key: 'a'.repeat(2 * 1024 * 1024) })), 413);
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify({ key: 'é'.repeat(1100000) })), 413);
+    });
+    it('previews counts, unknown-key exclusion and a sanitized diff without writing', async function () {
+      const json = JSON.stringify({ same: 'Same', change: 'After', added: 'Added', unknown: 'Ignored', rich: '<p>After</p><script>alert(1)</script>' });
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      expect(preview.counts).to.deep.equal({ added: 1, changed: 2, unchanged: 1, unknown: 1, ignored: 1 });
+      expect(preview.sample.find(item => item.key === 'rich').after).not.to.contain('<script>');
+      expect(mockI18nTranslation.create.called).to.equal(false);
+      expect(mockI18nBundle.updateOne.called).to.equal(false);
+      expect((global as any).TranslationService.reloadResources.called).to.equal(false);
+      expect(preview.previewToken).to.match(/^[a-f0-9]{64}$/);
+    });
+    it('caps the diff sample and rejects more than 10000 keys', async function () {
+      const values = Object.fromEntries(Array.from({ length: 25 }, (_, i) => ['key-' + i, 'value']));
+      expect((await I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify(values))).sample).to.have.length(20);
+      const tooMany = Object.fromEntries(Array.from({ length: 10001 }, (_, i) => ['key-' + i, '']));
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify(tooMany)), 400);
+    });
+    it('applies only eligible changes and reports every key including failures', async function () {
+      const json = JSON.stringify({ same: 'Same', change: 'After', added: 'Added', unknown: 'Ignored' });
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').callsFake(async (_b, _l, _n, key) => {
+        if (key === 'change') throw new Error('database failure with unsafe detail');
+        return { key, value: 'Added' };
+      });
+      const result = await I18nEntriesService.applyImport(brand, 'en', 'translation', json, false, preview.previewToken);
+      expect(result).to.include({ applied: 1, failed: 1 });
+      expect(result.results.map(item => [item.key, item.status])).to.deep.equal([['added', 'applied'], ['change', 'failed'], ['same', 'unchanged'], ['unknown', 'ignored']]);
+      expect(JSON.stringify(result)).not.to.contain('unsafe detail');
+      expect(save.firstCall.args[5]).to.include({ noReload: true, strictBundleSync: true });
+      expect((global as any).TranslationService.reloadResources.calledOnce).to.equal(true);
+    });
+    it('requires a fresh preview when bundle, input or unknown-key choice changes', async function () {
+      const json = '{"unknown":"New"}';
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({});
+      await rejected(I18nEntriesService.applyImport(brand, 'en', 'translation', json, true, preview.previewToken), 409);
+      await rejected(I18nEntriesService.applyImport(brand, 'fr', 'translation', json, false, preview.previewToken), 409);
+      bundle.data.same = 'Edited meanwhile';
+      await rejected(I18nEntriesService.applyImport(brand, 'en', 'translation', json, false, preview.previewToken), 409);
+      expect(save.called).to.equal(false);
+    });
+    it('keeps unknown keys only with explicit opt-in', async function () {
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', '{"unknown":"New"}', true);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({ key: 'unknown', value: 'New' });
+      const result = await I18nEntriesService.applyImport(brand, 'en', 'translation', '{"unknown":"New"}', true, preview.previewToken);
+      expect(result).to.include({ applied: 1, failed: 0 });
+      expect(save.firstCall.args[3]).to.equal('unknown');
+    });
+    it('exports flat strings without metadata, preserving leaf/prefix keys and empty values', async function () {
+      bundle.data.empty = '';
+      expect(await I18nEntriesService.exportBundle(brand, 'en', 'translation')).to.deep.equal({ same: 'Same', change: 'Before', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>', empty: '' });
+      expect(await I18nEntriesService.exportBundle(brand, 'en', 'translation', true)).to.deep.equal({ change: 'Before', empty: '' });
+    });
+    it('reports failure if the bundle disappears during the entry write', async function () {
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves(null) });
+      let failure;
+      try { await I18nEntriesService.setEntry(brand, 'en', 'translation', 'change', 'New', { strictBundleSync: true, noReload: true }); }
+      catch (error) { failure = error; }
+      expect(failure?.message).to.equal('Bundle no longer exists');
+    });
+    it('reports bundle synchronization failure rather than claiming an entry was applied', async function () {
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().rejects(new Error('write failed')) });
+      await rejected(I18nEntriesService.setEntry(brand, 'en', 'translation', 'change', 'New', { strictBundleSync: true, noReload: true }).then(() => { throw Object.assign(new Error('should reject'), { status: 0 }); }, error => { throw Object.assign(error, { status: 500 }); }), 500);
+    });
+  });
+
   describe('resolveBrandingId (private)', function () {
     it('should resolve branding id from object', function () {
       const result = I18nEntriesService.resolveBrandingId({ id: 'brand-1' });

@@ -6,6 +6,18 @@ test.describe('Angular bootstrap recovery', () => {
 
   for (const endpoint of ['csrfToken', 'dynamic/apiClientConfig*']) {
     test(`renders recovery controls and retries after ${endpoint} fails`, async ({ page }) => {
+      // Hook layouts can omit page snapshots. Exercise that HTTP fallback before Angular starts.
+      const snapshotName = endpoint === 'csrfToken' ? 'rb-csrf-token' : 'rb-client-config';
+      await page.addInitScript((name) => {
+        const observer = new MutationObserver(() => {
+          const snapshot = document.querySelector(`meta[name="${name}"]`);
+          if (snapshot) {
+            snapshot.remove();
+            observer.disconnect();
+          }
+        });
+        observer.observe(document, { childList: true, subtree: true });
+      }, snapshotName);
       let attempts = 0;
       await page.route(`**/${endpoint}`, async (route) => {
         attempts += 1;
@@ -17,6 +29,7 @@ test.describe('Angular bootstrap recovery', () => {
       });
 
       await page.goto('/default/rdmp/admin/users', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator(`meta[name="${snapshotName}"]`)).toHaveCount(0);
       const error = page.locator('manage-users [role="alert"]');
       await expect(error).toContainText('Unable to load data');
       await expect(page.locator('#manage-users-search')).toHaveCount(0);

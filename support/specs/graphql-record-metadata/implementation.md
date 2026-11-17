@@ -2,6 +2,10 @@
 
 This implementation promotes the shared-tree investigation into the core portal for authenticated external integrations. The [investigation](design.md), prototype, SDL and fixture evidence remain available. GraphQL was selected to support validated queries and typed clients; the investigation's REST projection comparison remains useful and does not establish a storage-read advantage. REST projection is outside this implementation.
 
+## Grid extension
+
+The endpoint now also provides bounded `records(...)` and authenticated `recordFields(...)` for a future visual query builder. The current contract, index migration prerequisites, workflow selections, cursor semantics and saved-grid IDs are documented in the wiki [Record GraphQL Grids](../../wiki/Record-GraphQL-Grids.md). This extension adds no UI or persistence and retains this investigation and its historical evidence. Collection execution uses live indexed capabilities and bounded candidate hydration through runtime record authorization; it returns no counts.
+
 ## Enablement and access
 
 The loader registers `RecordGraphqlService`, `webservice/RecordGraphqlController`, the `recordGraphql` configuration and a single `POST /:branding/:portal/api/graphql` action. Set the following in a deployment's local configuration or hook configuration:
@@ -121,3 +125,29 @@ The core build, strict GraphQL test type-check, **33 GraphQL tests**, and **159 
 ### Review round 1 corrections (2026-11-10)
 
 The first independent Codex Hub review identified four issues: field-free cyclic fragments could expand without consuming a bound; read contracts rejected legitimate edit/view duplicates; role-specific shapes retained only the first variant; and historical list-item errors discarded valid siblings. The fixes count all selection traversal steps and stop cycles, merge compatible read variants while keeping write compilation unchanged, use opaque nodes for incompatible variants, and complete list items independently. Regression coverage includes the checked-in related URL reusable definition, nested and repeatable role variants, indexed scalar/object/nested-list failures, and adversarial fragment graphs in an externally timed worker. Strict GraphQL type-check and all **41 GraphQL tests passed** after these fixes.
+
+## Grid extension validation — 2026-11-11
+
+The collection/catalogue extension passed **72 GraphQL tests** (including strict GraphQL source/test type-check), **223 targeted Solr/compiler/JSON Schema/route/policy regressions**, the record-schema test type-check, the core build, scoped Oxlint (zero warnings/errors), Prettier and `git diff --check`.
+
+The standard Docker mount harness passed **18 HTTP integration tests**, combining `test/integration/services/RecordGraphqlService.test.ts` and `test/integration/services/RecordGraphqlGrid.test.ts`. These use real Sails controller/policies, persisted bearer credentials/path rules, MongoDB record authorization and Solr schema/index/cursor queries. Coverage includes equal-value sorting, inaccessible intervening hits, exact/contains/IN/numeric/date/boolean/missing filters, executable catalogue selections, route denials, invalid requests and disabled behavior. Grid scalar additions to publication forms are synthetic; the original checked-in publication forms remain title-only stubs.
+
+The local dependency tree needed repair of existing pinned ReDoc peer and asset dependencies before the HTTP harness could run. No dependency manifests or lockfiles were changed for this extension. One discarded run overlapped a clean core build and could not load its temporarily absent compiled entry point; the successful run used a completed, stable build. No HTTP authorization or search layers were skipped in the successful run.
+
+The grid contract intentionally requires a shared cursor secret, protected index fields plus reindexing, and explicit verified metadata index mappings. Fields available in only some scoped variants remain columns but require narrower workflow scope for filtering/sorting. Metadata-index queries recheck the current stored form's registered read shape before page boundaries. Candidate scans are capped at 200 and fail rather than returning misleading pages. See the wiki contract for freshness, non-snapshot cursors, missing values, resource limits and saved-grid examples.
+
+### Review round 3 corrections (2026-11-11)
+
+The independent review of `a417c1236` found three issues: conditional rendering could remove private markers before combining branches; omitted workflow scope did not restrict envelope-only pages to registered stages; and Luxon could normalize invalid timestamp components into different valid instants.
+
+Conditional rendering and UI-variant compilation now share the contract-node merge, retaining private declarations until read fields are projected. Private declarations take precedence recursively in either branch order; incompatible private regions are closed, including nested opaque values and list items. The internal opaque reason for incompatible conditional shapes is now the shared `incompatible-read-variants` reason. The effective stage set comes from the scoped registered read contracts and is enforced in both the Solr query and current stored-record checks before page boundaries or lookahead. Generated search parameters use a bounded form POST to accommodate the configured default scope. Timestamp component ranges and complete literal consumption are checked before calendar validation and UTC normalization; `24:00`, oversized offsets, leap-second literals and trailing newlines are rejected.
+
+Validation passed: **80 GraphQL tests** with strict source/test type-check; **226 targeted Solr/compiler/contributor/JSON Schema/route/policy regressions**; the record-schema test type-check; core build; scoped Oxlint with zero warnings/errors; Prettier; and `git diff --check`. The standard isolated Docker mount harness passed **20 HTTP integration tests** against real Sails, MongoDB and Solr, including authenticated invalid-timestamp requests and omitted/empty workflow scopes with an unregistered stored stage and a deliberately stale index. Six synthetic hook regressions pass through the actual contributor compiler and exercise both `record` and `records` plus field discovery, with branch-order, nested, repeatable and opaque privacy cases. No dependency manifests or lockfiles changed.
+
+### Review round 4 corrections (2026-11-11)
+
+The independent review of `f070b9092` found that restricted array-item placeholders could still appear in field discovery, carrying descriptions and enum choices from the raw contract even though stored items correctly returned null. Catalogue entries now skip restricted shapes, and hint collection walks the same filtered read shape as field discovery, excluding private declarations and hidden descendants before collecting labels or enum choices. A readable repeating parent can remain listed while its private item declaration is absent.
+
+Five compiler-backed regressions reproduced the issue before the fix: direct private scalar items, conditional item nodes in either branch order, and conditional arrays in either branch order. The fixed tests verify catalogue-only requests read zero records, exclude private IDs/descriptions/choices, reject the hidden IDs with `UNKNOWN_FIELD`, and preserve null items in both record queries. A public-array control verifies visible labels and conditional enum choices remain intact.
+
+Validation passed: **86 GraphQL tests** including strict source/test type-check, core build, scoped Oxlint with zero warnings/errors, Prettier and `git diff --check`. The standard isolated Docker mount harness again passed **20 HTTP integration tests** with real Sails, MongoDB and Solr. The production change is limited to catalogue traversal; schema rendering, search, authentication and record authorization paths were unchanged. No dependency manifests or lockfiles changed.

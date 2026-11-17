@@ -79,6 +79,39 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     };
   }
 
+  it('never stores root runtime enrichment through native create, update or batch', async function () {
+    // Native collections are supplied directly; this focused suite does not lift Sails models.
+    const runtimeService = new Services.MongoStorageService();
+    runtimeService.recordIdentityCol = identities;
+    runtimeService.getNativeRecordCollection = () => records;
+    runtimeService.getNativeTombstoneCollection = () => tombstones;
+    const oid = `runtime-${randomUUID()}`;
+    const candidate = {
+      ...activeRecord(oid),
+      metadata: { relatedMetadata: { local: false }, title: 'Local' },
+      relatedMetadata: { activities: { status: 'empty', records: [], issues: [] } },
+      integration: { doi: 'retained' },
+    };
+    expect((await runtimeService.create({ id: 'brand-1' }, candidate, { name: 'rdmp' })).success).to.equal(true);
+    let stored = await records.findOne({ redboxOid: oid });
+    expect(stored).not.to.have.property('relatedMetadata');
+    expect(stored.metadata).to.deep.equal(candidate.metadata);
+    expect(stored.integration).to.deep.equal(candidate.integration);
+    const updated = { ...candidate, metadata: { ...candidate.metadata, title: 'Local edit' } };
+    expect((await runtimeService.updateMeta({ id: 'brand-1' }, oid, updated)).success).to.equal(true);
+    stored = await records.findOne({ redboxOid: oid });
+    expect(stored).not.to.have.property('relatedMetadata');
+    expect(stored.metadata).to.deep.equal(updated.metadata);
+    expect(stored.integration).to.deep.equal(candidate.integration);
+    const batch = { ...candidate, redboxOid: `batch-${randomUUID()}` };
+    expect((await runtimeService.createBatch('rdmp', [batch], 'metadata.title')).success).to.equal(true);
+    stored = await records.findOne({ redboxOid: batch.redboxOid });
+    expect(stored).not.to.have.property('relatedMetadata');
+    expect(stored.metadata).to.deep.equal(candidate.metadata);
+    expect(stored.integration).to.deep.equal(candidate.integration);
+    expect(candidate).to.have.property('relatedMetadata');
+  });
+
   it('has one winner across two service instances sharing one Mongo datastore', async function () {
     const oid = `cas-${randomUUID()}`;
     await records.insertOne(activeRecord(oid));

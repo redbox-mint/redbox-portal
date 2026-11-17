@@ -1,3 +1,5 @@
+import { firstValueFrom } from 'rxjs';
+
 describe('ReportsService report configuration integration', function () {
   const mutableReportName = 'report-config-integration';
   const solrReportName = 'report-config-integration-solr';
@@ -119,7 +121,10 @@ describe('ReportsService report configuration integration', function () {
       },
     };
 
-    const result = await ReportsService.previewConfig(brand, createConfig(), req);
+    const result = await ReportsService.previewConfig(brand, createConfig(), req, {
+      portal: 'rdmp',
+      caller: { brand, user: await firstValueFrom(UsersService.getUserWithUsername('admin')) },
+    });
 
     expect(result).to.include({ success: true });
     expect(result.total).to.be.a('number');

@@ -34,6 +34,8 @@ export interface BrandingTypefaceState {
   faces: Partial<Record<BrandingTypefaceSlot, BrandingTypefaceFace>>;
 }
 
+export interface BrandingImages { logo: Record<string, unknown> | null; favicon: Record<string, unknown> | null; }
+
 export interface BrandingVersionEntry {
   id: string;
   version: number;
@@ -44,6 +46,7 @@ export interface BrandingVersionEntry {
   restoredFromVersion?: number;
   variables: Record<string, string>;
   typeface: BrandingTypefaceState;
+  images?: BrandingImages;
 }
 
 export interface BrandingAdminState {
@@ -53,12 +56,14 @@ export interface BrandingAdminState {
     hash: string;
     variables: Record<string, string>;
     typeface: BrandingTypefaceState;
+    images?: BrandingImages;
   };
   draft: {
     revision: number;
     variables: Record<string, string>;
     typeface: BrandingTypefaceState;
-    dirty: { colours: boolean; typeface: boolean };
+    images?: BrandingImages;
+    dirty: { colours: boolean; typeface: boolean; logo?: boolean; favicon?: boolean };
   };
   versions: BrandingVersionEntry[];
   limits: { faceMaxBytes: number; familyMaxBytes: number; historyMaxVersions: number };
@@ -69,6 +74,7 @@ export interface BrandingAdminState {
 }
 
 export interface BrandingPreview {
+  images?: { logo: string | null; favicon: string | null };
   token: string;
   url: string;
   hash: string;

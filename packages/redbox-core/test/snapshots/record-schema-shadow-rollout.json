@@ -16,19 +16,19 @@
     "maxReportBytes": 65536
   },
   "summary": {
-    "formsChecked": 8,
-    "schemasChecked": 16,
-    "completeSchemas": 12,
-    "partialSchemas": 4,
+    "formsChecked": 12,
+    "schemasChecked": 24,
+    "completeSchemas": 18,
+    "partialSchemas": 6,
     "unsupportedComponents": 0,
-    "schemaWarnings": 16,
-    "unknownPropertyProbesAccepted": 16
+    "schemaWarnings": 24,
+    "unknownPropertyProbesAccepted": 24
   },
   "limitHeadroom": {
     "cacheEntries": {
       "limit": 128,
-      "observedMaximum": 16,
-      "remaining": 112
+      "observedMaximum": 24,
+      "remaining": 104
     },
     "maxDepth": {
       "limit": 64,
@@ -97,6 +97,27 @@
       "code": "record-contract.unrepresentable-condition",
       "kinds": ["create", "update"],
       "pointer": "/text_7",
+      "componentType": "SimpleInputComponent"
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/activityDates",
+      "componentType": "GroupComponent"
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/activitySummaries",
+      "componentType": "RepeatableComponent"
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/activityTitle",
       "componentType": "SimpleInputComponent"
     }
   ],
@@ -284,6 +305,32 @@
       "shadowWarningCodes": ["record-schema.type"]
     },
     {
+      "form": "dev-hook/demoRdmp-1.0-draft",
+      "kind": "create",
+      "digest": "b41336f81cceb93fb4f04e5087d49ec7970aee4c930c2093c208d4993fc252e0",
+      "completeness": "complete",
+      "byteLength": 1266,
+      "observedNodeDepth": 2,
+      "observedProperties": 12,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/demoRdmp-1.0-draft",
+      "kind": "update",
+      "digest": "0646cd096fd0e857ea833095ab572b3e60570b857a59a372bc067a1b15179b19",
+      "completeness": "complete",
+      "byteLength": 1266,
+      "observedNodeDepth": 2,
+      "observedProperties": 12,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
       "form": "dev-hook/existing-locations-1.0-draft",
       "kind": "create",
       "digest": "ba5b0857ac923eb886155bb760ca930b4d78b488e395ecb341907822002787c5",
@@ -304,6 +351,84 @@
       "byteLength": 757,
       "observedNodeDepth": 1,
       "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-activity-1.0-draft",
+      "kind": "create",
+      "digest": "bd514d3301dde30e35251eedc92c0794a9eed55cb8fd8d8860d5f97250f20948",
+      "completeness": "complete",
+      "byteLength": 730,
+      "observedNodeDepth": 1,
+      "observedProperties": 3,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-activity-1.0-draft",
+      "kind": "update",
+      "digest": "9267ef9eef6fba525964ba5f1328b8f929eb93ed0789e6f6832b0c2fbeb29469",
+      "completeness": "complete",
+      "byteLength": 730,
+      "observedNodeDepth": 1,
+      "observedProperties": 3,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "kind": "create",
+      "digest": "146034394e56003d0d61a2ae4e2ae340742796cbec72e3f32c86b44ce053d577",
+      "completeness": "partial",
+      "byteLength": 4672,
+      "observedNodeDepth": 3,
+      "observedProperties": 15,
+      "diagnosticCount": 3,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "kind": "update",
+      "digest": "a7aebc7c9b7a6239c85b9655a0448172f7465b8fc88f5d4f5e1c6aac7db7cdbd",
+      "completeness": "partial",
+      "byteLength": 4672,
+      "observedNodeDepth": 3,
+      "observedProperties": 15,
+      "diagnosticCount": 3,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/researchActivity-1.0-draft",
+      "kind": "create",
+      "digest": "4959370b1d0c9375de4dede6f35ba2944a4986d455eaed3ea542d2d8501822e0",
+      "completeness": "complete",
+      "byteLength": 1032,
+      "observedNodeDepth": 2,
+      "observedProperties": 8,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/researchActivity-1.0-draft",
+      "kind": "update",
+      "digest": "62cdc16101adb0d707fbd8377c0e881bc76dfd7154f844ef15ff7cde431bcc3d",
+      "completeness": "complete",
+      "byteLength": 1032,
+      "observedNodeDepth": 2,
+      "observedProperties": 8,
       "diagnosticCount": 0,
       "diagnosticCodes": [],
       "unknownPropertyProbe": "accepted",

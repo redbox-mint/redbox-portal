@@ -28,7 +28,8 @@ export interface RoutesConfig {
 
 export const routes: RoutesConfig = {
   // CSRF Token
-  'GET /csrfToken': { action: 'security/grant-csrf-token' },
+  // Sails only initializes route-scoped CSRF on methodless token routes.
+  '/csrfToken': { action: 'security/grant-csrf-token', csrf: true },
 
   // Home routes (demo hook overrides to /default/rdmp/home)
   '/:branding/:portal/home': {
@@ -255,7 +256,6 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
   // Admin user management routes
-  'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
   'post /:branding/:portal/admin/users/update': 'AdminController.updateUserDetails',
   'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
   'post /:branding/:portal/admin/users/revokeKey': 'AdminController.revokeUserKey',
@@ -266,14 +266,22 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/admin/users/link': 'AdminController.linkAccounts',
   'post /:branding/:portal/admin/users/:id/disable': 'AdminController.disableUser',
   'post /:branding/:portal/admin/users/:id/enable': 'AdminController.enableUser',
-  'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
-  'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
 
   // Record routes
   'get /:branding/:portal/record/default/:name': 'RecordController.getMetaDefault',
+  // The relatedMetadata refresh POST is registered by the contract route group (CSRF enabled).
   'get /:branding/:portal/record/metadata/:oid': 'RecordController.getMeta',
   'get /:branding/:portal/record/form/:name': 'RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
+  'post /:branding/:portal/generation/launch': 'GenerationController.launch',
+  'get /:branding/:portal/generation/runs/:id': 'GenerationController.getRun',
+  'post /:branding/:portal/generation/runs/:id/documents': 'GenerationController.addDocument',
+  'delete /:branding/:portal/generation/runs/:id/documents/:documentId': 'GenerationController.removeDocument',
+  'post /:branding/:portal/generation/runs/:id/execute': 'GenerationController.execute',
+  'post /:branding/:portal/generation/runs/:id/cancel': 'GenerationController.cancel',
+  'post /:branding/:portal/generation/runs/:id/commit': 'GenerationController.commit',
+  'get /:branding/:portal/record/:oid/generation-provenance': 'GenerationController.getProvenance',
+  'post /:branding/:portal/generation/provenance/:id/review': 'GenerationController.reviewProvenance',
   'get /:branding/:portal/record/search/:type': 'RecordController.search',
   'get /:branding/:portal/record/type': 'RecordController.getAllTypes',
   'get /:branding/:portal/dashboard/type/:dashboardType': 'RecordController.getDashboardType',
@@ -329,10 +337,9 @@ export const routes: RoutesConfig = {
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
   'get /:branding/:portal/dashboard/consolidated': 'RecordController.redirectLegacyConsolidatedDashboard',
+  'get /:branding/:portal/admin/parties': 'RecordController.renderParties',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
-  'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
-  'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 
   // Vocab routes
   'get /:branding/:portal/vocab/:vocabIdOrSlug': {
@@ -385,11 +392,8 @@ export const routes: RoutesConfig = {
   // Report routes
   'get /:branding/:portal/admin/reports': 'ReportsController.render',
   'get /:branding/:portal/admin/report/:name': 'ReportController.render',
-  'get /:branding/:portal/admin/getReport': 'ReportController.get',
-  'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
-  'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
   'get /:branding/:portal/admin/report-config': 'ReportController.listConfigs',
-  'post /:branding/:portal/admin/report-config/preview': 'ReportController.previewConfig',
+  'post /:branding/:portal/admin/report-config/preview': { controller: 'ReportController', action: 'previewConfig', csrf: true },
   'get /:branding/:portal/admin/report-config/:name': 'ReportController.getConfig',
   'post /:branding/:portal/admin/report-config': 'ReportController.createConfig',
   'put /:branding/:portal/admin/report-config/:name': 'ReportController.updateConfig',
@@ -402,7 +406,12 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/admin/api-docs': {
     controller: 'RenderViewController',
     action: 'render',
-    locals: { view: 'admin/api-docs', layout: false },
+    locals: { view: 'admin/api-docs' },
+  },
+  'get /:branding/:portal/admin/api-docs/reference': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { view: 'admin/api-docs-reference', layout: false },
   },
   'get /:branding/:portal/admin/api-docs/openapi.json': 'BrandingController.renderSwaggerJSON',
 
@@ -413,6 +422,26 @@ export const routes: RoutesConfig = {
 
   // Action routes
   'post /:branding/:portal/action/:action': 'ActionController.callService',
+
+  // Email template administration: session/cookie authentication and default CSRF protection.
+  'get /:branding/:portal/app/email-templates/schema-targets': { controller: 'EmailTemplateAdminController', action: 'schemaTargets' },
+  'get /:branding/:portal/app/email-templates/context-schema': { controller: 'EmailTemplateAdminController', action: 'contextSchema' },
+  'get /:branding/:portal/app/email-templates/preview-frame/:token': { controller: 'EmailTemplateAdminController', action: 'previewFrame' },
+  'get /:branding/:portal/app/email-templates/catalogue': { controller: 'EmailTemplateAdminController', action: 'catalogue' },
+  'get /:branding/:portal/app/email-templates/templates/:templateId': { controller: 'EmailTemplateAdminController', action: 'editor' },
+  'put /:branding/:portal/app/email-templates/templates/:templateId/draft': { controller: 'EmailTemplateAdminController', action: 'saveDraft' },
+  'delete /:branding/:portal/app/email-templates/templates/:templateId/draft': { controller: 'EmailTemplateAdminController', action: 'discardDraft' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/draft/from-default': { controller: 'EmailTemplateAdminController', action: 'fromDefault' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/validate': { controller: 'EmailTemplateAdminController', action: 'validate' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/preview': { controller: 'EmailTemplateAdminController', action: 'preview' },
+  'get /:branding/:portal/app/email-templates/preview-records': { controller: 'EmailTemplateAdminController', action: 'searchRecords' },
+  'get /:branding/:portal/app/email-templates/preview-records/:oid/context': { controller: 'EmailTemplateAdminController', action: 'recordContext' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/publish': { controller: 'EmailTemplateAdminController', action: 'publish' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/reset': { controller: 'EmailTemplateAdminController', action: 'reset' },
+  'get /:branding/:portal/app/email-templates/templates/:templateId/history': { controller: 'EmailTemplateAdminController', action: 'history' },
+  'get /:branding/:portal/app/email-templates/templates/:templateId/history/:version': { controller: 'EmailTemplateAdminController', action: 'historyVersion' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/history/:version/restore': { controller: 'EmailTemplateAdminController', action: 'restore' },
+  'get /:branding/:portal/admin/email-templates': { controller: 'EmailTemplateAdminController', action: 'page' },
 
   // App config routes
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
@@ -426,6 +455,18 @@ export const routes: RoutesConfig = {
     controller: 'RenderViewController',
     action: 'render',
     locals: { view: 'admin/branding' },
+  },
+  'get /:branding/:portal/app/data-grids': { controller: 'SavedGridController', action: 'list' },
+  'post /:branding/:portal/app/data-grids': { controller: 'SavedGridController', action: 'create' },
+  'get /:branding/:portal/app/data-grids/schema': { controller: 'SavedGridController', action: 'schema' },
+  'get /:branding/:portal/app/data-grids/scopes/:recordType': { controller: 'SavedGridController', action: 'stages' },
+  'get /:branding/:portal/app/data-grids/:gridId': { controller: 'SavedGridController', action: 'read' },
+  'put /:branding/:portal/app/data-grids/:gridId': { controller: 'SavedGridController', action: 'update' },
+  'delete /:branding/:portal/app/data-grids/:gridId': { controller: 'SavedGridController', action: 'remove' },
+  'get /:branding/:portal/admin/data-grids': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { view: 'admin/data-grids', pageTitleKey: 'data-grids-title' },
   },
   'get /:branding/:portal/admin/named-query': {
     controller: 'NamedQueryController',

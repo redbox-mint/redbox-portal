@@ -15,6 +15,7 @@ import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 export class ValidationSummaryFieldComponentConfig extends FieldComponentConfig implements ValidationSummaryFieldComponentConfigOutline {
     showWhenValid = false;
+    deferErrorsOnNewRecord = false;
 
     constructor() {
         super();

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin pattern kit</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff; padding: 48px 56px">
+  <div style="max-width: 1160px; display: flex; flex-direction: column; gap: 36px">
+    <div>
+      <p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #b1101a">Shared building blocks</p>
+      <h1 style="font-size: 38px; margin: 6px 0 8px">Admin pattern kit</h1>
+      <p style="margin: 0; color: #5f6670; max-width: 760px">Every mock is built only from these parts. Colours map to existing <code>theme.css</code> tokens, so brand overrides carry through.</p>
+    </div>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">Colour tokens</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #b1101a"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Brand</b><span class="mono">--rb-site-branding-area-background-color</span></div></div>
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #500005"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Brand dark</b><span class="mono">--rb-main-menu-branding-background-color</span></div></div>
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #0d6efd"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Primary action</b><span class="mono">--rb-primary</span></div></div>
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #198754"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Success / On</b><span class="mono">--rb-success</span></div></div>
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #ffc107"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Warning</b><span class="mono">--rb-warning</span></div></div>
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #dc3545"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Danger</b><span class="mono">--rb-danger</span></div></div>
+        <div class="stat" style="padding: 0; overflow: hidden"><div style="height: 56px; background: #f4f4f4; border-bottom: 1px solid #ddd"></div><div style="padding: 8px 12px"><b style="font-size: 14px">Surface</b><span class="mono">--rb-header-branding-background-color</span></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">Page header</h2>
+      <div style="border: 1px dashed #c9cdd2; border-radius: 6px; padding: 20px 24px">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><a href="#">Records &amp; reporting</a><span>/</span><span>Reports</span></nav>
+        <header class="ph" style="margin-bottom: 0">
+          <div><h1>Page title</h1><p>One sentence on what this screen is for and who it affects.</p></div>
+          <div class="ph-actions"><button class="btn btn-secondary" type="button">Secondary</button><button class="btn btn-primary" type="button">+ Primary action</button></div>
+        </header>
+      </div>
+      <p class="hint" style="margin-top: 8px">Always left-aligned H1 at 30px. A single primary action, top-right. Never centred titles or a title repeated as a subtitle.</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">Buttons &amp; badges</h2>
+      <div class="row" style="margin-bottom: 14px">
+        <button class="btn btn-primary" type="button">Save changes</button>
+        <button class="btn btn-secondary" type="button">Cancel</button>
+        <button class="btn btn-ghost" type="button">Ghost</button>
+        <button class="btn btn-danger" type="button">Delete</button>
+        <button class="btn btn-danger-solid" type="button">Delete permanently</button>
+        <button class="btn btn-primary btn-sm" type="button">Small</button>
+        <button class="btn btn-secondary" type="button" disabled>Disabled</button>
+      </div>
+      <div class="row">
+        <span class="badge ok"><span class="dot"></span>On</span>
+        <span class="badge">Off</span>
+        <span class="badge warn">Draft</span>
+        <span class="badge err">Error</span>
+        <span class="badge info">Needs setup</span>
+        <span class="badge brand">Admin</span>
+        <span class="badge">database</span>
+      </div>
+      <p class="hint" style="margin-top: 8px">Solid red appears only inside a confirm dialog. Row actions use small outline buttons or the ⋯ overflow menu. Labels are sentence case, never uppercase.</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">Stats row</h2>
+      <div class="stats" style="margin: 0">
+        <div class="stat"><b>12</b><span>Total</span></div>
+        <div class="stat"><b>9</b><span>Database</span></div>
+        <div class="stat"><b>3</b><span>Solr</span></div>
+        <div class="stat alert"><b>1</b><span>Failing</span></div>
+      </div>
+      <p class="hint" style="margin-top: 8px">Replaces the floating grey “Total: 8” pills. Use a stats row only when the numbers help a decision.</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">List card: filter bar, table, footer</h2>
+      <div class="card">
+        <div class="card-h"><h2>Items</h2><span class="meta">3 of 3</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="pk-s">Search</label><input id="pk-s" class="inp" placeholder="Name or slug"></div>
+          <div class="field"><span class="lbl">Source</span><div class="seg" role="group" aria-label="Source"><button type="button" class="on">All</button><button type="button">Local</button><button type="button">RVA</button></div></div>
+          <div class="field"><label for="pk-t">Type</label><select id="pk-t" class="inp"><option>Any type</option></select></div>
+          <button class="btn btn-ghost" type="button">Clear</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Name</th><th>Type</th><th class="num">Count</th><th class="act"><span style="position: absolute; left: -9999px">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">Primary item</a><span class="sub mono">primary-item</span></td><td><span class="badge">flat</span></td><td class="num">42</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#">Second item</a><span class="sub mono">second-item</span></td><td><span class="badge">tree</span></td><td class="num">1,204</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 1–2 of 2</span><div class="pager"><button type="button">‹</button><button type="button" class="on">1</button><button type="button">›</button></div></div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px">
+      <div>
+        <h2 style="font-size: 20px; margin: 0 0 12px">Empty state</h2>
+        <div class="card" style="margin: 0"><div class="empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18"></path></svg>
+          <h3>No harvest runs yet</h3>
+          <p>Runs appear here when a harvester posts records to the portal.</p>
+          <a class="btn btn-secondary" href="#">How harvesting works</a>
+        </div></div>
+      </div>
+      <div>
+        <h2 style="font-size: 20px; margin: 0 0 12px">Alerts</h2>
+        <div class="alert err" role="alert"><div><b>Couldn’t load metadata.</b>Retry, or check the server log.</div></div>
+        <div class="alert warn"><div><b>Unsaved changes.</b>Leaving will discard them.</div></div>
+        <div class="alert info"><div>Changes apply to the default brand only.</div></div>
+        <div class="alert ok" style="margin: 0"><div>Saved. Live for all users.</div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">Integration not set up</h2>
+      <div class="card" style="margin: 0"><div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.6" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>
+        <h3>[Integration] isn’t set up for this brand</h3>
+        <p>One sentence on what it does and what you’ll need from the provider before you start.</p>
+        <div class="row" style="justify-content: center"><button class="btn btn-primary" type="button">Set up [integration]</button><a class="btn btn-ghost" href="#">Learn more</a></div>
+      </div></div>
+      <p class="hint" style="margin-top: 8px">Shown when an app-config has no saved values and no usable defaults. Once set up, the page uses the long-config layout. Never show a blank form with only a Submit button.</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 20px; margin: 0 0 12px">Config form: section card + sticky save bar</h2>
+      <div class="fsec">
+        <div class="fsec-h"><div><h3>Connection</h3><p>Where ReDBox sends requests.</p></div><span class="switch on"><i></i>Enabled</span></div>
+        <div class="fsec-b"><div class="fgrid">
+          <div class="field"><label for="pk-u">Base URL</label><input id="pk-u" class="inp" value="https://api.example.org"></div>
+          <div class="field"><label for="pk-k">API token</label><input id="pk-k" class="inp" type="password" value="••••••••••"><span class="hint">Stored as a secret. Leave blank to keep the current value.</span></div>
+        </div></div>
+      </div>
+      <div class="savebar"><span class="state"><span class="dot" style="color: #ffc107"></span>2 unsaved changes</span><div class="row"><button class="btn btn-ghost" type="button">Discard</button><button class="btn btn-primary" type="button">Save changes</button></div></div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import { UserModel } from '../../src/model/storage/UserModel';
 import { UserWLDef } from '../../src/waterline-models/User';
 
 let expect: Chai.ExpectStatic;
@@ -6,6 +7,10 @@ describe('User Waterline model', function () {
   before(async function () {
     const chai = await import('chai');
     expect = chai.expect;
+  });
+
+  it('does not invent a last-login value for a new user', () => {
+    expect(new UserModel().lastLogin).to.equal(undefined);
   });
 
   it('allows a null token in the generated model so API keys can be revoked', function () {

@@ -1,248 +1,896 @@
 @if (isReady) {
   <div class="report-config-app">
-    <div class="page-header">
-      <h1>{{ 'reports-heading' | i18next }}</h1>
-      <p>{{ (isAdmin ? 'reports-description-admin' : 'reports-description-librarian') | i18next }}</p>
-    </div>
-
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
+      <ol>
+        <li>
+          <a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a>
+        </li>
+        <li>{{ 'admin-nav-records' | i18next }}</li>
+        <li>
+          @if (selectedReport) {
+            <a [href]="brandingAndPortalUrl + '/admin/reports'" (click)="reportsCrumb($event)">{{
+              'reports-heading' | i18next
+            }}</a>
+          } @else {
+            <span aria-current="page">{{ 'reports-heading' | i18next }}</span>
+          }
+        </li>
+        @if (selectedReport) {
+          <li>
+            <span aria-current="page">{{ selectedReport.title || ('report-create-title' | i18next) }}</span>
+          </li>
+        }
+      </ol>
+    </nav>
     @if (errorMessage) {
-      <div class="alert alert-danger">{{ errorMessage }}</div>
+      <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
     }
-
-    <div class="report-toolbar">
-      <button class="btn btn-primary" type="button" (click)="createReport()"><i class="fa fa-plus"></i> {{ 'report-create' | i18next }}</button>
-      <a class="btn btn-info" [href]="brandingAndPortalUrl + '/admin/named-query'"><i class="fa fa-list"></i> {{ 'report-manage-named-queries' | i18next }}</a>
-    </div>
-
-    <div class="report-stats">
-      <div class="report-stat-card">
-        <div class="report-stat-value">{{ totalReports }}</div>
-        <div class="report-stat-label">{{ 'report-stat-total' | i18next }}</div>
-      </div>
-      <div class="report-stat-card">
-        <div class="report-stat-value">{{ databaseReports }}</div>
-        <div class="report-stat-label">{{ 'report-stat-database' | i18next }}</div>
-      </div>
-      <div class="report-stat-card">
-        <div class="report-stat-value">{{ solrReports }}</div>
-        <div class="report-stat-label">{{ 'report-stat-solr' | i18next }}</div>
-      </div>
-    </div>
-
-    <div class="panel panel-default">
-      <div class="panel-heading clearfix">
-        <span class="panel-title pull-left">{{ 'report-configured-reports' | i18next }}</span>
-        <div class="btn-group pull-right report-source-filter" role="group">
-          <button class="btn btn-xs" type="button" [class.btn-primary]="sourceFilter === 'all'" [class.btn-default]="sourceFilter !== 'all'" (click)="setSourceFilter('all')">{{ 'report-source-all' | i18next }}</button>
-          <button class="btn btn-xs" type="button" [class.btn-primary]="sourceFilter === 'database'" [class.btn-default]="sourceFilter !== 'database'" (click)="setSourceFilter('database')">{{ 'report-source-database' | i18next }}</button>
-          <button class="btn btn-xs" type="button" [class.btn-primary]="sourceFilter === 'solr'" [class.btn-default]="sourceFilter !== 'solr'" (click)="setSourceFilter('solr')">{{ 'report-source-solr' | i18next }}</button>
+    @if (!selectedReport) {
+      <header class="rb-admin-page-header">
+        <div>
+          <h1>{{ 'reports-heading' | i18next }}</h1>
+          <p>{{ 'report-ux-list-help' | i18next }}</p>
+        </div>
+        <div class="rb-admin-page-actions">
+          @if (canManageQueries) {
+            <a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query'">{{
+              'named-queries-heading' | i18next
+            }}</a>
+          }
+          <button id="report-create" class="btn btn-primary" (click)="createReport()">
+            {{ 'report-create' | i18next }}
+          </button>
+        </div>
+      </header>
+      <div class="rb-admin-filter-bar report-list-toolbar">
+        <label class="rb-admin-field rb-admin-field-grow"
+          ><span class="visually-hidden">{{ 'report-search-placeholder' | i18next }}</span
+          ><input
+            class="form-control"
+            type="search"
+            [placeholder]="'report-search-placeholder' | i18next"
+            [(ngModel)]="searchText"
+            (ngModelChange)="applyFilter()"
+        /></label>
+        <div class="rb-admin-segmented" role="group" [attr.aria-label]="'report-col-source' | i18next">
+          @for (source of ['all', 'database', 'graphql', 'solr']; track source) {
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              [attr.aria-pressed]="sourceFilter === source"
+              (click)="setSourceFilter($any(source))"
+            >
+              {{ (source === 'graphql' ? 'report-graphql-source' : 'report-source-' + source) | i18next }}
+              <span class="badge">{{
+                source === 'all'
+                  ? totalReports
+                  : source === 'graphql'
+                    ? graphqlReports
+                    : source === 'database'
+                      ? databaseReports
+                      : solrReports
+              }}</span>
+            </button>
+          }
         </div>
       </div>
-      <div class="panel-body report-search-bar">
-        <div class="report-search-input">
-          <i class="fa fa-search"></i>
-          <input class="form-control" type="search" [placeholder]="'report-search-placeholder' | i18next" [(ngModel)]="searchText" (ngModelChange)="applyFilter()">
-        </div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead>
-            <tr>
-              <th>{{ 'report-col-title' | i18next }}</th>
-              <th>{{ 'report-col-name' | i18next }}</th>
-              <th>{{ 'report-col-source' | i18next }}</th>
-              <th class="text-center">{{ 'report-col-filters' | i18next }}</th>
-              <th class="text-center">{{ 'report-col-columns' | i18next }}</th>
-              <th class="text-right">{{ 'report-col-actions' | i18next }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (report of filteredReports; track report.name) {
+      <section class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle report-list-table">
+            <caption class="visually-hidden">
+              {{
+                'report-configured-reports' | i18next
+              }}
+            </caption>
+            <thead>
               <tr>
-                <td><a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next">{{ report.title }}</a></td>
-                <td><a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"><code>{{ report.name }}</code></a></td>
-                <td>
-                  {{ report.reportSource }}
-                  @if (report.readOnly) {
-                    <span class="label label-default">{{ 'report-state-readonly' | i18next }}</span>
-                  }
-                </td>
-                <td class="text-center">{{ report.filter.length }}</td>
-                <td class="text-center">{{ report.columns.length }}</td>
-                <td class="text-right report-actions">
-                  <button class="btn btn-xs btn-default" type="button" [disabled]="report.readOnly" (click)="editReport(report)" [attr.title]="'report-action-edit' | i18next"><i class="fa fa-pencil"></i> {{ 'report-action-edit' | i18next }}</button>
-                  <a class="btn btn-xs btn-default" [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"><i class="fa fa-eye"></i> {{ 'report-action-view' | i18next }}</a>
-                  <button class="btn btn-xs btn-danger" type="button" [disabled]="report.readOnly" (click)="deleteReport(report)" [attr.title]="'report-action-delete' | i18next"><i class="fa fa-trash"></i> {{ 'report-action-delete' | i18next }}</button>
-                </td>
+                <th scope="col">{{ 'report-ux-report' | i18next }}</th>
+                <th scope="col">{{ 'report-col-source' | i18next }}</th>
+                <th scope="col">{{ 'report-field-named-query' | i18next }}</th>
+                <th scope="col">{{ 'report-col-columns' | i18next }}</th>
+                <th scope="col">{{ 'report-col-filters' | i18next }}</th>
+                <th scope="col" class="text-end">{{ 'report-col-actions' | i18next }}</th>
               </tr>
-            }
-            @if (filteredReports.length === 0) {
-              <tr>
-                <td colspan="6" class="text-center text-muted">{{ 'report-none-found' | i18next }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <div class="panel-footer report-pagination">
-        {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
-      </div>
-    </div>
-
-    @if (selectedReport) {
-      <div class="modal-backdrop in"></div>
-      <div class="modal report-config-modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" aria-label="Close" (click)="cancelEdit()"><span aria-hidden="true">&times;</span></button>
-              <h4 class="modal-title">{{ (selectedReport.name ? 'report-edit-title' : 'report-create-title') | i18next }}</h4>
-            </div>
-            <div class="modal-body">
-              <div class="row report-detail-grid">
-                <div class="form-group col-sm-3">
-                  <label class="required" for="report-name">{{ 'report-field-key' | i18next }}</label>
-                  <input id="report-name" class="form-control" type="text" [(ngModel)]="selectedReport.name" [disabled]="isExistingReport()">
-                </div>
-                <div class="form-group col-sm-3">
-                  <label class="required" for="report-title">{{ 'report-field-title' | i18next }}</label>
-                  <input id="report-title" class="form-control" type="text" [(ngModel)]="selectedReport.title">
-                </div>
-                <div class="form-group col-sm-3">
-                  <label class="required" for="report-source">{{ 'report-field-source' | i18next }}</label>
-                  <select id="report-source" class="form-control" [(ngModel)]="selectedReport.reportSource" disabled>
-                    <option value="database">{{ 'report-source-database' | i18next }}</option>
-                    <option value="solr">{{ 'report-source-solr' | i18next }}</option>
-                  </select>
-                </div>
-                <div class="form-group col-sm-3">
-                  <label class="required" for="report-named-query">{{ 'report-field-named-query' | i18next }}</label>
-                  <select id="report-named-query" class="form-control" [(ngModel)]="selectedReport.databaseQuery!.queryName">
-                    <option value="">{{ 'report-named-query-placeholder' | i18next }}</option>
-                    @for (query of namedQueries; track query.name) {
-                      <option [value]="query.name">{{ query.name }}</option>
+            </thead>
+            <tbody>
+              @for (report of filteredReports; track report.name) {
+                <tr>
+                  <td>
+                    <a [href]="openReport(report)">{{ report.title }}</a
+                    ><span class="rb-admin-secondary"
+                      ><code class="rb-admin-path">{{ report.name }}</code></span
+                    >
+                  </td>
+                  <td>
+                    <span class="badge" [class.rb-admin-badge-primary]="reportSource(report) === 'graphql'">{{
+                      sourceLabel(reportSource(report))
+                    }}</span>
+                  </td>
+                  <td>
+                    @if (report.databaseQuery?.queryName; as query) {
+                      <a [href]="queryUrl(query)">{{ query }}</a>
                     }
-                  </select>
-                </div>
+                  </td>
+                  <td>{{ report.columns.length }}</td>
+                  <td>{{ report.filter.length }}</td>
+                  <td>
+                    <div class="report-row-actions">
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        [disabled]="report.readOnly || !report.canEdit"
+                        (click)="editReport(report)"
+                      >
+                        {{ 'report-action-edit' | i18next
+                        }}<span class="visually-hidden"> {{ report.title }}</span></button
+                      ><a class="btn btn-sm btn-outline-secondary" [href]="openReport(report)"
+                        >{{ 'report-action-view' | i18next }}<span class="visually-hidden"> {{ report.title }}</span></a
+                      >
+                      <details class="rb-admin-overflow" rbAdminOverflow>
+                        <summary
+                          class="btn btn-outline-secondary btn-sm rb-admin-icon-button"
+                          [attr.aria-label]="('report-ux-more' | i18next) + ': ' + report.title"
+                        >
+                          <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+                        </summary>
+                        <div class="rb-admin-overflow-menu">
+                          <button
+                            class="btn btn-sm btn-outline-danger"
+                            [disabled]="report.readOnly || !report.canDelete"
+                            (click)="deleteReport(report)"
+                          >
+                            {{ 'report-action-delete' | i18next }}
+                          </button>
+                        </div>
+                      </details>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="rb-admin-empty">{{ 'report-none-found' | i18next }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer">
+          {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
+        </div>
+      </section>
+    }
+    @if (selectedReport; as report) {
+      <header class="rb-admin-page-header report-workspace">
+        <div>
+          <div class="report-title-line">
+            <h1 id="report-workspace-title" tabindex="-1">{{ report.title || ('report-create-title' | i18next) }}</h1>
+            <span class="badge rb-admin-badge-primary">{{ sourceLabel(reportSource(report)) }}</span>
+          </div>
+          <p>
+            @if (selectedQueryChoice; as query) {
+              {{ 'report-ux-built-on' | i18next }} <a [href]="queryUrl()">{{ query.name }}</a>
+              @if (query.sourceSavedQuery?.name) {
+                , {{ 'report-ux-from-saved' | i18next }}
+                <a [href]="explorerUrl()">{{ query.sourceSavedQuery?.name }}</a>
+              }
+            } @else {
+              {{ 'report-ux-editor-help' | i18next }}
+            }
+          </p>
+        </div>
+        <div class="rb-admin-page-actions">
+          @if (!isNewReport) {
+            <a class="btn btn-outline-secondary" [href]="openReport(report)">{{ 'report-ux-view-report' | i18next }}</a>
+          }
+        </div>
+      </header>
+      <div class="rb-admin-split report-layout">
+        <nav class="rb-admin-section-rail" [attr.aria-label]="'report-ux-sections' | i18next">
+          @for (section of sections; track section) {
+            <a
+              [href]="'#report-section-' + section"
+              [attr.aria-current]="activeSection === section ? 'location' : null"
+              (click)="goSection($event, section)"
+              >{{ 'report-ux-section-' + section | i18next }}
+              @if (section === 'columns') {
+                <small>· {{ report.columns.length }}</small>
+              }
+              @if (section === 'filters') {
+                <small>· {{ report.filter.length }}</small>
+              }
+            </a>
+          }
+        </nav>
+        <div class="rb-admin-split-main">
+          <section id="report-section-basics" class="card rb-admin-form-section">
+            <div class="card-header">
+              <h2>{{ 'report-basics' | i18next }}</h2>
+            </div>
+            <div class="card-body rb-admin-form-grid">
+              <div class="rb-admin-field">
+                <label class="required" for="report-title">{{ 'report-field-title' | i18next }}</label
+                ><input
+                  id="report-title"
+                  class="form-control"
+                  [(ngModel)]="report.title"
+                  (ngModelChange)="draftChanged()"
+                />
+                <p class="rb-admin-hint">{{ 'report-ux-title-help' | i18next }}</p>
+                <report-diagnostics [diagnostics]="diagnostics" location="title"></report-diagnostics>
               </div>
-
-              <fieldset>
-                <legend>{{ 'report-section-filters' | i18next }}</legend>
-                <div class="table-responsive">
-                  <table class="table report-editor-table">
-                    <thead>
-                      <tr>
-                        <th>{{ 'report-filter-type' | i18next }}</th>
-                        <th>{{ 'report-filter-parameter' | i18next }}</th>
-                        <th>{{ 'report-filter-property' | i18next }}</th>
-                        <th>{{ 'report-filter-label' | i18next }}</th>
-                        <th class="report-editor-actions-col">{{ 'report-col-actions' | i18next }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (filter of selectedReport.filter; track trackByIndex($index)) {
-                        <tr>
-                          <td>
-                            <select class="form-control" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
-                              <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
-                              <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
-                            </select>
-                          </td>
-                          <td><input class="form-control" type="text" [(ngModel)]="filter.paramName"></td>
-                          <td>
-                            @if (filter.type === 'date-range' && filter.database) {
-                              <input class="form-control report-editor-stacked" type="text" [placeholder]="'report-filter-from-property' | i18next" [(ngModel)]="filter.database.fromProperty">
-                              <input class="form-control" type="text" [placeholder]="'report-filter-to-property' | i18next" [(ngModel)]="filter.database.toProperty">
-                            } @else {
-                              <input class="form-control" type="text" [(ngModel)]="filter.property">
-                            }
-                          </td>
-                          <td><input class="form-control" type="text" [(ngModel)]="filter.message"></td>
-                          <td class="text-center">
-                            <button class="btn btn-xs btn-danger" type="button" (click)="removeFilter($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times"></i></button>
-                          </td>
-                        </tr>
+              <div class="rb-admin-field">
+                <label class="required" for="report-name">{{ 'report-field-key' | i18next }}</label
+                ><input
+                  id="report-name"
+                  class="form-control font-monospace"
+                  [(ngModel)]="report.name"
+                  (ngModelChange)="draftChanged()"
+                  [readonly]="!isNewReport"
+                  [disabled]="isSaving"
+                />
+                <p class="rb-admin-hint">{{ 'report-ux-key-help' | i18next }}</p>
+                <report-diagnostics [diagnostics]="diagnostics" location="name"></report-diagnostics>
+              </div>
+            </div>
+          </section>
+          <section id="report-section-source" class="card rb-admin-form-section">
+            <div class="card-header">
+              <h2>{{ 'report-ux-section-source' | i18next }}</h2>
+            </div>
+            <div class="card-body">
+              <div class="rb-admin-field">
+                <label class="required" for="report-named-query">{{ 'report-field-named-query' | i18next }}</label>
+                <div class="input-group">
+                  @if (queryChoicesUnavailable) {
+                    <input
+                      id="report-named-query"
+                      class="form-control"
+                      [ngModel]="report.databaseQuery?.queryName"
+                      (ngModelChange)="selectQuery($event)"
+                    />
+                  } @else {
+                    <select
+                      id="report-named-query"
+                      class="form-select"
+                      [ngModel]="report.databaseQuery?.queryName || ''"
+                      (ngModelChange)="selectQuery($event)"
+                    >
+                      <option value="">{{ 'report-named-query-placeholder' | i18next }}</option>
+                      @for (name of queryOptions; track name) {
+                        <option [value]="name">{{ name }}</option>
                       }
-                      @if (selectedReport.filter.length === 0) {
-                        <tr><td colspan="5" class="text-center text-muted">{{ 'report-no-filters' | i18next }}</td></tr>
-                      }
-                    </tbody>
-                  </table>
+                    </select>
+                  }
+                  <button class="btn btn-outline-secondary" (click)="queryBrowserOpen = true">
+                    {{ 'report-ux-browse' | i18next }}
+                  </button>
                 </div>
-                <button class="btn btn-default btn-sm" type="button" (click)="addFilter()"><i class="fa fa-plus"></i> {{ 'report-add-filter' | i18next }}</button>
-              </fieldset>
-
-              <fieldset>
-                <legend>{{ 'report-section-columns' | i18next }}</legend>
-                <div class="table-responsive">
-                  <table class="table report-editor-table">
-                    <thead>
-                      <tr>
-                        <th>{{ 'report-column-label' | i18next }}</th>
-                        <th>{{ 'report-column-property' | i18next }}</th>
-                        <th>{{ 'report-column-display-template' | i18next }}</th>
-                        <th>{{ 'report-column-export-template' | i18next }}</th>
-                        <th class="report-editor-actions-col">{{ 'report-col-actions' | i18next }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (column of selectedReport.columns; track trackByIndex($index)) {
-                        <tr>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.label"></td>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.property"></td>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.template"></td>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.exportTemplate"></td>
-                          <td class="text-center">
-                            <button class="btn btn-xs btn-danger" type="button" (click)="removeColumn($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times"></i></button>
-                          </td>
-                        </tr>
-                      }
-                      @if (selectedReport.columns.length === 0) {
-                        <tr><td colspan="5" class="text-center text-muted">{{ 'report-no-columns' | i18next }}</td></tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-                <button class="btn btn-default btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus"></i> {{ 'report-add-column' | i18next }}</button>
-              </fieldset>
-
-              @if (selectedReport.filter.length > 0) {
-                <fieldset>
-                  <legend>{{ 'report-preview-filters' | i18next }}</legend>
-                  <div class="row">
-                    @for (filter of selectedReport.filter; track trackByIndex($index)) {
-                      @if (filter.type === 'date-range') {
-                        <div class="form-group col-sm-6">
-                          <label>{{ filter.message || filter.paramName }} {{ 'report-filter-date-from' | i18next }}</label>
-                          <input class="form-control" type="date" [(ngModel)]="previewFilterValues[filter.paramName + '_fromDate']">
-                        </div>
-                        <div class="form-group col-sm-6">
-                          <label>{{ filter.message || filter.paramName }} {{ 'report-filter-date-to' | i18next }}</label>
-                          <input class="form-control" type="date" [(ngModel)]="previewFilterValues[filter.paramName + '_toDate']">
-                        </div>
-                      } @else {
-                        <div class="form-group col-sm-6">
-                          <label>{{ filter.message || filter.paramName }}</label>
-                          <input class="form-control" type="text" [(ngModel)]="previewFilterValues[filter.paramName]">
-                        </div>
-                      }
+                <p class="rb-admin-hint" id="report-query-change-help">{{ 'report-query-change-help' | i18next }}</p>
+                <report-diagnostics [diagnostics]="diagnostics" location="databaseQuery.queryName"></report-diagnostics>
+              </div>
+              @if (selectedQueryChoice; as query) {
+                <rb-admin-source-card [name]="query.name"
+                  ><span sourceBadge class="badge rb-admin-badge-primary">{{ querySourceLabel(query) }}</span>
+                  {{ sourceSummary }}
+                  @if (query.sourceSavedQuery?.name) {
+                    <span sourceOrigin
+                      >{{ 'report-ux-built-from' | i18next }}
+                      <a [href]="explorerUrl()">{{ query.sourceSavedQuery?.name }}</a></span
+                    >
+                  }
+                  <div sourceActions class="report-source-actions">
+                    <a class="btn btn-sm btn-outline-secondary" [href]="queryUrl()">{{
+                      'report-open-named-query' | i18next
+                    }}</a>
+                    @if (query.sourceSavedQuery?.id) {
+                      <a class="btn btn-sm btn-outline-secondary" [href]="explorerUrl()">{{
+                        'nq-ux-open-explorer' | i18next
+                      }}</a>
                     }
                   </div>
-                </fieldset>
+                </rb-admin-source-card>
               }
-
+              @if (queryVersionChanged) {
+                <div class="alert alert-warning mt-3" role="alert">
+                  {{ 'report-graphql-query-changed' | i18next }}
+                  <button class="btn btn-sm btn-outline-secondary" (click)="reviewQueryVersion()">
+                    {{ 'report-graphql-review-version' | i18next }}
+                  </button>
+                </div>
+              }
+            </div>
+          </section>
+          <section id="report-section-columns" class="card rb-admin-form-section">
+            <div class="card-header">
+              <h2>
+                {{ 'report-section-columns' | i18next }} <span class="badge">{{ report.columns.length }}</span>
+              </h2>
+              <button id="report-columns-open" class="btn btn-sm btn-outline-secondary" (click)="columnsOpen = true">
+                {{ 'report-ux-choose-columns' | i18next }}
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle report-columns-table">
+                <caption class="visually-hidden">
+                  {{
+                    'report-section-columns' | i18next
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span class="visually-hidden">{{ 'report-ux-order' | i18next }}</span>
+                    </th>
+                    <th scope="col">{{ 'report-ux-heading' | i18next }}</th>
+                    <th scope="col">{{ 'report-ux-shows' | i18next }}</th>
+                    <th scope="col">{{ 'report-ux-on-screen' | i18next }}</th>
+                    <th scope="col">
+                      <span class="visually-hidden">{{ 'report-col-actions' | i18next }}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (column of report.columns; track column; let i = $index) {
+                    <tr
+                      [attr.data-column]="i"
+                      draggable="true"
+                      (dragstart)="dragColumnIndex = i"
+                      (dragend)="dragColumnIndex = null"
+                      (dragover)="$event.preventDefault()"
+                      (drop)="dropColumn($event, i)"
+                    >
+                      <td>
+                        <button
+                          class="btn btn-sm report-drag-handle"
+                          data-column-handle
+                          aria-describedby="report-reorder-help"
+                          [attr.aria-label]="('report-ux-order' | i18next) + ': ' + column.label"
+                          (keydown)="reorderColumn($event, i)"
+                        >
+                          ⠿
+                        </button>
+                      </td>
+                      <td>
+                        <input
+                          [id]="'column-label-' + i"
+                          class="form-control form-control-sm"
+                          [attr.aria-label]="('report-ux-heading' | i18next) + ' ' + (i + 1)"
+                          [(ngModel)]="column.label"
+                          (ngModelChange)="draftChanged()"
+                        />
+                      </td>
+                      <td>
+                        {{ fieldLabel(column.property)
+                        }}<span class="rb-admin-secondary"
+                          ><code class="rb-admin-path">{{ column.property }}</code></span
+                        >
+                      </td>
+                      <td>
+                        {{ formatLabel(column) }}
+                        @if (column.hide) {
+                          <span class="badge">{{ 'report-ux-hidden' | i18next }}</span>
+                        }
+                      </td>
+                      <td>
+                        <button
+                          class="btn btn-sm btn-outline-secondary"
+                          [attr.data-edit-column]="i"
+                          [attr.aria-label]="('report-action-edit' | i18next) + ': ' + column.label"
+                          (click)="editColumn(i)"
+                        >
+                          {{ 'report-action-edit' | i18next }}
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="rb-admin-empty">{{ 'report-no-columns' | i18next }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer">
+              <span id="report-reorder-help" class="rb-admin-hint">{{ 'report-ux-reorder-help' | i18next }}</span
+              ><span role="status" aria-live="polite" class="visually-hidden">{{ columnAnnouncement }}</span>
+            </div>
+          </section>
+          <section id="report-section-filters" class="card rb-admin-form-section">
+            <div class="card-header">
+              <h2>
+                {{ 'report-section-filters' | i18next }} <span class="badge">{{ report.filter.length }}</span>
+              </h2>
+              @if (description?.source !== 'graphql' || parameters.length) {
+                <button class="btn btn-sm btn-outline-secondary" (click)="openFilter()">
+                  {{ 'report-add-filter' | i18next }}
+                </button>
+              }
+            </div>
+            @if (description?.source === 'graphql' && !parameters.length) {
+              <div class="card-body">
+                <div class="rb-admin-empty report-filter-empty">
+                  <p>{{ 'report-ux-no-viewer-filters' | i18next }}</p>
+                  <p>
+                    {{ 'report-ux-add-viewer-before' | i18next }}
+                    <a [href]="queryUrl()">{{ 'report-ux-the-query' | i18next }}</a>
+                    {{ 'report-ux-add-viewer-after' | i18next }}
+                  </p>
+                </div>
+              </div>
+            } @else {
+              <div class="table-responsive">
+                <table class="table align-middle">
+                  <caption class="visually-hidden">
+                    {{
+                      'report-section-filters' | i18next
+                    }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ 'report-filter-label' | i18next }}</th>
+                      <th scope="col">{{ 'report-filter-type' | i18next }}</th>
+                      <th scope="col" class="text-end">{{ 'report-col-actions' | i18next }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (filter of report.filter; track filter; let i = $index) {
+                      <tr>
+                        <td>{{ filter.message || ('report-filter' | i18next) + ' ' + (i + 1) }}</td>
+                        <td>{{ 'report-filter-type-' + filter.type | i18next }}</td>
+                        <td>
+                          <div class="report-row-actions">
+                            <button class="btn btn-sm btn-outline-secondary" (click)="openFilter(i)">
+                              {{ 'report-action-edit' | i18next }}</button
+                            ><button class="btn btn-sm btn-outline-danger" (click)="removeFilter(i)">
+                              {{ 'report-action-remove' | i18next }}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="3" class="rb-admin-empty">{{ 'report-no-filters' | i18next }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+          <section id="report-section-preview" class="card rb-admin-form-section">
+            <div class="card-header">
+              <h2>{{ 'report-preview' | i18next }}</h2>
+              <div class="report-preview-actions">
+                <div class="rb-admin-segmented" role="group" [attr.aria-label]="'report-ux-preview-as' | i18next">
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    [attr.aria-pressed]="previewMode === 'screen'"
+                    (click)="previewMode = 'screen'"
+                  >
+                    {{ 'report-ux-on-screen' | i18next }}</button
+                  ><button
+                    class="btn btn-outline-secondary btn-sm"
+                    [attr.aria-pressed]="previewMode === 'csv'"
+                    (click)="previewMode = 'csv'"
+                  >
+                    {{ 'report-ux-csv' | i18next }}
+                  </button>
+                </div>
+                <button
+                  id="report-preview-refresh"
+                  class="btn btn-sm btn-outline-secondary"
+                  [disabled]="isPreviewing || !report.canPreview"
+                  (click)="previewReport()"
+                >
+                  {{ 'report-ux-refresh' | i18next }}
+                </button>
+              </div>
+            </div>
+            @if (report.filter.length) {
+              <div class="card-body">
+                @for (filter of report.filter; track filter; let i = $index) {
+                  @if (filter.type === 'date-range') {
+                    <fieldset class="rb-admin-filter-bar report-preview-filter">
+                      <legend class="rb-admin-filter-label">{{ previewFilterLabel(filter) }}</legend>
+                      @for (bound of ['fromDate', 'toDate']; track bound) {
+                        <div class="rb-admin-field">
+                          <label [for]="'preview-' + (bound === 'fromDate' ? 'from' : 'to') + '-' + i">{{
+                            (bound === 'fromDate' ? 'report-ux-from' : 'report-ux-to') | i18next
+                          }}</label>
+                          <input
+                            [id]="'preview-' + (bound === 'fromDate' ? 'from' : 'to') + '-' + i"
+                            class="form-control"
+                            type="date"
+                            [(ngModel)]="previewFilterValues[filter.paramName + '_' + bound]"
+                            (ngModelChange)="previewChanged()"
+                          />
+                        </div>
+                      }
+                    </fieldset>
+                  } @else {
+                    <div class="rb-admin-field">
+                      <label [for]="'preview-text-' + i">{{ previewFilterLabel(filter) }}</label>
+                      <input
+                        [id]="'preview-text-' + i"
+                        class="form-control"
+                        [(ngModel)]="previewFilterValues[filter.paramName]"
+                        (ngModelChange)="previewChanged()"
+                      />
+                    </div>
+                  }
+                }
+              </div>
+            }
+            <p class="visually-hidden" role="status" aria-live="polite">
+              {{
+                (isPreviewing
+                  ? 'report-previewing'
+                  : previewResult
+                    ? 'report-ux-preview-ready'
+                    : 'report-ux-preview-idle'
+                ) | i18next
+              }}
+            </p>
+            @if (previewResult; as result) {
+              <div class="table-responsive">
+                <table
+                  class="table table-hover report-preview-table"
+                  [class.report-display-preview]="previewMode === 'screen'"
+                  [class.report-export-preview]="previewMode === 'csv'"
+                >
+                  <caption class="visually-hidden">
+                    {{
+                      'report-preview' | i18next
+                    }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      @for (column of previewColumns; track column) {
+                        <th scope="col">{{ column.label }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of previewRows; track $index) {
+                      <tr>
+                        @for (cell of row.cells; track $index; let i = $index) {
+                          @if (previewMode === 'csv' || !report.columns[i].hide) {
+                            <td>
+                              @if (previewMode === 'csv') {
+                                {{ cell.export }}
+                              } @else {
+                                <span [innerHTML]="cell.untrustedDisplayHtml"></span>
+                              }
+                            </td>
+                          }
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (result.truncated) {
+                <p class="alert alert-warning report-truncation">{{ 'report-ux-preview-bounded' | i18next }}</p>
+              }
+              @if (result.deadlineEnforced === false) {
+                <details class="report-deadline">
+                  <summary>{{ 'report-ux-preview-limits' | i18next }}</summary>
+                  <p class="rb-admin-hint">{{ 'report-preview-no-deadline' | i18next }}</p>
+                </details>
+              }
+              @if (result.valid === false || result.success === false) {
+                <p class="alert alert-warning">{{ 'report-preview-refused' | i18next }}</p>
+              }
+            } @else {
+              <div class="rb-admin-empty">
+                {{ (isPreviewing ? 'report-previewing' : 'report-ux-preview-idle') | i18next }}
+              </div>
+            }
+            <div class="card-footer report-preview-footer">
+              <span class="rb-admin-hint">{{ 'report-ux-preview-footer' | i18next }}</span>
               @if (previewResult) {
-                <div class="alert alert-info">{{ 'report-preview-result' | i18next: { total: previewResult.total } }}</div>
+                <details class="report-raw-results">
+                  <summary>{{ 'report-ux-raw' | i18next }}</summary>
+                  <pre>{{ previewResult.records | json }}</pre>
+                </details>
               }
             </div>
-            <div class="modal-footer">
-              <button class="btn btn-default" type="button" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button>
-              <button class="btn btn-default" type="button" [disabled]="isPreviewing" (click)="previewReport()"><i class="fa fa-eye"></i> {{ 'report-preview' | i18next }}</button>
-              <button class="btn btn-primary" type="button" [disabled]="isSaving" (click)="saveReport()">{{ 'report-save' | i18next }}</button>
-            </div>
-          </div>
+          </section>
         </div>
+        <aside class="rb-admin-split-side">
+          <section class="card">
+            <div class="card-header">
+              <h2>{{ 'nq-ux-checks' | i18next }}</h2>
+            </div>
+            <div class="card-body report-checks">
+              @if (describing || validating) {
+                <p role="status">{{ 'report-validating' | i18next }}</p>
+              }
+              @if (assistanceError || validationError) {
+                <p class="rb-admin-check rb-admin-check-warning" role="status">
+                  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i
+                  ><span>{{ assistanceError || validationError }}</span>
+                </p>
+              }
+              @if (diagnostics.length) {
+                @for (d of diagnostics; track $index) {
+                  <p class="rb-admin-check rb-admin-check-warning" [class.text-danger]="d.severity === 'error'">
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i
+                    ><span>{{ checkMessage(d) }}</span>
+                  </p>
+                }
+              } @else if (
+                !validating &&
+                !describing &&
+                !assistanceError &&
+                !validationError &&
+                previewResult?.success !== false &&
+                description?.valid &&
+                report.columns.length
+              ) {
+                <p class="rb-admin-check rb-admin-check-success">
+                  <i class="fa-solid fa-check" aria-hidden="true"></i
+                  ><span>{{ 'report-ux-ready' | i18next: { count: report.columns.length } }}</span>
+                </p>
+              }
+              @if (description?.source === 'graphql') {
+                <p class="rb-admin-check rb-admin-check-success">
+                  <i class="fa-solid fa-check" aria-hidden="true"></i
+                  ><span>{{ 'report-ux-access-check' | i18next }}</span>
+                </p>
+                <p class="rb-admin-check rb-admin-check-warning">
+                  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i
+                  ><span>{{ 'report-ux-export-check' | i18next }}</span>
+                </p>
+              }
+            </div>
+          </section>
+        </aside>
       </div>
+      <footer class="rb-admin-save-bar">
+        <span class="rb-admin-save-state">{{ (dirty ? 'report-unsaved' : 'report-ux-saved') | i18next }}</span>
+        <div class="rb-admin-page-actions">
+          <button class="btn btn-outline-secondary" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button
+          ><button class="btn btn-primary" [disabled]="isSaving || saveBlocked" (click)="saveReport()">
+            {{ 'report-save' | i18next }}
+          </button>
+        </div>
+      </footer>
+    }
+    @if (columnsOpen) {
+      <rb-explorer-columns
+        [fields]="pickerFields"
+        [selected]="selectedColumnPaths"
+        [defaults]="selectedColumnPaths"
+        [subtitle]="selectedQueryChoice?.name || ''"
+        applyLabel="report-ux-apply"
+        [note]="'report-ux-columns-note' | i18next"
+        (closed)="columnsOpen = false"
+        (applied)="applyColumns($event)"
+      ></rb-explorer-columns>
+    }
+    @if (columnDraft; as column) {
+      <rb-admin-side-panel
+        [title]="'report-ux-edit-column' | i18next"
+        [subtitle]="column.label"
+        (closed)="columnDraft = null"
+        ><div class="report-panel-fields">
+          <label class="rb-admin-field"
+            >{{ 'report-ux-heading' | i18next
+            }}<input id="report-column-heading" class="form-control" [(ngModel)]="column.label"
+          /></label>
+          <label class="rb-admin-field"
+            >{{ 'report-ux-shows' | i18next
+            }}<select
+              id="report-column-field"
+              class="form-select"
+              [ngModel]="column.property"
+              (ngModelChange)="columnFieldChanged($event)"
+            >
+              @for (field of pickerFields; track field.id) {
+                <option [value]="field.id">{{ field.label }}</option>
+              }</select
+            ><report-diagnostics
+              [diagnostics]="diagnostics"
+              [location]="'columns.' + columnIndex + '.property'"
+            ></report-diagnostics
+          ></label>
+          <label class="rb-admin-field"
+            >{{ 'report-ux-display-as' | i18next
+            }}<select
+              id="report-column-format"
+              class="form-select"
+              [ngModel]="column.format || 'text'"
+              (ngModelChange)="column.format = $event"
+            >
+              <option value="text">{{ 'report-ux-format-text' | i18next }}</option>
+              <option value="date">{{ 'report-ux-format-date' | i18next }}</option>
+              <option value="datetime">{{ 'report-ux-format-datetime' | i18next }}</option></select
+            ><span class="rb-admin-hint">{{ 'report-ux-format-help' | i18next }}</span></label
+          >
+          <label class="form-check"
+            ><input class="form-check-input" type="checkbox" [(ngModel)]="column.hide" />
+            {{ 'report-ux-hide' | i18next }}</label
+          >
+          <label class="form-check"
+            ><input class="form-check-input" type="checkbox" [(ngModel)]="column.multivalue" />
+            {{ 'report-ux-multiple' | i18next }}</label
+          >
+          <details id="report-column-advanced" class="rb-admin-form-section">
+            <summary class="rb-admin-form-section-header">{{ 'report-ux-advanced-template' | i18next }}</summary>
+            <div class="rb-admin-form-section-body">
+              <label class="rb-admin-field"
+                >{{ 'report-ux-custom-path' | i18next
+                }}<input
+                  #customPath
+                  id="report-column-path"
+                  class="form-control font-monospace"
+                  [(ngModel)]="column.property"
+                /><rb-field-autocomplete
+                  [target]="customPath"
+                  mode="path"
+                  [source]="outputSource"
+                ></rb-field-autocomplete
+                ><span class="rb-admin-hint">{{ 'report-ux-path-help' | i18next }}</span></label
+              >
+              <p class="rb-admin-hint">{{ 'report-ux-template-help' | i18next }}</p>
+              <report-template-input
+                inputId="report-display-template"
+                [label]="'report-column-display-template' | i18next"
+                [value]="column.template || ''"
+                (valueChange)="column.template = $event"
+                [fields]="fields"
+                [property]="column.property"
+                [reportKey]="selectedReport?.name || ''"
+                [multivalue]="!!column.multivalue"
+                kind="display"
+                [diagnostics]="diagnostics"
+                [location]="'columns.' + columnIndex + '.template'"
+              ></report-template-input>
+              <report-template-input
+                inputId="report-csv-template"
+                [label]="'report-column-export-template' | i18next"
+                [value]="column.exportTemplate || ''"
+                (valueChange)="column.exportTemplate = $event"
+                [fields]="fields"
+                [property]="column.property"
+                [reportKey]="selectedReport?.name || ''"
+                [multivalue]="!!column.multivalue"
+                kind="csv"
+                [diagnostics]="diagnostics"
+                [location]="'columns.' + columnIndex + '.exportTemplate'"
+              ></report-template-input>
+            </div>
+          </details>
+        </div>
+        <div panelFooter class="report-panel-actions">
+          <button class="btn btn-outline-secondary" (click)="columnDraft = null">{{ 'report-cancel' | i18next }}</button
+          ><button id="report-column-done" class="btn btn-primary" (click)="doneColumn()">
+            {{ 'report-ux-done' | i18next }}
+          </button>
+        </div></rb-admin-side-panel
+      >
+    }
+    @if (filterDraft; as filter) {
+      <rb-admin-side-panel
+        [title]="(filterIndex < 0 ? 'report-add-filter' : 'report-ux-edit-filter') | i18next"
+        [subtitle]="filter.message"
+        (closed)="filterDraft = null"
+        ><div class="report-panel-fields">
+          @if (filterIndex < 0 && parameters.length) {
+            <section aria-labelledby="report-filter-suggestions">
+              <h3 id="report-filter-suggestions" class="report-panel-subheading">
+                {{ 'report-ux-suggested' | i18next }}
+              </h3>
+              <div class="report-filter-suggestions">
+                @for (parameter of parameters; track parameter.key) {
+                  <button class="btn btn-outline-secondary btn-sm" (click)="suggestFilter(parameter)">
+                    {{ parameterLabel(parameter) }}
+                  </button>
+                }
+              </div>
+            </section>
+          }
+          <label class="rb-admin-field"
+            >{{ 'report-filter-label' | i18next
+            }}<input [id]="'filter-label-' + filterIndex" class="form-control" [(ngModel)]="filter.message"
+          /></label>
+          <label class="rb-admin-field"
+            >{{ 'report-filter-type' | i18next
+            }}<select class="form-select" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
+              <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
+              <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
+            </select></label
+          >
+          <label class="rb-admin-field"
+            >{{ 'report-filter-parameter' | i18next
+            }}<input
+              [id]="'filter-param-' + filterIndex"
+              class="form-control"
+              list="report-parameters"
+              [(ngModel)]="filter.paramName"
+            /><report-diagnostics
+              [diagnostics]="diagnostics"
+              [location]="'filter.' + filterIndex + '.paramName'"
+            ></report-diagnostics
+            ><span class="rb-admin-hint">{{ 'report-ux-filter-help' | i18next }}</span></label
+          >
+          <datalist id="report-parameters">
+            @for (parameter of parameters; track parameter.key) {
+              <option [value]="parameter.key">{{ parameterLabel(parameter) }}</option>
+            }
+          </datalist>
+          @if (filter.type === 'date-range') {
+            @for (bound of ['fromProperty', 'toProperty']; track bound) {
+              <label class="rb-admin-field"
+                >{{
+                  (bound === 'fromProperty' ? 'report-filter-from-parameter' : 'report-filter-to-parameter') | i18next
+                }}<input
+                  [id]="'filter-' + (bound === 'fromProperty' ? 'from' : 'to') + '-' + filterIndex"
+                  class="form-control"
+                  list="report-parameters"
+                  [ngModel]="$any(filter.database)?.[bound]"
+                  (ngModelChange)="setDateBinding(filter, $any(bound), $event)" /><report-diagnostics
+                  [diagnostics]="diagnostics"
+                  [location]="'filter.' + filterIndex + '.database.' + bound"
+                ></report-diagnostics
+              ></label>
+            }
+            @if (datePair()) {
+              <button class="btn btn-sm btn-outline-secondary" (click)="suggestDatePair(filter)">
+                {{ 'report-suggest-date-pair' | i18next }}
+              </button>
+            }
+          }
+          <details>
+            <summary>{{ 'report-ux-advanced-binding' | i18next }}</summary>
+            <label class="rb-admin-field"
+              >{{ 'report-filter-property' | i18next }}<input class="form-control" [(ngModel)]="filter.property"
+            /></label>
+          </details>
+        </div>
+        <div panelFooter class="report-panel-actions">
+          <button class="btn btn-outline-secondary" (click)="filterDraft = null">{{ 'report-cancel' | i18next }}</button
+          ><button class="btn btn-primary" (click)="doneFilter()">{{ 'report-ux-done' | i18next }}</button>
+        </div></rb-admin-side-panel
+      >
+    }
+    @if (queryBrowserOpen) {
+      <rb-admin-side-panel [title]="'report-browse-queries' | i18next" (closed)="queryBrowserOpen = false"
+        ><div class="table-responsive">
+          <table class="table">
+            <caption class="visually-hidden">
+              {{
+                'report-browse-queries' | i18next
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'report-field-named-query' | i18next }}</th>
+                <th scope="col">{{ 'report-col-source' | i18next }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (query of namedQueries; track query.name) {
+                <tr>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      (click)="selectQuery(query.name); queryBrowserOpen = false"
+                    >
+                      {{ query.name }}
+                    </button>
+                  </td>
+                  <td>{{ querySourceLabel(query) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div panelFooter class="report-panel-actions">
+          <button class="btn btn-outline-secondary" (click)="queryBrowserOpen = false">
+            {{ 'report-cancel' | i18next }}
+          </button>
+        </div></rb-admin-side-panel
+      >
     }
   </div>
 }

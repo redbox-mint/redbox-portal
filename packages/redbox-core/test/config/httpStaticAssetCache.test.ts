@@ -23,6 +23,7 @@ const bundles = [
   '/angular/local-auth/browser/polyfills-5CFQRCPP.js',
   '/angular/local-auth/browser/chunk-WEQAUKNS.js',
   '/angular/local-auth/browser/styles-5INURTSO.css',
+  '/fonts/google/titillium-web-400-latin-f93ddc83566b.woff2',
 ];
 const unversioned = [
   '/default/rdmp/images/checklist.png',
@@ -124,12 +125,12 @@ describe('static asset cache policy over HTTP', function () {
     fs.rmSync(appPath, { recursive: true, force: true });
   });
 
-  it('limits immutable eligibility to the production Angular browser bundle convention', function () {
+  it('limits immutable eligibility to production bundles and versioned default fonts', function () {
     for (const url of bundles) {
       expect(isImmutableAssetPath(url), url).to.equal(true);
       expect(isImmutableAssetPath(`/default/rdmp${url}?v=anything`), url).to.equal(true);
     }
-    for (const url of unversioned) {
+    for (const url of [...unversioned, '/default/default/fonts/google/titillium-web-400-latin.woff2', '/uploads/fonts/titillium-web-400-latin-f93ddc83566b.woff2', '/default/default/fonts/google/titillium-web-400-latin-f93ddc83566b.ttf']) {
       expect(isImmutableAssetPath(url), url).to.equal(false);
     }
   });

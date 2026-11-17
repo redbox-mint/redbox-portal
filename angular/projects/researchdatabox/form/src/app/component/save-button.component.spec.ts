@@ -146,6 +146,45 @@ describe('SaveButtonComponent', () => {
     expect(fixture.nativeElement.querySelector('button').disabled).toBeTrue();
   });
 
+  it('lets a draft action apply its own validation groups before checking required answers', async () => {
+    const draftConfig: FormConfigFrame = { name: 'incomplete-draft', enabledValidationGroups: ['all'],
+      validationGroups: { all: { description: '', initialMembership: 'all' }, none: { description: '', initialMembership: 'none' } }, componentDefinitions: [
+      { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+      { name: 'requiredLater', model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required', groups: { exclude: ['none'] } }] } },
+        component: { class: 'SimpleInputComponent' } },
+      { name: 'save', component: { class: 'SaveButtonComponent', config: { forceSave: true, enabledValidationGroups: ['none'] } } },
+      { name: 'submit', component: { class: 'SaveButtonComponent', config: { targetStep: 'submitted', enabledValidationGroups: ['all'] } } },
+    ] };
+    const { fixture, formComponent } = await createFormAndWaitForReady(draftConfig, { editMode: true, oid: '' });
+    const control = formComponent.form!.get('title')!;
+    control.setValue('Draft title');
+    control.markAsDirty();
+    formComponent.form!.markAsDirty();
+    formComponent.broadcastFormStatus();
+    fixture.detectChanges();
+    const draft = formComponent.componentDefArr[2].component as SaveButtonComponent;
+    const submit = formComponent.componentDefArr[3].component as SaveButtonComponent;
+    expect(formComponent.form!.valid).toBeFalse();
+    expect(draft.disabled()).toBeFalse();
+    expect(submit.disabled()).toBeTrue();
+    const create = spyOn(formComponent.recordService, 'create').and.resolveTo({
+      wasPersisted: () => true, isComplete: () => true, outcome: 'saved', metadata: { title: 'Draft title', requiredLater: null },
+    } as any);
+    await draft.save();
+    await fixture.whenStable();
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(formComponent.form!.valid).toBeTrue();
+    // The save-event adapter deliberately throttles repeated clicks for 250ms.
+    await new Promise<void>(resolve => setTimeout(resolve, 300));
+    await submit.save();
+    await fixture.whenStable();
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(formComponent.form!.valid).toBeFalse();
+    draft.setDisabled(true);
+    expect(draft.disabled()).toBeTrue();
+    fixture.destroy();
+  });
+
   it('should create SaveButtonComponent', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const component = fixture.nativeElement.querySelector('redbox-form-save-button');

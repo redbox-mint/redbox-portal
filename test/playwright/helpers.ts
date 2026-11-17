@@ -39,7 +39,12 @@ export async function collectLocalAssetUrls(page: Page): Promise<string[]> {
       .map((element) => element.getAttribute('data-openapi-url'))
       .filter((value): value is string => typeof value === 'string' && value.length > 0);
 
-    return [...linkedAssets, ...configuredAssets];
+    // ES module imports do not create script elements. Include the scripts actually loaded.
+    const loadedScripts = performance.getEntriesByType('resource')
+      .map((entry) => entry.name)
+      .filter((url) => new URL(url, location.href).pathname.endsWith('.js'));
+
+    return [...new Set([...linkedAssets, ...configuredAssets, ...loadedScripts])];
   });
 
   const pageUrl = new URL(page.url());

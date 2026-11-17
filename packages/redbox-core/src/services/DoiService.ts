@@ -22,7 +22,7 @@ import {
   resolveDoiPublishingConfigAsync,
   resolveDoiPublishingConfigForBrand,
 } from './doi-v2/config';
-import { createBindingContext, createRunContext } from './doi-v2/context';
+import { createBindingContext, createRunContext, createDoiMappingRecord } from './doi-v2/context';
 import { buildDoiPayload } from './doi-v2/payload';
 import { resolveProfile } from './doi-v2/profiles';
 import {
@@ -31,16 +31,31 @@ import {
   runDeleteDoiProgram,
   runUpdateDoiProgram,
 } from './doi-v2/runtime';
-import type { DoiRecordModel } from './doi-v2/types';
+import type { DoiRecordModel, DoiRelatedOptions } from './doi-v2/types';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import { DoiPublishing } from '../configmodels/DoiPublishing';
 import type { IntegrationAuditContext } from './IntegrationAuditService';
 import { createRecordMetadataDelta } from '../RecordsService';
 
 type DoiAction = 'create' | 'update';
-type DoiAuditOptions = Record<string, unknown> & {
+// Internal per-run view, shared with citation writeback without exposing it on the record.
+const mappingRecordKey = Symbol('doiMappingRecord');
+type DoiAuditOptions = Record<string, unknown> & DoiRelatedOptions & {
+  [mappingRecordKey]?: { record?: DoiRecordModel };
   auditContext?: IntegrationAuditContext | null;
 };
+/** Path copies must never turn runtime related data into persisted source projections. */
+function assertLocalExtraFieldSources(extraFields: Array<{ sourcePath: string }> = []): void {
+  for (const { sourcePath } of extraFields) {
+    if (_.toPath(sourcePath)[0] === 'relatedMetadata') {
+      throw new RBValidationError({
+        message: `Invalid DOI writeBack.extraFields sourcePath '${sourcePath}': copying relatedMetadata is not permitted`,
+        displayErrors: [{ code: 'doi-configuration-error', title: 'DOI extra-field copies cannot read relatedMetadata' }],
+      });
+    }
+  }
+}
+
 type DataciteLookupValueField = 'doi' | 'id' | 'url';
 type DataciteLookupParamValue = string | number | boolean | Array<string | number | boolean>;
 
@@ -297,10 +312,15 @@ export namespace Services {
       let requestSummary: Record<string, unknown> | undefined;
 
       try {
+        assertLocalExtraFieldSources(resolvedProfile.profile.writeBack.extraFields);
+        const mappingRecord = await createDoiMappingRecord(record, options);
+        if (options[mappingRecordKey] != null) {
+          options[mappingRecordKey].record = mappingRecord;
+        }
         const prefix = asTrimmedString(
           await evaluateBinding(
             resolvedProfile.profile.metadata.prefix,
-            createBindingContext(record, oid, resolvedProfile.profile)
+            createBindingContext(mappingRecord, oid, resolvedProfile.profile)
           )
         );
         const citationDoi = asTrimmedString(_.get(record, resolvedProfile.profile.writeBack.citationDoiPath));
@@ -326,7 +346,7 @@ export namespace Services {
           return null;
         }
 
-        const payload = await buildDoiPayload(record, oid, resolvedProfile.profile, action, event);
+        const payload = await buildDoiPayload(mappingRecord, oid, resolvedProfile.profile, action, event);
         requestSummary = {
           ...(event != null ? { event } : {}),
           action,
@@ -377,6 +397,9 @@ export namespace Services {
     ): Promise<string | null> {
       const config = await this.resolveConfig(record);
       if (config == null) {
+        if (options.relatedMetadata != null) {
+          throw new Error('DOI related metadata requires enabled v2 DOI publishing; legacy publishing is unsupported');
+        }
         return null;
       }
       // A metadata-only update sends no event, leaving an existing DataCite DOI in its current state.
@@ -480,15 +503,15 @@ export namespace Services {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'publishDoiTrigger');
         const auditCtx = startDoiAudit(oid, IntegrationAuditAction.publishDoiTrigger, runContext, options);
+        const runOptions: DoiAuditOptions = {
+          ...options, [mappingRecordKey]: {}, triggerSource: 'publishDoiTrigger', auditContext: auditCtx,
+          user: user as unknown as DoiRelatedOptions['user'],
+        };
         try {
-          const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
-            ...options,
-            triggerSource: 'publishDoiTrigger',
-            auditContext: auditCtx,
-          });
+          const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', runOptions);
           if (doi != null) {
             const previousMetadata = _.cloneDeep(record.metadata);
-            record = await this.addDoiDataToRecord(oid, record, doi, options);
+            record = await this.addDoiDataToRecord(oid, record, doi, runOptions);
             try {
               const response = await RecordsService.updateMetaInternal({
                 actor: { kind: 'service', id: 'DoiService.publishDoiTrigger' },
@@ -526,19 +549,20 @@ export namespace Services {
     public async publishDoiTriggerSync(
       oid: string,
       record: DoiRecordModel,
-      options: Record<string, unknown>
+      options: Record<string, unknown>,
+      user?: Record<string, unknown>
     ): Promise<DoiRecordModel> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'publishDoiTriggerSync');
         const auditCtx = startDoiAudit(oid, IntegrationAuditAction.publishDoiTriggerSync, runContext, options);
+        const runOptions: DoiAuditOptions = {
+          ...options, [mappingRecordKey]: {}, triggerSource: 'publishDoiTriggerSync', auditContext: auditCtx,
+          ...(user != null ? { user: user as unknown as DoiRelatedOptions['user'] } : {}),
+        };
         try {
-          const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
-            ...options,
-            triggerSource: 'publishDoiTriggerSync',
-            auditContext: auditCtx,
-          });
+          const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', runOptions);
           if (doi != null) {
-            record = await this.addDoiDataToRecord(oid, record, doi, options);
+            record = await this.addDoiDataToRecord(oid, record, doi, runOptions);
           }
           completeDoiAudit(auditCtx, { message: 'DOI trigger sync completed.' });
         } catch (error) {
@@ -552,17 +576,18 @@ export namespace Services {
     public async updateDoiTriggerSync(
       oid: string,
       record: DoiRecordModel,
-      options: Record<string, unknown>
+      options: Record<string, unknown>,
+      user?: Record<string, unknown>
     ): Promise<DoiRecordModel> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'updateDoiTriggerSync');
         const auditCtx = startDoiAudit(oid, IntegrationAuditAction.updateDoiTriggerSync, runContext, options);
+        const runOptions: DoiAuditOptions = {
+          ...options, [mappingRecordKey]: {}, triggerSource: 'updateDoiTriggerSync', auditContext: auditCtx,
+          ...(user != null ? { user: user as unknown as DoiRelatedOptions['user'] } : {}),
+        };
         try {
-          await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'update', {
-            ...options,
-            triggerSource: 'updateDoiTriggerSync',
-            auditContext: auditCtx,
-          });
+          await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'update', runOptions);
           completeDoiAudit(auditCtx, { message: 'DOI update trigger sync completed.' });
         } catch (error) {
           failDoiAudit(auditCtx, error, this.summarizeError(error));
@@ -584,10 +609,12 @@ export namespace Services {
       }
 
       const resolvedProfile = resolveProfile(config, options);
+      assertLocalExtraFieldSources(resolvedProfile.profile.writeBack.extraFields);
+      const mappingRecord = (options as DoiAuditOptions)[mappingRecordKey]?.record ?? record;
       const url = asTrimmedString(
         await evaluateBinding(
           resolvedProfile.profile.metadata.url,
-          createBindingContext(record, oid, resolvedProfile.profile)
+          createBindingContext(mappingRecord, oid, resolvedProfile.profile)
         )
       );
       _.set(record, resolvedProfile.profile.writeBack.citationDoiPath, doi);
@@ -595,11 +622,13 @@ export namespace Services {
         _.set(record, resolvedProfile.profile.writeBack.citationUrlPath, url);
       }
 
+      // Overlay only the runtime view onto the current writeback candidate so bindings see the minted DOI.
+      const writebackView = { ...mappingRecord, ...record, relatedMetadata: mappingRecord.relatedMetadata };
       const generatedPath = String(resolvedProfile.profile.writeBack.generatedCitationPath ?? '').trim();
       if (generatedPath !== '' && resolvedProfile.profile.writeBack.citationString != null) {
         const citationValue = await evaluateBinding(
           resolvedProfile.profile.writeBack.citationString,
-          createBindingContext(record, oid, resolvedProfile.profile)
+          createBindingContext(writebackView, oid, resolvedProfile.profile)
         );
         const citation = asTrimmedString(citationValue);
         if (citation != null) {

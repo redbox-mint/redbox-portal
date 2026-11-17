@@ -6,11 +6,13 @@ import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
 import { FormExpressionsConfigOutline } from './form-component.outline';
 import { FormBehaviourConfigFrame } from './form-behaviour.outline';
 import { ValidationOperationDefinition } from '../validation/record-validation.model';
+import type { RelatedFormDescriptors } from '../related-records.model';
 
 /**
  * The form definition.
  * */
 export class FormConfig implements FormConfigOutline {
+  public declare relatedRecords?: RelatedFormDescriptors;
   public name: string = '';
   public type?: string;
   public domElementType?: string;

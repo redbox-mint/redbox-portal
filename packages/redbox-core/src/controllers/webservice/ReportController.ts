@@ -1,3 +1,7 @@
+import { GraphqlReportError } from '../../services/reports/graphql';
+import { namedQueryRequestCaller, GraphqlNamedQueryExecutionError, GRAPHQL_NAMED_QUERY_ROWS } from '../../services/named-query/graphql-execution';
+import { GraphqlNamedQueryInputError } from '../../services/named-query/graphql-input';
+import { GraphqlNamedQueryValidationError } from '../../services/named-query/graphql-validation';
 import {
   APIErrorResponse,
   BrandingModel,
@@ -5,8 +9,15 @@ import {
   getValidatedApiRequest,
   executeNamedQueryRoute,
 } from '../../index';
-import type { ReportConfigDto } from '../../services/ReportsService';
+import { Services as ReportServices, type ReportConfigDto } from '../../services/ReportsService';
 import { summarizeChronicleValue } from '../../utilities/RequestChronicle';
+import type { FormRecordAccessContext } from '../../services/FormsService';
+import {
+  boundedJsonBytes,
+  NAMED_QUERY_PREVIEW_LIMITS,
+  NamedQueryAssistanceError,
+} from '../../utilities/NamedQueryPreview';
+import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 
 export namespace Controllers {
   /**
@@ -26,6 +37,8 @@ export namespace Controllers {
       'updateConfig',
       'deleteConfig',
       'previewConfig',
+      'validateConfig',
+      'describeQuery',
     ];
 
     /**
@@ -42,7 +55,7 @@ export namespace Controllers {
         const { query } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const queryName = query.queryName as string;
-        this.updateChronicle(req, {namedQueryName: queryName});
+        this.updateChronicle(req, { namedQueryName: queryName });
         const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
         if (!namedQuery) {
           return this.sendResp(req, res, {
@@ -53,15 +66,15 @@ export namespace Controllers {
         }
 
         let start = 0;
-        let rows = 10;
+        let rows = namedQuery.source === 'graphql' ? GRAPHQL_NAMED_QUERY_ROWS : 10;
         if (!_.isEmpty(query.start)) {
           start = _.toNumber(query.start);
         }
         if (!_.isEmpty(query.rows)) {
           rows = _.toNumber(query.rows);
         }
-        this.updateChronicle(req, {namedQueryPagingStart: start, namedQueryPagingRows: rows});
-        if (rows > 100) {
+        this.updateChronicle(req, { namedQueryPagingStart: start, namedQueryPagingRows: rows });
+        if (rows > 100 && namedQuery.source !== 'graphql') {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ title: 'Rows must not be greater than 100' }],
@@ -69,14 +82,23 @@ export namespace Controllers {
           });
         }
         const paramMap = _.clone(query);
-        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows);
-        this.updateChronicle(req, { namedQueryResponse: summarizeChronicleValue(response) });
+        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows, req.user, undefined, namedQueryRequestCaller(req, brand));
+        this.updateChronicle(req, response.source === 'graphql'
+          ? { namedQuerySource: 'graphql', namedQueryResultCount: response.records.length, namedQueryHasNextPage: response.pagination.hasNextPage }
+          : { namedQueryResponse: summarizeChronicleValue(response) });
         return this.sendResp(req, res, {
           data: response,
           status: 200,
           headers: this.getNoCacheHeaders(),
         });
       } catch (error: unknown) {
+        if (error instanceof GraphqlNamedQueryExecutionError || error instanceof GraphqlNamedQueryValidationError || error instanceof GraphqlNamedQueryInputError) {
+          return this.sendResp(req, res, {
+            status: error instanceof GraphqlNamedQueryExecutionError ? error.status : error instanceof GraphqlNamedQueryInputError ? 400 : 422,
+            displayErrors: [{ code: error.code }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         return this.sendResp(req, res, {
           status: 500,
           // Retain the existing client-facing message; the full error is recorded in the request chronicle.
@@ -166,16 +188,75 @@ export namespace Controllers {
     }
 
     public async previewConfig(req: Sails.Req, res: Sails.Res) {
+      return this.assistance(req, res, (brand, portal, caller) =>
+        ReportsService.previewConfig(brand, getValidatedApiRequest(req).body as ReportConfigDto, {
+          param: (name: string) => req.query?.[name],
+        }, {
+          portal,
+          caller,
+          graphqlCaller: namedQueryRequestCaller(req, brand),
+        })
+      );
+    }
+
+    public validateConfig(req: Sails.Req, res: Sails.Res) {
+      return this.assistance(req, res, (brand, portal, caller) =>
+        ReportsService.validateConfig(brand, portal, caller, getValidatedApiRequest(req).body)
+      );
+    }
+
+    public describeQuery(req: Sails.Req, res: Sails.Res) {
+      return this.assistance(req, res, (brand, portal, caller) => {
+        const { params, query } = getValidatedApiRequest(req);
+        return ReportsService.describeQuery(
+          brand,
+          portal,
+          caller,
+          String(params.name),
+          String(query.property ?? ''),
+          query.multivalue === 'true',
+          query.recordType
+            ? { recordType: String(query.recordType), ...(query.stage ? { stage: String(query.stage) } : {}) }
+            : undefined
+        );
+      });
+    }
+
+    private async assistance(
+      req: Sails.Req,
+      res: Sails.Res,
+      action: (brand: BrandingModel, portal: string, caller: FormRecordAccessContext) => Promise<unknown>
+    ) {
+      const headers = { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' };
       try {
-        const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        return this.sendResp(req, res, {
-          data: await ReportsService.previewConfig(brand, validated.body as ReportConfigDto, req),
-          status: 200,
-          headers: this.getNoCacheHeaders(),
-        });
-      } catch (error: unknown) {
-        return this.sendReportConfigError(req, res, error);
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        const data = await action(brand, String(req.param('portal') ?? ''), {
+          brand,
+          user: req.user,
+        } as unknown as FormRecordAccessContext);
+        if (
+          boundedJsonBytes({ data }, NAMED_QUERY_PREVIEW_LIMITS.responseBytes) >
+          NAMED_QUERY_PREVIEW_LIMITS.responseBytes
+        )
+          throw new NamedQueryAssistanceError('RESPONSE_LIMIT', 413);
+        return this.sendResp(req, res, { data, status: 200, headers });
+      } catch (error) {
+        if (error instanceof GraphqlReportError || error instanceof GraphqlNamedQueryExecutionError || error instanceof GraphqlNamedQueryInputError || error instanceof GraphqlNamedQueryValidationError) {
+          const status = 'status' in error ? error.status : 422;
+          return this.sendResp(req,res,{status, displayErrors:[{code:error.code,status:String(status)}],headers});
+        }
+        const known = error instanceof NamedQueryAssistanceError || error instanceof FieldDescriptionError;
+        const reportError = error instanceof ReportServices.ReportConfigServiceError;
+        const code = known ? error.code : reportError ? 'INVALID_REPORT' : 'ASSISTANCE_UNAVAILABLE';
+        const status =
+          error instanceof NamedQueryAssistanceError || reportError
+            ? error.status
+            : known
+              ? error.code === 'FORBIDDEN'
+                ? 403
+                : 400
+              : 500;
+        return this.sendResp(req, res, { status, displayErrors: [{ code, status: String(status) }], headers });
       }
     }
 

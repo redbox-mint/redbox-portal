@@ -1,0 +1,30 @@
+meta {
+  name: Email templates - Missing record unavailable
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/preview-records/email-template-missing/context?templateId=test
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Does not reveal record existence", () => {
+    expect(res.getStatus()).to.equal(403);
+    expect(res.getBody()).to.deep.equal({ error: { code: "FORBIDDEN", message: "Access denied or preview record unavailable." }, diagnostics: [] });
+  });
+}

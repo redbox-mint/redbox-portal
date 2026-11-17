@@ -1,0 +1,140 @@
+<rb-admin-side-panel
+  [title]="(updateName ? 'data-grids-update-named-query' : 'data-grids-publish-title') | i18next"
+  [subtitle]="'data-grids-promotion-linked-help' | i18next"
+  [wide]="true"
+  [busy]="saving"
+  (closed)="cancel()"
+>
+  <div [attr.inert]="confirmCancel || pendingUpdate ? '' : null">
+    <p class="explorer-publish-status" role="status">
+      @if (initializing) {
+        {{ 'data-grids-promotion-opening' | i18next }}
+      }
+    </p>
+    @if (error) {
+      <p class="alert alert-danger" role="alert">{{ error | i18next }}</p>
+    }
+    <fieldset [disabled]="saving || initializing" class="explorer-publish-fields">
+      <div class="rb-admin-split">
+        <div class="rb-admin-split-main">
+          <rb-named-query-basics [attempted]="saveAttempted"
+            [name]="draft.name || ''"
+            [isNew]="!updateName"
+            [use]="use"
+            [disabled]="saving"
+            (nameChange)="draft.name = $event; changed()"
+            (useChange)="setUse($event)"
+          ></rb-named-query-basics>
+          @if (prepared) {
+            <rb-named-query-parameters
+              [rows]="parameterRows"
+              [disabled]="saving"
+              (bindingChange)="setBinding($event)"
+            ></rb-named-query-parameters>
+            @if (draft.graphql.lookup; as lookup) {
+              <label class="rb-admin-field mb-3"
+                >{{ 'nq-section-search-parameter' | i18next }}
+                <select class="form-select" [(ngModel)]="lookup.searchParameter" (ngModelChange)="changed()">
+                  <option value="">{{ 'nq-section-choose-search' | i18next }}</option>
+                  @for (p of consumers; track p.name) {
+                    <option [value]="p.name">{{ p.label }}</option>
+                  }
+                </select>
+              </label>
+            }
+            <rb-named-query-lookup-fields
+              [mappings]="draft.graphql.mappings || {}"
+              [fields]="resultFields"
+              [disabled]="saving"
+              (mappingsChange)="draft.graphql.mappings = $event; changed()"
+              (validityChange)="pendingInput = !$event; changed()"
+            ></rb-named-query-lookup-fields>
+            <details class="rb-admin-form-section">
+              <summary class="rb-admin-form-section-header">{{ 'nq-section-advanced-document' | i18next }}</summary>
+              <pre class="explorer-json">{{ draft.graphql.document }}</pre>
+            </details>
+            @if (description && !description.valid) {
+              <p class="alert alert-warning" role="status">{{ 'nq-section-check-settings' | i18next }}</p>
+            }
+            @if (use === 'lookup' && description?.valid && !description?.capabilities?.lookup) {
+              <p class="alert alert-warning" role="status">{{ 'nq-section-lookup-check' | i18next }}</p>
+            }
+          }
+        </div>
+        <aside class="rb-admin-split-side">
+          @if (prepared) {
+            <rb-named-query-preview
+              [parameters]="consumers"
+              [values]="previewValues"
+              [busy]="previewBusy"
+              [result]="previewResult"
+              [error]="previewError"
+              [valid]="!!description?.valid"
+              [disabled]="!description?.valid || pendingInput"
+              (valueChange)="previewValues[$event.name] = $event.value"
+              (run)="preview()"
+            ></rb-named-query-preview>
+            @if (validating) {
+              <p role="status">{{ 'named-query-validating' | i18next }}</p>
+            }
+            <p class="rb-admin-hint">{{ 'nq-section-caller-access' | i18next }}</p>
+          }
+        </aside>
+      </div>
+    </fieldset>
+  </div>
+  <div panelFooter class="explorer-panel-footer" [attr.inert]="confirmCancel || pendingUpdate ? '' : null">
+    <span class="rb-admin-hint">{{ 'data-grids-promotion-save-help' | i18next }}</span>
+    <p #blocker id="promotion-save-blocker" tabindex="-1" class="rb-admin-hint" role="status">{{ (saveBlockReason || '') | i18next }}</p>
+    <div class="grid-actions">
+      <button #cancelButton class="btn btn-outline-secondary" [disabled]="saving" (click)="cancel()">
+        {{ 'data-grids-cancel' | i18next }}
+      </button>
+      <button #saveButton id="promotion-save" class="btn btn-primary" [disabled]="saving || !!pendingUpdate" aria-describedby="promotion-save-blocker" (click)="save()">
+        {{ (updateName ? 'nq-section-update' : 'nq-section-publish') | i18next }}
+      </button>
+    </div>
+  </div>
+</rb-admin-side-panel>
+@if (confirmCancel || pendingUpdate) {
+  <div class="explorer-confirm-backdrop">
+    <section
+      class="explorer-confirm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="promotion-confirm-title"
+      rbAdminModal
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      (keydown.escape)="pendingUpdate ? cancelUpdate() : keepEditing()"
+    >
+      <h2 id="promotion-confirm-title">
+        {{ (pendingUpdate ? 'nq-section-review-title' : 'data-grids-promotion-discard-heading') | i18next }}
+      </h2>
+      <p>{{ (pendingUpdate ? 'nq-section-review-help' : 'data-grids-promotion-discard-help') | i18next }}</p>
+      @if (pendingUpdate; as pending) {
+        <ul>
+          @for (consumer of pending.review.usedBy; track $index) {
+            <li>{{ consumer.name }}</li>
+          }
+        </ul>
+        <p class="rb-admin-hint">{{ 'nq-section-review-limit' | i18next }}</p>
+        <div class="grid-actions">
+          <button class="btn btn-outline-secondary" cdkFocusInitial [disabled]="saving" (click)="cancelUpdate()">
+            {{ 'data-grids-cancel' | i18next }}
+          </button>
+          <button class="btn btn-primary" [disabled]="saving" (click)="confirmUpdate()">
+            {{ 'nq-section-confirm-update' | i18next }}
+          </button>
+        </div>
+      } @else {
+        <div class="grid-actions">
+          <button class="btn btn-outline-secondary" cdkFocusInitial (click)="keepEditing()">
+            {{ 'data-grids-promotion-keep-editing' | i18next }}
+          </button>
+          <button class="btn btn-danger" (click)="discard()">{{ 'data-grids-promotion-discard' | i18next }}</button>
+        </div>
+      }
+    </section>
+  </div>
+}

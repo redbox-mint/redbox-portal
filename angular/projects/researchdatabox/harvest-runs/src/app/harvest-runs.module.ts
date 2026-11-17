@@ -1,4 +1,5 @@
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
@@ -14,6 +15,7 @@ import { HarvestRunsComponent } from './harvest-runs.component';
   imports: [
     BrowserModule,
     FormsModule,
+    BsDatepickerModule.forRoot(),
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
   ],

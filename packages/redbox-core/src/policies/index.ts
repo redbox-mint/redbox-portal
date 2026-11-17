@@ -5,6 +5,7 @@
  * These policies are middleware functions that run before controller actions.
  */
 
+export { emailTemplateAdmin } from './emailTemplateAdmin';
 export { brandingAndPortal } from './brandingAndPortal';
 export { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 export { checkRecordGraphqlAuth } from './checkRecordGraphqlAuth';
@@ -16,6 +17,7 @@ export { i18nLanguages } from './i18nLanguages';
 export { isAuthenticated } from './isAuthenticated';
 export { isWebServiceAuthenticated } from './isWebServiceAuthenticated';
 export { menuResolver } from './menuResolver';
+export { namedQueryMutationCsrf } from './namedQueryMutationCsrf';
 export { noCache } from './noCache';
 export { prepWs } from './prepWs';
 export { sessionAuth } from './sessionAuth';
@@ -23,6 +25,7 @@ export { setLang } from './setLang';
 export { validateApiContractRequest } from './validateApiContractRequest';
 
 // Re-export as a namespace for convenient access
+import { emailTemplateAdmin } from './emailTemplateAdmin';
 import { brandingAndPortal } from './brandingAndPortal';
 import { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 import { checkRecordGraphqlAuth } from './checkRecordGraphqlAuth';
@@ -34,6 +37,7 @@ import { i18nLanguages } from './i18nLanguages';
 import { isAuthenticated } from './isAuthenticated';
 import { isWebServiceAuthenticated } from './isWebServiceAuthenticated';
 import { menuResolver } from './menuResolver';
+import { namedQueryMutationCsrf } from './namedQueryMutationCsrf';
 import { noCache } from './noCache';
 import { prepWs } from './prepWs';
 import { sessionAuth } from './sessionAuth';
@@ -41,6 +45,7 @@ import { setLang } from './setLang';
 import { validateApiContractRequest } from './validateApiContractRequest';
 
 export const Policies = {
+  emailTemplateAdmin,
   brandingAndPortal,
   checkAuth,
   checkRecordSchemaAuth,
@@ -53,6 +58,7 @@ export const Policies = {
   isAuthenticated,
   isWebServiceAuthenticated,
   menuResolver,
+  namedQueryMutationCsrf,
   noCache,
   prepWs,
   sessionAuth,

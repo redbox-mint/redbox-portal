@@ -23,6 +23,8 @@ export type RecordContractPointer = string & {
 };
 
 export interface ContractNodeAnnotations {
+  /** Explicit read exclusion; distinct from UI edit/view mode constraints. */
+  readonly writeOnly?: boolean;
   readonly description?: string;
   readonly default?: ContractJsonValue;
   readonly examples?: readonly ContractJsonValue[];

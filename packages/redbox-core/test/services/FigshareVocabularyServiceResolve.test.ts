@@ -7,7 +7,8 @@ const MODEL_GLOBALS = [
   'FigshareVocabularySource',
   'FigshareVocabularyCrosswalkMapping',
   'FigshareVocabularyCategory',
-  'VocabularyEntry'
+  'VocabularyEntry',
+  'FigshareVocabularyService'
 ] as const;
 
 /**
@@ -31,6 +32,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
   const savedGlobals = new Map<string, unknown>();
   let createdSailsGlobal = false;
   let savedServices: unknown;
+  let savedWarn: unknown;
 
   /** Two live categories plus one retired upstream. */
   const CATEGORIES = [
@@ -94,6 +96,8 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
       (global as any).sails = createMockSails();
     }
     savedServices = (global as any).sails.services;
+    savedWarn = (global as any).sails.log.warn;
+    (global as any).sails.log.warn = sinon.stub();
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
@@ -111,6 +115,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
     }
     savedGlobals.clear();
 
+    (global as any).sails.log.warn = savedWarn;
     if (createdSailsGlobal) {
       delete (global as any).sails;
       createdSailsGlobal = false;
@@ -235,6 +240,137 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
         expect(result.unresolvedCodes).to.deep.equal([]);
       });
     }
+  });
+
+  describe('article publishing selectability', function () {
+    const { FigsharePublishing } = require('../../src/configmodels/FigsharePublishing');
+    const { buildMetadataPayload, syncMetadataPhase } = require('../../src/services/figshare-v2/metadata');
+    let config: any;
+
+    function record(codes: string[]) {
+      return { redboxOid: 'record-1', metaMetadata: { brandId: BRAND },
+        metadata: { title: 'Dataset', description: 'Description', forCodes: codes, figshare_article_id: '34989604' } };
+    }
+
+    beforeEach(function () {
+      (global as any).FigshareVocabularyService = service;
+      config = new FigsharePublishing();
+      config.metadata.license.required = false;
+      config.metadata.categories.source = {
+        kind: 'crosswalk', source: { kind: 'path', path: 'metadata.forCodes' },
+        sourceVocabularyId: LOCAL_VOCAB, crosswalkId: 'crosswalk-1', outputs: 'categoryId',
+      };
+      entryFind.resolves(['40', '4099', '409999'].map((code, index) => ({ id: `entry-${index}`, value: code })));
+      mappingFind.resolves([0, 1, 2].map(index => ({ localEntry: `entry-${index}`, figshareCategory: `cat-${index}` })));
+      categoryFind.resolves([
+        { id: 'cat-0', categoryId: 26212, sourceId: '40', selectable: false },
+        { id: 'cat-1', categoryId: 26848, sourceId: '4099', selectable: false },
+        { id: 'cat-2', categoryId: 26860, sourceId: '409999', selectable: true },
+      ]);
+    });
+
+    it('submits only the selectable child and preserves the existing article binding', async function () {
+      const updateArticle = sinon.stub().resolves({ status: 'draft' });
+      const createArticle = sinon.stub();
+      const source = record(['40', '4099', '409999']);
+      const article = await syncMetadataPhase({ updateArticle, createArticle }, config, source, { action: 'update', articleId: '34989604' });
+      expect(updateArticle.firstCall.args[0]).to.equal('34989604');
+      expect(updateArticle.firstCall.args[1].categories).to.deep.equal([26860]);
+      expect(article.id).to.equal('34989604');
+      expect(source.metadata.figshare_article_id).to.equal('34989604');
+      sinon.assert.notCalled(createArticle);
+    });
+
+    for (const allowUnmapped of [false, true]) {
+      it(`requires a selectable category when only parents are selected (allowUnmapped=${allowUnmapped})`, async function () {
+        config.categories.allowUnmapped = allowUnmapped;
+        const client = { updateArticle: sinon.stub(), createArticle: sinon.stub() };
+        try {
+          await syncMetadataPhase(client, config, record(['40', '4099']), { action: 'update', articleId: '34989604' });
+          expect.fail('Expected category validation to fail');
+        } catch (error) {
+          expect((error as any).displayErrors[0].detail).to.match(/Choose at least one selectable category/);
+        }
+        sinon.assert.notCalled(client.updateArticle);
+        sinon.assert.notCalled(client.createArticle);
+      });
+    }
+
+    it('uses flags rather than code length and preserves numeric sorting and deduplication', async function () {
+      categoryFind.resolves([
+        { id: 'cat-0', categoryId: 26212, sourceId: '40', selectable: true },
+        { id: 'cat-1', categoryId: 26848, sourceId: '4099', selectable: true },
+        { id: 'cat-2', categoryId: 26860, sourceId: '409999', selectable: false },
+      ]);
+      mappingFind.resolves([
+        { localEntry: 'entry-0', figshareCategory: 'cat-0' },
+        { localEntry: 'entry-1', figshareCategory: 'cat-1' },
+        { localEntry: 'entry-1', figshareCategory: 'cat-0' },
+        { localEntry: 'entry-2', figshareCategory: 'cat-2' },
+      ]);
+      const payload = await buildMetadataPayload(config, record(['4099', '409999', '40', '4099']));
+      expect(payload.categories).to.deep.equal([26212, 26848]);
+    });
+
+    it('rejects a selection whose approved mappings cover only parents, even when unmapped codes are allowed', async function () {
+      config.categories.allowUnmapped = true;
+      mappingFind.resolves([
+        { localEntry: 'entry-0', figshareCategory: 'cat-0' },
+        { localEntry: 'entry-1', figshareCategory: 'cat-1' },
+      ]);
+      await expectRejection(buildMetadataPayload(config, record(['40', '4099', '409999'])), /Choose at least one selectable category/);
+    });
+
+    it('keeps selectable matches alongside unmapped selections under either existing policy', async function () {
+      for (const allowUnmapped of [false, true]) {
+        config.categories.allowUnmapped = allowUnmapped;
+        expect((await buildMetadataPayload(config, record(['unknown', '409999']))).categories).to.deep.equal([26860]);
+      }
+    });
+
+    it('defaults missing selectability metadata to selectable, as mirror normalization does', async function () {
+      categoryFind.resolves([{ id: 'cat-0', categoryId: 26212, sourceId: '40' }]);
+      const payload = await buildMetadataPayload(config, record(['40']));
+      expect(payload.categories).to.deep.equal([26212]);
+    });
+
+    for (const allowUnmapped of [false, true]) {
+      it(`preserves empty source selections (allowUnmapped=${allowUnmapped})`, async function () {
+        config.categories.allowUnmapped = allowUnmapped;
+        const payload = await buildMetadataPayload(config, record([]));
+        expect(payload.categories).to.deep.equal([]);
+        sinon.assert.notCalled(mappingFind);
+      });
+    }
+
+    it('keeps historical-target policy and permits unmapped codes alongside selectable targets', async function () {
+      categoryFind.resolves([
+        { id: 'cat-0', categoryId: 26212, sourceId: '40', historical: true, selectable: true },
+        { id: 'cat-2', categoryId: 26860, sourceId: '409999', selectable: true },
+      ]);
+      await expectRejection(buildMetadataPayload(config, record(['40', '409999', 'unknown'])), /removed upstream/);
+      config.categories.allowUnmapped = true;
+      expect((await buildMetadataPayload(config, record(['40', '409999', 'unknown']))).categories).to.deep.equal([26860]);
+      await expectRejection(buildMetadataPayload(config, record(['40'])), /Choose at least one selectable category/);
+      await expectRejection(buildMetadataPayload(config, record(['unknown'])), /Choose at least one selectable category/);
+    });
+
+    it('keeps generic category, source-id and label outputs available for non-selectable parents', async function () {
+      const codes = ['40', '4099', '409999'];
+      const labels = ['Engineering', 'Other engineering', 'Other engineering not elsewhere classified'];
+      categoryFind.resolves(codes.map((sourceId, index) => ({
+        id: `cat-${index}`, categoryId: [26212, 26848, 26860][index], sourceId,
+        entry: `mirror-${index}`, selectable: index === 2,
+      })));
+      entryFind.callsFake(async (criteria: any) => criteria.vocabulary
+        ? codes.map((value, index) => ({ id: `entry-${index}`, value }))
+        : labels.map((label, index) => ({ id: `mirror-${index}`, label })));
+      const input = resolveInput({ codes });
+      expect((await service.resolveCrosswalkValues({ ...input, outputs: 'categoryId' })).values).to.deep.equal([26212, 26848, 26860]);
+      expect((await service.resolveCategories(input)).categoryIds).to.deep.equal([26212, 26848, 26860]);
+      expect((await service.resolveCrosswalkValues({ ...input, outputs: 'sourceId' })).values).to.deep.equal(codes);
+      expect((await service.resolveCrosswalkValues({ ...input, outputs: 'label' })).values).to.deep.equal(labels);
+    });
   });
 
   describe('guards', function () {

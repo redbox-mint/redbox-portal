@@ -17,6 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { createHash } from 'node:crypto';
+import { translationImportMaxBytes, translationImportValues } from '../api-routes/groups/admin-translation';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
@@ -121,7 +123,10 @@ export namespace Services {
                 }
 
                 const mergedData = _.cloneDeep(existing.data || {});
-                _.defaultsDeep(mergedData, json);
+                for (const key of Object.keys(defaultFlat)) {
+                  if (!Object.prototype.hasOwnProperty.call(existingFlat, key)) this.setNested(mergedData, key, defaultFlat[key]);
+                }
+                if (json._meta) mergedData._meta = _.defaultsDeep(_.cloneDeep(mergedData._meta || {}), json._meta);
                 const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: mergedData });
                 const bundleToSync = updatedBundle || { ...existing, data: mergedData };
                 const createdCount = await this.addMissingDefaultEntriesFromBundle(bundleToSync, json);
@@ -155,71 +160,211 @@ export namespace Services {
       return out;
     }
 
-    // Minimal unflatten utility for dot-notation keys that i18next uses
+    // i18next accepts flat dotted keys as well as nested objects. Keep a whole
+    // root flat when nesting it would overwrite a value that is also a prefix.
     private unflatten(flatObj: I18nData): I18nData {
       const result: I18nData = {};
-      for (const flatKey of Object.keys(flatObj || {})) {
-        const parts = flatKey.split('.');
-        let poisoned = false;
-        for (const part of parts) {
-          if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-            poisoned = true;
-            break;
-          }
+      const keys = Object.keys(flatObj || {}).filter(key =>
+        !key.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part)));
+      const keySet = new Set(keys);
+      const flatRoots = new Set<string>();
+      for (const key of keys) {
+        const parts = key.split('.');
+        for (let i = 1; i < parts.length; i++) {
+          if (keySet.has(parts.slice(0, i).join('.'))) flatRoots.add(parts[0]);
         }
-        if (poisoned) continue;
-        let cursor: I18nData = result;
-        for (let i = 0; i < parts.length; i++) {
-          const p = parts[i];
-          if (i === parts.length - 1) {
-            cursor[p] = flatObj[flatKey];
-          } else {
-            if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-            cursor = cursor[p] as I18nData;
-          }
+      }
+      for (const key of keys) {
+        const parts = key.split('.');
+        if (flatRoots.has(parts[0])) {
+          result[key] = flatObj[key];
+          continue;
         }
+        let cursor = result;
+        for (const part of parts.slice(0, -1)) {
+          cursor[part] ??= {};
+          cursor = cursor[part] as I18nData;
+        }
+        cursor[parts[parts.length - 1]] = flatObj[key];
       }
       return result;
     }
 
-    // Minimal setter for dot-notation keys inside an object
     private setNested(obj: I18nData, dottedKey: string, value: unknown): void {
-      if (!obj) return;
-      const parts = String(dottedKey).split('.');
-      for (const part of parts) {
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-          return;
-        }
-      }
-      let cursor: I18nData = obj;
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        const isLast = i === parts.length - 1;
-        if (isLast) {
-          cursor[p] = value;
-        } else {
-          if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-          cursor = cursor[p] as I18nData;
-        }
-      }
+      if (!obj || dottedKey.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part))) return;
+      const { _meta, ...values } = obj;
+      const flat = this.flatten(values);
+      flat[dottedKey] = value;
+      const data = this.unflatten(flat);
+      Object.keys(obj).forEach(key => delete obj[key]);
+      Object.assign(obj, data);
+      if (_meta !== undefined) obj._meta = _meta;
     }
 
-    // Remove a dot-notation key from an object (best-effort, leaves empty parent objects in place)
     private removeNested(obj: I18nData, dottedKey: string): void {
-      if (!obj) return;
-      const parts = String(dottedKey).split('.');
-      for (const part of parts) {
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-          return;
+      if (!obj || dottedKey.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part))) return;
+      const { _meta, ...values } = obj;
+      const flat = this.flatten(values);
+      delete flat[dottedKey];
+      const data = this.unflatten(flat);
+      Object.keys(obj).forEach(key => delete obj[key]);
+      Object.assign(obj, data);
+      if (_meta !== undefined) obj._meta = _meta;
+    }
+
+    /** Effective installation defaults: English keys, then locale-specific values. */
+    public async defaultValues(locale: string, namespace: string): Promise<Record<string, string>> {
+      if (![locale, namespace].every(value => /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(value))) throw new Error('Invalid translation target');
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const values: Record<string, string> = {};
+      for (const code of new Set(['en', locale])) {
+        let data: I18nData;
+        try {
+          data = JSON.parse(await fs.readFile(path.join(sails.config.appPath, 'language-defaults', code, `${namespace}.json`), 'utf8'));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+          throw error;
+        }
+        for (const [key, value] of Object.entries(this.flatten(data))) {
+          if (!key.startsWith('_meta.') && key !== '_meta' && typeof value === 'string') values[key] = value;
         }
       }
-      let cursor: I18nData = obj;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i];
-        if (cursor[p] == null || typeof cursor[p] !== 'object') return;
-        cursor = cursor[p] as I18nData;
+      return values;
+    }
+
+    private editorRows(data: I18nData, defaults: Record<string, string>, entries: I18nTranslationAttributes[] = []) {
+      const values = this.flatten(data);
+      const metadata = new Map(entries.map(entry => [entry.key, entry]));
+      return Array.from(new Set([...Object.keys(defaults), ...Object.keys(values)]))
+        .filter(key => key !== '_meta' && !key.startsWith('_meta.'))
+        .sort().map(key => {
+          const value = typeof values[key] === 'string' ? values[key] as string : '';
+          const hasDefault = Object.prototype.hasOwnProperty.call(defaults, key);
+          const provenance = hasDefault && !value.trim() ? 'missing' : hasDefault && value === defaults[key] ? 'default' : 'override';
+          const entry = metadata.get(key);
+          return { key, value, category: entry?.category ?? undefined, description: entry?.description ?? undefined,
+            contentFormat: entry?.contentFormat ?? undefined, provenance, hasDefault };
+        });
+    }
+
+    public async editorEntries(branding: BrandingModel, locale: string, namespace: string) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const defaults = await this.defaultValues(locale, namespace);
+      const entries = await this.listEntries(branding, locale, namespace);
+      return this.editorRows(bundle.data || {}, defaults, entries);
+    }
+
+    public async languageSummaries(branding: BrandingModel) {
+      const bundles = (await this.listBundles(branding)).filter(bundle => bundle.namespace === 'translation');
+      const codes = new Set([...(sails.config.i18n?.next?.init?.supportedLngs || []), ...bundles.map(bundle => bundle.locale)]);
+      const result = [];
+      const names = await this.loadLanguageNames();
+      for (const code of codes) {
+        const bundle = bundles.find(b => b.locale === code);
+        const rows = this.editorRows(bundle?.data || {}, await this.defaultValues(code, 'translation'));
+        result.push({ code, displayName: bundle?.displayName || names[code] || code, enabled: bundle?.enabled !== false,
+          translated: rows.filter(row => row.value.trim().length > 0).length, total: rows.length });
       }
-      delete cursor[parts[parts.length - 1]];
+      return result.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    }
+
+    public async revertEntry(branding: BrandingModel, locale: string, namespace: string, key: string) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const defaults = await this.defaultValues(locale, namespace);
+      if (!Object.prototype.hasOwnProperty.call(defaults, key)) return null;
+      // Keep stored content-format metadata and its existing sanitization rules.
+      return this.setEntry(branding, locale, namespace, key, defaults[key]);
+    }
+
+    public async exportBundle(branding: BrandingModel, locale: string, namespace: string, overridesOnly = false) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const rows = this.editorRows(bundle.data || {}, await this.defaultValues(locale, namespace));
+      const stored = this.flatten(bundle.data || {});
+      return Object.fromEntries(rows.filter(row => typeof stored[row.key] === 'string' &&
+        (!overridesOnly || row.provenance === 'override')).map(row => [row.key, row.value]));
+    }
+
+    private importError(message: string, status = 400): never {
+      throw Object.assign(new Error(message), { status });
+    }
+
+    private async importPlan(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown: boolean) {
+      if (typeof json !== 'string' || Buffer.byteLength(json, 'utf8') > translationImportMaxBytes) {
+        this.importError('Import exceeds 2 MiB', 413);
+      }
+      let parsed: unknown;
+      try { parsed = JSON.parse(json); } catch (_error) { this.importError('Invalid JSON'); }
+      const validated = translationImportValues.safeParse(parsed);
+      if (!validated.success) this.importError('Expected a flat JSON object of string values with valid keys (maximum 10000 keys)');
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) this.importError('Bundle not found', 404);
+      const defaults = await this.defaultValues(locale, namespace);
+      const stored = this.flatten(bundle.data || {});
+      const entries = await this.listEntries(branding, locale, namespace);
+      const metadata = new Map(entries.map(entry => [entry.key, entry]));
+      const centralizedMeta = await this.loadCentralizedMeta();
+      const fileMeta = bundle.data?._meta as MetaMap || {};
+      const counts = { added: 0, changed: 0, unchanged: 0, unknown: 0, ignored: 0 };
+      const items = Object.keys(validated.data).sort().map(key => {
+        const hasStored = Object.prototype.hasOwnProperty.call(stored, key);
+        const unknown = !hasStored && !Object.prototype.hasOwnProperty.call(defaults, key);
+        if (unknown) counts.unknown++;
+        const entry = metadata.get(key);
+        const format = this.normalizeContentFormat(entry?.contentFormat) ??
+          this.normalizeContentFormat(fileMeta[key]?.contentFormat ?? centralizedMeta[key]?.contentFormat);
+        const after = this.sanitizeHtmlValue(validated.data[key], format) as string;
+        const before = typeof stored[key] === 'string' ? stored[key] as string : null;
+        const action = unknown && !keepUnknown ? 'ignored' : !hasStored ? 'added' : before === after ? 'unchanged' : 'changed';
+        counts[action]++;
+        return { key, before, after, action, format };
+      });
+      // This token binds the language, brand, input, unknown-key choice and the
+      // exact values/defaults/formats used in the preview. No preview is persisted.
+      const previewToken = createHash('sha256').update(JSON.stringify([
+        this.resolveBrandingId(branding), locale, namespace, bundle.data, defaults, keepUnknown, items,
+      ])).digest('hex');
+      const sample = items.filter(item => item.action !== 'unchanged').slice(0, 20)
+        .map(({ key, before, after, action }) => ({ key, before, after, action }));
+      return { counts, sample, previewToken, items, bundleId: String(bundle.id) };
+    }
+
+    public async previewImport(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown = false) {
+      const { counts, sample, previewToken } = await this.importPlan(branding, locale, namespace, json, keepUnknown);
+      return { counts, sample, previewToken };
+    }
+
+    public async applyImport(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown: boolean, previewToken: string) {
+      const plan = await this.importPlan(branding, locale, namespace, json, keepUnknown);
+      if (previewToken !== plan.previewToken) this.importError('Preview is stale; preview again', 409);
+      const results: Array<{ key: string; status: string; message?: string }> = [];
+      for (const item of plan.items) {
+        if (item.action === 'ignored' || item.action === 'unchanged') {
+          results.push({ key: item.key, status: item.action });
+          continue;
+        }
+        try {
+          const saved = await this.setEntry(branding, locale, namespace, item.key, item.after, {
+            bundleId: plan.bundleId, contentFormat: item.format, noReload: true, strictBundleSync: true,
+          });
+          if (!saved) throw new Error('Entry not saved');
+          results.push({ key: item.key, status: 'applied' });
+        } catch (_error) {
+          results.push({ key: item.key, status: 'failed', message: 'Entry or bundle write failed; preview again before retrying' });
+        }
+      }
+      await TranslationService.reloadResources(this.resolveBrandingId(branding));
+      return { counts: plan.counts, results, applied: results.filter(item => item.status === 'applied').length,
+        failed: results.filter(item => item.status === 'failed').length };
+    }
+
+    public async updateDisplayName(branding: BrandingModel, locale: string, namespace: string, displayName: string) {
+      // One metadata-only write: no entry reads, bundle sync or resource reload.
+      const bundle = await I18nBundle.updateOne({ branding: this.resolveBrandingId(branding), locale, namespace }).set({ displayName });
+      return bundle ? { locale: bundle.locale, namespace: bundle.namespace, displayName: bundle.displayName } : null;
     }
 
     private resolveBrandingId(
@@ -262,6 +407,7 @@ export namespace Services {
         contentFormat?: unknown;
         description?: string;
         noReload?: boolean;
+        strictBundleSync?: boolean;
       }
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
@@ -305,9 +451,11 @@ export namespace Services {
         } else {
           const data = bundle.data || {};
           this.setNested(data, key, sanitizedValue);
-          await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          const updatedBundle = await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          if (options?.strictBundleSync && !updatedBundle) throw new Error('Bundle no longer exists');
         }
       } catch (e) {
+        if (options?.strictBundleSync) throw e;
         this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
 

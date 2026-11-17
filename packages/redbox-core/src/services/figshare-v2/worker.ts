@@ -37,6 +37,7 @@ import { startFigshareAudit, completeFigshareAudit, failFigshareAudit } from './
 import { createRunContext } from './context';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
 import { RecordWriteConflict } from '../../RecordWriteOptions';
+import { scheduleFigshareDelivery } from './queue';
 
 export interface QueuedFigshareService {
   makeClient(
@@ -141,7 +142,7 @@ export async function dispatchFigshare(): Promise<void> {
           await store.dispatchClaim(due.oid, PAUSED_DISPATCH_BACKOFF_MS, true);
           continue;
         }
-        await AgendaQueueService.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
+        await scheduleFigshareDelivery(due.oid, due.brandId);
       } catch (error) {
         sails.log.error('Figshare delivery failed; durable work remains due', error);
       }
@@ -799,7 +800,7 @@ export async function runFigshareWorker(
           s.work[kind].dueAt = terminal ? null : Date.now() + settings.retryBaseMs * 2 ** (count - 1);
       });
       if (state.error?.terminal && !state.auditClosed && state.audit) {
-        failFigshareAudit(state.audit, new Error(message), {
+        failFigshareAudit(state.audit, error, {
           message,
           responseSummary: { articleId: state.binding?.articleId, attempts: state.error.count, category },
         });

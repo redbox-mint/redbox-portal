@@ -1,4 +1,6 @@
 import {TestBed} from '@angular/core/testing';
+import {signal} from '@angular/core';
+import {Validators} from '@angular/forms';
 import {FormFieldComponentStatus, SimpleInputFormComponentDefinitionFrame} from '@researchdatabox/sails-ng-common';
 import {LoggerService} from '../logger.service';
 import {UtilityService} from '../utility.service';
@@ -6,6 +8,12 @@ import {FormFieldCompMapEntry, FormFieldBaseComponent} from './form-field-base.c
 import {FormFieldModel} from "./base.model";
 
 class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
+  public formHost: { saveAttempted?: () => boolean } = {};
+
+  protected override get formComponent(): { saveAttempted?: () => boolean } {
+    return this.formHost;
+  }
+
   public waitForViewReady(): Promise<void> {
     return this.untilViewIsInitialised();
   }
@@ -24,6 +32,73 @@ describe('FormFieldBaseComponent', () => {
       providers: [LoggerService, UtilityService]
     });
     component = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
+  });
+
+  describe('inline validation feedback', () => {
+    beforeEach(() => {
+      component.model = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: null } });
+      component.formControl.setValidators(Validators.required);
+      component.formControl.updateValueAndValidity();
+    });
+
+    it('keeps an untouched invalid field hidden even when it is dirty', () => {
+      expect(component.formControl.invalid).toBeTrue();
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+
+      component.formControl.markAsDirty();
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+      expect(component.formControl.invalid).toBeTrue();
+    });
+
+    it('reveals a touched field without revealing an untouched sibling', () => {
+      const sibling = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
+      sibling.model = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: null } });
+      sibling.formControl.setValidators(Validators.required);
+      sibling.formControl.updateValueAndValidity();
+
+      component.formControl.markAsTouched();
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeTrue();
+      expect(sibling.formControl.invalid).toBeTrue();
+      expect(sibling.showValidationErrors).toBeFalse();
+      expect(sibling.showInvalidState).toBeFalse();
+
+      component.formControl.setValue('Project');
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeFalse();
+    });
+
+    it('reveals untouched failures after a save attempt and hides them when that state resets', () => {
+      const saveAttempted = signal(false);
+      component.formHost = { saveAttempted };
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+
+      saveAttempted.set(true);
+      expect(component.formControl.untouched).toBeTrue();
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeTrue();
+      component.formControl.markAsPristine();
+      expect(component.showInvalidState).toBeTrue();
+
+      component.formControl.setValue('Project');
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeFalse();
+
+      component.formControl.reset();
+      saveAttempted.set(false);
+      expect(component.formControl.invalid).toBeTrue();
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+    });
+
+    it('keeps an unbound field hidden on a host without save-attempt tracking', () => {
+      component.model = undefined;
+      expect(component.showValidationErrors).toBeFalse();
+      expect(component.showInvalidState).toBeFalse();
+    });
   });
 
   it('shares a stable label target between layout and control for one runtime entry', () => {

@@ -15,7 +15,16 @@ headers {
 }
 
 body:multipart-form {
+  expectedDraftRevision: {{image_revision}}
   logo: @file(attachment.png)
+}
+
+script:pre-request {
+  const axios = require('axios');
+  const state = await axios.get(bru.interpolate('{{host}}/default/rdmp/api/branding/config'), {
+    headers: { Authorization: bru.interpolate('Bearer {{token}}') }
+  });
+  bru.setVar('image_revision', state.data.draft.revision);
 }
 
 tests {

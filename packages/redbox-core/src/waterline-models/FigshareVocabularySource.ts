@@ -109,6 +109,21 @@ export class FigshareVocabularySourceClass {
   @Attr({ type: 'string', required: true })
   public displayName!: string;
 
+  @Attr({ type: 'string', isIn: ['manual', 'daily', 'weekly'], defaultsTo: 'manual' })
+  public syncSchedule?: string;
+
+  @Attr({ type: 'string', allowNull: true })
+  public nextSyncAt?: string | null;
+
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public settingsRevision?: number;
+
+  @Attr({ type: 'string', isIn: ['running', 'succeeded', 'failed'], allowNull: true })
+  public lastScheduleStatus?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public lastScheduleAttemptAt?: string | null;
+
   @Attr({ type: 'string' })
   public remoteHash?: string;
 
@@ -138,6 +153,11 @@ export interface FigshareVocabularySourceAttributes extends Sails.WaterlineAttri
   displayName: string;
   lastSyncRun?: string;
   lastSyncedAt?: string;
+  syncSchedule?: 'manual' | 'daily' | 'weekly' | string;
+  nextSyncAt?: string | null;
+  settingsRevision?: number;
+  lastScheduleStatus?: string | null;
+  lastScheduleAttemptAt?: string | null;
   remoteHash?: string;
   scope: FigshareVocabularyScope | string;
   taxonomyId: string;

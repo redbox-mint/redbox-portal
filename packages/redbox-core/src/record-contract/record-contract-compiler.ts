@@ -7,8 +7,10 @@ import type {
   ILogger,
   ReusableFormDefinitions,
 } from '@researchdatabox/sails-ng-common';
-import { FormOverride, nothingLogger } from '@researchdatabox/sails-ng-common';
+import { FormOverride, nothingLogger, effectiveReusableComponents } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
+import { compileRelatedDisplayContract } from '../related-records/display-descriptors';
+import { hasWriteOnlyFields, mergeReadNodes } from './read-visibility';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
@@ -79,11 +81,14 @@ class CloneDepthLimitError extends Error {
 
 interface CompilerState {
   readonly readMode: boolean;
+  readonly projectionOwners: ReadonlySet<string> | null;
+  hasViewProjections: boolean;
   readonly definitions: Record<string, ContractNode>;
   readonly diagnostics: RecordContractDiagnostic[];
   readonly fieldOwners: Record<string, ContractOwner>;
   readonly validatorSummaries: RecordContractValidationSummary[];
   readonly activeDefinitions: Set<string>;
+  displayTargets?: ReadonlyMap<string, string>;
   propertyCount: number;
   partial: boolean;
 }
@@ -91,51 +96,17 @@ interface CompilerState {
 function forkCompilerState(state: CompilerState): CompilerState {
   return {
     readMode: state.readMode,
+    projectionOwners: state.projectionOwners,
+    hasViewProjections: state.hasViewProjections,
     definitions: { ...state.definitions },
     diagnostics: [...state.diagnostics],
     fieldOwners: { ...state.fieldOwners },
     validatorSummaries: [...state.validatorSummaries],
     activeDefinitions: new Set(state.activeDefinitions),
+    ...(state.displayTargets ? { displayTargets: state.displayTargets } : {}),
     propertyCount: state.propertyCount,
     partial: state.partial,
   };
-}
-
-/** Read contracts describe the union of stored shapes across UI variants. */
-function mergeReadNodes(left: ContractNode, right: ContractNode): ContractNode {
-  if (left.kind === 'conditional') {
-    return mergeReadNodes(left.elseNode ? mergeReadNodes(left.thenNode, left.elseNode) : left.thenNode, right);
-  }
-  if (right.kind === 'conditional') {
-    return mergeReadNodes(left, right.elseNode ? mergeReadNodes(right.thenNode, right.elseNode) : right.thenNode);
-  }
-  const nullable = left.nullable || right.nullable;
-  if (left.kind === 'object' && right.kind === 'object') {
-    return {
-      kind: 'object',
-      nullable,
-      unknownProperties:
-        left.unknownProperties === 'allow' || right.unknownProperties === 'allow' ? 'allow' : 'declared',
-      properties: Object.fromEntries(
-        [...new Set([...Object.keys(left.properties), ...Object.keys(right.properties)])]
-          .sort()
-          .map(key => [
-            key,
-            Object.hasOwn(left.properties, key) && Object.hasOwn(right.properties, key)
-              ? mergeReadNodes(left.properties[key], right.properties[key])
-              : Object.hasOwn(left.properties, key)
-                ? left.properties[key]
-                : right.properties[key],
-          ])
-      ),
-    };
-  }
-  if (left.kind === 'array' && right.kind === 'array')
-    return { kind: 'array', nullable, items: mergeReadNodes(left.items, right.items) };
-  if (left.kind === 'scalar' && right.kind === 'scalar' && left.scalarType === right.scalarType) {
-    return { kind: 'scalar', nullable, scalarType: left.scalarType };
-  }
-  return { kind: 'any', nullable: true, reason: 'incompatible-read-variants' };
 }
 
 function replaceRecord<T>(target: Record<string, T>, source: Readonly<Record<string, T>>): void {
@@ -154,6 +125,7 @@ function commitCompilerState(target: CompilerState, source: CompilerState): void
   source.activeDefinitions.forEach(definition => target.activeDefinitions.add(definition));
   target.propertyCount = source.propertyCount;
   target.partial = source.partial;
+  target.hasViewProjections = source.hasViewProjections;
 }
 
 function asRecord(value: unknown): UnknownRecord {
@@ -473,8 +445,10 @@ export class RecordContractCompiler {
   ) {}
 
   public async compile(request: RecordContractCompileRequest): Promise<RecordContractCompileResult> {
-    const state: CompilerState = {
+    const createState = (projectionOwners: ReadonlySet<string> | null): CompilerState => ({
       readMode: request.fieldMode === 'read',
+      projectionOwners,
+      hasViewProjections: false,
       definitions: {},
       diagnostics: [],
       fieldOwners: {},
@@ -482,18 +456,43 @@ export class RecordContractCompiler {
       activeDefinitions: new Set<string>(),
       propertyCount: 0,
       partial: false,
-    };
+    });
+    let state = createState(null);
 
     try {
       const snapshot = snapshotCompileRequest(request);
+      // Compile the authoritative declarations before edit-mode/role filtering.
+      // RR-08 returns immediately for legacy forms without reachable opt-ins.
+      const displayContract = compileRelatedDisplayContract(
+        snapshot.form as FormConfigFrame,
+        snapshot.reusableFormDefinitions as ReusableFormDefinitions | undefined
+      );
+      if (displayContract) {
+        state.displayTargets = new Map(
+          displayContract.displayTargets.map(target => [target.metadataPointer, target.relationId])
+        );
+      }
       this.assertDepth(0, recordContractPointer(''));
-      const root = await this.compileChildren(
+      let root = await this.compileChildren(
         snapshot.form.componentDefinitions ?? [],
         recordContractPointer(''),
         0,
         snapshot,
         state
       );
+      if (snapshot.fieldMode === 'read' && state.hasViewProjections) {
+        // Resolve ownership through the same bounded compiler, including reusable
+        // expansion, transparent containers and name overrides. Only exact owners
+        // from non-projection declarations can suppress a view Content projection.
+        state = createState(new Set(Object.keys(state.fieldOwners)));
+        root = await this.compileChildren(
+          snapshot.form.componentDefinitions ?? [],
+          recordContractPointer(''),
+          0,
+          snapshot,
+          state
+        );
+      }
       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
       if (snapshot.fieldMode === 'read' && containsPermissiveNode(root)) state.partial = true;
       this.validateNodeBounds(root, 0, recordContractPointer(''));
@@ -602,6 +601,18 @@ export class RecordContractCompiler {
 
     component = this.applyEditModeName(component);
 
+    const viewProjection =
+      request.fieldMode === 'read' &&
+      component.constraints?.allowModes?.length === 1 &&
+      component.constraints.allowModes[0] === 'view' &&
+      component.overrides?.formModeClasses?.view?.component === 'ContentComponent';
+    if (viewProjection) {
+      state.hasViewProjections = true;
+      // The authority pass omits projections. The final pass always invokes their
+      // contributors before deciding whether their storage shape is redundant.
+      if (state.projectionOwners === null) return [];
+    }
+
     const componentType = component.component?.class;
     if (typeof componentType !== 'string' || componentType.trim() === '') {
       throw this.invalidFailure(
@@ -706,6 +717,34 @@ export class RecordContractCompiler {
         contributionState
       );
       commitCompilerState(state, contributionState);
+      // Layout containers have no stored node of their own. Retain their
+      // presentation hierarchy on readable children without inventing paths.
+      const config = asRecord(component.component?.config);
+      const layout = asRecord(component.layout?.config);
+      const label = layout.buttonLabel ?? layout.label ?? config.label ?? config.title ?? config.heading;
+      if (
+        request.fieldMode === 'read' &&
+        typeof label === 'string' &&
+        label.trim() &&
+        ['TabComponent', 'TabContentComponent', 'AccordionComponent', 'AccordionPanelComponent'].includes(componentType)
+      ) {
+        return Object.entries(childNode.properties).map(([name, node]) => {
+          const groups = node.annotations?.extensions?.['x-redbox-group-path'];
+          return [
+            name,
+            {
+              ...node,
+              annotations: {
+                ...node.annotations,
+                extensions: {
+                  ...node.annotations?.extensions,
+                  'x-redbox-group-path': [label, ...(Array.isArray(groups) ? groups : [])],
+                },
+              },
+            },
+          ] as const;
+        });
+      }
       return Object.entries(childNode.properties);
     }
 
@@ -716,6 +755,37 @@ export class RecordContractCompiler {
         parent,
         componentType
       );
+    }
+    // Reference activation is evaluated from the merged candidate by the save
+    // normalizer, not from a possibly partial update delta. Keep the local shape
+    // and validator summaries intact; describe the conditional rule explicitly.
+    const relationId = state.displayTargets?.get(pointer);
+    if (relationId !== undefined) {
+      const annotations = contribution.node.annotations;
+      contribution = {
+        ...contribution,
+        node: {
+          ...contribution.node,
+          annotations: {
+            ...annotations,
+            description: [
+              annotations?.description,
+              'While the declared relation has a selected reference in the merged candidate, this field is a transient display target and is not a required persisted input. The server preserves its stored value or absence; an equal stored-value echo is accepted and discarded from the submission, but a changed submitted value is rejected with related-display-field-not-writable. Loading, unavailable, and invalid nonempty references do not make it writable. With no selected reference, the ordinary local type and validators apply. On unlink, explicitly submitted local input is accepted; omission clears retained display data. Explicit null is distinct from absence.',
+            ]
+              .filter(Boolean)
+              .join(' '),
+            extensions: {
+              ...annotations?.extensions,
+              'x-redbox-related-display': {
+                relationId,
+                activation: 'merged-candidate-reference',
+                linked: { writable: false, required: false },
+                unlinked: { writable: true, validation: 'ordinary-local' },
+              },
+            },
+          },
+        },
+      };
     }
     try {
       this.validateNodeBounds(contribution.node, depth, pointer);
@@ -733,6 +803,12 @@ export class RecordContractCompiler {
         contributor: identity,
       });
     }
+    // Privacy is part of the contributor contract, even for display projections.
+    // Keep privacy-bearing nodes in the normal deny-wins merge (including nested
+    // and incompatible shapes); only privacy-free redundant shapes may be omitted.
+    if (viewProjection && state.projectionOwners?.has(pointer) && !hasWriteOnlyFields(contribution.node)) {
+      return [];
+    }
     this.claimProperty(pointer, componentType, identity, contributionState);
     for (const owned of contributor.ownedPointers) {
       const ownedPointer = owned === '' ? pointer : appendRecordContractPointer(pointer, recordContractPointer(owned));
@@ -745,7 +821,41 @@ export class RecordContractCompiler {
       contributionState.partial = true;
     }
     commitCompilerState(state, contributionState);
-    return [[fieldName, contribution.node]];
+    const layout = asRecord(component.layout?.config),
+      config = asRecord(component.component?.config);
+    const label = layout.label ?? config.label;
+    const shortLabel = layout.shortLabel ?? config.shortLabel;
+    // Presentation only: preserve option labels without changing the stored
+    // scalar/enum or hydrating remote vocabularies during contract compilation.
+    const options = config.options ?? config.staticOptions;
+    const choiceLabels = Array.isArray(options)
+      ? options.flatMap(option => {
+          const item = asRecord(option);
+          return typeof item.label === 'string' &&
+            (typeof item.value === 'string' || typeof item.value === 'number' || typeof item.value === 'boolean')
+            ? [{ label: item.label, value: item.value }]
+            : [];
+        })
+      : [];
+    const vocabulary = config.inlineVocab === true && typeof config.vocabRef === 'string' ? config.vocabRef : undefined;
+    const node =
+      request.fieldMode === 'read' &&
+      (typeof label === 'string' || typeof shortLabel === 'string' || choiceLabels.length || vocabulary)
+        ? {
+            ...contribution.node,
+            annotations: {
+              ...contribution.node.annotations,
+              extensions: {
+                ...contribution.node.annotations?.extensions,
+                ...(typeof label === 'string' ? { 'x-redbox-label': label } : {}),
+                ...(typeof shortLabel === 'string' ? { 'x-redbox-short-label': shortLabel } : {}),
+                ...(choiceLabels.length ? { 'x-redbox-choice-labels': choiceLabels } : {}),
+                ...(vocabulary ? { 'x-redbox-vocabulary': vocabulary } : {}),
+              },
+            },
+          }
+        : contribution.node;
+    return [[fieldName, node]];
   }
 
   private async compileReusable(
@@ -784,24 +894,21 @@ export class RecordContractCompiler {
         [component as AvailableFormComponentDefinitionFrames],
         reusableFormDefinitions
       );
-      const effectiveComponents = expanded.map(expandedComponent => {
-        if (expandedComponent.name || !component.name) {
-          return expandedComponent;
-        }
-        const overrides = { ...expandedComponent.overrides };
-        delete overrides.replaceName;
-        return {
-          ...expandedComponent,
-          name: component.name,
-          ...(Object.keys(overrides).length > 0 ? { overrides } : { overrides: undefined }),
-        };
-      });
+      const effectiveComponents = effectiveReusableComponents(component, expanded);
       const compiled = await this.compileChildren(effectiveComponents, parent, depth + 1, request, state);
       return Object.entries(compiled.properties).map(([propertyName, node]) => {
         if (node.definitionKey) {
           return [propertyName, node] as const;
         }
-        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}`;
+        const propertyPointer = appendRecordContractPointer(parent, recordContractPointerFromTokens([propertyName]));
+        // A reusable's structure can have different transient display rules per usage.
+        // Scope the definition by relative targets so equivalent usages still share it.
+        const displays = [...(state.displayTargets ?? [])]
+          .filter(([path]) => path === propertyPointer || path.startsWith(propertyPointer + '/'))
+          .map(([path, relationId]) => [path.slice(propertyPointer.length), relationId])
+          .sort(([left], [right]) => left.localeCompare(right));
+        const displayKey = displays.length ? `:display:${JSON.stringify(displays)}` : '';
+        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}${displayKey}`;
         const referencedNode: ContractNode = { ...node, definitionKey };
         const prior = state.definitions[definitionKey];
         if (request.fieldMode !== 'read' && prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {

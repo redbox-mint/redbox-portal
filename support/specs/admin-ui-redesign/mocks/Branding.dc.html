@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Branding</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="branding" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Site &amp; content</span><span>/</span><span>Branding</span></nav>
+      <header class="ph">
+        <div><h1>Branding</h1><p>Logo, favicon, typeface and colours for this brand. Work on a draft, preview it, then publish.</p></div>
+        <div class="ph-actions"><span class="badge warn" style="align-self: center">Draft · 3 changes</span><button class="btn btn-secondary" type="button">Open full preview</button><button class="btn btn-primary" type="button">Publish</button></div>
+      </header>
+      <nav class="tabs" aria-label="Branding sections"><a href="#" class="on">Colours</a><a href="#">Logo &amp; favicon</a><a href="#">Typography</a><a href="#">Version history <span class="badge">0</span></a></nav>
+
+      <div class="split">
+        <nav class="split-nav" aria-label="Colour groups" style="max-width: 200px">
+          <a href="#">Header</a><a href="#" class="on">Site branding</a><a href="#">Main menu</a><a href="#">Content</a><a href="#">Links</a><a href="#">Panels</a><a href="#">Admin sidebar</a><a href="#">Footer</a><a href="#">Status colours</a>
+        </nav>
+        <div class="split-main" style="flex-basis: 360px">
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>Site branding</h3><p>The band behind the logo, and the main menu bar.</p></div></div>
+            <div class="fsec-b" style="display: flex; flex-direction: column; gap: 14px">
+              <div class="field"><label for="b-1">Branding area background</label><div class="row" style="flex-wrap: nowrap"><input type="color" value="#b1101a" aria-label="Pick colour" style="width: 44px; height: 38px; border: 1px solid #c9cdd2; border-radius: 6px; padding: 2px"><input id="b-1" class="inp mono" value="#b1101a"></div></div>
+              <div class="field"><label for="b-2">Logo heading text</label><div class="row" style="flex-wrap: nowrap"><input type="color" value="#ffffff" aria-label="Pick colour" style="width: 44px; height: 38px; border: 1px solid #c9cdd2; border-radius: 6px; padding: 2px"><input id="b-2" class="inp mono" value="#ffffff"></div></div>
+              <div class="field"><label for="b-3">Main menu background</label><div class="row" style="flex-wrap: nowrap"><input type="color" value="#500005" aria-label="Pick colour" style="width: 44px; height: 38px; border: 1px solid #c9cdd2; border-radius: 6px; padding: 2px"><input id="b-3" class="inp mono" value="#500005"></div><span class="badge ok" style="align-self: flex-start">Contrast with menu text 15.9:1 ✓</span></div>
+            </div>
+          </div>
+          <div class="row"><button class="btn btn-ghost" type="button">Reset group to default</button><button class="btn btn-secondary" type="button">Save draft</button></div>
+        </div>
+        <aside class="split-side" style="max-width: 420px; flex-basis: 380px">
+          <span class="lbl">Draft preview</span>
+          <div style="margin-top: 8px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; font-size: 12px">
+            <div style="background: #f4f4f4; padding: 4px 10px; color: #333">Welcome · Logout</div>
+            <div style="background: #b1101a; padding: 8px 10px; outline: 2px dashed #0d6efd; outline-offset: -2px"><img src="./redbox-logo.png" alt="Logo preview" style="height: 30px; display: block"></div>
+            <div style="background: #500005; padding: 6px 10px; display: flex; gap: 10px; color: #fff; font-family: 'Roboto Condensed', sans-serif; font-weight: 700; text-transform: uppercase"><span>Home</span><span>Plan</span><span>Manage</span><span>Admin</span></div>
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px">
+              <div style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden"><div style="background: #b1101a; color: #fff; padding: 5px 8px; font-weight: 600">Panel heading</div><div style="padding: 8px">Body text with a <a href="#">link</a>.</div></div>
+              <div class="row"><span class="btn btn-primary btn-sm">Primary</span><span class="badge ok">Success</span><span class="badge err">Danger</span></div>
+            </div>
+            <div style="background: #000; color: #fff; padding: 6px 10px">Footer</div>
+          </div>
+          <p class="hint" style="margin-top: 8px">The highlighted region is what this group controls.</p>
+        </aside>
+      </div>
+      <div class="note" style="margin-top: 20px">Today’s page is one 3,500px column of 50+ colour inputs, each paired with a text field, followed by four action buttons in mixed colours. Here the controls are split into groups with a side preview, live contrast checks, and the draft → preview → publish flow kept in the page header.</div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

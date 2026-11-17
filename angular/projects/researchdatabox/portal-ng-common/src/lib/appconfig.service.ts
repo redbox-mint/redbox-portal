@@ -28,6 +28,21 @@ import { HttpClientService } from './httpClient.service';
 import { LoggerService } from './logger.service';
 import { merge as _merge } from 'lodash-es';
 
+export interface AuthorizedEmailTestResult {
+  allowed: boolean;
+  reason: 'disabled' | 'unrestricted' | 'allowed-domain' | 'allowed-exception' | 'denied' |
+    'missing-email' | 'invalid-address' | 'unsupported-provider';
+  matchedRule?: string;
+}
+
+export interface IntegrationConnectionResult {
+  ok: boolean;
+  status: 'ok' | 'auth_failed' | 'unreachable' | 'timeout' | 'tls_error' | 'misconfigured' | 'unexpected_response';
+  httpStatus?: number;
+  latencyMs: number;
+  message: string;
+}
+
 export interface AppConfig {
   schema: object;
   model: object;
@@ -80,6 +95,28 @@ export class AppConfigService extends HttpClientService {
     let result = await firstValueFrom(req);
     return result;
   } 
+
+  public async testAuthorizedEmail(email: string, provider: 'aaf' | 'oidc', draft: object): Promise<AuthorizedEmailTestResult> {
+    return firstValueFrom(this.http.post<AuthorizedEmailTestResult>(
+      `${this.brandingAndPortalUrl}/admin/appconfig/authorizedDomainsEmails/test`,
+      { email, provider, draft },
+      { responseType: 'json', observe: 'body', context: this.httpContext }
+    ));
+  }
+
+  public async testConnection(integration: string, draft: object): Promise<IntegrationConnectionResult> {
+    return firstValueFrom(this.http.post<IntegrationConnectionResult>(
+      `${this.brandingAndPortalUrl}/admin/appconfig/${encodeURIComponent(integration)}/test-connection`,
+      { draft }, { responseType: 'json', observe: 'body', context: this.httpContext }
+    ));
+  }
+
+  public async resetAppConfig(appConfigId: string): Promise<{ reset: boolean }> {
+    return firstValueFrom(this.http.post<{ reset: boolean }>(
+      `${this.brandingAndPortalUrl}/admin/appconfig/${appConfigId}/reset`, {},
+      { responseType: 'json', observe: 'body', context: this.httpContext }
+    ));
+  }
 
   public async saveAppConfig(appConfigId:string, model:any): Promise<AppConfig> {
     let url = `${this.brandingAndPortalUrl}/appconfig/form/${appConfigId}`;

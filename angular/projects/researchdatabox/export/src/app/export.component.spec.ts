@@ -1,8 +1,10 @@
+import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { Directive, Input, Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { ConfigService, LoggerService, RecordService, TranslationService, getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDatePipe, ConfigService, LoggerService, RecordService, TranslationService, getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { ExportJobDto } from '@researchdatabox/sails-ng-common';
 import { ExportComponent } from './export.component';
 import { ExportService } from './export.service';
@@ -47,7 +49,7 @@ describe('ExportComponent', () => {
       waitForInit: async () => undefined,
       getAllTypes: jasmine.createSpy('getAllTypes').and.resolveTo([{ name: 'rdmp' }, { name: 'dataRecord' }])
     };
-    service = jasmine.createSpyObj<ExportService>('ExportService', ['waitForInit', 'list', 'create', 'get', 'remove', 'downloadUrl']);
+    service = jasmine.createSpyObj<ExportService>('ExportService', ['waitForInit', 'list', 'create', 'get', 'remove', 'cancel', 'downloadUrl']);
     service.waitForInit.and.resolveTo(service);
     service.list.and.resolveTo([]);
     service.create.and.resolveTo(job());
@@ -56,7 +58,7 @@ describe('ExportComponent', () => {
       ? `${baseUrl}/export/jobs/${encodeURIComponent(item.id)}/download` : null);
     await TestBed.configureTestingModule({
       declarations: [ExportComponent, MockTranslationPipe, MockDatepickerDirective],
-      imports: [CommonModule, FormsModule],
+      imports: [AdminModalDirective, AdminCountPipe, CommonModule, FormsModule, A11yModule, AdminDatePipe],
       providers: [
         { provide: ConfigService, useValue: configService },
         { provide: RecordService, useValue: records },
@@ -76,6 +78,64 @@ describe('ExportComponent', () => {
     flushMicrotasks();
     fixture.detectChanges();
   }
+
+  it('confirms cancellation, shows the terminal badge, and enables deletion immediately', fakeAsync(() => {
+    service.list.and.resolveTo([job({ status: 'running' })]);
+    initialize(); component.isAdmin = true; fixture.detectChanges();
+    service.cancel.and.resolveTo(job({ status: 'cancelled' }));
+    const cancel = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((b) => b.textContent?.trim() === 'export-cancel') as HTMLButtonElement;
+    cancel.click(); fixture.detectChanges();
+    expect(service.cancel).not.toHaveBeenCalled();
+    const background: HTMLElement = fixture.nativeElement.querySelector('nav.rb-admin-crumbs').parentElement;
+    expect(background.inert).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').closest('[inert]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('export-cancel-confirm');
+    service.list.and.resolveTo([job({ status: 'cancelled' })]);
+    fixture.nativeElement.querySelector('.rb-admin-danger-confirm').click(); flushMicrotasks(); tick(0); fixture.detectChanges();
+    expect(service.cancel).toHaveBeenCalledOnceWith('export-1');
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(background.inert).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('export-status-cancelled');
+    expect(component.canDelete(component.jobs[0])).toBeTrue();
+    expect(component.hasActiveJobs()).toBeFalse(); fixture.destroy();
+  }));
+
+  it('limits cancellation to Admin and active jobs and dismisses without mutating', fakeAsync(() => {
+    initialize();
+    expect(component.canCancel(job())).toBeFalse();
+    component.isAdmin = true;
+    expect(component.canCancel(job({ status: 'running' }))).toBeTrue();
+    for (const status of ['ready', 'failed', 'expired', 'cancelled'] as const) {
+      expect(component.canCancel(job({ status }))).toBeFalse();
+    }
+    component.requestCancel(job()); component.dismissCancel(); tick(0);
+    expect(component.pendingCancel).toBeNull(); expect(service.cancel).not.toHaveBeenCalled(); fixture.destroy();
+  }));
+
+  it('refreshes after a completion race and keeps a visible cancellation error', fakeAsync(() => {
+    service.list.and.resolveTo([job()]); initialize(); component.isAdmin = true;
+    component.requestCancel(component.jobs[0]);
+    service.cancel.and.rejectWith({ status: 409 });
+    service.list.and.resolveTo([job({ status: 'ready' })]);
+    void component.cancelJob(component.jobs[0]); flushMicrotasks(); fixture.detectChanges();
+    expect(component.jobs[0].status).toBe('ready');
+    expect(component.cancelErrorKey).toBe('export-cancel-error');
+    expect(component.mutationPending).toBeFalse(); fixture.destroy();
+  }));
+
+  it('drains stale polling and prevents duplicate cancellation requests', fakeAsync(() => {
+    service.list.and.resolveTo([job()]); initialize(); component.isAdmin = true;
+    const old = deferred<ExportJobDto[]>(); service.list.and.returnValue(old.promise);
+    void component.refreshJobs();
+    const cancellation = deferred<ExportJobDto>(); service.cancel.and.returnValue(cancellation.promise);
+    void component.cancelJob(component.jobs[0]); void component.cancelJob(component.jobs[0]); flushMicrotasks();
+    expect(service.cancel).not.toHaveBeenCalled();
+    old.resolve([job({ status: 'running' })]); flushMicrotasks();
+    expect(service.cancel).toHaveBeenCalledTimes(1);
+    service.list.and.resolveTo([job({ status: 'cancelled' })]);
+    cancellation.resolve(job({ status: 'cancelled' })); flushMicrotasks(); tick(0);
+    expect(component.jobs[0].status).toBe('cancelled'); fixture.destroy();
+  }));
 
   it('restores recent jobs and prepares CSV instead of opening a download request', fakeAsync(() => {
     service.list.and.resolveTo([job({ id: 'older', status: 'failed' })]);
@@ -258,7 +318,7 @@ describe('ExportComponent', () => {
     initialize();
     expect(component.jobsErrorKey).toBe('export-list-error');
     expect(fixture.nativeElement.querySelector('.alert-warning').textContent).toContain('export-list-error');
-    expect(fixture.nativeElement.querySelector('.ex-empty')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     expect(fixture.nativeElement.querySelector('button[type="submit"]').disabled).toBeFalse();
     service.list.and.resolveTo([job({ status: 'failed' })]);
@@ -328,10 +388,11 @@ describe('ExportComponent', () => {
     service.remove.and.returnValue(deleted.promise);
     const selected = component.jobs[0];
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-outline-danger');
-    button.click(); flushMicrotasks(); fixture.detectChanges();
+    button.click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rb-admin-danger-confirm') as HTMLButtonElement).click(); flushMicrotasks(); fixture.detectChanges();
     expect(service.remove).toHaveBeenCalledOnceWith('export-1');
     expect(button.disabled).toBeTrue();
-    expect(button.textContent).toContain('export-deleting');
+    expect(fixture.nativeElement.querySelector('.rb-admin-danger-confirm').textContent).toContain('export-deleting');
     expect(fixture.nativeElement.querySelector('a[download]')).toBeNull();
     const prepare: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-primary');
     expect(prepare.disabled).toBeTrue();
@@ -363,7 +424,8 @@ describe('ExportComponent', () => {
     service.remove.and.resolveTo();
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-outline-danger');
     expect(button.disabled).toBeFalse();
-    button.click(); flushMicrotasks(); fixture.detectChanges();
+    button.click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rb-admin-danger-confirm') as HTMLButtonElement).click(); flushMicrotasks(); fixture.detectChanges();
     expect(component.jobs).toEqual([]);
     expect(component.deleteErrorKey).toBe('');
     expect(fixture.nativeElement.querySelector('.alert-danger')).toBeNull();
@@ -450,19 +512,37 @@ describe('ExportComponent', () => {
     expect(configService.refreshConfig).toHaveBeenCalled();
     fixture.destroy();
   }));
+  it('asks before deleting, supports cancellation, and confirms the selected job', fakeAsync(() => {
+    service.list.and.resolveTo([job({ status: 'failed' })]);
+    initialize();
+    const remove = () => fixture.nativeElement.querySelector('button.btn-outline-danger') as HTMLButtonElement;
+    remove().click(); fixture.detectChanges();
+    expect(service.remove).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[aria-modal="true"]')).not.toBeNull();
+    component.cancelDelete(); fixture.detectChanges();
+    expect(component.jobs.length).toBe(1);
+    expect(service.remove).not.toHaveBeenCalled();
+    remove().click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rb-admin-danger-confirm') as HTMLButtonElement).click();
+    flushMicrotasks(); fixture.detectChanges();
+    expect(service.remove).toHaveBeenCalledOnceWith('export-1');
+    expect(component.pendingDelete).toBeNull();
+    expect(component.jobs).toEqual([]);
+  }));
+
   it('renders a status badge per job and shows the empty state without jobs', fakeAsync(() => {
     initialize();
-    expect(fixture.nativeElement.querySelector('.ex-empty')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     component.jobs = [job({ id: 'q' }), job({ id: 'f', status: 'failed' })];
     fixture.detectChanges();
     const badges: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody .badge'));
     expect(badges.map(badge => badge.className)).toEqual([
-      jasmine.stringContaining('bg-secondary-subtle'),
-      jasmine.stringContaining('bg-danger-subtle')
+      jasmine.stringContaining('rb-admin-badge-info'),
+      jasmine.stringContaining('rb-admin-badge-danger')
     ]);
     expect(badges[0].querySelector('.fa-spin')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.ex-empty')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
     fixture.destroy();
   }));
 

@@ -18,6 +18,26 @@ describe('AdminSidebarConfig', function() {
     expect(DEFAULT_ADMIN_SIDEBAR_CONFIG.sections.length).to.be.greaterThan(0);
   });
 
+  it('accepts the six-section defaults through the editor schema and JSON storage round trip', function() {
+    const Ajv = require('ajv');
+    const validate = new Ajv({ strict: false }).compile(ADMIN_SIDEBAR_CONFIG_SCHEMA);
+    const saved = JSON.parse(JSON.stringify(DEFAULT_ADMIN_SIDEBAR_CONFIG));
+    expect(validate(saved), JSON.stringify(validate.errors)).to.equal(true);
+    expect(saved.sections).to.have.lengthOf(6);
+    expect(saved.sections.flatMap((section: any) => section.items).map((item: any) => item.href))
+      .to.include('/admin/appconfig/edit/raidPublishing');
+  });
+
+  it('allows librarians to find MCP without exposing the other integration settings', function() {
+    const integrations = DEFAULT_ADMIN_SIDEBAR_CONFIG.sections.find(section => section.id === 'integrations')!;
+    expect(integrations.requiredRoles).to.deep.equal(['Admin', 'Librarians']);
+    const mcp = integrations.items.find(item => item.id === 'mcp-connect')!;
+    expect(mcp.href).to.equal('/admin/mcp');
+    expect(mcp.requiredRoles).to.deep.equal(['Admin', 'Librarians']);
+    for (const item of integrations.items.filter(item => item !== mcp))
+      expect(item.requiredRoles).to.deep.equal(['Admin']);
+  });
+
   it('should export schema', function() {
     expect(ADMIN_SIDEBAR_CONFIG_SCHEMA).to.have.property('type', 'object');
   });

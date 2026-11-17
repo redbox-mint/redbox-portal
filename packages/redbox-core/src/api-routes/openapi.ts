@@ -1,5 +1,6 @@
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { ZodType } from 'zod';
+import { redboxSession } from '../config/redboxSession.config';
 
 import { apiErrorResponseSchema, responseField } from './schemas/common';
 import { ApiResponseDefinition, ApiRouteDefinition } from './types';
@@ -26,6 +27,7 @@ export interface OpenApiDocument {
   components: {
     securitySchemes: {
       bearerAuth: { type: 'http'; scheme: 'bearer'; bearerFormat?: string };
+      sessionAuth: { type: 'apiKey'; in: 'cookie'; name: string };
     };
     schemas?: Record<string, unknown>;
   };
@@ -376,6 +378,7 @@ export function buildOpenApiDocument(
   );
 
   const componentSchemas = getComponentSchemas();
+  const sessionConfig = typeof sails === 'undefined' ? undefined : sails.config?.redboxSession;
 
   return sanitizeOpenApiValue(specializeOpenApiDocument({
     openapi: '3.0.3',
@@ -384,6 +387,7 @@ export function buildOpenApiDocument(
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        sessionAuth: { type: 'apiKey', in: 'cookie', name: sessionConfig?.name ?? redboxSession.name },
       },
       ...(componentSchemas ? { schemas: componentSchemas } : {}),
     },

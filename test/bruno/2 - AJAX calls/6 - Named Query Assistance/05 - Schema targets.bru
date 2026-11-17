@@ -1,0 +1,33 @@
+meta {
+  name: Named queries - Schema targets
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/editor/schema-targets
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Returns authorized targets", () => {
+    expect(res.getStatus()).to.equal(200);
+    const types = res.getBody().data.recordTypes;
+    expect(types).to.be.an("array");
+    expect(types.length).to.be.greaterThan(0);
+    bru.setVar("queryEditorType", types[0].id);
+    bru.setVar("queryEditorStage", types[0].stages[0].id);
+  });
+}

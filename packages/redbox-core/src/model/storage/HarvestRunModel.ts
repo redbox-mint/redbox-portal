@@ -1,3 +1,11 @@
+/** Global, brand-scoped statistics over retained harvest run summaries. */
+export interface HarvestRunStatistics {
+  runsLast7Days: number;
+  failedLast7Days: number;
+  runningNow: number;
+  lastSuccessfulRun: { completedAt: string; sourceName: string } | null;
+}
+
 export enum HarvestRunStatus {
   running = 'running',
   completed = 'completed',

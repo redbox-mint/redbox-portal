@@ -1,0 +1,59 @@
+// Layout helpers for email-specific content. Cards, tables, badges and controls
+// inherit the shared rb-admin foundation instead of a second visual system.
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.et-sub {
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.et-mono,
+.et-template-id,
+.et-version {
+  font-family: var(--admin-mono);
+}
+.et-template-id {
+  overflow-wrap: anywhere;
+}
+.et-version {
+  font-variant-numeric: tabular-nums;
+}
+.et-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.et-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.et-badge-muted {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  font-weight: 500;
+}
+button.et-badge-button {
+  border: 1px solid transparent;
+  cursor: pointer;
+  &:hover {
+    border-color: currentColor;
+  }
+}
+
+// The history table sits inside the editing workspace.
+.et-table-wrap {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+}
+.et-section-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-heading);
+}

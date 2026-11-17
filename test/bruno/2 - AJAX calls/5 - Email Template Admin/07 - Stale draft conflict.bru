@@ -1,0 +1,37 @@
+meta {
+  name: Email templates - Stale draft conflict
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/draft
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  { "content": {"subject": "Admin preview {{name}}", "body": "<p onclick=\"unsafe()\">Hello {{name}}</p><script>unsafe()</script>", "format": "html"}, "expectedDraftRevision": {{emailAdminStaleDraftRevision}} }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Returns current revision and actor on conflict", () => {
+    expect(res.getStatus()).to.equal(409);
+    const result = res.getBody();
+    expect(result.error.code).to.equal("REVISION_CONFLICT");
+    expect(result.current.draft.draftRevision).to.equal(bru.getVar("emailAdminDraftRevision"));
+    expect(result.current.draft.updatedByName).to.be.a("string");
+  });
+}

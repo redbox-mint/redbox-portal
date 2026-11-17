@@ -65,8 +65,10 @@ describe('Request chronicle in lifted Sails', function () {
     const userController = ControllerExports.UserController as { info(req: Sails.Req, res: Sails.Res): void };
     // Call the migrated action through the virtual router without HTTP-only authentication/language policies.
     router.bind(virtualPath, (req, res) => {
+      assert.equal(req.options?.requestChronicleHelper, undefined, 'virtual requests bypass HTTP chronicle setup');
       req.user = { username: 'virtual-test' } as Sails.Req['user'];
       userController.info(req, res);
+      assert.equal(req.options?.requestChronicleHelper, undefined, 'the action does not create a chronicle');
     });
     const translationController = ControllerExports.TranslationController as {
       getBundleApp(req: Sails.Req, res: Sails.Res): Promise<unknown>;
@@ -342,11 +344,7 @@ describe('Request chronicle in lifted Sails', function () {
     await settle();
 
     assert.deepEqual(chronicleWarnings(), []);
-    assert.equal(
-      captured.filter(item => item.args[1] === 'Request chronicle').length,
-      0,
-      'virtual requests do not produce events'
-    );
+    assert.equal(events(virtualPath).length, 0, 'virtual requests do not produce events');
   });
 
   it('retains a successful service warning as one warn event when success sampling is disabled', async () => {

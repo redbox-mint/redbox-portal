@@ -364,6 +364,7 @@ export namespace Controllers {
             portal,
             fileBuffer: buf,
             contentType: f.type,
+            expectedDraftRevision: Number(req.body?.expectedDraftRevision),
           });
           return this.sendResp(req, res, { data: { hash }, headers: this.getNoCacheHeaders() });
         } finally {
@@ -415,6 +416,7 @@ export namespace Controllers {
             portal,
             fileBuffer: buf,
             contentType: f.type,
+            expectedDraftRevision: Number(req.body?.expectedDraftRevision),
           });
           return this.sendResp(req, res, { data: { hash }, headers: this.getNoCacheHeaders() });
         } finally {

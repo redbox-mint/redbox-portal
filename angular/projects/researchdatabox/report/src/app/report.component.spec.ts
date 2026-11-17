@@ -115,21 +115,19 @@ describe('ReportComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       fixture.detectChanges();
-      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '2')!;
       pageTwo.click();
       fixture.detectChanges();
       const page = http.expectOne(req => req.url.includes('getReportResults'));
       const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
-      const submit = fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement;
       for (const title of ['discarded', 'latest']) {
         input.value = title;
-        input.dispatchEvent(new Event('input'));
-        submit.click();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
       }
-      // Editing without submitting must not alter the queued or retry criteria.
-      input.value = 'unsubmitted';
-      input.dispatchEvent(new Event('input'));
+      // A later edit must not alter the captured criteria of an in-flight query.
+      component.filterParams.title = 'unsubmitted';
       http.expectNone(req => req.url.includes('getReportResults'));
       if (paginationFails) {
         page.flush('failed', { status: 500, statusText: 'Server Error' });
@@ -146,7 +144,7 @@ describe('ReportComponent', () => {
       await settle();
       await fixture.whenStable();
       fixture.detectChanges();
-      expect(component.reportResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.reportResult.pageNum).toBe(1);
       expect(component.loadError).toContain('Unable to load');
       (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
       await settle();
@@ -203,9 +201,9 @@ describe('ReportComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === String(page))!;
-    const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+    const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager button[aria-current="page"]')?.textContent.trim();
     let reject!: (reason: unknown) => void;
     const read = spyOn(reportService, 'getReportResult').and.returnValue(new Promise((_resolve, rejectRequest) => { reject = rejectRequest; }));
     expect(activePage()).toBe('1');
@@ -272,6 +270,76 @@ describe('ReportComponent', () => {
     expect(component.initTracker.resultsReturned).toBeTrue();
     expect(read).toHaveBeenCalledTimes(2);
     fixture.destroy();
+  });
+
+  it('uses concise stock filter labels while preserving configured custom labels', () => {
+    translationService.translationMap['admin-report-modified-from'] = 'Modified from';
+    translationService.translationMap['custom-period'] = 'Archive review';
+    translationService.translationMap['report-filter-date-to'] = 'to';
+    const app = TestBed.createComponent(ReportComponent).componentInstance;
+    const stock = mockReportData.reportConfig.filter[0];
+    expect(app.filterLabel(stock, 'fromDate')).toBe('Modified from');
+    expect(app.filterLabel({ ...stock, message: 'custom-period' }, 'toDate')).toBe('Archive review to');
+    expect(stock.message).toBe('Filter by date modified');
+  });
+
+  it('shows only applied filters, removes one chip and clears filters', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+    app.filterParams = { title: 'applied', dateObjectModifiedRange_fromDate: new Date(2026, 9, 1) };
+    await app.filter();
+    expect(app.activeFilters.map(chip => chip.key)).toEqual(['dateObjectModifiedRange_fromDate', 'title']);
+    expect(app.activeFilters[0].value).toBe('01/10/2026');
+    app.filterParams.title = 'unfinished';
+    await app.removeFilter('dateObjectModifiedRange_fromDate');
+    expect(app.filterParams.title).toBe('applied');
+    expect(app.activeFilters.map(chip => chip.key)).toEqual(['title']);
+    await app.clearFilters();
+    expect(app.getParams()).toEqual({});
+    expect(app.activeFilters).toEqual([]);
+  });
+
+  it('renders the source badge and linked named-query subtitle', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.componentInstance.report.reportSource = 'database';
+    fixture.componentInstance.report.databaseQuery = { queryName: 'listRDMPRecords' };
+    translationService.translationMap['admin-report-source-description'] = 'Source: {{source}}';
+    translationService.translationMap['report-source-database'] = 'Database';
+    fixture.detectChanges();
+    const description = fixture.nativeElement.querySelector('.rb-admin-page-header p');
+    expect(fixture.nativeElement.querySelector('.report-title-line .badge').textContent).toBe('Database');
+    const query = description.querySelector('a');
+    expect(query.textContent).toBe('listRDMPRecords');
+    expect(query.getAttribute('href')).toContain('/admin/named-query#query=listRDMPRecords');
+  });
+
+  it('requests global sorting in both directions, resets paging and preserves applied filters and CSV order', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+    app.report.columns = [{ property: 'title', label: 'Title', sortable: true }, { property: 'computed', label: 'Computed', sortable: false }] as any;
+    app.appliedFilterParams = { title: 'Applied' };
+    app.filterParams = { title: 'Unsubmitted' };
+    const read = spyOn(reportService, 'getReportResult').and.callFake(async () => ({ records: [{ title: 'Server order' }], total: 20, pageNum: 1, recordsPerPage: 10 }));
+    for (const sort of ['asc', 'desc']) {
+      app.reportResult.pageNum = 2;
+      await app.headerSortChanged({ variable: 'title', sort }, {});
+      expect(read).toHaveBeenCalledWith(app.reportName, 1, { title: 'Applied', sortField: 'title', sortDirection: sort }, app.recordsPerPage);
+      expect(app.reportResult.pageNum).toBe(1);
+      expect(app.reportResult.records).toEqual([{ title: 'Server order' }]);
+      expect(app.getDownloadCSVUrl()).toContain(`sortField=title&sortDirection=${sort}`);
+      await app.gotoPage(2, app.appliedFilterParams);
+      expect(read.calls.mostRecent().args[2]).toEqual({ title: 'Applied', sortField: 'title', sortDirection: sort });
+    }
+    const count = read.calls.count();
+    await app.headerSortChanged({ variable: 'computed', sort: 'asc' }, {});
+    expect(read.calls.count()).toBe(count);
+    expect(app.activeFilters.map(chip => chip.key)).toEqual(['title']);
   });
 
   it('should create the app, and apply report filters', async function() {
@@ -585,4 +653,71 @@ describe('ReportComponent', () => {
       app.filterParams['dateObjectModifiedRange_fromDate'] = from;
     }
   });
+  it('shows empty-state Clear filters only while filters are active', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit(); fixture.detectChanges();
+    app.reportResult = { records: [], total: 0, pageNum: 1, recordsPerPage: 10 } as any;
+    app.initTracker.resultsReturned = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).toBeNull();
+    app.filterParams.title = 'Search'; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).not.toBeNull();
+    fixture.destroy();
+  });
+
+  it('pages GraphQL results by issued cursors, keeps totals unknown and resets navigation on filtering', async () => {
+    const fixture=TestBed.createComponent(ReportComponent),app=fixture.componentInstance;
+    fixture.autoDetectChanges(true);await app.waitForInit();app.report.querySource='graphql';
+    const pages=[{records:[{oid:'one'}],total:null,pageNum:1,recordsPerPage:1,pagination:{mode:'cursor',start:0,hasNextPage:true,nextCursor:'opaque'}},{records:[{oid:'two'}],total:null,pageNum:1,recordsPerPage:1,pagination:{mode:'cursor',start:1,hasNextPage:false,nextCursor:null}}];
+    reportService.getReportCursorPage=jasmine.createSpy('cursor').and.callFake(async (_name: string,_params: unknown,_rows:number,cursor?:string)=>cursor?pages[1]:pages[0]);
+    await app.gotoPage(1);fixture.detectChanges();
+    const next = fixture.nativeElement.querySelector('.report-cursor-pager button:last-child') as HTMLButtonElement;
+    next.focus();next.click();await fixture.whenStable();fixture.detectChanges();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.report-cursor-pager button:first-of-type'));
+    expect(reportService.getReportCursorPage.calls.mostRecent().args[3]).toBe('opaque');expect(app.reportResult.total).toBeNull();expect(app.rangeStart).toBe(2);expect(app.rangeEnd).toBe(2);
+    expect(fixture.nativeElement.querySelector('rb-admin-pager')).toBeNull();
+    await app.cursorPage(-1);expect(app.rangeStart).toBe(1);await app.filter();expect(app.cursorIndex).toBe(0);fixture.destroy();
+  });
+  it('shows a wait state and a translated limit error without downloading a partial CSV', async () => {
+    const fixture=TestBed.createComponent(ReportComponent),app=fixture.componentInstance;
+    fixture.detectChanges();await app.waitForInit();app.report.querySource='graphql';app.report.exportMaxRows=10000;
+    let reject!: (error:unknown)=>void;reportService.downloadCSV=jasmine.createSpy('csv').and.returnValue(new Promise((_yes,no)=>{reject=no;}));
+    const createUrl=spyOn(URL,'createObjectURL');const pending=app.downloadCsv();fixture.detectChanges();
+    expect(app.exporting).toBeTrue();expect(fixture.nativeElement.querySelector('#report-export').disabled).toBeTrue();expect(fixture.nativeElement.querySelector('#report-export-status').getAttribute('role')).toBe('status');
+    reject({error:new Blob([JSON.stringify({message:'REPORT_EXPORT_ROW_LIMIT'})],{type:'application/json'})});await pending;fixture.detectChanges();
+    expect(app.exporting).toBeFalse();expect(app.exportError).toBeTrue();expect(createUrl).not.toHaveBeenCalled();fixture.destroy();
+  });
+
+  it('explains a changed query on initial load while retaining retry', async () => {
+    mockReportData.reportConfig.querySource = 'graphql';
+    reportService.getReportCursorPage = jasmine.createSpy('cursor').and.rejectWith({error: {message: 'REPORT_QUERY_CHANGED'}});
+    translationService.t = (key: string) => key === 'report-graphql-error-REPORT_QUERY_CHANGED' ? 'Review the changed query.' : key;
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await expectAsync(fixture.componentInstance.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Review the changed query.');
+    expect(fixture.nativeElement.querySelector('[role="alert"] button')).not.toBeNull();
+    fixture.destroy();
+  });
+
+  for (const code of ['GRAPHQL_LOOKUP_UNSUPPORTED', 'GRAPHQL_REPORT_PAGING_REQUIRED', 'INVALID_GRAPHQL_NAMED_QUERY', 'INVALID_GRAPHQL_PARAMETER', 'UNAVAILABLE']) {
+    it(`shows a translated ${code} CSV failure without downloading a file`, async () => {
+      const fixture = TestBed.createComponent(ReportComponent);
+      const app = fixture.componentInstance;
+      fixture.detectChanges();
+      await app.waitForInit();
+      app.report.querySource = 'graphql';
+      translationService.t = (key: string) => key === 'report-graphql-error-' + code ? 'Specific translated explanation' : key;
+      reportService.downloadCSV = jasmine.createSpy('csv').and.rejectWith({error: new Blob([JSON.stringify({message: code})], {type: 'application/json'})});
+      const createUrl = spyOn(URL, 'createObjectURL');
+      await app.downloadCsv();
+      expect(app.exportMessage).toBe('Specific translated explanation');
+      expect(app.exportError).toBeTrue();
+      expect(createUrl).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
+
 });

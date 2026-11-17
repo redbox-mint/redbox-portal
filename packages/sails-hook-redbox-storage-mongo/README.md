@@ -84,3 +84,45 @@ MONGO_TEST_URL=mongodb://mongodb:27017 npm test -- --timeout 30000
 
 Without `MONGO_TEST_URL`, the Mongo integration tests are skipped. The tests
 remove only the uniquely named database they create.
+
+## Optional record query controls
+
+`getRecords()` accepts a trailing `RecordQueryOptions` object. Omitting it keeps
+existing filters, role handling, sort, offset and total-count behavior. These
+controls are available to any storage caller:
+
+- `anyOf`: up to 20 `{ field, value, match }` predicates, ORed together and ANDed
+  with all existing filters, brand and ACL restrictions. `match: 'contains'`
+  performs a literal case-insensitive substring match; `match: 'exact'` uses
+  equality. Values are limited to 1,024 characters and field paths are validated.
+- `afterOid`: an exclusive OID cursor; use `null` for the first batch. It selects
+  binary `redboxOid` ascending order, requires a zero offset and 1–100 rows,
+  excludes Mongo `_id`, and applies a five-second database-query limit.
+- `count: false`: skips counting matches; `totalItems` remains zero and does not
+  represent a calculated total. Counts remain enabled by default.
+- `authorization: 'record-view'`: resolves canonical brand role IDs and supports
+  legacy flattened ACLs consistently with `RecordsService.hasViewAccess`,
+  including edit grants that imply view. Legacy authorization stays the default.
+
+Email-template preview search uses these options on the existing storage API
+for literal title substrings or exact `redboxOid`, without consulting Solr.
+Core rechecks record-view access before visible page offsets and the single
+lookahead used for `hasMore`. Deploy the rebuilt core and storage packages
+together; custom storage adapters used for this endpoint must honor the options.
+Other record searches retain their defaults.
+
+The configured compound index `{ 'metaMetadata.brandId': 1, redboxOid: 1 }` is
+created by normal storage initialization, including `migrate: safe` deployments.
+It bounds scans to one brand and supports OID ordering. Arbitrary title
+substrings cannot use a normal title index, so broad title searches still scan
+that brand's candidates.
+
+The real-Mongo regression suite exercises core, authorization, and this adapter
+with Solr unavailable/stale, including permission-filtered pagination. After
+building core, run it using the same isolated-database convention as the other
+Mongo integration tests:
+
+```bash
+cd packages/sails-hook-redbox-storage-mongo
+MONGO_TEST_URL=mongodb://127.0.0.1:27017 npm test -- --node-option no-experimental-strip-types --timeout 30000
+```

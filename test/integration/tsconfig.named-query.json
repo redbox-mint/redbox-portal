@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../.."
+  },
+  "include": ["globals.d.ts", "helpers/named-query-lifecycle*.ts", "services/NamedQueryColdBootstrap.test.ts"],
+  "exclude": []
+}

@@ -43,7 +43,8 @@ tests {
     const digest = etagMatch[1];
     expect(document["$id"]).to.equal(`/default/rdmp/api/records/schemas/${digest}`);
     expect(res.getHeader("cache-control")).to.equal("private, no-cache");
-    expect(res.getHeader("vary")).to.equal("Authorization");
+    const vary = res.getHeader("vary").split(",").map(value => value.trim().toLowerCase());
+    expect(vary).to.include("authorization");
     expect(res.getHeader("link")).to.equal(
       `<${document["$id"]}>; rel="canonical"; type="application/schema+json"`
     );

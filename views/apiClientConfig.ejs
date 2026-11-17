@@ -1,5 +1,5 @@
 <% 
-let i18NextOpts = sails.config.i18n.next.init;
+let i18NextOpts = _.cloneDeep(sails.config.i18n.next.init);
 i18NextOpts.backend = undefined;
 let defaultConfig = {
   baseUrl: sails.config.appUrl,

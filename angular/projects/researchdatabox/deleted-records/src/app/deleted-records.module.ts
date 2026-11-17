@@ -7,7 +7,7 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { DeletedRecordsComponent } from './deleted-records.component';
-import {ModalModule} from "ngx-bootstrap/modal";
+import { A11yModule } from '@angular/cdk/a11y';
 
 @NgModule({
   declarations: [
@@ -20,7 +20,7 @@ import {ModalModule} from "ngx-bootstrap/modal";
     RedboxPortalCoreModule,
     BsDatepickerModule.forRoot(),
     PaginationModule.forRoot(),
-    ModalModule.forRoot(),
+    A11yModule,
   ],
   providers: [
     {

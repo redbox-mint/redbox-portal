@@ -5,6 +5,52 @@ import type { WorkflowConfig } from '@researchdatabox/redbox-core';
  * Moved out of @researchdatabox/redbox-core; supplied via redbox-hook-dev.
  */
 export const workflow: WorkflowConfig = {
+    "researchActivity": {
+        "draft": {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: {
+                    viewRoles: ['Admin', 'Librarians', 'Researcher'],
+                    editRoles: ['Admin', 'Librarians', 'Researcher']
+                },
+                form: 'researchActivity-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    "demoRdmp": {
+        "draft": {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: {
+                    viewRoles: ['Admin', 'Librarians', 'Researcher'],
+                    editRoles: ['Admin', 'Librarians', 'Researcher']
+                },
+                form: 'demoRdmp-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'related-plan': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'related-plan-1.0-draft'
+            }
+        }
+    },
+    'related-activity': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'related-activity-1.0-draft'
+            }
+        }
+    },
     "rdmp": {
         "draft": {
             config: {
@@ -176,7 +222,7 @@ export const workflow: WorkflowConfig = {
                     viewRoles: ['Admin', 'Librarians'],
                     editRoles: ['Admin', 'Librarians']
                 },
-                form: 'generated-view-only',
+                form: 'party-1.0-draft',
                 dashboard: {
                     table: {
                         rowConfig: [

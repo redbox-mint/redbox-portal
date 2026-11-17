@@ -1,0 +1,37 @@
+meta {
+  name: Email templates - Integration context schema
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/context-schema?templateId=integrationRecovery
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Returns the integration contract without a record target", () => {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.contextKind).to.equal("integration");
+    expect(body.precision).to.equal("integration");
+    expect(body.recordType).to.equal("");
+    expect(body.stage).to.equal("");
+    expect(body.schema.properties).not.to.have.property("record");
+    expect(body.schema.properties).not.to.have.property("imports");
+    expect(body.schema.required).to.include("summary");
+    expect(body.schema.required).not.to.include("recordUrl");
+    expect(body.schema.properties.kind.examples).to.deep.equal(["recovery"]);
+    expect(body.schema.properties.severity.enum).to.deep.equal(["info", "warning", "error"]);
+  });
+}

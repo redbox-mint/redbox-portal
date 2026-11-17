@@ -156,7 +156,8 @@ Services are instantiated via `new ServiceClass().exports()` which provides meth
 | `ContrastService` | Color contrast calculations |
 | `DashboardTypesService` | Dashboard type definitions |
 | `DoiService` | DataCite DOI registration |
-| `EmailService` | Email delivery via nodemailer |
+| `EmailService` | Brand-aware template rendering and email delivery |
+| `EmailTemplateService` | Per-brand persisted email overrides and revision-checked management |
 | `FigshareService` | Figshare repository integration |
 | `FormRecordConsistencyService` | Form-record validation |
 | `FormsService` | Dynamic form management |
@@ -219,6 +220,7 @@ Database models are defined in `src/waterline-models/`:
 | `WorkflowStep` | Workflow state transitions |
 | `Form` | Dynamic form configurations |
 | `BrandingConfig` | Portal branding settings |
+| `EmailTemplate` | Subject/body/format override keyed by brand and stable template ID, with revision and audit fields |
 | `Report` | Report definitions |
 | `NamedQuery` | Saved query configurations |
 

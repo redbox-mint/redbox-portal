@@ -3,13 +3,17 @@ import {FormValidationGroupsChangeRequestEvent} from "./events";
 import {ModifyOptions} from "@researchdatabox/portal-ng-common";
 import {guessType} from "@researchdatabox/sails-ng-common";
 
-export type ControlSetValueOptions = ModifyOptions;
+export type ControlSetValueOptions = ModifyOptions & {
+  /** An asynchronous setter must stop applying a superseded source value. */
+  isCurrent?: () => boolean;
+};
 
 /**
  * A control whose value is replaced by custom logic. An asynchronous setter must
  * pass the `options` object it receives to the control's own methods (such as
  * `setValue` or `push`) for changes made after awaiting. Expression writes use
- * that object to attribute the change to themselves for cycle detection.
+ * that object to attribute the change to themselves for cycle detection. Check
+ * `options.isCurrent` after awaiting before changing component-owned state.
  */
 export interface CustomSetValueControl<ValueType = unknown> {
   setCustomValue(value: ValueType, options?: ControlSetValueOptions): Promise<void> | void;
@@ -24,7 +28,7 @@ export function setControlValue<ValueType = unknown>(
   value: ValueType,
   options?: ControlSetValueOptions
 ): Promise<void> | void {
-  if (!control) {
+  if (!control || options?.isCurrent?.() === false) {
     return;
   }
   if (isCustomSetValueControl<ValueType>(control)) {

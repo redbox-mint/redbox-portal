@@ -1,0 +1,42 @@
+meta {
+  name: Email templates - Validation diagnostic
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/validate
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  {
+    "content": {
+      "subject": "Safe",
+      "body": "{{unknownRoot}}",
+      "format": "text"
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Returns safe positioned validation diagnostics", () => {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody().diagnostics[0].reason).to.equal("UNKNOWN_CONTEXT_ROOT");
+    expect(res.getBody().diagnostics[0].field).to.equal("body");
+    expect(res.getBody().diagnostics[0].line).to.equal(1);
+  });
+}

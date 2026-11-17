@@ -1,0 +1,556 @@
+# Admin UI redesign
+
+Implementation spec for the consistent ReDBox admin interface. The design came from an audit of every
+`/admin` screen (5 Nov 2026). Mock sources are in `mocks/`. Each `*.dc.html` file is one screen. They are
+HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/admin.css`. Don't try to run them.
+
+- `mocks/admin.css`: the pattern stylesheet every mock uses (tokens, layout, buttons, cards, tables, filters,
+  badges, alerts, empty states, tabs, split layouts, form sections, sticky save bar).
+- `mocks/Header.dc.html`, `mocks/Sidebar.dc.html`: the shared admin chrome.
+- `mocks/Patterns.dc.html`: the pattern kit. `mocks/Audit.dc.html`: the audit findings.
+- `DEFERRED.md`: mock features the backend doesn't support yet. Don't build these; list new ones there.
+
+## Status
+
+Delivered on `admin-deferred/17-council-ux` (v2 round 6): red standalone card headers, linked field descriptions and connection hints, and automatic Connection expansion when a base URL is required.
+
+Delivered on `admin-deferred/17-council-ux` (batch 9): soft system-message banners, guarded nested editors, predictable removal focus, named controls, translated category mappings, shared ellipsis pagination, and consistent cards, defaults and row actions.
+
+Delivered on `admin-deferred/17-council-ux` (batch 6): deliberate role assignment, dirty-editor discard confirmation, unique binding controls, tablet layout fixes, consistent technical values and action buttons, and navigation/translation accessibility polish.
+
+Delivered on `admin-deferred/17-council-ux` (batch 5b): consistent config switches and off states, accessible user validation and restore confirmation, accurate sidebar preview, shared accents and disabled states, and form/modal polish.
+
+Delivered on `admin-deferred/16-polish`: colour-reset card footer, readable page-size controls, untracked named-query caller note, protected config-label acronyms, safe dictionary value summaries and corrected default RDMP modified-date mapping.
+
+Delivered on `admin-deferred/15-auth-domain-case`: intentional case-insensitive authorized domain/email matching, canonical save rules and chip input, with AAF/OIDC and tester parity.
+
+Delivered on `admin-deferred/14-dictionary-editor`: reusable schema-driven dictionaries with literal-key validation, rename/copy/remove, complete Oni and RAiD schemas, per-integration notification overrides, lossless drafts and retained credentials.
+
+Delivered on `admin-deferred/13-test-connection`: brand Admin and CSRF-protected, read-only integration connection tests for unsaved Figshare, DOI, RAiD and Oni drafts, with secret retention, bounded requests, cooldown and timestamped results. Oni without ingestion reports public-site reachability only.
+
+Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps; Figshare source metadata edits and real manual/daily/weekly mirror schedules. Existing source scope remains read-only pending an identity migration policy.
+
+Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
+
+Delivered on `admin-deferred/10-branding-drafts`: brand-scoped logo/favicon drafts, preview snapshots, image-aware publication/history/restore, and an atomic whole-draft reset.
+
+Delivered on `admin-deferred/09-dashboard-types`: per-target rows per page, consumed by researcher dashboards. Retired dashboard-profile management removed from the deferred scope after runtime investigation.
+
+Delivered on `admin-deferred/08-site-config`: system message styles with matching live banners and accessible roles, and brand-scoped Navigation resets to installation defaults.
+
+Delivered on `admin-deferred/07-auth-domain-tester`: authorized-address tester using the shared AAF/OIDC matcher, brand Admin and CSRF protection, and unsaved-form testing without persistence.
+
+Delivered on `admin-deferred/06-users-roles`: successful interactive last-login tracking, server-side sign-in filters, editable role descriptions, atomic replacement of sole roles, and the configured default-role marker.
+
+Delivered on `admin-deferred/05-deleted-records`: record-type badges, original deletion actors, server-side deletion filters and bounded bulk restore/permanent delete with per-record results.
+
+Delivered on `admin-deferred/04-export-cancel`: Admin cancellation of queued/preparing exports, cooperative worker cleanup, Cancelled status and subsequent deletion.
+
+Delivered on `admin-deferred/03-harvest-stats`: brand-scoped global harvest statistics with database counts, latest successful completion and a filter-independent stats row.
+
+Delivered on `admin-deferred/02-named-query-usage`: linked named-query usage in the list and editor, with server refusal and a consumer warning for in-use deletion.
+
+Delivered on `admin-deferred/01-report-view`: validated server-side report sorting for Solr and named queries, matching CSV ordering, and safe source/named-query metadata in the description.
+
+All admin screens are implemented on the shared foundation, including the final consistency pass.
+Backend-dependent features remain listed in [DEFERRED.md](DEFERRED.md).
+
+## Principles (apply to every screen)
+
+1. **One page header.** Breadcrumb (`Admin / Section / Page`), left-aligned H1, a one-line description, and
+   right-aligned actions with at most one primary button. No centred titles, no H1 repeated as an H2, no
+   empty gap above the content.
+2. **One container.** The existing red panel header for standalone list and form cards. Collapsible app-config
+   sections, dashboard subsections, dialogs and nested query editors retain neutral headers.
+3. **One button scale.** Primary = theme `--rb-primary` (blue). Secondary = outline. Destructive = outline red;
+   solid red only inside a confirmation dialog. No cyan/info buttons, no uppercase "SUBMIT", no legacy
+   `#428bca` submit colour. Labels in sentence case.
+4. **One table, one filter bar, one empty state, one pagination footer**, all from the pattern kit. Table
+   headers are 12.5px+ and readable. Row actions are a small outline button plus a ⋯ overflow menu for the rest
+   (delete always asks for confirmation).
+5. **Config forms.** Short forms: section cards, a switch in the card header for `enabled` flags, and a
+   sticky save bar that shows unsaved-change status. Long forms: a sticky section rail, collapsible sections
+   that show a one-line summary when collapsed, secrets as password fields, arrays of scalars as chip inputs.
+   An app-config with nothing to show uses the "Integration not set up" empty state, never a bare Submit.
+6. **Regrouped sidebar** with a current-page highlight and every registered admin screen reachable:
+   Overview · Records & reporting · People & access · Site & content · Lookups & vocabularies · Integrations ·
+   Developer.
+7. **Theme tokens only.** Every colour comes from existing `--rb-*` CSS variables (`theme.css`), so per-brand
+   branding overrides keep working. Keep Titillium Web (body) and Roboto Condensed (main nav).
+8. **Accessible.** Real `<button>`/`<a>`/`<label>` elements, `aria-label` on icon-only buttons, visible focus,
+   text contrast ≥ 4.5:1. Layout works down to tablet width without horizontal page scroll; wide tables scroll
+   inside their card.
+9. **i18n.** All new UI text goes through translation keys added to `language-defaults/en/translation.json`.
+
+## Screen → mock map
+
+| Screen | Route | Mock |
+|---|---|---|
+| Admin home | `/admin` | `Main.dc.html` |
+| Reports / report view | `/admin/reports`, `/admin/report/:name` | `Reports.dc.html`, `ReportView.dc.html` |
+| Named queries | `/admin/named-query` | `NamedQueries.dc.html` |
+| Harvest runs | `/admin/harvest-runs` | `HarvestRuns.dc.html` |
+| Export | `/admin/export` | `Export.dc.html` |
+| Deleted records | `/admin/deletedRecords` | `DeletedRecords.dc.html` |
+| Users / Roles | `/admin/users`, `/admin/roles` | `Users.dc.html`, `Roles.dc.html` |
+| Authorized domains | `/admin/appconfig/edit/authorizedDomainsEmails` | `AuthorizedDomains.dc.html` |
+| Short app-configs (System messages, Web analytics) | `/admin/appconfig/edit/systemMessage`, `…/webAnalytics` | `SystemMessages.dc.html` |
+| Navigation editors | `/admin/appconfig/edit/menu`, `…/homePanels`, `…/adminSidebar` | `MenuConfig.dc.html` |
+| Long app-configs (Figshare, DOI, Oni, RAiD, Integration notification) | `/admin/appconfig/edit/…` | `IntegrationConfig.dc.html`, `RaidPublishing.dc.html` |
+| Branding | `/admin/branding` | `Branding.dc.html` |
+| Translations | `/admin/translation` | `Translations.dc.html` |
+| Dashboards | `/admin/dashboard-config` | `DashboardConfig.dc.html` |
+| Vocabularies | `/admin/vocabulary/manager` | `Vocabularies.dc.html` |
+| Figshare vocabularies | `/admin/integrations/figshare/vocabularies` | `FigshareVocab.dc.html` |
+| Parties | `/admin/parties` (legacy `/dashboard/party` supported) | `Parties.dc.html` |
+| API docs | `/admin/api-docs` | `ApiDocs.dc.html` |
+
+Notes in the mocks (dashed `note` boxes) and sample/`[placeholder]` content are explanations, not UI to ship.
+
+## Implementation notes
+
+Phase 1 provides the shared foundation and overview. Later phases should use these patterns when
+replacing each Angular app's existing markup; the shell alone does not add a header to those apps.
+
+### Build and scope
+
+`assets/styles/admin.scss` is imported last by `assets/styles/style.scss`. The portal Webpack asset
+entry builds it into `.tmp/public/default/default/styles/style.min.css` (`npm run webpack`). No separate
+Angular stylesheet import is needed: global CSS reaches templates using Angular's emulated encapsulation.
+All component rules live under `.rb-admin`; `.rb-admin.admin-layout` supplies the two-column shell.
+The outer spacing selector, `.maincontent-body:has(> .rb-admin)`, removes the legacy portal's 80px/130px
+vertical padding on admin pages only. Other portal pages retain their styling. The shell stacks at
+widths below 992px; navigation groups use two columns on tablets and one below 576px.
+
+Colours derive from existing published `--rb-*` theme variables, with fallbacks for older brands.
+Internal `--admin-*` aliases and `color-mix()` derive neutral surfaces and semantic tints without adding
+new branding configuration. Body and nav fonts continue to inherit the portal fonts (Titillium Web and
+Roboto Condensed by default). Brand typeface overrides still apply.
+
+### EJS shell and header
+
+Every admin page uses the paired shell partials. API docs embeds its isolated viewer document below the shared header. Keep Angular
+bootstrap scripts/styles outside the shell, after `end.ejs`. For nested views, adjust relative include
+paths (Figshare vocabularies uses `../../layout/start.ejs`). Export (`views/default/default/export/index.ejs`)
+and the admin-only branch of `views/default/rdmp/dashboard.ejs` also use this shell, since they share
+the navigation. The dashboard's ordinary non-admin branch is unchanged. Do not add another Bootstrap sidebar grid
+or full-page container inside the wrapper; `.rb-admin-wrap` already limits content to 1180px.
+
+```ejs
+<%- include('layout/start.ejs') %>
+<%- include('layout/page-header.ejs', {
+  breadcrumbs: [
+    { labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' },
+    { labelKey: 'admin-nav-reports' }
+  ],
+  titleKey: 'reports-heading',
+  descriptionKey: 'reports-description',
+  actions: [{ labelKey: 'report-create', href: createUrl, primary: true }]
+}) %>
+<!-- Page content -->
+<%- include('layout/end.ejs') %>
+```
+
+`breadcrumbs` is an ordered array of `{labelKey, href?}`. Omit `href` on the current page.
+`titleKey` is required; `descriptionKey` and `actions` are optional. Actions are link descriptors
+`{labelKey, href, primary?}`; use at most one primary. Labels are translated and escaped, and URLs are
+escaped. For interactive Angular actions, use the equivalent markup below instead of passing raw HTML.
+Only one layer owns the page header: do not render both an EJS header and an Angular header.
+
+### Angular header
+
+The EJS view already supplies `.rb-admin`, `<main>` and `.rb-admin-wrap`. Use the same header classes
+inside the Angular component, and use its existing i18next pipe. Buttons retain Angular event bindings.
+Add new labels to `language-defaults/en/translation.json` and run `npm run test:translations`.
+
+```html
+<nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
+  <ol>
+    <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+    <li><span aria-current="page">{{ 'admin-nav-reports' | i18next }}</span></li>
+  </ol>
+</nav>
+<header class="rb-admin-page-header">
+  <div>
+    <h1>{{ 'reports-heading' | i18next }}</h1>
+    <p>{{ 'reports-description' | i18next }}</p>
+  </div>
+  <div class="rb-admin-page-actions">
+    <button class="btn btn-primary" type="button" (click)="createReport()">
+      {{ 'report-create' | i18next }}
+    </button>
+  </div>
+</header>
+```
+
+### Pattern kit
+
+Use Bootstrap 5 structure for the standard components. Do not copy the mocks' `.row`, `.card-h`,
+`.tabs`, `.switch` or bare `.badge.ok` classes; those are reference notation, not the shipped API.
+
+| Pattern | Shipped markup/classes |
+|---|---|
+| Shell | `.rb-admin.admin-layout`, `.rb-admin-sidebar`, `.rb-admin-main`, `.rb-admin-wrap` (partials own these) |
+| Header | `.rb-admin-crumbs > ol > li`, `.rb-admin-page-header`, `.rb-admin-page-actions` |
+| Buttons | `.btn.btn-primary` (theme blue), `.btn.btn-outline-secondary`, `.btn.btn-outline-danger`; `.btn-sm` for row actions |
+| Confirmation delete | `.modal .btn.rb-admin-danger-confirm`; solid red is opt-in only inside confirmation dialogs |
+| Primary list panel | Bootstrap `.card`, `.card-header` (brand red), `.card-body`, `.card-footer` (pagination/count row) |
+| Tables | `.table-responsive > table.table.table-hover`; use `.text-end` for numbers/actions; contain wide-table overflow here |
+| Badge | `.badge.rb-admin-badge-primary`, `-success`, `-warning`, `-danger`, `-info` |
+| Alert | Bootstrap `.alert.alert-danger`, `-warning`, `-info`, `-success`; retain `role="alert"` for errors |
+| Tabs / pagination | Bootstrap `.nav.nav-tabs > .nav-item > .nav-link.active`, `.pagination > .page-item > .page-link` |
+| Statistics | `.rb-admin-stats > .rb-admin-stat` with `<b>` value and `<span>` label |
+| Filter bar | `.rb-admin-filter-bar`, `.rb-admin-field`, optional `.rb-admin-field-grow`; labelled `.form-control` / `.form-select` inputs |
+| Empty state | `.rb-admin-empty` with icon, `h3`, explanation and real action buttons |
+| Split layout | `.rb-admin-split`, `.rb-admin-section-rail`, `.rb-admin-split-main`, optional `.rb-admin-split-side`; rail links use `aria-current` |
+| Form section | `.rb-admin-form-section`, `.rb-admin-form-section-header`, `.rb-admin-form-section-body`, `.rb-admin-form-grid`, `.rb-admin-hint` |
+| Collapsible section | Native `details.rb-admin-form-section > summary.rb-admin-form-section-header`; include the collapsed summary as translated text |
+| Switch in header | Bootstrap `.form-check.form-switch` with labelled `.form-check-input` in `.rb-admin-form-section-header` |
+| Sticky save bar | `.rb-admin-save-bar`, `.rb-admin-save-state`, `.rb-admin-page-actions`; app owns dirty state, discard and save logic |
+| Chips / segments | `.rb-admin-chip`, `.rb-admin-segmented` with real buttons and `aria-pressed` |
+| Overview tiles | `.rb-admin-tile-grid`, `.rb-admin-tile`, `.rb-admin-tile-header`, `.rb-admin-tile-icon`; headings and list links |
+
+Legacy `.btn-info`, `.btn-default` and `.btn-secondary` become neutral outlines within admin. Submit
+buttons lose the portal's uppercase transform and use the primary token; use sentence-case labels in
+translations. Existing app-specific CSS can still override global rules: later phases should remove
+conflicting local styles while adopting the kit. Users now uses the shared filter bar and form sections,
+without the legacy toolbar styles. Body-appended modals need a `.rb-admin` scope on their content
+wrapper to inherit the kit; use `.admin-layout` only on the actual shell.
+A body-level backdrop rule applies while an admin modal is open, so ngx-bootstrap’s body-appended
+backdrop also overrides the legacy portal `.show` opacity utility. Give icon-only actions
+translated accessible names, keep visible focus, and use real inputs for switches (not the mock's
+purely decorative `<i>`).
+
+### Navigation and overview data
+
+`DEFAULT_ADMIN_SIDEBAR_CONFIG` in `AdminSidebarConfig.ts` is the single default used by both
+`brandingConfigurationDefaults.config.ts` and the app-config editor fallback. The existing schema
+supports the six sections and all new routes without changes; role rules and custom external/footer
+links remain supported. The sidebar renders all visible sections expanded; `defaultExpanded` is
+retained in storage for compatibility. Legacy header title/icon values also remain in the editor
+schema and storage; the live navigation now begins with Overview. Its nonce-bearing filter hides unmatched links and empty
+sections, matching translated labels and section names. It announces an empty result and restores
+all links when cleared. `NavigationService` resolves active links, including individual app-configs
+and the Reports link on report-detail pages.
+
+Home tiles use the **same resolved, role-filtered sections and links** as the sidebar, rather than
+maintaining another navigation list. The default section IDs select translated descriptions and icons
+in `home.ejs`; custom section IDs get a generic icon and their configured title. Saved footer links
+also remain accessible from the overview. Brands with a saved `adminSidebar` override **keep that
+saved layout**; there is no automatic migration or reset. No count queries were added: the admin-home
+request has no aggregate counts, so the overview uses the supported navigation data only. Attention
+lists, integration state and sidebar status tags remain in `DEFERRED.md`.
+
+### Verification
+
+Run core compilation (`npm run compile:core`), global asset compilation (`npm run webpack`), translation
+validation (`npm run test:translations`) and core unit tests (`npm run test:core`) sequentially. EJS-only
+changes need a portal restart; this phase changes core and global styles too. Restart the mounted
+portal after rebuilding and wait until healthy. No Angular app source changes are required for the
+foundation. Focused core tests cover route highlighting, role visibility, saved layout preservation,
+schema storage compatibility, translated filtering, tile/link parity and safe header rendering.
+
+On memory-constrained development hosts, use `REDBOX_ASSET_MODE=development` with Webpack,
+limit minimizer workers, and allow a 3 GB Node heap. The default production asset mode can exceed
+a 2 GB heap. Screenshot tooling should use the running container's configured `appUrl` origin
+(`REDBOX_BASE` for the shared capture script); an origin mismatch causes existing Angular API calls
+to fail under `connect-src 'self'`. The translation app currently renders the full bundle in one table,
+so its full-page screenshots can be very tall; use an additional viewport capture for review.
+
+### Integration connection tests
+
+The four publishing editors post their current draft to
+`POST /:branding/:portal/admin/appconfig/:integration/test-connection`. The route requires the
+route brand's Admin permission and session CSRF. The server merges the draft into a clone of the
+hydrated runtime configuration; blank or masked secrets retain their existing values. Figshare token
+and DataCite password environment references use the publishing resolvers, including DataCite's
+configured environment fallback. No configuration is saved and no publishing or indexing action runs.
+
+Each attempt shares one ten-second deadline (including RAiD OAuth), disables redirects, verifies TLS
+with the same system trust as publishing, limits response size, and accepts only configured HTTP(S)
+URLs without URL credentials, queries or fragments. One user/brand may attempt a test every five
+seconds across all four integrations. The cooldown is process-local; multiple portal workers each
+maintain their own cooldown. Failed requests return fixed safe messages without upstream bodies or
+credentials. The UI translates statuses, records the time and latency, disables duplicate requests,
+and clears results when the draft changes. Oni tests its default enabled site's ingestion status;
+without enabled ingestion it checks the public URL and explicitly reports that authentication and
+storage were not tested. Oni sites and mapping dictionaries use the shared dictionary editor described below.
+
+### Dashboard editor (phase 9)
+
+The `dashboard-config-editor` owns its Angular header, target section rail, red selected-target card,
+collapsible settings sections and sticky save bar. Workflow and view targets use the existing settings,
+fields, validation and copy APIs, including revision conflicts and warning acknowledgements. Discard
+restores the loaded draft locally; switching targets and leaving the page protect unsaved edits.
+Selection uses `#target=<encoded target key>` while retaining the editor path (the portal has a root
+`<base href>`). Column counts appear after a target has loaded; no extra settings requests are made for
+rail badges. At tablet widths the target rail stacks above the editor and scrolls within a bounded area.
+Display settings include optional `rowsPerPage` (10, 25, 50 or 100), saved independently
+for each workflow stage and view step through the existing revision-checked, brand Admin APIs.
+Omitted values keep the existing 10-row behaviour and do not change stored shapes or fingerprints.
+The researcher dashboard passes the target's size to list requests and pagination; filters/search
+copy includes this display setting and shows it in the before/after summary.
+
+The mock's Dashboard types group and Add dashboard type action are intentionally retired.
+`standard`, `workspace` and `consolidated` are fixed runtime modes, not editable layout profiles.
+`RecordController.render` chooses the mode from routing/request context (with workspace special-cased);
+record-type dashboard settings only control admin-sidebar presentation. The Angular dashboard reads
+columns, filters and display settings from independent workflow-stage/view-step targets in the brand's
+`DashboardConfiguration` document. Structural workspace constraints come from its read-only `contexts`.
+Legacy `DashboardType` rows and `AppConfig.dashboardTableConfig` feed migration
+`20260925T000000-dashboard-stage-configuration`, which keeps recovery snapshots and materialises prior
+behaviour into these targets and contexts. Compatibility type responses obtain structural rules from
+the migrated context, not saved profile rules. Creating/editing a legacy profile would not create a
+supported mode or change a target's layout; adding CRUD would revive retired configuration. See
+[the independent-stage design](../dashboard-stage-configuration/design.md).
+
+Keep derived select options keyed by value: Angular schedules select writes after rendering, so
+recreating all options each pass can cause an infinite change-detection cycle. Record-type inputs are
+also stable across renders. Guided-editor styles live in the app stylesheet under `.rb-admin` and use
+the shared theme aliases, avoiding local component palette and legacy root-rem sizing conflicts.
+
+### Lookups and API reference (phase 10)
+
+`admin-vocabulary` and `admin-figshare-vocabulary` own their Angular headers and use the shared patterns.
+Vocabulary stats use counts from the existing list endpoint, independent of list filters. Figshare reads
+all source/crosswalk catalogue pages through the existing endpoints so local search, filters and stats
+cover the catalogue. Category/mapping review continues to use its existing paginated APIs.
+
+`/admin/parties` uses `RecordController.renderParties`, the existing dashboard view and the party
+dashboard's configured settings, templates, filters, sorting and data endpoints. Admin visitors to the
+bookmarked `/dashboard/party` also get the admin shell; other dashboard users retain their normal page.
+The default sidebar points to `/admin/parties`. Both paths highlight a saved or default Parties link. Name and Email searches use the existing record
+query fields; configured search options remain available. The combined either-field option is deferred.
+
+`/admin/api-docs` uses the shared layout and header. Its bounded, responsive iframe loads the existing
+Redoc reference at `/admin/api-docs/reference`, with the same Admin authorization. The frame isolates
+Redoc's document styles and scrolling from the portal chrome. The response nonce is passed into
+Webpack/styled-components for generated viewer styles. Only the reference document allows same-origin
+framing and Redoc's existing inline style attributes; the surrounding admin page retains the normal CSP. JSON and YAML actions use the existing routes
+and native download links. Shared header action descriptors now accept an optional `download` filename.
+
+### Final consistency pass (phase 11)
+
+Admin dates use `AdminDateService` / `adminDate` for display only. The portal locale's
+`admin-date-format`, `admin-date-time-format` and `admin-date-placeholder` translations define the
+calendar convention; English uses `dd/MM/yyyy HH:mm` in local time. Datepicker hints derive from the
+same convention. Request serialization and report filter timezone boundaries are unchanged.
+Configured custom report labels and table templates remain supported. Only the three stock report
+filter messages map to concise presentation labels; the stored configuration is unchanged.
+
+App-config schema titles are translation keys, resolved on a cloned schema before Formly conversion.
+Property names, enum values, defaults, adapters and saved configuration retain their existing shape.
+The dashboard editor translates column headings for display while preserving editable stored keys.
+
+The site logo uses a non-heading element only on admin pages (including legacy admin Parties), so the
+content supplies the sole H1. Admin-scoped CSS preserves its portal layout. Ordinary portal pages keep
+the original logo heading and styles. Draft branding typography stays inside the preview shadow root.
+
+### Authorized-address tester
+
+The authorized domains editor posts its current form to the brand Admin, CSRF-protected
+`POST /:branding/:portal/admin/appconfig/authorizedDomainsEmails/test` contract. Other callers
+may omit `draft` to test saved runtime configuration. The draft is a complete replacement,
+never merged or saved. Results distinguish an exact domain or email rule, restriction off,
+empty provider lists (allowed), and no match (denied). Results disappear when inputs change.
+
+The account-creation gate trims and lowercases incoming addresses and stored rules; domain
+comparisons also strip a trailing dot. Domains match exactly without subdomains, and empty lists for
+the selected provider allow all. Existing accounts and other authentication checks retain their
+current behavior. The reference mock's subdomain example is not the server's matching policy.
+
+Branch `admin-deferred/15-auth-domain-case` intentionally fixes the characterized case-sensitive
+rule bug. Both server save paths (including API saves) trim, lowercase and de-duplicate each
+provider list independently; domain rules also lose a trailing dot. New chips use the same
+normalization and suppress duplicate entries. Existing mixed-case saved rules work immediately
+through the matcher, so no data migration is needed. Blank rules are retained as blank entries
+rather than removed, preserving the distinction between populated and empty allow-lists. The
+updated help uses a new translation key so normal missing-default bootstrap also delivers the
+corrected policy text to existing installations without overwriting customized translations.
+
+### System messages and Navigation defaults
+
+System messages accept optional `style` values `info`, `warning` and `critical`; missing or
+unrecognised legacy styles render as information. The editor preview and shared portal banner
+use the same semantic theme tokens. Information and warning banners use `role="status"`;
+critical banners use `role="alert"`. Dismissal duration and brand/portal scoping remain in place.
+Changing the style changes the dismissal identity; legacy information messages keep their identity.
+
+Navigation offers Reset to default for the active Menu, Home panels or Admin sidebar tab.
+`POST /:branding/:portal/admin/appconfig/:appConfigId/reset` requires the route brand's Admin
+permission, session CSRF token and an empty JSON object. It returns `{ reset: boolean }`;
+`false` means no saved override existed. The operation accepts registered app-config keys,
+rejects retired dashboard keys, deletes only that brand/key's rows (including legacy duplicates),
+and refreshes its runtime cache entry using model defaults plus `brandingConfigurationDefaults`.
+It shares the save lock, preserves other config keys and brands, and retains external secret
+objects. The form response's `hasOverride` flag controls the disabled reset button and tooltip.
+The confirmation warns that saved and unsaved customisations will be lost on the live site.
+
+### Branding saved drafts (phase 7 follow-up)
+
+Logo and favicon uploads stage immutable primary-disk objects under
+`branding-images/<brand-id>/<logo|favicon>/<uuid>.<ext>`. Existing live `logo` and
+`favicon` metadata remain the published state; visitor routes do not change.
+Uploads require `expectedDraftRevision` on both AJAX and REST surfaces. They keep
+existing MIME, size and SVG sanitisation checks and never overwrite a live object.
+The Admin state adds `active.images`, `draft.images` and image dirty flags; retained
+versions carry `images`. Generate preview and version preview return the exact
+image snapshot through the authenticated same-origin draft image route with a
+preview token, so changing or discarding a later draft cannot change an already
+generated preview. Image bytes are cached separately from the single-use CSS
+token and enforce the same preview TTL, brand and portal. The browser tab's real favicon stays published.
+
+Publish verifies persisted bytes before promoting both image references with
+colours and typography in the existing conditional publication update. Image-only
+changes create versions even when the CSS hash stays unchanged. Restoring a version
+restores its image references. Legacy versions lack image provenance: they preserve
+current published images when restored. Before replacing the current legacy
+publication, its live image metadata are lazily captured in its history row; no
+startup backfill is required. Older legacy history cannot reconstruct images that
+were replaced before this feature existed.
+
+`POST /:branding/:portal/app/branding/draft/reset` is brand Admin-only and session
+CSRF-protected. Its JSON body contains `expectedVersion` and
+`expectedDraftRevision`; success returns the full canonical Admin state. One
+compare-and-set on the branding document resets saved colours, draft typography
+(including all face references) and draft images together. This is a single-document
+atomic operation on the configured stores, so no multi-document transaction is
+needed. Failure before commit leaves every draft field untouched. A retry after a
+lost response recognizes an already aligned draft at the next revision.
+
+Physical deletion follows the logical reset, since an object store cannot join a
+database transaction. The same atomic update journals unreferenced draft image
+keys; failed deletions stay queued for a reset retry. Cleanup failures never expose
+a partially reset editor. Existing reference-aware font reconciliation reclaims
+discarded faces after its grace period. A daily image reconciliation job similarly
+reclaims abandoned uploads and pruned history objects after the configured typeface
+orphan grace period, rechecking active/draft/history references before deletion.
+Back up this prefix with the database, just as for branding fonts. Draft image GETs
+are Admin-only and no-store; generated contracts describe both new session routes.
+
+The editor labels staged images, includes them in the header draft count, serializes
+all mutations with the shared revision, and confirms whole-draft reset before
+replacing the editor state from the server. Reset leaves published branding and
+version history untouched. Runtime publish/restore verification must use automated
+tests or a throwaway brand, never the development brand's real publication.
+
+### Translation language metadata
+
+Language renames use the contract-defined, brand Admin `POST /admin/translation/:locale/:namespace/display-name`
+route with session CSRF. This updates only `displayName`; values, entries and resource caches are untouched.
+Bundle composition and per-key saves preserve labels that are also prefixes of dotted child keys, using
+flat i18next keys within colliding roots. No database migration or automatic repair of previously pruned values runs.
+
+The translation editor reads provenance and language counts through brand Admin session routes under
+`/admin/translation`. Missing includes absent/empty/whitespace-only default keys. Changed includes values
+differing from installation defaults and custom keys. Default values combine English key coverage and
+locale-specific values; custom keys count towards the total. Revert is available only where a current
+installation default exists and uses the stored content format's sanitization. “New default” is omitted:
+there is no reliable historical key inventory for an existing brand bundle.
+
+JSON export downloads flat stored strings with `Content-Disposition: attachment`; `overridesOnly=true`
+is available through the endpoint. Import accepts a JSON file as a string in a strict request envelope,
+limited server-side to 2 MiB UTF-8 and 10,000 keys. Only the import routes allow a bounded 5 MiB JSON transport envelope for escaping; parser failures there return safe 400/413 responses. The file must be an object of strings: arrays, nested
+values, metadata/prototype segments, blank/edge-whitespace keys and markup/control characters in keys
+are rejected. Ordinary natural-language keys remain supported for round trips of existing bundles.
+Preview sanitizes HTML using existing entry/default metadata and displays counts plus at most 20 diffs;
+it performs no writes. Unknown means absent from both installation defaults and the stored bundle, and
+is ignored unless explicitly opted in. Applying binds the preview to route brand/language, input, values,
+defaults, format and unknown-key choice; a changed state requires a fresh preview (409). Omitted keys are
+preserved. Writes run sequentially and report per-key applied/unchanged/ignored/failed outcomes. MongoDB's
+standalone development deployment does not supply multi-document transactions: a failed entry/bundle sync
+can leave an entry write pending reconciliation, which is reported as failed and can be retried after a fresh
+preview. No migration runs and no historical new-default badge is inferred.
+
+### Party creation and CSV import
+
+Add party enters `/record/party/edit?returnTo=parties`, using the existing record form renderer and save path.
+The stock party workflow previously selected `generated-view-only`; migration
+`20261106T120000-party-record-form` changes only that stock starting selection and bootstraps
+`party-1.0-draft`. Custom form selections are preserved. The standard form supports given name,
+surname, email and ORCID; its save and return controls lead back to Parties. A one-column CSV name
+is preserved as given name, so the existing party name hook can derive fullName without guessing a name split.
+
+CSV inspect/preview/apply are contract-defined Admin session routes under `/admin/parties/import`.
+They accept UTF-8 CSV text in a JSON envelope (5 MiB transport allowance restricted to these paths),
+with 2 MiB file, 5,000 row, 50 column and 64 KiB row limits. Mapping is positional; CSV headers cannot
+become object paths. Formula prefixes (including leading whitespace), markup and controls are rejected
+without changing stored values. Existing export sanitization still protects CSV output.
+Preview checks structural fields and likely duplicate emails; full configured form validation runs during
+normal record creation, with hooks, permissions and indexing enabled. Duplicate and invalid rows are
+skipped. Email is compared case-insensitively within the path brand and current actor's permitted records;
+it is not a global unique identity. Concurrent independent imports can still race on duplicate checks.
+
+Preview tokens bind session, user, brand, file and mapping for 15 minutes. A unique CacheEntry claim is
+atomically removed before apply, preventing replay even across server processes. Only a hash is stored;
+expired claims are pruned on preview. Failed/unknown row outcomes are never automatically retried.
+No all-or-nothing transaction is promised: results report each row independently.
+
+Vocabulary lists expose the existing `lastSyncedAt` field. The RVA sync path writes it after successful entry
+upserts; failure leaves the previous timestamp in place. The list shows localized admin date/time for RVA,
+Never for an unsynced RVA vocabulary, and a dash for local/external vocabularies. No migration or inferred
+historical timestamp is required, and the existing REST vocabulary schema already declares the field.
+
+### Figshare source metadata and schedules
+
+The contract-defined `PUT /api/figshare-vocabularies/sources/:sourceId` requires the route brand's
+Admin session, CSRF, expected settings revision, display name, current scope, archived flag and
+manual/daily/weekly schedule. Settings are persisted on FigshareVocabularySource; legacy sources
+default to manual and revision 0 without a backfill. Scope and taxonomy identify the source and its
+mirror/crosswalk relationships. Scope is deliberately read-only: use discovery to add another remote
+catalogue rather than silently rebinding approved mappings. Connection keys and tokens are never editable.
+
+Agenda's Mongo-backed `Figshare-Vocabulary-Schedules` dispatcher runs every five minutes. Daily means
+24 hours after enabling/attempting and weekly means seven days; name-only edits retain the next due
+time. Manual or archived sources have no next run. Due sources are processed sequentially, at most
+25 per dispatch. Failed attempts retain the last success cursor, record a safe failed status and wait
+until the next interval. Automatic work updates only the mirror, never crosswalk approvals.
+
+Manual apply (including initial import), metadata updates and scheduled sync all acquire the same
+unique persistent CacheEntry claim keyed by brand/scope/taxonomy. Claims are removed in finally and
+have no automatic time expiry: a slow worker cannot lose its claim to another worker. After a worker
+crash, an operator must confirm the worker has stopped and remove only its
+`figshare-vocabulary-sync:<brand-id>:<scope>:<taxonomy-id>` claim to resume that source. Other sources
+continue normally. This favors avoiding concurrent writes over automatic crash recovery. Agenda must
+run with its Mongo backend for recurring jobs, as with the project's existing dispatch jobs.
+
+Migration `20261106T130000-lookup-claims` explicitly creates a native Mongo unique partial index on
+the Figshare sync and party import claim namespaces. Model `unique` flags alone are insufficient under
+`migrate: safe`. Conflicting existing claims fail migration without deleting locks. Party preview consumption
+uses Mongo's atomic `deleteOne` count; Waterline's fetch-then-destroy operation is not a one-use boundary.
+
+### Integration dictionaries (phase 5 follow-up)
+
+The app-config converter recognizes object schemas with typed `additionalProperties` or
+`patternProperties`, including maps nested in objects, arrays and other dictionaries. Entries use
+literal Formly key segments: dots, brackets, spaces and JSON-LD property names remain actual keys.
+Each value uses the ordinary schema controls, including switches, chips, objects and arrays.
+Unconstrained JSON values (Oni binding defaults/context and custom RAiD type namespaces) use a
+validated JSON textarea. Existing unknown properties stay in the model and are never pruned.
+
+Entries start collapsed and show field names without exposing scalar/secret values. Add and duplicate
+ask for a unique name; rename preserves insertion order, and removal requires confirmation.
+Pattern-based maps validate new names against their patterns. Existing nonmatching names remain
+preservable; the editor reserves prototype-related names for new entries. Declared fixed properties
+in mixed object/map schemas keep their names. Invalid values also flag collapsed entry summaries.
+Section summaries show dictionary counts and names rather than the former empty-section message.
+
+Oni now declares all six sections, including site storage/ingestion, licenses, organization, IRI maps,
+root-dataset bindings, graph entities, context, validation, attachment selection and write-back.
+RAiD exposes record-type/rule maps and contributor maps, typed vocabulary references, contributor
+positions, flags, role names and the persisted `hiearchy` spelling. Custom type namespaces remain
+arbitrary JSON for compatibility with JSONata. Notification overrides share the ordinary channel
+schema. All three editors suppress schema-default insertion and optional-string coercion so opening
+or saving an existing configuration retains missing properties and empty strings.
+
+The existing Admin/session-CSRF save routes remain in use. Both service save paths validate supplied
+integration fields using the same schemas with no coercion, default insertion or removal of unknown
+fields. Top-level overrides may remain partial; runtime defaults and merging keep their existing
+behavior. Invalid input returns a value-free 400 response. No migrations or new dependencies run.
+
+Renaming/copying entries with masked credentials submits a reserved secret string
+`__REDACTED_FROM__:` followed by a JSON array of literal source-path segments. Under the existing
+brand/config save lock, the server accepts only a registered secret leaf in that same stored document
+(or resolved installation default). Arbitrary fields, other configs and missing paths are rejected.
+Credentials never enter the browser. Bundle storage copies/moves values to their destination keys
+before removing an omitted source; subsequent saves use the ordinary `__REDACTED__` marker.

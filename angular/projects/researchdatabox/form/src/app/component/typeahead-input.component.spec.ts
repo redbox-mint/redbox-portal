@@ -341,6 +341,46 @@ describe("TypeaheadInputComponent", () => {
         expect(input.value).toBe("Alice Scott");
     });
 
+    it("replaces an existing option-object display after a silent system update", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Local Admin", value: "Local Admin" }],
+                            valueMode: "optionObject",
+                            labelField: "text_full_name",
+                            valueField: "text_full_name",
+                            optionObjectFields: { text_full_name: "text_full_name" }
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: { value: { text_full_name: "Local Admin" } }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        expect(input.value).toBe("Local Admin");
+
+        (formComponent as any).form.get("person_lookup")?.setValue(
+            { text_full_name: "Hannah O'Rourke" },
+            { emitEvent: false }
+        );
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(input.value).toBe("Hannah O'Rourke");
+    });
+
     it("stores free text as optionObject by default", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -1064,7 +1104,7 @@ describe("TypeaheadInputComponent", () => {
         }]
       };
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
-        spyOn(typeaheadDataService, "searchNamedQuery").and.resolveTo([
+        spyOn(typeaheadDataService, "searchNamedQueryLookup").and.resolveTo({ options: [
             {
                 label: "Default Label",
                 value: "abc-001",
@@ -1074,7 +1114,7 @@ describe("TypeaheadInputComponent", () => {
                     title: "Project Atlas"
                 }
             }
-        ]);
+        ] });
 
         const formConfig: FormConfigFrame = {
             name: "testing",

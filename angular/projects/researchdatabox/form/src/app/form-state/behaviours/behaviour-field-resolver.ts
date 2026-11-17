@@ -35,6 +35,16 @@ export function resolveFieldByPointer(
   fieldPath: string,
   ctx: BehaviourFieldResolverContext
 ): ResolvedField | undefined {
+  const entry = resolveComponentByPointer(fieldPath, ctx);
+  const control = entry?.model?.formControl as AbstractControl | undefined;
+  return entry && control ? { entry, control } : undefined;
+}
+
+/** UI properties also apply to components without models, including workflow buttons. */
+export function resolveComponentByPointer(
+  fieldPath: string,
+  ctx: BehaviourFieldResolverContext
+): FormFieldCompMapEntry | undefined {
   const querySource = ctx.formComponent.getQuerySource();
   if (!querySource) {
     return undefined;
@@ -42,12 +52,7 @@ export function resolveFieldByPointer(
 
   const result = getObjectWithJsonPointer(querySource.jsonPointerSource, fieldPath);
   const entry = result?.val?.metadata?.formFieldEntry as FormFieldCompMapEntry | undefined;
-  const control = entry?.model?.formControl as AbstractControl | undefined;
-  if (!entry || !control) {
-    return undefined;
-  }
-
-  return { control, entry };
+  return entry;
 }
 
 /**

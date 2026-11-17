@@ -1,17 +1,17 @@
 <div class="card card-body mb-3">
   <div class="mb-3">
-    <label class="form-label">Binding Type</label>
-    <select class="form-select" (change)="updateField('kind', $any($event.target).value)">
+    <label class="form-label" [for]="idPrefix + '-kind'">{{ 'admin-config-binding-kind' | i18next }}</label>
+    <select [id]="idPrefix + '-kind'" class="form-select" (change)="updateField('kind', $any($event.target).value)">
       @for (bindingKind of bindingKinds; track bindingKind) {
-      <option [value]="bindingKind" [selected]="bindingKind === kind">{{ bindingKind }}</option>
+      <option [value]="bindingKind" [selected]="bindingKind === kind">{{ ('admin-config-enum-' + bindingKind) | i18next }}</option>
       }
     </select>
   </div>
 
   @if (kind === 'path') {
   <div class="mb-3">
-    <label class="form-label">Record Path</label>
-    <input
+    <label class="form-label" [for]="idPrefix + '-path'">{{ 'admin-config-binding-path' | i18next }}</label>
+    <input [id]="idPrefix + '-path'"
       class="form-control"
       type="text"
       [value]="value.path || ''"
@@ -20,8 +20,8 @@
   </div>
   } @if (kind === 'handlebars') {
   <div class="mb-3">
-    <label class="form-label">Handlebars Template</label>
-    <textarea
+    <label class="form-label" [for]="idPrefix + '-template'">{{ 'admin-config-binding-template' | i18next }}</label>
+    <textarea [id]="idPrefix + '-template'"
       class="form-control"
       rows="3"
       [value]="value.template || ''"
@@ -30,8 +30,8 @@
   </div>
   } @if (kind === 'jsonata') {
   <div class="mb-3">
-    <label class="form-label">JSONata Expression</label>
-    <textarea
+    <label class="form-label" [for]="idPrefix + '-expression'">{{ 'admin-config-binding-expression' | i18next }}</label>
+    <textarea [id]="idPrefix + '-expression'"
       class="form-control"
       rows="3"
       [value]="value.expression || ''"
@@ -41,8 +41,8 @@
   }
 
   <div>
-    <label class="form-label">Default Value</label>
-    <input
+    <label class="form-label" [for]="idPrefix + '-defaultValue'">{{ 'admin-config-binding-default-value' | i18next }}</label>
+    <input [id]="idPrefix + '-defaultValue'"
       class="form-control"
       type="text"
       [value]="value.defaultValue || ''"

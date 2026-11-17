@@ -102,4 +102,6 @@ export interface DeletedRecordModel {
   lifecycleOperation?: DeletedRecordLifecycleOperation;
   deletedRecordMetadata: RecordModel;
   dateDeleted: string;
+  /** Original deletion actor; absent on legacy/background deletions. */
+  deletedBy?: { id?: string; username?: string; brandId: string };
 }

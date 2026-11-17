@@ -57,7 +57,7 @@ describe('Named query and notification request parameters', function () {
     });
     const controller = new TestReport();
     await controller.executeNamedQuery(req, {} as Sails.Res);
-    expect(perform.calledOnceWithExactly(config, query, brand, 0, 100)).to.equal(true);
+    expect(perform.calledOnceWithExactly(config, query, brand, 0, 100, req.user, undefined, undefined)).to.equal(true);
     expect(controller.sendResp.firstCall.args[2].status).to.equal(200);
   });
 
@@ -82,7 +82,9 @@ describe('Named query and notification request parameters', function () {
       }),
       sendMessage,
     };
-    const req = { body } as unknown as Sails.Req;
+    // Email templates resolve the tenant from the route-resolved brand, never the body.
+    Reflect.set(globalThis, 'BrandingService', { getBrand: () => ({ id: 'brand-1' }) });
+    const req = { body, options: { locals: { branding: 'default' } } } as unknown as Sails.Req;
     const validated = validateApiRouteRequest(req, sendNotificationRoute);
     expect(validated.valid).to.equal(true);
     if (!validated.valid) throw new Error('Invalid notification');

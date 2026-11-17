@@ -1,0 +1,88 @@
+{
+  "kind": "profile",
+  "key": "research-activity-to-demo-rdmp",
+  "name": "Research Activity to demo RDMP",
+  "description": "POC profile using an explicit activity allowlist and stable RDMP target fields.",
+  "modelDeploymentKey": "demo-fake-rdmp-v1",
+  "knowledgeCollectionKeys": ["fictional-rdmp-guidance"],
+  "definition": {
+    "purpose": "Draft an editable RDMP from reviewed synthetic Research Activity context.",
+    "systemInstructions": "Draft concise research data management plan content. Do not claim ethics approval or invent project facts. Use cautious, actionable language.",
+    "sourceSlots": [
+      {
+        "id": "activity",
+        "recordType": "researchActivity",
+        "allowedPaths": ["/title", "/plainLanguageSummary", "/objectives", "/methods", "/humanParticipants", "/sensitiveData", "/expectedDataTypes", "/ethicsStatus"],
+        "maxBytes": 16000
+      }
+    ],
+    "questions": [
+      {
+        "id": "projectPurpose",
+        "labelKey": "generation-question-project-purpose",
+        "helpTextKey": "generation-question-project-purpose-help",
+        "type": "textarea",
+        "required": true,
+        "maxLength": 2000,
+        "sourceDefaultExpression": "/plainLanguageSummary"
+      },
+      {
+        "id": "humanParticipants",
+        "labelKey": "generation-question-human-participants",
+        "type": "boolean",
+        "required": true,
+        "sourceDefaultExpression": "/humanParticipants"
+      },
+      {
+        "id": "sensitiveData",
+        "labelKey": "generation-question-sensitive-data",
+        "type": "boolean",
+        "required": true,
+        "sourceDefaultExpression": "/sensitiveData"
+      },
+      {
+        "id": "expectedDataTypes",
+        "labelKey": "generation-question-data-types",
+        "type": "multiEnum",
+        "required": true,
+        "options": [
+          { "value": "De-identified survey responses", "labelKey": "generation-demo-data-survey" },
+          { "value": "Synthetic interview transcripts", "labelKey": "generation-demo-data-interview" },
+          { "value": "Aggregate statistics", "labelKey": "generation-demo-data-statistics" }
+        ],
+        "sourceDefaultExpression": "/expectedDataTypes"
+      },
+      {
+        "id": "retentionPeriod",
+        "labelKey": "generation-question-retention",
+        "helpTextKey": "generation-question-retention-help",
+        "type": "enum",
+        "required": true,
+        "options": [
+          { "value": "5 years", "labelKey": "generation-retention-5" },
+          { "value": "7 years", "labelKey": "generation-retention-7" },
+          { "value": "15 years", "labelKey": "generation-retention-15" },
+          { "value": "Review required", "labelKey": "generation-retention-review" }
+        ]
+      }
+    ],
+    "targetFields": [
+      { "id": "rdmpTitle", "metadataPointer": "/title", "expectedComponentClasses": ["SimpleInputComponent"], "output": { "kind": "string", "maxLength": 250 }, "operation": "fill", "grounding": "sourceRequired" },
+      { "id": "projectSummary", "metadataPointer": "/projectSummary", "expectedComponentClasses": ["TextAreaComponent"], "output": { "kind": "string", "maxLength": 3000 }, "operation": "fill", "grounding": "sourceRequired" },
+      { "id": "dataDescription", "metadataPointer": "/dataDescription", "expectedComponentClasses": ["TextAreaComponent"], "output": { "kind": "string", "maxLength": 3000 }, "operation": "fill", "grounding": "sourceRequired" },
+      { "id": "dataTypes", "metadataPointer": "/dataTypes", "expectedComponentClasses": ["CheckboxInputComponent"], "output": { "kind": "enumArray", "values": ["De-identified survey responses", "Synthetic interview transcripts", "Aggregate statistics"], "maxItems": 3 }, "operation": "fill", "grounding": "sourceRequired" },
+      { "id": "storageApproach", "metadataPointer": "/storageApproach", "expectedComponentClasses": ["TextAreaComponent"], "output": { "kind": "string", "maxLength": 3000 }, "operation": "fill", "grounding": "inferenceAllowed", "knowledgeTags": ["storage"] },
+      { "id": "sharingAccess", "metadataPointer": "/sharingAccess", "expectedComponentClasses": ["TextAreaComponent"], "output": { "kind": "string", "maxLength": 3000 }, "operation": "fill", "grounding": "guidanceRequired", "knowledgeTags": ["sharing"], "fallback": { "value": "Confirm participant consent, ethics conditions, disclosure risk, and the intended access controls before sharing participant-level data.", "reasonCode": "SHARING_CONSENT_REQUIRES_REVIEW", "reviewRequired": true } },
+      { "id": "retentionDisposal", "metadataPointer": "/retentionDisposal", "expectedComponentClasses": ["TextAreaComponent"], "output": { "kind": "string", "maxLength": 3000 }, "operation": "fill", "grounding": "inferenceAllowed", "knowledgeTags": ["retention"] },
+      { "id": "sensitivityClassification", "metadataPointer": "/sensitivityClassification", "expectedComponentClasses": ["DropdownInputComponent"], "output": { "kind": "enum", "values": ["public", "internal", "restricted"] }, "operation": "fill", "grounding": "inferenceAllowed" },
+      { "id": "ethicsStatement", "metadataPointer": "/ethicsStatement", "expectedComponentClasses": ["TextAreaComponent"], "output": { "kind": "string", "maxLength": 2000 }, "operation": "fill", "grounding": "inferenceAllowed", "knowledgeTags": ["ethics"] }
+    ],
+    "knowledgeCollectionVersionIds": [],
+    "modelDeploymentId": "bootstrap-resolved",
+    "contextLimits": {
+      "totalBytes": 128000,
+      "maxKnowledgeChunks": 12,
+      "maxChunkBytes": 8000
+    }
+  }
+}

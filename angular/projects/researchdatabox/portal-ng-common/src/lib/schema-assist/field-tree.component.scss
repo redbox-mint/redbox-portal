@@ -1,0 +1,233 @@
+:host {
+  display: block;
+}
+
+.et-fields {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+  overflow: hidden;
+}
+
+.et-fields-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+
+  .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-left: 28px;
+    font-size: 13px;
+  }
+}
+
+.et-fields-search-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.et-fields-count {
+  flex: 0 0 auto;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.et-fields-list {
+  max-height: 320px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.et-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding-right: 10px;
+
+  &:hover {
+    background: var(--bs-tertiary-bg);
+  }
+}
+
+.et-field-toggle {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bs-border-radius-sm);
+  background: none;
+  color: var(--bs-secondary-color);
+
+  &:hover {
+    color: var(--bs-body-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -1px;
+  }
+}
+
+.et-field-chevron {
+  font-size: 10px;
+  transition: transform 0.12s ease;
+
+  &.et-field-chevron-open {
+    transform: rotate(90deg);
+  }
+}
+
+.et-field-name {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--bs-border-radius-sm);
+  background: none;
+  color: var(--bs-body-color);
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -1px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+
+  &:not(.et-field-group):not(:disabled):hover .et-field-key {
+    color: var(--bs-primary-text-emphasis);
+    text-decoration: underline;
+    text-decoration-color: rgba(var(--bs-primary-rgb), 0.4);
+    text-underline-offset: 2px;
+  }
+
+  &:not(:disabled):hover .et-field-insert,
+  &:focus-visible .et-field-insert {
+    opacity: 1;
+  }
+}
+
+.et-field-group {
+  padding-left: 0;
+
+  .et-field-chevron {
+    flex: 0 0 20px;
+    width: 20px;
+    color: var(--bs-secondary-color);
+    text-align: center;
+  }
+
+  .et-field-key {
+    font-weight: 600;
+  }
+}
+
+.et-field-key {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--bs-font-monospace);
+  font-size: 13px;
+}
+
+.et-field-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
+
+.et-field-insert {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--bs-primary-text-emphasis);
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.et-field-each {
+  font-family: var(--bs-font-monospace);
+}
+
+.et-field-meta {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--bs-secondary-color);
+  font-size: 11px;
+}
+
+.et-field-type {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bs-secondary-bg);
+  font-family: var(--bs-font-monospace);
+  line-height: 18px;
+}
+
+.et-field-req {
+  min-width: 48px;
+}
+
+.et-field-required {
+  color: var(--bs-emphasis-color);
+  font-weight: 600;
+}
+
+// Search results show full paths: let them wrap, with the title on its own line.
+.et-fields-searching {
+  .et-field {
+    align-items: baseline;
+  }
+
+  .et-field-name {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .et-field-key {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .et-field-title {
+    flex: 1 0 100%;
+    order: 3;
+  }
+}
+
+.et-fields-empty {
+  margin: 0;
+  padding: 12px;
+  color: var(--bs-secondary-color);
+  font-size: 13px;
+}

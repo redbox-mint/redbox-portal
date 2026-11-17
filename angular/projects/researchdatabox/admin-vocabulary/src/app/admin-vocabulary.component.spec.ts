@@ -1,4 +1,7 @@
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminListFooterComponent, getStubTranslationService, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { A11yModule, CdkTrapFocus } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { Pipe, PipeTransform } from '@angular/core';
@@ -27,34 +30,103 @@ class VocabularyApiServiceStub {
   async sync(_id: string) { return { created: 0, updated: 0, skipped: 0, lastSyncedAt: new Date().toISOString() }; }
 }
 
-class TranslationServiceStub {
-  async waitForInit(): Promise<this> { return this; }
-  t(value: string, defaultValue?: string, options?: Record<string, unknown>): string {
-    const template = defaultValue || value;
-    if (!options) {
-      return template;
-    }
-    return Object.entries(options).reduce((result, [key, optionValue]) => {
-      return result.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), String(optionValue));
-    }, template);
-  }
-}
-
 describe('AdminVocabularyComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent, I18NextPipeStub],
-      imports: [FormsModule],
+      imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminListFooterComponent, AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: VocabularyApiService, useClass: VocabularyApiServiceStub },
-        { provide: TranslationService, useClass: TranslationServiceStub },
+        { provide: TranslationService, useValue: getStubTranslationService() },
         LoggerService
       ]
     }).compileComponents();
   });
 
-  it('creates and initializes', async () => {
+  it('loads the page and all catalogue counts without waiting for another response', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const pending: Array<(response: any) => void> = [];
+    const list = spyOn(TestBed.inject(VocabularyApiService), 'list').and.callFake(() =>
+      new Promise(resolve => pending.push(resolve)));
+    fixture.detectChanges();
+    flushMicrotasks();
+    expect(list.calls.allArgs()).toEqual([
+      [{ q: undefined, source: undefined, type: undefined, limit: 25, offset: 0 }],
+      [{ limit: 1, offset: 0 }],
+      [{ source: 'local', limit: 1, offset: 0 }],
+      [{ source: 'rva', limit: 1, offset: 0 }]
+    ]);
+    expect(component.isInitializing()).toBeTrue();
+    const vocabulary = { id: 'v1', name: 'One', type: 'flat', source: 'local' };
+    pending[0]({ data: [vocabulary], meta: { total: 12, limit: 25, offset: 0 } });
+    pending[3]({ data: [], meta: { total: 4 } });
+    pending[1]({ data: [], meta: { total: 12 } });
+    flushMicrotasks();
+    expect(component.isInitializing()).toBeTrue();
+    pending[2]({ data: [], meta: { total: 8 } });
+    flushMicrotasks();
+    expect(component.isInitializing()).toBeFalse();
+    expect(component.vocabularies).toEqual([vocabulary] as any);
+    expect(component.catalogueCounts).toEqual({ total: 12, local: 8, rva: 4 });
+    fixture.destroy();
+  }));
+
+  it('still loads the page and retains previous counts when a count request fails', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    component.catalogueCounts = { total: 12, local: 8, rva: 4 };
+    spyOn(TestBed.inject(LoggerService), 'error');
+    spyOn(TestBed.inject(VocabularyApiService), 'list').and.callFake(async query => {
+      if (query?.source === 'local') throw new Error('Count unavailable');
+      return { data: [], meta: { total: 0, limit: 25, offset: 0 } };
+    });
+    fixture.detectChanges();
+    await component.waitForInit();
+    expect(component.vocabularies).toEqual([]);
+    expect(component.error).toBe('');
+    expect(component.catalogueCounts).toEqual({ total: 12, local: 8, rva: 4 });
+    fixture.destroy();
+  });
+
+  it('keeps vocabulary edits and resumes the editor trap after nested Escape', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit();
+    fixture.componentInstance.isEditModalOpen = true;
+    fixture.componentInstance.draft = { name: 'Unsaved', type: 'flat', source: 'local', entries: [{ label: 'Keep me', value: 'keep' }] };
+    fixture.detectChanges(); await fixture.whenStable();
+    const detail = fixture.debugElement.query(By.directive(VocabDetailComponent)).componentInstance as VocabDetailComponent;
+    detail.requestRemoveEntry(0); fixture.detectChanges(); await fixture.whenStable();
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps[0].enabled).toBeFalse();
+    fixture.nativeElement.querySelector('.entry-remove-modal').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(fixture.componentInstance.isEditModalOpen).toBeTrue();
+    expect(detail.isRemoveEntryModalOpen).toBeFalse();
+    expect(fixture.componentInstance.draft.name).toBe('Unsaved');
+    expect(fixture.componentInstance.draft.entries!.length).toBe(1);
+    expect(traps[0].enabled).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('guards vocabulary edits, preserves Keep editing, and discards only when confirmed', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit();
+    app.newVocabulary(); fixture.detectChanges();
+    expect(app.editDirty).toBeFalse();
+    app.draft.name = 'Keep this'; app.closeEditModal(); fixture.detectChanges();
+    expect(app.confirmDiscard).toBeTrue();
+    expect(app.isEditModalOpen).toBeTrue();
+    app.confirmDiscard = false;
+    expect(app.draft.name).toBe('Keep this');
+    app.closeEditModal(); app.discardEdit(); fixture.detectChanges();
+    expect(app.isEditModalOpen).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('creates and initializes' , async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     const component = fixture.componentInstance;
     fixture.autoDetectChanges();
@@ -69,13 +141,15 @@ describe('AdminVocabularyComponent', () => {
     const component = fixture.componentInstance;
     const api = TestBed.inject(VocabularyApiService);
 
-    spyOn(api, 'list').and.returnValues(
-      Promise.resolve({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
-      Promise.resolve({
-        data: [{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }],
-        meta: { total: 1, limit: 25, offset: 0 }
-      })
-    );
+    let imported = false;
+    spyOn(api, 'importRva').and.callFake(async () => {
+      imported = true;
+      return { name: 'Imported', type: 'flat', source: 'rva' };
+    });
+    spyOn(api, 'list').and.callFake(async () => ({
+      data: imported ? [{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }] : [],
+      meta: { total: imported ? 1 : 0, limit: 25, offset: 0 }
+    }));
 
     fixture.detectChanges();
     await component.waitForInit();

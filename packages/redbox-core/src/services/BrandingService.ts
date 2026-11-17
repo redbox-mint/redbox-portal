@@ -1,3 +1,4 @@
+import type { BrandingImages } from '../model/BrandingImages';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -56,6 +57,7 @@ export interface BrandingVersionEntry {
   restoredFromVersion?: number;
   variables: Record<string, string>;
   typeface: BrandingTypefaceState;
+  images?: BrandingImages;
 }
 
 export interface BrandingHealthWarning {
@@ -71,12 +73,14 @@ export interface BrandingAdminState {
     hash: string;
     variables: Record<string, string>;
     typeface: BrandingTypefaceState;
+    images: BrandingImages;
   };
   draft: {
     revision: number;
     variables: Record<string, string>;
     typeface: BrandingTypefaceState;
-    dirty: { colours: boolean; typeface: boolean };
+    images: BrandingImages;
+    dirty: { colours: boolean; typeface: boolean; logo: boolean; favicon: boolean };
   };
   versions: BrandingVersionEntry[];
   limits: { faceMaxBytes: number; familyMaxBytes: number; historyMaxVersions: number };
@@ -110,6 +114,10 @@ export namespace Services {
       'getAdminState',
       'listVersions',
       'saveDraft',
+      'uploadImage',
+      'resetDraft',
+      'draftImage',
+      'previewImage',
       'uploadTypefaceFace',
       'removeTypefaceFace',
       'useDefaultTypography',
@@ -366,8 +374,9 @@ export namespace Services {
       return histories.reduce((max, history) => Math.max(max, history.version), 0);
     }
 
-    private publicationIdentity(hash: unknown, typeface: unknown): string {
+    private publicationIdentity(hash: unknown, typeface: unknown, images?: BrandingImages): string {
       return this.snapshotKey({
+        images: images ? this.imagesIdentity(images) : '',
         hash: String(hash ?? ''),
         faces: orderedTypefaceFaces(normalizeTypefaceState(typeface)).map(face => [face.slot, face.sha256]),
       });
@@ -391,6 +400,7 @@ export namespace Services {
           restoredFromVersion: history.restoredFromVersion,
           variables: history.variables ?? {},
           typeface: normalizeTypefaceState(history.typeface),
+          ...(history.images ? { images: history.images } : {}),
         }));
     }
 
@@ -418,12 +428,20 @@ export namespace Services {
           hash: String(brand.hash ?? ''),
           variables: activeVariables,
           typeface: activeTypeface,
+          images: this.activeImages(brand),
         },
         draft: {
           revision: draftRevision,
           variables: draftVariables,
           typeface: draftTypeface,
+          images: brand.draftImages ?? this.activeImages(brand),
           dirty: {
+            logo:
+              this.imageIdentity((brand.draftImages ?? this.activeImages(brand)).logo) !==
+              this.imageIdentity(brand.logo),
+            favicon:
+              this.imageIdentity((brand.draftImages ?? this.activeImages(brand)).favicon) !==
+              this.imageIdentity(brand.favicon),
             colours: this.snapshotKey(draftVariables) !== this.snapshotKey(activeVariables),
             typeface: this.snapshotKey(draftTypeface) !== this.snapshotKey(activeTypeface),
           },
@@ -512,6 +530,188 @@ export namespace Services {
         throw this.conflictError(reread);
       }
       return updated;
+    }
+
+    private activeImages(brand: BrandingConfigAttributes): BrandingImages {
+      return { logo: brand.logo ?? null, favicon: brand.favicon ?? null };
+    }
+
+    private imageIdentity(image: BrandingImages['logo'] | undefined): string {
+      return String(image?.sha256 ?? image?.storageKey ?? image?.gridFsId ?? '');
+    }
+
+    private imagesIdentity(images: BrandingImages): string {
+      return this.snapshotKey([this.imageIdentity(images.logo), this.imageIdentity(images.favicon)]);
+    }
+
+    public async uploadImage(input: {
+      branding: string;
+      kind: 'logo' | 'favicon';
+      fileBuffer: Buffer;
+      contentType: string;
+      expectedDraftRevision?: number;
+    }) {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireDraftRevision(brand, input.expectedDraftRevision);
+      const image = await BrandingLogoService.storeDraftImage(
+        String(brand.id),
+        input.kind,
+        input.fileBuffer,
+        input.contentType
+      );
+      const images = brand.draftImages ?? this.activeImages(brand);
+      // Queue superseded draft bytes in the same atomic write. Ambiguous writes must
+      // retain the object: deleting on a timeout could delete a committed draft.
+      const previous = images[input.kind]?.storageKey;
+      await this.conditionalDraftUpdate(brand, {
+        draftImages: { ...images, [input.kind]: image },
+        imageCleanup: [...new Set([...(brand.imageCleanup ?? []), ...(previous ? [previous] : [])])],
+      });
+      return this.getAdminState(input.branding);
+    }
+
+    public async draftImage(branding: string, kind: string) {
+      if (kind !== 'logo' && kind !== 'favicon') throw this.codedError('branding-invalid', 'Invalid image kind');
+      const brand = await this.loadBrandOrThrow(branding);
+      const image = (brand.draftImages ?? this.activeImages(brand))[kind];
+      if (!image) return null;
+      const key = image.storageKey ?? image.gridFsId;
+      const buffer = key ? await BrandingLogoService.getBinaryAsync(key, image.sha256) : null;
+      if (!buffer) throw this.codedError('branding-invalid', 'Brand image unavailable');
+      return { buffer, contentType: image.contentType ?? 'image/png' };
+    }
+
+    private async imageSources(images: BrandingImages): Promise<{ logo: string | null; favicon: string | null }> {
+      const result = { logo: null, favicon: null } as { logo: string | null; favicon: string | null };
+      for (const kind of ['logo', 'favicon'] as const) {
+        const image = images[kind];
+        if (!image) continue;
+        const key = image.storageKey ?? image.gridFsId;
+        const buffer = key ? await BrandingLogoService.getBinaryAsync(key, image.sha256, true) : null;
+        if (!buffer) throw this.codedError('branding-invalid', 'Brand image unavailable');
+        result[kind] = `data:${image.contentType ?? 'image/png'};base64,${buffer.toString('base64')}`;
+      }
+      return result;
+    }
+
+    // Persist bytes separately from the single-use CSS token: loading the CSS
+    // must not consume images, and reset must not change an existing preview.
+    private async cachePreviewImages(branding: string, portal: string, token: string, images: BrandingImages) {
+      const sources = await this.imageSources(images);
+      if (!sources.logo && !sources.favicon) return sources;
+      const now = Math.floor(Date.now() / 1000);
+      await CacheEntry.destroy({
+        name: { startsWith: 'branding-preview-images:' },
+        ts_added: { '<': now - _.get(sails, 'config.branding.previewTtlSeconds', 300) },
+      });
+      await CacheEntry.create({
+        name: `branding-preview-images:${token}`,
+        data: { branding, portal, sources },
+        ts_added: Math.floor(Date.now() / 1000),
+      });
+      return Object.fromEntries(
+        (['logo', 'favicon'] as const).map(kind => [
+          kind,
+          sources[kind] ? `/${branding}/${portal}/app/branding/draft/images/${kind}?preview=${token}` : null,
+        ])
+      ) as { logo: string | null; favicon: string | null };
+    }
+
+    public async previewImage(branding: string, portal: string, token: string, kind: string) {
+      if (!/^[a-f0-9]{32}$/.test(token) || (kind !== 'logo' && kind !== 'favicon')) {
+        throw this.codedError('history-not-found', 'Preview image not found');
+      }
+      const entry = await CacheEntry.findOne({ name: `branding-preview-images:${token}` });
+      const ttl = _.get(sails, 'config.branding.previewTtlSeconds', 300);
+      if (entry && Math.floor(Date.now() / 1000) - entry.ts_added > ttl) {
+        await CacheEntry.destroy({ id: entry.id });
+        throw this.codedError('history-not-found', 'Preview image expired');
+      }
+      const data = entry?.data as
+        | { branding: string; portal: string; sources: Record<string, string | null> }
+        | undefined;
+      if (!data || data.branding !== branding || data.portal !== portal) {
+        throw this.codedError('history-not-found', 'Preview image not found');
+      }
+      const source = data.sources[kind];
+      if (!source) throw this.codedError('history-not-found', 'Preview image not found');
+      const [, contentType, encoded] = /^data:([^;]+);base64,(.+)$/.exec(source)!;
+      return { buffer: Buffer.from(encoded, 'base64'), contentType };
+    }
+
+    /** One compare-and-set resets every saved draft field. No multi-document
+     * transaction is needed: MongoDB and other supported stores atomically update
+     * one document. Physical deletion follows commit; the durable queue makes
+     * cleanup retryable without ever exposing a partially reset draft. Typeface
+     * objects use the existing reference-aware orphan reconciler/grace period. */
+    public async resetDraft(input: { branding: string; expectedVersion?: number; expectedDraftRevision?: number }) {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const active = this.activeHistoryRow(histories, this.brandCounters(brand).version);
+      const current = this.brandCounters(brand);
+      const activeVariables = active?.variables ?? {};
+      const activeTypeface = normalizeTypefaceState(brand.typeface ?? active?.typeface);
+      const alreadyReset =
+        current.version === input.expectedVersion &&
+        current.draftRevision === (input.expectedDraftRevision ?? -2) + 1 &&
+        this.snapshotKey(brand.variables ?? {}) === this.snapshotKey(activeVariables) &&
+        this.snapshotKey(this.draftTypefaceOf(brand)) === this.snapshotKey(activeTypeface) &&
+        this.imagesIdentity(brand.draftImages ?? this.activeImages(brand)) ===
+          this.imagesIdentity(this.activeImages(brand));
+      if (alreadyReset) {
+        await this.cleanupImages(input.branding);
+        return this.getAdminState(input.branding);
+      }
+      this.requireCounters(brand, input.expectedVersion, input.expectedDraftRevision);
+      const images = brand.draftImages ?? this.activeImages(brand);
+      await this.conditionalDraftUpdate(brand, {
+        variables: active?.variables ?? {},
+        draftTypeface: normalizeTypefaceState(brand.typeface ?? active?.typeface),
+        draftImages: null,
+        imageCleanup: [
+          ...new Set([
+            ...(brand.imageCleanup ?? []),
+            ...Object.values(images)
+              .map(image => image?.storageKey)
+              .filter((key): key is string => !!key),
+          ]),
+        ],
+      });
+      try {
+        await this.cleanupImages(input.branding);
+      } catch (error) {
+        sails.log.warn('Draft reset committed; image cleanup will retry', error);
+      }
+      return this.getAdminState(input.branding);
+    }
+
+    private async cleanupImages(branding: string): Promise<void> {
+      const brand = await this.loadBrandOrThrow(branding);
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const failed: string[] = [];
+      const referenced = new Set(
+        [this.activeImages(brand), brand.draftImages, ...histories.map(row => row.images)]
+          .flatMap(images => Object.values(images ?? {}).map(image => image?.storageKey))
+          .filter(Boolean)
+      );
+      // Only delete our immutable keys; legacy assets and retained versions remain.
+      for (const key of brand.imageCleanup ?? []) {
+        if (referenced.has(key) || !key.startsWith(`branding-images/${brand.id}/`)) continue;
+        try {
+          await StorageManagerService.primaryDisk().delete(key);
+        } catch (error) {
+          failed.push(key);
+          sails.log.warn('Draft image cleanup pending; reset can be retried', error);
+        }
+      }
+      try {
+        // Do not overwrite the queue if another draft mutation won meanwhile.
+        await BrandingConfig.updateOne({ id: brand.id, draftRevision: brand.draftRevision }).set({
+          imageCleanup: failed,
+        });
+      } catch (error) {
+        sails.log.warn('Draft image cleanup queue retained for retry', error);
+      }
     }
 
     /** Save colour draft; typeface draft is preserved untouched. */
@@ -617,7 +817,13 @@ export namespace Services {
       branding: string,
       portal: string,
       expectedDraftRevision?: number
-    ): Promise<{ token: string; url: string; hash: string; revision: number }> {
+    ): Promise<{
+      token: string;
+      url: string;
+      hash: string;
+      revision: number;
+      images: { logo: string | null; favicon: string | null };
+    }> {
       const brand = await this.loadBrandOrThrow(branding);
       const current = typeof brand.draftRevision === 'number' ? brand.draftRevision : 0;
       if (expectedDraftRevision === undefined || expectedDraftRevision !== current) {
@@ -633,10 +839,16 @@ export namespace Services {
         brandName: String(brand.name),
       });
       const token = crypto.randomBytes(16).toString('hex');
+      const images = await this.cachePreviewImages(
+        branding,
+        portal,
+        token,
+        brand.draftImages ?? this.activeImages(brand)
+      );
       const name = `branding-preview:${token}`;
       const ts = Math.floor(Date.now() / 1000);
       await CacheEntry.create({ name, data: { css, branding, portal, hash, revision: current }, ts_added: ts });
-      return { token, url: this.previewUrl(branding, portal, token), hash, revision: current };
+      return { token, url: this.previewUrl(branding, portal, token), hash, revision: current, images };
     }
 
     /** Preview a retained version without mutating the draft. */
@@ -644,7 +856,7 @@ export namespace Services {
       branding: string;
       portal: string;
       versionId: string;
-    }): Promise<{ token: string; url: string; hash: string }> {
+    }): Promise<{ token: string; url: string; hash: string; images: { logo: string | null; favicon: string | null } }> {
       const brand = await this.loadBrandOrThrow(input.branding);
       // Brand-scoped lookup: rows from another brand never match, so cross-brand
       // restores/previews are rejected as not-found.
@@ -657,13 +869,19 @@ export namespace Services {
       const typeface = normalizeTypefaceState(row.typeface);
       const { css, hash } = BrandingThemeCssService.generate(variables, { typeface, brandName: String(brand.name) });
       const token = crypto.randomBytes(16).toString('hex');
+      const images = await this.cachePreviewImages(
+        input.branding,
+        input.portal,
+        token,
+        row.images ?? this.activeImages(brand)
+      );
       const ts = Math.floor(Date.now() / 1000);
       await CacheEntry.create({
         name: `branding-preview:${token}`,
         data: { css, branding: input.branding, portal: input.portal, hash, versionId: String(row.id) },
         ts_added: ts,
       });
-      return { token, url: this.previewUrl(input.branding, input.portal, token), hash };
+      return { token, url: this.previewUrl(input.branding, input.portal, token), hash, images };
     }
 
     /** Fetch preview CSS (helper for tests); enforces TTL */
@@ -694,6 +912,7 @@ export namespace Services {
     private async buildPublishSnapshot(brand: BrandingConfigAttributes): Promise<{
       variables: Record<string, string>;
       typeface: BrandingTypefaceState;
+      images: BrandingImages;
       css: string;
       hash: string;
     }> {
@@ -704,13 +923,21 @@ export namespace Services {
       }
       await BrandingTypefaceService.assertTypefaceAvailable(String(brand.id), typeface);
       const { css, hash } = BrandingThemeCssService.generate(variables, { typeface, brandName: String(brand.name) });
-      return { variables, typeface, css, hash };
+      const images = brand.draftImages ?? this.activeImages(brand);
+      await this.imageSources(images); // Verify all bytes before publication.
+      return { variables, typeface, css, hash, images };
     }
 
     private async persistPublication(
       brand: BrandingConfigAttributes,
       historyValues: Partial<BrandingConfigHistoryAttributes>,
-      snapshot: { css: string; hash: string; variables: Record<string, string>; typeface: BrandingTypefaceState },
+      snapshot: {
+        css: string;
+        hash: string;
+        variables: Record<string, string>;
+        typeface: BrandingTypefaceState;
+        images: BrandingImages;
+      },
       nextVersion: number
     ): Promise<void> {
       const { version: activeVersion, draftRevision } = this.brandCounters(brand);
@@ -718,6 +945,15 @@ export namespace Services {
       await runWithOptionalTransaction(
         datastore,
         async connection => {
+          const previous = await BrandingConfigHistory.findOne({ branding: brand.id, version: activeVersion });
+          if (previous && !previous.images) {
+            const query = BrandingConfigHistory.updateOne({ id: previous.id }).set({
+              images: this.activeImages(brand),
+            });
+            await (connection && typeof query.usingConnection === 'function'
+              ? query.usingConnection(connection)
+              : query);
+          }
           const createQuery = BrandingConfigHistory.create(historyValues);
           let created: BrandingConfigHistoryAttributes | null = null;
           try {
@@ -742,6 +978,9 @@ export namespace Services {
               css: snapshot.css,
               hash: snapshot.hash,
               version: nextVersion,
+              logo: snapshot.images.logo,
+              favicon: snapshot.images.favicon,
+              draftImages: null,
               typeface: snapshot.typeface,
               draftTypeface: snapshot.typeface,
               draftRevision: draftRevision + 1,
@@ -790,6 +1029,7 @@ export namespace Services {
       const activeVariables = activeRow?.variables ?? {};
       const activeTypeface = normalizeTypefaceState(brand.typeface ?? activeRow?.typeface ?? null);
       if (
+        this.imagesIdentity(snapshot.images) === this.imagesIdentity(this.activeImages(brand)) &&
         String(brand.hash ?? '') === snapshot.hash &&
         this.snapshotKey(orderedTypefaceFaces(snapshot.typeface).map(face => [face.slot, face.sha256])) ===
           this.snapshotKey(orderedTypefaceFaces(activeTypeface).map(face => [face.slot, face.sha256]))
@@ -816,6 +1056,7 @@ export namespace Services {
         css: snapshot.css,
         variables: snapshot.variables,
         typeface: snapshot.typeface,
+        images: snapshot.images,
         ...(attribution.actorId ? { actorId: attribution.actorId } : {}),
         ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
       };
@@ -843,6 +1084,9 @@ export namespace Services {
         throw this.codedError('history-not-found', `Version not found: ${input.versionId}`);
       }
       const { version: activeVersion } = this.brandCounters(brand);
+      // Legacy rows cannot identify historical images: preserve current published assets.
+      const images = row.images ?? this.activeImages(brand);
+      await this.imageSources(images);
       const variables = BrandingThemeCssService.validateVariables(row.variables ?? {});
       const typeface = normalizeTypefaceState(row.typeface);
       // Re-read and hash-check every face before any active mutation.
@@ -859,14 +1103,16 @@ export namespace Services {
         css,
         variables,
         typeface,
+        images,
         restoredFromVersion: row.version,
         ...(attribution.actorId ? { actorId: attribution.actorId } : {}),
         ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
       };
-      await this.persistPublication(brand, historyValues, { css, hash, variables, typeface }, nextVersion);
+      await this.persistPublication(brand, historyValues, { css, hash, variables, typeface, images }, nextVersion);
       await this.pruneSupersededAmbiguousHistories(String(brand.id), activeVersion, nextVersion, {
         hash,
         typeface,
+        images,
       });
       await this.pruneHistories(String(brand.id));
       await this.refreshBrandingCache(String(brand.id));
@@ -936,9 +1182,9 @@ export namespace Services {
       brandingId: string,
       activeVersion: number,
       successfulVersion: number,
-      snapshot: { hash: string; typeface: BrandingTypefaceState }
+      snapshot: { hash: string; typeface: BrandingTypefaceState; images?: BrandingImages }
     ): Promise<void> {
-      const successfulIdentity = this.publicationIdentity(snapshot.hash, snapshot.typeface);
+      const successfulIdentity = this.publicationIdentity(snapshot.hash, snapshot.typeface, snapshot.images);
       const histories = await this.listHistoriesAsc(brandingId);
       for (const history of histories) {
         if (
@@ -946,7 +1192,7 @@ export namespace Services {
           history.version >= successfulVersion ||
           history.id === undefined ||
           history.id === null ||
-          this.publicationIdentity(history.hash, history.typeface) !== successfulIdentity
+          this.publicationIdentity(history.hash, history.typeface, history.images) !== successfulIdentity
         ) {
           continue;
         }

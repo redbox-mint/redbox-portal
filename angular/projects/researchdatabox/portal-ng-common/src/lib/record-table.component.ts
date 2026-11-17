@@ -17,7 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Component, Input, Inject, ViewChildren, QueryList} from '@angular/core';
+import { reportDisplayValue } from '@researchdatabox/sails-ng-common/dist/src/report-display';
+import { AdminDateService } from './admin-date.service';
+import {Component, Input, Inject, TemplateRef, ViewChildren, QueryList, inject} from '@angular/core';
 import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
@@ -48,14 +50,22 @@ import {HeaderSortComponent} from "./header-sort.component";
     standalone: false
 })
 export class RecordTableComponent extends BaseComponent {
+  private readonly adminDates = inject(AdminDateService);
   // row/column config
   @Input() columnConfig: RecordPropViewMetaDto[] = null as any;
   // the data source
   @Input() dataSource: RecordSource = null as any;
+  // Opt in only for tables whose columns are data, never configured HTML.
+  @Input() plainTextColumns = false;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
   // report name for template key construction (required for Handlebars templates)
   @Input() reportName: string = '';
+  @Input() adminPresentation = false;
+  @Input() selectionHeaderTemplate?: TemplateRef<any>;
+  @Input() selectionTemplate?: TemplateRef<{ $implicit: any }>;
+  @Input() cellTemplates: { [property: string]: TemplateRef<{ $implicit: any }> } = {};
+  @Input() actionTemplate?: TemplateRef<{ $implicit: any }>;
   // pagination
   @Input() paginationItemsPerPage: number = 10;
   @Input() paginationDirectionLinks:boolean = false;
@@ -64,6 +74,7 @@ export class RecordTableComponent extends BaseComponent {
   @Input() paginationMaxSize:number = 10;
   @Input() paginationRotate: boolean = true;
   @Input() paginationDisabled: boolean = false;
+  @Input() showPagination = true;
   paginationPending = false;
   // which actions to show in the table
   @Input() showActions: {name:string, classes: string, label:string}[] = [];
@@ -73,6 +84,13 @@ export class RecordTableComponent extends BaseComponent {
   @Input() enableActions: boolean = false;
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
+
+  get adminTotalPages(): number { return Math.max(1, Math.ceil((this.dataSource.getCurrentPage().total ?? 0) / this.paginationItemsPerPage)); }
+
+  get adminPageEnd(): number {
+    const page = this.dataSource.getCurrentPage();
+    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total ?? 0);
+  }
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -101,10 +119,14 @@ export class RecordTableComponent extends BaseComponent {
   getColValue(row: any, col: RecordPropViewMetaDto) {
     if (col.multivalue) {
       let retVal = [];
-      for (let val of _get(row, col.property)) {
-        retVal.push(this.getEntryValue(row, col, val));
+      const values = _get(row, col.property);
+      if (col.format && !Array.isArray(values)) return this.getEntryValue(row, col);
+      if (Array.isArray(values) || typeof values === 'string') {
+        for (let val of values) {
+          retVal.push(this.getEntryValue(row, col, val));
+        }
       }
-      return retVal.join('');
+      return retVal.join(Array.isArray(values) && col.format && !col.template ? '<br>' : '');
     } else {
       return this.getEntryValue(row, col);
     }
@@ -135,6 +157,9 @@ export class RecordTableComponent extends BaseComponent {
 
   getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
+    if (this.adminPresentation && !col.template && !col.format && /(?:^|\.)(?:dateCreated|dateModified|lastSaveDate|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
+      return this.adminDates.format(_get(row, col.property, val));
+    }
     if (!_isEmpty(col.template)) {
       const data = _merge({}, row, {
         recordTableMeta: {
@@ -148,12 +173,12 @@ export class RecordTableComponent extends BaseComponent {
       const keyParts = this.buildTemplateKeyParts(col);
       retVal = this.handlebarsTemplateService.compileAndRunTemplate(col.template, data, keyParts);
     } else {
-      retVal = _get(row, col.property, val);
+      retVal = reportDisplayValue(col.multivalue && col.format && val !== undefined ? val : _get(row, col.property, val), col) as string;
     }
     return retVal;
   }
 
-  async gotoPage(page: number, pageModel: NgModel) {
+  async gotoPage(page: number, pageModel?: NgModel) {
     if (this.paginationPending || this.paginationDisabled || page === this.dataSource.getCurrentPage().pageNum) {
       return;
     }
@@ -163,9 +188,14 @@ export class RecordTableComponent extends BaseComponent {
     } finally {
       // Reset both NgModel's cached value and the control, even when the loaded
       // page is unchanged. Keep the guard set while reset emits ngModelChange.
-      pageModel.reset(this.dataSource.getCurrentPage().pageNum);
+      pageModel?.reset(this.dataSource.getCurrentPage().pageNum);
       this.paginationPending = false;
     }
+  }
+
+  columnSort(property: string): string | null {
+    const sort = this.headerSortItems?.find(item => item.variable === property)?.sort;
+    return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null;
   }
 
   async headerSortChanged(event: any, data: any) {

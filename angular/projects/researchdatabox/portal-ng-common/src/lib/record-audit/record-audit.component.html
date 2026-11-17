@@ -597,7 +597,12 @@
                                 {{ event.status }}
                               </span>
                             </td>
-                            <td class="rb-message-cell">{{ event.message || event.errorDetail || '-' }}</td>
+                            <td class="rb-message-cell">
+                              <div>{{ event.message || event.errorDetail || '-' }}</div>
+                              <div *ngIf="event.errorDetail && event.errorDetail !== event.message && event.message" class="mt-1">
+                                {{ event.errorDetail }}
+                              </div>
+                            </td>
                             <td>
                               <button
                                 type="button"

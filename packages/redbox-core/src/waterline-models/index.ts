@@ -1,3 +1,5 @@
+export * from './SavedGrid';
+import { SavedGridWLDef } from './SavedGrid';
 export * from './AttachmentAccessAudit';
 export * from './AttachmentMetadata';
 export * from './AppConfig';
@@ -15,6 +17,9 @@ export * from './FigshareVocabularyCrosswalkMapping';
 export * from './FigshareVocabularySource';
 export * from './FigshareVocabularySyncRun';
 export * from './FigshareSync';
+export * from './EmailTemplate';
+export * from './EmailTemplateDraft';
+export * from './EmailTemplateHistory';
 export * from './Form';
 export * from './HarvestRecordEvent';
 export * from './HarvestRun';
@@ -37,6 +42,18 @@ export * from './WorkflowStep';
 export * from './WorkspaceApp';
 export * from './WorkspaceAsync';
 export * from './WorkspaceType';
+export * from './GenerationProfile';
+export * from './GenerationProfileVersion';
+export * from './GenerationBinding';
+export * from './GenerationModelConnection';
+export * from './GenerationModelDeployment';
+export * from './KnowledgeCollection';
+export * from './KnowledgeCollectionVersion';
+export * from './KnowledgeDocument';
+export * from './KnowledgeChunk';
+export * from './GenerationRun';
+export * from './GenerationRunArtifact';
+export * from './GenerationFieldProvenance';
 
 // Re-export Waterline model definitions for convenience
 import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
@@ -56,6 +73,9 @@ import { FigshareVocabularyCrosswalkMappingWLDef } from './FigshareVocabularyCro
 import { FigshareVocabularySourceWLDef } from './FigshareVocabularySource';
 import { FigshareVocabularySyncRunWLDef } from './FigshareVocabularySyncRun';
 import { FigshareSyncWLDef } from './FigshareSync';
+import { EmailTemplateDraftWLDef } from './EmailTemplateDraft';
+import { EmailTemplateHistoryWLDef } from './EmailTemplateHistory';
+import { EmailTemplateWLDef } from './EmailTemplate';
 import { FormWLDef } from './Form';
 import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
 import { HarvestRunWLDef } from './HarvestRun';
@@ -78,11 +98,24 @@ import { WorkflowStepWLDef } from './WorkflowStep';
 import { WorkspaceAppWLDef } from './WorkspaceApp';
 import { WorkspaceAsyncWLDef } from './WorkspaceAsync';
 import { WorkspaceTypeWLDef } from './WorkspaceType';
+import { GenerationProfileWLDef } from './GenerationProfile';
+import { GenerationProfileVersionWLDef } from './GenerationProfileVersion';
+import { GenerationBindingWLDef } from './GenerationBinding';
+import { GenerationModelConnectionWLDef } from './GenerationModelConnection';
+import { GenerationModelDeploymentWLDef } from './GenerationModelDeployment';
+import { KnowledgeCollectionWLDef } from './KnowledgeCollection';
+import { KnowledgeCollectionVersionWLDef } from './KnowledgeCollectionVersion';
+import { KnowledgeDocumentWLDef } from './KnowledgeDocument';
+import { KnowledgeChunkWLDef } from './KnowledgeChunk';
+import { GenerationRunWLDef } from './GenerationRun';
+import { GenerationRunArtifactWLDef } from './GenerationRunArtifact';
+import { GenerationFieldProvenanceWLDef } from './GenerationFieldProvenance';
 
 // Consolidated Models map for hook-based loader
 // Note: Record, DeletedRecord, RecordAudit are provided by storage hooks
 // and registered via the core-loader's registerModels() mechanism
 export const WaterlineModels = {
+  SavedGrid: SavedGridWLDef,
   AttachmentAccessAudit: AttachmentAccessAuditWLDef,
   AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,
@@ -100,6 +133,9 @@ export const WaterlineModels = {
   FigshareVocabularySource: FigshareVocabularySourceWLDef,
   FigshareVocabularySyncRun: FigshareVocabularySyncRunWLDef,
   FigshareSync: FigshareSyncWLDef,
+  EmailTemplate: EmailTemplateWLDef,
+  EmailTemplateDraft: EmailTemplateDraftWLDef,
+  EmailTemplateHistory: EmailTemplateHistoryWLDef,
   Form: FormWLDef,
   HarvestRecordEvent: HarvestRecordEventWLDef,
   HarvestRun: HarvestRunWLDef,
@@ -122,4 +158,16 @@ export const WaterlineModels = {
   WorkspaceApp: WorkspaceAppWLDef,
   WorkspaceAsync: WorkspaceAsyncWLDef,
   WorkspaceType: WorkspaceTypeWLDef,
+  GenerationProfile: GenerationProfileWLDef,
+  GenerationProfileVersion: GenerationProfileVersionWLDef,
+  GenerationBinding: GenerationBindingWLDef,
+  GenerationModelConnection: GenerationModelConnectionWLDef,
+  GenerationModelDeployment: GenerationModelDeploymentWLDef,
+  KnowledgeCollection: KnowledgeCollectionWLDef,
+  KnowledgeCollectionVersion: KnowledgeCollectionVersionWLDef,
+  KnowledgeDocument: KnowledgeDocumentWLDef,
+  KnowledgeChunk: KnowledgeChunkWLDef,
+  GenerationRun: GenerationRunWLDef,
+  GenerationRunArtifact: GenerationRunArtifactWLDef,
+  GenerationFieldProvenance: GenerationFieldProvenanceWLDef,
 };

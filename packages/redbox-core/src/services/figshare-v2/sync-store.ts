@@ -102,11 +102,12 @@ export class FigshareSyncStore {
   }
   async due(limit = 100, excludeOids: Iterable<string> = []): Promise<Array<{ oid: string; brandId: string }>> {
     const now = Date.now();
-    return this.collection.find({ oid: { $nin: [...excludeOids] }, nextActionAt: { $ne: null, $lte: now }, dispatchUntil: { $lte: now } })
+    return this.collection.find({ oid: { $nin: [...excludeOids] }, nextActionAt: { $ne: null, $lte: now }, dispatchUntil: { $lte: now }, leaseUntil: { $lte: now } })
       .sort({ nextActionAt: 1 }).limit(limit).project<{ oid: string; brandId: string }>({ oid: 1, brandId: 1 }).toArray();
   }
   async dispatchClaim(oid: string, cooldownMs = 10000, extend = false): Promise<boolean> {
-    const result = await this.collection.updateOne(extend ? { oid } : { oid, dispatchUntil: { $lte: Date.now() } }, {
+    const now = Date.now();
+    const result = await this.collection.updateOne(extend ? { oid } : { oid, dispatchUntil: { $lte: now }, leaseUntil: { $lte: now }, nextActionAt: { $ne: null, $lte: now } }, {
       $set: { dispatchUntil: Date.now() + cooldownMs }, $inc: { revision: 1 }
     });
     return result.matchedCount === 1;

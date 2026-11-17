@@ -41,6 +41,16 @@ describe('Behaviour processors', () => {
     );
   });
 
+  it('opts in to the authorized current consumer view for publication prefill', async () => {
+    const recordService = jasmine.createSpyObj('RecordService', ['getRecordMeta']);
+    recordService.getRecordMeta.and.resolveTo({ title: 'Current source title' });
+    const result = await executeBehaviourProcessor({ type: 'fetchMetadata', config: { consumerView: true } },
+      { value: 'linked-plan', event: {}, formData: {}, requestParams: {}, runtimeContext: {} },
+      { behaviourIndex: 0, processorIndex: 0, recordService, logger: {} as any, metadataCache: new Map() });
+    expect(recordService.getRecordMeta).toHaveBeenCalledOnceWith('linked-plan', { consumerView: true });
+    expect(result).toEqual({ oid: 'linked-plan', title: 'Current source title' });
+  });
+
   it('re-fetches saved server metadata for repeated refreshes on the same oid', async () => {
     const recordService = jasmine.createSpyObj('RecordService', ['getRecordMeta']);
     const logger = jasmine.createSpyObj('LoggerService', ['debug', 'warn', 'error']);

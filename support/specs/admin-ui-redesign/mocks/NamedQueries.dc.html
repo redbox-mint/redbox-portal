@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Named queries</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="named-query" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Records &amp; reporting</span><span>/</span><span>Named queries</span></nav>
+      <header class="ph">
+        <div><h1>Named queries</h1><p>Reusable, parameterised database queries used by reports, dashboards and the API.</p></div>
+        <div class="ph-actions"><button class="btn btn-primary" type="button">+ Create named query</button></div>
+      </header>
+
+      <div class="card">
+        <div class="card-h"><h2>Named queries</h2><span class="meta">8 queries · 2 collections</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="nq-s">Search</label><input id="nq-s" class="inp" placeholder="Name or collection"></div>
+          <div class="field"><span class="lbl">Collection</span><div class="seg" role="group" aria-label="Collection"><button type="button" class="on">All</button><button type="button">record</button><button type="button">user</button></div></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Name</th><th>Collection</th><th class="num">Params</th><th class="num">Mappings</th><th class="num">Filters</th><th>Used by</th><th class="act">Actions</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#" class="mono">listDPRecords</a></td><td><span class="badge">record</span></td><td class="num">5</td><td class="num muted">—</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listDraftInactiveRDMPRecords</a></td><td><span class="badge">record</span></td><td class="num">1</td><td class="num muted">—</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listDRRecords</a></td><td><span class="badge">record</span></td><td class="num">5</td><td class="num muted">—</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listEmbargoedDPRecords</a></td><td><span class="badge">record</span></td><td class="num">7</td><td class="num muted">—</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listParties</a></td><td><span class="badge">record</span></td><td class="num">1</td><td class="num">6</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listRDMPRecords</a></td><td><span class="badge">record</span></td><td class="num">5</td><td class="num">4</td><td class="num muted">—</td><td class="small"><a href="Reports.dc.html">Report: List RDMP records</a></td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listUsers</a></td><td><span class="badge">user</span></td><td class="num">5</td><td class="num">5</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#" class="mono">listWorkspaceRecords</a></td><td><span class="badge">record</span></td><td class="num">5</td><td class="num muted">—</td><td class="num muted">—</td><td class="small muted">[usage]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 8 of 8</span><span>“Used by” helps admins avoid deleting a query a report depends on</span></div>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,40 +1,39 @@
 <div class="card card-body mb-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="fw-semibold">Category Mappings</span>
-    <button type="button" class="btn btn-sm btn-primary" (click)="addRow()">Add Row</button>
+    <span class="fw-semibold">{{ 'admin-config-category-title' | i18next }}</span>
+    <button type="button" class="btn btn-sm btn-primary" (click)="addRow()">{{ 'admin-config-category-add' | i18next }}</button>
   </div>
 
   <div class="alert alert-secondary py-2" role="status">
-    Used only when the Categories binding is not a crosswalk binding. Setting that binding's type to
-    <code>crosswalk</code> resolves categories through the crosswalk instead, leaving these rows unchanged.
+    {{ 'admin-config-category-help' | i18next }}
   </div>
 
   @if (rows.length === 0) {
-  <p class="text-muted mb-0">No mappings configured.</p>
+  <p class="text-muted mb-0">{{ 'admin-config-category-empty' | i18next }}</p>
   } @for (row of rows; track $index; let i = $index) {
   <div class="row g-2 align-items-end mb-2">
     <div class="col-md-5">
-      <label class="form-label" for="sourceCode-{{i}}">Source Code</label>
+      <label class="form-label" [for]="idPrefix + '-sourceCode-' + i">{{ 'admin-config-category-source' | i18next }}</label>
       <input
         class="form-control"
-        id="sourceCode-{{i}}"
+        [id]="idPrefix + '-sourceCode-' + i"
         type="text"
         [value]="row.sourceCode || ''"
         (input)="updateRow(i, 'sourceCode', $any($event.target).value)"
       />
     </div>
     <div class="col-md-5">
-      <label class="form-label" for="figshareCategoryId-{{i}}">Figshare Category ID</label>
+      <label class="form-label" [for]="idPrefix + '-figshareCategoryId-' + i">{{ 'admin-config-category-target' | i18next }}</label>
       <input
         class="form-control"
-        id="figshareCategoryId-{{i}}"
+        [id]="idPrefix + '-figshareCategoryId-' + i"
         type="number"
         [value]="row.figshareCategoryId ?? ''"
         (input)="updateRow(i, 'figshareCategoryId', $any($event.target).value)"
       />
     </div>
     <div class="col-md-2">
-      <button type="button" class="btn btn-outline-danger w-100" (click)="removeRow(i)">Remove</button>
+      <button type="button" class="btn btn-outline-danger w-100" (click)="removeRow(i)" [attr.aria-label]="'admin-config-category-remove-row' | i18next: { name: row.sourceCode || i + 1 }">{{ 'admin-config-category-remove' | i18next }}</button>
     </div>
   </div>
   }

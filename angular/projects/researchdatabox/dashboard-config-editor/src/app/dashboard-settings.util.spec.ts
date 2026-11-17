@@ -29,6 +29,15 @@ describe('dashboard settings copy utilities', () => {
     expect(filters.tableConfig.formatRules.groupBy).toBe('groupedByRecordType');
   });
 
+  it('copies page size with filters, preserves it for columns, and clears absent source values', () => {
+    const source = { ...settings(['A']), rowsPerPage: 25 as const };
+    const destination = { ...settings(['B']), rowsPerPage: 100 as const };
+    expect(applyCopyGroups(source, destination, ['columnsAndActions']).rowsPerPage).toBe(100);
+    expect(applyCopyGroups(source, destination, ['filtersAndSearch']).rowsPerPage).toBe(25);
+    expect(applyCopyGroups(settings(['A']), destination, ['filtersAndSearch']).rowsPerPage).toBeUndefined();
+    expect(describeGroupChanges(destination, source, ['filtersAndSearch'])[0].items).toContain({ label: 'admin-dashboard-rows-per-page', before: '100', after: '25', cleared: false });
+  });
+
   it('never shares references with the source', () => {
     const source = settings(['A']);
     const result = applyCopyGroups(source, settings(['B']), ['columnsAndActions']);

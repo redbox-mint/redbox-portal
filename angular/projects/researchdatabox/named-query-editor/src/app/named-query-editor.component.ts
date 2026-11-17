@@ -1,46 +1,1045 @@
-import { Component, Inject, OnDestroy } from '@angular/core';
+import { Component, Inject, Injector, Type, OnDestroy, HostListener, DestroyRef, inject, ViewChild } from '@angular/core';
+import type {
+  NamedQueryJson,
+  NamedQueryExplorerSource,
+  ContextSchemaField,
+  EditorDiagnostic,
+  NamedQuerySourceDescription,
+  NamedQuerySourcePreview,
+  GraphqlNamedQueryDefinition,
+  GraphqlNamedQueryDescription,
+  NamedQueryUpdateReview,
+  NamedQuerySource,
+  NamedQueryDraftRequest,
+  NamedQueryFieldDescription,
+  NamedQuerySchemaSelection,
+  SchemaTarget,
+} from '@researchdatabox/sails-ng-common';
+import { storedRecordPath } from '@researchdatabox/sails-ng-common/dist/src/query-report-context';
+import { validateNamedQueryName, formatNamedQuerySort, LatestRequest, type FieldNode } from '@researchdatabox/portal-ng-common';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
-import { NamedQueryApiService, NamedQueryDefinition } from './named-query-api.service';
+import {
+  NamedQueryApiService,
+  NamedQueryDefinition,
+  NamedQueryDatabaseDefinition,
+  NamedQueryCatalogueRow,
+} from './named-query-api.service';
+import type { SavedQueryChoice } from './saved-query-chooser.component';
+import type {
+  NamedQueryParameterRow,
+  NamedQueryResultField,
+  NamedQueryBindingChange,
+} from '@researchdatabox/portal-ng-common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NamedQueryListQueryState } from './nq-list/nq-list.component';
+import type { NqDetailComponent } from './nq-detail/nq-detail.component';
 
 @Component({
   selector: 'named-query-editor',
   templateUrl: './named-query-editor.component.html',
   styleUrls: ['./named-query-editor.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {
-  queries: NamedQueryDefinition[] = [];
-  filteredQueries: NamedQueryDefinition[] = [];
+  saveAttempted = false;
+  @ViewChild('databaseDetail') databaseDetail?: NqDetailComponent;
+  get saveBlockReason(): string | null {
+    const nameError = this.isNew ? validateNamedQueryName(this.draft.name) : null;
+    if (nameError && (this.draft.name || this.saveAttempted)) return nameError;
+    if (this.saving) return 'data-grids-saving';
+    if (this.pendingReview) return 'nq-section-review-help';
+    if (this.pendingInput) return 'named-query-pending-input';
+    if (this.source === 'database' && !this.draft.collectionName?.trim()) return 'named-query-error-collection-required';
+    if (this.validating) return 'named-query-validating';
+    if (this.validationBlocking || (this.source === 'graphql' && !this.activeGraphqlBuffer.graphql.document.trim()))
+      return this.source === 'graphql' ? 'named-query-graphql-correct-before-save' : 'nq-section-check-settings';
+    return null;
+  }
+  private focusSaveBlocker(): void {
+    const nameInvalid = this.isNew && !!validateNamedQueryName(this.draft.name);
+    if (this.source === 'database' && (nameInvalid || !this.draft.collectionName?.trim()) && this.databaseDetail)
+      this.databaseDetail.setTab('basics');
+    setTimeout(() => {
+      const selector = nameInvalid ? '[data-named-query-name]' : this.source === 'database' && !this.draft.collectionName?.trim() ? '#nq-collection' : '#nq-save-blocker';
+      const field = Array.from(document.querySelectorAll<HTMLElement>(selector)).find(element => element.getClientRects().length > 0);
+      field?.focus();
+    });
+  }
+  chooserOpen = false;
+  chooserReplacing = false;
+  sourcePreparing = false;
+  sourceDraftUpdated = false;
+  rawGraphqlPreview: unknown[] | null = null;
+  get graphqlPreviewData(): unknown {
+    if (this.rawGraphqlPreview)
+      return this.presentation?.previewRows(this.rawGraphqlPreview, this.graphqlResultFields) ?? null;
+    return this.previewResult?.records ? (this.presentation?.previewValue(this.previewResult.records) ?? null) : null;
+  }
+  activeSection = 'basics';
+  readonly sections = ['basics', 'source', 'parameters', 'lookup', 'preview', 'used-by'];
+  candidateValues: Record<string, NamedQueryJson> = {};
+  conditionLabels: Record<string, string> = {};
+  fieldLabels: Record<string, string> = {};
+  knownResultFields: NamedQueryResultField[] = [];
+  private sourceFieldsSequence = 0;
+  private readonly destroyRef = inject(DestroyRef);
+  private presentation: typeof import('./graphql-presentation') | null = null;
+  get linkedSource(): NamedQueryExplorerSource | null {
+    return this.activeGraphqlBuffer.sourceSavedQuery ?? null;
+  }
+  get explorerUrl(): string {
+    return (
+      this.brandingAndPortalUrl +
+      '/admin/data-grids' +
+      (this.linkedSource && !this.linkedSource.missing ? '#grid=' + encodeURIComponent(this.linkedSource.id) : '')
+    );
+  }
+  private parameterRowsCache: { key: unknown[]; rows: NamedQueryParameterRow[] } | null = null;
+  private resultFieldsCache: { key: unknown[]; fields: NamedQueryResultField[] } | null = null;
+  get graphqlRows(): NamedQueryParameterRow[] {
+    if (this.sourcePreparing) return [];
+    const key = [
+      this.draftVersion,
+      this.activeGraphqlBuffer,
+      this.presentation,
+      this.description,
+      this.conditionLabels,
+      this.candidateValues,
+      this.fieldLabels,
+    ];
+    if (this.parameterRowsCache?.key.every((value, index) => value === key[index])) return this.parameterRowsCache.rows;
+    const rows =
+      this.presentation?.parameterRows(
+        this.activeGraphqlBuffer,
+        key => this.translationService.t('data-grids-' + key) as string,
+        this.conditionLabels,
+        this.candidateValues
+      ) ?? [];
+    const result = rows.map(row => ({
+      ...row,
+      consumerAllowed:
+        this.graphqlDescription?.operationVariables?.find(variable => variable.variable === row.variable)
+          ?.consumerSupported ?? row.consumerAllowed,
+      displayValue: this.valueLabel(row),
+      ...(row.variable === 'type' && this.linkedSource?.recordTypeLabel
+        ? { displayValue: this.translationService.t(this.linkedSource.recordTypeLabel) as string }
+        : {}),
+      ...(row.variable === 'stages' && Array.isArray(row.value) && !row.value.length
+        ? { displayValue: this.translationService.t('data-grids-all-stages') as string }
+        : {}),
+      ...(['filters', 'sort'].includes(row.variable) && Array.isArray(row.value) && !row.value.length
+        ? { displayValue: this.translationService.t('nq-ux-no-conditions') as string }
+        : {}),
+    }));
+    this.parameterRowsCache = { key, rows: result };
+    return result;
+  }
+  get graphqlSummaryRows(): NamedQueryParameterRow[] {
+    return this.graphqlRows.filter(row => !row.paging);
+  }
+  valueLabel(row: NamedQueryParameterRow): string {
+    if (row.displayValue) return row.displayValue;
+    const value = row.value;
+    if (row.variable.startsWith('condition_') && value !== undefined && this.presentation)
+      return this.presentation.savedValueLabel(value);
+    if (row.variable === 'stages' && (value === undefined || value === null || (Array.isArray(value) && !value.length)))
+      return this.translationService.t('data-grids-all-stages') as string;
+    if (row.variable === 'sort' && Array.isArray(value))
+      return (
+        formatNamedQuerySort(value, this.fieldLabels, key => this.translationService.t(key) as string) ||
+        (this.translationService.t('data-grids-default-order') as string)
+      );
+    if (row.variable === 'filters' && Array.isArray(value))
+      return (
+        value
+          .map(item => {
+            const condition = item as Record<string, unknown>;
+            const operator = Object.keys(condition).find(key => key !== 'field') ?? '';
+            const actual = condition[operator];
+            return (
+              (this.fieldLabels[String(condition['field'])] ??
+                this.presentation?.humanLabel(String(condition['field'])) ??
+                '') +
+              ' ' +
+              this.translationService.t('data-grids-op-' + operator) +
+              ' ' +
+              (this.presentation?.savedValueLabel(actual as NamedQueryJson) ?? String(actual))
+            );
+          })
+          .join('; ') || (this.translationService.t('nq-ux-empty-conditions') as string)
+      );
+    return value === undefined
+      ? (this.translationService.t('nq-ux-operation-default') as string)
+      : typeof value === 'string'
+        ? value
+        : JSON.stringify(value);
+  }
+  get graphqlResultFields(): NamedQueryResultField[] {
+    if (this.sourcePreparing) return [];
+    const draft = this.activeGraphqlBuffer;
+    const key = [
+      this.presentation,
+      draft.graphql.document,
+      draft.graphql.operationName,
+      JSON.stringify(draft.graphql.resultPath),
+      this.knownResultFields,
+    ];
+    if (this.resultFieldsCache?.key.every((value, index) => value === key[index])) return this.resultFieldsCache.fields;
+    const fields = this.presentation?.selectedResultFields(draft, this.knownResultFields) ?? [];
+    this.resultFieldsCache = { key, fields };
+    return fields;
+  }
+  get graphqlUse(): 'general' | 'lookup' {
+    return this.activeGraphqlBuffer.graphql.lookup ? 'lookup' : 'general';
+  }
+  get graphqlPreviewValues(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(this.testParameters).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)])
+    );
+  }
+  get graphqlPreviewParameters(): { name: string; label: string }[] {
+    return this.graphqlRows.flatMap(row =>
+      row.binding?.ownership === 'consumer' ? [{ name: row.binding.parameter, label: row.label }] : []
+    );
+  }
+  get graphqlReady(): boolean {
+    return (
+      !!this.graphqlDescription?.valid &&
+      !this.validating &&
+      !this.pendingInput &&
+      (this.graphqlUse !== 'lookup' || !!this.capabilities?.lookup)
+    );
+  }
+  get graphqlDiagnostics(): EditorDiagnostic[] {
+    return [...this.diagnostics, ...(this.graphqlUse === 'lookup' ? (this.capabilities?.diagnostics ?? []) : [])];
+  }
+  openCreateChooser(): void {
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    this.itemRequests.invalidate();
+    this.rememberEditModalTrigger();
+    this.chooserReplacing = false;
+    this.chooserOpen = true;
+  }
+  changeSavedSource(): void {
+    if (!this.saving) {
+      this.chooserReplacing = true;
+      this.chooserOpen = true;
+    }
+  }
+  createDatabase(): void {
+    this.chooserOpen = false;
+    this.newQuery();
+  }
+  async chooseSavedSource(choice: SavedQueryChoice): Promise<void> {
+    const token = this.itemRequests.next();
+    const replacing = this.chooserReplacing && this.isEditing;
+    const old = replacing ? structuredClone(this.activeGraphqlBuffer) : null;
+    const { initializePublish } = await import('./publication-helpers');
+    if (!this.itemRequests.isCurrent(token) || this.editorDestroyed) return;
+    const initialized = initializePublish(
+      choice.prepared,
+      { mode: choice.summary.mode, name: choice.summary.name },
+      {},
+      key => this.translationService.t('data-grids-' + key) as string
+    );
+    const next = initialized.draft;
+    this.candidateValues = Object.fromEntries(
+      initialized.variables.filter(v => v.value !== undefined).map(v => [v.name, v.value!])
+    );
+    this.conditionLabels = Object.fromEntries(initialized.variables.map(v => [v.name, v.label]));
+    if (old) {
+      next.name = old.name;
+      next.description = old.description;
+      // Fixed conditions follow the newly selected saved revision. Retain caller
+      // contracts only when the variable's GraphQL type is unchanged.
+      const { parameterRows } = await import('./graphql-presentation');
+      const oldRows = parameterRows(old, key => key);
+      const newRows = parameterRows(next, key => key);
+      for (const [name, binding] of Object.entries(old.graphql.variables)) {
+        if (
+          binding.ownership !== 'fixed' &&
+          newRows.some(
+            row =>
+              row.variable === name && row.inputType === oldRows.find(previous => previous.variable === name)?.inputType
+          )
+        )
+          next.graphql.variables[name] = binding;
+      }
+      next.graphql.mappings = old.graphql.mappings;
+      if (old.graphql.lookup) next.graphql.lookup = old.graphql.lookup;
+    }
+    if (!this.itemRequests.isCurrent(token) || this.editorDestroyed) return;
+    next.sourceSavedQuery = {
+      ...choice.summary,
+      publishedRevision: choice.summary.revision,
+      missing: false,
+      changedSincePublished: false,
+    };
+    this.chooserOpen = false;
+    if (!replacing) {
+      this.selectedQuery = null;
+      this.isNew = true;
+    }
+    this.draft = next;
+    this.graphqlBuffer = next;
+    this.isEditing = true;
+    this.startDraft(false);
+    this.sourceDraftUpdated = replacing;
+    this.draftChanged();
+    await this.loadGraphqlPresentation(true);
+  }
+  async loadGraphqlPresentation(project = false): Promise<void> {
+    const sequence = ++this.sourceFieldsSequence;
+    this.sourcePreparing = true;
+    this.presentation = await import('./graphql-presentation');
+    if (sequence !== this.sourceFieldsSequence || this.editorDestroyed) return;
+    const target = this.activeGraphqlBuffer;
+    const type = this.linkedSource?.recordType ?? this.presentation.recordType(target);
+    if (!type || this.linkedSource?.missing) {
+      this.sourcePreparing = false;
+      this.requestRender();
+      return;
+    }
+    this.sourcePreparing = true;
+    try {
+      const { RecordGridService } = await import('../../../data-grids/src/app/record-grid.service');
+      const service = this.editorInjector.get(RecordGridService);
+      await service.waitForInit();
+      const saved = this.linkedSource ? await service.read(this.linkedSource.id) : null;
+      const scope = {
+        id: type,
+        label: type,
+        recordType: type,
+        fields: [],
+        ...(saved && saved.mode !== 'graphql' && saved.workflowStage ? { workflowStage: saved.workflowStage } : {}),
+      };
+      const [catalogue] = await service.fields(scope);
+      // Include envelope selections even when they are not visible saved columns:
+      // the GraphQL document can select OID for lookup mappings independently.
+      const ids = [
+        ...new Set([
+          ...(saved && saved.mode !== 'graphql'
+            ? saved.columns
+            : catalogue.fields
+                .filter(f => f.selectable && !f.repeatingSubfield)
+                .slice(0, 30)
+                .map(f => f.id)),
+          ...catalogue.fields.filter(f => f.selectable && f.id.startsWith('record:')).map(f => f.id),
+        ]),
+      ];
+      const fields = await service.selections(scope, ids);
+      if (sequence !== this.sourceFieldsSequence || target !== this.activeGraphqlBuffer || this.editorDestroyed) return;
+      this.fieldLabels = Object.fromEntries(catalogue.fields.map(field => [field.id, field.label]));
+      const { visualPublicationProjection } = await import('./publication-helpers');
+      const projection = visualPublicationProjection(target.graphql.document, fields);
+      this.knownResultFields = [
+        ...(this.linkedSource?.mode === 'visual' ? projection.fields : []),
+        ...fields.flatMap(f =>
+          (f.selections ?? []).map(sel => ({ label: f.label, path: sel.responsePath, type: f.type }))
+        ),
+      ];
+      if (project && this.linkedSource?.mode === 'visual') {
+        target.graphql.document = projection.document;
+        this.draftChanged();
+      }
+      this.conditionLabels = {
+        ...this.conditionLabels,
+        ...this.presentation.conditionLabels(
+          target,
+          this.fieldLabels,
+          key => this.translationService.t('data-grids-' + key) as string
+        ),
+      };
+    } catch {
+      /* Field discovery is optional; selected response paths and advanced editing remain available. */
+    } finally {
+      if (sequence === this.sourceFieldsSequence) {
+        this.sourcePreparing = false;
+        this.requestRender();
+      }
+    }
+  }
+  setGraphqlBinding(change: NamedQueryBindingChange): void {
+    this.activeGraphqlBuffer.graphql.variables = {
+      ...this.activeGraphqlBuffer.graphql.variables,
+      [change.variable]: change.binding,
+    };
+    this.draftChanged();
+  }
+  setGraphqlUse(use: 'general' | 'lookup'): void {
+    const operation = this.activeGraphqlBuffer.graphql;
+    if (use === 'general') delete operation.lookup;
+    else if (!operation.lookup) {
+      const path = operation.resultPath.slice(0, -1);
+      operation.lookup = {
+        mode: 'firstPage',
+        collectionPath: path,
+        hasNextPagePath: [...path, 'hasNextPage'],
+        endCursorPath: [...path, 'endCursor'],
+        firstVariable: 'first',
+        afterVariable: 'after',
+        searchParameter: '',
+      };
+      delete operation.variables['first'];
+      delete operation.variables['after'];
+    }
+    this.draftChanged();
+  }
+  selectSection(event: Event, section: string): void {
+    event.preventDefault();
+    this.activeSection = section;
+    const element = document.getElementById('nq-section-' + section);
+    element?.scrollIntoView({ block: 'start' });
+    element?.focus({ preventScroll: true });
+  }
+  async previewGraphql(): Promise<void> {
+    if (this.graphqlUse === 'lookup') {
+      try {
+        const { publishPreviewVariables } = await import('./publication-helpers');
+        const values = publishPreviewVariables(this.activeGraphqlBuffer, this.graphqlPreviewValues);
+        this.testParameters = Object.fromEntries(
+          this.graphqlRows.flatMap(r =>
+            r.binding?.ownership === 'consumer' && Object.hasOwn(values, r.variable)
+              ? [[r.binding.parameter, values[r.variable]]]
+              : []
+          )
+        );
+      } catch {
+        this.error = this.translationService.t('nq-ux-preview-values') as string;
+        return;
+      }
+      await this.preview();
+      return;
+    }
+    if (this.previewing || this.pendingInput) return;
+    const token = this.previewRequests.next();
+    this.previewing = true;
+    this.error = '';
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    try {
+      const { publishPreviewVariables } = await import('./publication-helpers');
+      const result = await this.api.graphqlRead(
+        this.activeGraphqlBuffer.graphql.document,
+        publishPreviewVariables(this.activeGraphqlBuffer, this.graphqlPreviewValues),
+        this.activeGraphqlBuffer.graphql.operationName
+      );
+      if (!this.previewRequests.isCurrent(token)) return;
+      if (result.errors?.length || !result.data) throw Error();
+      let rows: unknown = result.data;
+      for (const part of this.activeGraphqlBuffer.graphql.resultPath)
+        rows =
+          rows && typeof rows === 'object' && Object.hasOwn(rows, part)
+            ? (rows as Record<string, unknown>)[part]
+            : undefined;
+      if (!Array.isArray(rows)) throw Error();
+      this.rawGraphqlPreview = rows;
+    } catch {
+      if (this.previewRequests.isCurrent(token))
+        this.error = this.translationService.t('nq-ux-preview-error') as string;
+    } finally {
+      if (this.previewRequests.isCurrent(token)) {
+        this.previewing = false;
+        this.requestRender();
+      }
+    }
+  }
+  queries: NamedQueryCatalogueRow[] = [];
+  filteredQueries: NamedQueryCatalogueRow[] = [];
   collections: string[] = [];
   listQuery: NamedQueryListQueryState = { searchTerm: '' };
 
   selectedQuery: NamedQueryDefinition | null = null;
   draft: NamedQueryDefinition = this.emptyDraft();
   isNew = false;
+  databaseBuffer: NamedQueryDatabaseDefinition = this.emptyDraft();
+  graphqlBuffer: GraphqlNamedQueryDefinition = this.emptyGraphqlDraft();
+  private sourceValidity: Record<NamedQuerySource, boolean> = { database: true, graphql: true };
+  schemaComponent: Type<unknown> | null = null;
+  graphqlSdl = '';
+  schemaLoading = false;
+  schemaError = '';
+  private schemaRequests = new LatestRequest();
+  private draftVersion = 0;
+  pendingReview: {
+    review: NamedQueryUpdateReview;
+    payload: NamedQueryDefinition;
+    snapshot: string;
+    version: number;
+  } | null = null;
+  private reviewTrigger: HTMLElement | null = null;
+  private editorDestroyed = false;
+  capabilities: { lookup: boolean; diagnostics: EditorDiagnostic[] } | null = null;
+  get activeDatabaseBuffer(): NamedQueryDatabaseDefinition {
+    return this.draft.source === 'graphql' ? this.databaseBuffer : this.draft;
+  }
+  get activeGraphqlBuffer(): GraphqlNamedQueryDefinition {
+    return this.draft.source === 'graphql' ? this.draft : this.graphqlBuffer;
+  }
+  get source(): NamedQuerySource {
+    return this.draft.source === 'graphql' ? 'graphql' : 'database';
+  }
+  get graphqlDescription(): GraphqlNamedQueryDescription | null {
+    return this.description?.source === 'graphql' ? this.description : null;
+  }
+  get catalogueDiagnostics(): EditorDiagnostic[] {
+    return this.queries.flatMap(query => (query.valid === false ? query.diagnostics : []));
+  }
+  databaseWorkspaceOpened = true;
+  changeSource(source: NamedQuerySource): void {
+    if (source === this.source || this.saving) return;
+    if (source === 'database') this.databaseWorkspaceOpened = true;
+    if (this.draft.source === 'graphql') this.graphqlBuffer = this.draft;
+    else this.databaseBuffer = this.draft;
+    const identity = { name: this.draft.name, description: this.draft.description };
+    const buffer = source === 'graphql' ? this.graphqlBuffer : this.databaseBuffer;
+    Object.assign(buffer, identity);
+    this.draft = buffer;
+    this.pendingInput = !this.sourceValidity[source];
+    this.invalidTestParameters.clear();
+    this.testParameters = {};
+    this.guidance = source === 'database' ? this.inferGuidance() : null;
+    this.targetRequests.invalidate();
+    this.schemaRequests.invalidate();
+    this.schemaLoading = false;
+    this.assistanceError = '';
+    this.schemaError = '';
+    this.error = '';
+    this.invalidateAssistance();
+    this.draftChanged();
+    if (source === 'graphql') void this.loadGraphqlPresentation();
+    else {
+      void this.loadTargets();
+      void this.refreshFields();
+    }
+  }
+  async loadGraphqlSchema(): Promise<void> {
+    const token = this.schemaRequests.next();
+    this.schemaLoading = true;
+    this.schemaError = '';
+    try {
+      const [result, component] = await Promise.all([this.api.graphqlSchema(), import('./graphql-schema.component')]);
+      if (this.schemaRequests.isCurrent(token)) {
+        this.graphqlSdl = result.sdl;
+        this.schemaComponent = component.GraphqlSchemaComponent;
+      }
+    } catch {
+      if (this.schemaRequests.isCurrent(token))
+        this.schemaError = this.t(
+          'named-query-graphql-schema-error',
+          'Current GraphQL schema unavailable. Your draft is retained.'
+        );
+    } finally {
+      if (this.schemaRequests.isCurrent(token)) this.schemaLoading = false;
+    }
+  }
+  sourceValidityChanged(source: NamedQuerySource, valid: boolean): void {
+    this.sourceValidity[source] = valid;
+    if (this.source === source) this.validityChanged(valid);
+  }
+  private restoreReviewFocus(trigger: HTMLElement | null): void {
+    this.requestRender();
+    setTimeout(() => {
+      if (this.editorDestroyed || this.saving || !this.isEditing || this.pendingReview) return;
+      const target = trigger?.isConnected ? trigger : document.getElementById('named-query-save');
+      (target && !target.matches(':disabled')
+        ? target
+        : document.getElementById('named-query-workspace-title')
+      )?.focus();
+    }, 0);
+  }
+  cancelSaveReview(): void {
+    this.pendingReview = null;
+    const trigger = this.reviewTrigger;
+    this.reviewTrigger = null;
+    this.restoreReviewFocus(trigger);
+  }
+  async confirmSaveReview(): Promise<void> {
+    const pending = this.pendingReview;
+    if (!pending || this.editorDestroyed) return;
+    const trigger = this.reviewTrigger;
+    this.pendingReview = null;
+    this.reviewTrigger = null;
+    if (this.pendingInput || this.draftVersion !== pending.version || JSON.stringify(this.draft) !== pending.snapshot) {
+      this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
+      this.restoreReviewFocus(trigger);
+      return;
+    }
+    this.saving = true;
+    let saved = false;
+    try {
+      await this.persist(pending.payload, pending.snapshot, pending.review.confirmation);
+      saved = true;
+    } catch (error) {
+      if (!this.editorDestroyed) this.saveError(error);
+    } finally {
+      this.saving = false;
+      if (!saved && !this.editorDestroyed) {
+        if (!this.canSave) this.focusSaveBlocker();
+        else this.restoreReviewFocus(trigger);
+      }
+    }
+  }
 
   message = '';
   error = '';
 
-  isEditModalOpen = false;
+  isEditing = false;
   isDeleteModalOpen = false;
   pendingDeleteName: string | null = null;
+
+  targets: SchemaTarget[] = [];
+  guidance: NamedQuerySchemaSelection | null = null;
+  relatedGuidance: Record<string, NamedQuerySchemaSelection> = {};
+  foreignFields: Record<string, ContextSchemaField[]> = {};
+  fieldDescription: NamedQueryFieldDescription | null = null;
+  diagnostics: EditorDiagnostic[] = [];
+  private validationBlocking = false;
+  private invalidTestParameters = new Map<string, string>();
+  description: NamedQuerySourceDescription | null = null;
+  previewResult: NamedQuerySourcePreview | null = null;
+  testParameters: Record<string, unknown> = {};
+  assistanceError = '';
+  validating = false;
+  previewing = false;
+  saving = false;
+  helpOpen = true;
+  pendingInput = false;
+  private baseline = '';
+  private inputDirty = false;
+  private itemRequests = new LatestRequest();
+  private fieldsRequests = new LatestRequest();
+  private validationRequests = new LatestRequest();
+  private previewRequests = new LatestRequest();
+  private targetRequests = new LatestRequest();
+  private foreignRequests = new LatestRequest();
+  private validationTimer: ReturnType<typeof setTimeout> | null = null;
+  fieldPath = (node: FieldNode): string | null => storedRecordPath(node.path);
+
+  fields: ContextSchemaField[] = [];
+  parameterKey(_index: number, param: { key: string }): string {
+    return param.key;
+  }
+  get mappingFields(): ContextSchemaField[] {
+    return this.fieldDescription?.mappingFields || [];
+  }
+  get dirty(): boolean {
+    return this.isEditing && (this.inputDirty || JSON.stringify(this.draft) !== this.baseline);
+  }
+  get parameterEntries(): Array<{
+    key: string;
+    path: string;
+    type: string;
+    format?: string;
+    queryType?: string;
+    template?: string;
+  }> {
+    if (this.draft.source === 'graphql')
+      return Object.entries(this.draft.graphql.variables).flatMap(([variable, binding]) =>
+        binding?.ownership === 'consumer'
+          ? [
+              {
+                key: binding.parameter,
+                path: '$' + variable,
+                type: binding.inputType,
+                format: undefined,
+                queryType: undefined,
+                template: undefined,
+              },
+            ]
+          : []
+      );
+    return Object.entries(this.draft.queryParams || {}).map(([key, param]) => ({ key, ...param }));
+  }
+  get previewColumns(): string[] {
+    return [
+      ...new Set(
+        (this.previewResult?.records || []).flatMap(row => (row && typeof row === 'object' ? Object.keys(row) : []))
+      ),
+    ];
+  }
+  cell(row: unknown, key: string): string {
+    const value = (row as Record<string, unknown>)?.[key];
+    return value !== null && typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value ?? '');
+  }
+  isStructured(row: unknown, key: string): boolean {
+    const value = (row as Record<string, unknown>)?.[key];
+    return value !== null && typeof value === 'object';
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.dirty) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  guardExternalNavigation(event: MouseEvent): void {
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (
+      !event.defaultPrevented &&
+      anchor &&
+      anchor.target.toLowerCase() !== '_blank' &&
+      !anchor.getAttribute('href')?.startsWith('#') &&
+      this.dirty &&
+      !this.confirmDiscard()
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
+
+  private confirmDiscard(): boolean {
+    return !this.dirty || window.confirm(this.t('named-query-discard-confirm', 'Discard unsaved query changes?'));
+  }
+
+  private invalidateAssistance(): void {
+    this.fieldsRequests.invalidate();
+    this.validationRequests.invalidate();
+    this.previewRequests.invalidate();
+    this.foreignRequests.invalidate();
+    if (this.validationTimer) clearTimeout(this.validationTimer);
+    this.validationTimer = null;
+    this.validating = false;
+    this.previewing = false;
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.description = null;
+    this.diagnostics = [];
+    this.capabilities = null;
+    this.validationBlocking = false;
+  }
+
+  private startDraft(loadSource = true): void {
+    this.saveAttempted = false;
+    this.databaseWorkspaceOpened = this.source === 'database';
+    ++this.sourceFieldsSequence;
+    this.sourcePreparing = false;
+    this.schemaRequests.invalidate();
+    this.graphqlSdl = '';
+    this.schemaError = '';
+    this.sourceValidity = { database: true, graphql: true };
+    this.databaseBuffer = this.draft.source === 'graphql' ? this.emptyDraft() : this.draft;
+    this.graphqlBuffer = this.draft.source === 'graphql' ? this.draft : this.emptyGraphqlDraft();
+    this.draftVersion++;
+    this.knownResultFields = [];
+    this.fieldLabels = {};
+    this.sourceDraftUpdated = false;
+    this.pendingReview = null;
+    this.invalidateAssistance();
+    this.targetRequests.invalidate();
+    this.baseline = JSON.stringify(this.draft);
+    this.inputDirty = false;
+    this.pendingInput = false;
+    this.relatedGuidance = {};
+    this.foreignFields = {};
+    this.testParameters = {};
+    this.invalidTestParameters.clear();
+    this.guidance = this.inferGuidance();
+    this.fieldDescription = null;
+    this.fields = [];
+    this.assistanceError = '';
+    this.targets = [];
+    if (this.source === 'graphql') {
+      if (loadSource) void this.loadGraphqlPresentation();
+    } else {
+      void this.loadTargets();
+      void this.refreshFields();
+    }
+    if (this.draft.relatedRecordFilters?.length) void this.foreignContextChanged({ index: -1, collectionName: '' });
+    this.scheduleValidation();
+    // Focus the workspace heading after Angular has rendered the new item.
+    setTimeout(() => document.getElementById('named-query-workspace-title')?.focus(), 0);
+  }
+
+  private inferGuidance(): NamedQuerySchemaSelection | null {
+    if (this.draft.collectionName !== 'record') return null;
+    const query = this.draft.mongoQuery || {};
+    const type = query['metaMetadata.type'];
+    // Only the exact top-level, unparameterized constraint is unambiguous.
+    if (
+      typeof type !== 'string' ||
+      !type ||
+      Object.keys(query).some(k => k.startsWith('$') || k === 'metaMetadata') ||
+      Object.values(this.draft.queryParams || {}).some(p => p.path === 'metaMetadata' || p.path === 'metaMetadata.type')
+    )
+      return null;
+    return { recordType: type };
+  }
+
+  async loadTargets(): Promise<void> {
+    const token = this.targetRequests.next();
+    try {
+      const result = await this.api.schemaTargets();
+      if (this.targetRequests.isCurrent(token)) this.targets = result.recordTypes;
+    } catch {
+      if (this.targetRequests.isCurrent(token))
+        this.assistanceError = this.t(
+          'named-query-guidance-unavailable',
+          'Guidance unavailable. Manual editing remains available.'
+        );
+    }
+  }
+
+  async chooseGuidance(selection: NamedQuerySchemaSelection | null): Promise<void> {
+    this.guidance = this.draft.collectionName === 'record' ? selection : null;
+    this.invalidateAssistance();
+    await this.refreshFields();
+    this.scheduleValidation();
+  }
+
+  async collectionChanged(): Promise<void> {
+    this.guidance = null;
+    this.fieldDescription = null;
+    this.fields = [];
+    this.relatedGuidance = {};
+    this.foreignFields = {};
+    this.invalidateAssistance();
+    await this.refreshFields();
+    this.draftChanged();
+  }
+
+  async refreshFields(): Promise<void> {
+    const token = this.fieldsRequests.next();
+    this.fieldDescription = null;
+    this.fields = [];
+    if (this.draft.source === 'graphql' || !this.draft.collectionName) return;
+    try {
+      const fields = await this.api.fields({ collectionName: this.draft.collectionName, ...this.guidance });
+      if (this.fieldsRequests.isCurrent(token)) {
+        this.fieldDescription = fields;
+        this.fields = [...fields.envelopeFields, ...fields.fields];
+        this.assistanceError = '';
+      }
+    } catch {
+      if (this.fieldsRequests.isCurrent(token))
+        this.assistanceError = this.t(
+          'named-query-guidance-unavailable',
+          'Guidance unavailable. Manual editing remains available.'
+        );
+    }
+  }
+
+  addTypeConstraint(): void {
+    if (!this.guidance || this.draft.collectionName !== 'record' || this.pendingInput) return;
+    const type = { 'metaMetadata.type': this.guidance.recordType };
+    // Preserve every existing expression, including an existing or conflicting type constraint.
+    this.draft.mongoQuery = Object.keys(this.draft.mongoQuery || {}).length
+      ? { $and: [this.draft.mongoQuery, type] }
+      : type;
+    this.draftChanged();
+  }
+
+  async foreignContextChanged(context: {
+    index: number;
+    collectionName: string;
+    selection?: NamedQuerySchemaSelection;
+  }): Promise<void> {
+    const key = String(context.index);
+    if (context.index < 0) this.relatedGuidance = {};
+    if (context.collectionName === 'record' && context.selection) this.relatedGuidance[key] = context.selection;
+    else delete this.relatedGuidance[key];
+    delete this.relatedGuidance['-1'];
+    // Refresh all foreign descriptions together: removing/reordering filters cannot attach a late response to a different filter.
+    const token = this.foreignRequests.next();
+    this.foreignFields = {};
+    this.validationRequests.invalidate();
+    this.previewRequests.invalidate();
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.previewing = false;
+    const filters = this.draft.relatedRecordFilters || [];
+    await Promise.all(
+      filters.map(async (filter, index) => {
+        if (!filter.collectionName) return;
+        try {
+          const result = await this.api.fields({
+            collectionName: filter.collectionName,
+            ...this.relatedGuidance[String(index)],
+          });
+          if (this.foreignRequests.isCurrent(token))
+            this.foreignFields[String(index)] = [...result.envelopeFields, ...result.fields];
+        } catch {
+          /* Foreign guidance is optional; the path stays editable. */
+        }
+      })
+    );
+    if (this.foreignRequests.isCurrent(token)) this.scheduleValidation();
+  }
+
+  draftChanged(): void {
+    this.draftVersion++;
+    // Retain errors until their control disappears or changes its input kind.
+    for (const [key, definition] of this.invalidTestParameters) {
+      if (definition !== this.testParameterDefinition(key)) this.invalidTestParameters.delete(key);
+    }
+    for (const key of Object.keys(this.testParameters)) {
+      if (!this.parameterEntries.some(parameter => parameter.key === key)) delete this.testParameters[key];
+    }
+    this.inputDirty = true;
+    this.previewRequests.invalidate();
+    this.previewing = false;
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.description = null;
+    this.diagnostics = [];
+    this.capabilities = null;
+    this.validationBlocking = false;
+    this.validationRequests.invalidate();
+    this.scheduleValidation();
+  }
+
+  inputChanged(event?: Event): void {
+    if ((event?.target as Element | undefined)?.closest?.('rb-field-tree, [data-nq-guidance]')) return;
+    this.draftVersion++;
+    this.inputDirty = true;
+    this.validationRequests.invalidate();
+    this.validating = false;
+    this.previewRequests.invalidate();
+    this.previewing = false;
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+  }
+  validityChanged(valid: boolean): void {
+    this.pendingInput = !valid;
+    this.inputChanged();
+  }
+
+  private request(): NamedQueryDraftRequest {
+    return {
+      definition: JSON.parse(JSON.stringify(this.draft)),
+      ...(this.guidance ? { guidance: { ...this.guidance } } : {}),
+      relatedGuidance: JSON.parse(JSON.stringify(this.relatedGuidance)),
+    };
+  }
+  scheduleValidation(): void {
+    if (this.validationTimer) clearTimeout(this.validationTimer);
+    if (!this.isEditing) return;
+    // Local name feedback is immediate; avoid describing a draft that cannot be created yet.
+    if (this.isNew && validateNamedQueryName(this.draft.name)) {
+      this.validating = false;
+      return;
+    }
+    this.validationTimer = setTimeout(() => {
+      this.validationTimer = null;
+      void this.validateDraft();
+    }, 400);
+  }
+  async validateDraft(): Promise<void> {
+    if (this.pendingInput) return;
+    const token = this.validationRequests.next();
+    this.validating = true;
+    try {
+      // GraphQL describe includes the same caller-scoped validation and capabilities.
+      // Use one snapshot and one request so checks and parameter metadata cannot disagree.
+      const request = this.request();
+      const description = this.source === 'graphql' ? await this.api.describe(request) : null;
+      const result = description ?? (await this.api.validate(request));
+      if (this.validationRequests.isCurrent(token)) {
+        this.diagnostics = result.diagnostics;
+        this.validationBlocking = !result.valid;
+        this.capabilities = result.capabilities ?? null;
+        if (description) this.description = description;
+      }
+    } catch {
+      if (this.validationRequests.isCurrent(token)) {
+        this.diagnostics = [];
+        this.validationBlocking = this.source === 'graphql';
+        this.assistanceError = this.t(
+          'named-query-validation-unavailable',
+          'Validation unavailable. Your draft is retained.'
+        );
+      }
+    } finally {
+      if (this.validationRequests.isCurrent(token)) this.validating = false;
+    }
+  }
+  testParameterChanged(key: string, value: unknown): void {
+    this.testParameters = { ...this.testParameters, [key]: value };
+    this.previewRequests.invalidate();
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.previewing = false;
+  }
+  testParameterValidity(key: string, valid: boolean): void {
+    if (valid) this.invalidTestParameters.delete(key);
+    else this.invalidTestParameters.set(key, this.testParameterDefinition(key));
+    this.previewRequests.invalidate();
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.previewing = false;
+  }
+  private testParameterDefinition(key: string): string {
+    // GraphQL always uses the same JSON control, tracked by consumer parameter name.
+    // Binding defaults/types/ownership edits must not clear a still-mounted control's error.
+    if (this.draft.source === 'graphql')
+      return this.parameterEntries.some(parameter => parameter.key === key) ? 'graphql-json' : 'absent';
+    const param = this.draft.queryParams?.[key];
+    return JSON.stringify(param ? [param.type, param.template] : null);
+  }
+  get previewInputInvalid(): boolean {
+    return this.pendingInput || this.invalidTestParameters.size > 0;
+  }
+  async preview(): Promise<void> {
+    if (this.previewInputInvalid || this.previewing || this.pendingReview) return;
+    if (this.validationTimer) clearTimeout(this.validationTimer);
+    this.validationTimer = null;
+    this.validationRequests.invalidate();
+    this.validating = false;
+    const token = this.previewRequests.next();
+    this.previewing = true;
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.description = null;
+    this.error = '';
+    const request = { ...this.request(), parameters: JSON.parse(JSON.stringify(this.testParameters)) };
+    try {
+      const [result, description] = await Promise.all([this.api.preview(request), this.api.describe(request)]);
+      if (this.previewRequests.isCurrent(token)) {
+        this.validationRequests.invalidate();
+        this.validating = false;
+        this.previewResult = result;
+        this.description = description;
+        this.diagnostics = result.diagnostics;
+      }
+    } catch (err) {
+      if (this.previewRequests.isCurrent(token))
+        this.error = this.t('named-query-preview-error', 'Preview failed: {{error}}', {
+          error: this.asErrorMessage(err),
+        });
+    } finally {
+      if (this.previewRequests.isCurrent(token)) this.previewing = false;
+    }
+  }
 
   private editModalTrigger: HTMLElement | null = null;
   private deleteModalTrigger: HTMLElement | null = null;
   private messageTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
+    @Inject(Injector) private editorInjector: Injector,
     @Inject(LoggerService) private logger: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(NamedQueryApiService) private api: NamedQueryApiService
   ) {
     super();
     this.initDependencies = [this.translationService, this.api];
+    this.translationService.translationChanges$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.parameterRowsCache = null;
+      this.requestRender();
+    });
   }
 
   protected override async initComponent(): Promise<void> {
-    await Promise.all([this.loadQueries(), this.loadCollections()]);
+    this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
+    const name = new URLSearchParams(window.location.hash.slice(1)).get('query');
+    await Promise.all([
+      this.loadQueries(),
+      this.loadCollections(),
+      name && /^[A-Za-z0-9_-]{1,120}$/.test(name) ? this.openQuery(name) : Promise.resolve(),
+    ]);
   }
 
   async loadCollections(): Promise<void> {
@@ -48,42 +1047,61 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       this.collections = await this.api.getCollections();
     } catch (err) {
       this.collections = [];
-      this.logger.error(this.t('named-query-error-load-collections', 'Failed to load collections: {{error}}', { error: this.asErrorMessage(err) }));
+      this.logger.error(
+        this.t('named-query-error-load-collections', 'Failed to load collections: {{error}}', {
+          error: this.asErrorMessage(err),
+        })
+      );
     }
   }
 
   override ngOnDestroy(): void {
+    this.editorDestroyed = true;
+    ++this.sourceFieldsSequence;
     super.ngOnDestroy();
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer);
-      this.messageTimer = null;
-    }
+    this.itemRequests.invalidate();
+    this.targetRequests.invalidate();
+    this.schemaRequests.invalidate();
+    this.invalidateAssistance();
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = null;
   }
 
   get totalQueries(): number {
     return this.queries.length;
   }
 
+  get presentCollections(): string[] {
+    return [
+      ...new Set(
+        this.queries
+          .map(query => (query.valid === false ? undefined : query.collectionName))
+          .filter((collection): collection is string => !!collection)
+      ),
+    ].sort();
+  }
+
   get uniqueCollections(): number {
     const set = new Set<string>();
     for (const q of this.queries) {
-      if (q.collectionName) set.add(q.collectionName);
+      if (q.valid !== false && q.collectionName) set.add(q.collectionName);
     }
     return set.size;
   }
 
   get canSave(): boolean {
-    if (!this.isEditModalOpen) return false;
-    if (this.isNew) {
-      const trimmed = this.draft.name?.trim();
-      if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
-      if (trimmed === 'collections') return false;
-    }
-    return !!this.draft.collectionName?.trim();
+    if (!this.isEditing || this.pendingInput || this.saving || !!this.pendingReview || this.validationBlocking)
+      return false;
+    if (this.isNew && validateNamedQueryName(this.draft.name)) return false;
+    return this.draft.source === 'graphql' ? !!this.activeGraphqlBuffer.graphql.document.trim() : !!this.draft.collectionName?.trim();
   }
 
   get pendingDeleteDisplayName(): string {
     return this.pendingDeleteName ?? '';
+  }
+
+  get pendingDeleteConsumers() {
+    return this.queries.find(query => query.name === this.pendingDeleteName)?.usedBy ?? [];
   }
 
   async loadQueries(): Promise<void> {
@@ -92,95 +1110,205 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       this.queries = await this.api.list();
       this.applyFilter();
     } catch (err) {
-      this.error = this.t('named-query-error-load', 'Failed to load named queries: {{error}}', { error: this.asErrorMessage(err) });
+      this.error = this.t('named-query-error-load', 'Failed to load named queries: {{error}}', {
+        error: this.asErrorMessage(err),
+      });
       this.logger.error(this.error);
     }
   }
 
   onListQueryChanged(query: NamedQueryListQueryState): void {
-    this.listQuery = { searchTerm: String(query.searchTerm ?? '') };
+    this.listQuery = { searchTerm: String(query.searchTerm ?? ''), collection: query.collection || '' };
     this.applyFilter();
   }
 
   private applyFilter(): void {
     const term = this.listQuery.searchTerm.trim().toLowerCase();
-    if (!term) {
-      this.filteredQueries = [...this.queries];
-      return;
-    }
+
     this.filteredQueries = this.queries.filter(q => {
       const name = (q.name || '').toLowerCase();
-      const collection = (q.collectionName || '').toLowerCase();
-      return name.includes(term) || collection.includes(term);
+      const collectionName = q.valid === false ? '' : q.collectionName || '';
+      const collection = (
+        q.valid === false
+          ? this.t('named-query-invalid-source', 'Unsupported source')
+          : q.source === 'graphql'
+            ? 'GraphQL'
+            : collectionName
+      ).toLowerCase();
+      return (
+        (!this.listQuery.collection || collectionName === this.listQuery.collection) &&
+        (name.includes(term) || collection.includes(term))
+      );
     });
   }
 
   newQuery(): void {
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    this.itemRequests.invalidate();
     this.clearMessage();
     this.error = '';
     this.rememberEditModalTrigger();
     this.selectedQuery = null;
     this.isNew = true;
+    this.candidateValues = {};
+    this.conditionLabels = {};
     this.draft = this.emptyDraft();
-    this.isEditModalOpen = true;
+    this.isEditing = true;
+    this.startDraft();
   }
 
   async openQuery(name: string): Promise<void> {
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    if (this.queries.some(query => query.name === name && query.valid === false)) {
+      this.error = this.t(
+        'named-query-invalid-source-help',
+        'This saved source is unsupported. Review its diagnostics or delete it after removing known usages.'
+      );
+      return;
+    }
+    const token = this.itemRequests.next();
+    this.invalidateAssistance();
     this.clearMessage();
     this.error = '';
     this.rememberEditModalTrigger();
     try {
       const result = await this.api.get(name);
+      if (!this.itemRequests.isCurrent(token)) return;
       this.selectedQuery = result;
       this.isNew = false;
+      this.candidateValues = {};
+      this.conditionLabels = {};
       this.draft = this.cloneQuery(result);
-      this.isEditModalOpen = true;
+      this.isEditing = true;
+      this.startDraft();
     } catch (err) {
-      this.error = this.t('named-query-error-load-one', 'Failed to load named query: {{error}}', { error: this.asErrorMessage(err) });
+      if (!this.itemRequests.isCurrent(token)) return;
+      this.error = this.t('named-query-error-load-one', 'Failed to load named query: {{error}}', {
+        error: this.asErrorMessage(err),
+      });
       this.logger.error(this.error);
     }
   }
 
   closeEditModal(): void {
-    this.isEditModalOpen = false;
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    ++this.sourceFieldsSequence;
+    this.itemRequests.invalidate();
+    this.targetRequests.invalidate();
+    this.schemaRequests.invalidate();
+    this.invalidateAssistance();
+    this.isEditing = false;
     this.restoreEditModalTrigger();
   }
 
   async save(): Promise<void> {
+    if (this.saving || this.editorDestroyed) return;
+    const trigger =
+      document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+        ? document.activeElement
+        : document.getElementById('named-query-save');
+    this.saveAttempted = true;
     if (!this.canSave) {
-      if (this.isNew) {
-        const trimmed = this.draft.name?.trim();
-        if (!trimmed) {
-          this.error = this.t('named-query-error-name-required', 'Named query name is required');
-        } else if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
-          this.error = this.t('named-query-error-name-invalid', 'Named query name must be URL safe (letters, numbers, underscores, hyphens only)');
-        } else if (trimmed === 'collections') {
-          this.error = this.t('named-query-error-name-reserved', "'collections' is a reserved name and cannot be used");
-        }
-      } else {
-        this.error = this.t('named-query-error-collection-required', 'Collection name is required');
-      }
+      this.error = this.saveBlockReason ? this.translationService.t(this.saveBlockReason) as string : '';
+      this.focusSaveBlocker();
       return;
     }
     this.error = '';
     this.clearMessage();
-    const payload = this.sanitizeQuery(this.draft);
+    const draftAtSave = JSON.stringify(this.draft);
+    const versionAtSave = this.draftVersion;
+    const payload = this.sanitizeQuery(JSON.parse(draftAtSave));
+    let saved = false;
+    this.saving = true;
     try {
-      if (this.isNew) {
-        await this.api.create(payload);
-        this.setMessage(this.t('named-query-message-created', 'Named query "{{name}}" created', { name: payload.name ?? '' }));
-      } else {
-        await this.api.update(payload.name as string, payload);
-        this.setMessage(this.t('named-query-message-updated', 'Named query "{{name}}" updated', { name: payload.name ?? '' }));
+      await this.validateDraft();
+      if (this.editorDestroyed) return;
+      if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
+        this.error = this.t(
+          'named-query-review-changed',
+          'The draft changed. Save again to review the current changes.'
+        );
+        return;
       }
-      await this.loadQueries();
-      this.closeEditModal();
+      if (this.validationBlocking) {
+        this.focusSaveBlocker();
+        return;
+      }
+      if (!this.isNew) {
+        const review = await this.api.reviewUpdate(payload.name as string, payload);
+        if (this.editorDestroyed) return;
+        if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
+          this.error = this.t(
+            'named-query-review-changed',
+            'The draft changed. Save again to review the current changes.'
+          );
+          return;
+        }
+        if (review.required) {
+          this.reviewTrigger = trigger;
+          this.pendingReview = { review, payload, snapshot: draftAtSave, version: this.draftVersion };
+          return;
+        }
+      }
+      await this.persist(payload, draftAtSave);
+      saved = true;
     } catch (err) {
-      const key = this.isNew ? 'named-query-error-create' : 'named-query-error-update';
-      const fallback = this.isNew ? 'Failed to create named query: {{error}}' : 'Failed to update named query: {{error}}';
-      this.error = this.t(key, fallback, { error: this.asErrorMessage(err) });
-      this.logger.error(this.error);
+      if (!this.editorDestroyed) this.saveError(err);
+    } finally {
+      this.saving = false;
+      if (!saved && !this.editorDestroyed) {
+        if (!this.canSave) this.focusSaveBlocker();
+        else this.restoreReviewFocus(trigger);
+      }
     }
+  }
+
+  private async persist(payload: NamedQueryDefinition, snapshot: string, confirmation?: string): Promise<void> {
+    if (this.isNew) await this.api.create(payload);
+    else await this.api.update(payload.name as string, payload, confirmation);
+    if (this.editorDestroyed) return;
+    this.setMessage(
+      this.t(
+        this.isNew ? 'named-query-message-created' : 'named-query-message-updated',
+        this.isNew ? 'Named query "{{name}}" created' : 'Named query "{{name}}" updated',
+        { name: payload.name ?? '' }
+      )
+    );
+    await this.loadQueries();
+    if (this.editorDestroyed) return;
+    if (JSON.stringify(this.draft) === snapshot) {
+      this.inputDirty = false;
+      this.baseline = snapshot;
+      this.saving = false;
+      this.closeEditModal();
+    }
+  }
+  private saveError(error: unknown): void {
+    if ((error as { status?: number }).status === 409) {
+      this.error = this.translationService.t('nq-ux-save-conflict') as string;
+      return;
+    }
+
+    this.error = this.t(
+      this.source === 'graphql'
+        ? 'named-query-graphql-save-error'
+        : this.isNew
+          ? 'named-query-error-create'
+          : 'named-query-error-update',
+      'Failed to save named query: {{error}}',
+      { error: this.asErrorMessage(error) }
+    );
+  }
+  graphqlTestValue(key: string, value: unknown): void {
+    if (value === undefined) {
+      const parameters = { ...this.testParameters };
+      delete parameters[key];
+      this.testParameters = parameters;
+    } else this.testParameterChanged(key, value);
+    this.previewRequests.invalidate();
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.previewing = false;
   }
 
   requestDelete(name: string): void {
@@ -195,6 +1323,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   async confirmDelete(): Promise<void> {
+    if (this.pendingDeleteConsumers.length) return;
     if (!this.pendingDeleteName) {
       this.closeDeleteModal();
       return;
@@ -208,13 +1337,15 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       this.setMessage(this.t('named-query-message-deleted', 'Named query "{{name}}" deleted', { name }));
       if (this.selectedQuery?.name === name) {
         this.selectedQuery = null;
-        if (this.isEditModalOpen) {
+        if (this.isEditing) {
           this.closeEditModal();
         }
       }
       await this.loadQueries();
     } catch (err) {
-      this.error = this.t('named-query-error-delete', 'Failed to delete named query: {{error}}', { error: this.asErrorMessage(err) });
+      this.error = this.t('named-query-error-delete', 'Failed to delete named query: {{error}}', {
+        error: this.asErrorMessage(err),
+      });
       this.logger.error(this.error);
     } finally {
       this.restoreDeleteModalTrigger();
@@ -229,7 +1360,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     }
   }
 
-  private emptyDraft(): NamedQueryDefinition {
+  private emptyDraft(): NamedQueryDatabaseDefinition {
     return {
       name: '',
       collectionName: '',
@@ -238,12 +1369,37 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       resultObjectMapping: {},
       sort: [],
       expandRelations: false,
-      relatedRecordFilters: []
+      relatedRecordFilters: [],
     };
+  }
+
+  private emptyGraphqlDraft(): GraphqlNamedQueryDefinition {
+    return { name: '', source: 'graphql', graphql: { document: '', variables: {}, resultPath: [], mappings: {} } };
   }
 
   private cloneQuery(q: NamedQueryDefinition): NamedQueryDefinition {
     const cloned = JSON.parse(JSON.stringify(q)) as NamedQueryDefinition;
+    if (cloned.source === 'graphql') {
+      const operation = cloned.graphql;
+      cloned.graphql = {
+        ...operation,
+        document: typeof operation?.document === 'string' ? operation.document : '',
+        variables:
+          operation?.variables && typeof operation.variables === 'object' && !Array.isArray(operation.variables)
+            ? operation.variables
+            : {},
+        resultPath: Array.isArray(operation?.resultPath) ? operation.resultPath : [],
+        mappings:
+          operation?.mappings && typeof operation.mappings === 'object' && !Array.isArray(operation.mappings)
+            ? operation.mappings
+            : {},
+        lookup:
+          operation?.lookup && typeof operation.lookup === 'object' && !Array.isArray(operation.lookup)
+            ? operation.lookup
+            : undefined,
+      };
+      return cloned;
+    }
     cloned.mongoQuery = cloned.mongoQuery || {};
     cloned.queryParams = cloned.queryParams || {};
     cloned.resultObjectMapping = cloned.resultObjectMapping || {};
@@ -253,7 +1409,19 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private sanitizeQuery(q: NamedQueryDefinition): NamedQueryDefinition {
+    if (q.source === 'graphql')
+      return {
+        source: 'graphql',
+        name: q.name?.trim() || undefined,
+        ...(q.description !== undefined ? { description: q.description } : {}),
+        graphql: q.graphql,
+      };
+    const { graphql: inactiveGraphql, usedBy, ...databaseFields } = q;
     return {
+      ...databaseFields,
+      ...(q.source === 'database' ? { source: 'database' as const } : {}),
+      ...(q.description !== undefined ? { description: q.description } : {}),
+      ...(q.brandIdFieldPath !== undefined ? { brandIdFieldPath: q.brandIdFieldPath } : {}),
       name: q.name?.trim() || undefined,
       collectionName: q.collectionName?.trim() || '',
       mongoQuery: q.mongoQuery || {},
@@ -261,7 +1429,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       resultObjectMapping: q.resultObjectMapping || {},
       sort: q.sort && q.sort.length > 0 ? q.sort : undefined,
       expandRelations: !!q.expandRelations,
-      relatedRecordFilters: q.relatedRecordFilters && q.relatedRecordFilters.length > 0 ? q.relatedRecordFilters : undefined
+      relatedRecordFilters:
+        q.relatedRecordFilters && q.relatedRecordFilters.length > 0 ? q.relatedRecordFilters : undefined,
     };
   }
 
@@ -291,15 +1460,21 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   private rememberDeleteModalTrigger(): void {
     const el = document.activeElement;
-    this.deleteModalTrigger = el instanceof HTMLElement ? el : null;
+    this.deleteModalTrigger =
+      el instanceof HTMLElement ? (el.closest('details')?.querySelector('summary') ?? el) : null;
   }
 
   private restoreEditModalTrigger(): void {
-    if (!this.editModalTrigger) return;
     const target = this.editModalTrigger;
+    const name = this.selectedQuery?.name;
     this.editModalTrigger = null;
-    if (!document.contains(target)) return;
-    setTimeout(() => target.focus(), 0);
+    setTimeout(() => {
+      const fallback = name ? document.querySelector<HTMLElement>(`[data-query-name="${CSS.escape(name)}"]`) : null;
+      (target && document.contains(target)
+        ? target
+        : fallback || document.getElementById('named-query-create')
+      )?.focus();
+    }, 0);
   }
 
   private restoreDeleteModalTrigger(): void {
@@ -311,13 +1486,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private asErrorMessage(err: unknown): string {
-    if (err instanceof Error) return err.message;
     if (typeof err === 'object' && err !== null) {
-      const maybe = err as { message?: string; error?: { message?: string } };
+      const maybe = err as { message?: string; error?: { message?: string; errors?: { detail?: string }[] } };
+      if (maybe.error?.errors?.[0]?.detail) return maybe.error.errors[0].detail;
       if (typeof maybe.message === 'string' && maybe.message) return maybe.message;
       if (maybe.error && typeof maybe.error.message === 'string') return maybe.error.message;
     }
-    return String(err);
+    return err instanceof Error ? err.message : String(err);
   }
 
   private t(key: string, defaultValue: string, options?: Record<string, unknown>): string {

@@ -242,6 +242,12 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
         if (name === 'agendaQueue' && Array.isArray(source.jobs)) {
             source.jobs = normalizeAgendaJobsConfig(source.jobs);
         }
+        const appendAuthRules = name === 'auth' && Array.isArray(source.rules)
+            && !(Array.isArray(source._dontMerge) && source._dontMerge.includes('rules'));
+        const previousAuthRules = appendAuthRules && Array.isArray(merged.rules) ? merged.rules : [];
+        // Independent auth rules must not merge with, or apply nested directives to,
+        // earlier rules by array index. Explicit replacement keeps the existing path.
+        if (appendAuthRules) delete merged.rules;
         applyDontMerge(merged, source);
         if (name === 'agendaQueue') {
             merged = mergeAgendaQueueConfig(merged, source);
@@ -251,6 +257,10 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
             }) as RedboxConfigMap;
         } else {
             _.merge(merged, source);
+        }
+        if (appendAuthRules) {
+            // Only identical grants collapse; differing flags or branding remain separate.
+            merged.rules = _.uniqWith([...previousAuthRules, ...(merged.rules as unknown[])], _.isEqual);
         }
     }
     return merged;
@@ -1208,26 +1218,26 @@ export async function generatePreLiftSnapshot(appPath: string, hookConfigs: Hook
     const filePath = path.join(debugDir, 'pre-lift-config.json');
 
     const _ = require('lodash') as typeof import('lodash');
-    let mergedConfig = _.cloneDeep(Config);
+    const mergedConfig = _.cloneDeep(Config) as RedboxConfigMap;
+    // Collect each hook's layers and merge once per config name, as generated shims do.
+    const hookLayers: Record<string, RedboxConfigMap[]> = {};
 
     for (const hook of hookConfigs) {
         try {
             const hookModule = require(hook.module) as { registerRedboxConfig?: () => Record<string, unknown> };
             if (typeof hookModule.registerRedboxConfig === 'function') {
                 const hookConfig = hookModule.registerRedboxConfig();
-                mergedConfig = Object.keys(hookConfig).reduce((config, name) => {
-                    config[name] = mergeRedboxConfig(
-                        name,
-                        (config[name] as RedboxConfigMap) ?? {},
-                        (hookConfig[name] as RedboxConfigMap) ?? {}
-                    );
-                    return config;
-                }, mergedConfig as RedboxConfigMap);
+                for (const name of Object.keys(hookConfig)) {
+                    (hookLayers[name] ??= []).push((hookConfig[name] as RedboxConfigMap) ?? {});
+                }
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             log.warn(`Could not load config from ${hook.name} for snapshot: ${message}`);
         }
+    }
+    for (const [name, layers] of Object.entries(hookLayers)) {
+        mergedConfig[name] = mergeRedboxConfig(name, (mergedConfig[name] as RedboxConfigMap) ?? {}, ...layers);
     }
 
     const snapshot = {

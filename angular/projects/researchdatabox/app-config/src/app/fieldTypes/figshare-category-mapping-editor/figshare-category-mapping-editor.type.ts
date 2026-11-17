@@ -12,6 +12,8 @@ interface CategoryMappingRow {
   standalone: false
 })
 export class FigshareCategoryMappingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  get idPrefix(): string { return this.id + '-category-mapping'; }
+
   private mappingRows: CategoryMappingRow[] = [];
 
   ngOnInit(): void {

@@ -53,6 +53,8 @@ export interface DashboardTableConfig {
 
 /** Complete, independent settings for one workflow stage or view step. */
 export interface DashboardSettings {
+  /** Optional page size; omission preserves the legacy 10 rows per page. */
+  rowsPerPage?: 10 | 25 | 50 | 100;
   searchable: boolean;
   showStageTitle: boolean;
   tableConfig: {

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Export</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="export" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Records &amp; reporting</span><span>/</span><span>Export</span></nav>
+      <header class="ph">
+        <div><h1>Export</h1><p>Download records of one type, optionally limited to a modification date range.</p></div>
+      </header>
+
+      <div class="split">
+        <div class="split-main" style="flex-basis: 420px">
+          <div class="card">
+            <div class="card-h"><h2>New export</h2></div>
+            <div class="card-b" style="display: flex; flex-direction: column; gap: 16px">
+              <div class="field"><label for="e-rt">Record type</label><select id="e-rt" class="inp"><option>Plans (rdmp)</option><option>Data records</option><option>Data publications</option></select></div>
+              <fieldset style="border: 0; padding: 0; margin: 0">
+                <legend class="lbl" style="margin-bottom: 6px">Modified between</legend>
+                <div class="fgrid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+                  <div class="field"><label for="e-f" class="hint" style="font-weight: 400">From</label><input id="e-f" class="inp" placeholder="dd/mm/yyyy"></div>
+                  <div class="field"><label for="e-t" class="hint" style="font-weight: 400">To</label><input id="e-t" class="inp" placeholder="dd/mm/yyyy"></div>
+                </div>
+                <span class="hint">Leave both blank to export all dates.</span>
+              </fieldset>
+              <fieldset style="border: 0; padding: 0; margin: 0">
+                <legend class="lbl" style="margin-bottom: 6px">Format</legend>
+                <div style="display: grid; gap: 8px">
+                  <label style="display: flex; gap: 10px; align-items: flex-start; border: 2px solid #0d6efd; border-radius: 6px; padding: 10px 12px; font-weight: 400; background: #f5f9ff"><input type="radio" name="fmt" checked style="margin-top: 4px"><span><b>CSV</b><span class="sub">Prepared in the background. You’ll find it under Recent exports when ready.</span></span></label>
+                  <label style="display: flex; gap: 10px; align-items: flex-start; border: 1px solid #c9cdd2; border-radius: 6px; padding: 10px 12px; font-weight: 400"><input type="radio" name="fmt" style="margin-top: 4px"><span><b>JSON</b><span class="sub">Downloads directly in your browser.</span></span></label>
+                </div>
+              </fieldset>
+              <div><button class="btn btn-primary" type="button">Prepare export</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="split-main">
+          <div class="card">
+            <div class="card-h"><h2>Recent exports</h2><span class="meta">Refreshes automatically</span></div>
+            <div class="tbl-wrap"><table class="tbl">
+              <thead><tr><th>Requested</th><th>Record type</th><th>Date range</th><th>Status</th><th>Expires</th><th class="act">Actions</th></tr></thead>
+              <tbody>
+                <tr><td>[dd/mm/yyyy hh:mm]</td><td>Plans</td><td class="small">All dates</td><td><span class="badge info">Preparing</span></td><td class="muted">—</td><td class="act"><button class="btn btn-ghost btn-sm" type="button">Cancel</button></td></tr>
+                <tr><td>[dd/mm/yyyy hh:mm]</td><td>Plans</td><td class="small">01/10/2026 – 31/10/2026</td><td><span class="badge ok">Ready</span></td><td class="small">[in 6 days]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Download</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td>[dd/mm/yyyy hh:mm]</td><td>Data records</td><td class="small">All dates</td><td><span class="badge err">Failed</span></td><td class="muted">—</td><td class="act"><button class="btn btn-ghost btn-sm" type="button">Try again</button></td></tr>
+              </tbody>
+            </table></div>
+            <div class="card-f"><span>Placeholder rows show each status. Empty state: “No exports yet”.</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">This follows the async export flow the site now serves after the rebuild (record type, “Prepare export”, recent CSV exports). The changes are the shared page header, the card layout, format options as labelled choices, and status badges on jobs.</p>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

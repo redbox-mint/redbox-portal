@@ -1,51 +1,10 @@
-:root {
-  --figshare-border: #d4dfdd;
-  --figshare-bg: #eef3f1;
-  --figshare-accent: #146b7f;
-  --figshare-warning: #8a5b00;
-  --figshare-danger: #8d1f2d;
-}
-
-.figshare-panel {
-  border: 1px solid var(--figshare-border);
-  border-radius: 0.375rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.figshare-stat {
-  border: 1px solid var(--figshare-border);
-  border-radius: 0.375rem;
-  padding: 0.75rem 1rem;
-  background: var(--figshare-bg);
-  min-width: 8rem;
-}
-
-.figshare-stat__value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.figshare-badge {
-  display: inline-block;
-  border: 1px solid currentcolor;
-  border-radius: 999px;
-  padding: 0 0.5rem;
-  font-size: 0.75rem;
-  line-height: 1.4rem;
-}
-
-/* Search results inside the mapping picker scroll rather than growing the modal. */
-.figshare-picker-list {
-  max-height: 16rem;
-  overflow-y: auto;
-}
-
-.figshare-badge--historical {
-  color: var(--figshare-danger);
-}
-
-.figshare-badge--warning {
-  color: var(--figshare-warning);
+.rb-admin {
+  .rb-figshare-form { padding: 20px; }
+  .rb-figshare-form h2 { font-size: 20px; margin: 0 0 16px; }
+  .rb-figshare-form h3, .rb-figshare-form legend { font-size: 16px; }
+  .rb-figshare-form .form-check { margin-bottom: 14px; }
+  .rb-figshare-steps { display: flex; flex-wrap: wrap; gap: 20px; list-style: none; padding: 12px 0; margin: 0 0 20px; border-bottom: 1px solid var(--admin-line); color: var(--admin-muted); }
+  .rb-figshare-steps .fw-bold { color: var(--admin-heading); }
+  .rb-figshare-explainer { display: grid; gap: 8px; padding-left: 20px; font-size: 14px; }
+  .figshare-picker-list { max-height: 260px; overflow-y: auto; }
 }

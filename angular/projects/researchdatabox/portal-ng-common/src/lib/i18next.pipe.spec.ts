@@ -89,6 +89,16 @@ describe('I18NextPipe', () => {
     expect(fixture.nativeElement.querySelector('.translated')?.textContent.trim()).toBe('greeting');
   });
 
+  it('should render a recovery default while translations are initializing', () => {
+    translationService.setInitializing(true);
+    const fixture = TestBed.createComponent(PipeHostComponent);
+    fixture.componentInstance.key = 'admin-retry';
+    fixture.componentInstance.options = { defaultValue: 'Retry' };
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.translated')?.textContent.trim()).toBe('Retry');
+  });
+
   it('should return an empty string for null or undefined keys', () => {
     const fixture = TestBed.createComponent(PipeHostComponent);
     fixture.componentInstance.key = null;

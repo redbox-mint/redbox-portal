@@ -166,6 +166,70 @@ describe('HarvestRunService', function () {
     service = new HarvestRunServiceClass();
   });
 
+  describe('global statistics', () => {
+    const now = '2026-11-06T12:00:00.000Z';
+    const boundary = '2026-10-30T12:00:00.000Z';
+    function fixture(rows: Array<Record<string, any>>) {
+      const matches = (row: Record<string, any>, where: Record<string, any>) => Object.entries(where).every(([key, value]) =>
+        typeof value === 'object'
+          ? Object.entries(value).every(([operator, bound]) => row[key] != null && (operator === '>=' ? row[key] >= bound : operator === '>' ? row[key] > bound : row[key] <= bound))
+          : row[key] === value
+      );
+      const run = (global as any).HarvestRun;
+      run.count.callsFake(async (where: Record<string, any>) => rows.filter(row => matches(row, where)).length);
+      const query = createChainableQuery(rows.filter(row => matches(row, {
+        brandId: 'brand-1', status: 'completed', completedAt: { '>': '', '<=': now },
+      })).sort((a, b) => b.completedAt.localeCompare(a.completedAt)).slice(0, 1));
+      run.find.returns(query);
+      return { run, query };
+    }
+
+    it('counts inclusive start-time boundaries, exact badge statuses, and all currently running runs', async () => {
+      sinon.useFakeTimers({ now: Date.parse(now), toFake: ['Date'] });
+      const { run, query } = fixture([
+        { brandId: 'brand-1', status: 'failed', startedAt: boundary },
+        { brandId: 'brand-1', status: 'failed', startedAt: now },
+        { brandId: 'brand-1', status: 'failed', startedAt: '2026-10-30T11:59:59.999Z' },
+        { brandId: 'brand-1', status: 'failed', startedAt: '2026-11-06T12:00:00.001Z' },
+        ...['completed_with_errors', 'timed_out', 'aborted', 'running'].map(status => ({ brandId: 'brand-1', status, startedAt: now })),
+        { brandId: 'brand-1', status: 'running', startedAt: '2020-01-01T00:00:00.000Z' },
+        { brandId: 'other', status: 'running', startedAt: now },
+        { brandId: 'other', status: 'failed', startedAt: now },
+      ]);
+      expect(await service.getStatistics({ id: 'brand-1' })).to.deep.equal({ runsLast7Days: 6, failedLast7Days: 2, runningNow: 2, lastSuccessfulRun: null });
+      expect(run.count.callCount).to.equal(3);
+      expect(run.count.firstCall.args[0]).to.deep.equal({ brandId: 'brand-1', startedAt: { '>=': boundary, '<=': now } });
+      expect(run.find.firstCall.args[0]).to.deep.equal({ brandId: 'brand-1', status: 'completed', completedAt: { '>': '', '<=': now } });
+      expect(query.limit.calledOnceWithExactly(1)).to.equal(true);
+      expect(query.sort.calledOnceWithExactly([{ completedAt: 'DESC' }, { id: 'DESC' }])).to.equal(true);
+    });
+
+    it('returns the latest completed success across retained history, scoped to the brand', async () => {
+      sinon.useFakeTimers({ now: Date.parse(now), toFake: ['Date'] });
+      fixture([
+        { brandId: 'brand-1', status: 'completed', completedAt: '2026-10-01T00:00:00.000Z', sourceName: 'older' },
+        { brandId: 'brand-1', status: 'completed', completedAt: boundary, sourceName: 'latest success' },
+        { brandId: 'brand-1', status: 'completed_with_errors', completedAt: now, sourceName: 'warning' },
+        { brandId: 'other', status: 'completed', completedAt: now, sourceName: 'foreign' },
+        { brandId: 'brand-1', status: 'completed', completedAt: '2027-01-01T00:00:00.000Z', sourceName: 'future' },
+        { brandId: 'brand-1', status: 'completed', completedAt: '', sourceName: 'missing time' },
+      ]);
+      expect((await service.getStatistics({ id: 'brand-1' })).lastSuccessfulRun).to.deep.equal({ completedAt: boundary, sourceName: 'latest success' });
+    });
+
+    it('returns zero counts and no success for an empty brand', async () => {
+      fixture([]);
+      expect(await service.getStatistics({ id: 'brand-1' })).to.deep.equal({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    });
+
+    it('refuses statistics without a brand before querying', async () => {
+      const { run } = fixture([]);
+      await assert.rejects(() => service.getStatistics({}), /Brand is required/);
+      expect(run.count.called).to.equal(false);
+      expect(run.find.called).to.equal(false);
+    });
+  });
+
   afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).RecordsService;
@@ -2204,13 +2268,13 @@ describe('HarvestRunService', function () {
         expect(rewritten.harvestSource).to.equal(null);
         expect(runtime.storageService.updateMeta.firstCall.args[2].harvestSource).to.equal(null);
 
-        const auditCount = runtime.realRecordsService.queueService.now.callCount;
+        const auditCount = runtime.storageService.createRecordAudit.callCount;
         for (const replaySource of [source, restored.metadata]) {
           expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
           expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(restored);
         }
         expect(runtime.storageService.updateMeta.callCount).to.equal(2);
-        expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+        expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
         expect(runtime.persistedRecords.get(foreign[0].oid)).to.deep.equal(foreignBefore);
       });
 
@@ -2226,11 +2290,11 @@ describe('HarvestRunService', function () {
           applicationState: 'not-applied',
           nonApplicationReason: 'lifecycle-conflict',
         });
-        const auditCount = runtime.realRecordsService.queueService.now.callCount;
+        const auditCount = runtime.storageService.createRecordAudit.callCount;
 
         expect(await runtime.rewrite({ title: 'B', status: 'Draft', sourceMetadata: 'changed-source' })).to.equal(false);
         expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
-        expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+        expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
         for (const replaySource of [source, before.metadata]) {
           expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
         }
@@ -2378,7 +2442,7 @@ describe('HarvestRunService', function () {
     expect(before.metadata.normalised_status).to.equal('approved');
     expect(before.harvestSource).to.include({ algorithm: 'redbox-legacy-harvest-source-v1', mode: 'replace' });
     expect(before.harvestSource.metadataHash).to.match(/^[a-f0-9]{64}$/);
-    const auditCount = runtime.realRecordsService.queueService.now.callCount;
+    const auditCount = runtime.storageService.createRecordAudit.callCount;
     expect(auditCount).to.be.greaterThan(0);
 
     clock.tick(60_000);
@@ -2399,7 +2463,7 @@ describe('HarvestRunService', function () {
     expect(runtime.storageService.create.calledOnce).to.equal(true);
     expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
     expect(runtime.normalize.calledOnce).to.equal(true);
-    expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+    expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
   });
 
   it('persists legacy value, removal and array changes and skips each subsequent raw replay', async function () {
@@ -2432,10 +2496,10 @@ describe('HarvestRunService', function () {
         ...source,
         normalised_status: source.status === 'Completed' ? 'approved' : 'edit',
       });
-      const auditCount = runtime.realRecordsService.queueService.now.callCount;
+      const auditCount = runtime.storageService.createRecordAudit.callCount;
       expect((await runtime.submit(source))[0].message).to.include('skip update');
       expect(runtime.storageService.updateMeta.callCount).to.equal(index + 1);
-      expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+      expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
       expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(committed);
       previous = committed;
     }
@@ -2473,7 +2537,7 @@ describe('HarvestRunService', function () {
     expect(created[0].status).to.equal(true);
     const before = structuredClone(runtime.persistedRecords.get(created[0].oid));
     const changed = { ...source, status: 'Completed' };
-    const auditCount = runtime.realRecordsService.queueService.now.callCount;
+    const auditCount = runtime.storageService.createRecordAudit.callCount;
     runtime.storageService.updateMeta.onFirstCall().resolves({
       success: false,
       applicationState: 'not-applied',
@@ -2482,7 +2546,7 @@ describe('HarvestRunService', function () {
 
     expect((await runtime.submit(changed))[0].status).to.equal(false);
     expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
-    expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+    expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
     expect((await runtime.submit(changed))[0].status).to.equal(true);
     expect(runtime.storageService.updateMeta.callCount).to.equal(2);
     const committed = structuredClone(runtime.persistedRecords.get(created[0].oid));

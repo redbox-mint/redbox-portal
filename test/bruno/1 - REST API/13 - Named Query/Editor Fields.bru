@@ -1,0 +1,22 @@
+meta {
+  name: Editor Fields
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/editor/fields?collectionName=record&recordType=rdmp
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+}
+
+tests {
+  test("Request succeeds", () => expect(res.getStatus()).to.equal(200));
+  test("Stored record field context", () => expect(JSON.stringify(res.getBody().data)).to.include("redboxOid"));
+}

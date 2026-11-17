@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import express from 'express';
+import supertest from 'supertest';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import {
@@ -187,6 +190,47 @@ describe('HTTP config security helpers', function () {
   });
 
   describe('body parser skip path helpers', function () {
+    it('keeps unrelated form and multipart routes containing the email substring on Skipper', async () => {
+      const previous = sails.config.http;
+      const app = express();
+      app.use(http.middleware.myBodyParser as any);
+      app.use((req, res) => res.json({ body: req.body ?? null, multipart: typeof (req as any).file === 'function' }));
+      try {
+        for (const root of ['', '/portal/root']) {
+          sails.config.http = { ...previous, rootContext: root };
+          const unrelated = `${root}/app/email-templates/recordmeta/rdmp`;
+          const form = await supertest(app).post(unrelated).type('form').send({ title: 'Hello' }).expect(200);
+          assert.deepEqual(form.body.body, { title: 'Hello' });
+          const multipart = await supertest(app).post(unrelated).field('title', 'Multipart').expect(200);
+          assert.deepEqual(multipart.body.body, { title: 'Multipart' });
+          assert.equal(multipart.body.multipart, true);
+          const upload = await supertest(app).post(`${root}/app/email-templates/record/oid/attach`)
+            .field('title', 'Attachment').expect(200);
+          assert.equal(upload.body.multipart, true);
+          const admin = `${root}/brand/portal/app/email-templates/templates/notice/draft`;
+          const parsed = await supertest(app).put(admin).send({ content: { subject: 'Draft' } }).expect(200);
+          assert.deepEqual(parsed.body.body, { content: { subject: 'Draft' } });
+          const malformed = await supertest(app).put(admin).set('Content-Type', 'application/json').send('{').expect(400);
+          assert.equal(malformed.body.error.code, 'INVALID_TEMPLATE');
+        }
+      } finally { sails.config.http = previous; }
+    });
+    it('preserves explicit configured parser skips for admin and multipart paths', async () => {
+      const previous = sails.config.custom;
+      try {
+        sails.config.custom = { ...previous, bodyParser: { skipPaths: {
+          admin: '/:branding/:portal/app/email-templates/templates/:id/draft',
+          upload: '/:branding/:portal/record/:oid/attach',
+        } } };
+        const app = express();
+        app.use(http.middleware.myBodyParser as any);
+        app.use((req, res) => res.json({ parsed: req.body !== undefined }));
+        for (const path of ['/a/p/app/email-templates/templates/notice/draft', '/app/email-templates/record/oid/attach']) {
+          const result = await supertest(app).post(path).send({ hello: 'world' }).expect(200);
+          assert.equal(result.body.parsed, false);
+        }
+      } finally { sails.config.custom = previous; }
+    });
     it('should only match branded routes when the configured pattern includes branding and portal placeholders', function () {
       expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
       expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/file-1', ['/:branding/:portal/record/:oid/attach/:attachId'])).to.equal(true);

@@ -1,3 +1,8 @@
+import { RBValidationError } from '../model/RBValidationError';
+import { relatedHttpCandidate, RelatedHttpError } from '../related-records/http';
+import { withinRelatedResolutionDeadline } from '../related-records/resolver';
+import { relatedRefreshBodySchema, relatedMetadataSchema } from '../api-routes/groups/related-records';
+import { getEffectiveRelatedClientForm } from '../related-records/effective-form';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -17,6 +22,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { dashboardRecordFilters } from '../api-routes/groups/dashboard-records';
+import { bulkDeletedRecordsBody, deletionFiltersSchema } from '../api-routes/groups/deleted-records';
+import { deletedRecordSummary } from '../DeletedRecordSummary';
 import { pipeline } from 'node:stream/promises';
 import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, map } from 'rxjs/operators';
@@ -56,7 +64,13 @@ import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
+import {
+  FormModesConfig,
+  FormRuntimeMeta,
+  GenerationLaunchDefinition,
+  GenerationRuntimeSession,
+  FormRuntimeAction,
+} from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
   normalizeRecordValidationRequestFacts,
@@ -77,6 +91,8 @@ import {
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../RecordHttpConcurrency';
+import { GenerationActorContext, GenerationError } from '../model/generation';
+import { requireService } from '../services/generation/require-service';
 
 type AnyRecord = Record<string, unknown>;
 type ControllerRecord = AnyRecord & {
@@ -91,6 +107,28 @@ interface TusRequestExtension {
 }
 
 type HeaderValue = string | number | ReadonlyArray<string>;
+
+interface GenerationBindingServiceLike {
+  resolveActions(context: {
+    actor: GenerationActorContext;
+    brand: BrandingModel;
+    user: UserModel;
+    record: RecordModel;
+    formName?: string;
+    mode: 'view' | 'edit';
+  }): Promise<FormRuntimeAction[]>;
+  resolveCreateLaunches(
+    actor: GenerationActorContext,
+    targetRecordType: string,
+    targetFormName?: string
+  ): Promise<GenerationLaunchDefinition[]>;
+  resolveTargetSession(
+    actor: GenerationActorContext,
+    runId: string,
+    targetRecordType: string,
+    targetFormName?: string
+  ): Promise<GenerationRuntimeSession>;
+}
 
 /**
  * Package that contains all Controllers.
@@ -146,6 +184,7 @@ export namespace Controllers {
       'getType',
       'getWorkflowSteps',
       'getMeta',
+      'resolveRelatedMetadata',
       'getMetaDefault',
       'doAttachment',
       'getAttachments',
@@ -156,6 +195,7 @@ export namespace Controllers {
       'delete',
       'getRelatedRecords',
       'render',
+      'renderParties',
       'getRecordList',
       'listWorkspaces',
       'getAllDashboardTypes',
@@ -169,6 +209,7 @@ export namespace Controllers {
       'getDeletedRecord',
       'restoreRecord',
       'destroyDeletedRecord',
+      'bulkDeletedRecords',
       'renderDashboardView',
     ];
 
@@ -324,6 +365,9 @@ export namespace Controllers {
       error: unknown,
       meta?: RecordSaveResponse
     ) {
+      if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(error) && RBValidationError.classify(error) === 'validation') {
+        return this.sendResp(req, res, { status: 400, displayErrors: error.displayErrors });
+      }
       const rawType = error instanceof Error ? error.name : typeof error;
       const errorType = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(rawType) ? rawType : 'UnknownError';
       sails.log.error('record_save_request_failed', {
@@ -479,7 +523,7 @@ export namespace Controllers {
       }
       try {
         const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
-        const clientFormConfig = await this.getEffectiveClientFormConfig(
+        const clientFormConfig = await getEffectiveRelatedClientForm(
           req,
           brand,
           current,
@@ -517,6 +561,21 @@ export namespace Controllers {
 
     private getReqBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrand((req.session.branding as string) ?? '');
+    }
+
+    private getGenerationActor(req: Sails.Req, brand: BrandingModel): GenerationActorContext {
+      const user = req.user as UserModel | undefined;
+      if (!user?.id || !brand?.id) {
+        throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'An authenticated brand session is required');
+      }
+      return {
+        brandId: String(brand.id),
+        branding: String(req.param('branding') ?? brand.name),
+        portal: String(req.param('portal') ?? req.session.portal ?? ''),
+        userId: String(user.id),
+        username: String(user.username),
+        roles: (user.roles ?? []).map(role => String(role.name ?? '')).filter(Boolean),
+      };
     }
 
     private getSavedRecordPageTitle(record: AnyRecord, locals?: globalThis.Record<string, unknown>): string {
@@ -640,44 +699,6 @@ export namespace Controllers {
       };
     }
 
-    /**
-     * Build the client form used by the record metadata read and save-sync paths.
-     * The false edit lookup / edit form mode pairing is inherited from getMeta and
-     * has not been independently reviewed; keep both values explicit at call sites.
-     */
-    private async getEffectiveClientFormConfig(
-      req: Sails.Req,
-      brand: BrandingModel,
-      record: ControllerRecord,
-      formName: string,
-      formLookupEditMode: boolean,
-      formMode: FormModesConfig
-    ): Promise<FormConfigFrame | undefined> {
-      const metaMetadata = record.metaMetadata as AnyRecord | undefined;
-      const brandId = String(metaMetadata?.['brandId'] ?? brand.id);
-      const formRecord = await firstValueFrom(FormsService.getFormByName(formName, formLookupEditMode, brandId));
-      const formConfig = formRecord?.configuration;
-      if (!formConfig) {
-        return undefined;
-      }
-
-      const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[])
-        .map((role: AnyRecord) => String(role['name'] ?? ''))
-        .filter((name: string) => !!name);
-      const reusableFormDefs = sails.config.reusableFormDefinitions;
-      const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
-      return FormsService.buildClientFormConfig(
-        formConfig,
-        formMode,
-        userRoles,
-        record.metadata,
-        reusableFormDefs,
-        String(brand?.name ?? ''),
-        contextVariablesMap,
-        { user: req.user as UserModel, brand }
-      );
-    }
-
     private async getPostSaveMetadata(
       req: Sails.Req,
       brand: BrandingModel,
@@ -693,7 +714,7 @@ export namespace Controllers {
         if (typeof formName !== 'string' || formName.length === 0) {
           return null;
         }
-        const clientFormConfig = await this.getEffectiveClientFormConfig(
+        const clientFormConfig = await getEffectiveRelatedClientForm(
           req,
           brand,
           savedRecord,
@@ -719,6 +740,30 @@ export namespace Controllers {
       }
     }
 
+    public async resolveRelatedMetadata(req: Sails.Req, res: Sails.Res) {
+      const startedAt = Date.now();
+      const headers = { 'Cache-Control': 'private, no-store' };
+      if (!req.isAuthenticated()) return this.sendResp(req, res, { status: 403, headers, displayErrors: [{ detail: 'Authentication is required.' }] });
+      try {
+        if (Buffer.byteLength(JSON.stringify(req.body ?? {}), 'utf8') > 65536) throw new RelatedHttpError(400);
+        const parsed = relatedRefreshBodySchema.safeParse(req.body);
+        if (!parsed.success) throw new RelatedHttpError(400);
+        const context = { brand: this.getReqBrand(req), user: req.user as unknown as UserModel, audience: 'browser' as const };
+        const { root, options } = await relatedHttpCandidate(parsed.data, context, this.recordsService, startedAt);
+        const relatedMetadata = relatedMetadataSchema.parse(await withinRelatedResolutionDeadline(() =>
+          this.recordsService.resolveRelatedMetadata(root, context, {
+            relations: parsed.data.relations.map(relationId => ({ relationId })),
+          }, options), startedAt));
+        if (Object.values(relatedMetadata).some(entry => entry.issues.some(issue => issue.code === 'configuration-error')))
+          throw new RelatedHttpError(500);
+        const data = { relatedMetadata };
+        return this.sendResp(req, res, { data, v1: data, headers });
+      } catch (error) {
+        return this.sendResp(req, res, { status: error instanceof RelatedHttpError ? error.status : 500,
+          displayErrors: [{ detail: 'Related metadata could not be resolved.' }], headers });
+      }
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ?? '';
@@ -727,19 +772,23 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.recordsService.getMeta(oid);
+        let record = await this.recordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, { status: 404 });
         }
         const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
         if (hasViewAccess) {
           const representation = recordRepresentationConcurrency(record);
+          const consumerView = req.query.consumerView === 'true';
+          if (consumerView) {
+            record = await this.recordsService.getConsumerView(record as unknown as AnyRecord, brand, req.user) as unknown as typeof record;
+          }
           const formName = record.metaMetadata?.['form'] as string | undefined;
           if (formName) {
             try {
               const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
-              const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
-              const clientFormConfig = await this.getEffectiveClientFormConfig(
+              const formMode: FormModesConfig = !consumerView && hasEditAccess ? 'edit' : 'view';
+              const clientFormConfig = await getEffectiveRelatedClientForm(
                 req,
                 brand,
                 record,
@@ -1176,7 +1225,7 @@ export namespace Controllers {
           reusableFormDefs,
           String(brand?.name ?? ''),
           contextVariablesMap,
-          { user: req.user as UserModel, brand }
+          { user: req.user as UserModel, brand, record: recordData as RecordModel, ...(typeof req.session?.portal === 'string' ? { portal: req.session.portal } : {}) }
         );
         const viewMetadata = formMode === 'view' && recordData?.metadata
           ? FormRecordConsistencyService.metadataForViewForm(recordData.metadata as AnyRecord, mergedForm)
@@ -1201,6 +1250,49 @@ export namespace Controllers {
           branding: brand,
           formConfig: mergedForm,
         });
+        const runtimeMeta: FormRuntimeMeta = { generationEnabled: false };
+        if (sails.config.generation?.enabled === true) {
+          const explicitGenerationRun = typeof req.query.generationRunId === 'string' && !!req.query.generationRunId.trim();
+          try {
+            const generationMeta: FormRuntimeMeta = { generationEnabled: true };
+            const generationBindingService = requireService<GenerationBindingServiceLike>(
+              'generationbindingservice',
+              ['resolveActions', 'resolveCreateLaunches', 'resolveTargetSession'],
+            );
+            const generationActor = this.getGenerationActor(req, brand);
+            if (currentRec) {
+              generationMeta.runtimeActions = await generationBindingService.resolveActions({
+                actor: generationActor,
+                brand,
+                user: req.user as UserModel,
+                record: currentRec,
+                formName: form?.name ?? formParam,
+                mode: editMode ? 'edit' : 'view',
+              });
+            } else {
+              if (typeof req.query.generationRunId === 'string' && req.query.generationRunId.trim()) {
+                generationMeta.generationSession = await generationBindingService.resolveTargetSession(
+                  generationActor,
+                  req.query.generationRunId.trim(),
+                  recordType,
+                  form?.name ?? formParam,
+                );
+              }
+              if (editMode) {
+                generationMeta.generationLaunches = await generationBindingService.resolveCreateLaunches(
+                  generationActor,
+                  recordType,
+                  form?.name ?? formParam,
+                );
+              }
+            }
+            Object.assign(runtimeMeta, generationMeta);
+          } catch (error) {
+            // Explicit run requests must retain their authorization and failure contract.
+            if (explicitGenerationRun) throw error;
+            sails.log.warn('record_generation_metadata_unavailable');
+          }
+        }
 
         const formFingerprint = await this.generatedFormFingerprint(
           brand,
@@ -1236,6 +1328,7 @@ export namespace Controllers {
               validationOperations,
               formFingerprint,
               ...(representation?.metadata ?? {}),
+              ...runtimeMeta,
             },
             prehydrate,
             headers: representation?.headers,
@@ -1249,6 +1342,14 @@ export namespace Controllers {
           });
         }
       } catch (error) {
+        if (error instanceof GenerationError) {
+          return this.sendResp(req, res, {
+            status: error.status,
+            data: { error: error.toSafeJSON() },
+            displayErrors: [{ code: error.code, detail: `generation-error-${error.code.toLowerCase().replaceAll('_', '-')}` }],
+            v1: { error: error.toSafeJSON() },
+          });
+        }
         const msg = (error as { message?: string }).message;
         const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
         return this.sendResp(req, res, {
@@ -1345,6 +1446,9 @@ export namespace Controllers {
           return this.sendSaveFailure(req, res, createResponse, createResponse.message);
         }
       } catch (error) {
+        if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(error) && RBValidationError.classify(error) === 'validation') {
+          return this.sendResp(req, res, { status: 400, displayErrors: error.displayErrors });
+        }
         return this.sendResp(req, res, {
           errors: [this.asError(error)],
           displayErrors: [{ detail: 'Failed to save record' }],
@@ -1413,7 +1517,7 @@ export namespace Controllers {
         try {
           const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
           const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
-          const clientFormConfig = await this.getEffectiveClientFormConfig(
+          const clientFormConfig = await getEffectiveRelatedClientForm(
             req,
             brand,
             record,
@@ -1510,6 +1614,40 @@ export namespace Controllers {
       } catch (error) {
         return this.sendUnexpectedSaveFailure(req, res, 'purge', error);
       }
+    }
+
+    public async bulkDeletedRecords(req: Sails.Req, res: Sails.Res) {
+      const parsed = bulkDeletedRecordsBody.safeParse(req.body);
+      if (!parsed.success) return this.sendResp(req, res, { status: 400 });
+      const brand = this.getReqBrand(req);
+      const user = req.user ?? {};
+      const results: { oid: string; status: string; reason: string }[] = [];
+      for (const item of parsed.data.items) {
+        try {
+          const deleted = await this.recordsService.getDeletedRecordMeta(item.oid, brand);
+          if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
+            results.push({ oid: item.oid, status: 'failed', reason: 'not-found-or-forbidden' });
+            continue;
+          }
+          const precondition = parsePublicRecordConcurrencyRequest({ 'if-match': item.entityTag }, item.oid, { formBacked: false });
+          if (!precondition.valid) {
+            results.push({ oid: item.oid, status: 'failed', reason: 'invalid-precondition' });
+            continue;
+          }
+          const context = await this.saveContext(req, parsed.data.action === 'restore' ? 'restore' : 'purge', undefined, undefined, precondition.context);
+          const result = parsed.data.action === 'restore'
+            ? await this.recordsService.restoreRecord(item.oid, user, brand, context)
+            : await this.recordsService.destroyDeletedRecord(item.oid, user, brand, context);
+          const unknown = result.outcome === 'unknown';
+          const succeeded = !unknown && result.wasPersisted();
+          results.push({ oid: item.oid, status: unknown ? 'unknown' : succeeded ? 'succeeded' : 'failed',
+            reason: unknown ? 'outcome-unknown' : succeeded ? 'completed' : result.problems?.some(problem => problem.kind === 'conflict') ? 'record-changed' : 'unsuccessful' });
+        } catch {
+          // A service can throw after committing; do not advertise a safe retry.
+          results.push({ oid: item.oid, status: 'unknown', reason: 'outcome-unknown' });
+        }
+      }
+      return this.sendResp(req, res, { data: { results }, v1: { results } });
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
@@ -2625,8 +2763,27 @@ export namespace Controllers {
       return res.redirect(url);
     }
 
+    /** The admin page uses the ordinary party dashboard and its existing data APIs. */
+    public renderParties(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      const titleLabel = this.translate('admin-nav-party', locals);
+      return this.sendView(req, res, 'dashboard', {
+        recordType: 'party', packageType: 'party', dashboardType: 'standard', dashboardView: '',
+        adminParties: true, showAdminSideBar: true, titleLabel,
+        title: this.formatDocumentTitle(titleLabel, locals),
+      });
+    }
+
     public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
+      // Keep old bookmarks in the admin shell for admins; other dashboard users
+      // retain the existing page and its permissions.
+      if (recordType === 'party' && req.user) {
+        const adminRole = RolesService.getRoleByName(this.getReqBrand(req), 'Admin');
+        if (adminRole && UsersService.hasRole(req.user, adminRole)) {
+          return this.renderParties(req, res);
+        }
+      }
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
@@ -2700,6 +2857,7 @@ export namespace Controllers {
     }
 
     public async getRecordList(req: Sails.Req, res: Sails.Res) {
+      if (!dashboardRecordFilters.safeParse(req.query).success) return this.sendResp(req, res, { status: 400 });
       const brand: BrandingModel = this.getReqBrand(req);
 
       const editAccessOnly = req.query.editOnly;
@@ -2786,6 +2944,8 @@ export namespace Controllers {
     }
 
     public async getDeletedRecordList(req: Sails.Req, res: Sails.Res) {
+      const deletionFilters = deletionFiltersSchema.safeParse(req.query);
+      if (!deletionFilters.success) return this.sendResp(req, res, { status: 400 });
       const brand: BrandingModel = this.getReqBrand(req);
       const editAccessOnly = req.query.editOnly;
 
@@ -2847,7 +3007,8 @@ export namespace Controllers {
           sort,
           filterFields,
           filterString,
-          filterMode
+          filterMode,
+          deletionFilters.data
         );
         if (response) {
           this.sendResp(req, res, { data: response });
@@ -2904,7 +3065,7 @@ export namespace Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = (packageType as string).split(',');
       }
-      const results = await this.recordsService.getRecords(
+      const results = await this.recordsService.getRecordsForDisplay(
         workflowState,
         recordType,
         start,
@@ -2969,7 +3130,8 @@ export namespace Controllers {
       sort: unknown = undefined,
       filterFields: unknown = undefined,
       filterString: unknown = undefined,
-      filterMode: unknown = undefined
+      filterMode: unknown = undefined,
+      deletionFilters?: { deletedWithin?: string; deletedBy?: string }
     ) {
       const username = user['username'] as string;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -2991,7 +3153,8 @@ export namespace Controllers {
         sort,
         filterFields,
         filterString,
-        filterMode
+        filterMode,
+        deletionFilters
       );
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve deleted records!`);
@@ -2999,8 +3162,8 @@ export namespace Controllers {
       }
 
       const totalItems = results.totalItems;
-      const startIndex = start as number;
-      const noItems = rows as number;
+      const startIndex = Number(start ?? 0);
+      const noItems = Number(rows ?? 10);
       const pageNumber = startIndex / noItems + 1;
 
       const response: { [key: string]: unknown } = {};
@@ -3015,6 +3178,7 @@ export namespace Controllers {
         const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
         const delRecordMeta = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
+        Object.assign(item, deletedRecordSummary(doc, brand.id, key => TranslationService.t(key)));
         item['oid'] = doc['redboxOid'];
         item['revision'] = recordRepresentationRevision(doc);
         item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';

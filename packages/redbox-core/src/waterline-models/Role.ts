@@ -7,6 +7,9 @@ export class RoleClass {
   @Attr({ type: 'string', required: true })
   public name!: string;
 
+  @Attr({ type: 'string', maxLength: 500 })
+  public description?: string;
+
   @BelongsTo('brandingconfig')
   public branding?: string | number;
 
@@ -21,6 +24,7 @@ export const RoleWLDef = toWaterlineModelDef(RoleClass);
 export interface RoleAttributes extends Sails.WaterlineAttributes {
   branding?: string | number | BrandingConfigAttributes;
   name: string;
+  description?: string;
   users?: unknown[];
 }
 

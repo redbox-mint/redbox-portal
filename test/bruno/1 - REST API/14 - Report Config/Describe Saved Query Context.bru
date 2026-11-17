@@ -1,0 +1,33 @@
+meta {
+  name: Describe Saved Query Context
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/default/rdmp/api/report-config/named-query/listRDMPRecords/description?property=title&multivalue=false
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  X-CSRF-Token: {{reportEditorCsrf}}
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "reportEditorCookie" });
+}
+
+tests {
+  test("Describes parameters, output and separate template contexts", () => {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.parameters).to.be.an("array");
+    expect(data.result.fields).to.be.an("array");
+    expect(data.templateContexts.display.fields.find(f => f.path === "recordTableMeta.val").type).to.equal("undefined");
+    expect(data.templateContexts.csv.fields.find(f => f.path === "recordTableMeta.val").type).to.equal("string");
+  });
+}

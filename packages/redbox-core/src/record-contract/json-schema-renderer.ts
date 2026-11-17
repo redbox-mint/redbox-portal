@@ -212,6 +212,11 @@ function addAnnotations(schema: MutableSchema, annotations: ContractNodeAnnotati
   if (!annotations) {
     return schema;
   }
+  if (annotations.writeOnly !== undefined) {
+    if (typeof annotations.writeOnly !== 'boolean')
+      throw new RecordJsonSchemaRendererError('writeOnly must be boolean.');
+    schema.writeOnly = annotations.writeOnly;
+  }
   if (annotations.description !== undefined) {
     if (typeof annotations.description !== 'string') {
       throw new RecordJsonSchemaRendererError('Record-contract descriptions must be strings.');

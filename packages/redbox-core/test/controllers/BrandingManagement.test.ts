@@ -67,6 +67,9 @@ function stubBrandingService(sandbox: sinon.SinonSandbox): Record<string, sinon.
   const methods = [
     'getAdminState',
     'saveDraft',
+    'resetDraft',
+    'previewImage',
+    'uploadImage',
     'uploadTypefaceFace',
     'removeTypefaceFace',
     'useDefaultTypography',
@@ -131,6 +134,8 @@ describe('Branding management controllers and contracts', function () {
   let stubs: Record<string, sinon.SinonStub>;
   let prevSails: unknown;
   let prevBrandingService: unknown;
+  let prevRolesService: unknown;
+  let prevUsersService: unknown;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
@@ -147,11 +152,19 @@ describe('Branding management controllers and contracts', function () {
       },
     };
     stubs = stubBrandingService(sandbox);
+    const g = global as unknown as Record<string, unknown>;
+    prevRolesService = g.RolesService;
+    prevUsersService = g.UsersService;
+    stubs.getBrand = sandbox.stub().callsFake(name => ({ id: name }));
+    g.RolesService = { getAdminFromBrand: brand => ({ id: `${brand.id}-admin` }) };
+    g.UsersService = { hasRole: (user, role) => user.roles?.some(item => item.id === role.id) };
   });
 
   afterEach(function () {
     sandbox.restore();
     const g = global as unknown as Record<string, unknown>;
+    g.RolesService = prevRolesService;
+    g.UsersService = prevUsersService;
     if (prevSails === undefined) {
       delete g.sails;
     } else {
@@ -204,7 +217,7 @@ describe('Branding management controllers and contracts', function () {
     ]) {
       expect(restPaths, expected).to.include(expected);
     }
-    for (const route of brandingApiRoutes) {
+    for (const route of brandingApiRoutes.filter(route => route.path.includes('/api/'))) {
       expect(route.controller).to.equal('webservice/BrandingController');
     }
     for (const expected of [
@@ -218,6 +231,64 @@ describe('Branding management controllers and contracts', function () {
       'post /:branding/:portal/app/branding/rollback/:versionId',
     ]) {
       expect(routes, expected).to.have.property(expected);
+    }
+  });
+
+  it('serves preview snapshots through the Admin image route without shared caching', async function () {
+    const app = new AjaxControllers.BrandingApp();
+    const bytes = Buffer.from('snapshot');
+    stubs.previewImage.resolves({ buffer: bytes, contentType: 'image/png' });
+    const res = { set: sandbox.stub(), contentType: sandbox.stub(), send: sandbox.stub() };
+    await app.draftImage(
+      {
+        user: { roles: [{ id: 'default-admin' }] },
+        params: { branding: 'default', portal: 'rdmp', kind: 'logo' },
+        query: { preview: 'a'.repeat(32) },
+      } as unknown as Sails.Req,
+      res as unknown as Sails.Res
+    );
+    expect(stubs.previewImage.firstCall.args).to.deep.equal(['default', 'rdmp', 'a'.repeat(32), 'logo']);
+    expect(res.set.calledWith('Cache-Control', 'no-store')).to.equal(true);
+    expect(res.set.calledWith('X-Content-Type-Options', 'nosniff')).to.equal(true);
+    expect(res.send.calledWith(bytes)).to.equal(true);
+    const route = brandingApiRoutes.find(route => route.action === 'draftImage')!;
+    expect(route.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+  });
+
+  it('exposes CSRF-protected whole-draft reset with Admin-only scoped contracts and counters', async function () {
+    const reset = brandingApiRoutes.find(route => route.action === 'resetDraft')!;
+    expect(reset.csrf).to.equal(true);
+    expect(reset.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(routes).to.have.property('post /:branding/:portal/app/branding/draft/reset');
+    const app = new AjaxControllers.BrandingApp();
+    const sent = captureSendResp(sandbox, app);
+    await app.resetDraft(
+      {
+        user: { roles: [{ id: 'other-admin' }] },
+        params: { branding: 'other' },
+        param: (key: string) => (key === 'branding' ? 'other' : undefined),
+        body: { expectedVersion: 1, expectedDraftRevision: 2 },
+      } as unknown as Sails.Req,
+      {} as Sails.Res
+    );
+    expect(stubs.resetDraft.firstCall.args[0]).to.deep.equal({
+      branding: 'other',
+      expectedVersion: 1,
+      expectedDraftRevision: 2,
+    });
+    expect(sent[0].data).to.deep.equal(ADMIN_STATE);
+  });
+
+  it('denies anonymous and foreign-brand users before reading or resetting drafts', async function () {
+    for (const action of ['draftImage', 'resetDraft']) {
+      for (const user of [undefined, { roles: [] }, { roles: [{ id: 'other-admin' }] }]) {
+        const app = new AjaxControllers.BrandingApp();
+        const sent = captureSendResp(sandbox, app);
+        await app[action]({ params: { branding: 'default' }, user } as unknown as Sails.Req, {} as Sails.Res);
+        expect(sent[0].status).to.equal(403);
+        expect(stubs.previewImage.called).to.equal(false);
+        expect(stubs.resetDraft.called).to.equal(false);
+      }
     }
   });
 
@@ -303,6 +374,45 @@ describe('Branding management controllers and contracts', function () {
       expect(sent[0].status, String(status)).to.equal(status);
     }
   });
+
+  for (const kind of ['logo', 'favicon'] as const) {
+    it(`stages AJAX ${kind} with its runtime limit, revision and brand and removes temporary files`, async function () {
+      const app = new AjaxControllers.BrandingApp();
+      const sent = captureSendResp(sandbox, app);
+      const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'brand-image-'));
+      const file = path.join(directory, 'draft.png');
+      fs.writeFileSync(file, 'image bytes');
+      const original = (global as any).BrandingLogoService;
+      (global as any).BrandingLogoService = { getMaxBytes: () => 100, getFaviconMaxBytes: () => 50 };
+      try {
+        const req = {
+          params: { branding: 'other', portal: 'rdmp' },
+          body: { expectedDraftRevision: '2' },
+          headers: {},
+          _fileparser: true,
+          file: (field: string) => ({
+            upload: (options: any, callback: any) => {
+              expect(field).to.equal(kind);
+              expect(options.maxBytes).to.equal(kind === 'logo' ? 100 : 50);
+              callback(null, [{ fd: file, type: 'image/png' }]);
+            },
+          }),
+        };
+        await app[kind](req as unknown as Sails.Req, {} as Sails.Res);
+        expect(stubs.uploadImage.firstCall.args[0]).to.include({
+          branding: 'other',
+          kind,
+          expectedDraftRevision: 2,
+          contentType: 'image/png',
+        });
+        expect(sent[0].data).to.deep.equal(ADMIN_STATE);
+        expect(fs.existsSync(file)).to.equal(false);
+      } finally {
+        (global as any).BrandingLogoService = original;
+        fs.rmSync(directory, { recursive: true, force: true });
+      }
+    });
+  }
 
   it('handles multipart upload with runtime maxima and cleans up temp files', async function () {
     const rest = new RestControllers.Branding();

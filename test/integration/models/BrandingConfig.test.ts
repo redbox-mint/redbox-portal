@@ -32,6 +32,12 @@ async function expectWaterlineRejection(promise, pattern) {
 }
 
 describe('BrandingConfig Model (semantic variables whitelist)', () => {
+  let originalIds;
+  before(async () => { originalIds = (await BrandingConfig.find({})).map(brand => brand.id); });
+  after(async () => {
+    await BrandingConfig.destroy({ id: { nin: originalIds } });
+    await BrandingService.loadAvailableBrands(null).toPromise();
+  });
   it('creates with empty variables map (defaults)', async () => {
     const created = await BrandingConfig.create({ name: 'tenant-a', variables: {} }).fetch();
     expect(created.variables).to.deep.equal({});

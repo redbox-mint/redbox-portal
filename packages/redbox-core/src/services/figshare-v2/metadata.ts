@@ -145,7 +145,8 @@ function normalizeCategorySourceCode(value: unknown): string {
 async function buildCategoriesPayload(
   config: FigsharePublishingConfigData,
   recordData: Record<string, unknown>,
-  context: BindingContext
+  context: BindingContext,
+  client?: FigshareClient
 ): Promise<number[]> {
   const binding = config.metadata.categories.source;
 
@@ -158,7 +159,7 @@ async function buildCategoriesPayload(
 
     let resolution;
     try {
-      resolution = await resolveCrosswalkBinding(binding, recordData, context);
+      resolution = await resolveCrosswalkBinding(binding, recordData, context, { selectableOnly: true });
     } catch (error) {
       throw validationError(
         `Figshare crosswalk category resolution failed: ${error instanceof Error ? error.message : String(error)}`
@@ -175,8 +176,8 @@ async function buildCategoriesPayload(
       sails.log.warn(`Figshare crosswalk omitted historical category targets: ${detail}`);
     }
 
-    if (!config.categories.allowUnmapped && resolution.sourceCodes.length > 0 && resolution.values.length === 0) {
-      throw validationError('No Figshare categories mapped for selected record categories');
+    if (resolution.sourceCodes.length > 0 && resolution.values.length === 0) {
+      throw validationError('No selectable Figshare categories mapped for selected record categories. Choose at least one selectable category.');
     }
     return resolution.values as number[];
   }
@@ -185,14 +186,23 @@ async function buildCategoriesPayload(
   const sourceCodes = toSourceCodeCandidates(rawValue)
     .map(normalizeCategorySourceCode)
     .filter((sourceCode) => sourceCode !== '');
-  const mappedCategories = sourceCodes
+  let mappedCategories = sourceCodes
     .map((sourceCode: string) =>
       config.categories.mappingTable.find((entry) => entry.sourceCode === sourceCode)?.figshareCategoryId
     )
     .filter((value): value is number => value != null);
 
-  if (!config.categories.allowUnmapped && sourceCodes.length > 0 && mappedCategories.length === 0) {
-    throw validationError('No Figshare categories mapped for selected record categories');
+  if (client != null && mappedCategories.length > 0) {
+    // Legacy rows carry only IDs. Check the account catalogue at publishing time,
+    // keeping the table's ordering and duplicate behavior. Missing flags (including
+    // IDs absent from the catalogue) retain the normalizer's selectable default.
+    const categories = await client.listAccountCategories();
+    const nonSelectableIds = new Set(categories.filter((category) => category.is_selectable === false).map((category) => Number(category.id)));
+    mappedCategories = mappedCategories.filter((id) => !nonSelectableIds.has(id));
+  }
+
+  if (sourceCodes.length > 0 && mappedCategories.length === 0) {
+    throw validationError('No selectable Figshare categories mapped for selected record categories. Choose at least one selectable category.');
   }
   return mappedCategories;
 }
@@ -316,6 +326,11 @@ function validatePayload(config: FigsharePublishingConfigData, payload: Figshare
   }
 }
 
+/**
+ * A client is always supplied by the publishing runtime. Without one, this helper
+ * can build a local preview but cannot check legacy mapping IDs for selectability.
+ * Crosswalk publishing uses the mirrored flags in either case.
+ */
 export async function buildMetadataPayload(config: FigsharePublishingConfigData, record: RecordModel, client?: FigshareClient): Promise<FigshareArticlePayload> {
   const recordData = record as Record<string, unknown>;
   // Built once: resolveBrandId hits BrandingService, and every binding shares it.
@@ -336,7 +351,7 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
     payload.funding = funding;
   }
 
-  payload.categories = await buildCategoriesPayload(config, recordData, bindingContext);
+  payload.categories = await buildCategoriesPayload(config, recordData, bindingContext, client);
 
   const licenseValue = client == null
     ? await evaluateBinding(config.metadata.license.source, recordData, bindingContext)

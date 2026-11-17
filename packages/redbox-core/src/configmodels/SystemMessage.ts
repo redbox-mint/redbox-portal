@@ -24,28 +24,31 @@ export class SystemMessage extends AppConfig {
      */
     dismissalDurationHours: number = 8;
 
+    /** @title Style */
+    style?: 'info' | 'warning' | 'critical' = 'info';
+
     public static getFieldOrder(): string[] {
-        return ["enabled", "title", "message", "dismissalDurationHours"]
+        return ["enabled", "title", "message", "dismissalDurationHours", "style"]
     }
 }
 
 export const SYSTEM_MESSAGE_SCHEMA = {
     type: 'object',
-    title: 'System Messages',
+    title: 'admin-config-label-system-messages',
     properties: {
         enabled: {
             type: 'boolean',
-            title: 'Enabled',
+            title: 'admin-config-label-enabled',
             default: false
         },
         title: {
             type: 'string',
-            title: 'Message Title',
+            title: 'admin-config-label-message-title',
             default: ''
         },
         message: {
             type: 'string',
-            title: 'Message Body',
+            title: 'admin-config-label-message-body',
             default: '',
             widget: {
                 formlyConfig: {
@@ -53,9 +56,15 @@ export const SYSTEM_MESSAGE_SCHEMA = {
                 }
             }
         },
+        style: {
+            type: 'string',
+            title: 'admin-config-label-message-style',
+            enum: ['info', 'warning', 'critical'],
+            default: 'info'
+        },
         dismissalDurationHours: {
             type: 'number',
-            title: 'Dismissal Duration (hours)',
+            title: 'admin-config-label-dismissal-duration-hours',
             default: 8
         }
     },

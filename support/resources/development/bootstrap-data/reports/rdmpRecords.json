@@ -32,7 +32,7 @@
     { "label": "Id", "property": "oid", "hide": true },
     { "label": "Title", "property": "title", "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}'>{{title}}</a>", "exportTemplate": "{{title}}" },
     { "label": "External URL", "property": "reportExternalURL", "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}", "hide": true },
-    { "label": "Date Modified", "property": "dateModified" },
+    { "label": "Date Modified", "property": "lastSaveDate" },
     { "label": "Date Created", "property": "dateCreated" }
   ]
 }

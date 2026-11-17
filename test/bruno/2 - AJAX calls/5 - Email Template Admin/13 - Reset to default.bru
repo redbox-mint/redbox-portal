@@ -1,0 +1,35 @@
+meta {
+  name: Email templates - Reset to default
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/reset
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  { "expectedLiveToken": {{emailAdminLiveToken}} }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Deletes the live override and advances history", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().state.live).to.equal(null);
+    expect(res.getBody().state.latestVersion).to.equal(bru.getVar("emailAdminPublishedVersion") + 1);
+  });
+}

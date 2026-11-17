@@ -10,4 +10,22 @@
 @import "default-responsive";
 @import "custom-responsive";
 @import "print";
- 
+
+// Shared admin foundation: loaded after Bootstrap and legacy portal styles.
+@import "admin";
+
+// Shared by the live portal banner and its app-config preview.
+.rb-system-message {
+  border-radius: 6px;
+  h4 { color: inherit; }
+  .btn-close, .btn-close:disabled { opacity: 1; }
+  @each $style, $token in (info: info, warning: warning, critical: danger) {
+    &.rb-system-message-#{$style} {
+      background-color: color-mix(in srgb, var(--rb-#{$token}) 10%, #fff);
+      color: color-mix(in srgb, var(--rb-#{$token}) 40%, #333);
+      border-color: color-mix(in srgb, var(--rb-#{$token}) 35%, #fff);
+      a { color: inherit; text-decoration: underline; }
+    }
+  }
+  &.rb-system-message-critical { border-left-width: 4px; }
+}

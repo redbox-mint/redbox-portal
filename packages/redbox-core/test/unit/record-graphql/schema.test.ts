@@ -44,7 +44,7 @@ describe('GraphQL renderer and query bounds', () => {
       thenNode: scalar,
       elseNode: object({ title: scalar }),
     };
-    assert.deepEqual(fromTree(node), { kind: 'json', reason: 'incompatible-conditional-shapes' });
+    assert.deepEqual(fromTree(node), { kind: 'json', reason: 'incompatible-read-variants' });
   });
   it('uses collision-safe nested type identities for arbitrary stored names', () => {
     assert.notEqual(hash('/\ud800'), hash('/\ud801'));

@@ -105,6 +105,21 @@ describe('RvaImportService', () => {
     expect(result.created).to.equal(1);
   });
 
+  it('sets lastSyncedAt only after entries succeed and retains the previous timestamp on failures', async () => {
+    const updater = (global as any).Vocabulary.updateOne;
+    const upsert = (global as any).VocabularyService.upsertEntries;
+    await service.syncRvaVocabulary('v1');
+    expect(upsert.calledBefore(updater)).to.equal(true);
+    const saved = updater.firstCall.returnValue.set.firstCall.args[0];
+    expect(Number.isFinite(Date.parse(saved.lastSyncedAt))).to.equal(true);
+    updater.resetHistory();
+    upsert.rejects(new Error('entry sync failed'));
+    let failure: unknown;
+    try { await service.syncRvaVocabulary('v1'); } catch (error) { failure = error; }
+    expect(failure).to.exist;
+    expect(updater.called).to.equal(false);
+  });
+
   it('imports an RVA vocabulary from an RVA URL', async () => {
     await service.importRvaVocabulary('https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020');
     expect(getVocabularyByIdStub.firstCall.args[0]).to.equal(1);

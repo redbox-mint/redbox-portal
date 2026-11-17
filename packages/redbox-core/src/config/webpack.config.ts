@@ -37,7 +37,7 @@ export const webpack: WebpackConfig = {
             },
             mode: isDevelopmentAssetMode ? 'development' : 'production',
             devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
-            entry: './assets/default/default/js/client-script.js',
+            entry: ['./assets/default/default/styles/default-fonts.css', './assets/default/default/js/client-script.js'],
             output: {
                 filename: './default/default/js/index.bundle.js',
                 path: outputDir,
@@ -89,10 +89,16 @@ export const webpack: WebpackConfig = {
                         include: [path.resolve(topDir, './assets/styles'), path.resolve(topDir, './assets/default/default/styles')]
                     },
                     {
+                        // Keep content-versioned default font URLs predictable for EJS preloads.
+                        test: /fonts[\\/]google[\\/].*\.woff2$/,
+                        type: 'asset/resource',
+                        generator: { filename: 'fonts/google/[name][ext]', publicPath: '../' },
+                    },
+                    {
                         // Compile referenced font files referenced in entry file to a separate file and exports the URL
                         test: /\.(woff2?|ttf|otf|eot|svg)$/,
                         type: 'asset/resource',
-                        exclude: /\.\.\/angular/
+                        exclude: [/\.\.\/angular/, /fonts[\\/]google[\\/]/]
                     },
                     {
                         // extract inline svg files to separate resources (needed for bootstrap and the redbox loading svg)

@@ -20,6 +20,8 @@ export interface SolrFieldDefinition {
     multiValued?: boolean;
     required?: boolean;
     docValues?: boolean;
+    /** Applied by Solr when omitted; prefix companions must not define a default. */
+    default?: string | number | boolean;
 }
 
 export interface SolrCopyFieldDefinition {
@@ -60,6 +62,7 @@ export interface SolrPreIndexJsonStringConfig {
 }
 
 export interface SolrPreIndexConfig {
+    template?: Array<{ source?: string; dest?: string; template: string }>;
     jsonString?: SolrPreIndexJsonStringConfig[];
     move?: SolrPreIndexMoveConfig[];
     copy?: SolrPreIndexCopyConfig[];
@@ -73,6 +76,15 @@ export interface SolrCoreSchema {
 }
 
 export interface SolrCoreConfig {
+    /** Stable metadata field IDs to indexed fields, backed by explicit preIndex.copy rules. */
+    recordGraphqlFields?: Record<string, string>;
+    /**
+     * Opt-in metadata IDs to dedicated, explicit single-valued StrField companions.
+     * Companions must be non-required and have no default value.
+     * IPREFIX folds ASCII A-Z only, preserving all other UTF-16 code units exactly.
+     * Requires the primary scalar copy, schema reconciliation and a complete reindex.
+     */
+    recordGraphqlCaseInsensitivePrefixFields?: Record<string, string>;
     options: SolrCoreOptions;
     schema: SolrCoreSchema;
     preIndex?: SolrPreIndexConfig;
@@ -94,6 +106,12 @@ export interface SolrSearchConfig {
 // Index jobs must wait for verified schema initialization before sending these.
 // Existing documents require index-only reprocessing.
 export const SOLR_EXACT_ACL_VERSION = '1';
+/** Exact envelope values used by cursor-based grid queries. Requires record reindexing. */
+export const SOLR_RECORD_GRID_VERSION = '1';
+export const SOLR_RECORD_GRID_FIELDS: SolrFieldDefinition[] = [
+    ...['oid', 'type', 'stage', 'form', 'version'].map(key => ({ name: `redbox_grid_${key}`, type: 'string', indexed: true, stored: true, multiValued: false, docValues: true })),
+    ...['created', 'modified'].map(key => ({ name: `redbox_grid_${key}`, type: 'pdate', indexed: true, stored: true, multiValued: false, docValues: true })),
+];
 export const SOLR_EXACT_ACL_FIELDS: SolrFieldDefinition[] = [
     { name: 'redbox_acl2_view', type: 'string', indexed: true, stored: true, multiValued: true, docValues: false },
     { name: 'redbox_acl2_edit', type: 'string', indexed: true, stored: true, multiValued: true, docValues: false },

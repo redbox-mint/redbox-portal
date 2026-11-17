@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin audit findings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff; padding: 48px 56px">
+  <div style="max-width: 1160px">
+    <p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #b1101a">Phase 1 · Audit · 5 Nov 2026 · develop @ 4a8ce29</p>
+    <h1 style="font-size: 38px; margin: 6px 0 10px">ReDBox admin interface audit</h1>
+    <p style="margin: 0 0 28px; max-width: 820px; font-size: 16px; color: #5f6670">27 screens reviewed as the local admin: every <code>/admin</code> page route in <code>routes.config.ts</code>, all 11 registered app-config editors (3 of which aren’t linked from the sidebar), and the Parties lookup that the sidebar links to. Findings are grouped into cross-cutting issues, then listed screen by screen.</p>
+
+    <div class="alert ok" style="margin-bottom: 24px">
+      <div>
+        <b>Fixed so far (round 1, uncommitted on develop)</b>
+        <ul style="margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px">
+          <li>Rebuilt the running site from current source. <b>Export</b> now shows the async export screen, <b>Dashboard configuration</b> loads its metadata, and <b>API docs</b> renders.</li>
+          <li>Webpack builds again: <span class="mono">svgo</span> 4.1.0 and <span class="mono">dompurify</span> 3.4.17 are now pinned exactly as root dev dependencies.</li>
+          <li><b>RAiD publishing</b> and <b>Integration notification</b> show their fields: an empty or partial field order now falls back to schema order (AppConfigService and the app-config form, with tests).</li>
+          <li>Added English text for <span class="mono">menu-onipublishingconfiguration</span> and <span class="mono">party-title-label</span>.</li>
+          <li>Still open: <b>Oni publishing</b> nested sections render no fields. That’s a schema limitation, left for the config-form redesign.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stats" style="margin-bottom: 32px">
+      <div class="stat"><b>27</b><span>Screens audited</span></div>
+      <div class="stat"><b>7</b><span>Issues fixed in round 1</span></div>
+      <div class="stat alert"><b>1</b><span>Screen still broken (Oni)</span></div>
+      <div class="stat"><b>4</b><span>Screens not in the sidebar</span></div>
+      <div class="stat"><b>6</b><span>Page-title treatments in use</span></div>
+      <div class="stat"><b>4</b><span>Table styles in use</span></div>
+    </div>
+
+    <h2 style="font-size: 24px; margin: 0 0 14px">Cross-cutting issues</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-bottom: 36px">
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge ok">Mostly fixed</span><h3 style="font-size: 17px; margin: 8px 0 6px">Broken or empty screens</h3><p class="small" style="margin: 0">At first audit: Dashboard configuration failed to load its metadata; RAiD publishing and Integration notification had no fields; API docs stayed on its loading animation; Parties showed “Update party-title-label”. All of these are fixed in round 1. <b>Still open:</b> Oni publishing’s six sections have no fields. API docs still opens outside the admin shell with no way back, which is a layout problem, not a bug.</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge err">High</span><h3 style="font-size: 17px; margin: 8px 0 6px">Navigation gaps</h3><p class="small" style="margin: 0">DOI publishing, RAiD publishing, Integration notification and API docs have no sidebar link. The sidebar has no active state, so you can’t tell which page you’re on. (The raw <code>menu-onipublishingconfiguration</code> label is fixed.) The “Navigation” group also holds Figshare and Oni publishing. Parties opens <code>/dashboard/party</code> and loses the admin shell.</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge warn">Medium</span><h3 style="font-size: 17px; margin: 8px 0 6px">No consistent page header</h3><p class="small" style="margin: 0">Six title styles are in use: a centred H1 (Deleted records, Report view); a red card title only (Users, Roles, Harvest runs); an H1 repeated as an H2 (System messages, Web analytics, Authorized domains, Oni); no title at all (Export, Named queries, Vocabularies); a small left-aligned H3 (Figshare vocabularies); and a plain H1 (Reports, Menu). There are no breadcrumbs or descriptions, and every page has an empty gap of about 80px above its content.</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge warn">Medium</span><h3 style="font-size: 17px; margin: 8px 0 6px">Too many button styles</h3><p class="small" style="margin: 0">Three blues are in use: Bootstrap primary #0d6efd, legacy #428bca for the uppercase “SUBMIT”, and cyan “info” for secondary actions (Manage named queries, Import from RVA, Add language, Generate preview, Edit display name). Green is used for Publish. Primary actions sit top-left, top-right, inline or bottom-left depending on the page. Solid red Delete buttons appear on every table row.</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge warn">Medium</span><h3 style="font-size: 17px; margin: 8px 0 6px">Tables, filters and empty states vary</h3><p class="small" style="margin: 0">Four table styles are in use: bordered, borderless, sortable, and a tiny uppercase header around 8px that’s hard to read. Filters come in four layouts: a centred label-and-field panel, an inline row, stacked radios and segmented buttons. Some empty states are a bare header row (Roles, Deleted records, Report view); others use a dashed box. Counts appear as floating grey pills in some places and as stat tiles in others.</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge warn">Medium</span><h3 style="font-size: 17px; margin: 8px 0 6px">Long config forms are unstructured</h3><p class="small" style="margin: 0">App-config pages are raw schema output: Figshare publishing is about 8,900px tall and DOI publishing about 8,100px. There’s no section navigation, no indication of unsaved changes, no way to test a connection, and a single uppercase SUBMIT at the very bottom. Translations renders all 2,022 rows in one table, making the page about 103,000px tall.</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge">Low</span><h3 style="font-size: 17px; margin: 8px 0 6px">Width, locale and copy</h3><p class="small" style="margin: 0">Content widths vary: Roles is a centred 625px card, Users is 955px, Deleted records and the forms are full-bleed. Date fields mix text dd/mm/yyyy (Export, Report) with native mm/dd/yyyy pickers (Harvest runs). Sidebar labels mix title case and sentence case (“Menu Configuration” vs “Figshare publishing configuration”).</p></div></div>
+      <div class="card" style="margin: 0"><div class="card-b"><span class="badge ok">Keep</span><h3 style="font-size: 17px; margin: 8px 0 6px">What already works</h3><p class="small" style="margin: 0">The red panel header (Reports, Vocabularies, Named queries, Translations) is on-brand, and the mocks reuse it. The stat tiles on Reports, the live previews on Menu, Home panels and Admin sidebar, the Users toolbar, and the Branding token groups are good foundations to extend rather than replace.</p></div></div>
+    </div>
+
+    <h2 style="font-size: 24px; margin: 0 0 14px">Screen by screen</h2>
+    <div class="card">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Screen / route</th><th>Status</th><th>Main issues</th><th>Mock</th></tr></thead>
+          <tbody>
+            <tr><td><b>Admin home</b><span class="sub">/admin</span></td><td><span class="badge warn">Thin</span></td><td>One welcome sentence; no status, counts or shortcuts.</td><td><a href="Main.dc.html">Admin home</a></td></tr>
+            <tr><td><b>Reports</b><span class="sub">/admin/reports</span></td><td><span class="badge ok">Good</span></td><td>Best existing pattern. Cyan secondary button; solid red row Delete.</td><td><a href="Reports.dc.html">Reports</a></td></tr>
+            <tr><td><b>Report view</b><span class="sub">/admin/report/:name</span></td><td><span class="badge warn">Fair</span></td><td>Centred title and filter panel; Back button above the title; header-only empty table; CSV button wraps onto two lines.</td><td><a href="ReportView.dc.html">Report view</a></td></tr>
+            <tr><td><b>Harvest runs</b><span class="sub">/admin/harvest-runs</span></td><td><span class="badge warn">Fair</span></td><td>No page title; native US-format date pickers; empty state gives no guidance.</td><td><a href="HarvestRuns.dc.html">Harvest runs</a></td></tr>
+            <tr><td><b>Export</b><span class="sub">/admin/export</span></td><td><span class="badge ok">Fixed</span></td><td>The running site was serving a stale build (the old “Download Plans” form). After the rebuild it shows the async export screen. The mock aligns it with the shared patterns.</td><td><a href="Export.dc.html">Export</a></td></tr>
+            <tr><td><b>Deleted records</b><span class="sub">/admin/deletedRecords</span></td><td><span class="badge warn">Fair</span></td><td>Centred title; record-type select is blank by default; header-only empty table.</td><td><a href="DeletedRecords.dc.html">Deleted records</a></td></tr>
+            <tr><td><b>Role management</b><span class="sub">/admin/roles</span></td><td><span class="badge warn">Fair</span></td><td>Duplicates the Users list with a radio filter; narrow 625px card; empty table with no message.</td><td><a href="Roles.dc.html">Roles</a></td></tr>
+            <tr><td><b>User management</b><span class="sub">/admin/users</span></td><td><span class="badge ok">Good</span></td><td>Cramped columns (name wraps); actions spill onto two lines; empty API key column.</td><td><a href="Users.dc.html">Users</a></td></tr>
+            <tr><td><b>Dashboard configuration</b><span class="sub">/admin/dashboard-config</span></td><td><span class="badge ok">Fixed</span></td><td>Metadata now loads after the rebuild. Remaining issue: tree headings render at about 7px.</td><td><a href="DashboardConfig.dc.html">Dashboards</a></td></tr>
+            <tr><td><b>Named queries</b><span class="sub">/admin/named-query</span></td><td><span class="badge warn">Fair</span></td><td>No title; floating count pills; very small header text; solid Edit and Delete on every row.</td><td><a href="NamedQueries.dc.html">Named queries</a></td></tr>
+            <tr><td><b>Vocabularies</b><span class="sub">/admin/vocabulary/manager</span></td><td><span class="badge warn">Fair</span></td><td>Same as Named queries; cyan toggles for filters.</td><td><a href="Vocabularies.dc.html">Vocabularies</a></td></tr>
+            <tr><td><b>Figshare vocabularies</b><span class="sub">/admin/integrations/figshare/vocabularies</span></td><td><span class="badge ok">Good</span></td><td>Its own title style; grey stat boxes; a reasonable tabbed structure.</td><td><a href="FigshareVocab.dc.html">Figshare vocab</a></td></tr>
+            <tr><td><b>Branding</b><span class="sub">/admin/branding</span></td><td><span class="badge warn">Fair</span></td><td>3,500px single column of 50+ colour inputs; no live preview beside the controls; four mixed-colour action buttons.</td><td><a href="Branding.dc.html">Branding</a></td></tr>
+            <tr><td><b>Translations</b><span class="sub">/admin/translation</span></td><td><span class="badge err">Perf</span></td><td>All 2,022 rows rendered at once (about 103,000px page); no pagination; cyan buttons.</td><td><a href="Translations.dc.html">Translations</a></td></tr>
+            <tr><td><b>API docs</b><span class="sub">/admin/api-docs</span></td><td><span class="badge warn">Fair</span></td><td>Renders after the rebuild. Still uses <code>layout:false</code>, so there’s no shell, no way back and no sidebar link.</td><td><a href="ApiDocs.dc.html">API docs</a></td></tr>
+            <tr><td><b>System messages</b><span class="sub">appconfig/systemMessage</span></td><td><span class="badge warn">Fair</span></td><td>H1 repeated as H2; no preview of the banner; uppercase SUBMIT.</td><td><a href="SystemMessages.dc.html">System messages</a></td></tr>
+            <tr><td><b>Web analytics</b><span class="sub">appconfig/webAnalytics</span></td><td><span class="badge warn">Fair</span></td><td>Same simple-form issues. Uses the System messages pattern.</td><td><a href="SystemMessages.dc.html">Simple config</a></td></tr>
+            <tr><td><b>Authorized domains &amp; emails</b><span class="sub">appconfig/authorizedDomainsEmails</span></td><td><span class="badge warn">Fair</span></td><td>Four array sections with no explanation of how the AAF and OIDC lists interact.</td><td><a href="AuthorizedDomains.dc.html">Domains</a></td></tr>
+            <tr><td><b>Menu / Home panels / Admin sidebar</b><span class="sub">appconfig/menu · homePanels · adminSidebar</span></td><td><span class="badge ok">Good</span></td><td>Strong editors with live preview. Toolbar holds only “Add”; outline buttons on every row are noisy; SUBMIT far below.</td><td><a href="MenuConfig.dc.html">Menu</a></td></tr>
+            <tr><td><b>Figshare publishing</b><span class="sub">appconfig/figsharePublishing</span></td><td><span class="badge err">Unusable</span></td><td>About 8,900px of unlabelled fields and nested arrays; no grouping or connection test.</td><td><a href="IntegrationConfig.dc.html">Long config</a></td></tr>
+            <tr><td><b>DOI publishing</b><span class="sub">appconfig/doiPublishing · not in nav</span></td><td><span class="badge err">Unusable</span></td><td>About 8,100px; contains a plaintext password field; not linked from the sidebar.</td><td><a href="IntegrationConfig.dc.html">Long config</a></td></tr>
+            <tr><td><b>Oni publishing</b><span class="sub">appconfig/oniPublishing</span></td><td><span class="badge err">Empty</span></td><td>Six nested sections render no fields: the schema omits the nested properties and some need new editors. Its sidebar label is fixed.</td><td><a href="IntegrationConfig.dc.html">Long config</a></td></tr>
+            <tr><td><b>RAiD publishing</b><span class="sub">appconfig/raidPublishing · not in nav</span></td><td><span class="badge ok">Fixed</span></td><td>Fields render now (they were dropped because the field order was empty). Still not in the sidebar, and still a raw schema form.</td><td><a href="RaidPublishing.dc.html">RAiD</a></td></tr>
+            <tr><td><b>Integration notification</b><span class="sub">appconfig/integrationNotification · not in nav</span></td><td><span class="badge ok">Fixed</span></td><td>Fields render now (same fix as RAiD). Still not in the sidebar.</td><td><a href="IntegrationConfig.dc.html">Long config</a></td></tr>
+            <tr><td><b>Parties</b><span class="sub">/dashboard/party (sidebar link)</span></td><td><span class="badge warn">Fair</span></td><td>Heading now reads “Update Party”. Still leaves the admin shell, and the “Filter by Title” dropdown sits in front of the search box.</td><td><a href="Parties.dc.html">Parties</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 style="font-size: 24px; margin: 28px 0 14px">Design principles for the mocks</h2>
+    <ol style="margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 900px">
+      <li><b>One page header:</b> breadcrumb, H1, one-line description and right-aligned actions on every screen.</li>
+      <li><b>One container:</b> the existing red panel header for primary lists; white section cards for forms.</li>
+      <li><b>One button scale:</b> blue primary (theme <code>--rb-primary</code>), outline secondary, outline-red destructive. Solid red only inside confirm dialogs. No cyan, no uppercase.</li>
+      <li><b>One table, one filter bar, one empty state</b>, all from the pattern kit.</li>
+      <li><b>Long config = section rail + sticky save bar</b> with enable switch, connection test and unsaved-change status.</li>
+      <li><b>Regrouped sidebar</b> with an active state, status tags and every registered screen reachable.</li>
+      <li>All colours come from the existing theme tokens in <code>theme.css</code>, so brand overrides keep working.</li>
+    </ol>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

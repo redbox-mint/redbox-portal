@@ -1,0 +1,3 @@
+<% /* Match the font URLs emitted by webpack; versioned names allow normal static caching. */ %>
+<link rel="preload" href="<%= typeof fontPath === 'string' ? fontPath : BrandingService.getRootContext() + '/fonts/google' %>/titillium-web-400-latin-f93ddc83566b.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<%= typeof fontPath === 'string' ? fontPath : BrandingService.getRootContext() + '/fonts/google' %>/roboto-condensed-400-latin-718ced55c5d8.woff2" as="font" type="font/woff2" crossorigin>

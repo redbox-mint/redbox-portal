@@ -7,6 +7,10 @@ import { ContentFieldComponentConfig } from './content.model';
 import { RelatedObjectDataComponentName, RelatedObjectDataFieldComponentConfigOutline, RelatedObjectDataFieldComponentDefinitionOutline, RelatedObjectDataFormComponentDefinitionOutline, RelatedObjectSummary } from './related-object-data.outline';
 
 export class RelatedObjectDataFieldComponentConfig extends ContentFieldComponentConfig implements RelatedObjectDataFieldComponentConfigOutline {
+  /** Opt in to the existing relatedTo relation; incompatible with legacy reference configuration. */
+  relationId?: string;
+  /** Default false. */
+  required?: boolean;
   dataPath?: string;
   oidProperty?: string;
   relatedFields?: string[];

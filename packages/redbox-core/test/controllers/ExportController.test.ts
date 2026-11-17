@@ -39,6 +39,7 @@ describe('ExportController background CSV transport', function () {
   let listJobs: sinon.SinonStub;
   let getJob: sinon.SinonStub;
   let deleteJob: sinon.SinonStub;
+  let cancelJob: sinon.SinonStub;
   let openDownload: sinon.SinonStub;
   let requestUser: UserModel | undefined;
 
@@ -105,8 +106,9 @@ describe('ExportController background CSV transport', function () {
     listJobs = sinon.stub().resolves([job]);
     getJob = sinon.stub().resolves(job);
     deleteJob = sinon.stub().resolves();
+    cancelJob = sinon.stub().resolves({ ...job, status: 'cancelled' });
     openDownload = sinon.stub();
-    Reflect.set(globalThis, 'ExportService', { createJob, listJobs, getJob, deleteJob, openDownload });
+    Reflect.set(globalThis, 'ExportService', { createJob, listJobs, getJob, deleteJob, cancelJob, openDownload });
     requestUser = user;
 
     const controller = new Controllers.Export();
@@ -121,7 +123,7 @@ describe('ExportController background CSV transport', function () {
     const mount = (
       method: 'get' | 'post' | 'delete',
       suffix: string,
-      action: 'createJob' | 'listJobs' | 'getJob' | 'deleteJob' | 'downloadJob'
+      action: 'createJob' | 'listJobs' | 'getJob' | 'deleteJob' | 'cancelJob' | 'downloadJob'
     ) => {
       app[method](`/portal-root/:branding/:portal/export/jobs${suffix}`, (req, res, next) => {
         void controller[action](adapt(req), res as Sails.Res).catch(next);
@@ -131,6 +133,7 @@ describe('ExportController background CSV transport', function () {
     mount('get', '', 'listJobs');
     mount('get', '/:id', 'getJob');
     mount('delete', '/:id', 'deleteJob');
+    mount('post', '/:id/cancel', 'cancelJob');
     mount('get', '/:id/download', 'downloadJob');
     app.get('/portal-root/:branding/:portal/export/record/download/:format', (req, res, next) => {
       void controller.downloadRecs(adapt(req), res as Sails.Res).catch(next);
@@ -200,11 +203,35 @@ describe('ExportController background CSV transport', function () {
     }
     await request('POST', baseUrl, 401, { format: 'csv', recType: 'rdmp' });
     await request('DELETE', `${baseUrl}/${job.id}`, 401);
+    await request('POST', `${baseUrl}/${job.id}/cancel`, 401);
+    assert.equal(cancelJob.called, false);
     assert.equal(
       createJob.called || listJobs.called || getJob.called || deleteJob.called || openDownload.called,
       false
     );
   });
+
+  it('cancels in the route scope using the v2 envelope and private headers', async function () {
+    const response = await request<{ data: ExportJobDto }>(
+      'POST',
+      `${baseUrl}/${job.id}/cancel?portal=spoofed`,
+      200,
+      {},
+      { 'X-ReDBox-Api-Version': '2.0' }
+    );
+    assert.equal(response.body.data.status, 'cancelled');
+    assert.equal(response.headers['cache-control'], 'private, no-store');
+    assert.equal(cancelJob.firstCall.args[0].brand, brand);
+    assert.equal(cancelJob.firstCall.args[0].portal, 'catalogue');
+    assert.equal(cancelJob.firstCall.args[1], job.id);
+  });
+
+  for (const status of [403, 404, 409]) {
+    it(`maps cancellation ${status} errors without exposing internals`, async function () {
+      cancelJob.rejects(new ExportServiceError(status, 'export-not-cancellable', 'Cannot cancel this export.'));
+      await request('POST', `${baseUrl}/${job.id}/cancel`, status);
+    });
+  }
 
   it('deletes the scoped export with an empty private 204 response', async function () {
     const response = await request('DELETE', `${baseUrl}/${job.id}?branding=spoofed&portal=spoofed`, 204);
@@ -352,6 +379,11 @@ describe('ExportController background CSV transport', function () {
   });
 
   it('registers browser routes with normal CSRF handling', function () {
+    assert.deepEqual(routes['post /:branding/:portal/export/jobs/:id/cancel'], {
+      controller: 'ExportController',
+      action: 'cancelJob',
+      csrf: true,
+    });
     assert.equal(routes['post /:branding/:portal/export/jobs'], 'ExportController.createJob');
     assert.equal(routes['get /:branding/:portal/export/jobs'], 'ExportController.listJobs');
     assert.equal(routes['get /:branding/:portal/export/jobs/:id'], 'ExportController.getJob');

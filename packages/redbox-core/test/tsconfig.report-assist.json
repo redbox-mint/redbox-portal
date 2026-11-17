@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./services/ReportAssistance.test.ts",
+    "./services/ReportAssistanceMongo.test.ts",
+    "./controllers/webservice/ReportAssistance.test.ts",
+    "./setup.ts"
+  ],
+  "exclude": []
+}

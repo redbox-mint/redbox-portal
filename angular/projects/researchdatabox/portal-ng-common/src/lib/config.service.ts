@@ -19,10 +19,10 @@
 
 import { Injectable, Inject} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
+import { Subject, ReplaySubject, firstValueFrom, of } from 'rxjs';
 import { mergeMap, map } from 'rxjs/operators';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
-import { APP_BASE_HREF } from '@angular/common';
+import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { Service } from './service.interface';
 /**
  * Loads Global client-side configuration.
@@ -41,7 +41,7 @@ export class ConfigService implements Service {
   public configUrl: string = '';
   public csrfTokenUrl: string = '';
 
-  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string) {
+  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string, @Inject(DOCUMENT) private document: Document) {
     this.initSubject = new ReplaySubject(1);
     if (_isEmpty(this.rootContext)) {
       this.rootContext = ""
@@ -49,7 +49,7 @@ export class ConfigService implements Service {
     this.configUrl = `${this.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`;
     this.csrfTokenUrl = `${this.rootContext}/csrfToken`;
     // start the async init of this service
-    this.initConfig();
+    this.initConfig(true);
   }
 
   /**
@@ -76,7 +76,7 @@ export class ConfigService implements Service {
     return firstValueFrom(this.getInitSubject());
   }
 
-  initConfig(): void {
+  initConfig(usePageToken = false): void {
     if (this.loading) {
       return;
     }
@@ -85,7 +85,26 @@ export class ConfigService implements Service {
     this.initSubject = new ReplaySubject(1);
     this.config = undefined;
     this.loading = true;
-    this.http.get(this.csrfTokenUrl)
+    // The initial HTML and Angular bootstrap share a session. Reuse Sails'
+    // escaped, page-scoped token without a second round trip. Explicit retries
+    // must fetch the current session token instead of reusing this snapshot.
+    const pageToken = usePageToken
+      ? this.document.querySelector<HTMLMetaElement>('meta[name="rb-csrf-token"]')?.content
+      : undefined;
+    // Legacy/hook layouts can omit this snapshot. Invalid snapshots also fall
+    // back to the public endpoint; explicit refreshes always bypass page data.
+    let pageConfig: any;
+    if (usePageToken) {
+      try {
+        const snapshot = this.document.querySelector<HTMLMetaElement>('meta[name="rb-client-config"]')?.content;
+        const parsed = snapshot ? JSON.parse(snapshot) : undefined;
+        if (this.isClientConfig(parsed)) pageConfig = parsed;
+      } catch { /* Fetch the endpoint if a hook supplied malformed page data. */ }
+    }
+    const csrfResponse = typeof pageToken === 'string'
+      ? of({ _csrf: pageToken })
+      : this.http.get(this.csrfTokenUrl);
+    csrfResponse
     .pipe(
       mergeMap((csrfRes:any) => {
         const token = _get(csrfRes, '_csrf');
@@ -96,16 +115,13 @@ export class ConfigService implements Service {
           throw new Error('Invalid CSRF response. Sign in again and retry.');
         }
         this.csrfToken = token;
-        return this.http.get(this.configUrl);
+        return pageConfig ? of(pageConfig) : this.http.get(this.configUrl);
       }),
       map((config: any) => {
         // apiClientConfig.ejs supplies these URL components to HttpClientService,
         // translations and template loaders. An empty base URL is valid for
         // same-origin requests; branding and portal must name route segments.
-        if (!config || typeof config !== 'object' || Array.isArray(config)
-          || typeof config.baseUrl !== 'string'
-          || typeof config.branding !== 'string' || !config.branding.trim()
-          || typeof config.portal !== 'string' || !config.portal.trim()) {
+        if (!this.isClientConfig(config)) {
           throw new Error('Invalid configuration response. Sign in again and retry.');
         }
         return config;
@@ -124,6 +140,13 @@ export class ConfigService implements Service {
         this.initSubject.error(error);
       }
     });
+  }
+
+  private isClientConfig(config: any): boolean {
+    return !!config && typeof config === 'object' && !Array.isArray(config)
+      && typeof config.baseUrl === 'string'
+      && typeof config.branding === 'string' && !!config.branding.trim()
+      && typeof config.portal === 'string' && !!config.portal.trim();
   }
 
   public getInitSubject(): Subject<any> {

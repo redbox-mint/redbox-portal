@@ -1,0 +1,2011 @@
+{
+  "name": "default-1.0-draft",
+  "type": "rdmp",
+  "domElementType": "form",
+  "editCssClasses": "redbox-form form",
+  "defaultComponentConfig": {
+    "defaultComponentCssClasses": "row"
+  },
+  "enabledValidationGroups": [
+    "all"
+  ],
+  "validators": [
+    {
+      "class": "different-values",
+      "config": {
+        "controlNames": [
+          "text_1_event",
+          "text_2"
+        ]
+      }
+    }
+  ],
+  "validationGroups": {
+    "all": {
+      "description": "Validate all fields with validators.",
+      "initialMembership": "all"
+    },
+    "none": {
+      "description": "Validate none of the fields.",
+      "initialMembership": "none"
+    },
+    "minimumCreate": {
+      "description": "Fields that must be valid to create a new record.",
+      "initialMembership": "none"
+    },
+    "recommended": {
+      "description": "Recommended fields that should be encouraged but not enforced.",
+      "initialMembership": "none"
+    },
+    "transitionDraftToSubmitted": {
+      "description": "Fields that must be valid to transition from draft to submitted.",
+      "initialMembership": "all"
+    }
+  },
+  "serverSyncOnSave": "preserveLocalEdits",
+  "componentDefinitions": [
+    {
+      "name": "main_tab",
+      "component": {
+        "class": "TabComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "hostCssClasses": "tab-content",
+          "disabled": false,
+          "autofocus": false,
+          "tabs": [
+            {
+              "name": "tab_1",
+              "component": {
+                "class": "TabContentComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "componentDefinitions": [
+                    {
+                      "name": "text_block",
+                      "component": {
+                        "class": "ContentComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "template": "<h3>content default value content: {{content}}</h3>",
+                          "content": "My first text block component!!!"
+                        }
+                      }
+                    },
+                    {
+                      "name": "server_sync_test_value",
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": true,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": ""
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Server sync test value",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "This readonly value is replaced by the RDMP pre-save hook on create and update.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "contributor_ci",
+                      "component": {
+                        "class": "GroupComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "contributor_ci",
+                          "hostCssClasses": "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
+                          "disabled": false,
+                          "autofocus": false,
+                          "componentDefinitions": [
+                            {
+                              "name": "name",
+                              "component": {
+                                "class": "TypeaheadInputComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "hostCssClasses": "flex-grow-1 d-block",
+                                  "wrapperCssClasses": "rb-form-inline-fields__field rb-form-contributor-inline__field",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "sourceType": "namedQuery",
+                                  "staticOptions": [],
+                                  "queryId": "party",
+                                  "labelField": "metadata.fullName",
+                                  "valueField": "metadata.fullName",
+                                  "minChars": 1,
+                                  "debounceMs": 250,
+                                  "maxResults": 25,
+                                  "requireSelection": false,
+                                  "valueMode": "value",
+                                  "cacheResults": false,
+                                  "multiSelect": false,
+                                  "placeholder": "@lookup-placeholder-party",
+                                  "noResultsMessageKey": "@typeahead-no-matches-found"
+                                }
+                              },
+                              "model": {
+                                "class": "TypeaheadInputModel",
+                                "config": {
+                                  "value": "Local Admin"
+                                }
+                              },
+                              "layout": {
+                                "class": "InlineLayout",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "Name",
+                                  "hostCssClasses": "d-flex align-items-center gap-2",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "labelRequiredStr": "*",
+                                  "cssClassesMap": {},
+                                  "helpTextVisibleOnInit": false,
+                                  "helpTextVisible": false
+                                }
+                              }
+                            },
+                            {
+                              "name": "email",
+                              "component": {
+                                "class": "SimpleInputComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "hostCssClasses": "flex-grow-1 d-block",
+                                  "wrapperCssClasses": "rb-form-inline-fields__field rb-form-contributor-inline__field",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "type": "text",
+                                  "placeholder": "",
+                                  "onItemSelect": {
+                                    "rawPath": "metadata.email"
+                                  }
+                                }
+                              },
+                              "model": {
+                                "class": "SimpleInputModel",
+                                "config": {
+                                  "value": "admin@redboxresearchdata.com.au",
+                                  "validators": [
+                                    {
+                                      "class": "email"
+                                    }
+                                  ]
+                                }
+                              },
+                              "layout": {
+                                "class": "InlineLayout",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "Email",
+                                  "hostCssClasses": "d-flex align-items-center gap-2",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "labelRequiredStr": "*",
+                                  "cssClassesMap": {},
+                                  "helpTextVisibleOnInit": false,
+                                  "helpTextVisible": false
+                                }
+                              }
+                            },
+                            {
+                              "name": "orcid",
+                              "component": {
+                                "class": "SimpleInputComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "hostCssClasses": "flex-grow-1 d-block",
+                                  "wrapperCssClasses": "rb-form-inline-fields__field rb-form-contributor-inline__field",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "type": "text",
+                                  "placeholder": "",
+                                  "onItemSelect": {
+                                    "rawPath": "metadata.orcid"
+                                  }
+                                }
+                              },
+                              "model": {
+                                "class": "SimpleInputModel",
+                                "config": {
+                                  "validators": [
+                                    {
+                                      "class": "orcid"
+                                    }
+                                  ]
+                                }
+                              },
+                              "layout": {
+                                "class": "InlineLayout",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "ORCID",
+                                  "hostCssClasses": "d-flex align-items-center gap-2",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "labelRequiredStr": "*",
+                                  "cssClassesMap": {},
+                                  "helpTextVisibleOnInit": false,
+                                  "helpTextVisible": false
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "model": {
+                        "class": "GroupModel",
+                        "config": {
+                          "value": {
+                            "name": "Local Admin",
+                            "email": "admin@redboxresearchdata.com.au",
+                            "username": "admin",
+                            "text_full_name": "Local Admin"
+                          },
+                          "validators": []
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "contributor_ci",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "textarea_1",
+                      "component": {
+                        "class": "TextAreaComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "Textarea tooltip",
+                          "rows": 7,
+                          "cols": 80,
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "TextAreaModel",
+                        "config": {
+                          "value": "Textarea hello world!!!"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Textarea some label",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Textarea some help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "rich_text_1",
+                      "component": {
+                        "class": "RichTextEditorComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "outputFormat": "html",
+                          "showSourceToggle": false,
+                          "toolbar": [
+                            "heading",
+                            "bold",
+                            "italic",
+                            "link",
+                            "bulletList",
+                            "orderedList",
+                            "blockquote",
+                            "table",
+                            "undo",
+                            "redo"
+                          ],
+                          "minHeight": "240px",
+                          "placeholder": "Start writing formatted content..."
+                        }
+                      },
+                      "model": {
+                        "class": "RichTextEditorModel",
+                        "config": {
+                          "value": "<p><strong>Rich text test content</strong></p><p>Try headings, lists, links, and tables.</p>"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Rich text editor",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Use the rich text editor to format content.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "rich_text_markdown_1",
+                      "component": {
+                        "class": "RichTextEditorComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "outputFormat": "markdown",
+                          "showSourceToggle": true,
+                          "toolbar": [
+                            "heading",
+                            "bold",
+                            "italic",
+                            "link",
+                            "bulletList",
+                            "orderedList",
+                            "blockquote",
+                            "table",
+                            "undo",
+                            "redo"
+                          ],
+                          "minHeight": "240px",
+                          "placeholder": "Start writing markdown-backed rich text..."
+                        }
+                      },
+                      "model": {
+                        "class": "RichTextEditorModel",
+                        "config": {
+                          "value": "## Markdown heading\n\nThis is **bold** and this is *italic*."
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Rich text editor (Markdown output)",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Stores Markdown while keeping rich text editing.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "dropdown_1",
+                      "component": {
+                        "class": "DropdownInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "Dropdown tooltip",
+                          "options": [
+                            {
+                              "label": "Option 1",
+                              "value": "option1"
+                            },
+                            {
+                              "label": "Option 2",
+                              "value": "option2"
+                            },
+                            {
+                              "label": "Option 3",
+                              "value": "option3"
+                            }
+                          ]
+                        }
+                      },
+                      "model": {
+                        "class": "DropdownInputModel",
+                        "config": {
+                          "value": "Dropdown hello world!!!"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Dropdown some label",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Dropdown some help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "lookahead_1",
+                      "component": {
+                        "class": "TypeaheadInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "sourceType": "static",
+                          "staticOptions": [
+                            {
+                              "label": "Option 1",
+                              "value": "option1"
+                            },
+                            {
+                              "label": "Option 2",
+                              "value": "option2"
+                            },
+                            {
+                              "label": "Option 3",
+                              "value": "option3"
+                            },
+                            {
+                              "label": "Another Option",
+                              "value": "another-option"
+                            }
+                          ],
+                          "minChars": 1,
+                          "debounceMs": 200,
+                          "maxResults": 10,
+                          "requireSelection": true,
+                          "valueMode": "value",
+                          "cacheResults": true,
+                          "multiSelect": false,
+                          "placeholder": "Start typing to search...",
+                          "noResultsMessageKey": "@typeahead-no-matches-found"
+                        }
+                      },
+                      "model": {
+                        "class": "TypeaheadInputModel",
+                        "config": {
+                          "value": "option2"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Lookahead example",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Type to filter static options in a typeahead field.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "lookahead_require_selection",
+                      "component": {
+                        "class": "TypeaheadInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "sourceType": "static",
+                          "staticOptions": [
+                            {
+                              "label": "Jane Doe",
+                              "value": "jane"
+                            },
+                            {
+                              "label": "John Smith",
+                              "value": "john"
+                            },
+                            {
+                              "label": "Alice Scott",
+                              "value": "alice"
+                            }
+                          ],
+                          "minChars": 1,
+                          "debounceMs": 200,
+                          "maxResults": 10,
+                          "requireSelection": true,
+                          "valueMode": "optionObject",
+                          "cacheResults": true,
+                          "multiSelect": false,
+                          "placeholder": "Start typing a name...",
+                          "noResultsMessageKey": "@typeahead-no-matches-found"
+                        }
+                      },
+                      "model": {
+                        "class": "TypeaheadInputModel",
+                        "config": {
+                          "value": null
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Name (requireSelection true)",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Type free text and click away: the free text should be discarded. Select an option, type free text, then click away: the selected option should be restored.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "lookahead_party_1",
+                      "component": {
+                        "class": "TypeaheadInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "sourceType": "namedQuery",
+                          "staticOptions": [],
+                          "queryId": "party",
+                          "labelField": "metadata.fullName",
+                          "valueField": "oid",
+                          "minChars": 1,
+                          "debounceMs": 250,
+                          "maxResults": 25,
+                          "requireSelection": true,
+                          "valueMode": "value",
+                          "cacheResults": false,
+                          "multiSelect": false,
+                          "placeholder": "@lookup-placeholder-party",
+                          "noResultsMessageKey": "@typeahead-no-matches-found"
+                        }
+                      },
+                      "model": {
+                        "class": "TypeaheadInputModel",
+                        "config": {
+                          "value": null
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Party lookup",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Type to search party records via named query.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "lookahead_vocab_1",
+                      "component": {
+                        "class": "TypeaheadInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "sourceType": "vocabulary",
+                          "staticOptions": [],
+                          "vocabRef": "anzsrc-toa",
+                          "minChars": 1,
+                          "debounceMs": 250,
+                          "maxResults": 25,
+                          "requireSelection": true,
+                          "valueMode": "value",
+                          "cacheResults": true,
+                          "multiSelect": false,
+                          "placeholder": "Start typing a ToA term...",
+                          "noResultsMessageKey": "@typeahead-no-matches-found"
+                        }
+                      },
+                      "model": {
+                        "class": "TypeaheadInputModel",
+                        "config": {
+                          "value": null
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "ANZSRC ToA lookup",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Type to search vocabulary entries from anzsrc-toa.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "checkbox_1",
+                      "component": {
+                        "class": "CheckboxInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "Checkbox tooltip",
+                          "options": [
+                            {
+                              "label": "Option 1",
+                              "value": "option1"
+                            },
+                            {
+                              "label": "Option 2",
+                              "value": "option2"
+                            },
+                            {
+                              "label": "Option 3",
+                              "value": "option3"
+                            }
+                          ],
+                          "multipleValues": false
+                        }
+                      },
+                      "model": {
+                        "class": "CheckboxInputModel",
+                        "config": {
+                          "value": "option1"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Checkbox some label (single value)",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Checkbox some help text - single selection mode",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "checkbox_multiple",
+                      "component": {
+                        "class": "CheckboxInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "Multiple selection checkbox tooltip",
+                          "options": [
+                            {
+                              "label": "Multi Option 1",
+                              "value": "option1"
+                            },
+                            {
+                              "label": "Multi Option 2",
+                              "value": "option2"
+                            },
+                            {
+                              "label": "Multi Option 3",
+                              "value": "option3"
+                            },
+                            {
+                              "label": "Multi Option 4",
+                              "value": "option4"
+                            }
+                          ],
+                          "multipleValues": true
+                        }
+                      },
+                      "model": {
+                        "class": "CheckboxInputModel",
+                        "config": {
+                          "value": [
+                            "option1",
+                            "option3"
+                          ]
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Checkbox multiple values",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Checkbox with multiple selection enabled",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "radio_1",
+                      "component": {
+                        "class": "RadioInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "Checkbox tooltip",
+                          "options": [
+                            {
+                              "label": "Option 1",
+                              "value": "option1"
+                            },
+                            {
+                              "label": "Option 2",
+                              "value": "option2"
+                            },
+                            {
+                              "label": "Option 3",
+                              "value": "option3"
+                            }
+                          ]
+                        }
+                      },
+                      "model": {
+                        "class": "RadioInputModel",
+                        "config": {
+                          "value": "option1"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Radio some label (single value)",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Radio some help text - single selection mode",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "date_1",
+                      "expressions": [
+                        {
+                          "name": "listenToRadio1Change",
+                          "config": {
+                            "template": "value = \"option2\"",
+                            "conditionKind": "jsonpointer",
+                            "condition": "/main_tab/tab_1/radio_1::field.value.changed",
+                            "target": "layout.visible",
+                            "hasTemplate": true
+                          }
+                        }
+                      ],
+                      "component": {
+                        "class": "DateInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "placeholder": "yyyy/mm/dd",
+                          "dateFormat": "YYYY/MM/DD",
+                          "showWeekNumbers": false,
+                          "containerClass": "theme-dark-blue",
+                          "enableTimePicker": false,
+                          "robustParsing": true,
+                          "bsFullConfig": null
+                        }
+                      },
+                      "model": {
+                        "class": "DateInputModel",
+                        "config": {
+                          "dateOnly": false
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Date1",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Date1 some help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "date_2",
+                      "expressions": [
+                        {
+                          "name": "listenToDate1UIChange",
+                          "config": {
+                            "template": "event.meta.visible = true",
+                            "conditionKind": "jsonpointer",
+                            "condition": "/main_tab-layout/tab_1-layout/date_1-layout::field.ui-attribute.changed",
+                            "target": "layout.visible",
+                            "hasTemplate": true
+                          }
+                        }
+                      ],
+                      "component": {
+                        "class": "DateInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "placeholder": "yyyy/mm/dd",
+                          "dateFormat": "YYYY/MM/DD",
+                          "showWeekNumbers": false,
+                          "containerClass": "theme-dark-blue",
+                          "enableTimePicker": true,
+                          "robustParsing": true,
+                          "bsFullConfig": null
+                        }
+                      },
+                      "model": {
+                        "class": "DateInputModel",
+                        "config": {
+                          "dateOnly": false
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Date some label",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Date some help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_1_event",
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "hello world!",
+                          "validators": [
+                            {
+                              "class": "required"
+                            }
+                          ]
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "TextField1 emitting events",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "This is a help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_2",
+                      "expressions": [
+                        {
+                          "name": "listenToText1Event",
+                          "config": {
+                            "template": "value & \"__suffix\"",
+                            "conditionKind": "jsonpointer",
+                            "condition": "/main_tab/tab_1/text_1_event::field.value.changed",
+                            "target": "model.value",
+                            "hasTemplate": true
+                          }
+                        },
+                        {
+                          "name": "listenToText1Event2",
+                          "config": {
+                            "template": "formData.text_2 & \"__hasJSONata\"",
+                            "conditionKind": "jsonata",
+                            "condition": "$contains($lowercase(formData.text_1_event), \"jsonata\")",
+                            "target": "model.value",
+                            "hasTemplate": true
+                          }
+                        },
+                        {
+                          "name": "listenToRepeatable1",
+                          "config": {
+                            "conditionKind": "jsonata_query",
+                            "condition": "$count(**[name=\"repeatable_textfield_1\"].children) >= 2",
+                            "template": "formData.text_2 & \"__repeatableMoreThan2\"",
+                            "target": "model.value",
+                            "hasTemplate": true
+                          }
+                        }
+                      ],
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "hello world 2!",
+                          "validators": []
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "TextField2 with expression listening to text_1_event",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "This is a help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_7",
+                      "expressions": [
+                        {
+                          "name": "text_7_set_validation_groups",
+                          "config": {
+                            "template": "{\"initial\": \"empty\", \"groups\": {\"include\":[\"none\"]}}",
+                            "conditionKind": "jsonata",
+                            "condition": "formData.text_7 = \"a\"",
+                            "target": "form.enabledValidationGroups",
+                            "hasTemplate": true
+                          }
+                        }
+                      ],
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "hello world 2!",
+                          "validators": [
+                            {
+                              "class": "pattern",
+                              "config": {
+                                "pattern": "prefix.*",
+                                "description": "must start with prefix"
+                              },
+                              "groups": {
+                                "include": [
+                                  "minimumCreate"
+                                ]
+                              }
+                            },
+                            {
+                              "class": "minLength",
+                              "message": "@validator-error-custom-text_7",
+                              "config": {
+                                "minLength": 3
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "TextField with default wrapper defined",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "This is a help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_2_event",
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "text_2_event tooltip",
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "hello world! component event",
+                          "validators": [
+                            {
+                              "class": "required"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_2_component_event",
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "text_2_component_event component tooltip 22222",
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "",
+                          "validators": [
+                            {
+                              "class": "required",
+                              "groups": {
+                                "include": [
+                                  "recommended"
+                                ],
+                                "exclude": [
+                                  "all",
+                                  "transitionDraftToSubmitted"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "TextField with default wrapper defined",
+                          "disabled": false,
+                          "autofocus": false,
+                          "tooltip": "text_2_component_event layout tooltip",
+                          "labelRequiredStr": "*",
+                          "helpText": "This is a help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_3_event",
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "hello world! layout event",
+                          "validators": [
+                            {
+                              "class": "required"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "text_3_layout_event",
+                      "component": {
+                        "class": "SimpleInputComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "type": "text",
+                          "placeholder": ""
+                        }
+                      },
+                      "model": {
+                        "class": "SimpleInputModel",
+                        "config": {
+                          "value": "hello world 2! layout expression"
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "TextField with default wrapper defined",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "This is a help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    }
+                  ],
+                  "selected": true
+                }
+              },
+              "layout": {
+                "class": "TabContentLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false,
+                  "buttonLabel": "Tab 1"
+                }
+              }
+            },
+            {
+              "name": "tab_2",
+              "component": {
+                "class": "TabContentComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "componentDefinitions": [
+                    {
+                      "name": "group_1_component",
+                      "component": {
+                        "class": "GroupComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "componentDefinitions": [
+                            {
+                              "name": "text_3",
+                              "component": {
+                                "class": "SimpleInputComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "type": "text",
+                                  "placeholder": ""
+                                }
+                              },
+                              "model": {
+                                "class": "SimpleInputModel",
+                                "config": {
+                                  "value": "hello world 3!"
+                                }
+                              },
+                              "layout": {
+                                "class": "DefaultLayout",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "TextField with default wrapper defined",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "labelRequiredStr": "*",
+                                  "helpText": "This is a help text",
+                                  "cssClassesMap": {},
+                                  "helpTextVisibleOnInit": false,
+                                  "helpTextVisible": false
+                                }
+                              }
+                            },
+                            {
+                              "name": "text_4",
+                              "component": {
+                                "class": "SimpleInputComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "type": "text",
+                                  "placeholder": ""
+                                }
+                              },
+                              "model": {
+                                "class": "SimpleInputModel",
+                                "config": {
+                                  "value": "hello world 4!"
+                                }
+                              }
+                            },
+                            {
+                              "name": "group_2_component",
+                              "component": {
+                                "class": "GroupComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "componentDefinitions": [
+                                    {
+                                      "name": "text_5",
+                                      "component": {
+                                        "class": "SimpleInputComponent",
+                                        "config": {
+                                          "readonly": false,
+                                          "visible": true,
+                                          "editMode": true,
+                                          "disabled": false,
+                                          "autofocus": false,
+                                          "type": "text",
+                                          "placeholder": ""
+                                        }
+                                      },
+                                      "model": {
+                                        "class": "SimpleInputModel",
+                                        "config": {
+                                          "value": "hello world 5!"
+                                        }
+                                      },
+                                      "layout": {
+                                        "class": "DefaultLayout",
+                                        "config": {
+                                          "readonly": false,
+                                          "visible": true,
+                                          "editMode": true,
+                                          "label": "TextField with default wrapper defined",
+                                          "disabled": false,
+                                          "autofocus": false,
+                                          "labelRequiredStr": "*",
+                                          "helpText": "This is a help text",
+                                          "cssClassesMap": {},
+                                          "helpTextVisibleOnInit": false,
+                                          "helpTextVisible": false
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              "model": {
+                                "class": "GroupModel",
+                                "config": {
+                                  "value": {
+                                    "text_5": "hello world 5!"
+                                  }
+                                }
+                              },
+                              "layout": {
+                                "class": "DefaultLayout",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "Group2 label",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "labelRequiredStr": "*",
+                                  "helpText": "Group 2 help",
+                                  "cssClassesMap": {},
+                                  "helpTextVisibleOnInit": false,
+                                  "helpTextVisible": false
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "model": {
+                        "class": "GroupModel",
+                        "config": {
+                          "value": {
+                            "text_3": "hello world 3!",
+                            "text_4": "hello world 4!",
+                            "group_2_component": {
+                              "text_5": "hello world 5!"
+                            }
+                          }
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Group label",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Group help",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "map_coverage",
+                      "component": {
+                        "class": "MapComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "center": [
+                            -24.67,
+                            134.07
+                          ],
+                          "zoom": 4,
+                          "mapHeight": "450px",
+                          "tileLayers": [],
+                          "enabledModes": [
+                            "point",
+                            "polygon",
+                            "linestring",
+                            "rectangle",
+                            "circle",
+                            "select"
+                          ],
+                          "enableImport": true,
+                          "coordinatePrecision": 15
+                        }
+                      },
+                      "model": {
+                        "class": "MapModel",
+                        "config": {
+                          "value": {
+                            "type": "FeatureCollection",
+                            "features": []
+                          }
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Geographic coverage",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Draw or import the geographic coverage area.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "file_upload_1",
+                      "component": {
+                        "class": "FileUploadComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "enabledSources": [
+                            "dropbox",
+                            "googleDrive",
+                            "onedrive"
+                          ],
+                          "companionUrl": "/companion",
+                          "allowUploadWithoutSave": true,
+                          "uppyDashboardNote": "Maximum upload size: 1 Gb per file"
+                        }
+                      },
+                      "model": {
+                        "class": "FileUploadModel",
+                        "config": {
+                          "value": []
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "File upload",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Attach one or more files to this record.",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    },
+                    {
+                      "name": "repeatable_textfield_1",
+                      "component": {
+                        "class": "RepeatableComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "disabled": false,
+                          "autofocus": false,
+                          "elementTemplate": {
+                            "name": "",
+                            "component": {
+                              "class": "SimpleInputComponent",
+                              "config": {
+                                "readonly": false,
+                                "visible": true,
+                                "editMode": true,
+                                "wrapperCssClasses": "col",
+                                "disabled": false,
+                                "autofocus": false,
+                                "type": "text",
+                                "placeholder": ""
+                              }
+                            },
+                            "model": {
+                              "class": "SimpleInputModel",
+                              "config": {
+                                "newEntryValue": "hello world from elementTemplate!",
+                                "validators": [
+                                  {
+                                    "class": "pattern",
+                                    "config": {
+                                      "pattern": "prefix.*",
+                                      "description": "must start with prefix"
+                                    }
+                                  },
+                                  {
+                                    "class": "minLength",
+                                    "message": "@validator-error-custom-example_repeatable",
+                                    "config": {
+                                      "minLength": 3
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "layout": {
+                              "class": "RepeatableElementLayout",
+                              "config": {
+                                "readonly": false,
+                                "visible": true,
+                                "editMode": true,
+                                "hostCssClasses": "row align-items-start",
+                                "disabled": false,
+                                "autofocus": false,
+                                "labelRequiredStr": "*",
+                                "cssClassesMap": {},
+                                "helpTextVisibleOnInit": false,
+                                "helpTextVisible": false,
+                                "containerCssClass": "rb-form-action-row",
+                                "alignment": "end",
+                                "wrap": true,
+                                "slotCssClass": "rb-form-action-slot",
+                                "compact": false
+                              }
+                            }
+                          },
+                          "addButtonShow": true,
+                          "allowZeroRows": false,
+                          "hideWhenZeroRows": false
+                        }
+                      },
+                      "model": {
+                        "class": "RepeatableModel",
+                        "config": {
+                          "value": [
+                            "hello world from repeatable, default!"
+                          ]
+                        }
+                      },
+                      "layout": {
+                        "class": "DefaultLayout",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "Repeatable TextField with default wrapper defined",
+                          "disabled": false,
+                          "autofocus": false,
+                          "labelRequiredStr": "*",
+                          "helpText": "Repeatable component help text",
+                          "cssClassesMap": {},
+                          "helpTextVisibleOnInit": false,
+                          "helpTextVisible": false
+                        }
+                      }
+                    }
+                  ],
+                  "selected": false
+                }
+              },
+              "layout": {
+                "class": "TabContentLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false,
+                  "buttonLabel": "Tab 2"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "class": "TabLayout",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "hostCssClasses": "d-flex align-items-start",
+          "disabled": false,
+          "autofocus": false,
+          "labelRequiredStr": "*",
+          "cssClassesMap": {},
+          "helpTextVisibleOnInit": false,
+          "helpTextVisible": false,
+          "tabShellCssClass": "rb-form-tab-shell",
+          "tabNavWrapperCssClass": "rb-form-tab-nav-wrapper",
+          "tabPanelWrapperCssClass": "rb-form-tab-panel-wrapper",
+          "buttonSectionCssClass": "nav flex-column nav-pills me-5",
+          "tabPaneCssClass": "tab-pane fade",
+          "tabPaneActiveCssClass": "active show",
+          "buttonSectionAriaOrientation": "vertical"
+        }
+      }
+    },
+    {
+      "name": "repeatable_group_1",
+      "component": {
+        "class": "RepeatableComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "disabled": false,
+          "autofocus": false,
+          "elementTemplate": {
+            "name": "",
+            "component": {
+              "class": "GroupComponent",
+              "config": {
+                "readonly": false,
+                "visible": true,
+                "editMode": true,
+                "wrapperCssClasses": "col",
+                "disabled": false,
+                "autofocus": false,
+                "componentDefinitions": [
+                  {
+                    "name": "text_3",
+                    "component": {
+                      "class": "SimpleInputComponent",
+                      "config": {
+                        "readonly": false,
+                        "visible": true,
+                        "editMode": true,
+                        "disabled": false,
+                        "autofocus": false,
+                        "type": "text",
+                        "placeholder": ""
+                      }
+                    },
+                    "model": {
+                      "class": "SimpleInputModel",
+                      "config": {
+                        "validators": [
+                          {
+                            "class": "minLength",
+                            "message": "@validator-error-custom-text_3",
+                            "config": {
+                              "minLength": 3
+                            },
+                            "groups": {
+                              "exclude": [
+                                "transitionDraftToSubmitted"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "model": {
+              "class": "GroupModel",
+              "config": {
+                "newEntryValue": {
+                  "text_3": "hello world 3!"
+                }
+              }
+            },
+            "layout": {
+              "class": "RepeatableElementLayout",
+              "config": {
+                "readonly": false,
+                "visible": true,
+                "editMode": true,
+                "hostCssClasses": "row align-items-start",
+                "disabled": false,
+                "autofocus": false,
+                "labelRequiredStr": "*",
+                "cssClassesMap": {},
+                "helpTextVisibleOnInit": false,
+                "helpTextVisible": false,
+                "containerCssClass": "rb-form-action-row",
+                "alignment": "end",
+                "wrap": true,
+                "slotCssClass": "rb-form-action-slot",
+                "compact": false
+              }
+            }
+          },
+          "addButtonShow": true,
+          "allowZeroRows": false,
+          "hideWhenZeroRows": false
+        }
+      },
+      "model": {
+        "class": "RepeatableModel",
+        "config": {
+          "value": [
+            {
+              "text_3": "hello world from repeating groups"
+            }
+          ]
+        }
+      },
+      "layout": {
+        "class": "DefaultLayout",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "label": "Repeatable TextField not inside the tab with default wrapper defined",
+          "disabled": false,
+          "autofocus": false,
+          "labelRequiredStr": "*",
+          "helpText": "Repeatable component help text",
+          "cssClassesMap": {},
+          "helpTextVisibleOnInit": false,
+          "helpTextVisible": false
+        }
+      }
+    },
+    {
+      "name": "workspace_selector",
+      "component": {
+        "class": "WorkspaceSelectorComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "label": "Create a workspace",
+          "disabled": false,
+          "autofocus": false,
+          "open": "Open workspace",
+          "saveFirst": "Save this record before creating a workspace.",
+          "displayType": "cards",
+          "shouldSaveForm": true,
+          "defaultSelection": [
+            {
+              "name": "existing-locations",
+              "label": "@existing-locations-label",
+              "subtitle": "@existing-locations-label",
+              "description": "@existing-locations-description",
+              "logo": "/images/blank.png"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "save_button",
+      "component": {
+        "class": "SaveButtonComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "label": "Save",
+          "disabled": false,
+          "autofocus": false,
+          "labelSaving": "Saving..."
+        }
+      }
+    },
+    {
+      "name": "save_status",
+      "component": {
+        "class": "SaveStatusComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "disabled": false,
+          "autofocus": false,
+          "successDisplayDurationMs": 3000
+        }
+      }
+    },
+    {
+      "name": "tab_nav_buttons",
+      "component": {
+        "class": "TabNavButtonComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "disabled": false,
+          "autofocus": false,
+          "prevLabel": "Previous",
+          "nextLabel": "Next",
+          "targetTabContainerId": "main_tab",
+          "endDisplayMode": "disabled"
+        }
+      }
+    },
+    {
+      "name": "cancel_button",
+      "component": {
+        "class": "CancelButtonComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "label": "Cancel",
+          "disabled": false,
+          "autofocus": false,
+          "confirmationMessage": "Are you sure you want to cancel?",
+          "confirmationTitle": "Confirm",
+          "cancelButtonMessage": "No",
+          "confirmButtonMessage": "Yes"
+        }
+      }
+    },
+    {
+      "name": "validation_summary_1",
+      "component": {
+        "class": "ValidationSummaryComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "disabled": false,
+          "autofocus": false,
+          "showWhenValid": false
+        }
+      }
+    },
+    {
+      "name": "suggested_validation_summary_1",
+      "component": {
+        "class": "SuggestedValidationSummaryComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "disabled": false,
+          "autofocus": false,
+          "enabledValidationGroups": [
+            "recommended"
+          ],
+          "includeTabLabel": true,
+          "showWhenValid": false,
+          "header": "@dmpt-form-suggested-validation-summary-header"
+        }
+      }
+    }
+  ],
+  "debugValue": true,
+  "attachmentFields": [
+    "file_upload_1"
+  ]
+}

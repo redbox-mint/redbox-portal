@@ -52,8 +52,8 @@ $logo-link-color-branding: #262626;
 	Used by: default-theme.scss (.mainmenu-area ul.navbar-nav li a.active)
 */
 $main-menu-active-item-color: #fff;
-$main-menu-active-item-color-hover: #888;
-$main-menu-active-item-background-color: #500005;
+$main-menu-active-item-color-hover: #ffffff;
+$main-menu-active-item-background-color: #b1101a;
 $main-menu-active-item-background-color-hover: #700007;
 
 /*
@@ -61,21 +61,21 @@ $main-menu-active-item-background-color-hover: #700007;
 	Used by: default-theme.scss (.mainmenu-area ul.navbar-nav li a, :hover)
 */
 $main-menu-inactive-item-color: #fff;
-$main-menu-inactive-item-color-hover: #888;
-$main-menu-inactive-item-background-color-hover: #fff;
+$main-menu-inactive-item-color-hover: #ffffff;
+$main-menu-inactive-item-background-color-hover: #333333;
 $main-menu-inactive-item-background-color:#500005;
 
 /*
 	Main menu: dropdown item colors (when site-branding-area menu is open)
 	Used by: default-theme.scss (.mainmenu-area ul.dropdown-menu li a.dropdown-item)
 */
-$main-menu-inactive-dropdown-item-color: #a9a9a9;
-$main-menu-inactive-dropdown-item-color-hover: #888;
-$main-menu-inactive-dropdown-item-background-color: #222;
+$main-menu-inactive-dropdown-item-color: #595959;
+$main-menu-inactive-dropdown-item-color-hover: #595959;
+$main-menu-inactive-dropdown-item-background-color: #ffffff;
 $main-menu-inactive-dropdown-item-background-color-hover: #fff;
 
-$main-menu-active-dropdown-item-color: #a9a9a9;
-$main-menu-active-dropdown-item-color-hover: #888;
+$main-menu-active-dropdown-item-color: #ffffff;
+$main-menu-active-dropdown-item-color-hover: #595959;
 $main-menu-active-dropdown-item-background-color: #b1101a;
 $main-menu-active-dropdown-item-background-color-hover: #fff;
 
@@ -84,7 +84,7 @@ $main-menu-active-dropdown-item-background-color-hover: #fff;
 	Main menu: selected item focus color
 	Used by: default-theme.scss (.mainmenu-area .nav > li > a:focus)
 */
-$main-menu-selected-item-color: #000;
+$main-menu-selected-item-color: #ffffff;
 $main-menu-selected-item-background-color: $main-menu-active-item-background-color;
 
 /*

@@ -52,6 +52,11 @@ const publicTranslationPolicies: PolicyName[] = [
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
 
+// Check browser authentication before bearer middleware assigns req.user.
+const namedQueryMutationPolicies = noCachePlusApiValidationPolicies.flatMap(policy =>
+  policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
+);
+
 export function buildContractApiPolicies(
   apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()
 ): PoliciesConfig {
@@ -60,9 +65,22 @@ export function buildContractApiPolicies(
     acc[route.controller] = {
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
-      [route.action]: route.controller === 'webservice/RecordGraphqlController'
-        ? noCachePlusApiValidationPolicies.map(policy => policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy)
-        : noCachePlusApiValidationPolicies,
+      [route.action]:
+        route.controller === 'webservice/RecordGraphqlController'
+          ? noCachePlusApiValidationPolicies.map(policy => (policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy))
+          : route.controller === 'webservice/NamedQueryController' &&
+              ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
+            ? [
+                ...(route.method === 'get' ? [] : (['namedQueryMutationCsrf'] as PolicyName[])),
+                ...noCachePlusApiValidationPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'),
+              ]
+            : route.controller === 'webservice/NamedQueryController' &&
+                ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
+              ? namedQueryMutationPolicies
+              : route.controller === 'webservice/ReportController' &&
+                  ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action)
+                ? namedQueryMutationPolicies
+                : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);
@@ -92,6 +110,21 @@ const contractApiPolicies = buildContractApiPolicies();
 const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSchemaController'] as ControllerPolicies;
 
 export const policies: PoliciesConfig = {
+  // Saved definitions are a browser-admin surface. Do not promote bearer credentials
+  // after the CSRF policy has decided whether this is a session mutation.
+  SavedGridController: {
+    '*': [
+      'noCache',
+      'namedQueryMutationCsrf',
+      ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'),
+    ],
+  },
+  EmailTemplateAdminController: {
+    '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],
+    // The page follows the portal's normal sign-in flow (checkAuth redirects to login);
+    // the Admin check still runs afterwards. JSON endpoints keep the early typed 403.
+    page: ['noCache', ...defaultPolicies, 'emailTemplateAdmin'],
+  },
   UserController: {
     '*': noCachePlusDefaultPolicies,
     localLogin: noCachePlusCspNoncePolicy,
@@ -103,11 +136,8 @@ export const policies: PoliciesConfig = {
   RenderViewController: {
     render: noCachePlusDefaultPolicies,
   },
-  RecordController: {
+  GenerationController: {
     '*': noCachePlusDefaultPolicies,
-    // companionAttachmentUploadAuth runs before checkAuth; bypass is route-scoped
-    // and ignored for non-companion attachment routes.
-    doAttachment: doAttachmentPolicies,
   },
   'webservice/RecordController': {
     '*': noCachePlusDefaultPolicies,
@@ -123,6 +153,12 @@ export const policies: PoliciesConfig = {
     renderFont: ['contentSecurityPolicy'],
   },
   ...contractApiPolicies,
+  // Preserve the route-scoped Companion guard alongside generated record policies.
+  RecordController: {
+    ...(contractApiPolicies.RecordController as ControllerPolicies),
+    '*': noCachePlusDefaultPolicies,
+    doAttachment: doAttachmentPolicies,
+  },
   'webservice/RecordSchemaController': {
     ...recordSchemaControllerPolicies,
     create: recordSchemaApiValidationPolicies,
@@ -133,6 +169,7 @@ export const policies: PoliciesConfig = {
     '*': noCachePlusDefaultPolicies,
   },
   TranslationController: {
+    ...(contractApiPolicies.TranslationController as ControllerPolicies),
     '*': noCachePlusDefaultPolicies,
     getNamespace: publicTranslationPolicies,
   },

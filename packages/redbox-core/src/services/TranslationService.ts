@@ -259,7 +259,7 @@ export namespace Services {
       for (const bId of brandingsToReload) {
         try {
           await this.clearInstances(bId);
-          const branding = BrandingService.getBrand(bId);
+          const branding = BrandingService.getBrandById(bId) ?? BrandingService.getBrand(bId);
           if (!branding) continue;
           await this.getI18nextForBranding(branding);
           this.logger.debug(`Re-created i18next instance for branding: ${bId}`);
@@ -358,7 +358,7 @@ export namespace Services {
       res.cookie('lng', resolvedLang);
 
       // Inject branding-specific i18next instance into locals
-      req.options.locals.TranslationService = _.merge(this, {
+      req.options.locals.TranslationService = Object.assign(Object.create(this), {
         t: function (key: string, context?: Record<string, unknown>) {
           if (context === undefined) {
             return i18nextInstance.getFixedT(resolvedLang)(key);

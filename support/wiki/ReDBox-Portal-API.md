@@ -115,3 +115,7 @@ schema. See [Generated Reference Documentation](Generated-Reference-Documentatio
 for regeneration commands and
 [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
 for rollout and repair procedures.
+
+### Read-only GraphQL and data grids
+
+The authenticated `POST /:branding/:portal/api/graphql` endpoint supports single-record reads, bounded record collections and a scoped field catalogue. See [Record GraphQL Grids](Record-GraphQL-Grids) for enablement, index preparation, query examples, permissions, pagination and reusable grid configuration IDs. General introspection remains disabled.

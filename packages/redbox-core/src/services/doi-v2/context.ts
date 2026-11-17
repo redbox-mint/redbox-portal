@@ -1,5 +1,7 @@
 import type { DoiProfile } from '../../configmodels/DoiPublishing';
-import type { DoiRecordModel, DoiRunContext } from './types';
+import type { DoiRecordModel, DoiRunContext, DoiRelatedOptions } from './types';
+import type { RecordModel } from '../../model';
+import { resolveDoiPublishingBrand } from './config';
 
 export function createRunContext(
   record: DoiRecordModel,
@@ -42,4 +44,20 @@ export function createBindingContext(record: DoiRecordModel, oid: string, profil
       }
     }
   };
+}
+
+/** Resolve once per operation against the supplied candidate, including unsaved references. */
+export async function createDoiMappingRecord(record: DoiRecordModel, options: DoiRelatedOptions): Promise<DoiRecordModel> {
+  if (options.relatedMetadata == null) {
+    return record;
+  }
+  if (!options.user?.username) {
+    throw new Error('DOI related metadata requires an effective source-read user');
+  }
+  return RecordsService.enrichWithRelatedMetadata(record as unknown as RecordModel, {
+    brand: resolveDoiPublishingBrand(record),
+    user: options.user,
+    audience: 'service',
+    serviceId: 'DoiService',
+  }, options.relatedMetadata) as unknown as Promise<DoiRecordModel>;
 }

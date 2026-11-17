@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { APIActionResponse } from '../model/APIActionResponse';
+import { EmailTemplateError } from '../services/EmailTemplateService';
 import { Services } from '../services/EmailService';
 import { getValidatedApiRequest } from '../api-routes/validation';
 
@@ -87,12 +88,17 @@ export namespace Controllers {
 
             let emailProperties;
             try {
-                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined);
+                // The route policies resolve locals.branding. Never use body.brandId,
+                // body.branding, or data.brandId to choose the template tenant.
+                const brandName = req.options?.locals?.branding ?? req.params?.branding;
+                const brand = typeof brandName === 'string' ? BrandingService.getBrand(brandName) : undefined;
+                if (!brand) throw new EmailTemplateError('UNKNOWN_BRAND', 'No resolved request brand for email notification.');
+                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined, { brandId: brand.id });
             } catch (error) {
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    errors: [error],
+                    errors: [new Error(error instanceof EmailTemplateError ? `Email failure: ${error.code}` : 'Email rendering failed.')],
                     headers: this.getNoCacheHeaders(),
                     chronicle: {emailProcessStepFailed: 'evaluate properties'},
                 });
@@ -133,9 +139,9 @@ export namespace Controllers {
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
                         buildResult['body'] as string,
-                        subjectRendered,
+                        (buildResult['subject'] as string | undefined) ?? subjectRendered,
                         fromRendered,
-                        formatRendered,
+                        (buildResult['format'] as string | undefined) ?? formatRendered,
                         ccRendered,
                         bccRendered,
                         otherSendOptions,
@@ -157,13 +163,19 @@ export namespace Controllers {
                                 chronicle: {emailSent: true},
                             });
                         }
-                    });
+                    }, (error: unknown) => this.sendResp(req, res, {
+                        status: 500,
+                        displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
+                        headers: this.getNoCacheHeaders(),
+                        chronicle: { emailProcessStepFailed: 'send',
+                            emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' },
+                    }));
                 }
             }, (error: unknown) => {
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    errors: [error],
+                    errors: [new Error(error instanceof EmailTemplateError ? `Email failure: ${error.code}` : 'Email rendering failed.')],
                     headers: this.getNoCacheHeaders(),
                     chronicle: {emailProcessStepFailed: 'render template'},
                 });

@@ -62,7 +62,8 @@ export async function receiveSingleFile(
   req: Sails.Req,
   field: string,
   maxBytes: number,
-  files: SkipperUploadedFile[]
+  files: SkipperUploadedFile[],
+  dirname?: string
 ): Promise<void> {
   const reqObj = req as globalThis.Record<string, unknown>;
   if (!(reqObj._fileparser && typeof reqObj.file === 'function')) return;
@@ -70,7 +71,7 @@ export async function receiveSingleFile(
     upload: (options: Record<string, unknown>, cb: (err: unknown, uploaded?: SkipperUploadedFile[]) => void) => void;
   };
   await new Promise<void>((resolve, reject) => {
-    fileFn.call(req, field).upload({ maxBytes }, (err, uploaded) => {
+    fileFn.call(req, field).upload({ maxBytes, ...(dirname ? { dirname } : {}) }, (err, uploaded) => {
       files.push(...(uploaded ?? []));
       if (err) reject(err);
       else resolve();

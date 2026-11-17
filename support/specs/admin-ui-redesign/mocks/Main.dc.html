@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin home</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="home" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main">
+      <div class="wrap">
+        <nav class="crumbs" aria-label="Breadcrumb"><span>Admin</span></nav>
+        <header class="ph">
+          <div>
+            <h1>Administration</h1>
+            <p>Configure ReDBox for your institution: records and reporting, people and access, site content, vocabularies and publishing integrations.</p>
+          </div>
+          <div class="ph-actions"><a class="btn btn-secondary" href="ApiDocs.dc.html">API docs</a></div>
+        </header>
+
+        <section class="card" aria-labelledby="attn-h">
+          <div class="card-h plain"><h2 id="attn-h">Needs attention</h2><span class="small muted">Only shown when something needs an admin</span></div>
+          <ul style="list-style: none; margin: 0; padding: 0">
+            <li class="spread" style="padding: 10px 16px; border-bottom: 1px solid #ececec"><span><span class="badge warn">Check</span> Oni publishing has settings sections with no fields</span><a class="btn btn-secondary btn-sm" href="IntegrationConfig.dc.html">Review</a></li>
+            <li class="spread" style="padding: 10px 16px"><span><span class="badge">Info</span> System message banner is off</span><a class="btn btn-ghost btn-sm" href="SystemMessages.dc.html">Open</a></li>
+          </ul>
+        </section>
+
+        <div class="stats">
+          <div class="stat"><b>1</b><span>Active users</span></div>
+          <div class="stat"><b>1</b><span>Configured reports</span></div>
+          <div class="stat"><b>0</b><span>Harvest runs, last 7 days</span></div>
+          <div class="stat"><b>[n] of 5</b><span>Integrations enabled</span></div>
+        </div>
+
+        <div class="tile-grid">
+          <section class="tile">
+            <div class="tile-h"><span class="tile-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg></span><div><h3>Records &amp; reporting</h3><span class="sub">Query, report on and recover records</span></div></div>
+            <ul>
+              <li><a href="Reports.dc.html">Reports <span class="badge">1</span></a></li>
+              <li><a href="NamedQueries.dc.html">Named queries <span class="badge">8</span></a></li>
+              <li><a href="HarvestRuns.dc.html">Harvest runs <span class="badge">0</span></a></li>
+              <li><a href="Export.dc.html">Export</a></li>
+              <li><a href="DeletedRecords.dc.html">Deleted records <span class="badge">0</span></a></li>
+            </ul>
+          </section>
+          <section class="tile">
+            <div class="tile-h"><span class="tile-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="4"></circle><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 1 0 0-6M22 21c0-3-2-5-5-5.5"></path></svg></span><div><h3>People &amp; access</h3><span class="sub">Accounts, roles and sign-in rules</span></div></div>
+            <ul>
+              <li><a href="Users.dc.html">Users <span class="badge">1</span></a></li>
+              <li><a href="Roles.dc.html">Roles <span class="badge">4</span></a></li>
+              <li><a href="AuthorizedDomains.dc.html">Authorized domains &amp; emails</a></li>
+            </ul>
+          </section>
+          <section class="tile">
+            <div class="tile-h"><span class="tile-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 4v5"></path></svg></span><div><h3>Site &amp; content</h3><span class="sub">What users see across the portal</span></div></div>
+            <ul>
+              <li><a href="SystemMessages.dc.html">System messages <span class="badge">Off</span></a></li>
+              <li><a href="MenuConfig.dc.html">Menu, home panels &amp; admin sidebar</a></li>
+              <li><a href="DashboardConfig.dc.html">Dashboards</a></li>
+              <li><a href="Branding.dc.html">Branding</a></li>
+              <li><a href="Translations.dc.html">Translations <span class="badge">1 language</span></a></li>
+              <li><a href="SystemMessages.dc.html">Web analytics</a></li>
+            </ul>
+          </section>
+          <section class="tile">
+            <div class="tile-h"><span class="tile-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16M4 12h10M4 19h7"></path></svg></span><div><h3>Lookups &amp; vocabularies</h3><span class="sub">Controlled lists used by forms</span></div></div>
+            <ul>
+              <li><a href="Parties.dc.html">Parties</a></li>
+              <li><a href="Vocabularies.dc.html">Vocabularies <span class="badge">3</span></a></li>
+              <li><a href="FigshareVocab.dc.html">Figshare vocabularies <span class="badge">0 sources</span></a></li>
+            </ul>
+          </section>
+          <section class="tile">
+            <div class="tile-h"><span class="tile-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg></span><div><h3>Integrations</h3><span class="sub">Publishing to external services</span></div></div>
+            <ul>
+              <li><a href="IntegrationConfig.dc.html">Figshare publishing <span class="badge ok">On</span></a></li>
+              <li><a href="IntegrationConfig.dc.html">Oni publishing <span class="badge warn">Check</span></a></li>
+              <li><a href="IntegrationConfig.dc.html">DOI publishing <span class="badge ok">On</span></a></li>
+              <li><a href="RaidPublishing.dc.html">RAiD publishing <span class="badge ok">On</span></a></li>
+              <li><a href="IntegrationConfig.dc.html">Integration notifications <span class="badge">[On/Off]</span></a></li>
+            </ul>
+          </section>
+          <section class="tile">
+            <div class="tile-h"><span class="tile-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"></path></svg></span><div><h3>Developer</h3><span class="sub">API reference and keys</span></div></div>
+            <ul>
+              <li><a href="ApiDocs.dc.html">REST API documentation</a></li>
+              <li><a href="Users.dc.html">Manage API keys (per user)</a></li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

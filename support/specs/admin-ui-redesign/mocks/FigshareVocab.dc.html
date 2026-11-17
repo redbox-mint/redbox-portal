@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Figshare vocabularies</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="figvocab" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Lookups &amp; vocabularies</span><span>/</span><span>Figshare vocabularies</span></nav>
+      <header class="ph">
+        <div><h1>Figshare vocabularies</h1><p>Sync Figshare category catalogues and map them to local ReDBox vocabularies (crosswalks).</p></div>
+        <div class="ph-actions"><a class="btn btn-secondary" href="IntegrationConfig.dc.html">Publishing settings</a><button class="btn btn-primary" type="button">+ Add Figshare source</button></div>
+      </header>
+
+      <div class="stats">
+        <div class="stat"><b>0</b><span>Sources</span></div>
+        <div class="stat"><b>0</b><span>Approved crosswalks</span></div>
+        <div class="stat"><b>0</b><span>Sync warnings</span></div>
+      </div>
+
+      <nav class="tabs" aria-label="Figshare vocabulary sections"><a href="#" class="on">Sources <span class="badge">0</span></a><a href="#">Crosswalks <span class="badge">0</span></a><a href="#">Sync history</a></nav>
+
+      <div class="card">
+        <div class="filters">
+          <div class="field"><label for="fv-s">Catalogue scope</label><select id="fv-s" class="inp"><option>All scopes</option><option>Institution</option><option>Public</option></select></div>
+        </div>
+        <div class="empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path><circle cx="19" cy="18" r="2.5"></circle></svg>
+          <h3>No Figshare sources yet</h3>
+          <p>Add a source to pull Figshare’s category list for your institution or the public catalogue. You can then map categories to local vocabularies.</p>
+          <div class="row" style="justify-content: center"><button class="btn btn-primary" type="button">+ Add Figshare source</button><a class="btn btn-ghost" href="#">How crosswalks work</a></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h plain"><h2>How it fits together</h2></div>
+        <div class="card-b">
+          <ol class="small" style="margin: 0; padding-left: 18px; display: grid; gap: 6px">
+            <li><b>Source:</b> a Figshare catalogue (institution or public) that ReDBox syncs on a schedule.</li>
+            <li><b>Crosswalk:</b> maps each Figshare category to a term in a local vocabulary such as ANZSRC FoR. A librarian reviews and approves it.</li>
+            <li><b>Publishing:</b> Figshare publishing uses approved crosswalks to set categories on articles.</li>
+          </ol>
+        </div>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

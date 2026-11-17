@@ -1,8 +1,10 @@
-import { printSchema } from 'graphql';
+import { printSchema, GraphQLError, type GraphQLSchema } from 'graphql';
+import { firstValueFrom } from 'rxjs';
+import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
 import { Services as services } from '../CoreService';
 import { recordGraphql, validateRecordGraphqlConfig, type RecordGraphqlConfig } from '../config/recordGraphql.config';
 import { recordSchema } from '../config/recordSchema.config';
-import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { formatRecordFormCatalogueFingerprint } from '../RecordFormFingerprint';
 import {
   RecordContractCompiler,
   type ContractJsonObject,
@@ -13,9 +15,10 @@ import {
 import { configuredReadContracts, type ReadContractCandidate } from '../record-graphql/read-contract';
 import { createRecordYoga, QUERY_LIMITS } from '../record-graphql/schema';
 import { isObject } from '../record-graphql/renderer';
+import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { ReadCaller, ReadPorts } from '../record-graphql/read-record';
 
-export interface RecordGraphqlDependencies extends ReadPorts {
+export interface RecordGraphqlDependencies extends ReadPorts, GridPorts {
   readonly getConfig: () => RecordGraphqlConfig;
   readonly getCandidates: (caller: ReadCaller) => Promise<readonly ReadContractCandidate[]>;
   readonly getReusableDefinitions: () => typeof sails.config.reusableFormDefinitions;
@@ -23,11 +26,31 @@ export interface RecordGraphqlDependencies extends ReadPorts {
   readonly getContributorRegistrationIssues: () => readonly RecordContractRegistrationIssue[];
 }
 
+interface GridSearchAdapter {
+  getRecordQuerySchema: (coreId: string, deadline: number) => Promise<GridIndexSchema>;
+  searchRecordPage: (coreId: string, params: URLSearchParams, deadline: number) => Promise<GridIndexPage>;
+}
+function hasGridSearch(value: unknown): value is GridSearchAdapter {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof Reflect.get(value, 'getRecordQuerySchema') === 'function' &&
+    typeof Reflect.get(value, 'searchRecordPage') === 'function'
+  );
+}
+
 type ReadSchema = ReturnType<typeof createRecordYoga>;
 interface CacheEntry {
   readonly registry: RecordContractContributorRegistry;
   readonly schema: Promise<ReadSchema>;
   pending: boolean;
+}
+
+export class RecordGraphqlDisabledError extends Error {
+  readonly code = 'GRAPHQL_DISABLED';
+  constructor() {
+    super('Record GraphQL is disabled.');
+  }
 }
 
 export interface RecordGraphqlResponse {
@@ -41,7 +64,7 @@ export function graphqlFailure(status: number, code: string, message: string): R
 
 export namespace Services {
   export class RecordGraphql extends services.Core.Service {
-    protected _exportedMethods = ['init', 'execute', 'describeReadSchema'];
+    protected _exportedMethods = ['init', 'execute', 'describeReadSchema', 'getReadSchema', 'getBootstrapReadSchema'];
     private readonly cache = new Map<string, CacheEntry>();
     private readonly dependencies: RecordGraphqlDependencies;
 
@@ -53,6 +76,47 @@ export namespace Services {
         getReusableDefinitions: () => sails.config.reusableFormDefinitions,
         getContributorRegistry: () => undefined,
         getContributorRegistrationIssues: () => [],
+        getGridEnvironment: async (caller, recordType, deadline) => {
+          const type = await firstValueFrom(RecordTypesService.get(caller.brand, recordType));
+          if (!type)
+            throw new GraphQLError('Record type is unavailable.', { extensions: { code: 'UNKNOWN_RECORD_TYPE' } });
+          const coreId = type.searchCore || 'default';
+          const config = sails.config.solr.cores[coreId];
+          const search: unknown = sails.services[sails.config.search.serviceName];
+          if (!config || !hasGridSearch(search))
+            throw new GraphQLError('Configured search backend does not support record grids.', {
+              extensions: { code: 'COLLECTION_UNAVAILABLE' },
+            });
+          const schema = await search.getRecordQuerySchema(coreId, deadline);
+          const steps = await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(type));
+          return {
+            coreId,
+            recordTypeLabel: sails.config.recordtype?.[recordType]?.labels?.name || recordType,
+            workflowLabels: steps.flatMap(step => {
+              const workflow = isObject(step.config) && isObject(step.config.workflow) ? step.config.workflow : {};
+              return typeof workflow.stage === 'string' && typeof workflow.stageLabel === 'string'
+                ? [{ value: workflow.stage, label: workflow.stageLabel }]
+                : [];
+            }),
+            config,
+            schema,
+            search: (params, until) => search.searchRecordPage(coreId, params, until),
+            cursorSecret: this.dependencies.getConfig().cursorSecret,
+          };
+        },
+        getChoiceLabels: async (caller, reference, deadline) => {
+          if (Date.now() > deadline) throw new Error('Field vocabulary lookup timed out.');
+          // Only references on readable contract fields reach this port. This
+          // local, brand-scoped read never executes an external/named query.
+          const page = await VocabularyService.getEntries(String(caller.brand.id), reference, {
+            limit: 1000,
+            includeHistoricalValues: true,
+          });
+          if (Date.now() > deadline) throw new Error('Field vocabulary lookup timed out.');
+          return page && page.meta.total <= 1000
+            ? page.entries.map(entry => ({ label: entry.label, value: entry.value }))
+            : [];
+        },
         getRecord: oid => RecordsService.getMeta(oid),
         hasViewAccess: (caller, record) =>
           RecordsService.hasViewAccess(caller.brand, caller.user, caller.roles, record),
@@ -69,7 +133,33 @@ export namespace Services {
       return printSchema((await this.resolveReadSchema(caller)).schema);
     }
 
-    public async execute(caller: ReadCaller, body: unknown): Promise<RecordGraphqlResponse> {
+    /** Static named-query validation reuses the deployed schema and scalar contracts.
+     * This never executes resolvers or reads records. Callers supply trusted scope.
+     */
+    public async getReadSchema(caller: ReadCaller): Promise<GraphQLSchema> {
+      if (
+        !caller?.brand?.id ||
+        !caller.brand.name ||
+        !caller.portal ||
+        !isObject(caller.user) ||
+        typeof caller.user.username !== 'string' ||
+        !caller.user.username ||
+        !Array.isArray(caller.roles)
+      )
+        throw new Error('GraphQL validation requires authenticated context.');
+      return (await this.resolveReadSchema(caller)).schema;
+    }
+
+    /** Trusted configuration import only: build schema without authenticating or
+     * granting any execution permission. No record resolvers are invoked. Schema
+     * validation is useful even while the public GraphQL feature is disabled.
+     */
+    public async getBootstrapReadSchema(brand: BrandingModel, portal: string): Promise<GraphQLSchema> {
+      if (!brand?.id || !brand.name || !portal) throw new Error('Read schema scope is required.');
+      return (await this.resolveReadSchema({ brand, portal, user: {}, roles: [] }, true)).schema;
+    }
+
+    public async execute(caller: ReadCaller, body: unknown, until?: number): Promise<RecordGraphqlResponse> {
       if (!isObject(caller.user) || typeof caller.user.username !== 'string') {
         return graphqlFailure(401, 'UNAUTHENTICATED', 'Authentication is required.');
       }
@@ -86,7 +176,7 @@ export namespace Services {
         return graphqlFailure(413, 'QUERY_LIMIT', 'Request exceeds the byte bound.');
       }
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const deadline = Date.now() + QUERY_LIMITS.timeoutMs;
+      const deadline = Math.min(Date.now() + QUERY_LIMITS.timeoutMs, until ?? Infinity);
       try {
         const work = async (): Promise<RecordGraphqlResponse> => {
           const { yoga } = await this.resolveReadSchema(caller);
@@ -113,23 +203,25 @@ export namespace Services {
           new Promise<RecordGraphqlResponse>(resolve => {
             timer = setTimeout(
               () => resolve(graphqlFailure(503, 'QUERY_TIMEOUT', 'Read query timed out.')),
-              QUERY_LIMITS.timeoutMs
+              Math.max(0, deadline - Date.now())
             );
           }),
         ]);
-      } catch {
+      } catch (error) {
+        if (error instanceof RecordGraphqlDisabledError)
+          return graphqlFailure(503, 'GRAPHQL_DISABLED', 'Record GraphQL is disabled.');
         return graphqlFailure(503, 'UNAVAILABLE', 'Record GraphQL is unavailable.');
       } finally {
         if (timer !== undefined) clearTimeout(timer);
       }
     }
 
-    private async resolveReadSchema(caller: ReadCaller): Promise<ReadSchema> {
+    private async resolveReadSchema(caller: ReadCaller, schemaOnly = false): Promise<ReadSchema> {
       const config = this.dependencies.getConfig();
       validateRecordGraphqlConfig(config);
-      if (!config.enabled) {
+      if (!config.enabled && !schemaOnly) {
         this.cache.clear();
-        throw new Error('Record GraphQL is disabled.');
+        throw new RecordGraphqlDisabledError();
       }
       while (this.cache.size > config.cacheEntries) {
         const evict = [...this.cache].find(([, entry]) => !entry.pending);
@@ -146,7 +238,7 @@ export namespace Services {
       const candidates = await this.dependencies.getCandidates(caller);
       if (candidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
       const reusableFormDefinitions = this.dependencies.getReusableDefinitions();
-      const fingerprint = formatRecordFormFingerprint({ candidates, reusableFormDefinitions });
+      const fingerprint = formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions);
       if (!fingerprint) throw new Error('Read configuration exceeds its fingerprint bound.');
       const key = JSON.stringify([caller.brand.id, caller.brand.name, caller.portal, fingerprint]);
       const cached = this.cache.get(key);
@@ -213,10 +305,10 @@ export namespace Services {
         if (result.kind !== 'compiled') throw new Error('Read contract compilation failed.');
         contracts.push(result.contract);
       }
-      if (formatRecordFormFingerprint({ candidates, reusableFormDefinitions }) !== fingerprint) {
+      if (formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions) !== fingerprint) {
         throw new Error('Read configuration changed during compilation.');
       }
-      return createRecordYoga(contracts, this.dependencies);
+      return createRecordYoga(contracts, this.dependencies, this.dependencies);
     }
   }
 }

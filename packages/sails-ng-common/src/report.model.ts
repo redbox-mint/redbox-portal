@@ -1,4 +1,6 @@
-import {RecordPageDto, RecordPropViewMetaDto} from "./record.model";
+import { RecordPageDto, RecordPropViewMetaDto } from './record.model';
+import type { FieldDescription, EditorDiagnostic } from './schema-assist.model';
+import type { NamedQueryDescription } from './named-query-assist.model';
 
 export interface ReportFilterDto {
   type: string;
@@ -10,13 +12,15 @@ export interface ReportFilterDto {
 export class ReportDto {
   title: string;
   name: string;
-  solrQuery: string;
+  reportSource?: 'database' | 'solr';
+  querySource?: 'database' | 'graphql' | 'solr';
+  exportMaxRows?: number;
+  databaseQuery?: { queryName: string } | null;
   filter: ReportFilterDto[];
   columns: RecordPropViewMetaDto[];
   constructor() {
-    this.title = "";
-    this.name = "";
-    this.solrQuery = "";
+    this.title = '';
+    this.name = '';
     this.filter = [];
     this.columns = [];
   }
@@ -36,6 +40,8 @@ export interface ReportConfigFilterDto {
 }
 
 export interface ReportConfigColumnDto {
+  format?: 'text' | 'date' | 'datetime';
+  valueLabels?: { value: string; label: string }[];
   label: string;
   property: string;
   hide?: boolean;
@@ -46,6 +52,7 @@ export interface ReportConfigColumnDto {
 
 export interface ReportConfigDatabaseQueryDto {
   queryName: string;
+  queryVersion?: string;
 }
 
 export interface ReportConfigSolrQueryDto {
@@ -69,11 +76,44 @@ export interface ReportConfigDto {
 }
 
 export interface ReportConfigPreviewDto extends ReportResultDto {
+  records: Record<string, unknown>[];
   success: boolean;
+  valid: boolean;
+  diagnostics: EditorDiagnostic[];
+  /** Same order as records and configured columns, including hidden/export columns. */
+  renderedRows: Array<{
+    cells: Array<{
+      /** Untrusted rendered HTML. Use Angular [innerHTML], exactly like the live report; never bypass its sanitizer. */
+      untrustedDisplayHtml: string;
+      /** Actual CSV-cast cell text, with formula protection, before CSV quoting. */
+      export: string;
+    }>;
+  }>;
+  /** False for legacy saved queries whose Waterline/hook reads cannot enforce a DB deadline. */
+  deadlineEnforced: boolean;
+  truncated: boolean;
+  truncationReasons: Array<'rows' | 'bytes'>;
+  limits: { rows: number; responseBytes: number; inputBytes: number; timeMs: number };
+}
+
+export interface ReportConfigValidation {
+  valid: boolean;
+  diagnostics: EditorDiagnostic[];
+}
+
+/** Extends the saved-query DTO; property/multivalue select an ephemeral column context. */
+export interface ReportNamedQueryDescription extends Omit<NamedQueryDescription, 'source'> {
+  source?: 'database' | 'graphql';
+  queryVersion?: string;
+  compatibleQueryVersions?: string[];
+  sourceSavedQuery?: { id: string; name: string };
+  sourceExplorerUrl?: string;
+  templateContexts: { display: FieldDescription; csv: FieldDescription };
 }
 /**
  * Users of Record Table must extend RecordPage model
  */
 export interface ReportResultDto extends RecordPageDto {
   recordsPerPage: number;
+  pagination?: { mode: 'cursor'; hasNextPage: boolean; nextCursor: string | null; start: number };
 }

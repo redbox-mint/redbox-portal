@@ -337,10 +337,15 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        return req.logIn(user, function (err: unknown) {
+        return req.logIn(user, async function (err: unknown) {
           if (err) {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
+          }
+
+          try { await UsersService.recordSuccessfulLogin(user); } catch (error) {
+            that.updateChronicle(req, { userLoginSuccess: false }, [error]);
+            return res.serverError();
           }
 
           // login success
@@ -445,10 +450,14 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        req.logIn(user, function (err: unknown) {
+        req.logIn(user, async function (err: unknown) {
           if (err) {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
+          }
+          try { await UsersService.recordSuccessfulLogin(user); } catch (error) {
+            that.updateChronicle(req, { userLoginSuccess: false }, [error]);
+            return res.serverError();
           }
           that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
@@ -621,10 +630,14 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        req.logIn(user, function (err: unknown) {
+        req.logIn(user, async function (err: unknown) {
           if (err) {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
+          }
+          try { await UsersService.recordSuccessfulLogin(user); } catch (error) {
+            that.updateChronicle(req, { userLoginSuccess: false }, [error]);
+            return res.serverError();
           }
           that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);

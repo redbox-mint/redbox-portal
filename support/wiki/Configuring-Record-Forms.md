@@ -181,6 +181,53 @@ The settings in this section control the behaviour of the entire form.
 | viewCssClasses          | The CSS classes to apply to each element for styling. These are used in view mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | < message-code >        | A set of key value pairs containing messages to show to the user                                                                                                                                                                 | Yes                      | "saveSuccess": "Saved successfully." |
 
+## Validation summary
+
+`ValidationSummaryComponent` lists the form's blocking validation errors in edit
+mode. Its `component.config` accepts these options:
+
+| Key | Default | Behaviour |
+| --- | --- | --- |
+| `includeTabLabel` | `false` | Include tab labels in summary field labels. Group labels are always included. |
+| `showWhenValid` | `false` | Show an informational message when the form has no blocking validation errors. |
+| `deferErrorsOnNewRecord` | `false` | On a new record, show errors only for touched fields until a save is attempted or fails. Hide the informational message while untouched errors remain. |
+
+For example, to defer the summary on a new record:
+
+```ts
+{
+  name: 'validation_summary',
+  component: {
+    class: 'ValidationSummaryComponent',
+    config: { deferErrorsOnNewRecord: true },
+  },
+}
+```
+
+With `deferErrorsOnNewRecord: true`, a new record has no oid and the summary
+lists only errors belonging to touched controls. Touching one field does not
+reveal errors for untouched siblings, other tabs, or other repeatable rows.
+Programmatic population may make a control dirty; dirty state alone does not
+reveal its errors. Correcting a field removes its summary entry while other
+eligible errors remain visible. Resetting a control to untouched hides its errors
+again until a save is attempted.
+
+Errors without a target field belong to the root form and become visible when
+that form is touched. An `onlySelf` touch shows the touched field's own errors
+without revealing root-form errors. For a valid form, `showWhenValid` becomes
+visible after any control is touched, including an `onlySelf` touch, and hides
+again if all touches are reset before a save attempt.
+
+A save attempt or save failure reveals the full validation summary, including
+untouched fields and form-level errors. Save events are scoped to their form;
+direct saves follow the same rule. `showWhenValid` never reports success merely
+because invalid untouched fields have been filtered out.
+
+Existing records show the summary from load as usual. After the first successful
+save assigns an oid to a new record, the same existing-record behaviour applies.
+Leaving the flag out or setting it to `false` keeps the current behaviour on all
+records. Validators and save eligibility remain active throughout.
+
 ## Authoritative server validation operations
 
 Every metadata-changing save is validated by the server against the complete

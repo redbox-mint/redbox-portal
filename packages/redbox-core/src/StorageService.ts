@@ -1,3 +1,4 @@
+import type { RelatedRecordReadContext } from './related-records/types';
 import type { RecordFieldWriteResult } from './RecordWriteOptions';
 import { Readable } from 'node:stream';
 import { DeletedRecordModel, RecordModel } from './model';
@@ -26,6 +27,36 @@ export const RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS = [
 ] as const;
 
 export type RecordSchemaStorageCapabilityMethod = (typeof RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS)[number];
+
+/** Trusted server configuration only; never populate this query from HTTP input. */
+export interface RecordRelationQuery {
+  context: RelatedRecordReadContext;
+  recordType: string;
+  foreignField: string;
+  /** Already extracted, validated and deduplicated references. */
+  values: readonly string[];
+  /** Positive integer, at most 1,000; per-operation smaller bounds are resolver-owned. */
+  limit: number;
+}
+
+export interface RecordRelationQueryResult {
+  records: RecordModel[];
+  /** False means the result must not be presented as a complete relation. */
+  complete: boolean;
+  overflow: boolean;
+}
+
+/** Opt-in record queries; omitted options preserve legacy filtering and pagination. */
+export interface RecordQueryOptions {
+  /** Additional OR predicates, ANDed with brand, ACL, type and existing field filters. */
+  anyOf?: Array<{ field: string; value: string; match: 'contains' | 'exact' }>;
+  /** Present (including null for the first batch): binary OID order, no offset, 1–100 rows, no internal IDs. */
+  afterOid?: string | null;
+  /** Defaults to true. False avoids the count query and leaves totalItems at zero. */
+  count?: boolean;
+  /** Resolve canonical brand role IDs and legacy ACLs as RecordsService.hasViewAccess does. */
+  authorization?: 'record-view';
+}
 
 /**
  * Service interface for Storage operations.
@@ -102,6 +133,12 @@ export interface StorageService {
   /** Promote pending intents whose save stopped before readiness finalisation, so the dispatcher can recover them. */
   recoverStaleFigshareIntents?(staleBefore: string): Promise<number>;
   acknowledgeFigshareIntent?(oid: string, generation: number): Promise<boolean>;
+  /**
+   * Optional bounded authorized read. Without it, the resolver may use bounded
+   * deduplicated getMeta reads for direct OIDs only; other shapes are unsupported.
+   * Returned records still require resolver access checks and field projection.
+   */
+  findRecordsByRelation?(query: RecordRelationQuery): Promise<RecordRelationQueryResult>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
   /** @deprecated Whole-record permission rewrites must use RecordsService.mutateMetaInternal(). */
@@ -144,7 +181,8 @@ export interface StorageService {
     fieldNames?: unknown,
     filterString?: unknown,
     filterMode?: unknown,
-    secondarySort?: unknown
+    secondarySort?: unknown,
+    queryOptions?: RecordQueryOptions
   ): Promise<StorageServiceResponse>;
   getDeletedRecords(
     workflowState: unknown,
@@ -159,7 +197,9 @@ export interface StorageService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    secondarySort?: unknown,
+    deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(
@@ -169,7 +209,8 @@ export interface StorageService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    checkpoint?: () => Promise<void>
   ): Readable;
 
   /**

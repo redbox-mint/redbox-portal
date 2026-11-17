@@ -1,4 +1,4 @@
-import { Component, HostListener, Inject, OnDestroy } from '@angular/core';
+import { Component, HostListener, Inject, Attribute, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   DashboardConfigApiError,
@@ -14,13 +14,6 @@ import {
 } from './dashboard-config-api.service';
 import { COPY_GROUPS, applyCopyGroups, cloneSettings, describeGroupChanges, selectionToGroups } from './dashboard-settings.util';
 
-interface NavGroup {
-  kind: 'workflow' | 'view';
-  owner: string;
-  label: string;
-  targets: DashboardTargetInfo[];
-}
-
 type SelectionState = Record<DashboardCopySelection, boolean>;
 
 function emptySelection(): SelectionState {
@@ -34,9 +27,26 @@ function emptySelection(): SelectionState {
   standalone: false
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
+  saveBar?: ElementRef<HTMLElement>;
+  @ViewChild('saveBar') set saveBarElement(bar: ElementRef<HTMLElement> | undefined) {
+    // Dynamic editors create their bar after the header's initial binding check.
+    queueMicrotask(() => { this.saveBar = bar; this.requestRender(); });
+  }
   readonly copyGroups = COPY_GROUPS;
+  private focusEditor = false;
+  @ViewChild('editorHeading') set editorHeading(heading: ElementRef<HTMLElement> | undefined) {
+    if (heading && this.focusEditor) {
+      this.focusEditor = false;
+      heading.nativeElement.scrollIntoView({ block: 'start' });
+      heading.nativeElement.focus({ preventScroll: true });
+    }
+  }
 
+  // The frame needs translated labels and its target list together. Rendering
+  // empty navigation first moves the editor when those rows arrive on mobile.
+  layoutReady = false;
   targets: DashboardTargetInfo[] = [];
+  recordTypes: string[] = [];
   selected: DashboardTargetInfo | null = null;
   draft: DashboardSettings | null = null;
   baseRevision = 0;
@@ -51,7 +61,15 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   message = '';
   error = '';
   navFilter = '';
-  private collapsedGroups = new Set<string>();
+  override brandingAndPortalUrl = '';
+  targetsLoading = false;
+  targetsError = '';
+  loadFailed = false;
+  columnCounts = new Map<string, number>();
+  pendingLeave = '';
+  private allowLeave = false;
+  private dialogTrigger: HTMLElement | null = null;
+  copyConfirmation: 'from' | 'to' | null = null;
 
   /** Findings from the last validation of the draft. */
   errors: DashboardFinding[] = [];
@@ -84,6 +102,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   };
 
   constructor(
+    @Attribute('loadingLabel') public loadingLabel: string,
     @Inject(LoggerService) private logger: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(DashboardConfigApiService) private api: DashboardConfigApiService
@@ -93,11 +112,10 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
     await this.reloadTargets();
-    const first = this.targets.find((t) => !t.hidden) ?? this.targets[0];
-    if (first) {
-      await this.selectTarget(first, true);
-    }
+    this.layoutReady = true;
+    await this.selectFromHash();
   }
 
   // ---------------------------------------------------------------------
@@ -105,69 +123,88 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   // ---------------------------------------------------------------------
 
   private async reloadTargets(): Promise<void> {
+    this.targetsLoading = true;
+    this.targetsError = '';
     try {
       this.targets = (await this.api.getTargets()).targets;
+      this.recordTypes = Array.from(new Set(this.targets.filter((t) => t.target.kind === 'workflow').map((t) => t.recordType))).sort();
     } catch (e) {
-      this.error = this.describeError(e, 'Failed to load dashboard targets.');
+      this.targetsError = this.describeError(e, this.translationService.t('admin-dashboard-targets-error'));
       this.logger.error('Failed to load dashboard targets', e);
+    } finally {
+      this.targetsLoading = false;
     }
   }
 
-  get navGroups(): NavGroup[] {
-    const groups = new Map<string, NavGroup>();
-    const term = this.navFilter.trim().toLowerCase();
-    for (const info of this.targets) {
-      const owner = info.target.kind === 'workflow' ? info.target.recordType : info.target.view;
-      const key = `${info.target.kind}:${owner}`;
-      const matches = !term || [owner, info.ownerLabel, info.stepLabel, info.target.kind === 'workflow' ? info.target.stage : info.target.step].some((v) => v.toLowerCase().includes(term));
-      if (!matches) {
-        continue;
-      }
-      if (!groups.has(key)) {
-        groups.set(key, { kind: info.target.kind, owner, label: info.ownerLabel, targets: [] });
-      }
-      groups.get(key)!.targets.push(info);
-    }
-    return Array.from(groups.values());
-  }
-
-  /** Record types available as grouping levels. */
-  get recordTypes(): string[] {
-    return Array.from(new Set(this.targets.filter((t) => t.target.kind === 'workflow').map((t) => t.recordType))).sort();
-  }
-
-  get workflowGroups(): NavGroup[] {
-    return this.navGroups.filter((g) => g.kind === 'workflow');
-  }
-
-  get viewGroups(): NavGroup[] {
-    return this.navGroups.filter((g) => g.kind === 'view');
-  }
-
-  toggleGroup(group: NavGroup): void {
-    const key = `${group.kind}:${group.owner}`;
-    if (this.collapsedGroups.has(key)) {
-      this.collapsedGroups.delete(key);
+  async retry(): Promise<void> {
+    if (this.targetsError) {
+      await this.reloadTargets();
+      await this.selectFromHash();
     } else {
-      this.collapsedGroups.add(key);
+      await this.loadSelected();
     }
   }
 
-  isGroupCollapsed(group: NavGroup): boolean {
-    return this.collapsedGroups.has(`${group.kind}:${group.owner}`) && !this.navFilter.trim();
+  targetHash(info: DashboardTargetInfo): string {
+    // A fragment-only URL resolves against the portal's <base href="/">.
+    // Keep the editor path for history updates and links opened in a new tab.
+    return window.location.pathname + window.location.search + '#target=' + encodeURIComponent(info.key);
   }
+
+  @HostListener('window:hashchange')
+  async selectFromHash(): Promise<void> {
+    const key = new URLSearchParams(window.location.hash.slice(1)).get('target');
+    const target = key ? this.targets.find((info) => info.key === key) : this.targets[0];
+    if (target) await this.selectTarget(target);
+  }
+
+  private filteredTargets(kind: 'workflow' | 'view'): DashboardTargetInfo[] {
+    const term = this.navFilter.trim().toLowerCase();
+    return this.targets.filter((info) => {
+      if (info.target.kind !== kind) return false;
+      const owner = info.target.kind === 'workflow' ? info.target.recordType : info.target.view;
+      return !term || [owner, info.ownerLabel, info.stepLabel, this.targetLabel(info), this.stepName(info)].some((v) => v.toLowerCase().includes(term));
+    });
+  }
+
+  get workflowTargets(): DashboardTargetInfo[] { return this.filteredTargets('workflow'); }
+  get viewTargets(): DashboardTargetInfo[] { return this.filteredTargets('view'); }
+  trackTarget(index: number, info: DashboardTargetInfo): string { return info.key; }
 
   stepName(info: DashboardTargetInfo): string {
     return info.target.kind === 'workflow' ? info.target.stage : info.target.step;
+  }
+
+  targetId(info: DashboardTargetInfo): string {
+    return info.target.kind === 'workflow' ? info.target.recordType : info.target.view;
+  }
+
+  private humanizeTarget(value: string): string {
+    const words = value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').trim().toLowerCase();
+    return words.charAt(0).toUpperCase() + words.slice(1);
   }
 
   targetLabel(info: DashboardTargetInfo | null | undefined): string {
     if (!info) {
       return '';
     }
-    const owner = info.target.kind === 'workflow' ? info.target.recordType : `View ${info.target.view}`;
-    const step = info.stepLabel && info.stepLabel !== this.stepName(info) ? `${info.stepLabel} (${this.stepName(info)})` : this.stepName(info);
-    return `${owner} / ${step}${info.hidden ? ' — hidden stage' : ''}`;
+    const nameKey = `${info.ownerLabel}-name`;
+    const name = this.translationService.t(nameKey);
+    const ownerTranslation = this.translationService.t(info.ownerLabel);
+    const owner = info.target.kind === 'workflow' && name !== nameKey ? name
+      : ownerTranslation !== info.ownerLabel ? ownerTranslation : this.humanizeTarget(this.targetId(info));
+    const stepKey = info.stepLabel || this.stepName(info);
+    const translatedStep = this.translationService.t(stepKey);
+    const step = translatedStep !== stepKey ? translatedStep : this.humanizeTarget(this.stepName(info));
+    return owner === step ? owner : `${owner} · ${step}`;
+  }
+
+  get selectedLocation(): string {
+    if (!this.selected) return '';
+    const target = this.selected.target;
+    return target.kind === 'workflow'
+      ? '/dashboard/' + encodeURIComponent(target.recordType) + '?stage=' + encodeURIComponent(target.stage)
+      : '/dashboard-view/' + encodeURIComponent(target.view);
   }
 
   isSelected(info: DashboardTargetInfo): boolean {
@@ -180,22 +217,48 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
 
   @HostListener('window:beforeunload', ['$event'])
   onBeforeUnload(event: BeforeUnloadEvent): void {
-    if (this.isDirty) {
+    if (this.isDirty && !this.allowLeave) {
       event.preventDefault();
       event.returnValue = '';
     }
   }
 
   private confirmDiscard(action: string): boolean {
-    return !this.isDirty || window.confirm(`You have unsaved changes to ${this.targetLabel(this.selected)}. Discard them and ${action}?`);
+    return !this.isDirty || window.confirm(this.translationService.t('admin-dashboard-discard-confirm'));
   }
 
-  async selectTarget(info: DashboardTargetInfo, force = false): Promise<void> {
+  @HostListener('document:click', ['$event'])
+  confirmNavigation(event: MouseEvent): void {
+    if (!this.isDirty || this.allowLeave || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+    event.preventDefault();
+    this.dialogTrigger = document.activeElement as HTMLElement;
+    this.pendingLeave = anchor.href;
+  }
+
+  cancelLeave(): void { this.pendingLeave = ''; this.dialogTrigger?.focus(); }
+  leavePage(): void { this.allowLeave = true; window.location.assign(this.pendingLeave); }
+
+  discard(): void {
+    if (!this.saving && this.draft && this.savedJson) {
+      this.draft = JSON.parse(this.savedJson);
+      this.clearFindings();
+      this.error = '';
+      this.message = '';
+    }
+  }
+
+  async selectTarget(info: DashboardTargetInfo, force = false, userInitiated = false): Promise<void> {
+    if (this.saving && !force) return;
     if (!force && (this.isSelected(info) || !this.confirmDiscard('open another dashboard'))) {
+      if (this.selected) window.history.replaceState(null, '', this.targetHash(this.selected));
       return;
     }
     this.closeDialogs();
     this.selected = info;
+    window.history.replaceState(null, '', this.targetHash(info));
+    this.focusEditor = userInitiated && window.matchMedia('(max-width: 991.98px)').matches;
     await this.loadSelected();
   }
 
@@ -206,6 +269,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     const info = this.selected;
     const generation = ++this.loadGeneration;
     this.loading = true;
+    this.loadFailed = false;
     this.draft = null;
     this.savedJson = '';
     this.baseRevision = 0;
@@ -222,11 +286,13 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       this.draft = cloneSettings(result.settings);
       this.savedJson = JSON.stringify(this.draft);
       this.baseRevision = result.revision;
+      this.columnCounts.set(info.key, this.draft.tableConfig.rowConfig.length);
     } catch (e) {
       if (this.selected?.key !== info.key || this.loadGeneration !== generation) {
         return;
       }
       this.draft = null;
+      this.loadFailed = true;
       this.error = this.describeError(e, 'Failed to load dashboard settings.');
       this.logger.error('Failed to load dashboard settings', e);
     } finally {
@@ -290,7 +356,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   async save(): Promise<void> {
-    if (this.loading || !this.selected || !this.draft) {
+    if (this.loading || this.saving || !this.selected || !this.draft) {
       return;
     }
     const info = this.selected;
@@ -338,6 +404,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
         this.draft = cloneSettings(saved.settings);
       }
       this.baseRevision = saved.revision;
+      this.columnCounts.set(info.key, saved.settings.tableConfig.rowConfig.length);
       this.clearFindings();
       this.message = `Saved ${this.targetLabel(info)}.`;
     } catch (e) {
@@ -393,7 +460,10 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   openCopyFrom(): void {
+    if (this.copyTo.loading) return;
+    const trigger = this.copyFrom.open || this.copyTo.open ? this.dialogTrigger : document.activeElement as HTMLElement;
     this.closeDialogs();
+    this.dialogTrigger = trigger;
     this.copyFrom = { ...this.copyFrom, open: true, sourceKey: '', selection: emptySelection(), candidate: null, changes: [], errors: [], warnings: [], error: '' };
     this.resetCopyFromPreview();
   }
@@ -470,11 +540,14 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   openCopyTo(): void {
+    if (this.copyTo.loading) return;
     if (this.isDirty) {
       this.error = 'Save or discard your changes first. Copy to only copies saved settings.';
       return;
     }
+    const trigger = this.copyFrom.open || this.copyTo.open ? this.dialogTrigger : document.activeElement as HTMLElement;
     this.closeDialogs();
+    this.dialogTrigger = trigger;
     this.copyTo = { ...this.copyTo, open: true, destinations: new Set(), selection: emptySelection(), filter: '', preview: null, acknowledged: new Set(), error: '' };
   }
 
@@ -551,9 +624,20 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   closeDialogs(): void {
+    if (this.copyTo.loading) return;
     this.copyFromGeneration++;
     this.copyFrom.open = false;
     this.copyTo.open = false;
+    this.copyConfirmation = null;
+    this.dialogTrigger?.focus();
+  }
+
+  async confirmCopy(): Promise<void> {
+    const mode = this.copyConfirmation;
+    this.copyConfirmation = null;
+    if (mode === 'from') this.applyCopyFrom();
+    if (mode === 'to') await this.applyCopyTo();
+    if (!this.copyFrom.open && !this.copyTo.open) this.dialogTrigger?.focus();
   }
 
   override ngOnDestroy(): void {

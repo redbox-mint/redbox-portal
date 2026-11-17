@@ -11,6 +11,7 @@ export namespace Controllers {
       'listCatalogues',
       'listSources',
       'getSource',
+      'updateSource',
       'listSourceCategories',
       'createSourcePreview',
       'cloneSource',
@@ -82,6 +83,19 @@ export namespace Controllers {
       } catch (error) {
         return this.fail(req, res, error);
       }
+    }
+
+    public async updateSource(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(String(req.params.branding ?? ''));
+        const role = brand && RolesService.getRoleByName(brand, 'Admin');
+        if (!brand?.id || !req.session || !req.isAuthenticated() || !req.user || !role || !UsersService.hasRole(req.user, role)) {
+          return this.sendResp(req, res, { status: 403, headers: this.getNoCacheHeaders() });
+        }
+        const { params, body } = getValidatedApiRequest(req);
+        const source = await FigshareVocabularyService.updateSource(String(params.sourceId), body, { brandId: String(brand.id), userId: String(req.user.username ?? req.user.id) });
+        return this.sendResp(req, res, { data: source, headers: this.getNoCacheHeaders() });
+      } catch (error) { return this.fail(req, res, error); }
     }
 
     public async getSource(req: Sails.Req, res: Sails.Res) {

@@ -38,6 +38,17 @@ describe('HarvestRunApiService', () => {
     httpTestingController.verify();
   });
 
+  it('fetches the brand summary without list query parameters and unwraps v2', async () => {
+    const response = service.getStatistics();
+    await Promise.resolve();
+    const request = httpTestingController.expectOne('http://localhost/default/rdmp/api/harvest-runs/summary');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.keys()).toEqual([]);
+    const statistics = { runsLast7Days: 9, failedLast7Days: 2, runningNow: 1, lastSuccessfulRun: null };
+    request.flush({ data: statistics });
+    await expectAsync(response).toBeResolvedTo(statistics);
+  });
+
   it('builds list run requests with query parameters', async () => {
     const responsePromise = service.listRuns({ status: 'running', page: 2, pageSize: 10, sourceName: 'source-a' });
     await Promise.resolve();

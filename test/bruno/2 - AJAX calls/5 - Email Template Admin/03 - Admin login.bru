@@ -1,0 +1,47 @@
+meta {
+  name: Email templates - Admin login
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/user/login_local
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  {
+    "username": "admin",
+    "password": "rbadmin",
+    "branding": "default",
+    "portal": "rdmp"
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Authenticates the brand Admin", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().user.username).to.equal("admin");
+    const cookies = res.headers["set-cookie"] || [];
+    const stored = (bru.getVar("emailAdminCookie") || "").split(/;\s*/).filter(Boolean);
+    const merged = new Map(stored.map(value => [value.slice(0, value.indexOf("=")), value]));
+    for (const raw of (Array.isArray(cookies) ? cookies : [cookies])) {
+      const value = raw.split(";")[0];
+      merged.set(value.slice(0, value.indexOf("=")), value);
+    }
+    bru.setVar("emailAdminCookie", Array.from(merged.values()).join("; "));
+  });
+}

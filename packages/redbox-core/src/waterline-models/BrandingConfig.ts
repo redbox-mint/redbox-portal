@@ -1,3 +1,4 @@
+import type { BrandingImages } from '../model/BrandingImages';
 /// <reference path="../sails.ts" />
 import { Entity, Attr, HasMany, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
 import { brandingThemeAllowedVariableNames } from '../services/BrandingThemeTokens';
@@ -105,6 +106,12 @@ export class BrandingConfigClass {
   @Attr({ type: 'json' })
   public draftTypeface?: BrandingTypefaceState | null;
 
+  @Attr({ type: 'json' })
+  public draftImages?: BrandingImages | null;
+
+  @Attr({ type: 'json' })
+  public imageCleanup?: string[];
+
   @Attr({ type: 'number', defaultsTo: 0 })
   public draftRevision?: number;
 
@@ -127,6 +134,8 @@ export interface BrandingConfigAttributes extends Sails.WaterlineAttributes {
   version?: number;
   typeface?: BrandingTypefaceState | null;
   draftTypeface?: BrandingTypefaceState | null;
+  draftImages?: BrandingImages | null;
+  imageCleanup?: string[];
   draftRevision?: number;
 }
 

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
-FROM node:26.13.0-bookworm@sha256:fa52d1669505e29b58c042875b1d65c229e0787a3610fd52869b22b68e480853 AS base
+FROM node:26.13.0-bookworm@sha256:a546d3f8acd2af4382668a7e6acd3bc4418e6a27478373e3246f8162f5181509 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -32,6 +32,7 @@ COPY packages/sails-ng-common/package.json packages/sails-ng-common/package-lock
 COPY packages/raido/package.json packages/raido/package-lock.json ./packages/raido/
 COPY packages/rva-registry/package.json packages/rva-registry/package-lock.json ./packages/rva-registry/
 COPY packages/redbox-core/package.json packages/redbox-core/package-lock.json ./packages/redbox-core/
+COPY packages/redbox-mcp/package.json packages/redbox-mcp/package-lock.json ./packages/redbox-mcp/
 COPY packages/sails-hook-redbox-storage-mongo/package.json packages/sails-hook-redbox-storage-mongo/package-lock.json ./packages/sails-hook-redbox-storage-mongo/
 COPY packages/redbox-dev-tools/package.json packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/
 COPY packages/redbox-hook-dev/package.json packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/
@@ -50,6 +51,7 @@ RUN --mount=type=bind,source=.npmrc,target=/opt/redbox-portal/.npmrc npm ci --no
  && (cd packages/raido && npm ci --no-audit) \
  && (cd packages/rva-registry && npm ci --no-audit) \
  && (cd packages/redbox-core && npm install --no-save --no-audit) \
+ && (cd packages/redbox-mcp && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit) \
  && (cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit) \
  && (cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit) \
@@ -68,6 +70,11 @@ FROM shared-builder AS angular-builder
 COPY angular ./angular
 COPY support/build/compileProductionAngular.sh ./support/build/
 RUN bash support/build/compileProductionAngular.sh
+
+# Related-record browser tests use Angular's component inspection API to control
+# refreshes and delayed setters. Keep that API in the test image's form bundle.
+FROM angular-builder AS angular-test-builder
+RUN cd angular && node_modules/.bin/ng build @researchdatabox/form --configuration development
 
 # The existing wrapper supports loading these hook/config sources with ts-node.
 # Keep its exact webpack behavior while excluding unrelated backend sources.
@@ -96,6 +103,7 @@ COPY --from=dev-deps /opt/redbox-portal/packages/sails-ng-common/package-lock.js
 COPY --from=dev-deps /opt/redbox-portal/packages/raido/package-lock.json ./packages/raido/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/rva-registry/package-lock.json ./packages/rva-registry/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-core/package-lock.json ./packages/redbox-core/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/redbox-mcp/package-lock.json ./packages/redbox-mcp/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/package-lock.json ./packages/sails-hook-redbox-storage-mongo/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/package-lock.json
@@ -112,6 +120,7 @@ RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
+RUN cd packages/redbox-mcp && npm run build
 RUN cd packages/redbox-dev-tools && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
@@ -249,6 +258,9 @@ USER node
 # redbox-loader discovers it (it was pruned from node_modules for `runtime`).
 FROM runtime AS test
 USER root
+RUN rm -rf assets/angular/form .tmp/public/angular/form
+COPY --from=angular-test-builder --chown=node:node /opt/redbox-portal/assets/angular/form ./assets/angular/form
+COPY --from=angular-test-builder --chown=node:node /opt/redbox-portal/assets/angular/form ./.tmp/public/angular/form
 COPY --from=runtime-files --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-backend/node_modules ./packages/agenda-sqs-backend/node_modules
@@ -258,6 +270,7 @@ COPY --from=angular-builder --chown=node:node /opt/redbox-portal/packages/sails-
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-mcp/node_modules ./packages/redbox-mcp/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev/node_modules ./packages/redbox-hook-dev/node_modules

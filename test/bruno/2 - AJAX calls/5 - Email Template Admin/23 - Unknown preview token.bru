@@ -1,0 +1,24 @@
+meta {
+  name: Email templates - Unknown preview token
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/preview-frame/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Unknown tokens return typed 404", () => { expect(res.getStatus()).to.equal(404); expect(res.getBody().error.code).to.equal("PREVIEW_FRAME_UNAVAILABLE"); });
+}

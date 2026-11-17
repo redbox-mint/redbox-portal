@@ -87,7 +87,7 @@ export const smokeRoutes: SmokeRoute[] = [
     path: '/default/rdmp/admin',
     auth: 'admin',
     type: 'ejs',
-    requiredSelectors: ['.admin-main-content h1', '.admin-sidebar'],
+    requiredSelectors: ['.admin-main-content h1', '.rb-admin-sidebar'],
     fallbackSelectors: [],
     requiredAssetIncludes: []
   },
@@ -95,8 +95,16 @@ export const smokeRoutes: SmokeRoute[] = [
     path: '/default/rdmp/admin/api-docs',
     auth: 'admin',
     type: 'ejs',
+    requiredSelectors: ['.rb-admin-api-frame'],
+    fallbackSelectors: [],
+    requiredAssetIncludes: []
+  },
+  {
+    path: '/default/rdmp/admin/api-docs/reference',
+    auth: 'admin',
+    type: 'ejs',
     rootSelector: '#redoc',
-    requiredSelectors: ['#redoc'],
+    requiredSelectors: ['#redoc [data-testid="middle-panel"]:visible'],
     fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
     includeBaseAssets: false,
     requiredAssetIncludes: ['/default/default/js/redoc.standalone.js', '/default/default/js/admin-api-docs-bootstrap.js', '/default/default/js/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
@@ -120,7 +128,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-users',
-    requiredSelectors: ['#manage-users-search', 'manage-users table', 'button:has-text("Add a new local user")'],
+    requiredSelectors: ['#manage-users-search', 'manage-users table', 'button:has-text("Add local user")'],
     fallbackSelectors: ['manage-users img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-users/browser/polyfills',
@@ -133,7 +141,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-roles',
-    requiredSelectors: ['manage-roles table', '#role-Admin', 'input[aria-label="Search for name"]'],
+    requiredSelectors: ['manage-roles table', '.people-role-rail a[aria-current="true"]', '#role-member-search'],
     fallbackSelectors: ['manage-roles img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-roles/browser/polyfills',
@@ -178,6 +186,19 @@ export const smokeRoutes: SmokeRoute[] = [
       '/angular/branding/browser/polyfills',
       '/angular/branding/browser/main',
       '/angular/branding/browser/styles'
+    ]
+  },
+  {
+    path: '/default/rdmp/admin/email-templates',
+    auth: 'admin',
+    type: 'angular',
+    rootSelector: 'email-templates-root',
+    requiredSelectors: ['email-templates-catalogue table'],
+    fallbackSelectors: [],
+    requiredAssetIncludes: [
+      '/angular/email-templates/browser/polyfills',
+      '/angular/email-templates/browser/main',
+      '/angular/email-templates/browser/styles'
     ]
   },
   {

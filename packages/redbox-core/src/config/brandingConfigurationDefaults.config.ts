@@ -7,6 +7,7 @@
 
 import type { DoiPublishingConfigData } from '../configmodels/DoiPublishing';
 import type { RaidPublishingConfigData } from '../configmodels/RaidPublishing';
+import { DEFAULT_ADMIN_SIDEBAR_CONFIG, type AdminSidebarConfigData } from '../configmodels/AdminSidebarConfig';
 import { raid } from './raid.config';
 import { OniPublishing, type OniPublishingConfigData } from '../configmodels/OniPublishing';
 
@@ -124,14 +125,8 @@ export interface AdminSidebarSectionConfig {
     items: AdminSidebarItemConfig[];
 }
 
-export interface BrandingAdminSidebarConfig {
-    header: {
-        titleKey: string;
-        iconClass: string;
-    };
-    sections: AdminSidebarSectionConfig[];
-    footerLinks: AdminSidebarItemConfig[];
-}
+// Runtime branding and the editor accept the same sidebar structure.
+export interface BrandingAdminSidebarConfig extends AdminSidebarConfigData {}
 
 export interface PathRuleConfig {
     path: string;
@@ -272,83 +267,10 @@ const defaultHomePanelsConfig: BrandingHomePanelsConfig = {
 };
 
 /**
- * Default admin sidebar configuration that mirrors the current static admin sidebar structure.
+ * Shared admin sidebar defaults, also used by the app-config editor.
  * This can be overridden per-brand via the admin UI or environment config.
  */
-const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
-    header: {
-        titleKey: 'menu-admin',
-        iconClass: 'fa fa-cog'
-    },
-    sections: [
-        {
-            id: 'analyze',
-            titleKey: 'menu-analyze',
-            defaultExpanded: true,
-            items: [
-                { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
-                { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
-                { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
-                { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
-            ]
-        },
-        {
-            id: 'system',
-            titleKey: 'menu-syssettings',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
-                { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
-                { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
-                { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
-                { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
-                { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' },
-                { id: 'named-query', labelKey: 'menu-named-query', href: '/admin/named-query' }
-            ]
-        },
-        {
-            id: 'navigation',
-            titleKey: 'menu-navigation',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
-                { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
-                { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
-                { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
-            ]
-        },
-        {
-            id: 'lookup',
-            titleKey: 'system-lookup-records',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' },
-                { id: 'vocabulary', labelKey: 'menu-vocabulary-management', href: '/admin/vocabulary/manager' }
-            ]
-        },
-        {
-            id: 'integrations',
-            titleKey: 'menu-integrations',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                {
-                    id: 'figshare-vocabularies',
-                    labelKey: 'menu-figshare-vocabularies',
-                    href: '/admin/integrations/figshare/vocabularies'
-                }
-            ]
-        }
-    ],
-    footerLinks: [
-        { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
-        { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
-    ]
-};
+const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = DEFAULT_ADMIN_SIDEBAR_CONFIG;
 
 const DEFAULT_DOI_BASE_URL = 'https://api.test.datacite.org';
 const DEFAULT_DOI_USERNAME = '';

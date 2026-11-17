@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deleted records</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="deleted" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Records &amp; reporting</span><span>/</span><span>Deleted records</span></nav>
+      <header class="ph">
+        <div><h1>Deleted records</h1><p>Records removed by users. Restore them, or delete them permanently.</p></div>
+      </header>
+
+      <div class="card">
+        <div class="card-h"><h2>Deleted records</h2><span class="meta">0 records</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="d-t">Title contains</label><input id="d-t" class="inp" placeholder="Any title"></div>
+          <div class="field"><label for="d-rt">Record type</label><select id="d-rt" class="inp"><option>All record types</option><option>Plans</option><option>Data records</option><option>Data publications</option></select></div>
+          <div class="field"><label for="d-by">Deleted</label><select id="d-by" class="inp"><option>Any time</option><option>Last 7 days</option><option>Last 30 days</option></select></div>
+          <div class="row"><button class="btn btn-primary" type="button">Apply</button><button class="btn btn-ghost" type="button">Clear</button></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Title ↕</th><th>Record type</th><th>Created ↕</th><th>Modified ↕</th><th>Deleted ↓</th><th>Deleted by</th><th class="act">Actions</th></tr></thead>
+        </table></div>
+        <div class="empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>
+          <h3>Nothing in deleted records</h3>
+          <p>When someone deletes a record it appears here, and you can restore it or remove it for good.</p>
+        </div>
+      </div>
+
+      <h2 style="font-size: 18px; margin: 28px 0 10px">With data: row actions and bulk bar</h2>
+      <div class="card">
+        <div style="background: #1b1b1b; color: #fff; padding: 10px 16px" class="spread"><span><b>2 selected</b></span><div class="row"><button class="btn btn-secondary btn-sm" type="button">Restore</button><button class="btn btn-danger btn-sm" type="button" style="background: transparent; color: #ffb3ba; border-color: #ffb3ba">Delete permanently…</button></div></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <tbody>
+            <tr><td><input type="checkbox" checked aria-label="Select row"></td><td><a href="#">[Sample record title]</a></td><td><span class="badge">Plan</span></td><td>[date]</td><td>[date]</td><td>[date]</td><td>[user]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Restore</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><input type="checkbox" checked aria-label="Select row"></td><td><a href="#">[Sample record title]</a></td><td><span class="badge">Data record</span></td><td>[date]</td><td>[date]</td><td>[date]</td><td>[user]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Restore</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

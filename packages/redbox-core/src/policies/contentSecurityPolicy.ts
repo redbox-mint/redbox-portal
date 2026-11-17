@@ -1,3 +1,4 @@
+import { EMAIL_PREVIEW_CSP } from '../utilities/EmailPreviewFrame';
 import * as crypto from 'node:crypto';
 import * as BrandingServiceModule from '../services/BrandingService';
 import { safeChronicleText } from '../utilities/RequestChronicle';
@@ -12,8 +13,8 @@ interface CspConfig {
     extras?: string[];
 }
 
-function isAdminApiDocsPath(pathname: string): boolean {
-    return /\/admin\/api-docs(?:\/|$)/.test(pathname);
+function isAdminApiDocsReferencePath(pathname: string): boolean {
+    return /\/admin\/api-docs\/reference\/?$/.test(pathname);
 }
 
 function isHttpAppUrl(): boolean {
@@ -115,6 +116,11 @@ function applyWebAnalyticsCsp(req: Sails.Req, directives: Record<string, string[
  * See: https://centralcsp.com/docs
  */
 export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+    // The preview document owns its CSP; do not add portal nonces or a second policy.
+    if (/\/[^/]+\/[^/]+\/app\/email-templates\/preview-frame\/[\w-]{43}\/?$/.test(req.path)) {
+        res.set('Content-Security-Policy', EMAIL_PREVIEW_CSP);
+        return next();
+    }
     sails.log.verbose(
         `Setting Content Security Policy nonce headers and view local for ${safeChronicleText(req.path, 500)}`
     );
@@ -155,8 +161,12 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
         : configuredExtras;
     const directives: Record<string, string[]> = Object.assign({}, defaults.directives, cfg.directives || {});
 
-    if (isAdminApiDocsPath(req.path)) {
-        addNonceTo = [];
+    if (isAdminApiDocsReferencePath(req.path)) {
+        // The shell keeps the normal nonce policy. Only the isolated viewer
+        // needs inline style attributes and same-origin frame embedding.
+        addNonceTo = ['script-src'];
+        directives['frame-ancestors'] = ["'self'"];
+        res.set('X-Frame-Options', 'SAMEORIGIN');
 
         const styleSrc = new Set([...(directives['style-src'] ?? [])]);
         styleSrc.add("'unsafe-inline'");

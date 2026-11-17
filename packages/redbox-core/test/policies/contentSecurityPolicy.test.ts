@@ -228,20 +228,33 @@ describe('contentSecurityPolicy policy', function () {
         expect(csp).to.include('upgrade-insecure-requests');
     });
 
-    it('should relax Redoc-specific directives for admin api docs', function () {
-        const { req, res, getHeaders } = createMockReqRes('/default/rdmp/admin/api-docs');
+    it('allows the isolated Redoc document in a same-origin frame with nonce scripts', function () {
+        const { req, res, getHeaders } = createMockReqRes('/default/rdmp/admin/api-docs/reference');
 
         contentSecurityPolicy(req, res, () => { });
 
         const csp = getHeaders()['Content-Security-Policy'];
         expect(csp).to.include("style-src");
         expect(csp).to.include("'unsafe-inline'");
-        expect(csp).to.not.match(/nonce-/);
+        expect(csp).to.match(/script-src [^;]*'nonce-/);
+        expect(csp).to.include("frame-ancestors 'self'");
+        expect(getHeaders()['X-Frame-Options']).to.equal('SAMEORIGIN');
         expect(csp).to.include("worker-src");
         expect(csp).to.include('blob:');
         expect(csp).to.include("img-src");
         expect(csp).to.include('https://cdn.redoc.ly');
         expect(csp).to.match(/font-src [^;]*data:/);
+    });
+
+    it('keeps the API docs shell and JSON routes on the normal CSP', function () {
+        for (const path of ['/default/rdmp/admin/api-docs', '/default/rdmp/admin/api-docs/openapi.json']) {
+            const { req, res, getHeaders } = createMockReqRes(path);
+            contentSecurityPolicy(req, res, () => {});
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.match(/script-src [^;]*'nonce-/);
+            expect(csp).not.to.include("'unsafe-inline'");
+            expect(csp).to.include("frame-ancestors 'none'");
+        }
     });
 
     it('should not allow data: fonts outside admin api docs', function () {

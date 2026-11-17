@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reports</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="reports" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Records &amp; reporting</span><span>/</span><span>Reports</span></nav>
+      <header class="ph">
+        <div><h1>Reports</h1><p>Saved queries that admins and librarians can filter, view and download as CSV.</p></div>
+        <div class="ph-actions"><a class="btn btn-secondary" href="NamedQueries.dc.html">Named queries</a><button class="btn btn-primary" type="button">+ Create report</button></div>
+      </header>
+
+      <div class="stats">
+        <div class="stat"><b>1</b><span>Total reports</span></div>
+        <div class="stat"><b>1</b><span>Database</span></div>
+        <div class="stat"><b>0</b><span>Solr</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Configured reports</h2><span class="meta">1 of 1</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="r-s">Search</label><input id="r-s" class="inp" placeholder="Title or name"></div>
+          <div class="field"><span class="lbl">Source</span><div class="seg" role="group" aria-label="Source"><button type="button" class="on">All</button><button type="button">Database</button><button type="button">Solr</button></div></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Report</th><th>Source</th><th>Named query</th><th class="num">Filters</th><th class="num">Columns</th><th class="act">Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><a href="ReportView.dc.html"><b>List RDMP records</b></a><span class="sub mono">rdmpRecords</span></td>
+              <td><span class="badge">database</span></td>
+              <td><a href="NamedQueries.dc.html" class="mono">listRDMPRecords</a></td>
+              <td class="num">3</td><td class="num">5</td>
+              <td class="act"><a class="btn btn-secondary btn-sm" href="ReportView.dc.html">Run</a> <button class="btn btn-ghost btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for List RDMP records">⋯</button></td>
+            </tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 1 of 1 report</span><span>Delete is in the ⋯ menu and asks for confirmation</span></div>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

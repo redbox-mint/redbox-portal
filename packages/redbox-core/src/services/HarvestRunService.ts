@@ -39,6 +39,7 @@ import {
   HarvestRunEventsResult,
   HarvestRunListQuery,
   HarvestRunListResult,
+  HarvestRunStatistics,
   HarvestRunModel,
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
@@ -109,6 +110,7 @@ export namespace Services {
       'submitLegacyRecords',
       'submitChunk',
       'listRuns',
+      'getStatistics',
       'getRun',
       'runExists',
       'listRunEvents',
@@ -2012,6 +2014,33 @@ export namespace Services {
         });
         throw error;
       }
+    }
+
+    public async getStatistics(brand: BrandingModel): Promise<HarvestRunStatistics> {
+      const brandId = this.resolveBrandId(brand);
+      if (!brandId) {
+        throw new HarvestRunServiceError('Brand is required for harvest run statistics.');
+      }
+      const now = new Date();
+      const startedAt = {
+        '>=': new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        '<=': now.toISOString(),
+      };
+      // Count in the database; fetch only the newest successful completion.
+      // Statuses match the list badges exactly, including the separate warning states.
+      const runsLast7Days = await HarvestRun.count({ brandId, startedAt });
+      const failedLast7Days = await HarvestRun.count({ brandId, startedAt, status: HarvestRunStatus.failed });
+      const runningNow = await HarvestRun.count({ brandId, status: HarvestRunStatus.running });
+      const successful = (await HarvestRun.find({
+        brandId, status: HarvestRunStatus.completed, completedAt: { '>': '', '<=': now.toISOString() },
+      }).sort([{ completedAt: 'DESC' }, { id: 'DESC' }]).limit(1)) as HarvestRunRow[];
+      const last = successful[0];
+      return {
+        runsLast7Days,
+        failedLast7Days,
+        runningNow,
+        lastSuccessfulRun: last ? { completedAt: last.completedAt!, sourceName: last.sourceName } : null,
+      };
     }
 
     public async listRuns(brand: BrandingModel, params: Partial<HarvestRunListQuery>): Promise<HarvestRunListResult> {

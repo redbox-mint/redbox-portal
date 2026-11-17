@@ -1,3 +1,5 @@
+import { figshareSourceUpdateInput } from '../api-routes/groups/figshare-source-update';
+import { randomUUID } from 'node:crypto';
 import { Services as services } from '../CoreService';
 import {
   FigshareVocabularyCategoryAttributes,
@@ -238,6 +240,8 @@ export namespace Services {
 
   export interface ResolveCrosswalkValuesInput extends ResolveCategoriesInput {
     outputs: CrosswalkOutput;
+    /** Article category publishing excludes explicit non-selectable targets; generic bindings retain them. */
+    selectableOnly?: boolean;
   }
 
   export interface ResolveCrosswalkValuesResult {
@@ -266,6 +270,8 @@ export namespace Services {
       'createPreview',
       'getPreview',
       'applyPreview',
+      'updateSource',
+      'scheduledSyncJob',
       'cloneMirror',
       'listSources',
       'getSource',
@@ -787,6 +793,12 @@ export namespace Services {
 
     public async applyPreview(runId: string, decisions: ApplyDecisions, ctx: ActorContext): Promise<ApplyResult> {
       const run = await this.requireRun(runId, ctx.brandId);
+      if (run.state === 'applied') return (run.result ?? {}) as unknown as ApplyResult;
+      return this.withSourceClaim(run.scope, run.taxonomyId, ctx, () => this.applyPreviewUnlocked(runId, decisions, ctx));
+    }
+
+    private async applyPreviewUnlocked(runId: string, decisions: ApplyDecisions, ctx: ActorContext): Promise<ApplyResult> {
+      const run = await this.requireRun(runId, ctx.brandId);
 
       if (run.state === 'applied') {
         // A completed run is idempotent: replay the stored result without writing.
@@ -807,6 +819,7 @@ export namespace Services {
       }
 
       const existingSource = run.source ? await this.requireSource(String(run.source), ctx.brandId) : null;
+      if (existingSource && (run.scope !== existingSource.scope || run.taxonomyId !== existingSource.taxonomyId)) throw new StalePreviewError('The source identity changed');
       if (existingSource && String(existingSource.remoteHash ?? '') !== String(run.baseHash ?? '')) {
         throw new StalePreviewError('The Figshare mirror changed since this preview was generated');
       }
@@ -1341,6 +1354,80 @@ export namespace Services {
 
     // ── Sources ───────────────────────────────────────────────────────
 
+    /**
+     * Unique persistent claim keyed by remote identity, including first import.
+     * Never expire a claim by time: an expired lease could overlap a slow worker.
+     * On a process crash, operators confirm that worker is dead before removing it.
+     */
+    private async withSourceClaim<T>(scope: string, taxonomyId: string, ctx: ActorContext, work: () => Promise<T>): Promise<T> {
+      const name = `figshare-vocabulary-sync:${ctx.brandId}:${scope}:${taxonomyId}`;
+      const owner = randomUUID();
+      let claim: { id?: string | number };
+      try {
+        claim = await CacheEntry.create({ name, ts_added: Date.now(), data: { owner, brandId: ctx.brandId } }).fetch();
+      } catch (error) {
+        const code = (error as { code?: string | number }).code;
+        if (code === 'E_UNIQUE' || code === 11000) throw new StalePreviewError('This source is being synced or edited. Try again after it finishes.');
+        throw error;
+      }
+      try { return await work(); }
+      finally { await CacheEntry.destroyOne({ id: claim.id, name }); }
+    }
+
+    public async updateSource(sourceId: string, input: unknown, ctx: ActorContext): Promise<unknown> {
+      const parsed = figshareSourceUpdateInput.safeParse(input);
+      if (!parsed.success) throw new CatalogueInvalidError('Invalid source metadata or sync schedule');
+      const initial = await this.requireSource(sourceId, ctx.brandId);
+      return this.withSourceClaim(initial.scope, initial.taxonomyId, ctx, async () => {
+        const source = await this.requireSource(sourceId, ctx.brandId);
+        const draft = parsed.data;
+        if (draft.scope !== source.scope) throw new CatalogueInvalidError('Scope identifies the remote catalogue. Use discovery to add a source in a different scope.');
+        if (draft.expectedRevision !== (source.settingsRevision ?? 0)) throw new StalePreviewError('The source was edited. Reload before saving.');
+        const changedSchedule = draft.syncSchedule !== (source.syncSchedule ?? 'manual') || draft.archived !== (source.archived === true);
+        const interval = draft.syncSchedule === 'daily' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+        const nextSyncAt = draft.archived || draft.syncSchedule === 'manual' ? null :
+          changedSchedule || !source.nextSyncAt ? new Date(Date.now() + interval).toISOString() : source.nextSyncAt;
+        await FigshareVocabularySource.updateOne({ id: sourceId, branding: ctx.brandId }).set({
+          displayName: draft.displayName, archived: draft.archived, syncSchedule: draft.syncSchedule,
+          nextSyncAt, settingsRevision: draft.expectedRevision + 1, updatedBy: ctx.userId,
+        });
+        return this.getSource(sourceId, ctx);
+      });
+    }
+
+    /** Agenda dispatches due mirror-only syncs sequentially; source claims also guard manual apply. */
+    public async scheduledSyncJob(): Promise<void> {
+      const sources = await FigshareVocabularySource.find({
+        archived: false, syncSchedule: { in: ['daily', 'weekly'] }, nextSyncAt: { '<=': this.nowIso() },
+      }).sort('nextSyncAt ASC').limit(25) as FigshareVocabularySourceAttributes[];
+      for (const candidate of sources) {
+        const ctx = { brandId: String(candidate.branding), userId: 'scheduled-figshare-vocabulary' };
+        try {
+          await this.withSourceClaim(candidate.scope, candidate.taxonomyId, ctx, async () => {
+            const source = await this.requireSource(String(candidate.id), ctx.brandId);
+            if (source.archived || !['daily', 'weekly'].includes(source.syncSchedule ?? '') ||
+              !source.nextSyncAt || source.nextSyncAt > this.nowIso()) return;
+            const interval = source.syncSchedule === 'daily' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+            await FigshareVocabularySource.updateOne({ id: source.id, branding: ctx.brandId }).set({
+              nextSyncAt: new Date(Date.now() + interval).toISOString(), lastScheduleStatus: 'running', lastScheduleAttemptAt: this.nowIso(),
+            });
+            try {
+              const preview = await this.createPreview({ scope: source.scope as FigshareCategoryScope, taxonomyId: source.taxonomyId, sourceId: String(source.id) }, ctx);
+              // No clone or crosswalk: automatic work never approves mapping proposals.
+              await this.applyPreviewUnlocked(preview.runId, { remoteHash: preview.remoteHash }, ctx);
+              await FigshareVocabularySource.updateOne({ id: source.id, branding: ctx.brandId }).set({ lastScheduleStatus: 'succeeded' });
+            } catch {
+              await FigshareVocabularySource.updateOne({ id: source.id, branding: ctx.brandId }).set({ lastScheduleStatus: 'failed' });
+              // Do not expose transport exceptions or connection details in metadata/logs.
+              sails.log.warn('Scheduled Figshare vocabulary mirror sync failed', { sourceId: String(source.id) });
+            }
+          });
+        } catch (error) {
+          if (!(error instanceof StalePreviewError)) sails.log.warn('Scheduled Figshare vocabulary source unavailable', { sourceId: String(candidate.id) });
+        }
+      }
+    }
+
     public async listSources(
       query: { q?: string; scope?: string; limit?: number; offset?: number },
       ctx: ActorContext
@@ -1440,6 +1527,11 @@ export namespace Services {
         vocabularyName: vocabulary?.name ?? '',
         lastSyncedAt: source.lastSyncedAt ?? null,
         archived: source.archived === true,
+        syncSchedule: source.syncSchedule ?? 'manual',
+        nextSyncAt: source.nextSyncAt ?? null,
+        settingsRevision: source.settingsRevision ?? 0,
+        lastScheduleStatus: source.lastScheduleStatus ?? null,
+        lastScheduleAttemptAt: source.lastScheduleAttemptAt ?? null,
         mirroredCount,
         historicalCount,
         crosswalkCount
@@ -2250,6 +2342,10 @@ export namespace Services {
     public async resolveCrosswalkValues(input: ResolveCrosswalkValuesInput): Promise<ResolveCrosswalkValuesResult> {
       const outputs: CrosswalkOutput = input?.outputs || 'categoryId';
       const resolution = await this.resolveCrosswalkTargets(input);
+      // Mirror normalization treats missing selectability metadata as selectable.
+      const matches = input?.selectableOnly === true
+        ? resolution.matches.filter((match) => match.category.selectable !== false)
+        : resolution.matches;
       const base = {
         normalizedCodes: resolution.normalizedCodes,
         unresolvedCodes: resolution.unresolvedCodes,
@@ -2257,23 +2353,23 @@ export namespace Services {
       };
 
       if (outputs === 'categoryId') {
-        const categoryIds = new Set<number>(resolution.matches.map((match) => match.category.categoryId));
+        const categoryIds = new Set<number>(matches.map((match) => match.category.categoryId));
         return { ...base, values: Array.from(categoryIds).sort((left, right) => left - right) };
       }
 
       if (outputs === 'sourceId') {
-        return { ...base, values: Array.from(new Set(resolution.matches.map((match) => match.category.sourceId))) };
+        return { ...base, values: Array.from(new Set(matches.map((match) => match.category.sourceId))) };
       }
 
       // Labels live on the mirrored VocabularyEntry, not on the category row.
-      const entryIds = Array.from(new Set(resolution.matches.map((match) => String(match.category.entry))));
+      const entryIds = Array.from(new Set(matches.map((match) => String(match.category.entry))));
       const entries = entryIds.length === 0
         ? []
         : await VocabularyEntry.find({ id: entryIds }) as VocabularyEntryAttributes[];
       const labelByEntryId = new Map(entries.map((entry) => [String(entry.id), entry.label]));
 
       const labels = new Set<string>();
-      for (const match of resolution.matches) {
+      for (const match of matches) {
         const label = String(labelByEntryId.get(String(match.category.entry)) ?? '').trim();
         if (label !== '') {
           labels.add(label);

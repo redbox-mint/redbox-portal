@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Users</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="users" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>People &amp; access</span><span>/</span><span>Users</span></nav>
+      <header class="ph">
+        <div><h1>Users</h1><p>Everyone who can sign in to this portal, how they sign in, their roles and API access.</p></div>
+        <div class="ph-actions"><button class="btn btn-primary" type="button">+ Add local user</button></div>
+      </header>
+
+      <div class="split">
+        <div class="split-main">
+          <div class="card">
+            <div class="card-h"><h2>Users</h2><span class="meta">1 active · 0 disabled</span></div>
+            <div class="filters">
+              <div class="field grow"><label for="u-s">Search</label><input id="u-s" class="inp" placeholder="Name, username or email"></div>
+              <div class="field"><label for="u-r">Role</label><select id="u-r" class="inp"><option>Any role</option><option>Admin</option><option>Librarians</option><option>Researcher</option><option>Guest</option></select></div>
+              <div class="field"><label for="u-a">Sign-in</label><select id="u-a" class="inp"><option>Any method</option><option>Local</option><option>AAF</option><option>OIDC</option></select></div>
+              <label class="switch" style="padding-bottom: 8px"><i></i>Show disabled</label>
+            </div>
+            <div class="tbl-wrap"><table class="tbl">
+              <thead><tr><th>User</th><th>Sign-in</th><th>Roles</th><th>Status</th><th>API key</th><th class="act">Actions</th></tr></thead>
+              <tbody>
+                <tr style="background: #f5f9ff">
+                  <td><b>Local Admin</b><span class="sub">admin@redboxresearchdata.com.au</span></td>
+                  <td><span class="badge">Local</span></td>
+                  <td><div class="legend"><span class="badge brand">Admin</span><span class="badge">Librarians</span><span class="badge">Researcher</span><span class="badge">Guest</span></div></td>
+                  <td><span class="badge ok"><span class="dot"></span>Active</span></td>
+                  <td class="small muted">None</td>
+                  <td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Local Admin">⋯</button></td>
+                </tr>
+              </tbody>
+            </table></div>
+            <div class="card-f"><span>Showing 1 of 1</span><span>⋯ holds Linked accounts, View audit, Generate API key and Disable</span></div>
+          </div>
+        </div>
+
+        <aside class="split-side" aria-label="User details">
+          <div class="card">
+            <div class="card-h plain"><h2>Local Admin</h2><button class="btn btn-ghost btn-sm" type="button" aria-label="Close panel">×</button></div>
+            <div class="card-b" style="display: flex; flex-direction: column; gap: 16px">
+              <dl class="kv" style="grid-template-columns: 96px 1fr">
+                <dt>Username</dt><dd class="mono">admin</dd>
+                <dt>Email</dt><dd>admin@redboxresearchdata.com.au</dd>
+                <dt>Sign-in</dt><dd>Local account</dd>
+                <dt>Last login</dt><dd>[date]</dd>
+              </dl>
+              <fieldset style="border: 0; padding: 0; margin: 0">
+                <legend class="lbl" style="margin-bottom: 6px">Roles</legend>
+                <div style="display: grid; gap: 6px">
+                  <label style="font-weight: 400; display: flex; gap: 8px"><input type="checkbox" checked>Admin</label>
+                  <label style="font-weight: 400; display: flex; gap: 8px"><input type="checkbox" checked>Librarians</label>
+                  <label style="font-weight: 400; display: flex; gap: 8px"><input type="checkbox" checked>Researcher</label>
+                  <label style="font-weight: 400; display: flex; gap: 8px"><input type="checkbox" checked>Guest</label>
+                </div>
+              </fieldset>
+              <div>
+                <span class="lbl">API key</span>
+                <p class="small muted" style="margin: 4px 0 8px">No key issued.</p>
+                <button class="btn btn-secondary btn-sm" type="button">Generate key</button>
+              </div>
+              <div class="row" style="border-top: 1px solid #ececec; padding-top: 12px">
+                <a class="btn btn-ghost btn-sm" href="#">Linked accounts (0)</a>
+                <a class="btn btn-ghost btn-sm" href="#">Audit log</a>
+              </div>
+              <div class="spread" style="border-top: 1px solid #ececec; padding-top: 12px">
+                <button class="btn btn-danger btn-sm" type="button">Disable user</button>
+                <button class="btn btn-primary btn-sm" type="button">Save</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

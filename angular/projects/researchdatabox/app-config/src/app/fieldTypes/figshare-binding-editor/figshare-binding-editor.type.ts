@@ -16,6 +16,8 @@ interface FigshareBindingValue {
   standalone: false
 })
 export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  private static nextId = 0;
+  readonly idPrefix = `figshare-binding-${FigshareBindingEditorTypeComponent.nextId++}`;
   readonly bindingKinds: BindingKind[] = ['path', 'handlebars', 'jsonata'];
   private bindingValue: FigshareBindingValue = { kind: 'path', path: '' };
 

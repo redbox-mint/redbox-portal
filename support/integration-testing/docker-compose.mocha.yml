@@ -88,7 +88,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest@sha256:1a712cae556d96883e032622692d2acfba7917d3b16c800deb4f8d2fbf0b77ea
+    image: solr:latest@sha256:81e75780e0f3a3ea2d38eafdb6ec16b2028af9374f6c0b85485f8f2e5dd97beb
     pull_policy: 'always'
     expose:
       - '8983'
@@ -109,7 +109,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.2-0
+    image: quay.io/keycloak/keycloak:26.8.2-2
     pull_policy: 'always'
     expose:
       - '8080'
@@ -146,3 +146,5 @@ services:
       main:
         aliases:
           - 'email'
+          # The direct Sails test lift uses the core SMTP default without rc env overrides.
+          - 'integration-testing-email-1'

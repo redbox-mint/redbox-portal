@@ -1,7 +1,8 @@
-<div class="figshare-panel">
+<div class="rb-admin-form-section rb-figshare-form">
   @if (!crosswalk) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else {
+  <div [attr.inert]="confirmingApproval ? '' : null">
   <div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
     <div>
       <h2 class="h5 mb-1">{{ crosswalk.name }}</h2>
@@ -10,10 +11,10 @@
       </p>
     </div>
     <div class="text-md-end">
-      <span class="figshare-badge">{{
+      <span class="badge rb-admin-badge-primary">{{
         'figshare-vocab-approved-revision' | i18next: { revision: approvedRevisionLabel }
       }}</span>
-      <span class="figshare-badge ms-1">{{
+      <span class="badge rb-admin-badge-primary ms-1">{{
         'figshare-vocab-working-revision' | i18next: { revision: crosswalk.workingRevision }
       }}</span>
     </div>
@@ -32,8 +33,8 @@
   <div class="alert alert-success" role="status">{{ statusMessage }}</div>
   }
 
-  <div class="row g-2 align-items-end mb-3">
-    <div class="col-md-6">
+  <div class="rb-admin-filter-bar">
+    <div class="rb-admin-field rb-admin-field-grow">
       <label class="form-label" for="figshare-mapping-search">{{ 'figshare-vocab-search' | i18next }}</label>
       <input
         id="figshare-mapping-search"
@@ -41,9 +42,9 @@
         type="search"
         [value]="search.q"
         (change)="update({ q: $any($event.target).value })"
-      />
+      [placeholder]="'admin-filter-search-placeholder' | i18next" />
     </div>
-    <div class="col-md-4">
+    <div class="rb-admin-field">
       <label class="form-label" for="figshare-mapping-status">{{ 'figshare-vocab-column-status' | i18next }}</label>
       <select
         id="figshare-mapping-status"
@@ -57,24 +58,25 @@
         <option value="rejected">{{ 'figshare-vocab-mapping-status-rejected' | i18next }}</option>
       </select>
     </div>
-    <div class="col-md-2 text-md-end">
+    <div class="rb-admin-field">
       <button type="button" class="btn btn-primary w-100" [disabled]="saving" (click)="openAddMapping()">
         {{ 'figshare-vocab-add-mapping' | i18next }}
       </button>
     </div>
+  <button *ngIf="search.q || search.status" type="button" class="btn rb-admin-ghost" (click)="update({ q: '', status: '' })">{{ 'admin-report-clear' | i18next }}</button>
   </div>
 
   @if (loading) {
   <p class="text-muted" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else {
-  <table class="table table-sm align-middle">
+  <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-mapping-table-caption' | i18next }}</caption>
     <thead>
       <tr>
         <th scope="col">{{ 'figshare-vocab-column-local-term' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-column-target' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-column-status' | i18next }}</th>
-        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+        <th scope="col" class="rb-admin-actions-col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
       </tr>
     </thead>
     <tbody>
@@ -90,16 +92,16 @@
           <small class="text-muted">({{ mapping.figshareCategoryNumber }})</small>
           }
           @if (mapping.historical) {
-          <span class="figshare-badge figshare-badge--historical ms-1">{{
+          <span class="badge rb-admin-badge-warning ms-1">{{
             'figshare-vocab-historical' | i18next
           }}</span>
           }
         </td>
         <td>
-          <span class="figshare-badge">{{ 'figshare-vocab-mapping-status-' + mapping.status | i18next }}</span>
-          <span class="figshare-badge ms-1">{{ 'figshare-vocab-match-' + mapping.matchType | i18next }}</span>
+          <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-mapping-status-' + mapping.status | i18next }}</span>
+          <span class="badge rb-admin-badge-primary ms-1">{{ 'figshare-vocab-match-' + mapping.matchType | i18next }}</span>
         </td>
-        <td>
+        <td class="rb-admin-actions-col">
           <div class="d-flex flex-wrap gap-1">
             <button type="button" class="btn btn-sm btn-outline-primary" [disabled]="saving" (click)="openAddTarget(mapping)">
               {{ 'figshare-vocab-add-target' | i18next }}
@@ -116,25 +118,18 @@
       </tr>
       }
     </tbody>
-  </table>
+  </table></div>
 
-  <nav class="d-flex justify-content-between align-items-center" [attr.aria-label]="'figshare-vocab-pagination' | i18next">
-    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoPrevious"
-      (click)="changePage(search.offset - pageSize)">
-      {{ 'figshare-vocab-previous' | i18next }}
-    </button>
-    <span class="small text-muted">
-      {{ 'figshare-vocab-page-range' | i18next: { from: search.offset + 1, to: search.offset + mappings.length, total: total } }}
-    </span>
-    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoNext"
-      (click)="changePage(search.offset + pageSize)">
-      {{ 'figshare-vocab-next' | i18next }}
-    </button>
-  </nav>
+  <rb-admin-list-footer [total]="total" [start]="search.offset + 1" [end]="search.offset + mappings.length" [pageCount]="total / pageSize">
+    <nav [attr.aria-label]="'figshare-vocab-pagination' | i18next"><ul class="pagination">
+      <li class="page-item" [class.disabled]="!canGoPrevious"><button type="button" class="page-link" [disabled]="!canGoPrevious" (click)="changePage(search.offset - pageSize)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button></li>
+      <li class="page-item" [class.disabled]="!canGoNext"><button type="button" class="page-link" [disabled]="!canGoNext" (click)="changePage(search.offset + pageSize)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></li>
+    </ul></nav>
+  </rb-admin-list-footer>
   }
 
-  <div class="mt-3 d-flex flex-wrap gap-2">
-    <button type="button" class="btn btn-secondary" (click)="closed.emit()">{{ 'figshare-vocab-back' | i18next }}</button>
+  <div class="rb-admin-save-bar">
+    <button type="button" class="btn btn-outline-secondary" (click)="closed.emit()">{{ 'figshare-vocab-back' | i18next }}</button>
     <button type="button" class="btn btn-primary" [disabled]="!canApprove" (click)="requestApproval()">
       {{ 'figshare-vocab-approve-revision' | i18next: { revision: crosswalk.workingRevision } }}
     </button>
@@ -152,15 +147,16 @@
   ></figshare-mapping-picker>
   }
 
+  </div>
   @if (confirmingApproval) {
   <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
     aria-labelledby="figshareApproveTitle" (keydown.escape)="cancelApproval()">
-    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-      <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
+      <div class="modal-content rb-admin">
         <div class="modal-header">
-          <span class="modal-title h5" id="figshareApproveTitle">{{
+          <h2 class="modal-title h5" id="figshareApproveTitle">{{
             'figshare-vocab-confirm-approve-title' | i18next
-          }}</span>
+          }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelApproval()"></button>
         </div>
         <div class="modal-body">
           <p class="mb-2">{{ 'figshare-vocab-confirm-approve-body' | i18next: { revision: crosswalk.workingRevision } }}</p>
@@ -173,7 +169,7 @@
           }
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="cancelApproval()" cdkFocusInitial>
+          <button type="button" class="btn btn-outline-secondary" (click)="cancelApproval()" cdkFocusInitial>
             {{ 'figshare-vocab-cancel' | i18next }}
           </button>
           <button type="button" class="btn btn-primary" (click)="confirmApproval()">

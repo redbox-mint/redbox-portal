@@ -1,3 +1,10 @@
+import { QueryAssistanceModule } from '../query-assistance.module';
+import {
+  TranslationService as AssistanceTranslationService,
+  FieldTreeComponent,
+  SchemaTargetSelectorComponent,
+} from '@researchdatabox/portal-ng-common';
+import { of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +24,13 @@ describe('SortEditorComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [SortEditorComponent, I18NextPipeStub],
-      imports: [FormsModule]
+      providers: [
+        {
+          provide: AssistanceTranslationService,
+          useValue: { t: (v: string) => v, isInitializing: () => false, translationChanges$: of(undefined) },
+        },
+      ],
+      imports: [QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SortEditorComponent);
@@ -26,7 +39,9 @@ describe('SortEditorComponent', () => {
 
   it('rebuilds entries on input change', () => {
     component.sort = [{ field1: 'ASC' }, { field2: 'DESC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
     expect(component.entries.length).toBe(2);
     expect(component.entries[0].field).toBe('field1');
     expect(component.entries[0].direction).toBe('ASC');
@@ -35,16 +50,20 @@ describe('SortEditorComponent', () => {
   it('ignores change if same reference as last emitted', () => {
     const sort = [{ field1: 'ASC' }] as any;
     component.sort = sort;
-    component.ngOnChanges({ sort: { currentValue: sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
     (component as any).lastEmitted = sort;
     const before = component.entries.length;
-    component.ngOnChanges({ sort: { currentValue: sort, previousValue: sort, firstChange: false, isFirstChange: () => false } });
+    component.ngOnChanges({
+      sort: { currentValue: sort, previousValue: sort, firstChange: false, isFirstChange: () => false },
+    });
     expect(component.entries.length).toBe(before);
   });
 
   it('adds an entry', () => {
     let emitted: any | undefined;
-    component.sortChange.subscribe((v) => emitted = v);
+    component.sortChange.subscribe(v => (emitted = v));
 
     component.newField = 'created';
     component.newDirection = 'DESC';
@@ -58,7 +77,7 @@ describe('SortEditorComponent', () => {
 
   it('does not add entry without field', () => {
     let emitted = false;
-    component.sortChange.subscribe(() => emitted = true);
+    component.sortChange.subscribe(() => (emitted = true));
 
     component.newField = '';
     component.addEntry();
@@ -68,10 +87,12 @@ describe('SortEditorComponent', () => {
 
   it('removes an entry', () => {
     component.sort = [{ field1: 'ASC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
 
     let emitted: any | undefined;
-    component.sortChange.subscribe((v) => emitted = v);
+    component.sortChange.subscribe(v => (emitted = v));
 
     component.removeEntry(component.entries[0]);
     expect(component.entries.length).toBe(0);
@@ -80,10 +101,12 @@ describe('SortEditorComponent', () => {
 
   it('updates field and emits', () => {
     component.sort = [{ field1: 'ASC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
 
     let emitted: any | undefined;
-    component.sortChange.subscribe((v) => emitted = v);
+    component.sortChange.subscribe(v => (emitted = v));
 
     component.onFieldChange(component.entries[0], 'updated');
     expect(emitted).toBeDefined();
@@ -92,10 +115,12 @@ describe('SortEditorComponent', () => {
 
   it('does not emit if field unchanged', () => {
     component.sort = [{ field1: 'ASC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
 
     let emitted = false;
-    component.sortChange.subscribe(() => emitted = true);
+    component.sortChange.subscribe(() => (emitted = true));
 
     component.onFieldChange(component.entries[0], 'field1');
     expect(emitted).toBeFalse();
@@ -103,10 +128,12 @@ describe('SortEditorComponent', () => {
 
   it('updates direction and emits', () => {
     component.sort = [{ field1: 'ASC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
 
     let emitted: any | undefined;
-    component.sortChange.subscribe((v) => emitted = v);
+    component.sortChange.subscribe(v => (emitted = v));
 
     component.onDirectionChange(component.entries[0], 'DESC');
     expect(emitted).toBeDefined();
@@ -115,10 +142,12 @@ describe('SortEditorComponent', () => {
 
   it('does not emit if direction unchanged', () => {
     component.sort = [{ field1: 'ASC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
 
     let emitted = false;
-    component.sortChange.subscribe(() => emitted = true);
+    component.sortChange.subscribe(() => (emitted = true));
 
     component.onDirectionChange(component.entries[0], 'ASC');
     expect(emitted).toBeFalse();
@@ -126,10 +155,12 @@ describe('SortEditorComponent', () => {
 
   it('filters out empty fields when emitting', () => {
     component.sort = [{ field1: 'ASC' }] as any;
-    component.ngOnChanges({ sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      sort: { currentValue: component.sort, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
 
     let emitted: any | undefined;
-    component.sortChange.subscribe((v) => emitted = v);
+    component.sortChange.subscribe(v => (emitted = v));
 
     component.entries[0].field = '';
     (component as any).emitFromEntries();

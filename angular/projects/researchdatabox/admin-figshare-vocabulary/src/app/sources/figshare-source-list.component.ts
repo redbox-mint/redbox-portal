@@ -1,6 +1,6 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FigshareSourceSummary } from '../services/figshare-vocabulary-api.service';
-import { formatFigshareTimestamp } from '../figshare-format';
 
 @Component({
   selector: 'figshare-source-list',
@@ -8,13 +8,22 @@ import { formatFigshareTimestamp } from '../figshare-format';
   standalone: false
 })
 export class FigshareSourceListComponent {
+  readonly adminDates = inject(AdminDateService);
   @Input() sources: FigshareSourceSummary[] = [];
   @Input() total = 0;
   @Input() scopeFilter: '' | 'public' | 'account' = '';
   @Input() loading = false;
   @Input() busySourceId = '';
 
+  search = '';
+  @Output() addRequested = new EventEmitter<void>();
+  get filteredItems() {
+    const q = this.search.trim().toLowerCase();
+    return this.sources.filter(item => (!this.scopeFilter || item.scope === this.scopeFilter) && `${item.displayName} ${item.taxonomyId}`.toLowerCase().includes(q));
+  }
+
   @Output() scopeFilterChanged = new EventEmitter<'' | 'public' | 'account'>();
+  @Output() editRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() resyncRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() cloneRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() historyRequested = new EventEmitter<FigshareSourceSummary>();
@@ -25,7 +34,7 @@ export class FigshareSourceListComponent {
   }
 
   formatDate(value?: string | null): string {
-    return formatFigshareTimestamp(value);
+    return this.adminDates.format(value);
   }
 
   isBusy(source: FigshareSourceSummary): boolean {

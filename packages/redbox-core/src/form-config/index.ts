@@ -1,5 +1,6 @@
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
+import partyForm from './party-1.0-draft';
 import generatedViewOnly from './generated-view-only';
 
 /**
@@ -10,5 +11,6 @@ import generatedViewOnly from './generated-view-only';
  * and are merged in by the loader when that hook is installed.
  */
 export const FormConfigExports: Record<string, FormConfigFrame> = {
+  'party-1.0-draft': partyForm,
   'generated-view-only': generatedViewOnly,
 };

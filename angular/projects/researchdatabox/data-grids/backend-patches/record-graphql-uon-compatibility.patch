@@ -1,0 +1,93 @@
+diff --git i/packages/redbox-core/src/record-graphql/index-bindings.ts w/packages/redbox-core/src/record-graphql/index-bindings.ts
+index cdd388a1c..33914d52b 100644
+--- i/packages/redbox-core/src/record-graphql/index-bindings.ts
++++ w/packages/redbox-core/src/record-graphql/index-bindings.ts
+@@ -15,7 +15,12 @@ export function gridIndexBindings(core: SolrCoreConfig): Map<string, { field: st
+       .slice('metadata:/'.length)
+       .split('/')
+       .map(token => token.replace(/~1/g, '/').replace(/~0/g, '~'));
+-    if (tokens.some(token => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(token))) continue;
++    if (
++      tokens.some(
++        token => !/^[A-Za-z_][A-Za-z0-9_:-]*$/.test(token) || ['__proto__', 'constructor', 'prototype'].includes(token)
++      )
++    )
++      continue;
+     const copies = (core.preIndex?.copy ?? []).filter(copy => copy.dest === field);
+     if (copies.length !== 1 || copies[0].source !== `metadata.${tokens.join('.')}`) continue;
+     result.set(id, { field, tokens });
+diff --git i/packages/redbox-core/src/services/RecordGraphqlService.ts w/packages/redbox-core/src/services/RecordGraphqlService.ts
+index 1ea109feb..68ba2cabc 100644
+--- i/packages/redbox-core/src/services/RecordGraphqlService.ts
++++ w/packages/redbox-core/src/services/RecordGraphqlService.ts
+@@ -4,7 +4,7 @@ import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphq
+ import { Services as services } from '../CoreService';
+ import { recordGraphql, validateRecordGraphqlConfig, type RecordGraphqlConfig } from '../config/recordGraphql.config';
+ import { recordSchema } from '../config/recordSchema.config';
+-import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
++import { formatRecordFormCatalogueFingerprint } from '../RecordFormFingerprint';
+ import {
+   RecordContractCompiler,
+   type ContractJsonObject,
+@@ -181,7 +181,7 @@ export namespace Services {
+       const candidates = await this.dependencies.getCandidates(caller);
+       if (candidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
+       const reusableFormDefinitions = this.dependencies.getReusableDefinitions();
+-      const fingerprint = formatRecordFormFingerprint({ candidates, reusableFormDefinitions });
++      const fingerprint = formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions);
+       if (!fingerprint) throw new Error('Read configuration exceeds its fingerprint bound.');
+       const key = JSON.stringify([caller.brand.id, caller.brand.name, caller.portal, fingerprint]);
+       const cached = this.cache.get(key);
+@@ -248,7 +248,7 @@ export namespace Services {
+         if (result.kind !== 'compiled') throw new Error('Read contract compilation failed.');
+         contracts.push(result.contract);
+       }
+-      if (formatRecordFormFingerprint({ candidates, reusableFormDefinitions }) !== fingerprint) {
++      if (formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions) !== fingerprint) {
+         throw new Error('Read configuration changed during compilation.');
+       }
+       return createRecordYoga(contracts, this.dependencies, this.dependencies);
+diff --git i/packages/redbox-core/test/unit/record-graphql/grid.test.ts w/packages/redbox-core/test/unit/record-graphql/grid.test.ts
+index 05390ed45..411e16dd3 100644
+--- i/packages/redbox-core/test/unit/record-graphql/grid.test.ts
++++ w/packages/redbox-core/test/unit/record-graphql/grid.test.ts
+@@ -4,6 +4,7 @@ import { createRecordYoga } from '../../../src/record-graphql/schema';
+ import { metadataTypeName } from '../../../src/record-graphql/renderer';
+ import { GRID_LIMITS } from '../../../src/record-graphql/grid-types';
+ import { buildCatalogue } from '../../../src/record-graphql/catalogue';
++import { gridIndexBindings, gridSourceValue } from '../../../src/record-graphql/index-bindings';
+ import { queryPlan } from '../../../src/record-graphql/collection';
+ import { gridHarness, gridCaller, gridEnvironment, gridContracts } from '../../fixtures/record-grid.fixtures';
+ 
+@@ -457,3 +458,31 @@ describe('Typed grid search planning', () => {
+       assert.throws(() => plan([], sort as Parameters<typeof plan>[1]));
+   });
+ });
++
++describe('Namespaced scalar index bindings', () => {
++  it('accepts literal namespace colons and hyphens but rejects ambiguous paths and prototype keys', () => {
++    const env = gridEnvironment();
++    const names = [
++      'uon:ethicsApprovalStatus',
++      'dc:coverage_vivo:DateTimeInterval_vivo:start',
++      'data-owner',
++      'nested.value',
++      'array[0]',
++      '__proto__',
++      'constructor',
++      'prototype',
++    ];
++    env.config.recordGraphqlFields = Object.fromEntries(
++      names.map((name, index) => ['metadata:/' + name, 'grid_namespace_' + index])
++    );
++    env.config.preIndex = {
++      copy: names.map((name, index) => ({ source: 'metadata.' + name, dest: 'grid_namespace_' + index })),
++    };
++    const bindings = gridIndexBindings(env.config);
++    assert.deepEqual(
++      [...bindings.keys()],
++      names.slice(0, 3).map(name => 'metadata:/' + name)
++    );
++    assert.equal(gridSourceValue({ 'uon:ethicsApprovalStatus': 'approved' }, ['uon:ethicsApprovalStatus']), 'approved');
++  });
++});

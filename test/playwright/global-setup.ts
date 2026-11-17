@@ -8,7 +8,7 @@ async function ensureDirs(): Promise<void> {
     '.tmp/junit/backend-playwright',
     '.tmp/playwright/report',
     '.tmp/playwright/test-results',
-    path.dirname(adminStorageStatePath)
+    path.dirname(adminStorageStatePath),
   ]) {
     await fs.mkdir(dirPath, { recursive: true });
   }
@@ -27,24 +27,32 @@ async function globalSetup(config: FullConfig): Promise<void> {
   const page = await context.newPage();
 
   try {
+    const csrfResponse = await context.request.get('/csrfToken?branding=default&portal=rdmp');
+    if (!csrfResponse.ok()) throw new Error(`CSRF setup failed with ${csrfResponse.status()}.`);
+    const csrf = (await csrfResponse.json())._csrf;
     // Authenticate before navigating so anonymous requests cannot replace the new session cookie.
     const loginResponse = await context.request.post('/user/login_local', {
       form: {
         username: 'admin',
-        password: 'rbadmin'
+        password: 'rbadmin',
+        branding: 'default',
+        portal: 'rdmp',
       },
       headers: {
-        'x-source': 'jsclient'
-      }
+        'x-source': 'jsclient',
+        ...(csrf ? { 'x-csrf-token': csrf } : {}),
+      },
     });
 
     if (!loginResponse.ok()) {
       throw new Error(`Admin login request failed with ${loginResponse.status()} ${loginResponse.statusText()}.`);
     }
 
-    const loginResult = await loginResponse.json() as { user?: { username?: string }, message?: string };
+    const loginResult = (await loginResponse.json()) as { user?: { username?: string }; message?: string };
     if (loginResult.user?.username !== 'admin') {
-      throw new Error(`Admin login did not establish the expected session. Response message: ${loginResult.message ?? 'none'}`);
+      throw new Error(
+        `Admin login did not establish the expected session. Response message: ${loginResult.message ?? 'none'}`
+      );
     }
 
     await page.goto('/default/rdmp/admin', { waitUntil: 'domcontentloaded' });

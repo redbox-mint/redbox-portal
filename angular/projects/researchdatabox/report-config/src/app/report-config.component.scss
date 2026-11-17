@@ -1,148 +1,190 @@
-.report-toolbar {
-  margin-bottom: 16px;
-
-  .btn + .btn,
-  .btn + a.btn {
-    margin-left: 8px;
-  }
-
-  .fa {
-    margin-right: 4px;
-  }
+.report-title-line,
+.report-row-actions,
+.report-source-actions,
+.report-preview-actions,
+.report-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
-// Summary stat cards
-.report-stats {
+.report-title-line h1 {
+  margin: 0;
+}
+.report-layout {
+  flex-wrap: nowrap;
+}
+.report-layout .rb-admin-section-rail {
+  flex: 0 0 140px;
+}
+.report-layout .rb-admin-split-side {
+  flex: 0 0 220px;
+}
+.report-layout .rb-admin-split-main {
+  flex: 1 1 0;
+}
+.report-config-app .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.report-config-app .card-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.report-row-actions {
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.report-source-actions {
+  white-space: nowrap;
+}
+.report-list-toolbar {
+  margin-bottom: 16px;
+}
+.report-list-table {
+  margin-bottom: 0;
+}
+.report-list-table td:first-child {
+  min-width: 200px;
+}
+.report-columns-table {
+  min-width: 540px;
+  margin-bottom: 0;
+}
+.report-columns-table td:nth-child(2) {
+  width: 30%;
+  min-width: 140px;
+}
+.report-drag-handle {
+  color: var(--admin-muted);
+  cursor: grab;
+}
+.report-panel-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.report-panel-fields .rb-admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 0;
+}
+.report-panel-fields .form-check {
+  margin-bottom: 0;
+  font-weight: 400;
+}
+.report-panel-fields .rb-admin-hint {
+  font-weight: 400;
+}
+.report-panel-actions {
+  justify-content: flex-end;
+  width: 100%;
+}
+.report-config-app .table-responsive {
+  position: relative;
+}
+.report-filter-empty {
+  padding: 16px;
+  border: 1px dashed var(--admin-line);
+  border-radius: var(--admin-radius);
+}
+.report-filter-empty p:last-child,
+.report-checks p:last-child {
+  margin-bottom: 0;
+}
+.report-preview-table {
+  min-width: 440px;
+}
+.report-preview-table td {
+  min-width: 110px;
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.report-preview-table td:first-child {
+  min-width: 220px;
+}
+.report-preview-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 8px;
+  justify-content: space-between;
 }
-
-.report-stat-card {
-  flex: 1 1 160px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 16px 20px;
-  background: #fff;
+.report-raw-results {
+  min-width: 0;
+  max-width: 100%;
 }
-
-.report-stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.1;
+.report-raw-results pre {
+  max-height: 300px;
+  white-space: pre-wrap;
+  overflow: auto;
 }
-
-.report-stat-label {
-  color: #777;
+.report-filter-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.report-panel-subheading {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.report-preview-filter {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+}
+.report-preview-filter legend {
+  float: none;
+  width: 100%;
   font-size: 13px;
-  margin-top: 4px;
-}
-
-// Configured reports panel
-.panel-heading .panel-title {
   font-weight: 600;
-  line-height: 24px;
+  margin-bottom: 4px;
 }
-
-.report-source-filter .btn {
-  margin-left: -1px;
+.report-config-app :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 3px;
 }
-
-.report-search-bar {
-  border-bottom: 1px solid #ddd;
+#report-workspace-title:focus {
+  outline: none;
 }
-
-.report-search-input {
-  position: relative;
-  max-width: 320px;
-
-  .fa-search {
-    position: absolute;
-    top: 50%;
-    left: 10px;
-    transform: translateY(-50%);
-    color: #999;
-    pointer-events: none;
-  }
-
-  .form-control {
-    padding-left: 30px;
+@media (min-width: 1200px) {
+  .report-layout rb-admin-source-card {
+    display: block;
   }
 }
-
-.report-actions {
-  white-space: nowrap;
-
-  .btn {
-    margin-left: 4px;
+@media (max-width: 1199px) {
+  .report-layout {
+    flex-wrap: wrap;
   }
-
-  .fa {
-    margin-right: 3px;
+  .report-layout .rb-admin-split-side {
+    flex: 1 1 100%;
+    max-width: none;
   }
 }
-
-.report-pagination {
-  color: #777;
-  font-size: 13px;
-}
-
-// Modal / editor
-.report-config-modal {
-  display: block;
-}
-
-.report-config-modal .modal-dialog {
-  max-width: 1000px;
-  width: auto;
-  margin: 30px 20px;
-}
-
-.report-detail-grid {
-  margin-bottom: 8px;
-}
-
-label.required:after {
-  content: " *";
-  color: var(--bs-danger, #b1101a);
-}
-
-fieldset {
-  margin-bottom: 18px;
-}
-
-legend {
-  font-size: 16px;
-  font-weight: 600;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 12px;
-  padding-bottom: 4px;
-}
-
-.report-editor-table {
-  margin-bottom: 12px;
-
-  > thead > tr > th {
-    font-size: 13px;
-    font-weight: 600;
-    border-bottom: 2px solid #ddd;
+@media (max-width: 767px) {
+  .report-layout {
+    flex-direction: column;
   }
-
-  > tbody > tr > td {
-    vertical-align: middle;
+  .report-layout > * {
+    flex: 0 1 auto !important;
+    width: 100%;
+    max-width: none;
   }
-
-  .form-control {
-    min-width: 90px;
+  .report-layout .rb-admin-section-rail {
+    display: flex;
+    flex-wrap: wrap;
+    position: static;
   }
-
-  .report-editor-stacked {
-    margin-bottom: 6px;
+  .report-preview-actions {
+    flex-wrap: wrap;
   }
-
-  .report-editor-actions-col {
-    width: 70px;
-    text-align: center;
+  .report-config-app .card-header {
+    flex-wrap: wrap;
+  }
+  .report-source-actions {
+    flex-wrap: wrap;
+    white-space: normal;
   }
 }

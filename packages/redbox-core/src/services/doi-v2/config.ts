@@ -1,15 +1,8 @@
 import _ from 'lodash';
-import {
-  DoiPublishing,
-  resolveDoiConnectionPassword
-} from '../../configmodels/DoiPublishing';
+import { DoiPublishing } from '../../configmodels/DoiPublishing';
+import { doiConnectionPassword } from './connection';
 import type { DoiRecordModel } from './types';
 import type { BrandingModel } from '../../model/storage/BrandingModel';
-
-const DOI_PASSWORD_FALLBACK_ENV_VARS = [
-  'DOI_CONNECTION_PASSWORD',
-  'DATACITE_PASSWORD'
-] as const;
 
 function resolveBrandConfig(brandName: string): DoiPublishing | null {
   const appConfig = sails.config.brandingAware(brandName).doiPublishing as DoiPublishing | undefined;
@@ -17,9 +10,7 @@ function resolveBrandConfig(brandName: string): DoiPublishing | null {
     const resolvedConfig = _.cloneDeep(appConfig) as DoiPublishing;
     resolvedConfig.connection = {
       ...resolvedConfig.connection,
-      password: resolveDoiConnectionPassword(resolvedConfig.connection.password, {
-        fallbackEnvVarNames: [...DOI_PASSWORD_FALLBACK_ENV_VARS]
-      })
+      password: doiConnectionPassword(resolvedConfig.connection.password)
     };
     return resolvedConfig;
   }

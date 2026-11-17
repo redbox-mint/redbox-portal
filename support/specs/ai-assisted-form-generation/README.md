@@ -1,0 +1,82 @@
+# AI-assisted form generation
+
+Status: implemented POC in draft review; future administration extensions remain proposed
+
+Primary delivery target: customer-facing proof of concept
+
+Initial use case: Research Activity to institutional RDMP
+
+Implemented model providers: OpenRouter and Amazon Bedrock through the Vercel AI SDK; deterministic fake adapter for development and tests
+
+This directory defines a generic ReDBox capability for generating validated form values from authorised records, uploaded project documents, researcher-reviewed context, and approved institutional guidance. Record data and uploaded documents must each work independently and together. The first vertical slice helps a researcher create a data management plan, but the platform concepts deliberately do not contain DMP-specific assumptions.
+
+The confirmed source-input requirement concerns the generation engine's capabilities. All source combinations use the same configured target form and generation pipeline. A Research Activity is one supported source type; document-based generation must work without one. The record-based POC described below demonstrates only part of this requirement. See the [source-input requirements](requirements.md#631-source-input-capability) and [implementation work](implementation_plan.md#11-required-source-input-extension).
+
+## Documents
+
+- [Requirements and decisions](requirements.md) — agreed scope, workflows, constraints, acceptance criteria, and POC boundary.
+- [Design](design.md) — data model, services, APIs, form-runtime integration, UI, security, and consistency analysis.
+- [Implementation plan](implementation_plan.md) — phased, file-level delivery sequence from POC to the complete configurable feature.
+- [Task list](task.md) — executable tasks with interleaved unit, integration, API, and browser-verification gates.
+
+## Delivery boundary
+
+The POC implements the end-to-end researcher experience and persists bootstrap-seeded configuration. Model calls use the provider-neutral [Vercel AI SDK](https://ai-sdk.dev/docs) behind ReDBox's domain adapter contract. Full admin management screens and further provider adapters remain future work; the POC implements both OpenRouter and Bedrock. The generation capability itself is a core feature; only representative demo record types, forms, records, and policy content belong in `redbox-hook-dev` or development bootstrap resources.
+
+## Relationship to DMPChef
+
+DMPChef is a useful reference for the pattern of combining project context, guidance, and a language model. It is not proposed as a runtime dependency. ReDBox should own the form-aware schema generation, permissions, provider abstraction, validation, lifecycle integration, provenance, and multi-brand isolation described here.
+
+## Source input implementation
+
+Generation Profiles can opt into project documents with this definition property:
+
+```json
+"documentSources": {
+  "formats": ["pdf", "docx", "txt"],
+  "maxFiles": 5,
+  "maxFileBytes": 5242880,
+  "maxTextBytes": 64000
+}
+```
+
+Set `required: false` on each optional record `sourceSlot` to allow documents without a record. Omitting `required` preserves existing record requirements. A profile can also use `sourceSlots: []`; its document-only binding omits `sourceRecordType`, `sourceRelationship`, and `sourceValueMappings`. Profiles may define their own questionnaire length; the five-question POC remains a fixture choice. Publish a new profile version to change accepted sources; existing published profiles retain their behaviour.
+
+Use a configured model deployment when enabling documents. The existing deterministic RDMP demo remains record-only: its fixed response and evidence IDs describe its seeded Research Activity. The integration suite supplies separate deterministic fixtures for document-only and combined generation.
+
+The shared drafting panel offers document upload alongside record context and a document-only launch on eligible create forms. Researchers inspect extracted passages, confirm review, and can add corrections or unresolved conflicts. Generated values citing documents require review and carry filename/page or paragraph references through normal save and provenance reload.
+
+Uploads use the authenticated, CSRF-protected `POST /:branding/:portal/generation/runs/:id/documents` endpoint; `DELETE /:branding/:portal/generation/runs/:id/documents/:documentId` removes a draft input. Execute submits the selected server-issued `documentIds`, `documentsReviewed: true`, and optional `documentNotes`. References from another run or actor are rejected. Concurrent document changes cannot overwrite each other's encrypted context.
+
+Execute can also supply `sourceOid` to select a record after upload, or `null` to clear an optional record. The selected source is authorised again and completion mappings are recalculated before the run is queued.
+
+Initial formats are text-based PDF, DOCX, and UTF-8 plain text. PDF extraction preserves page numbers; DOCX/TXT extraction preserves paragraph positions. Scanned PDFs need OCR before upload, and password-protected or unreadable documents are rejected. Extraction requires the Linux parser runtime used by the portal image. A separate parser process has a 1 GiB address-space limit, a 128 MiB V8 heap limit, and a parent-enforced timeout; the address-space limit also covers native buffers and decompression. Page and text limits still apply; operator limits under `generation.documents` cap profile limits. Combined evidence and guidance share the existing total context budget.
+
+Original files are removed after extraction. Extracted text is stored in the run's encrypted transient artifact and expires with it; successful provenance commit removes that text even when compact candidate diagnostics are retained. Files are not attached to the saved record or published as shared guidance. Durable provenance keeps source identities/hashes and locations, without retaining the extracted passages.
+
+The exactly pinned dependencies `pdfjs-dist` and `mammoth` provide PDF and DOCX text extraction using their documented [PDF.js text API](https://mozilla.github.io/pdf.js/api/draft/api.js.html) and [Mammoth raw-text API](https://github.com/mwilliamson/mammoth.js#extractrawtext). Synthetic PDF, DOCX, and TXT fixtures cover extraction independently of model providers.
+
+### Verification (2026-10-02)
+
+- Backend generation unit/controller suites: 45 passing, covering real extraction, limits, optional record contracts, untrusted instructions/conflicting evidence, review requirements, authorization before upload, temporary-file cleanup, and provider credential/access failures without automatic retries or response leakage.
+- Angular generation suites: 25 passing, covering document-only and combined launch, source selection after upload, review gating, retry/cancel behaviour, preserved form edits, and multipart CSRF headers. Shared contracts, core TypeScript, and the form application compile successfully.
+- [Generation integration suite](../../../test/integration/services/GenerationService.test.ts): six passing against Sails, Mongo, and Agenda. The suite exercises record-only generation, real multipart upload/removal, document-only and combined generation on the same RDMP form, a second target form, actor/brand isolation, rejection of forged document IDs, normal save, and provenance reload after raw artifacts are removed.
+- API route validation: 49 passing. Translation validation and focused backend lint pass.
+
+The Docker mount suite ran in an isolated Compose project. Local setup required writable temporary storage, bypassing the already-built webpack step and coverage instrumentation, temporarily hiding the Redoc/Should packages from Sails module discovery, disabling live RVA bootstrap imports, and overriding the unrelated `concurrencyTest` fixture because the installed storage adapter lacks its strict-mode capability. These overrides were confined to the test runner; application configuration and the development containers were not changed.
+
+Historical browser checks passed for record-only launch with source defaults, document-only launch, TXT/PDF/DOCX upload and extraction, page/paragraph previews, correction notes, review gating, document removal, unsupported-format errors, and source selection after upload. A live Bedrock smoke test generated all twelve configured fields. These checks do not establish complete live review/save/reload coverage across every source combination.
+
+Bedrock and OpenRouter HTTP 401/403 responses now produce `GENERATION_PROVIDER_AUTH_FAILED` with an actionable credential/model-access message. They do not trigger automatic retries; a manual retry can reuse uploaded context and corrections within the existing expiry and retry limits. The Angular suite verifies this retention.
+
+Live generation is verified with the supplied PDF. Full browser generation/review/save/reload across every source combination remains a separate verification gate. The automated integration suite already covers those lifecycle operations for all source combinations and a second target form; it does not establish the factual accuracy of a live model's response.
+
+## Current runtime boundaries
+
+Ordinary forms request provenance automatically only when server metadata enables generation. Explicit authorised provenance requests remain available for durable audit history. A commit receipt contains the original candidate digest and the applied/reviewed field subsets; later edits retain the original generated-value hash and display as edited on reload. Saved values need not equal the generated values.
+
+Artifact expiry retains the ISO `expiresAt` API field and a lifecycle-managed BSON date companion, `expiresAtDate`, for MongoDB TTL deletion. Bootstrap migrates existing timestamps and replaces the legacy string-field TTL index. A committed receipt can retry sensitive-artifact cleanup without extending retention.
+
+Cancellation is acknowledged before provider invocation or after the call returns; an already-running provider call may continue until its response or configured timeout. Abandoned work settles at the operational artifact deadline. It is not automatically requeued after a heartbeat delay, because an original provider call may still be running.
+
+The current client polls at 750–4000 ms. `generation.polling.minMs`/`maxMs`, `outbound.allowedHosts`, `diagnostics.allowAdminDiagnostics`, and `queue.cleanupJobName` are reserved configuration in this POC. Providers enforce their fixed host policies, raw admin diagnostics are not exposed, and the cleanup schedule uses its registered job. These reserved settings do not override those behaviours.

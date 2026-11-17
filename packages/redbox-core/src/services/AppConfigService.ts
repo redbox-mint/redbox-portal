@@ -17,20 +17,25 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { normalizeAuthorizedRule } from '../utilities/AuthorizedEmailAccess';
+import { validateIntegrationConfig } from '../configmodels/IntegrationConfigValidation';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
-import { ConfigModels, type ConfigModelInfo, type ConfigModelFormAdapter } from '../configmodels/ConfigModels';
+import { ConfigModels, type ConfigModelInfo } from '../configmodels/ConfigModels';
 import type { BrandingConfigurationDefaultsConfig } from '../config/brandingConfigurationDefaults.config';
 import { RESERVED_DASHBOARD_APP_CONFIG_KEYS } from './DashboardConfigService';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 import { AppConfigSecrets, isAppConfigSecretReference, type AppConfigBundleLease } from './AppConfigSecrets';
+import { integrationKeySchema, type IntegrationKey, type IntegrationConnectionResult } from '../api-routes/groups/appconfig';
+import { testIntegrationConnection } from './IntegrationConnectionTest';
 import { appConfigSecrets } from '../config/appConfigSecrets.config';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
+export const APP_CONFIG_SECRET_RETAIN_PREFIX = '__REDACTED_FROM__:';
 
 type AppConfigData = Record<string, unknown>;
 type AppConfigRecordLike = AppConfigAttributes & Record<string, unknown>;
@@ -47,6 +52,7 @@ export namespace Services {
     modelSchemaMap: Record<string, unknown> = {};
     private extraTsGlobs: Set<string> = new Set();
     private secretStore?: AppConfigSecrets;
+    private connectionAttempts = new Map<string, number>();
     private configWriteGates = new Map<string, Promise<void>>();
 
     protected override _exportedMethods: string[] = [
@@ -56,6 +62,8 @@ export namespace Services {
       'getAppConfigurationForBrand',
       'getMaskedAppConfigurationForBrand',
       'createOrUpdateConfig',
+      'resetConfig',
+      'testConnection',
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
       'createConfig',
@@ -200,7 +208,7 @@ export namespace Services {
       for (const field of this.getSecretPaths(configKey, stored, true)) {
         const value: unknown = _.get(stored, field);
         if (isAppConfigSecretReference(value)) {
-          if (bundle && value.$appConfigSecret.key === undefined) {
+          if (bundle && value.$appConfigSecret.key !== JSON.stringify([configKey, ...field])) {
             const key = JSON.stringify([configKey, ...field]);
             changes.set(key, await this.getSecretStore().resolve(value));
             bundledFields.push({ field, key });
@@ -292,7 +300,16 @@ export namespace Services {
       const merged = _.cloneDeep(incomingConfig);
       this.getSecretPaths(configKey, merged, true).forEach((fieldPath: string[]) => {
         const incomingValue = _.get(merged, fieldPath);
-        if (this.isMaskedSecretPlaceholder(incomingValue)) {
+        if (typeof incomingValue === 'string' && incomingValue.startsWith(APP_CONFIG_SECRET_RETAIN_PREFIX)) {
+          let source: unknown;
+          try { source = JSON.parse(incomingValue.slice(APP_CONFIG_SECRET_RETAIN_PREFIX.length)); } catch { /* Reject below. */ }
+          const allowed = this.getSecretPaths(configKey, existingConfig).some(path => JSON.stringify(path) === JSON.stringify(source));
+          if (!allowed || !Array.isArray(source) || !source.every(part => typeof part === 'string')) {
+            throw Object.assign(new Error('Invalid retained secret source'), { status: 400 });
+          }
+          // Only registered secret leaves from this brand/config's locked stored document are eligible.
+          this.setExistingSecretPath(merged as object, fieldPath, _.get(existingConfig, source));
+        } else if (this.isMaskedSecretPlaceholder(incomingValue)) {
           if (existingConfig != null && _.has(existingConfig, fieldPath)) {
             _.set(merged, fieldPath, _.get(existingConfig, fieldPath));
           } else {
@@ -319,6 +336,19 @@ export namespace Services {
       const transformed = typeof formAdapter === 'function'
         ? formAdapter(_.cloneDeep(model))
         : _.cloneDeep(model);
+      if (configKey === 'authorizedDomainsEmails') {
+        if (!transformed || typeof transformed !== 'object' || Array.isArray(transformed)) {
+          throw Object.assign(new Error('Invalid authorized domains and emails configuration'), { status: 400 });
+        }
+        for (const key of ['domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc']) {
+          const rules = (transformed as AppConfigData)[key];
+          if (rules === undefined) continue;
+          if (!Array.isArray(rules) || rules.some(rule => typeof rule !== 'string')) {
+            throw Object.assign(new Error('Authorized rules must be lists of strings'), { status: 400 });
+          }
+          (transformed as AppConfigData)[key] = [...new Set(rules.map(rule => normalizeAuthorizedRule(rule, key.startsWith('domains'))))];
+        }
+      }
       return transformed as AppConfigData;
     }
 
@@ -525,6 +555,11 @@ export namespace Services {
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
+      validateIntegrationConfig(configKey, configData);
+      if (configKey === 'systemMessage' && configData.style !== undefined &&
+          !['info', 'warning', 'critical'].includes(configData.style as string)) {
+        throw Object.assign(new Error('Invalid system message style'), { status: 400 });
+      }
       return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
         const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
         const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? _.get(this.createDefaultConfiguration(), [configKey]), lease);
@@ -548,6 +583,11 @@ export namespace Services {
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
+      validateIntegrationConfig(configKey, configData);
+      if (configKey === 'systemMessage' && configData.style !== undefined &&
+          !['info', 'warning', 'critical'].includes(configData.style as string)) {
+        throw Object.assign(new Error('Invalid system message style'), { status: 400 });
+      }
       const branding: BrandingModel = BrandingService.getBrand(brandName);
       return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
         const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
@@ -567,7 +607,55 @@ export namespace Services {
       });
     }
 
-    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[] }> {
+    /** Delete only this brand's override, including legacy duplicate rows. */
+    public async resetConfig(branding: BrandingModel, configKey: string): Promise<{ reset: boolean }> {
+      this.assertWritableConfigKey(configKey);
+      if (!ConfigModels.getModelInfo(configKey)) {
+        throw Object.assign(new Error('Unknown app config'), { status: 400 });
+      }
+      return this.withConfigWriteLock(String(branding.id), configKey, async (existing, lease) => {
+        const defaults = _.get(this.createDefaultConfiguration(), [configKey]) as AppConfigData;
+        const hydrated = await this.hydrateSecretFields(configKey, defaults);
+        if (lease) await this.getSecretStore().checkBundleSave(lease);
+        await AppConfig.destroy({ branding: branding.id, configKey });
+        // Publish after persistence; rebase so concurrent writes to other keys survive.
+        const next = this.prepareBrandingCache(branding, configKey, hydrated!);
+        const presentKeys: Set<string> = Reflect.get(next, APP_CONFIG_PRESENT_KEYS_SYMBOL);
+        presentKeys.delete(configKey);
+        this.brandingAppConfigMap[branding.name] = next;
+        return { reset: existing != null };
+      });
+    }
+
+    /** Tests only the hydrated runtime config shown in the form, without changing its cache or storage. */
+    public async testConnection(brandName: string, userId: string, key: IntegrationKey, draft: Record<string, unknown> = {}): Promise<{ result: IntegrationConnectionResult; retryAfter?: number }> {
+      const started = Date.now();
+      if (!integrationKeySchema.safeParse(key).success || !userId || !brandName) throw new Error('Invalid connection test scope');
+      // Bound idle entries, and reserve synchronously before any asynchronous work.
+      for (const [scope, at] of this.connectionAttempts) if (started - at >= 5000) this.connectionAttempts.delete(scope);
+      const scope = JSON.stringify([brandName, userId]);
+      const previous = this.connectionAttempts.get(scope);
+      if (previous !== undefined) return { retryAfter: Math.max(1, Math.ceil((5000 - (started - previous)) / 1000)), result: {
+        ok: false, status: 'misconfigured', latencyMs: 0, message: 'Please wait five seconds between connection tests.',
+      } };
+      this.connectionAttempts.set(scope, started);
+      const info = ConfigModels.getModelInfo(key)!;
+      const ctor = info.class as { new(): object };
+      const saved = _.get(this.getAppConfigurationForBrand(brandName), [key], new ctor());
+      const merged = _.mergeWith({}, saved, draft, (_value, source) => Array.isArray(source) ? _.cloneDeep(source) : undefined);
+      for (const path of this.getSecretPaths(key, merged, true)) {
+        const value = _.get(merged, path);
+        if (value != null && typeof value !== 'string') return { result: {
+          ok: false, status: 'misconfigured', latencyMs: Date.now() - started, message: 'Secret fields must contain text values.',
+        } };
+        // Blank inputs in the editor mean keep the current stored secret.
+        if (value === '' || value === APP_CONFIG_SECRET_MASK) _.set(merged, path, _.get(saved, path));
+        if (value === APP_CONFIG_SECRET_CLEAR) _.unset(merged, path);
+      }
+      return { result: await testIntegrationConnection(key, merged) };
+    }
+
+    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[]; title?: string; descriptionKey?: string; secretFields: string[]; sections?: ConfigModelInfo['sections']; requiresSetup?: boolean; hasOverride: boolean }> {
 
       const appConfig = this.getAppConfigurationForBrand(branding.name);
 
@@ -578,9 +666,16 @@ export namespace Services {
       const modelCtor = modelDefinition.class as { new(...args: never[]): object; getFieldOrder?: () => string[] };
       const model = _.get(appConfig, configForm, new modelCtor()) as object;
       const jsonSchema = this.getJsonSchema(modelDefinition);
-      const fieldOrder = typeof modelCtor.getFieldOrder === 'function' ? modelCtor.getFieldOrder() : [];
+      const properties = (jsonSchema as { properties?: Record<string, unknown> }).properties || {};
+      const configuredOrder = typeof modelCtor.getFieldOrder === 'function' ? modelCtor.getFieldOrder() : [];
+      const fieldOrder = [...new Set([...(configuredOrder || []), ...Object.keys(properties)])]
+        .filter(field => Object.prototype.hasOwnProperty.call(properties, field));
       const preparedModel = this.prepareConfigModelForForm(configForm, model);
-      const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder };
+      const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder,
+        title: modelDefinition.title, descriptionKey: modelDefinition.descriptionKey,
+        secretFields: modelDefinition.secretFields ?? [], sections: modelDefinition.sections,
+        requiresSetup: modelDefinition.requiresSetup,
+        hasOverride: (await this.findLatestConfigRecord(String(branding.id), configForm)) != null };
       return configData;
     }
 
@@ -628,9 +723,10 @@ export namespace Services {
      * - If a prebuilt JSON schema is provided, it will be cached and preferred.
      * - If a TS glob is provided, it will be used to find model types for schema generation.
      */
-    public registerConfigModel(info: { key: string; modelName: string; class: { new(...args: never[]): object; getFieldOrder?: () => string[] }; schema?: unknown; tsGlob?: string | string[]; secretFields?: string[]; formAdapter?: ConfigModelFormAdapter }): void {
+    public registerConfigModel(info: ConfigModelInfo & { key: string }): void {
       // persist in ConfigModels registry
-      ConfigModels.register(info.key, { modelName: info.modelName, class: info.class, schema: info.schema, tsGlob: info.tsGlob, secretFields: info.secretFields, formAdapter: info.formAdapter });
+      const { key, ...modelInfo } = info;
+      ConfigModels.register(key, modelInfo);
       // cache schema if provided
       if (info.schema) {
         this.modelSchemaMap[info.modelName] = info.schema;

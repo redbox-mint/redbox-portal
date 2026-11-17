@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Authorized domains and emails</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="domains" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>People &amp; access</span><span>/</span><span>Authorized domains &amp; emails</span></nav>
+      <header class="ph">
+        <div><h1>Authorized domains &amp; emails</h1><p>Limit who can sign in with AAF or OpenID Connect. Local accounts aren’t affected.</p></div>
+      </header>
+
+      <div class="fsec">
+        <div class="fsec-h"><div><h3>Restrict sign-in</h3><p>When off, anyone the identity provider authenticates can sign in.</p></div><label class="switch"><i></i>Off</label></div>
+      </div>
+
+      <div class="alert info"><div>A user is allowed if their email’s domain <b>or</b> their full email address matches a list for the provider they signed in with.</div></div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px">
+        <div class="fsec" style="margin: 0">
+          <div class="fsec-h"><div><h3>AAF</h3><p>Australian Access Federation</p></div><span class="badge ok">Enabled provider</span></div>
+          <div class="fsec-b" style="display: flex; flex-direction: column; gap: 14px">
+            <div class="field"><label for="ad-1">Allowed domains</label>
+              <div class="inp" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px"><span class="chip">uni.edu.au ×</span><span class="chip">research.org.au ×</span><input id="ad-1" aria-label="Add domain" placeholder="Add domain, press Enter" style="border: 0; outline: 0; font: inherit; flex: 1; min-width: 140px"></div>
+              <span class="hint">Subdomains match too: uni.edu.au also allows staff.uni.edu.au.</span></div>
+            <div class="field"><label for="ad-2">Allowed emails</label>
+              <div class="inp" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px"><input id="ad-2" aria-label="Add email" placeholder="Add email, press Enter" style="border: 0; outline: 0; font: inherit; flex: 1; min-width: 140px"></div></div>
+          </div>
+        </div>
+        <div class="fsec" style="margin: 0">
+          <div class="fsec-h"><div><h3>OpenID Connect</h3><p>Institutional SSO</p></div><span class="badge ok">Enabled provider</span></div>
+          <div class="fsec-b" style="display: flex; flex-direction: column; gap: 14px">
+            <div class="field"><label for="ad-3">Allowed domains</label>
+              <div class="inp" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px"><input id="ad-3" aria-label="Add domain" placeholder="Add domain, press Enter" style="border: 0; outline: 0; font: inherit; flex: 1; min-width: 140px"></div></div>
+            <div class="field"><label for="ad-4">Allowed emails</label>
+              <div class="inp" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px"><input id="ad-4" aria-label="Add email" placeholder="Add email, press Enter" style="border: 0; outline: 0; font: inherit; flex: 1; min-width: 140px"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fsec" style="margin-top: 16px">
+        <div class="fsec-h"><div><h3>Test an address</h3><p>Check whether someone would be allowed in, before you save.</p></div></div>
+        <div class="fsec-b"><div class="row"><div class="field grow" style="flex: 1 1 280px"><label for="ad-t">Email</label><input id="ad-t" class="inp" value="j.smith@staff.uni.edu.au"></div><div class="field"><label for="ad-p">Provider</label><select id="ad-p" class="inp"><option>AAF</option><option>OIDC</option></select></div><button class="btn btn-secondary" type="button" style="align-self: flex-end">Check</button><span class="badge ok" style="align-self: flex-end; margin-bottom: 9px">Allowed via uni.edu.au</span></div></div>
+      </div>
+
+      <div class="savebar"><span class="state"><span class="dot" style="color: #ffc107"></span>Unsaved changes</span><div class="row"><button class="btn btn-ghost" type="button">Discard</button><button class="btn btn-primary" type="button">Save changes</button></div></div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

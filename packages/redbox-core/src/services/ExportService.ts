@@ -81,6 +81,7 @@ export namespace Services {
       'listJobs',
       'getJob',
       'deleteJob',
+      'cancelJob',
       'openDownload',
       'generateCsvJob',
       'maintenanceJob',
@@ -200,7 +201,7 @@ export namespace Services {
     private dto(job: ExportJobModel): ExportJobDto {
       if (job.status === 'deleted') throw new ExportServiceError(404, 'export-not-found', 'The export was not found.');
       const expired = job.expiresAt !== null && job.expiresAt <= Date.now();
-      const status = expired ? 'expired' : job.status;
+      const status = expired && job.status !== 'cancelled' ? 'expired' : job.status;
       return {
         id: job.jobId,
         recordType: job.recordType,
@@ -323,6 +324,48 @@ export namespace Services {
       return this.dto((await this.ownedJob(context, id)).row);
     }
 
+    public async cancelJob(context: ExportRequestContext, id: string): Promise<ExportJobDto> {
+      const effective = await this.effectiveContext(context);
+      if (
+        !effective.user.roles.some(role => roleBrandId(role) === String(effective.brand.id) && role.name === 'Admin')
+      ) {
+        throw new ExportServiceError(403, 'export-access-denied', 'Only administrators can cancel exports.');
+      }
+      if (typeof id !== 'string' || !JOB_ID.test(id)) {
+        throw new ExportServiceError(404, 'export-not-found', 'The export was not found.');
+      }
+      const now = Date.now();
+      // Competes with both the queued claim and running publication. Exactly one transition wins.
+      const cancelled = await this.collection().findOneAndUpdate(
+        { ...this.scope(effective), jobId: id, status: { $in: ['queued', 'running'] } },
+        {
+          $set: {
+            status: 'cancelled',
+            completedAt: now,
+            // No download retention is needed; keep metadata for the normal terminal grace.
+            expiresAt: now,
+            cleanupAfter: now + EXPORT_STALE_MS,
+            errorCode: null,
+            errorMessage: null,
+          },
+        },
+        { returnDocument: 'after', includeResultMetadata: false }
+      );
+      if (!cancelled) {
+        const existing = await this.collection().findOne({
+          ...this.scope(effective),
+          jobId: id,
+          status: { $ne: 'deleted' },
+        });
+        if (!existing) throw new ExportServiceError(404, 'export-not-found', 'The export was not found.');
+        throw new ExportServiceError(409, 'export-not-cancellable', 'This export is no longer queued or preparing.');
+      }
+      // A queued cancellation has no writer. Running attempts clean up after their write settles;
+      // maintenance retains the artifact reference and retries if a worker disappears.
+      if (!cancelled.attemptId) await this.cleanupArtifact(cancelled);
+      return this.dto(cancelled);
+    }
+
     public async deleteJob(context: ExportRequestContext, id: string): Promise<void> {
       const { context: effective, row } = await this.ownedJob(context, id, true);
       if (row.status === 'queued' || row.status === 'running') {
@@ -338,7 +381,7 @@ export namespace Services {
         // Revoke access before touching storage. Keep any existing grace period for a failed
         // worker whose remote upload might still be settling; its late cleanup can also retry.
         const changed = await this.collection().findOneAndUpdate(
-          { ...this.scope(effective), jobId: id, status: { $in: ['ready', 'failed', 'expired'] } },
+          { ...this.scope(effective), jobId: id, status: { $in: ['ready', 'failed', 'expired', 'cancelled'] } },
           {
             $set: {
               status: 'deleted',
@@ -363,7 +406,7 @@ export namespace Services {
       id: string
     ): Promise<{ stream: Readable; filename: string; byteLength: number }> {
       const { context: effective, row } = await this.ownedJob(context, id);
-      if (row.status === 'expired' || (row.expiresAt !== null && row.expiresAt <= Date.now())) {
+      if (row.status === 'expired' || (row.status !== 'cancelled' && row.expiresAt !== null && row.expiresAt <= Date.now())) {
         throw new ExportServiceError(410, 'export-expired', 'This export has expired. Prepare another export.');
       }
       if (row.status !== 'ready' || !row.objectKey || row.byteLength === null) {
@@ -459,6 +502,28 @@ export namespace Services {
       const assertActive = () => {
         if (stopped) throw stopped;
       };
+      const checkActive = async () => {
+        assertActive();
+        const active = await this.collection().findOne({ jobId, attemptId, status: 'running' });
+        if (!active) {
+          const error = new ExportServiceError(409, 'export-cancelled', 'Export preparation has stopped.');
+          stop(error);
+          throw error;
+        }
+        assertActive();
+      };
+      // Also interrupt silent discovery and blocked I/O, including hooks without batch checkpoints.
+      let cancellationBusy = false;
+      const cancellation = setInterval(() => {
+        if (cancellationBusy || stopped) return;
+        cancellationBusy = true;
+        void checkActive()
+          .catch(error => stop(error))
+          .finally(() => {
+            cancellationBusy = false;
+          });
+      }, 1000);
+      cancellation.unref();
       let heartbeatBusy = false;
       const heartbeat = setInterval(() => {
         if (heartbeatBusy || stopped) return;
@@ -510,6 +575,7 @@ export namespace Services {
         const effective = await this.effectiveContext({ brand, portal: row.portal, user });
         const disk = await this.disk(row.diskName);
         assertActive();
+        await checkActive();
         const roles = effective.user.roles.map(role => ({ ...role, branding: roleBrandId(role) }));
         source = RecordsService.exportAllPlans(
           effective.user.username,
@@ -518,7 +584,8 @@ export namespace Services {
           'csv',
           row.modifiedBefore,
           row.modifiedAfter,
-          row.recordType
+          row.recordType,
+          checkActive
         );
         // Keep errors handled even if a disk waits before attaching its stream consumer.
         source.on('error', () => {});
@@ -581,6 +648,7 @@ export namespace Services {
         await this.fail(jobId, { status: 'running', attemptId }, failure.code, failure.message);
         if (settled) await this.cleanupArtifact(row);
       } finally {
+        clearInterval(cancellation);
         clearInterval(heartbeat);
         clearTimeout(deadline);
       }
@@ -593,7 +661,7 @@ export namespace Services {
       if (current?.status === 'ready' || current?.status === 'running') return;
       if (!row.objectKey) {
         await this.collection().updateOne(
-          { jobId: row.jobId, status: { $in: ['failed', 'expired', 'deleted'] } },
+          { jobId: row.jobId, status: { $in: ['failed', 'expired', 'deleted', 'cancelled'] } },
           { $set: { cleanedAt: Date.now() } }
         );
         return;
@@ -608,7 +676,11 @@ export namespace Services {
           await disk.delete(row.objectKey);
         }
         await this.collection().updateOne(
-          { jobId: row.jobId, attemptId: row.attemptId, status: { $in: ['failed', 'expired', 'deleted'] } },
+          {
+            jobId: row.jobId,
+            attemptId: row.attemptId,
+            status: { $in: ['failed', 'expired', 'deleted', 'cancelled'] },
+          },
           { $set: { cleanedAt: Date.now() } }
         );
       } catch (error) {
@@ -666,14 +738,18 @@ export namespace Services {
         { $set: { status: 'expired', cleanupAfter: now } }
       );
       const cursor = collection
-        .find({ status: { $in: ['failed', 'expired', 'deleted'] }, cleanedAt: null, cleanupAfter: { $lte: now } })
+        .find({
+          status: { $in: ['failed', 'expired', 'deleted', 'cancelled'] },
+          cleanedAt: null,
+          cleanupAfter: { $lte: now },
+        })
         .batchSize(100);
       for await (const row of cursor) {
         if (job?.touch) await job.touch();
         await this.cleanupArtifact(row);
       }
       await collection.deleteMany({
-        status: { $in: ['failed', 'expired', 'deleted'] },
+        status: { $in: ['failed', 'expired', 'deleted', 'cancelled'] },
         cleanedAt: { $ne: null },
         expiresAt: { $lte: now - EXPORT_METADATA_RETENTION_MS },
       });

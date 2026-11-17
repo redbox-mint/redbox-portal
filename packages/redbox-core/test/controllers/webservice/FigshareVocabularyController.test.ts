@@ -40,6 +40,7 @@ describe('Webservice FigshareVocabularyController', () => {
     service = {
       discoverTaxonomies: sinon.stub().resolves([{ taxonomyId: 't1' }]),
       listSources: sinon.stub().resolves({ data: [{ id: 's1' }], meta: { total: 3, limit: 10, offset: 20 } }),
+      updateSource: sinon.stub().resolves({ id: 's1', settingsRevision: 1, syncSchedule: 'daily' }),
       getSource: sinon.stub().resolves({ id: 's1', scope: 'institution', taxonomyId: 't1' }),
       listSourceCategories: sinon.stub().resolves({ data: [{ id: 'c1' }], meta: { total: 1, limit: 25, offset: 0 } }),
       cloneMirror: sinon.stub().resolves({ id: 'v-clone' }),
@@ -56,6 +57,8 @@ describe('Webservice FigshareVocabularyController', () => {
       getBrand: sinon.stub().returns({ id: 'brand-1' }),
     };
 
+    (global as any).RolesService = { getRoleByName: () => ({ id: 'role-admin' }) };
+    (global as any).UsersService = { hasRole: () => true };
     controller = new Controllers.FigshareVocabulary();
     sendResp = sinon.stub(controller as any, 'sendResp');
     sinon.stub(controller as any, 'getNoCacheHeaders').returns({ 'Cache-Control': 'no-store' });
@@ -66,6 +69,19 @@ describe('Webservice FigshareVocabularyController', () => {
     delete (global as any).FigshareVocabularyService;
     delete (global as any).BrandingService;
     delete (global as any).sails;
+    delete (global as any).RolesService;
+    delete (global as any).UsersService;
+  });
+
+  it('uses the path brand Admin session for updates and rejects other-brand roles', async () => {
+    const req = makeReq({ params: { branding: 'default', sourceId: 's1' }, session: {}, user: { id: 'u1', username: 'admin' }, isAuthenticated: () => true, body: { expectedRevision: 0, displayName: 'New', scope: 'public', syncSchedule: 'daily', archived: false } });
+    await controller.updateSource(req, res);
+    expect(service.updateSource.firstCall.args[2]).to.deep.equal({ brandId: 'brand-1', userId: 'admin' });
+    expect(sendResp.firstCall.args[2].data.settingsRevision).to.equal(1);
+    (global as any).UsersService.hasRole = () => false;
+    await controller.updateSource(req, res);
+    expect(sendResp.lastCall.args[2].status).to.equal(403);
+    expect(service.updateSource.calledOnce).to.equal(true);
   });
 
   describe('listCatalogues', () => {

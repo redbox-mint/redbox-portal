@@ -55,6 +55,34 @@ describe('DashboardSettings', function () {
     });
   });
 
+  describe('rows per page', function () {
+    it('keeps omitted legacy settings and fingerprints unchanged', function () {
+      const legacy = settings();
+      expect(normaliseDashboardSettings(legacy)).to.not.have.property('rowsPerPage');
+      expect(fingerprint(normaliseDashboardSettings(legacy))).to.equal(fingerprint(legacy));
+    });
+
+    it('accepts only supported numeric page sizes', function () {
+      for (const value of [undefined, 10, 25, 50, 100]) {
+        const input = { ...settings(), ...(value === undefined ? {} : { rowsPerPage: value }) };
+        expect(validateDashboardSettings(input, ctx).filter(f => f.path === 'rowsPerPage')).to.deep.equal([]);
+      }
+      for (const value of [null, '25', 0, -1, 15, 10.5, true, {}, []]) {
+        expect(validateDashboardSettings({ ...settings(), rowsPerPage: value }, ctx).some(f => f.code === 'invalid-page-size')).to.equal(true);
+      }
+    });
+
+    it('copies display size with filters and clears it when the source omits it', function () {
+      const source = { ...settings(), rowsPerPage: 25 as const };
+      const destination = { ...settings(), rowsPerPage: 100 as const };
+      expect(applyCopyGroups(source, destination, ['columnsAndActions']).rowsPerPage).to.equal(100);
+      const copied = applyCopyGroups(source, destination, ['filtersAndSearch']);
+      expect(copied.rowsPerPage).to.equal(25);
+      expect(describeGroupChanges(destination, copied, ['filtersAndSearch'])[0].items).to.deep.include({ label: 'admin-dashboard-rows-per-page', before: '100', after: '25', cleared: false });
+      expect(applyCopyGroups(settings(), copied, ['filtersAndSearch'])).to.not.have.property('rowsPerPage');
+    });
+  });
+
   describe('target identity', function () {
     it('never collides across kinds, owners or unescaped separators', function () {
       const keys = new Set([

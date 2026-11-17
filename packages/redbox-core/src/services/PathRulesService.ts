@@ -31,6 +31,7 @@ type PathRuleModel = {
   branding: { id?: string; name: string };
   can_read?: boolean;
   can_update?: boolean;
+  custom?: unknown;
 };
 
 type PathRulePattern = {
@@ -90,9 +91,40 @@ export namespace Services {
                            }));
           } else {
               sails.log.verbose("Rules exists.");
-              return of(rules);
+              return this.repairLibrarianMetadataDefault(rules, defRoles, defBrand);
           }
         }));
+    }
+
+    /** Repair the legacy default once; leave customized authorization untouched. */
+    private repairLibrarianMetadataDefault(rules: PathRuleModel[], roles: RoleLike[], brand: BrandingModel): Observable<PathRuleModel[]> {
+      const metadataPath = '/:branding/:portal/recordmeta(/*)';
+      const recordPath = '/:branding/:portal/record(/*)';
+      const librarian = roles.find(role => role.name === 'Librarians');
+      const researcher = roles.find(role => role.name === 'Researcher');
+      if (!librarian || !researcher) return of(rules);
+      const configured = (sails.config.auth.rules ?? []) as Array<{ path: string; role: string; can_read?: boolean; can_update?: boolean; custom?: unknown }>;
+      const isLibrarian = (role: string) => role === 'Librarians' || role === librarian.id;
+      const isResearcher = (role: string) => role === 'Researcher' || role === researcher.id;
+      const configuredMetadata = configured.filter(rule => rule.path.toLowerCase().includes('recordmeta'));
+      const configuredRecord = configured.filter(rule => rule.path === recordPath && isLibrarian(rule.role));
+      // A disabled/removed grant or additional metadata restriction is an
+      // operator policy choice, not a missing default to backfill.
+      if (configuredMetadata.length !== 2 || !configuredMetadata.every(rule =>
+        rule.path === metadataPath && rule.can_update === true && !rule.custom) ||
+        configuredMetadata.filter(rule => isLibrarian(rule.role)).length !== 1 ||
+        configuredMetadata.filter(rule => isResearcher(rule.role)).length !== 1 ||
+        configuredRecord.length !== 1 || configuredRecord[0].can_update !== true || configuredRecord[0].custom ||
+        configured.some(rule => isLibrarian(rule.role) && rule.can_read !== true && rule.can_update !== true)) return of(rules);
+      const branded = rules.filter(rule => rule.branding?.id === brand.id);
+      const metadata = branded.filter(rule => rule.path?.toLowerCase().includes('recordmeta'));
+      const recordGrants = branded.filter(rule => rule.path === recordPath && rule.role?.id === librarian.id);
+      if (metadata.length !== 1 || metadata[0].path !== metadataPath || metadata[0].role?.id !== researcher.id ||
+        metadata[0].can_update !== true || metadata[0].custom || recordGrants.length !== 1 ||
+        recordGrants[0].can_update !== true || recordGrants[0].custom ||
+        branded.some(rule => rule.role?.id === librarian.id && rule.can_read !== true && rule.can_update !== true)) return of(rules);
+      return super.getObservable(PathRule.create({ path: metadataPath, role: librarian.id, branding: brand.id,
+        can_update: true } as unknown as PathRuleModel)).pipe(flatMap(() => this.loadRules()));
     }
 
     /**

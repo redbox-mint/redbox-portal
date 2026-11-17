@@ -1,0 +1,24 @@
+meta {
+  name: Email templates - Unknown schema type
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/context-schema?recordType=unknown-record-type
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Unknown types return typed 404", () => { expect(res.getStatus()).to.equal(404); expect(res.getBody().error.code).to.equal("UNKNOWN_RECORD_TYPE"); });
+}

@@ -3,6 +3,8 @@ x-rbportal-env: &rbportal-env
   STARTUP_TIMING: '${STARTUP_TIMING:-false}'
   PORT: 1500
   WEBPACK_SKIP: 'true'
+  # External MCP remains unavailable until the operator opts in.
+  REDBOX_MCP_ENABLED: '${REDBOX_MCP_ENABLED:-false}'
   sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
   sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage
   sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions
@@ -13,6 +15,25 @@ x-rbportal-env: &rbportal-env
   sails_appUrl: '${APP_URL:-http://localhost:1500}'
   # Flag to enable the new form framework app, currently enabled in the "edit" mode
   sails_enableNewForm: 'true'
+  # AI-assisted form generation remains disabled unless explicitly enabled for a local demo.
+  sails__generation_enabled: '${REDBOX_GENERATION_ENABLED:-false}'
+  sails__generation_adapters: '${REDBOX_GENERATION_ADAPTERS:-bedrock,fake}'
+  # Local development can use a Bedrock API key. In AWS, the provider falls
+  # back to the standard credential chain so an ECS/EC2 task role can be used.
+  AWS_BEARER_TOKEN_BEDROCK: '${AWS_BEARER_TOKEN_BEDROCK:-}'
+  AWS_REGION: '${AWS_REGION:-ap-southeast-2}'
+  AWS_DEFAULT_REGION: '${AWS_DEFAULT_REGION:-ap-southeast-2}'
+  AWS_ACCESS_KEY_ID: '${AWS_ACCESS_KEY_ID:-}'
+  AWS_SECRET_ACCESS_KEY: '${AWS_SECRET_ACCESS_KEY:-}'
+  AWS_SESSION_TOKEN: '${AWS_SESSION_TOKEN:-}'
+  # Keep local demo runs from exhausting production-oriented generation quotas.
+  sails__generation_limits_perUserConcurrentRuns: '${REDBOX_GENERATION_PER_USER_CONCURRENT_RUNS:-1000}'
+  sails__generation_limits_perBrandConcurrentRuns: '${REDBOX_GENERATION_PER_BRAND_CONCURRENT_RUNS:-10000}'
+  sails__generation_limits_perUserDailyRuns: '${REDBOX_GENERATION_PER_USER_DAILY_RUNS:-1000}'
+  sails__generation_limits_perBrandDailyRuns: '${REDBOX_GENERATION_PER_BRAND_DAILY_RUNS:-10000}'
+  sails__generation_artifacts_encryptionKeyRef: 'env:REDBOX_GENERATION_DEVELOPMENT_KEY'
+  # Development-only AES-256 key; deployments must supply their own secret reference and key.
+  REDBOX_GENERATION_DEVELOPMENT_KEY: '${REDBOX_GENERATION_DEVELOPMENT_KEY:-ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=}'
   sails_redbox__apiKey: c8e844fc-8550-497f-b970-7900ec8741ca
   sails_record__baseUrl__redbox: http://redbox:9000/redbox
   sails_record__baseUrl__mint: https://demo.redboxresearchdata.com.au/mint
@@ -94,7 +115,7 @@ services:
     ports:
       - '27017:27017'
   solr:
-    image: solr:latest@sha256:1a712cae556d96883e032622692d2acfba7917d3b16c800deb4f8d2fbf0b77ea
+    image: solr:latest@sha256:81e75780e0f3a3ea2d38eafdb6ec16b2028af9374f6c0b85485f8f2e5dd97beb
     expose:
       - '8983'
     ports:

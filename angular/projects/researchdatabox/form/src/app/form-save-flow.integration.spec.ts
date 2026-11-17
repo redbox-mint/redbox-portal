@@ -1,3 +1,5 @@
+import { Location } from '@angular/common';
+import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { TestBed } from '@angular/core/testing';
 import { Actions } from '@ngrx/effects';
 import * as FormActions from './form-state/state/form.actions';
@@ -60,6 +62,38 @@ describe('Form Save Flow Integration', () => {
         },
       ],
     };
+  });
+
+  it('enables an OID-guarded workflow button after first Save while preserving a stage lock', async () => {
+    const config: FormConfigFrame = { name: 'new-workflow-context', enabledValidationGroups: ['none'],
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Complete plan' } }, component: { class: 'SimpleInputComponent' } },
+        { name: 'submit', component: { class: 'SaveButtonComponent', config: { disabled: true, targetStep: 'submitted' } } },
+        { name: 'restricted', component: { class: 'SaveButtonComponent', config: { disabled: true, targetStep: 'active' } } },
+      ], behaviours: [{ name: 'saved-oid', conditionKind: 'jsonpointer', condition: '::form.save.success', runOnFormReady: false,
+        actions: [{ type: 'setUIProperties', config: { properties: [{ fieldPath: '/submit', target: 'field.disabled',
+          hasValueTemplate: true, valueTemplate: 'runtimeContext.oid = ""' }] } }] }],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: '', editMode: true }, undefined, {
+      entries: [{ urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/',
+        callable: (_string, _key, context) => !(context as any).runtimeContext.oid }],
+    });
+    const submit = formComponent.componentDefArr[1].component as SaveButtonComponent;
+    const restricted = formComponent.componentDefArr[2].component as SaveButtonComponent;
+    expect(submit.disabled()).toBeTrue();
+    const response = Object.assign(new RecordActionResult(), { success: true, oid: 'created-oid', outcome: 'saved' });
+    spyOn(response, 'isComplete').and.returnValue(true);
+    spyOn(formComponent.recordService, 'create').and.resolveTo(response);
+    spyOn(TestBed.inject(Location), 'replaceState').and.stub();
+    await formComponent.saveForm({ force: true });
+    await new Promise<void>(resolve => setTimeout(resolve, 20));
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(formComponent.trimmedParams.oid()).toBe('created-oid');
+    expect(submit.disabled()).toBeFalse();
+    expect(restricted.disabled()).toBeTrue();
+    formComponent.editMode.set(false);
+    expect(submit.disabled()).toBeTrue();
+    fixture.destroy();
   });
 
   for (const switchToView of [true, false]) {
