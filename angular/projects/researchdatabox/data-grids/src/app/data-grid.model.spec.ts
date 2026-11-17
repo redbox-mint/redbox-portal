@@ -33,30 +33,57 @@ describe('Data grid configuration', () => {
       expect(defaultColumns(fields)).not.toContain(`metadata:/${identity}`);
     });
   }
-  it('accepts advertised scalar-list filters for forward compatibility and rejects list sorts', () => {
+  it('validates declared scalar-list filters and sorts against explicit LIST cardinality', () => {
     const grid = validGrid();
-    const target = {
-      ...scope,
-      fields: [
-        ...scope.fields,
-        {
-          id: 'keywords',
-          label: 'Keywords',
-          type: 'text' as const,
-          selectable: true,
-          repeating: true,
-          operators: ['eq' as const],
-          sortable: false,
-        },
-      ],
+    const keywords = {
+      id: 'keywords',
+      label: 'Keywords',
+      type: 'text' as const,
+      selectable: true,
+      repeating: true,
+      cardinality: 'LIST' as const,
+      operators: ['eq' as const, 'between' as const],
+      sortable: true,
     };
+    const target = { ...scope, fields: [...scope.fields, keywords] };
     grid.filters = [
-      { fieldId: 'keywords', expectedScalarType: 'STRING', operator: 'eq', values: ['Synthetic keyword'] },
+      {
+        fieldId: 'keywords',
+        expectedScalarType: 'STRING',
+        expectedCardinality: 'LIST',
+        operator: 'eq',
+        values: ['Synthetic keyword'],
+      },
     ];
+    grid.sort = { fieldId: 'keywords', direction: 'desc', expectedScalarType: 'STRING', expectedCardinality: 'LIST' };
     expect(validateGrid(grid, target)).toEqual([]);
     expect(queryFor(grid, target, null).filters[0].value).toBe('Synthetic keyword');
-    grid.sort = { fieldId: 'keywords', direction: 'asc', expectedScalarType: 'STRING' };
-    expect(validateGrid(grid, target).some(issue => issue.key === 'unavailable-sort')).toBeTrue();
+    // A legacy definition (no cardinality) keeps scalar meaning and needs repair.
+    const legacy = structuredClone(grid);
+    delete legacy.filters[0].expectedCardinality;
+    delete legacy.sort!.expectedCardinality;
+    expect(validateGrid(legacy, target).map(issue => issue.key)).toEqual([
+      'filter-cardinality-changed',
+      'sort-cardinality-changed',
+    ]);
+    expect(() => queryFor(legacy, target, null)).toThrow();
+    // A list that becomes scalar again also blocks the saved LIST semantics.
+    const scalar = {
+      ...target,
+      fields: target.fields.map(field =>
+        field.id === 'keywords' ? { ...keywords, repeating: false, cardinality: 'SCALAR' as const } : field
+      ),
+    };
+    expect(validateGrid(grid, scalar).map(issue => issue.key)).toEqual([
+      'filter-cardinality-changed',
+      'sort-cardinality-changed',
+    ]);
+    // Repeating fields without declared scalar-list cardinality cannot sort.
+    const undeclared = {
+      ...target,
+      fields: target.fields.map(field => (field.id === 'keywords' ? { ...keywords, cardinality: undefined } : field)),
+    };
+    expect(validateGrid(grid, undeclared).some(issue => issue.key === 'unavailable-sort')).toBeTrue();
   });
   it('blocks NUMBER-to-STRING drift and legacy unbound filters before constructing any query', () => {
     const grid = validGrid();

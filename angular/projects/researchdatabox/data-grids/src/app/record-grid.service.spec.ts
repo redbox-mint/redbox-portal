@@ -40,7 +40,7 @@ const oid = {
   labelKey: null,
   selections: [{ variant: '', selection: 'oid', responsePath: ['oid'] }],
 };
-const discovery = (fields = [title, oid], revision = 'r1') => ({
+const discovery = (fields: object[] = [title, oid], revision = 'r1') => ({
   revision,
   variants: [{ workflowStage: 'draft' }, { workflowStage: 'review' }],
   fields,
@@ -638,6 +638,36 @@ describe('RecordGridService HTTP contract', () => {
     expect(error?.key).toBe('sort-type-changed');
     http.expectNone(url);
   }));
+  it('blocks legacy scalar filters and sorts on a now-list field before any collection request', fakeAsync(() => {
+    const listTitle = { ...title, repeating: true, cardinality: 'LIST' };
+    for (const [change, expected] of [
+      ['filter', 'filter-cardinality-changed'],
+      ['sort', 'sort-cardinality-changed'],
+    ] as const) {
+      const input = request();
+      if (change === 'filter') input.definition.sort = null;
+      else input.definition.filters = [];
+      let error: GridRequestError | undefined;
+      service.query(input).catch(value => (error = value));
+      flushMicrotasks();
+      http.expectOne(url).flush({ data: { recordFields: discovery([listTitle, oid]) } });
+      flushMicrotasks();
+      expect(error?.key).toBe(expected);
+      http.expectNone(url);
+    }
+  }));
+  it('maps persisted cardinality drift codes from the saved-grid service', fakeAsync(() => {
+    for (const code of ['filter-cardinality-changed', 'sort-cardinality-changed']) {
+      let error: GridRequestError | undefined;
+      service.save({ ...request().definition }).catch(value => (error = value));
+      flushMicrotasks();
+      http
+        .expectOne(request => request.url.endsWith('/app/data-grids'))
+        .flush({ errors: [{ code }] }, { status: 400, statusText: 'Bad Request' });
+      flushMicrotasks();
+      expect(error?.key).toBe(code);
+    }
+  }));
   it('stops before collection when the catalogue revision changed', fakeAsync(() => {
     let error: GridRequestError | undefined;
     service.query(request()).catch(value => (error = value));
@@ -934,6 +964,121 @@ describe('Record grid protocol', () => {
     expect(found.fields[0].operators).toEqual([]);
     expect(found.fields[0].sortable).toBeFalse();
     expect(found.fields[1].selectable).toBeFalse();
+  });
+});
+
+describe('Declared scalar-list protocol', () => {
+  const keywords = {
+    ...title,
+    id: 'metadata:/keywords',
+    repeating: true,
+    cardinality: 'LIST',
+    operators: ['EQ', 'CONTAINS', 'IN', 'EXISTS'],
+    sortable: true,
+    selections: [
+      { variant: 'M_draft', selection: '... on M_draft { g_kw: keywords }', responsePath: ['metadata', 'g_kw'] },
+    ],
+  };
+  it('requests and parses discovery cardinality, keeping undeclared repeating fields column-only', () => {
+    expect(discoveryQuery(false)).toContain(' cardinality ');
+    const found = parseDiscovery(
+      discovery([keywords, { ...keywords, id: 'metadata:/legacy', cardinality: undefined }, oid]),
+      key => key
+    );
+    const [list, legacy, record] = found.fields;
+    expect(list.cardinality).toBe('LIST');
+    expect(list.operators).toEqual(['eq', 'contains', 'in', 'exists']);
+    expect(list.sortable).toBeTrue();
+    expect(legacy.cardinality).toBeUndefined();
+    expect(legacy.operators).toEqual([]);
+    expect(legacy.sortable).toBeFalse();
+    expect(record.cardinality).toBe('SCALAR');
+    // Repeating fields claiming SCALAR cardinality, or non-scalar lists, are not queryable.
+    for (const bad of [
+      { ...keywords, cardinality: 'SCALAR' },
+      { ...keywords, scalarType: 'JSON' },
+      { ...keywords, availableInAllVariants: false },
+    ]) {
+      const field = parseDiscovery(discovery([bad]), key => key).fields[0];
+      expect(field.operators).toEqual([]);
+      expect(field.sortable).toBeFalse();
+    }
+    expect(() => parseDiscovery(discovery([{ ...keywords, cardinality: 'MANY' }]), key => key)).toThrow();
+  });
+  it('generates list filters and sorts only with explicit LIST cardinality', () => {
+    const found = parseDiscovery(discovery([keywords, oid]), key => key);
+    const definition = {
+      ...emptyGrid(),
+      name: 'Lists',
+      recordType: 'plan',
+      columns: [keywords.id, oid.id],
+      filters: [
+        {
+          fieldId: keywords.id,
+          expectedScalarType: 'STRING' as const,
+          expectedCardinality: 'LIST' as const,
+          operator: 'eq' as const,
+          values: ['alpha'],
+        },
+      ],
+      sort: {
+        fieldId: keywords.id,
+        expectedScalarType: 'STRING' as const,
+        expectedCardinality: 'LIST' as const,
+        direction: 'desc' as const,
+      },
+    };
+    const fields = { ...scope, fields: found.fields, revision: found.revision };
+    const variables: Record<string, unknown> = collectionRequest(
+      queryFor(definition, fields, null),
+      scope,
+      found
+    ).variables;
+    expect(variables['filters']).toEqual([{ field: keywords.id, eq: { text: 'alpha' } }]);
+    expect(variables['sort']).toEqual([{ field: keywords.id, direction: 'DESC' }]);
+    const legacyFilter = { ...definition, filters: [{ ...definition.filters[0], expectedCardinality: undefined }] };
+    expect(() =>
+      collectionRequest({ definition: legacyFilter, filters: [], after: null, revision: found.revision }, scope, found)
+    ).toThrowMatching(error => (error as GridRequestError).key === 'filter-cardinality-changed');
+    const legacySort = { ...definition, sort: { ...definition.sort, expectedCardinality: undefined } };
+    expect(() =>
+      collectionRequest({ definition: legacySort, filters: [], after: null, revision: found.revision }, scope, found)
+    ).toThrowMatching(error => (error as GridRequestError).key === 'sort-cardinality-changed');
+  });
+  it('round-trips persisted expected cardinality and rejects unknown values', () => {
+    const saved = {
+      ...emptyGrid(),
+      id: '123456789012345678901234',
+      revision: 1,
+      name: 'Lists',
+      recordType: 'plan',
+      columns: [keywords.id],
+      filters: [
+        {
+          fieldId: keywords.id,
+          expectedScalarType: 'STRING' as const,
+          expectedCardinality: 'LIST' as const,
+          operator: 'eq' as const,
+          values: ['alpha'],
+        },
+      ],
+      sort: {
+        fieldId: keywords.id,
+        direction: 'asc' as const,
+        expectedScalarType: 'STRING' as const,
+        expectedCardinality: 'LIST' as const,
+      },
+    };
+    expect(parseSavedDefinition(saved)).toEqual(saved);
+    const legacy = { ...saved, filters: [{ ...saved.filters[0] }], sort: { ...saved.sort } };
+    delete (legacy.filters[0] as { expectedCardinality?: string }).expectedCardinality;
+    delete (legacy.sort as { expectedCardinality?: string }).expectedCardinality;
+    expect(parseSavedDefinition(legacy)).toEqual(legacy);
+    for (const bad of [
+      { ...saved, filters: [{ ...saved.filters[0], expectedCardinality: 'MANY' }] },
+      { ...saved, sort: { ...saved.sort, expectedCardinality: null } },
+    ])
+      expect(() => parseSavedDefinition(bad)).toThrow();
   });
 });
 

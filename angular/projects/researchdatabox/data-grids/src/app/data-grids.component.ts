@@ -47,6 +47,9 @@ import {
   queryFor,
   scopeFor,
   scalarTypeFor,
+  cardinalityFor,
+  isScalarList,
+  sortableField,
   validateGrid,
   validatePage,
   defaultColumns,
@@ -260,7 +263,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     return this.scope?.fields.filter(field => !!scalarTypeFor(field) && field.operators.length) ?? [];
   }
   get sortFields(): GridField[] {
-    return this.scope?.fields.filter(field => !field.repeating && field.sortable) ?? [];
+    return this.scope?.fields.filter(field => sortableField(field)) ?? [];
   }
   get canPreview(): boolean {
     return (
@@ -353,7 +356,13 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
               : error instanceof HttpErrorResponse &&
                   error.status === 400 &&
                   typeof code === 'string' &&
-                  ['schema-changed', 'filter-type-changed', 'sort-type-changed'].includes(code)
+                  [
+                    'schema-changed',
+                    'filter-type-changed',
+                    'filter-cardinality-changed',
+                    'sort-type-changed',
+                    'sort-cardinality-changed',
+                  ].includes(code)
                 ? 'promotion-schema-changed'
                 : 'promotion-open-failed';
         setTimeout(() => {
@@ -681,6 +690,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (!field || !this.draft || this.draft.filters.length >= LIMITS.filters) return;
     const filter: GridFilter = {
       expectedScalarType: scalarTypeFor(field),
+      expectedCardinality: cardinalityFor(field),
       fieldId: field.id,
       operator: field.operators[0],
       values: [''],
@@ -695,11 +705,37 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (!field) return;
     filter.fieldId = id;
     filter.expectedScalarType = scalarTypeFor(field);
+    filter.expectedCardinality = cardinalityFor(field);
     this.chooseOperator(filter, field.operators[0]);
   }
   filterTypeChanged(filter: GridFilter): boolean {
     const field = this.field(filter.fieldId);
     return !!field && filter.expectedScalarType !== scalarTypeFor(field);
+  }
+  /** Type drift has its own reset; cardinality drift keeps compatible values for explicit confirmation. */
+  filterCardinalityChanged(filter: GridFilter): boolean {
+    const field = this.field(filter.fieldId);
+    return (
+      !!field && !this.filterTypeChanged(filter) && (filter.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)
+    );
+  }
+  repairFilterCardinality(filter: GridFilter): void {
+    const field = this.field(filter.fieldId);
+    if (!field) return;
+    filter.expectedCardinality = cardinalityFor(field);
+    if (field.operators.includes(filter.operator)) this.changed();
+    else this.chooseOperator(filter, field.operators[0]);
+  }
+  isList(id: string | undefined): boolean {
+    return isScalarList(id === undefined ? undefined : this.field(id));
+  }
+  /** List predicates match any one value; the label states that explicitly. */
+  operatorLabel(id: string, operator: Operator): string {
+    return this.text((this.isList(id) ? 'op-list-' : 'op-') + operator);
+  }
+  directionLabel(id: string | undefined, direction: 'asc' | 'desc'): string {
+    const key = direction === 'asc' ? 'ascending' : 'descending';
+    return this.text(this.isList(id) ? key + '-list' : key);
   }
   chooseOperator(filter: GridFilter, operator: Operator): void {
     filter.operator = operator;
@@ -716,6 +752,24 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     const field = sort && this.field(sort.fieldId);
     return !!sort && !!field && sort.expectedScalarType !== scalarTypeFor(field);
   }
+  get sortCardinalityChanged(): boolean {
+    const sort = this.draft?.sort;
+    const field = sort && this.field(sort.fieldId);
+    return (
+      !!sort &&
+      !!field &&
+      sortableField(field) &&
+      !this.sortTypeChanged &&
+      (sort.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)
+    );
+  }
+  repairSortCardinality(): void {
+    const sort = this.draft?.sort;
+    const field = sort && this.field(sort.fieldId);
+    if (!sort || !field) return;
+    sort.expectedCardinality = cardinalityFor(field);
+    this.changed();
+  }
   chooseSort(id: string): void {
     if (this.draft)
       this.draft.sort = id
@@ -723,6 +777,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
             fieldId: id,
             direction: this.draft.sort?.direction ?? 'asc',
             expectedScalarType: this.field(id) ? scalarTypeFor(this.field(id)!) : undefined,
+            expectedCardinality: this.field(id) ? cardinalityFor(this.field(id)!) : undefined,
           }
         : null;
     this.changed();
@@ -911,14 +966,12 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       filter =>
         this.fieldLabel(filter.fieldId) +
         ' ' +
-        this.text('op-' + filter.operator).replace(/^./, c => c.toLocaleLowerCase()) +
+        this.operatorLabel(filter.fieldId, filter.operator).replace(/^./, c => c.toLocaleLowerCase()) +
         ' ' +
         filter.values.map(value => fieldValue(this.field(filter.fieldId), value)).join(', ')
     );
     const sort = query.sort
-      ? this.fieldLabel(query.sort.fieldId) +
-        ' ' +
-        this.text(query.sort.direction === 'asc' ? 'ascending' : 'descending')
+      ? this.fieldLabel(query.sort.fieldId) + ' ' + this.directionLabel(query.sort.fieldId, query.sort.direction)
       : this.text('default-order');
     return [
       query.recordType,
@@ -1417,7 +1470,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     return (
       this.fieldLabel(filter.fieldId) +
       ' ' +
-      this.text('op-' + filter.operator).replace(/^./, c => c.toLocaleLowerCase()) +
+      this.operatorLabel(filter.fieldId, filter.operator).replace(/^./, c => c.toLocaleLowerCase()) +
       ' ' +
       filter.values.map(value => fieldValue(this.field(filter.fieldId), value)).join(', ')
     );

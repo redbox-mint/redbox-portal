@@ -4,6 +4,7 @@ import {
   type RecordGridScalar,
   type RecordGridScalarType,
   type RecordGridOperator,
+  type RecordGridCardinality,
 } from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
 export { normalizeTimestamp } from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
 
@@ -25,6 +26,8 @@ export interface GridField {
   type: FieldType;
   selectable: boolean;
   repeating?: boolean;
+  /** Discovery cardinality. LIST filters match any value; LIST sorts use the smallest/largest value. */
+  cardinality?: GridCardinality;
   integer?: boolean;
   partial?: boolean;
   operators: Operator[];
@@ -41,6 +44,15 @@ export interface GridScope {
   revision?: string;
 }
 export type GridScalarType = RecordGridScalarType;
+export type GridCardinality = RecordGridCardinality;
+/** Missing cardinality means a single value, as for legacy discovery and saved definitions. */
+export function cardinalityFor(field: GridField): GridCardinality {
+  return field.cardinality === 'LIST' ? 'LIST' : 'SCALAR';
+}
+/** True for declared scalar lists, whose operators and sorting use element semantics. */
+export function isScalarList(field: GridField | undefined): boolean {
+  return !!field && field.cardinality === 'LIST' && !!scalarTypeFor(field);
+}
 export function scalarTypeFor(field: GridField): GridScalarType | undefined {
   if (field.type === 'text' || field.type === 'choice') return 'STRING';
   if (field.type === 'number') return field.integer ? 'INTEGER' : 'NUMBER';
@@ -51,6 +63,8 @@ export function scalarTypeFor(field: GridField): GridScalarType | undefined {
 export interface GridFilter {
   /** Missing only for pre-type-binding saved definitions, which require explicit repair. */
   expectedScalarType?: GridScalarType;
+  /** Missing means a legacy SCALAR definition; LIST fields require explicit repair. */
+  expectedCardinality?: GridCardinality;
   fieldId: string;
   operator: Operator;
   values: string[];
@@ -70,7 +84,12 @@ export interface GridDefinition extends SavedQueryPresentation {
   workflowStage?: string;
   columns: string[];
   filters: GridFilter[];
-  sort: { fieldId: string; direction: 'asc' | 'desc'; expectedScalarType?: GridScalarType } | null;
+  sort: {
+    fieldId: string;
+    direction: 'asc' | 'desc';
+    expectedScalarType?: GridScalarType;
+    expectedCardinality?: GridCardinality;
+  } | null;
   pageSize: number;
 }
 export type JsonValue = null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
@@ -175,20 +194,31 @@ export function validateGrid(grid: GridDefinition, scope?: GridScope): GridIssue
       issues.push({ key: 'filter-type-changed', field: field.label });
       continue;
     }
+    if ((filter.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)) {
+      issues.push({ key: 'filter-cardinality-changed', field: field.label });
+      continue;
+    }
     try {
       filterValue(filter, field);
     } catch {
       issues.push({ key: 'invalid-filter-value', field: field.label });
     }
   }
-  if (grid.sort && !scope.fields.some(field => field.id === grid.sort?.fieldId && field.sortable && !field.repeating))
+  if (grid.sort && !scope.fields.some(field => field.id === grid.sort?.fieldId && sortableField(field)))
     issues.push({ key: 'unavailable-sort', field: grid.sort.fieldId });
   if (grid.sort) {
     const field = scope.fields.find(field => field.id === grid.sort?.fieldId);
     if (field && (!grid.sort.expectedScalarType || grid.sort.expectedScalarType !== scalarTypeFor(field)))
       issues.push({ key: 'sort-type-changed', field: field.label });
+    else if (field && (grid.sort.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field))
+      issues.push({ key: 'sort-cardinality-changed', field: field.label });
   }
   return issues;
+}
+
+/** Repeating fields sort only when discovery declares them scalar lists. */
+export function sortableField(field: GridField): boolean {
+  return field.sortable && (!field.repeating || isScalarList(field));
 }
 
 export function queryFor(grid: GridDefinition, scope: GridScope, after: string | null): GridQuery {

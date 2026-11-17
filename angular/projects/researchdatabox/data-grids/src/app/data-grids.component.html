@@ -235,8 +235,8 @@
                         [(ngModel)]="draft.sort.direction"
                         (ngModelChange)="changed()"
                       >
-                        <option value="asc">{{ text('ascending') }}</option>
-                        <option value="desc">{{ text('descending') }}</option>
+                        <option value="asc">{{ directionLabel(draft.sort.fieldId, 'asc') }}</option>
+                        <option value="desc">{{ directionLabel(draft.sort.fieldId, 'desc') }}</option>
                       </select></label
                     >
                   }
@@ -258,16 +258,34 @@
                   @if (loadingFields) {
                     <p role="status">{{ text('loading-fields') }}</p>
                   }
+                  @if (draft.sort && isList(draft.sort.fieldId)) {
+                    <p class="rb-ws-lede explorer-list-sort-help">{{ text('list-sort-help') }}</p>
+                  }
+                  @if (sortCardinalityChanged) {
+                    <div class="alert alert-warning explorer-sort-cardinality" role="alert">
+                      {{ text('sort-cardinality-changed') }}
+                      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="repairSortCardinality()">
+                        {{ text('repair-sort-cardinality') }}
+                      </button>
+                    </div>
+                  }
                   <div class="explorer-chip-row">
                     <strong>{{ text('conditions') }}</strong>
                     @for (filter of draft.filters; track filter; let index = $index) {
-                      <span class="rb-admin-chip"
+                      <span
+                        class="rb-admin-chip"
+                        [class.explorer-chip-repair]="filterTypeChanged(filter) || filterCardinalityChanged(filter)"
                         ><button
                           type="button"
                           class="btn explorer-chip-label"
                           [attr.aria-expanded]="filterEditor === index"
                           (click)="filterEditor = filterEditor === index ? null : index"
                         >
+                          @if (filterTypeChanged(filter) || filterCardinalityChanged(filter)) {
+                            <span class="text-danger" [attr.title]="text('repair-required')"
+                              >⚠<span class="visually-hidden">{{ text('repair-required') }}</span></span
+                            >
+                          }
                           {{ conditionLabel(filter) }}</button
                         ><button
                           type="button"
@@ -318,17 +336,32 @@
                           >
                             @if (!field(filter.fieldId)?.operators?.includes(filter.operator)) {
                               <option [value]="filter.operator">
-                                {{ text('op-' + filter.operator) }} ({{ text('unavailable-field') }})
+                                {{ operatorLabel(filter.fieldId, filter.operator) }} ({{ text('unavailable-field') }})
                               </option>
                             }
                             @for (op of field(filter.fieldId)?.operators ?? []; track op) {
-                              <option [value]="op">{{ text('op-' + op) }}</option>
+                              <option [value]="op">{{ operatorLabel(filter.fieldId, op) }}</option>
                             }
                           </select>
                         </div>
                         <div class="grid-values">
                           @if (filter.operator !== 'exists' && field(filter.fieldId)?.type === 'datetime') {
                             <p class="rb-ws-lede">{{ text('datetime-help') }}</p>
+                          }
+                          @if (isList(filter.fieldId)) {
+                            <p class="rb-ws-lede explorer-list-filter-help">{{ text('list-filter-help') }}</p>
+                          }
+                          @if (filterCardinalityChanged(filter)) {
+                            <div class="alert alert-warning explorer-filter-cardinality" role="alert">
+                              {{ text('filter-cardinality-changed') }}
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                (click)="repairFilterCardinality(filter)"
+                              >
+                                {{ text('repair-filter-cardinality') }}
+                              </button>
+                            </div>
                           }
                           @if (filterTypeChanged(filter)) {
                             <div class="alert alert-warning" role="alert">

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -881,6 +882,161 @@ describe('Data grid editor', () => {
     expect(component.sortTypeChanged).toBeFalse();
     expect(component.dirty).toBeTrue();
     expect(component.canPreview).toBeTrue();
+  });
+  const addLists = () => {
+    component.catalogue!.scopes[0].fields.push(
+      {
+        id: 'keywords',
+        label: 'Keywords',
+        type: 'text',
+        selectable: true,
+        repeating: true,
+        cardinality: 'LIST',
+        operators: ['eq', 'contains', 'in', 'exists'],
+        sortable: true,
+      },
+      {
+        id: 'scores',
+        label: 'Scores',
+        type: 'number',
+        integer: true,
+        selectable: true,
+        repeating: true,
+        cardinality: 'LIST',
+        operators: ['eq', 'between', 'exists'],
+        sortable: true,
+      }
+    );
+  };
+  // Direct model edits bypass template events; mark the OnPush editor view itself.
+  const render = async () => {
+    fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
+  const texts = (selector: string): string[] =>
+    [...fixture.nativeElement.querySelectorAll(selector)].map((node: HTMLElement) => node.textContent!.trim());
+  it('labels list conditions and min/max sorting with element semantics while keeping scalar labels', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    component.open(validGrid());
+    expect(component.sortFields.map(field => field.id)).toContain('keywords');
+    expect(component.sortFields.map(field => field.id)).not.toContain('people');
+    component.addFilter();
+    const filter = component.draft!.filters[0];
+    expect(filter.expectedCardinality).toBe('SCALAR');
+    await render();
+    expect(texts('#filter-op-0 option')).toContain('data-grids-op-eq');
+    expect(fixture.nativeElement.querySelector('.explorer-list-filter-help')).toBeNull();
+    component.chooseFilterField(filter, 'scores');
+    component.chooseOperator(filter, 'between');
+    filter.values = ['2', '4'];
+    expect(filter.expectedCardinality).toBe('LIST');
+    expect(filter.expectedScalarType).toBe('INTEGER');
+    component.chooseSort('keywords');
+    expect(component.draft!.sort).toEqual({
+      fieldId: 'keywords',
+      direction: 'asc',
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+    });
+    await render();
+    expect(texts('#filter-op-0 option')).toEqual([
+      'data-grids-op-list-eq',
+      'data-grids-op-list-between',
+      'data-grids-op-list-exists',
+    ]);
+    expect(fixture.nativeElement.querySelector('.explorer-list-filter-help').textContent).toContain(
+      'data-grids-list-filter-help'
+    );
+    expect(texts('#grid-direction option')).toEqual(['data-grids-ascending-list', 'data-grids-descending-list']);
+    expect(fixture.nativeElement.querySelector('.explorer-list-sort-help')).not.toBeNull();
+    expect(component.conditionLabel(filter)).toContain('data-grids-op-list-between');
+    expect(component.issues).toEqual([]);
+    await component.preview();
+    expect(source.query.calls.mostRecent().args[0].definition.filters[0].expectedCardinality).toBe('LIST');
+    component.saveName = 'Lists';
+    await component.save();
+    const persisted = source.save.calls.mostRecent().args[0] as GridDefinition;
+    expect(persisted.filters[0]).toEqual({
+      fieldId: 'scores',
+      expectedScalarType: 'INTEGER',
+      expectedCardinality: 'LIST',
+      operator: 'between',
+      values: ['2', '4'],
+    });
+    expect(persisted.sort?.expectedCardinality).toBe('LIST');
+    // Scalar sorting keeps its existing labels and no list help.
+    component.chooseSort('title');
+    await render();
+    expect(texts('#grid-direction option')).toEqual(['data-grids-ascending', 'data-grids-descending']);
+    expect(fixture.nativeElement.querySelector('.explorer-list-sort-help')).toBeNull();
+  });
+  it('requires visible cardinality repair for legacy filters and sorts on reopen, then saves LIST semantics', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    const saved: GridDefinition = {
+      ...validGrid(),
+      id: '123456789012345678901234',
+      revision: 1,
+      filters: [{ fieldId: 'keywords', expectedScalarType: 'STRING', operator: 'eq', values: ['alpha'] }],
+      sort: { fieldId: 'keywords', direction: 'desc', expectedScalarType: 'STRING' },
+    };
+    source.read.and.resolveTo(saved);
+    await component.reopen(saved, true);
+    expect(source.query).not.toHaveBeenCalled();
+    expect(component.dirty).toBeFalse();
+    expect(component.canPreview).toBeFalse();
+    expect(component.issues.map(issue => issue.key)).toEqual([
+      'filter-cardinality-changed',
+      'sort-cardinality-changed',
+    ]);
+    const filter = component.draft!.filters[0];
+    expect(component.filterCardinalityChanged(filter)).toBeTrue();
+    expect(component.filterTypeChanged(filter)).toBeFalse();
+    expect(component.sortCardinalityChanged).toBeTrue();
+    await render();
+    expect(fixture.nativeElement.querySelector('.rb-admin-chip.explorer-chip-repair')).not.toBeNull();
+    const sortAlert = fixture.nativeElement.querySelector('.explorer-sort-cardinality');
+    expect(sortAlert.textContent).toContain('data-grids-sort-cardinality-changed');
+    fixture.nativeElement.querySelector('.explorer-chip-label').click();
+    fixture.detectChanges();
+    const filterAlert = fixture.nativeElement.querySelector('.explorer-filter-cardinality');
+    expect(filterAlert.textContent).toContain('data-grids-filter-cardinality-changed');
+    filterAlert.querySelector('button').click();
+    fixture.detectChanges();
+    // Compatible operator and values are kept for the explicitly confirmed meaning.
+    expect(filter).toEqual({
+      fieldId: 'keywords',
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+      operator: 'eq',
+      values: ['alpha'],
+    });
+    expect(fixture.nativeElement.querySelector('.explorer-filter-cardinality')).toBeNull();
+    expect(component.canPreview).toBeFalse();
+    sortAlert.querySelector('button').click();
+    fixture.detectChanges();
+    expect(component.draft!.sort?.expectedCardinality).toBe('LIST');
+    expect(fixture.nativeElement.querySelector('.explorer-sort-cardinality')).toBeNull();
+    expect(component.dirty).toBeTrue();
+    expect(component.canPreview).toBeTrue();
+    await component.save();
+    const persisted = source.save.calls.mostRecent().args[0] as GridDefinition;
+    expect(persisted.filters[0].expectedCardinality).toBe('LIST');
+    expect(persisted.sort?.expectedCardinality).toBe('LIST');
+  });
+  it('resets an operator that the repaired list meaning no longer supports', async () => {
+    addLists();
+    const grid = validGrid();
+    grid.filters = [{ fieldId: 'scores', expectedScalarType: 'INTEGER', operator: 'gt', values: ['3'] }];
+    component.open(grid);
+    const filter = component.draft!.filters[0];
+    component.repairFilterCardinality(filter);
+    expect(filter.expectedCardinality).toBe('LIST');
+    expect(filter.operator).toBe('eq');
+    expect(filter.values).toEqual(['']);
   });
   it('keeps executed rows visibly stale after edits and never treats saving as running', async () => {
     component.open(validGrid());
