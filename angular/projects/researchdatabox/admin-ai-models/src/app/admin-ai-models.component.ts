@@ -57,13 +57,6 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   readonly numericSettings = numericSettings;
   readonly routingLists = ['only', 'ignore', 'order'] as const;
   readonly allSettings = ['temperature', ...numericSettings, 'stopSequences'];
-  readonly otherProviders = [
-    { key: 'compatible', package: '@ai-sdk/openai-compatible', status: 'adapter-needed' },
-    { key: 'openai', package: '@ai-sdk/openai', status: 'not-installed' },
-    { key: 'anthropic', package: '@ai-sdk/anthropic', status: 'not-installed' },
-    { key: 'azure', package: '@ai-sdk/azure', status: 'not-installed' },
-    { key: 'vertex', package: '@ai-sdk/google-vertex', status: 'not-installed' },
-  ];
   readonly fixedRows = ['schema', 'streaming', 'tools', 'telemetry', 'redirects', 'retries'];
   readonly fixedKeys: Record<string, string> = { schema: 'strictJsonSchema', streaming: 'stream', tools: 'tools/plugins', telemetry: 'telemetry.isEnabled', redirects: 'fetch redirect', retries: 'maxRetries' };
 

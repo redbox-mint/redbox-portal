@@ -87,11 +87,6 @@
           @for (item of providers; track item) {
             <ai-provider-card [item]="item" [overview]="overview" [cooldown]="cooldown" [busy]="busy" [keyConflict]="providerKeyUsed(item)" (changed)="notice = ''" (nameChange)="providerName(item, $event)" (test)="testProvider(item)" (cancel)="cancelProvider(item)"></ai-provider-card>
           }
-          <div class="ai-other-providers"><table class="table table-hover">
-            <thead><tr><th scope="col">{{ 'ai-models-other-providers' | i18next }}</th><th scope="col">{{ 'ai-models-package' | i18next }}</th><th scope="col">{{ 'ai-models-status-label' | i18next }}</th></tr></thead>
-            <tbody>@for (provider of otherProviders; track provider.key) { <tr><th scope="row">{{ (provider.key === 'compatible' ? 'ai-models-other-compatible-name' : 'ai-models-other-' + provider.key) | i18next }}@if (provider.key === 'compatible') { <small class="rb-admin-hint">{{ 'ai-models-other-compatible-description' | i18next }}</small> }</th><td><code>{{ provider.package }}</code></td><td><span class="badge rb-admin-badge-info">{{ ('ai-models-' + provider.status) | i18next }}</span></td></tr> }</tbody>
-          </table></div>
-          <p class="rb-admin-hint">{{ 'ai-models-install-hint' | i18next }}</p>
           </div>
         </section>
         <section id="ai-models" class="rb-admin-form-section ai-model-area">
