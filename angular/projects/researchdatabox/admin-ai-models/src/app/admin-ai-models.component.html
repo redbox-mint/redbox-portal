@@ -257,8 +257,10 @@
               @if (version.publishedBy) { <span>{{ 'ai-models-published-by' | i18next: { name: version.publishedBy } }}</span> }
               @if (version.publishedAt) { <span>{{ version.publishedAt | adminDate }}</span> }
             </li> }</ul>
-            @if (selected?.status === 'published') { <button type="button" class="btn btn-sm btn-outline-danger" (click)="retireConfirmation = true" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
-            @if (selected) { <button type="button" class="btn btn-outline-danger mt-3" (click)="askDeleteModel(modelKey)" [disabled]="busy">{{ 'ai-models-delete-model' | i18next }}</button> }
+            <div class="rb-admin-page-actions mt-3">
+              @if (selected?.status === 'published') { <button type="button" class="btn btn-outline-danger" (click)="retireConfirmation = true" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
+              @if (selected) { <button type="button" class="btn btn-outline-danger" (click)="askDeleteModel(modelKey)" [disabled]="busy">{{ 'ai-models-delete-model' | i18next }}</button> }
+            </div>
           </div>
         </section>    </div></div>
   }
