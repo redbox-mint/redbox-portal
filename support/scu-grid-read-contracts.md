@@ -1,5 +1,7 @@
 # Explicit metadata reads: findings 3 and 6
 
+> Historical read-contract verification. Later scalar-list work adds element filtering and min/max sorting on Mongo; statements below excluding list sorts describe the earlier implementation. See [Record GraphQL grids](wiki/Record-GraphQL-Grids.md#declared-scalar-lists) for current capabilities and saved-query repair requirements.
+
 This note contains configuration keys and synthetic verification results only. Private audit inputs, copied hook sources and intermediate contracts remain under the ignored `.tmp/scu-grid/` directory or the private task-evidence directory. None belongs in a commit. External hook clones were read without changes.
 
 ## Reproduction before changes

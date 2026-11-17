@@ -103,7 +103,7 @@ const Choice = new GraphQLObjectType({
 const Cardinality = new GraphQLEnumType({
   name: 'RecordFieldCardinality',
   description:
-    'SCALAR fields hold one value. LIST fields hold a declared scalar list: each filter matches any valid element (BETWEEN needs one element within both bounds), separate filters may match different elements, and ASC/DESC sorting uses the minimum/maximum valid element.',
+    'SCALAR fields hold one value. LIST fields hold a declared array. For queryable scalar lists, each filter matches any valid element (BETWEEN needs one element within both bounds), separate filters may match different elements, and ASC/DESC sorting uses the minimum/maximum valid element. Object and nested lists cannot filter or sort.',
   values: { SCALAR: {}, LIST: {} },
 });
 const Field = new GraphQLObjectType({

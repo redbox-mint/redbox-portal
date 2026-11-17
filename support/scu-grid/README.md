@@ -1,5 +1,7 @@
 # SCU real-configuration grid regression ledger
 
+> Historical verification ledger. The scalar-list follow-up now enables filtering and min/max sorting for declared scalar lists on Mongo. Statements below about unavailable Mongo list capabilities describe the earlier reliability rebase. Current semantics and saved-query repair requirements are documented in [Record GraphQL grids](../wiki/Record-GraphQL-Grids.md#declared-scalar-lists).
+
 17 November 2026. Private diagnostic inputs and screenshots were not added to Git. This work used the complete supplied branding-scoped v5 forms and actual SCU `feature/v5-refactor` reusable definitions before reducing fixtures. Scalar record contents were constructed from the supplied kind descriptors; they are synthetic, not imported customer records.
 
 ## Current branch after Mongo rebase — 18 November 2026
