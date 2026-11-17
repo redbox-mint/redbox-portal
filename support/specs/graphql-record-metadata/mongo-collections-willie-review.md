@@ -1,5 +1,25 @@
 # Mongo collection Willie review dispositions
 
+## Final re-review
+
+After implementation commit `bd73e83019d9fa9f40d925d323df024723558209`, the
+orchestrator reviewed the fixes and verified the integration evidence. Willie
+then reviewed the focused fix diff (`42ada22eb..bd73e8301`) using Codex Hub
+`gpt-6.1-sol` with `xhigh` reasoning and inline delivery. The CLI completed with
+exit 0: **5/5, zero high, medium, low, or suggestion findings**. Its assessment
+found no actionable defects in the indexed OID queries, cancellation/cleanup,
+driver pin, or regression tests. This was static review; Willie did not run tests.
+
+The local result is `/tmp/graphql-mongo-willie-fixes.json`. Two usable reviews
+were completed within the default five-review budget: the original migration
+review and this focused re-review. A full-diff inline re-review attempt timed out
+after 600,000 ms before completing its first part; it produced no usable result
+and is not counted as a clean review. The focused re-review covers the changes
+made to address both findings from the completed original migration review.
+
+No GitHub review comments or threads were published (local diff mode), and no
+push, PR, or merge was performed.
+
 This follow-up starts at `42ada22ebbbe3503b196c1972b05751791c6bc97` on
 `t3/graphql-mongo-collections`, in the existing checkout
 `/home/andrew/.t3/worktrees/redbox-portal/t3-f9cf0af7-e8cf14b92f8bbc94`.
