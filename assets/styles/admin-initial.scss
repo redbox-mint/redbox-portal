@@ -1,4 +1,4 @@
-// First-paint styles for AI models and its portal shell. The complete portal
+// Initial styles for opted-in admin screens and the portal shell. The complete portal
 // stylesheet still loads afterwards for hook content and additional icon classes.
 $include-legacy-components: false;
 @import "custom-colors";
@@ -49,4 +49,4 @@ $utilities: (
 @import "system-message";
 
 // Keep the server-rendered header stable before Angular's local CSS arrives.
-.rb-admin admin-ai-models { display: block; min-width: 0; }
+.rb-admin admin-ai-models { display: block; min-width: 0; min-height: 900px; }

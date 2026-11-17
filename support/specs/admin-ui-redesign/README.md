@@ -127,6 +127,27 @@ Internal `--admin-*` aliases and `color-mix()` derive neutral surfaces and seman
 new branding configuration. Body and nav fonts continue to inherit the portal fonts (Titillium Web and
 Roboto Condensed by default). Brand typeface overrides still apply.
 
+### Initial asset delivery (opt-in)
+
+A page action may pass `adminInitialStyles: true` to `sendView` after verifying both its loading and
+ready states at desktop, tablet and mobile widths. AI models opts in. The shared layout then loads
+Webpack's `admin-initial.<contenthash>.min.css` as an external blocking stylesheet and activates the
+complete portal stylesheet after its non-blocking download (with a `noscript` fallback). The initial
+sheet reuses the Bootstrap, theme and admin sources, omitting legacy components and icon fonts;
+check hook content, custom icons, branding and any components needed before the full sheet arrives.
+The file is resolved at service bootstrap, uses immutable caching, and falls back to the complete
+blocking stylesheet if absent. Rebuild assets and restart the portal after changing it.
+
+For a header replaced after data loads, `.rb-admin-stable-heading` can wrap the breadcrumb and
+page header in both EJS and Angular. It reserves title, description and action rows, stacking
+actions below 1200px. AI models also waits for translations before bootstrapping and shows its
+applicable actions once model data is ready. Verify loading-to-ready geometry for real titles;
+longer names and translations may grow beyond the minimums.
+
+The same flag preloads the default bold heading font and inlines only the trusted stock SVG logo;
+uploaded/replacement logos and custom typefaces retain their normal delivery. No route or rendered
+app markup determines this opt-in. Pages without the flag keep their current asset delivery.
+
 ### EJS shell and header
 
 Every admin page uses the paired shell partials. API docs embeds its isolated viewer document below the shared header. Keep Angular

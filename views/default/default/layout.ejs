@@ -40,8 +40,10 @@
 
 
   <!-- Custom CSS -->
-  <% if (__modernAdmin && body.includes('<admin-ai-models')) { %>
-  <style <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>><%- include('../../../.tmp/public/default/default/styles/ai-models-critical.min.css').replace(/url\(\.\.\/\.\.\/\.\.\/+/g, 'url(' + BrandingService.getRootContext() + '/') %></style>
+  <% const __adminInitialStylesheet = typeof adminInitialStyles !== 'undefined' && adminInitialStyles === true
+    ? CacheService.getAdminInitialStylesheet() : ''; %>
+  <% if (__adminInitialStylesheet) { %>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/default/default/styles/<%= __adminInitialStylesheet %>">
   <link id="rb-portal-extra-styles" rel="stylesheet" media="print" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
   <script <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
     (function () {

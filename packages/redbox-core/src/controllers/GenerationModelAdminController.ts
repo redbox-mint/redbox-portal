@@ -37,7 +37,7 @@ export namespace Controllers {
       try {
         requireGenerationModelAdmin(req);
         return this.sendView(req, res, 'admin/ai-models', {
-          pageTitleKey: 'ai-models-title', generationEnabled: sails.config.generation.enabled,
+          pageTitleKey: 'ai-models-title', adminInitialStyles: true, generationEnabled: sails.config.generation.enabled,
         });
       } catch (error) {
         const mapped = mapGenerationModelAdminError(error);

@@ -44,6 +44,15 @@ describe('Generation model Admin HTTP boundary', () => {
       });
     }
   }
+  it('explicitly opts the admin view into initial asset delivery', () => {
+    sails.config.generation = { enabled: false } as typeof sails.config.generation;
+    const view = sinon.stub(controller, 'sendView');
+    controller.page(req, res);
+    assert.equal(view.firstCall.args[2], 'admin/ai-models');
+    assert.deepEqual(view.firstCall.args[3], {
+      pageTitleKey: 'ai-models-title', adminInitialStyles: true, generationEnabled: false,
+    });
+  });
   it('derives brand and actor from route/session only and returns raw JSON', async () => {
     req.body = { brandId: 'b', actorId: 'forged', value: 'draft' };
     await controller.createModel(req, res);

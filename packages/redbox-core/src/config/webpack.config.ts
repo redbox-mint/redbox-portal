@@ -39,7 +39,7 @@ export const webpack: WebpackConfig = {
             devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
             entry: {
                 main: ['./assets/default/default/styles/default-fonts.css', './assets/default/default/js/client-script.js'],
-                'ai-models-critical': ['./assets/default/default/styles/default-fonts.css', './assets/styles/ai-models-critical.scss'],
+                'admin-initial': ['./assets/default/default/styles/default-fonts.css', './assets/styles/admin-initial.scss'],
             },
             output: {
                 filename: ({ chunk }) => chunk?.name === 'main'
@@ -53,7 +53,7 @@ export const webpack: WebpackConfig = {
                 new MiniCssExtractPlugin({
                     // Relative to 'output.path' above!
                     filename: ({ chunk }: { chunk: { name: string } }) => chunk.name === 'main'
-                        ? './default/default/styles/style.min.css' : './default/default/styles/[name].min.css',
+                        ? './default/default/styles/style.min.css' : './default/default/styles/[name].[contenthash:12].min.css',
                 }),
                 new CopyPlugin({
                     patterns: [

@@ -14,6 +14,7 @@
   </div>
 <% } else { %>
   <admin-ai-models data-base-url="<%= BrandingService.getBrandAndPortalPath(req) %>/app/ai-models" data-brand="<%= BrandingService.getBrandNameFromReq(req) %>" data-portal="<%= BrandingService.getPortalFromReq(req) %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <div class="rb-admin-stable-heading">
     <%- include('layout/page-header.ejs', {
       breadcrumbs: [
         { labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' },
@@ -21,6 +22,7 @@
         { labelKey: 'admin-nav-ai-models' }
       ], titleKey: 'ai-models-title', descriptionKey: 'ai-models-description'
     }) %>
+    </div>
     <p role="status"><%= TranslationService.t('ai-models-loading') %></p>
   </admin-ai-models>
 <% } %>

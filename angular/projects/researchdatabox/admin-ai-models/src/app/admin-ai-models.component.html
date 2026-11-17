@@ -1,3 +1,4 @@
+<div class="rb-admin-stable-heading">
 <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
   <li><a [href]="baseUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
   <li>{{ 'admin-nav-integrations' | i18next }}</li>
@@ -15,6 +16,7 @@
     <p>{{ (editor ? (readOnly ? 'ai-models-readonly-description' : 'ai-models-editor-description') : 'ai-models-description') | i18next }}</p>
   </div>
   <div class="rb-admin-page-actions">
+    @if (!loading) {
     @if (editor) {
       <button class="btn btn-outline-secondary" type="button" (click)="testModel()">{{ 'ai-models-test-model' | i18next }}</button>
       @if (readOnly) {
@@ -26,8 +28,10 @@
       <button class="btn btn-outline-secondary" type="button" (click)="addProvider()" [disabled]="loading || busy || !overview?.adapters?.length">{{ 'ai-models-add-provider' | i18next }}</button>
       <button class="btn btn-primary" type="button" (click)="newModel()" [disabled]="loading || busy || !enabledConnections.length" aria-describedby="ai-add-model-hint">{{ 'ai-models-add-model' | i18next }}</button>
     }
+    }
   </div>
 </header>
+</div>
 @if (editor && !readOnly) { <p id="ai-publish-hint" class="rb-admin-hint">{{ 'ai-models-publish-hint' | i18next }}</p> }
 @if (!editor && !loading && !enabledConnections.length) { <p id="ai-add-model-hint" class="rb-admin-hint">{{ 'ai-models-no-enabled-connection' | i18next }}</p> }
 @if (error) { <div class="alert alert-danger" role="alert">{{ error | i18next }}
@@ -282,7 +286,7 @@
               @if (version.publishedBy) { <span>{{ 'ai-models-published-by' | i18next: { name: version.publishedBy } }}</span> }
               @if (version.publishedAt) { <span>{{ version.publishedAt | adminDate }}</span> }
             </li> }</ul>
-            @if (selected && selected.status !== 'retired') { <button type="button" class="btn btn-sm btn-outline-danger" (click)="retireConfirmation = true" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
+            @if (selected?.status === 'published') { <button type="button" class="btn btn-sm btn-outline-danger" (click)="retireConfirmation = true" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
           </div>
         </section>
       }

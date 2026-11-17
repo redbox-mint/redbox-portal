@@ -134,6 +134,30 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     h1 { font-size: 30px; font-weight: 700; line-height: 1.2; margin: 0; text-align: left; }
     p { margin: 4px 0 0; max-width: 720px; color: var(--admin-muted); }
   }
+  // Keep server loading headers and hydrated editor headers on the same grid.
+  // Minimums allow longer translated/custom names to grow without clipping.
+  .rb-admin-stable-heading {
+    .rb-admin-crumbs { min-height: 22px; }
+    .rb-admin-page-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      h1 { display: flex; flex-wrap: wrap; gap: 8px; min-height: 72px; align-content: start; align-items: baseline; }
+      p { min-height: 44px; }
+      &::after { content: ''; min-height: 36px; grid-column: 2; grid-row: 1; }
+    }
+    .rb-admin-page-actions { grid-column: 2; grid-row: 1; min-height: 36px; }
+    @media (max-width: 1199.98px) {
+      .rb-admin-page-header {
+        grid-template-columns: minmax(0, 1fr);
+        &::after { grid-column: 1; grid-row: 2; }
+      }
+      .rb-admin-page-actions { grid-column: 1; grid-row: 2; }
+    }
+    @media (max-width: 575.98px) {
+      .rb-admin-crumbs { min-height: 44px; }
+      .rb-admin-page-header h1 { min-height: 104px; }
+    }
+  }
   .rb-admin-page-header > div:first-child { flex: 1 1 400px; min-width: 0; }
   .rb-admin-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 

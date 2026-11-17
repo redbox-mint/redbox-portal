@@ -87,6 +87,17 @@ describe('AI models overview and editor', () => {
     expect(query<HTMLFieldSetElement>('#ai-model fieldset').disabled).toBeTrue(); expect(query('.rb-admin-save-bar')).toBeNull();
     await component.newVersion(); expect(api.version).toHaveBeenCalledWith('model-v1'); expect(component.selected?.version).toBe(3); expect(component.readOnly).toBeFalse();
   });
+  it('offers retirement only for published versions', () => {
+    open();
+    expect(query('#ai-versions .btn-outline-danger')).toBeNull();
+    component.openModel('rdmp', 1); fixture.detectChanges();
+    const retire = query<HTMLButtonElement>('#ai-versions .btn-outline-danger');
+    expect(retire.textContent).toContain('ai-models-retire-version');
+    retire.click(); fixture.detectChanges();
+    expect(query('[role="alertdialog"]')).toBeTruthy();
+    component.selected!.status = 'retired'; component.retireConfirmation = false; fixture.detectChanges();
+    expect(query('#ai-versions .btn-outline-danger')).toBeNull();
+  });
   it('saves only editable fields with the exact concurrency hash', async () => {
     open(); component.modelName('Edited'); await component.saveDraft();
     expect(api.saveModel).toHaveBeenCalledWith('model-v2', { ...modelDraft(component.draft!), expectedContentHash: model.contentHash }); expect(component.isDirty).toBeFalse();
@@ -290,7 +301,7 @@ describe('AI models overview and editor', () => {
     expect(query('.ai-current-version')).toBeTruthy();
   });
   it('requires modal confirmation before retiring and permits cancellation', async () => {
-    open(); await component.retire(); expect(api.retire).not.toHaveBeenCalled();
+    component.openModel('rdmp', 1); fixture.detectChanges(); await component.retire(); expect(api.retire).not.toHaveBeenCalled();
     query<HTMLButtonElement>('#ai-versions button.btn-outline-danger').click(); fixture.detectChanges();
     const modal = query('[role="alertdialog"]'); expect(modal).toBeTruthy();
     modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); fixture.detectChanges();
@@ -298,7 +309,7 @@ describe('AI models overview and editor', () => {
     query<HTMLButtonElement>('#ai-versions button.btn-outline-danger').click(); fixture.detectChanges();
     api.retire.and.resolveTo({ ...clone(model), status: 'retired' });
     query<HTMLButtonElement>('[role="alertdialog"] .rb-admin-danger-confirm').click(); await fixture.whenStable(); fixture.detectChanges();
-    expect(api.retire).toHaveBeenCalledOnceWith(model.id); expect(query('[role="alertdialog"]')).toBeNull();
+    expect(api.retire).toHaveBeenCalledOnceWith('model-v1'); expect(query('[role="alertdialog"]')).toBeNull();
   });
 
 });
