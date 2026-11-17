@@ -1,9 +1,63 @@
-import { filterValue, normalizeTimestamp, GridField, queryFor, validateGrid, validatePage } from './data-grid.model';
+import {
+  defaultColumns,
+  filterValue,
+  normalizeTimestamp,
+  GridField,
+  queryFor,
+  validateGrid,
+  validatePage,
+} from './data-grid.model';
 
 import { scope, validGrid } from './data-grid.testing';
 const byId = (id: string): GridField => scope.fields.find(field => field.id === id)!;
 
 describe('Data grid configuration', () => {
+  for (const identity of ['text_full_name', 'provider-name', 'workspaceTitle']) {
+    it(`uses explicit ${identity} defaults instead of an empty generic title`, () => {
+      const fields: GridField[] = [
+        { id: 'metadata:/title', label: 'Title', type: 'text', selectable: true, operators: [], sortable: false },
+        {
+          id: `metadata:/${identity}`,
+          label: 'Identity',
+          type: 'text',
+          selectable: true,
+          identity: true,
+          defaultColumn: 0,
+          operators: [],
+          sortable: false,
+        },
+        { id: 'record:oid', label: 'OID', type: 'text', selectable: true, operators: [], sortable: false },
+      ];
+      expect(defaultColumns(fields)).toEqual([`metadata:/${identity}`, 'record:oid']);
+      fields[1].selectable = false;
+      expect(defaultColumns(fields)).not.toContain(`metadata:/${identity}`);
+    });
+  }
+  it('allows server-verified scalar-list filters while retaining list sort restrictions', () => {
+    const grid = validGrid();
+    const target = {
+      ...scope,
+      fields: [
+        ...scope.fields,
+        {
+          id: 'keywords',
+          label: 'Keywords',
+          type: 'text' as const,
+          selectable: true,
+          repeating: true,
+          operators: ['eq' as const],
+          sortable: false,
+        },
+      ],
+    };
+    grid.filters = [
+      { fieldId: 'keywords', expectedScalarType: 'STRING', operator: 'eq', values: ['Synthetic keyword'] },
+    ];
+    expect(validateGrid(grid, target)).toEqual([]);
+    expect(queryFor(grid, target, null).filters[0].value).toBe('Synthetic keyword');
+    grid.sort = { fieldId: 'keywords', direction: 'asc', expectedScalarType: 'STRING' };
+    expect(validateGrid(grid, target).some(issue => issue.key === 'unavailable-sort')).toBeTrue();
+  });
   it('blocks NUMBER-to-STRING drift and legacy unbound filters before constructing any query', () => {
     const grid = validGrid();
     grid.filters = [{ fieldId: 'budget', expectedScalarType: 'NUMBER', operator: 'eq', values: ['1.0'] }];

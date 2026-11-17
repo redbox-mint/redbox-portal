@@ -6,7 +6,13 @@ import { AgGridAngular } from 'ag-grid-angular';
 import { AdminTabsDirective, I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
 import { DataGridsComponent } from './data-grids.component';
-import { DATA_GRID_SOURCE, DataGridSource, GridRequestError, GridSourceUnavailable } from './data-grid-source';
+import {
+  DATA_GRID_SOURCE,
+  DataGridSource,
+  GridRawResponse,
+  GridRequestError,
+  GridSourceUnavailable,
+} from './data-grid-source';
 import { GridDefinition, GridPage, GridScope } from './data-grid.model';
 import { editorSchema, rawDefinition } from './graphql-query';
 import { testSdl } from './data-grid.testing';
@@ -548,6 +554,65 @@ describe('Data grid editor', () => {
     expect(component.page).toBe(0);
     expect(component.hasNext).toBeFalse();
   });
+  it('shows current partial diagnostics in both views and distinguishes failed cells from genuine null', async () => {
+    component.open(validGrid(), false);
+    const failure = {
+      code: 'HISTORICAL_VALUE_TYPE',
+      path: ['records', 'nodes', 0, 'metadata', 'alias'],
+      row: 0,
+      oid: 'partial-record',
+      fieldId: 'title',
+      label: 'Title',
+    };
+    const result: GridPage = {
+      rows: [
+        { oid: 'partial-record', values: { title: null }, errors: [failure] },
+        { oid: 'null-record', values: { title: null } },
+        { oid: 'usable-record', values: { title: 'Usable title' } },
+      ],
+      errors: [failure],
+      response: { data: { records: { nodes: ['controlled fixture'] } }, errors: [failure] },
+      pageInfo: { hasNextPage: false, endCursor: null },
+    };
+    source.query.and.resolveTo(result);
+    await component.preview();
+    expect(component.hasPreview).toBeTrue();
+    expect(component.resultsStale).toBeFalse();
+    expect(component.previewError).toBe('');
+    const render = component.columnDefs[0].cellRenderer;
+    expect(render({ data: result.rows[0], value: null }).textContent).toContain('HISTORICAL_VALUE_TYPE');
+    expect(render({ data: result.rows[1], value: null }).textContent).not.toContain('HISTORICAL_VALUE_TYPE');
+    expect<unknown>(component.rows[2].values['title']).toBe('Usable title');
+    spyOn(component, 'ngOnInit');
+    component.responseView = 'json';
+    fixture.detectChanges();
+    const content = fixture.nativeElement.textContent;
+    expect(content).toContain('HISTORICAL_VALUE_TYPE');
+    expect(content).toContain('partial-record');
+    expect(content).toContain('Title');
+    expect(component.jsonResponse).toEqual(result.response!);
+    component.changed();
+    expect(component.resultsStale).toBeTrue();
+    source.query.and.rejectWith(new GridRequestError('preview-failed'));
+    await component.preview();
+    expect(component.fieldErrors).toEqual([]);
+    expect(component.jsonResponse).toBeNull();
+    expect(component.hasPreview).toBeFalse();
+  });
+  it('ignores partial rows and diagnostics from an out-of-order visual response', async () => {
+    component.open(validGrid(), false);
+    const pending = deferred<GridPage>();
+    source.query.and.returnValue(pending.promise);
+    const first = component.preview();
+    component.changed();
+    source.query.and.resolveTo(page('current'));
+    await component.preview();
+    pending.resolve({ ...page('late'), errors: [{ code: 'FIELD_ERROR', path: [] }] });
+    await first;
+    expect(component.rows[0].oid).toBe('current');
+    expect(component.fieldErrors).toEqual([]);
+    expect(component.resultsStale).toBeFalse();
+  });
   it('clears stale rows when fetching the next page fails', async () => {
     component.open(validGrid());
     source.query.and.resolveTo(page('a', true));
@@ -701,6 +766,7 @@ describe('Data grid editor', () => {
     await component.chooseScope(narrowed.id);
     expect(component.error).toBe('');
     expect(component.scope?.fields.length).toBeGreaterThan(0);
+    expect(component.draft?.columns.length).toBeGreaterThan(0);
   });
   it('requires explicit filter-type repair on reopen and clears the previous operands', async () => {
     const saved = { ...validGrid(), id: '123456789012345678901234', revision: 1 };
@@ -805,12 +871,12 @@ describe('Data grid editor', () => {
   });
   it('loads the schema while visual generation is still pending', async () => {
     component.open(validGrid());
-    let finish!: (value: {query: string; variables: Record<string, never>}) => void;
-    source.generate = jasmine.createSpy().and.returnValue(new Promise(resolve => finish = resolve));
+    let finish!: (value: { query: string; variables: Record<string, never> }) => void;
+    source.generate = jasmine.createSpy().and.returnValue(new Promise(resolve => (finish = resolve)));
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     const switching = component.switchMode('graphql');
     expect(source.schema).toHaveBeenCalled();
-    finish({query: '{ records(recordType:"plan") { nodes { oid } } }', variables: {}});
+    finish({ query: '{ records(recordType:"plan") { nodes { oid } } }', variables: {} });
     await switching;
     expect(component.rawErrors).toEqual([]);
   });
@@ -826,6 +892,135 @@ describe('Data grid editor', () => {
     await component.switchMode('graphql');
     component.unlink();
     expect(component.rawDraft.document).toContain('recordType:"plan"');
+  });
+  for (const generated of [false, true])
+    it(
+      'retains raw partial rows, safe JSON and failed cells with ' +
+        (generated ? 'generated field labels' : 'arbitrary response aliases'),
+      async () => {
+        component.open(validGrid(), false);
+        source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+        await component.switchMode('graphql');
+        component.unlink();
+        const alias = generated ? 'g_hash' : 'custom';
+        component.rawDraft.document = component.rawDraft.document.replace(
+          'oid recordType workflowStep',
+          `oid ${alias}: workflowStep`
+        );
+        component.rawDraft.variables['type'] = 'plan';
+        component.variablesText = JSON.stringify(component.rawDraft.variables);
+        if (generated)
+          component.scope!.fields[0].selections = [
+            { variant: '', selection: 'g_hash: workflowStep', responsePath: ['g_hash'] },
+          ];
+        const data = {
+          records: {
+            nodes: [
+              { oid: 'broken', [alias]: null },
+              { oid: 'empty', [alias]: null },
+              { oid: 'usable', [alias]: 'Draft' },
+            ],
+            hasNextPage: false,
+            endCursor: null,
+          },
+        };
+        source.raw = jasmine.createSpy().and.rejectWith(new Error('legacy method must not be called'));
+        source.rawResponse = jasmine
+          .createSpy()
+          .and.resolveTo({ data, errors: [{ code: 'HISTORICAL_VALUE_TYPE', path: ['records', 'nodes', 0, alias] }] });
+        await component.preview();
+        expect(component.previewError).toBe('');
+        expect(component.rows.length).toBe(3);
+        expect<unknown>(component.rows[2].values[alias]).toBe('Draft');
+        expect(component.fieldErrors[0].oid).toBe('broken');
+        expect(component.fieldErrors[0].label).toBe(generated ? 'Title' : undefined);
+        const render = component.columnDefs.find(column => column.colId === alias)!.cellRenderer;
+        expect(render({ data: component.rows[0], value: null }).textContent).toContain('HISTORICAL_VALUE_TYPE');
+        expect(render({ data: component.rows[1], value: null }).textContent).not.toContain('HISTORICAL_VALUE_TYPE');
+        expect(component.jsonResponse).toEqual({ data, errors: component.fieldErrors });
+        spyOn(component, 'ngOnInit');
+        component.responseView = 'json';
+        fixture.detectChanges();
+        expect(fixture.nativeElement.textContent).toContain(generated ? 'Title' : 'records.nodes.0.custom');
+        expect(fixture.nativeElement.textContent).toContain('broken');
+        component.rawDraft.document += '\n# edited';
+        component.rawChanged();
+        expect(component.resultsStale).toBeTrue();
+        source.rawResponse = jasmine.createSpy().and.rejectWith(new GridRequestError('query-unavailable'));
+        await component.preview();
+        expect(component.hasPreview).toBeFalse();
+        expect(component.fieldErrors).toEqual([]);
+        expect(component.jsonResponse).toBeNull();
+      }
+    );
+  it('maps nested generated list errors and nullable parents while retaining unmapped JSON', async () => {
+    component.open(validGrid(), false);
+    source.schema = jasmine
+      .createSpy()
+      .and.resolveTo(
+        testSdl.replace('type Record {', 'type Metadata { g_hash: [String] } type Record { metadata: Metadata,')
+      );
+    await component.switchMode('graphql');
+    component.unlink();
+    component.rawDraft.document = component.rawDraft.document.replace(
+      'oid recordType workflowStep',
+      'oid metadata { g_hash }'
+    );
+    component.rawDraft.variables['type'] = 'plan';
+    component.variablesText = JSON.stringify(component.rawDraft.variables);
+    component.scope!.fields[0].selections = [
+      { variant: '', selection: 'metadata { g_hash }', responsePath: ['metadata', 'g_hash'] },
+    ];
+    const data = {
+      records: {
+        nodes: [
+          { oid: 'nested', metadata: { g_hash: ['usable', null] } },
+          { oid: 'parent', metadata: null },
+          { oid: 'empty', metadata: { g_hash: null } },
+        ],
+        hasNextPage: false,
+        endCursor: null,
+      },
+    };
+    source.rawResponse = jasmine.createSpy().and.resolveTo({
+      data,
+      errors: [
+        { code: 'HISTORICAL_VALUE_TYPE', path: ['records', 'nodes', 0, 'metadata', 'g_hash', 1] },
+        { code: 'FIELD_ERROR', path: ['records', 'nodes', 1, 'metadata'] },
+      ],
+    });
+    await component.preview();
+    expect(component.fieldErrors.map(error => error.label)).toEqual(['Title', 'Title']);
+    expect(component.fieldErrors.map(error => error.oid)).toEqual(['nested', 'parent']);
+    const render = component.columnDefs.find(column => column.colId === 'metadata.g_hash')!.cellRenderer;
+    expect(render({ data: component.rows[0], value: ['usable', null] }).textContent).toContain('HISTORICAL_VALUE_TYPE');
+    expect(render({ data: component.rows[1], value: null }).textContent).toContain('FIELD_ERROR');
+    expect(render({ data: component.rows[2], value: null }).textContent).not.toContain('FIELD_ERROR');
+    component.selectResultPath('missing');
+    expect(component.responseView).toBe('json');
+    expect(component.hasPreview).toBeTrue();
+    expect(component.fieldErrors.length).toBe(2);
+    expect(component.jsonResponse!['data']).toEqual(data);
+  });
+  it('discards an out-of-order raw partial response and its diagnostics', async () => {
+    component.open(validGrid(), false);
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    await component.switchMode('graphql');
+    component.unlink();
+    component.rawDraft.variables['type'] = 'plan';
+    component.variablesText = JSON.stringify(component.rawDraft.variables);
+    const pending = deferred<GridRawResponse>();
+    source.rawResponse = jasmine.createSpy().and.returnValue(pending.promise);
+    const running = component.preview();
+    component.rawDraft.document += '\n# edited';
+    component.rawChanged();
+    pending.resolve({
+      data: { records: { nodes: [{ oid: 'old' }] } },
+      errors: [{ code: 'HISTORICAL_VALUE_TYPE', path: ['records', 'nodes', 0, 'workflowStep'] }],
+    });
+    await running;
+    expect(component.fieldErrors).toEqual([]);
+    expect(component.hasPreview).toBeFalse();
   });
   it('reopens raw queries into results with real variables, mapping and cursor navigation', async () => {
     const saved = { ...rawDefinition('Raw plans'), id: '123456789012345678901234', revision: 1 };

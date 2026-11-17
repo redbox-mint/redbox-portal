@@ -167,14 +167,27 @@ export { rawDefinition } from './raw-definition';
 export function queryRecordType(document: string, variables: Record<string, unknown>): string | null {
   try {
     const ast = parse(document, { maxLexicalTokens: 2000 });
-    const op = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION);
-    if (!op || op.kind !== Kind.OPERATION_DEFINITION) return null;
-    const root = op.selectionSet.selections.find(n => n.kind === Kind.FIELD && n.name.value === 'records');
-    if (!root || root.kind !== Kind.FIELD) return null;
-    const value = root.arguments?.find(a => a.name.value === 'recordType')?.value;
-    const type =
-      value?.kind === Kind.STRING ? value.value : value?.kind === Kind.VARIABLE ? variables[value.name.value] : null;
-    return typeof type === 'string' ? type : null;
+    if (ast.definitions.filter(n => n.kind === Kind.OPERATION_DEFINITION).length !== 1) return null;
+    const types = new Set<string>();
+    let unknownType = false;
+    // Include fragment definitions conservatively: an incomplete scoped schema
+    // must never reject a valid selection on another record type.
+    visit(ast, {
+      Field(node) {
+        if (node.name.value === 'record') unknownType = true;
+        if (node.name.value !== 'records') return;
+        const value = node.arguments?.find(a => a.name.value === 'recordType')?.value;
+        const type =
+          value?.kind === Kind.STRING
+            ? value.value
+            : value?.kind === Kind.VARIABLE
+              ? variables[value.name.value]
+              : null;
+        if (typeof type === 'string' && type.length) types.add(type);
+        else unknownType = true;
+      },
+    });
+    return !unknownType && types.size === 1 ? [...types][0] : null;
   } catch {
     return null;
   }

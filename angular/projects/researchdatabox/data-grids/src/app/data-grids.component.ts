@@ -39,6 +39,7 @@ import {
   FieldType,
   GridFilter,
   GridRow,
+  GridFieldError,
   GridScope,
   LIMITS,
   Operator,
@@ -70,7 +71,9 @@ import {
   ],
 })
 export class DataGridsComponent extends BaseComponent implements OnDestroy {
-  get columnDefaults(): string[] { return defaultColumns(this.scope?.fields ?? []); }
+  get columnDefaults(): string[] {
+    return defaultColumns(this.scope?.fields ?? []);
+  }
 
   @ViewChild('schemaDetails') schemaDetails?: ElementRef<HTMLDetailsElement>;
   @ViewChild('saveDialog') saveDialog?: ElementRef<HTMLDialogElement>;
@@ -110,6 +113,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   savingAs = false;
   responseView: 'grid' | 'json' = 'grid';
   jsonResponse: Record<string, unknown> | null = null;
+  private rawData: Record<string, unknown> | null = null;
   resultPaths: string[][] = [];
   lastExecuted: SavedQuery | null = null;
   resultsStale = false;
@@ -124,6 +128,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   unavailable = false;
   error = '';
   previewError = '';
+  fieldErrors: GridFieldError[] = [];
   notice = '';
   search = '';
   fieldSearch = '';
@@ -242,7 +247,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     );
   }
   get filterFields(): GridField[] {
-    return this.scope?.fields.filter(field => !field.repeating && field.operators.length) ?? [];
+    return this.scope?.fields.filter(field => !!scalarTypeFor(field) && field.operators.length) ?? [];
   }
   get sortFields(): GridField[] {
     return this.scope?.fields.filter(field => !field.repeating && field.sortable) ?? [];
@@ -250,7 +255,9 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   get canPreview(): boolean {
     return (
       !!this.catalogue &&
-      (this.unlinked ? !!this.source.raw && !this.rawErrors.length : !!this.draft && !this.issues.length) &&
+      (this.unlinked
+        ? (!!this.source.rawResponse || !!this.source.raw) && !this.rawErrors.length
+        : !!this.draft && !this.issues.length) &&
       !this.loadingPage &&
       !this.loadingFields
     );
@@ -426,7 +433,11 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     const translated = this.i18n.t(`data-grids-${key}`) as string;
     if (translated === `data-grids-${key}` && ['title', 'intro', 'loading'].includes(key))
       return this.host.nativeElement.getAttribute('initial-' + key) || translated;
-    return translated;
+    const partialLabels: Record<string, string> = {
+      'partial-results': 'Partial results: some fields could not be read. Usable values are shown below.',
+      'field-failed': 'Field could not be read',
+    };
+    return translated === `data-grids-${key}` ? (partialLabels[key] ?? translated) : translated;
   }
   fieldLabel(id: string, fields: GridField[] = this.scope?.fields ?? []): string {
     const field = fields.find(field => field.id === id);
@@ -441,6 +452,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.fieldSequence++;
     this.modeSequence++;
     this.schemaSequence++;
+    this.schema = null;
+    this.schemaSdl = '';
+    this.schemaError = '';
+    this.schemaLoading = false;
     this.loadingFields = false;
     this.rawDraft = rawDefinition();
     this.variablesText = JSON.stringify(this.rawDraft.variables, null, 2);
@@ -582,6 +597,11 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     const scope = this.catalogue?.scopes.find(item => item.id === id);
     if (!scope || !this.draft) return;
     const seq = ++this.fieldSequence;
+    this.schemaSequence++;
+    this.schema = null;
+    this.schemaSdl = '';
+    this.schemaError = '';
+    this.schemaLoading = false;
     const scopeChanged = this.draft.recordType !== scope.recordType;
     if (scopeChanged) {
       this.draft.columns = [];
@@ -621,7 +641,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         if (index < 0) this.catalogue.scopes.push(discovered);
         else this.catalogue.scopes[index] = discovered;
       }
-      if (scopeChanged && this.draft && this.scope) {
+      if (this.draft && this.scope && (scopeChanged || !this.draft.columns.length)) {
         this.draft.columns = defaultColumns(this.scope.fields);
       }
     } catch (error) {
@@ -713,6 +733,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.rows = [];
     this.columnDefs = [];
     this.jsonResponse = null;
+    this.rawData = null;
+    this.fieldErrors = [];
     this.lastExecuted = null;
     this.resultsStale = false;
     this.hasPreview = false;
@@ -753,7 +775,12 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (seq !== this.sequence || this.disposed) return;
       validatePage(result, request.definition.pageSize, request.after);
       this.rows = result.rows;
-      this.jsonResponse = { rows: result.rows, pageInfo: result.pageInfo };
+      this.fieldErrors = result.errors ?? [];
+      this.jsonResponse = result.response ?? {
+        rows: result.rows,
+        pageInfo: result.pageInfo,
+        ...(result.errors?.length ? { errors: result.errors } : {}),
+      };
       this.columnDefs = request.definition.columns.map(id => ({
         colId: id,
         ...columnSize(id, fields.find(field => field.id === id)?.type),
@@ -784,6 +811,18 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
             }
           : {}),
       }));
+      // Wrap every renderer, including record links, so a failed null is never shown as "No value".
+      this.columnDefs.forEach(column => {
+        const render = column.cellRenderer;
+        column.cellRenderer = (params: { value: GridRow['values'][string]; data?: GridRow }) => {
+          const failures = params.data?.errors?.filter(error => error.fieldId === column.colId) ?? [];
+          if (!failures.length) return render(params);
+          const node = document.createElement('span');
+          node.className = 'text-danger';
+          node.textContent = `${this.text('field-failed')} (${[...new Set(failures.map(error => error.code))].join(', ')})`;
+          return node;
+        };
+      });
       this.cursors[page] = request.after;
       this.cursors.length = page + 1;
       this.page = page;
@@ -795,6 +834,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     } catch (error) {
       if (seq === this.sequence && !this.disposed) {
         this.rows = [];
+        this.jsonResponse = null;
+        this.fieldErrors = [];
         this.hasPreview = false;
         this.hasNext = false;
         this.previewError = error instanceof GridRequestError ? error.key : 'preview-failed';
@@ -889,7 +930,16 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.schema = null;
     try {
       if (!this.source.schema) throw new GridRequestError('schema-unavailable');
-      const [sdl, engine] = await Promise.all([this.source.schema(), import('./graphql-query')]);
+      const enginePromise = import('./graphql-query');
+      let schemaScope = this.scope ?? undefined;
+      if (this.unlinked) {
+        const engine = await enginePromise;
+        const variables = JSON.parse(this.variablesText) as Record<string, unknown>;
+        const type = engine.queryRecordType(this.rawDraft.document, variables);
+        schemaScope = type ? { id: 'editor-schema', label: type, recordType: type, fields: [] } : undefined;
+        if (seq !== this.schemaSequence || this.disposed) return;
+      }
+      const [sdl, engine] = await Promise.all([this.source.schema(schemaScope), enginePromise]);
       if (seq === this.schemaSequence && !this.disposed) {
         if (seq !== this.schemaSequence || this.disposed) return;
         this.graphqlEngine = engine;
@@ -982,13 +1032,36 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       this.mapRawResponse();
   }
   private mapRawResponse(fresh = false): void {
-    if (!this.jsonResponse) return;
+    if (!this.rawData) return;
     try {
-      const identityKey = this.rawPaginated
-        ? (this.graphqlEngine?.recordIdentityKey(this.rawDraft.document, this.rawDraft.resultPath) ?? null)
-        : null;
-      const mapped = this.graphqlEngine!.rawRows(this.jsonResponse, this.rawDraft.resultPath, identityKey);
+      const identityKey =
+        this.graphqlEngine?.recordIdentityKey(this.rawDraft.document, this.rawDraft.resultPath) ?? null;
+      const mapped = this.graphqlEngine!.rawRows(this.rawData, this.rawDraft.resultPath, identityKey);
       this.rows = mapped.rows;
+      const prefix = this.rawDraft.resultPath;
+      this.fieldErrors = this.fieldErrors.map(error => {
+        const row = error.path[prefix.length];
+        const matches =
+          prefix.every((part, index) => error.path[index] === part) && typeof row === 'number' && !!this.rows[row];
+        const relative = matches ? error.path.slice(prefix.length + 1).filter(part => typeof part === 'string') : [];
+        const field = this.scope?.fields.find(field =>
+          field.selections?.some(
+            selection =>
+              relative.length > 0 &&
+              relative
+                .slice(0, Math.min(relative.length, selection.responsePath.length))
+                .every((part, index) => part === selection.responsePath[index])
+          )
+        );
+        return {
+          code: error.code,
+          path: error.path,
+          ...(matches ? { row: row as number, oid: this.rows[row as number].recordOid } : {}),
+          ...(field ? { fieldId: field.id, label: field.label } : {}),
+        };
+      });
+      if (this.fieldErrors.length) this.jsonResponse = { data: this.rawData, errors: this.fieldErrors };
+      this.rows.forEach((row, index) => (row.errors = this.fieldErrors.filter(error => error.row === index)));
       const resultFields = this.publishFields;
       const labels = new Map(resultFields.map(field => [field.path.join('.'), field.label]));
       this.columnDefs = mapped.columns.map(key => ({
@@ -1016,6 +1089,24 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
             }
           : {}),
       }));
+      this.columnDefs.forEach(column => {
+        const render = column.cellRenderer;
+        column.cellRenderer = (params: { value: GridRow['values'][string]; data?: GridRow }) => {
+          const key = String(column.colId).split('.');
+          const failures =
+            params.data?.errors?.filter(error => {
+              const relative = error.path.slice(prefix.length + 1).filter(part => typeof part === 'string');
+              return relative
+                .slice(0, Math.min(relative.length, key.length))
+                .every((part, index) => part === key[index]);
+            }) ?? [];
+          if (!failures.length) return render(params);
+          const node = document.createElement('span');
+          node.className = 'text-danger';
+          node.textContent = `${this.text('field-failed')} (${[...new Set(failures.map(error => error.code))].join(', ')})`;
+          return node;
+        };
+      });
       this.previewError = '';
       if (fresh) this.resultsStale = false;
     } catch (error) {
@@ -1026,7 +1117,13 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     }
   }
   private async runRaw(page = 0): Promise<void> {
-    if (!this.canPreview || !this.source.raw || page < 0 || page > this.page + 1 || (page > this.page && !this.hasNext))
+    if (
+      !this.canPreview ||
+      (!this.source.rawResponse && !this.source.raw) ||
+      page < 0 ||
+      page > this.page + 1 ||
+      (page > this.page && !this.hasNext)
+    )
       return;
     const snapshot = structuredClone(this.rawDraft);
     snapshot.variables = JSON.parse(this.variablesText);
@@ -1044,9 +1141,14 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.previewError = '';
     this.resultsStale = this.hasPreview;
     try {
-      const data = await this.source.raw(snapshot.document, variables);
+      const response = this.source.rawResponse
+        ? await this.source.rawResponse(snapshot.document, variables)
+        : { data: await this.source.raw!(snapshot.document, variables) };
+      const data = response.data;
       if (seq !== this.sequence || this.disposed) return;
-      this.jsonResponse = data;
+      this.rawData = data;
+      this.fieldErrors = response.errors ?? [];
+      this.jsonResponse = this.fieldErrors.length ? { data, errors: this.fieldErrors } : data;
       this.resultPaths = this.graphqlEngine!.resultArrays(data);
       this.lastExecuted = snapshot;
       this.hasPreview = true;

@@ -512,6 +512,12 @@
                       </select>
                     </label>
                   }
+                  @if (schemaError) {
+                    <div class="alert alert-danger" role="alert">
+                      <p>{{ text(schemaError) }}</p>
+                      <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">{{ text('refresh-schema') }}</button>
+                    </div>
+                  }
                   <details #schemaDetails class="mt-2">
                     <summary>{{ text('full-schema') }}</summary>
                     <pre class="explorer-json">{{ schemaSdl }}</pre>
@@ -519,9 +525,6 @@
                     <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
                       {{ text('refresh-schema') }}
                     </button>
-                    @if (schemaError) {
-                      <p class="text-danger">{{ text(schemaError) }}</p>
-                    }
                     @if (rawErrors.length) {
                       <p>{{ text('query-check-help') }}</p>
                     }
@@ -607,6 +610,18 @@
           }
           @if (previewError) {
             <p class="alert alert-danger" role="alert">{{ text(previewError) }}</p>
+          }
+          @if (hasPreview && fieldErrors.length) {
+            <div class="alert alert-warning" role="status">
+              <p>{{ text('partial-results') }}</p>
+              <ul>
+                @for (failure of fieldErrors; track $index) {
+                  <li>{{ failure.code }} · {{ failure.label || failure.fieldId || failure.path.join('.') }}
+                    @if (failure.fieldId) { ({{ failure.fieldId }}) }
+                    · OID: {{ failure.oid }}</li>
+                }
+              </ul>
+            </div>
           }
           <div [hidden]="!hasPreview || responseView === 'json'">
             @defer (when hasPreview; prefetch when !!draft?.recordType) {

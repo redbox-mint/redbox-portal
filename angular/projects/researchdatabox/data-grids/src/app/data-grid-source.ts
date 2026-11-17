@@ -2,6 +2,7 @@ import type { NamedQueryPromotionDraft } from '@researchdatabox/sails-ng-common'
 import { InjectionToken } from '@angular/core';
 import type {
   GridCatalogue,
+  GridFieldError,
   GridListPage,
   GridDefinition,
   GridPage,
@@ -10,10 +11,16 @@ import type {
   SavedQuery,
 } from './data-grid.model';
 
+export interface GridRawResponse {
+  data: Record<string, unknown>;
+  errors?: GridFieldError[];
+}
+
 /** Authenticated discovery, collection and optional persistence boundary. */
 export interface DataGridSource {
   prepareNamedQuery?(definition: SavedQuery): Promise<NamedQueryPromotionDraft>;
-  schema?(): Promise<string>;
+  schema?(scope?: GridScope): Promise<string>;
+  rawResponse?(document: string, variables: object): Promise<GridRawResponse>;
   raw?(document: string, variables: object): Promise<Record<string, unknown>>;
   generate?(request: GridQuery): Promise<{ query: string; variables: object }>;
   stages?(scope: GridScope): Promise<GridScope[]>;

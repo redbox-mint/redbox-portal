@@ -2,6 +2,7 @@ import {
   cursorBinding,
   editorErrors,
   editorSchema,
+  queryRecordType,
   rawDefinition,
   rawRows,
   recordIdentityKey,
@@ -13,6 +14,30 @@ import { parseSavedQuery } from './record-grid.protocol';
 import { testSdl } from './data-grid.testing';
 describe('GraphQL editor contract', () => {
   const schema = editorSchema(testSdl);
+  it('scopes schemas only when all record selections have one known type', () => {
+    expect(
+      queryRecordType(
+        '{ a: records(recordType:"plan") { nodes { oid } } b: records(recordType:"publication") { nodes { oid } } }',
+        {}
+      )
+    ).toBeNull();
+    expect(
+      queryRecordType(
+        '{ a: records(recordType:"plan") { nodes { oid } } ...Other } fragment Other on Query { b: records(recordType:"publication") { nodes { oid } } }',
+        {}
+      )
+    ).toBeNull();
+    expect(
+      queryRecordType(
+        'query($type: String!) { a: records(recordType:$type) { nodes { oid } } b: records(recordType:"plan") { nodes { oid } } }',
+        { type: 'plan' }
+      )
+    ).toBe('plan');
+    expect(
+      queryRecordType('{ a: records(recordType:"plan") { nodes { oid } } b: record(oid:"x") { oid } }', {})
+    ).toBeNull();
+    expect(queryRecordType('query($type: String!) { records(recordType:$type) { nodes { oid } } }', {})).toBeNull();
+  });
   it('validates real schema selections, variables, syntax and read-only operations', () => {
     const raw = rawDefinition();
     raw.variables['type'] = 'plan';

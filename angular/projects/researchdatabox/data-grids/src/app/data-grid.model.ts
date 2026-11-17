@@ -14,6 +14,8 @@ export type Operator = RecordGridOperator;
 export interface GridField {
   group?: string;
   groupPath?: string[];
+  identity?: boolean;
+  defaultColumn?: number;
   repeatingSubfield?: boolean;
   repeatingGroupId?: string;
   selections?: { variant: string; selection: string; responsePath: string[] }[];
@@ -92,12 +94,23 @@ export interface GridCatalogue {
   /** False means list/save are unsupported, not that no saved grids exist. */
   persistence: boolean;
 }
+export interface GridFieldError {
+  code: string;
+  path: (string | number)[];
+  row?: number;
+  oid?: string;
+  fieldId?: string;
+  label?: string;
+}
 export interface GridRow {
   recordOid?: string;
   oid: string;
   values: Record<string, JsonValue>;
+  errors?: GridFieldError[];
 }
 export interface GridPage {
+  errors?: GridFieldError[];
+  response?: Record<string, unknown>;
   rows: GridRow[];
   pageInfo: { hasNextPage: boolean; endCursor: string | null };
 }
@@ -150,7 +163,7 @@ export function validateGrid(grid: GridDefinition, scope?: GridScope): GridIssue
   if (grid.filters.length > LIMITS.filters) issues.push({ key: 'too-many-filters' });
   for (const filter of grid.filters) {
     const field = scope.fields.find(item => item.id === filter.fieldId);
-    if (!field || field.repeating || field.partial || !field.operators.includes(filter.operator)) {
+    if (!field || !scalarTypeFor(field) || field.partial || !field.operators.includes(filter.operator)) {
       issues.push({ key: 'unavailable-filter', field: field?.label ?? filter.fieldId });
       continue;
     }
@@ -225,7 +238,18 @@ export function validCellValue(value: unknown, depth = 0): value is JsonValue {
 /** Prefer common record columns, retaining the catalogue order only as a last resort. */
 export function defaultColumns(fields: GridField[]): string[] {
   const available = fields.filter(field => field.selectable && !field.repeating && !field.repeatingSubfield);
+  const explicit = available
+    .filter(field => field.defaultColumn !== undefined)
+    .sort((a, b) => a.defaultColumn! - b.defaultColumn!);
+  if (explicit.length)
+    return [
+      ...new Set([
+        ...explicit.slice(0, 29).map(field => field.id),
+        ...available.filter(field => field.id === 'record:oid').map(field => field.id),
+      ]),
+    ];
   const title =
+    available.find(field => field.identity) ??
     available.find(field => field.id === 'metadata:/title') ??
     available.find(field => /(^|[:/])title$/i.test(field.id));
   const ids = [title?.id, 'record:workflowStep', 'record:lastModified', 'record:oid'].filter(

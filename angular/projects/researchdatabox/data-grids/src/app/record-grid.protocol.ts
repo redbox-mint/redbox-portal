@@ -9,6 +9,7 @@ import {
   GridScalarType,
   GridField,
   GridPage,
+  GridFieldError,
   GridQuery,
   GridScope,
   Operator,
@@ -53,7 +54,7 @@ export function scopeId(type: string, stage?: string): string {
   return JSON.stringify([type, stage ?? null]);
 }
 
-export const FIELD_PROPERTIES = `id path label labelKey displayLabel displayLabelKey group groupKey groupPath repeatingSubfield repeatingGroupId scalarType repeating selectable availableInAllVariants
+export const FIELD_PROPERTIES = `id path label labelKey displayLabel displayLabelKey group groupKey groupPath repeatingSubfield repeatingGroupId identity defaultColumn scalarType repeating selectable availableInAllVariants
   filterable operators sortable choices { label value }`;
 export function discoveryQuery(selections: boolean): string {
   return `query GridFields($type: String!, $stages: [String!], $ids: [ID!]) {
@@ -122,6 +123,14 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
       id: string(field['id']),
       path: typeof field['path'] === 'string' ? field['path'] : undefined,
       label: shortLabel,
+      identity: field['identity'] === true && allVariants,
+      defaultColumn:
+        Number.isSafeInteger(field['defaultColumn']) &&
+        Number(field['defaultColumn']) >= 0 &&
+        Number(field['defaultColumn']) < 50 &&
+        allVariants
+          ? Number(field['defaultColumn'])
+          : undefined,
       group,
       groupPath: Array.isArray(field['groupPath'])
         ? field['groupPath'].map(g => {
@@ -145,8 +154,7 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
         .filter(
           (value): value is Operator =>
             operators.includes(value as Operator) &&
-            !boolean(field['repeating']) &&
-            scalar !== 'OBJECT' &&
+            ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(scalar) &&
             allVariants &&
             boolean(field['filterable'])
         ),
@@ -234,6 +242,51 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
     after: request.after,
   });
 }
+/** Match response aliases, including errors in nested children or nullable parents. */
+export function partialFieldErrors(
+  value: unknown,
+  records: unknown,
+  request: GridQuery,
+  fields: DiscoveredField[]
+): GridFieldError[] {
+  if (value === undefined) return [];
+  const nodes = array(object(records)['nodes']);
+  return array(value).flatMap(value => {
+    const error = object(value);
+    const path = array(error['path']);
+    if (path.some(part => typeof part !== 'string' && (!Number.isSafeInteger(part) || Number(part) < 0)))
+      return invalid();
+    const row = Number(path[2]);
+    if (!nodes[row]) return invalid();
+    const node = object(nodes[row]);
+    const code = error['extensions'] && object(error['extensions'])['code'];
+    const diagnostic: GridFieldError = {
+      code: typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(code) ? code : 'FIELD_ERROR',
+      path: path as (string | number)[],
+      row,
+      oid: string(node['oid']),
+    };
+    // List indices are response positions, never part of generated field selections.
+    const relative = path.slice(3).filter(part => typeof part === 'string');
+    const matches = fields.filter(
+      field =>
+        request.definition.columns.includes(field.id) &&
+        field.selections.some(
+          selection =>
+            (selection.responsePath[0] !== 'metadata' ||
+              !node['metadata'] ||
+              selection.variant === object(node['metadata'])['__typename']) &&
+            relative
+              .slice(0, Math.min(relative.length, selection.responsePath.length))
+              .every((part, index) => part === selection.responsePath[index])
+        )
+    );
+    return matches.length
+      ? matches.map(field => ({ ...diagnostic, fieldId: field.id, label: field.label }))
+      : [diagnostic];
+  });
+}
+
 export function parsePage(value: unknown, request: GridQuery, fields: DiscoveredField[]): GridPage {
   const data = object(value);
   const rows = array(data['nodes']).map(value => {

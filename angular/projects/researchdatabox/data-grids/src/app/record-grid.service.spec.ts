@@ -11,6 +11,7 @@ import {
   discoveryQuery,
   parseDiscovery,
   parsePage,
+  partialFieldErrors,
   parseSavedDefinition,
   parseSavedQuery,
   scopeId,
@@ -212,6 +213,115 @@ describe('RecordGridService HTTP contract', () => {
     expect(generated?.query).toContain(title.selections[0].selection);
     expect(generated?.query).not.toContain('injected');
   }));
+  it('retains usable raw GraphQL rows when a nested free-form alias fails', fakeAsync(() => {
+    let data: unknown, failure: unknown;
+    // Prefer the additive response API, retaining the original strict raw fallback for older sources.
+    const execution = service.rawResponse
+      ? service
+          .rawResponse('{ plans: records(recordType:"plan") { nodes { oid title: workflowStep } } }', {})
+          .then(response => response.data)
+      : service.raw('{ plans: records(recordType:"plan") { nodes { oid title: workflowStep } } }', {});
+    execution.then(
+      value => (data = value),
+      error => (failure = error)
+    );
+    flushMicrotasks();
+    const partial = {
+      plans: {
+        nodes: [
+          { oid: 'broken', title: null },
+          { oid: 'empty', title: null },
+          { oid: 'usable', title: 'Draft' },
+        ],
+      },
+    };
+    http.expectOne(url).flush({
+      data: partial,
+      errors: [
+        {
+          message: 'PRIVATE internal exception',
+          path: ['plans', 'nodes', 0, 'title'],
+          extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+        },
+      ],
+    });
+    flushMicrotasks();
+    expect(failure).toBeUndefined();
+    expect(data).toEqual(partial);
+  }));
+  it('keeps legacy raw consumers strict while the response API is additive', fakeAsync(() => {
+    let failure: GridRequestError | undefined;
+    service.raw('{ records { nodes { oid } } }', {}).catch(error => (failure = error));
+    flushMicrotasks();
+    http
+      .expectOne(url)
+      .flush({
+        data: { records: { nodes: [{ oid: 'one' }] } },
+        errors: [{ path: ['records', 'nodes', 0, 'title'], extensions: { code: 'HISTORICAL_VALUE_TYPE' } }],
+      });
+    flushMicrotasks();
+    expect(failure?.key).toBe('preview-failed');
+  }));
+  it('returns explicit safe raw diagnostics without modifying GraphQL data', fakeAsync(() => {
+    let response: unknown;
+    service.rawResponse('{ record { oid } }', {}).then(value => (response = value));
+    flushMicrotasks();
+    const data = { record: { oid: 'one', metadata: null } };
+    http.expectOne(url).flush({
+      data,
+      errors: [
+        {
+          message: 'PRIVATE stack',
+          path: ['record', 'metadata', 'g_hash'],
+          extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+        },
+        { message: 'PRIVATE stack', path: ['record', 'metadata'], extensions: { code: 'unsafe message' } },
+      ],
+    });
+    flushMicrotasks();
+    expect(response).toEqual({
+      data,
+      errors: [
+        { code: 'HISTORICAL_VALUE_TYPE', path: ['record', 'metadata', 'g_hash'] },
+        { code: 'FIELD_ERROR', path: ['record', 'metadata'] },
+      ],
+    });
+    expect(JSON.stringify(response)).not.toContain('PRIVATE');
+    expect(Object.keys(data)).toEqual(['record']);
+  }));
+  for (const response of [
+    { data: null, errors: [{ path: ['plans', 'nodes', 0, 'title'] }] },
+    { data: { plans: null }, errors: [{ path: ['plans'] }] },
+    { data: { plans: {} }, errors: [{}] },
+    { data: { plans: {} }, errors: [{ path: ['plans', 'nodes', -1, 'title'] }] },
+  ])
+    it(
+      'keeps top-level and malformed raw failures fatal: ' + JSON.stringify(response),
+      fakeAsync(() => {
+        let failure: unknown, result: unknown;
+        service.rawResponse('{ plans { nodes { title } } }', {}).then(
+          value => (result = value),
+          error => (failure = error)
+        );
+        flushMicrotasks();
+        http.expectOne(url).flush(response);
+        flushMicrotasks();
+        expect(result).toBeUndefined();
+        expect(failure instanceof GridRequestError).toBeTrue();
+      })
+    );
+  it('retains raw request-size and transport protections', fakeAsync(() => {
+    let failure: GridRequestError | undefined;
+    service.rawResponse('x'.repeat(65537), {}).catch(error => (failure = error));
+    flushMicrotasks();
+    expect(failure?.key).toBe('query-limit');
+    http.expectNone(url);
+    service.rawResponse('{ record { oid } }', {}).catch(error => (failure = error));
+    flushMicrotasks();
+    http.expectOne(url).flush({}, { status: 503, statusText: 'Unavailable' });
+    flushMicrotasks();
+    expect(failure?.key).toBe('query-unavailable');
+  }));
   it('loads actual scoped SDL and executes raw documents/variables with session CSRF', fakeAsync(() => {
     let sdl: string | undefined, data: unknown;
     service.schema().then(value => (sdl = value));
@@ -227,6 +337,16 @@ describe('RecordGridService HTTP contract', () => {
     execution.flush({ data: { record: { oid: 'abc' } } });
     flushMicrotasks();
     expect(data).toEqual({ record: { oid: 'abc' } });
+  }));
+  it('requests only the selected record type and workflow editor SDL', fakeAsync(() => {
+    let sdl: string | undefined;
+    service.schema({ ...scope, workflowStage: 'review' }).then(value => (sdl = value));
+    flushMicrotasks();
+    http
+      .expectOne('/context/brand/portal/app/data-grids/schema?recordType=plan&workflowStage=review')
+      .flush({ data: { sdl: 'type Query { oid: ID }' } });
+    flushMicrotasks();
+    expect(sdl).toContain('type Query');
   }));
   it('parses catalogue responses at the accepted variable-depth boundary', fakeAsync(() => {
     let nested: import('./data-grid.model').JsonValue = 'leaf';
@@ -332,6 +452,78 @@ describe('RecordGridService HTTP contract', () => {
     expect<unknown>(result.rows[0].values[oid.id]).toBe('one');
     expect(result.pageInfo).toEqual({ hasNextPage: true, endCursor: 'opaque' });
   }));
+  it('retains current partial rows and maps aliases to failed field IDs and record OIDs', fakeAsync(() => {
+    let result: GridPage | undefined;
+    let error: unknown;
+    service
+      .query(request())
+      .then(value => (result = value))
+      .catch(value => (error = value));
+    flushMicrotasks();
+    http.expectOne(url).flush({ data: { recordFields: discovery() } });
+    flushMicrotasks();
+    http.expectOne(url).flush({
+      data: {
+        records: {
+          nodes: [
+            { oid: 'record-oid-one', metadata: { __typename: 'M_draft', g_title: null } },
+            { oid: 'record-oid-two', metadata: { __typename: 'M_draft', g_title: 'Usable title' } },
+            { oid: 'record-oid-three', metadata: { __typename: 'M_draft', g_title: null } },
+          ],
+          hasNextPage: false,
+          endCursor: null,
+        },
+      },
+      errors: [
+        {
+          message: 'Stored value does not match the current field type.',
+          path: ['records', 'nodes', 0, 'metadata', 'g_title'],
+          extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+        },
+      ],
+    });
+    flushMicrotasks();
+    expect(error).toBeUndefined();
+    expect(result?.rows.length).toBe(3);
+    expect(result).toEqual(
+      jasmine.objectContaining({
+        errors: [
+          jasmine.objectContaining({
+            code: 'HISTORICAL_VALUE_TYPE',
+            fieldId: title.id,
+            oid: 'record-oid-one',
+            row: 0,
+          }),
+        ],
+      })
+    );
+    expect(result?.rows[2].values[title.id]).toBeNull();
+    expect(result?.rows[0].errors?.[0].label).toBe('Title');
+    expect(result?.rows[2].errors).toEqual([]);
+    expect(result?.response?.['data']).toBeDefined();
+    expect(JSON.stringify(result?.response)).not.toContain('Stored value');
+  }));
+  for (const path of [undefined, ['records'], ['records', 'nodes']]) {
+    it(`rejects a top-level failure with usable data at ${JSON.stringify(path)}`, fakeAsync(() => {
+      let error: GridRequestError | undefined;
+      service.query(request()).catch(value => (error = value));
+      flushMicrotasks();
+      http.expectOne(url).flush({ data: { recordFields: discovery() } });
+      flushMicrotasks();
+      http.expectOne(url).flush({
+        data: {
+          records: {
+            nodes: [{ oid: 'one', metadata: { __typename: 'M_draft', g_title: 'Usable' } }],
+            hasNextPage: false,
+            endCursor: null,
+          },
+        },
+        errors: [{ path, extensions: { code: 'STORAGE_UNAVAILABLE' } }],
+      });
+      flushMicrotasks();
+      expect(error?.key).toBe('query-unavailable');
+    }));
+  }
   it('blocks filter type drift during fresh query discovery before issuing a collection request', fakeAsync(() => {
     const input = request();
     input.definition.filters = [{ fieldId: title.id, expectedScalarType: 'NUMBER', operator: 'eq', values: ['1.0'] }];
@@ -558,6 +750,31 @@ describe('Record grid protocol', () => {
       found.fields
     );
     expect<unknown>(page.rows.map(row => row.values[title.id])).toEqual(['Nested', null, null]);
+  });
+  it('maps nested list failures and null parents through generated response paths', () => {
+    const nested = {
+      ...title,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'a', 'b'] }],
+    };
+    const fields = parseDiscovery(discovery([nested, oid]), key => key).fields;
+    for (const suffix of [['metadata'], ['metadata', 'a'], ['metadata', 'a', 'b', 1, 'name']]) {
+      const errors = partialFieldErrors(
+        [
+          {
+            path: ['records', 'nodes', 0, ...suffix],
+            message: 'Never expose internal details',
+            extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+          },
+        ],
+        { nodes: [{ oid: 'actual-oid', metadata: null }] },
+        request(),
+        fields
+      );
+      expect(errors.length).toBe(1);
+      expect(errors[0].fieldId).toBe(title.id);
+      expect(errors[0].oid).toBe('actual-oid');
+      expect(JSON.stringify(errors)).not.toContain('Never expose');
+    }
   });
   it('rejects malformed pages, missing aliases and non-scalar values', () => {
     const found = parseDiscovery(discovery(), key => key);
