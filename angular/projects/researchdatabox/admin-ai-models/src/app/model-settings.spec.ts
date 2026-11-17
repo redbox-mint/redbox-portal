@@ -66,6 +66,9 @@ describe('AI model draft validation and SDK code', () => {
     expect(code).not.toContain('seed'); expect(code).not.toContain('Penalty'); expect(code).not.toContain('providerOptions');
     expect(code).toContain('"maxOutputTokens": 4096'); expect(code).toContain('credentialProvider: defaultProvider()');
   });
+  it('does not generate SDK code or expose fixed sample answers for the demo adapter', () => {
+    expect(sdkCode({ ...model, parameters: { fixtureResponse: { answers: { private: 'sample' } } } }, { ...openrouter, adapterId: 'fake' })).toBe('');
+  });
   it('uses a Bedrock bearer ref safely and strips dropped headers', () => {
     const code = sdkCode(model, { ...bedrock, authStrategy: 'bearer', secretRef: 'env:BEDROCK_KEY', nonSecretHeaders: { 'Content-Type': 'discard', 'X-Title': 'ReDBox' } });
     expect(code).toContain('process.env.BEDROCK_KEY || process.env.AWS_BEARER_TOKEN_BEDROCK');

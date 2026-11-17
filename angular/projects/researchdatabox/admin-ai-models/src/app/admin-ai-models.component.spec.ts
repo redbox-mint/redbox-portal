@@ -23,7 +23,7 @@ describe('AI models overview and editor', () => {
   let api: jasmine.SpyObj<ModelApiService>;
   let originalUrl: string;
   const changes = new Subject<void>();
-  const t = (key: string, options?: Record<string, unknown>): string => (wording[key] || key).replace(/{{(\w+)}}/g, (_, name) => String(options?.[name] ?? ''));
+  const t = (key: string, options?: Record<string, unknown> | string): string => (typeof options === 'string' ? options : wording[key] || key).replace(/{{(\w+)}}/g, (_, name) => String(typeof options === 'object' ? options?.[name] ?? '' : ''));
   beforeEach(async () => {
     originalUrl = location.pathname + location.search + location.hash;
     history.replaceState(null, '', location.pathname);
@@ -102,7 +102,7 @@ describe('AI models overview and editor', () => {
     open(); component.draft!.connectionId = 'connection-br'; component.changeConnection(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     expect(component.draft!.parameters?.seed).toBeUndefined(); expect(component.draft!.parameters?.presencePenalty).toBeUndefined();
     expect(component.draft!.routingPolicy).toEqual({}); expect(query('#ai-routing')).toBeNull(); expect(query('#ai-setting-presencePenalty')).toBeNull();
-    expect(query<HTMLInputElement>('#ai-setting-seed').disabled).toBeTrue(); expect(query('#ai-hint-seed').textContent).toContain('ai-models-unsupported-setting');
+    expect(query('#ai-setting-seed')).toBeNull(); expect(query('.ai-support-matrix').textContent).toContain('ai-models-support-hint');
   });
   it('updates SDK code from the unsaved draft', () => {
     open(); component.setNumber('maxOutputTokens', 99); fixture.detectChanges(); expect(query('.ai-sdk-code').textContent).toContain('"max_tokens": 99');
@@ -184,6 +184,74 @@ describe('AI models overview and editor', () => {
     open(); const clipboard = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
     await component.copyCode(); expect(clipboard).toHaveBeenCalledWith(component.code); expect(component.copyStatus).toBe('ai-models-copied');
     clipboard.and.rejectWith(new Error('Unavailable')); await component.copyCode(); expect(component.copyStatus).toBe('ai-models-copy-failed');
+  });
+
+  it('derives provider keys through actual input events until the key is edited', async () => {
+    component.addProvider(); fixture.detectChanges(); await fixture.whenStable();
+    const name = query<HTMLInputElement>('#provider-name-new');
+    const key = query<HTMLInputElement>('#provider-key-new');
+    name.value = 'Sydney research'; name.dispatchEvent(new Event('input')); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(key.value).toBe('sydney-research');
+    key.value = 'custom-key'; key.dispatchEvent(new Event('input')); fixture.detectChanges(); await fixture.whenStable();
+    name.value = 'Renamed'; name.dispatchEvent(new Event('input')); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.providers[0].draft.key).toBe('custom-key');
+  });
+  it('waits for blur or a save attempt before showing provider validation', async () => {
+    component.addProvider(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(query('#provider-name-error-new').textContent).toBe('');
+    query('#provider-name-new').dispatchEvent(new Event('blur')); fixture.detectChanges();
+    expect(query('#provider-name-error-new').textContent).toContain('ai-models-validation-name');
+    expect(query('#provider-key-error-new').textContent).toBe('');
+    await component.saveProviders(); fixture.detectChanges();
+    expect(query('#provider-key-error-new').textContent).toContain('ai-models-validation-key');
+    expect(api.saveConnection).not.toHaveBeenCalled();
+  });
+  it('displays connection limits in seconds and submits milliseconds with Sydney as the Bedrock default', async () => {
+    component.overview!.adapters = ['bedrock']; component.overview!.bedrockRegions = ['us-east-1', 'ap-southeast-2'];
+    component.addProvider(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(component.providers[0].draft.region).toBe('ap-southeast-2');
+    const timeout = query<HTMLInputElement>('#timeout-new'); expect(timeout.value).toBe('90');
+    timeout.value = '12.5'; timeout.dispatchEvent(new Event('input')); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.providers[0].draft.timeoutMs).toBe(12500);
+  });
+  it('uses setup status before tests and readiness status only for healthy enabled connections', () => {
+    expect(component.statusKey).toBe('ai-models-status-untested');
+    component.overview!.connections[0].lastHealthStatus = 'healthy'; expect(component.statusKey).toBe('ai-models-status-ready');
+    expect(component.readyConnections.length).toBe(1); component.overview!.connections[0].enabled = false;
+    expect(component.readyConnections.length).toBe(0);
+  });
+  it('replaces demo controls and SDK code with concise notes without changing fixed answers', () => {
+    const fixtureResponse = { answers: { title: { value: 'Fixed answer' } } };
+    component.overview!.connections[0].adapterId = 'fake'; open(); component.draft!.parameters = { fixtureResponse }; fixture.detectChanges();
+    expect(query('#ai-response .alert-info').textContent).toContain('ai-models-demo-settings');
+    expect(query('#ai-response input')).toBeNull(); expect(query('.ai-sdk-code')).toBeNull();
+    expect(component.fixtureFieldCount).toBe(1); expect(component.draft!.parameters.fixtureResponse).toEqual(fixtureResponse);
+  });
+  it('keeps published trials usable with styled segments and a cooldown label', async () => {
+    component.openModel('rdmp', 1); component.prompt = 'Synthetic'; fixture.detectChanges();
+    expect(query('#ai-try .rb-admin-segmented .btn[aria-pressed="true"]')).toBeTruthy();
+    const run = query<HTMLButtonElement>('#ai-try button.btn-outline-secondary:not([aria-pressed])');
+    expect(run.disabled).toBeFalse(); await component.runPrompt(); fixture.detectChanges();
+    expect(run.disabled).toBeTrue(); expect(run.textContent).toContain('ai-models-cooldown');
+  });
+  it('formats publication dates and identifies the publisher and current version', () => {
+    const version = component.overview!.models[0].versions[1]; version.publishedAt = '2026-11-17T00:00:00Z'; version.publishedBy = 'bootstrap';
+    component.openModel('rdmp', 1); fixture.detectChanges();
+    expect(query('#ai-versions').textContent).toContain('17/11/2026');
+    expect(query('#ai-versions').textContent).toContain('ai-models-published-by');
+    expect(query('#ai-versions [aria-current="true"]')).toBeTruthy();
+    expect(query('.ai-current-version')).toBeTruthy();
+  });
+  it('requires modal confirmation before retiring and permits cancellation', async () => {
+    open(); await component.retire(); expect(api.retire).not.toHaveBeenCalled();
+    query<HTMLButtonElement>('#ai-versions button.btn-outline-danger').click(); fixture.detectChanges();
+    const modal = query('[role="alertdialog"]'); expect(modal).toBeTruthy();
+    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); fixture.detectChanges();
+    expect(query('[role="alertdialog"]')).toBeNull(); expect(api.retire).not.toHaveBeenCalled();
+    query<HTMLButtonElement>('#ai-versions button.btn-outline-danger').click(); fixture.detectChanges();
+    api.retire.and.resolveTo({ ...clone(model), status: 'retired' });
+    query<HTMLButtonElement>('[role="alertdialog"] .rb-admin-danger-confirm').click(); await fixture.whenStable(); fixture.detectChanges();
+    expect(api.retire).toHaveBeenCalledOnceWith(model.id); expect(query('[role="alertdialog"]')).toBeNull();
   });
 
 });

@@ -1,5 +1,8 @@
 import { strict as assert } from 'node:assert';
 import * as sinon from 'sinon';
+import { ControllerExports, ControllerNames } from '../../src/controllers';
+import { Policies } from '../../src/policies';
+import { generationModelAdmin } from '../../src/policies/generationModelAdmin';
 import { Controllers, mapGenerationModelAdminError } from '../../src/controllers/GenerationModelAdminController';
 import { GenerationError } from '../../src/model/generation';
 import { routes } from '../../src/config/routes.config';
@@ -67,6 +70,12 @@ describe('Generation model Admin HTTP boundary', () => {
       const mapped = mapGenerationModelAdminError(new GenerationError(code, 'PRIVATE'));
       assert.equal(typeof translations[mapped.body.error.messageKey], 'string');
     }
+  });
+  it('exports the Admin controller and policy for pre-lift shim generation', () => {
+    assert.ok(ControllerNames.includes('GenerationModelAdminController'));
+    const exported = ControllerExports.GenerationModelAdminController as Record<string, unknown>;
+    for (const action of actions) assert.equal(typeof exported[action], 'function', action);
+    assert.equal(Policies.generationModelAdmin, generationModelAdmin);
   });
   it('declares every route with CSRF/session auth and excludes bearer promotion', () => {
     assert.equal(generationModelAdminRoutes.length, 10);
