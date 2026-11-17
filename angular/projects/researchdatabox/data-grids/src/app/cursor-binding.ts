@@ -4,7 +4,7 @@ import { Kind, parse, visit } from 'graphql';
  * Fragments/directives/aliased child fields remain usable through non-paginated JSON/grid mode. */
 export function cursorBinding(document: string, variables: Record<string, unknown>, path: string[]) {
   try {
-    const ast = parse(document, { maxTokens: 2000 });
+    const ast = parse(document, { maxLexicalTokens: 2000 });
     const ops = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
     if (ops.length !== 1 || ops[0].selectionSet.selections.length !== 1) return null;
     const root = ops[0].selectionSet.selections[0];

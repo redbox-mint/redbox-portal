@@ -82,7 +82,7 @@ export class GraphqlDraftEditorComponent implements OnChanges {
     this.parsedVariables = [];
     this.parsedNames = [];
     try {
-      const document = parse(this.operation.document, { maxTokens: 2000 });
+      const document = parse(this.operation.document, { maxLexicalTokens: 2000 });
       const operation = getOperationAST(document, this.operation.operationName);
       this.parsedVariables = (operation?.variableDefinitions ?? []).map(variable => ({
         name: variable.variable.name.value,
