@@ -67,7 +67,7 @@
             <div class="rb-generation-question">
               <label [for]="'generation-question-' + question.id">
                 <span class="rb-generation-question__number">{{ number + 1 }}</span>
-                {{ question.labelKey | i18next }}
+                {{ question.label || (question.labelKey | i18next) }}
               </label>
               @switch (question.type) {
                 @case ('textarea') {
@@ -83,14 +83,14 @@
                 @case ('enum') {
                   <select class="form-select" [id]="'generation-question-' + question.id" [formControlName]="question.id">
                     @for (option of question.options ?? []; track option.value) {
-                      <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+                      <option [value]="option.value">{{ option.label || (option.labelKey | i18next) }}</option>
                     }
                   </select>
                 }
                 @case ('multiEnum') {
                   <select class="form-select" multiple [id]="'generation-question-' + question.id" [formControlName]="question.id">
                     @for (option of question.options ?? []; track option.value) {
-                      <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+                      <option [value]="option.value">{{ option.label || (option.labelKey | i18next) }}</option>
                     }
                   </select>
                 }
@@ -98,7 +98,7 @@
                   <input class="form-control" [type]="question.type === 'date' ? 'date' : 'text'" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength" />
                 }
               }
-              @if (question.helpTextKey) { <div class="form-text">{{ question.helpTextKey | i18next }}</div> }
+              @if (question.helpText || question.helpTextKey) { <div class="form-text">{{ question.helpText || (question.helpTextKey | i18next) }}</div> }
             </div>
           }
 

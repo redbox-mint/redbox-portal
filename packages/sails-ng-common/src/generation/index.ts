@@ -7,3 +7,5 @@ export * from './form-runtime-meta';
 export * from './document';
 
 export * from './model-admin';
+
+export * from './profile-admin';

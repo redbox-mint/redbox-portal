@@ -216,7 +216,7 @@ export namespace Services {
       if (evidenceIds.some((id) => !evidenceById.has(id) || (permittedEvidenceIds && !permittedEvidenceIds.has(id)))) {
         throw new GenerationError('GENERATION_EVIDENCE_INVALID', `Generation answer '${field.id}' cited unknown evidence`);
       }
-      let reviewRequired = false;
+      let reviewRequired = field.grounding === 'inferenceAllowed';
       let reviewReasonCode: string | undefined;
       const evidence = evidenceIds.map((id) => evidenceById.get(id)!);
       const hasSource = evidence.some((item) => item.kind === 'source');

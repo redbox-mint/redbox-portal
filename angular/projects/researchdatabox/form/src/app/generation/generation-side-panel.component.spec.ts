@@ -797,6 +797,51 @@ class StatusTestTranslationPipe implements PipeTransform {
 }
 
 describe('Generation paused-status rendering', () => {
+  it('renders admin question text, help and options while retaining bootstrap translation keys', async () => {
+    const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['getRun', 'execute']);
+    api.getRun.and.resolveTo({ runId: 'paused-render', status: 'completed', phase: 'population',
+      attemptCount: 1, retryable: false, questions: [], result: null });
+    const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
+    eventBus.select$.and.returnValue(EMPTY);
+    const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
+    store.selectSignal.and.returnValue(signal(true));
+    const applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
+    const provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>('GenerationProvenanceStoreService', ['clear'], { byPointer: signal({}) });
+    await TestBed.configureTestingModule({
+      declarations: [GenerationSidePanelComponent],
+      imports: [ReactiveFormsModule, StatusTestTranslationPipe],
+      schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        { provide: GenerationApiService, useValue: api },
+        { provide: FormComponentEventBus, useValue: eventBus },
+        { provide: Store, useValue: store },
+        { provide: GenerationPatchApplierService, useValue: applier },
+        { provide: GenerationProvenanceStoreService, useValue: provenance },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(GenerationSidePanelComponent);
+    const component = fixture.componentInstance;
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('') }));
+    fixture.detectChanges();
+    component.activeSession.set({ runId: 'paused-render', bindingKey: 'documents', initialValues: [], autoOpen: true });
+    component.run.set({ runId: 'paused-render', status: 'draft', phase: 'provider',
+      attemptCount: 1, retryable: false, questions: [], result: null });
+    const questions: GenerationQuestion[] = [
+      { id: 'direct', label: 'What do you plan to collect?', helpText: 'Describe synthetic data only.', labelKey: 'old-key', type: 'enum', required: false, options: [{ value: 'one', label: 'Interview transcripts', labelKey: 'old-option' }] },
+      { id: 'legacy', labelKey: 'bootstrap-question', helpTextKey: 'bootstrap-help', type: 'text', required: false },
+    ];
+    component.questions.set(questions);
+    component.questionForm.addControl('direct', new FormControl('one'));
+    component.questionForm.addControl('legacy', new FormControl(''));
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('What do you plan to collect?');
+    expect(host.textContent).toContain('Describe synthetic data only.');
+    expect(host.textContent).toContain('Interview transcripts');
+    expect(host.textContent).toContain('bootstrap-question');
+    expect(host.textContent).not.toContain('old-key');
+    fixture.destroy();
+  });
   it('renders paused feedback and a resume button that reads status while generation remains disabled', async () => {
     const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['getRun', 'execute']);
     api.getRun.and.resolveTo({ runId: 'paused-render', status: 'completed', phase: 'population',

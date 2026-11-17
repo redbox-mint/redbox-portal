@@ -1,65 +1,17 @@
 import type {
   FormRuntimeAction,
   GenerationCandidatePatch,
-  GenerationQuestion,
   GenerationRuntimeInitialValue,
   GenerationRunPhase,
   GenerationRunStatus,
   GenerationDocument,
-  GenerationDocumentPolicy,
 } from '@researchdatabox/sails-ng-common';
 
-export type GenerationOutputType =
-  | { kind: 'string' | 'richText'; maxLength?: number }
-  | { kind: 'boolean' }
-  | { kind: 'date' }
-  | { kind: 'enum'; values: string[] }
-  | { kind: 'enumArray'; values: string[]; maxItems?: number }
-  | { kind: 'object'; properties: Record<string, GenerationOutputType> }
-  | { kind: 'objectArray'; properties: Record<string, GenerationOutputType>; maxItems?: number };
-
-export interface GenerationProfileSourceSlot {
-  id: string;
-  recordType: string;
-  allowedPaths: string[];
-  maxBytes: number;
-  /** Existing profiles require their record sources by default. */
-  required?: boolean;
-}
-
-export interface GenerationProfileQuestion extends Omit<GenerationQuestion, 'defaultValue'> {
-  sourceDefaultExpression?: string;
-}
-
-export interface GenerationProfileTargetField {
-  id: string;
-  metadataPointer: string;
-  expectedComponentClasses: string[];
-  output: GenerationOutputType;
-  operation: 'fill';
-  maxLength?: number;
-  knowledgeTags?: string[];
-  reviewedAnswerIds?: string[];
-  grounding: 'sourceRequired' | 'guidanceRequired' | 'sourceOrGuidance' | 'inferenceAllowed';
-  fallback?: { value: unknown; reasonCode: string; reviewRequired: boolean };
-}
-
-export interface GenerationProfileDefinitionV1 {
-  purpose: string;
-  systemInstructions: string;
-  sourceSlots: GenerationProfileSourceSlot[];
-  documentSources?: GenerationDocumentPolicy;
-  questions: GenerationProfileQuestion[];
-  targetFields: GenerationProfileTargetField[];
-  knowledgeCollectionVersionIds: string[];
-  modelDeploymentId: string;
-  contextLimits: {
-    totalBytes: number;
-    maxKnowledgeChunks: number;
-    maxChunkBytes: number;
-  };
-  fixtureTests?: Array<Record<string, unknown>>;
-}
+export type GenerationOutputType = import('@researchdatabox/sails-ng-common').GenerationProfileOutput;
+export type GenerationProfileDefinitionV1 = import('@researchdatabox/sails-ng-common').GenerationProfileDefinition;
+export type GenerationProfileSourceSlot = GenerationProfileDefinitionV1['sourceSlots'][number];
+export type GenerationProfileQuestion = GenerationProfileDefinitionV1['questions'][number];
+export type GenerationProfileTargetField = GenerationProfileDefinitionV1['targetFields'][number];
 
 export interface GenerationBindingDefinition {
   brandId: string;

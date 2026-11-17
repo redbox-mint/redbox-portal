@@ -284,6 +284,7 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
       requiredRoles: ['Admin', 'Librarians'],
       items: [
         { id: 'ai-models', labelKey: 'admin-nav-ai-models', href: '/admin/ai-models', requiredRoles: ['Admin'] },
+        { id: 'ai-profiles', labelKey: 'admin-nav-ai-profiles', href: '/admin/ai-profiles', requiredRoles: ['Admin'] },
         { id: 'mcp-connect', labelKey: 'mcp-connect-title', href: '/admin/mcp', requiredRoles: ['Admin', 'Librarians'] },
         { id: 'figsharepublishing', labelKey: 'admin-nav-figsharepublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/figsharePublishing' },
         { id: 'onipublishing', labelKey: 'admin-nav-onipublishing', requiredRoles: ['Admin'], href: '/admin/appconfig/edit/oniPublishing' },

@@ -11,7 +11,7 @@ interface RecordsLike {
 
 export namespace Services {
   export class GenerationContextService extends services.Core.Service {
-    protected override _exportedMethods = ['projectAllowedPaths', 'buildQuestionDefaults', 'prepare'];
+    protected override _exportedMethods = ['projectAllowedPaths', 'buildQuestionDefaults', 'validateAnswers', 'prepare'];
 
     public projectAllowedPaths(source: Record<string, unknown>, allowedPaths: string[], maxBytes: number): Record<string, unknown> {
       const projected: Record<string, unknown> = {};
@@ -34,6 +34,18 @@ export namespace Services {
       }));
     }
 
+    public validateAnswers(definition: GenerationProfileDefinitionV1, answers: Array<{ id: string; value: unknown }>): void {
+      const allowedQuestionIds = new Set(definition.questions.map((question) => question.id));
+      if (answers.length !== allowedQuestionIds.size || new Set(answers.map((answer) => answer.id)).size !== allowedQuestionIds.size ||
+        answers.some((answer) => !allowedQuestionIds.has(answer.id))) {
+        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Reviewed generation answers do not match the profile');
+      }
+      for (const question of definition.questions) {
+        const answer = answers.find((candidate) => candidate.id === question.id);
+        this.validateAnswer(question, answer?.value);
+      }
+    }
+
     public async prepare(input: {
       actor: GenerationActorContext;
       brand: unknown;
@@ -50,15 +62,7 @@ export namespace Services {
       const userRoles = input.user && typeof input.user === 'object' && Array.isArray(Reflect.get(input.user, 'roles'))
         ? Reflect.get(input.user, 'roles') as unknown[]
         : [];
-      const allowedQuestionIds = new Set(input.definition.questions.map((question) => question.id));
-      if (input.answers.length !== allowedQuestionIds.size || new Set(input.answers.map((answer) => answer.id)).size !== allowedQuestionIds.size ||
-        input.answers.some((answer) => !allowedQuestionIds.has(answer.id))) {
-        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Reviewed generation answers do not match the profile');
-      }
-      for (const question of input.definition.questions) {
-        const answer = input.answers.find((candidate) => candidate.id === question.id);
-        this.validateAnswer(question, answer?.value);
-      }
+      this.validateAnswers(input.definition, input.answers);
       const sourceValues: GenerationFrozenInput['sources'] = [];
       const sourceEvidence: GenerationEvidence[] = [];
       const documents = input.documents ?? [];

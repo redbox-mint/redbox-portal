@@ -19,7 +19,7 @@ export namespace Services {
   export class GenerationModelService extends services.Core.Service {
     protected override _exportedMethods = [
       'createConnection', 'safeConnection', 'createDeployment', 'testDeployment', 'publishDeployment',
-      'adminOverview', 'saveAdminConnection', 'testConnectionDraft', 'createModel', 'newDeploymentVersion',
+      'testProfileRequests', 'adminOverview', 'saveAdminConnection', 'testConnectionDraft', 'createModel', 'newDeploymentVersion',
       'updateDeploymentDraft', 'retireDeployment', 'tryPrompt', 'deleteConnection', 'discardDeployment', 'deleteModel',
     ];
 
@@ -372,6 +372,26 @@ export namespace Services {
         limits: { provider: { ...sails.config.generation.provider },
           outbound: { allowedHosts: [...sails.config.generation.outbound.allowedHosts] }, cooldownMs: 5000, maxPromptChars: 2000 },
         connections: await Promise.all(connections.map(value => this.safeConnection(value))), models: groups };
+    }
+    /** Synthetic profile tests share the same credentials, outbound rules and cooldown as model tests. */
+    public async testProfileRequests(brandId: string, actorId: string, deploymentId: string, requests: import('../model/generation').GenerationProviderRequest[]) {
+      const deployment = await this.deployment(brandId, deploymentId);
+      const connection = await this.connection(brandId, deployment.connectionId);
+      if (deployment.status !== 'published' || !connection.enabled || !requests.length || requests.length > 5) throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Published model required');
+      this.takeCooldown(brandId, actorId);
+      this.checkOutbound(connection.adapterId, connection.endpoint);
+      return this.bounded(connection.timeoutMs, async signal => {
+        const secret = connection.secretRef ? await this.resolver().resolve(connection.secretRef) : undefined;
+        const results: import('../model/generation').GenerationProviderResponse[] = [];
+        for (const request of requests) {
+          if (Buffer.byteLength(JSON.stringify(request)) > sails.config.generation.provider.maxRequestBytes) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Test request too large');
+          const response = await this.registry().get(connection.adapterId).invoke({ ...request, deployment,
+            connection: { endpoint: connection.endpoint, timeoutMs: Math.min(connection.timeoutMs, sails.config.generation.provider.timeoutMs), secret, nonSecretHeaders: connection.nonSecretHeaders } }, signal);
+          if (Buffer.byteLength(response.content) > sails.config.generation.provider.maxResponseBytes) throw new GenerationError('GENERATION_OUTPUT_PARSE_FAILED', 'Test response too large');
+          results.push({ ...response, content: secret ? response.content.split(secret).join('[redacted]') : response.content });
+        }
+        return results;
+      });
     }
     public async tryPrompt(brandId: string, actorId: string, input: unknown) {
       const body = parseAdminInput(tryPromptSchema, input);

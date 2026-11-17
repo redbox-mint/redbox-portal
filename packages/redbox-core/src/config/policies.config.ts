@@ -67,10 +67,10 @@ export function buildContractApiPolicies(
   return apiRoutes.reduce((acc, route) => {
     const controllerPolicies = acc[route.controller] as ControllerPolicies | undefined;
     acc[route.controller] = {
-      '*': route.controller === 'GenerationModelAdminController' ? generationModelAdminPolicies : noCachePlusDefaultPolicies,
+      '*': ['GenerationModelAdminController', 'GenerationProfileAdminController'].includes(route.controller) ? generationModelAdminPolicies : noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
       [route.action]:
-        route.controller === 'GenerationModelAdminController'
+        ['GenerationModelAdminController', 'GenerationProfileAdminController'].includes(route.controller)
           ? generationModelAdminPolicies
           : route.controller === 'webservice/RecordGraphqlController'
           ? noCachePlusApiValidationPolicies.map(policy => (policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy))
@@ -159,6 +159,10 @@ export const policies: PoliciesConfig = {
     renderFont: ['contentSecurityPolicy'],
   },
   ...contractApiPolicies,
+  GenerationProfileAdminController: {
+    ...(contractApiPolicies.GenerationProfileAdminController as ControllerPolicies),
+    page: ['noCache', ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'), 'generationModelAdmin'],
+  },
   GenerationModelAdminController: {
     ...(contractApiPolicies.GenerationModelAdminController as ControllerPolicies),
     page: ['noCache', ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'), 'generationModelAdmin'],

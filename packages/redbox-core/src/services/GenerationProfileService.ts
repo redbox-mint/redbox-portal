@@ -72,7 +72,7 @@ export namespace Services {
         slot.allowedPaths.forEach((pointer) => this.assertPointer(pointer, 'source'));
       }
       for (const question of definition.questions) {
-        if (typeof question.labelKey !== 'string' || !question.labelKey.trim() || !GENERATION_QUESTION_TYPES.includes(question.type) ||
+        if (!(question.label?.trim() || question.labelKey?.trim()) || !GENERATION_QUESTION_TYPES.includes(question.type) ||
           (question.maxLength !== undefined && (!Number.isSafeInteger(question.maxLength) || question.maxLength <= 0)) ||
           (question.options !== undefined && !Array.isArray(question.options))) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' is invalid`);
@@ -80,7 +80,7 @@ export namespace Services {
         const isChoice = question.type === 'enum' || question.type === 'multiEnum';
         const options = question.options ?? [];
         if ((isChoice && (!options.length ||
-          options.some(option => !option || typeof option.value !== 'string' || !option.value.trim() || typeof option.labelKey !== 'string' || !option.labelKey.trim()) ||
+          options.some(option => !option || typeof option.value !== 'string' || !option.value.trim() || !(option.label?.trim() || option.labelKey?.trim())) ||
           new Set(options.map(option => option.value)).size !== options.length)) || (!isChoice && options.length > 0)) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' has invalid options`);
         }
@@ -168,7 +168,7 @@ export namespace Services {
       if (!current || current.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft profile versions may be edited');
       if (expectedContentHash && current.contentHash !== expectedContentHash) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
       const validated = this.validateDefinition(definition);
-      const updated = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft' }).set({
+      const updated = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: current.contentHash }).set({
         definition: validated, contentHash: canonicalHash(validated),
       });
       if (!updated) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
@@ -187,7 +187,7 @@ export namespace Services {
         }
       }
       const publishedAt = new Date().toISOString();
-      const published = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft' }).set({
+      const published = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: version.contentHash }).set({
         status: 'published', publishedBy: actorId, publishedAt,
       });
       if (!published) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
