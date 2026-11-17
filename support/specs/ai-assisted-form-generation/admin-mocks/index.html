@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI drafting overview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><span>AI-assisted drafting</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><a class="btn btn-secondary" href="#">Read the setup guide</a></div>
+    </header>
+    <div id="gen-tabs" data-active="overview"></div>
+
+    <div class="alert info" role="status"><div><b>Researchers can't use AI drafting yet</b>Two steps remain: publish a profile, then add a form action so the button appears on records.</div></div>
+
+    <div class="split">
+      <div class="split-main">
+        <div class="card">
+          <div class="card-h"><h2>Set up AI drafting</h2><span class="meta">3 of 5 complete</span></div>
+          <ol class="steps">
+            <li class="done">
+              <span class="step-ic" aria-hidden="true">✓</span>
+              <div class="step-body"><h3>Connect a model provider</h3><p>Amazon Bedrock (Sydney) · last checked healthy today at 09:12</p></div>
+              <div class="step-act"><a class="btn btn-ghost btn-sm" href="models.html">Review</a></div>
+            </li>
+            <li class="done">
+              <span class="step-ic" aria-hidden="true">✓</span>
+              <div class="step-body"><h3>Choose a model</h3><p>Amazon Nova Lite for RDMPs · version 1 published</p></div>
+              <div class="step-act"><a class="btn btn-ghost btn-sm" href="models.html">Review</a></div>
+            </li>
+            <li class="done">
+              <span class="step-ic" aria-hidden="true">✓</span>
+              <div class="step-body"><h3>Add approved guidance <span class="badge">Optional</span></h3><p>1 collection live (3 documents, 27 passages) · draft v2 adds 1 document. Without guidance, fields that need policy wording fall back to a review note.</p></div>
+              <div class="step-act"><a class="btn btn-ghost btn-sm" href="knowledge.html">Review</a></div>
+            </li>
+            <li class="current">
+              <span class="step-ic" aria-hidden="true">4</span>
+              <div class="step-body"><h3>Publish a profile</h3><p>A profile says what to read, what to ask the researcher and which fields to fill. <b>Research Activity → RDMP</b> is a draft with 1 problem to fix.</p></div>
+              <div class="step-act"><a class="btn btn-primary btn-sm" href="profile-edit.html">Continue profile</a></div>
+            </li>
+            <li>
+              <span class="step-ic" aria-hidden="true">5</span>
+              <div class="step-body"><h3>Add a form action</h3><p>Choose which records show the “Draft with AI” button and who can use it.</p></div>
+              <div class="step-act"><button class="btn btn-secondary btn-sm" type="button" disabled title="Publish a profile first">Add action</button></div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2>Last 7 days</h2><span class="meta"><a href="activity.html" style="color:#fff;text-decoration:underline">View activity</a></span></div>
+          <div class="card-b">
+            <div class="stats" style="margin-bottom:0">
+              <div class="stat"><b>0</b><span>Researcher drafts</span></div>
+              <div class="stat"><b>6</b><span>Admin test runs</span></div>
+              <div class="stat"><b>—</b><span>Suggestions kept</span></div>
+              <div class="stat"><b>0 / 500</b><span>Brand daily limit used</span><div class="meter" aria-hidden="true"><i style="width:0"></i></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="split-side">
+        <div class="card">
+          <div class="card-h plain"><h2>Server settings</h2><span class="lock" title="Changed in environment configuration">🔒 Operator only</span></div>
+          <p class="small muted" style="margin:12px 16px 4px">These are set by your server operator and apply to every brand. Ask them to change a value.</p>
+          <dl class="ro-list" style="grid-template-columns:1fr">
+            <div><dt>Feature</dt><dd><span class="badge ok"><span class="dot"></span>Enabled</span></dd><span class="env">sails__generation_enabled</span></div>
+            <div><dt>Installed providers</dt><dd>Amazon Bedrock, OpenRouter, Demo (no AI)</dd><span class="env">sails__generation_adapters</span></div>
+            <div><dt>Diagnostic encryption key</dt><dd><span class="badge ok">Configured</span> <span class="small muted">key generation-v1</span></dd></div>
+            <div><dt>Allowed provider hosts</dt><dd class="mono">openrouter.ai, *.amazonaws.com</dd><span class="env">sails__generation_outbound_allowedHosts</span></div>
+            <div><dt>Per researcher</dt><dd>2 at a time · 25 a day</dd></div>
+            <div><dt>Per brand</dt><dd>10 at a time · 500 a day</dd></div>
+            <div><dt>Uploaded documents</dt><dd>Up to 5 files · 5 MB each · 200 pages</dd></div>
+            <div><dt>Diagnostics kept for</dt><dd>7 days (max 30)</dd></div>
+          </dl>
+        </div>
+      </aside>
+    </div>
+
+    <div class="note" style="margin-top:8px"><b>Design notes.</b> One sidebar entry (“AI-assisted drafting” under Integrations) opens a single embedded app with tabs, as the design spec proposes. The overview is a checklist because the five entities depend on each other in a fixed order, and admins otherwise can’t tell why the button isn’t showing. Steps link to the exact place to continue; a step whose prerequisite is missing is disabled with a reason. Environment-backed <span class="inline-code">generation.config.ts</span> values are shown read-only with their variable names so brand admins understand limits they can’t change. The sidebar tag reads “Setup” until a binding is live, then “On”.</div>
+  </div></main>
+</div>
+</body>
+</html>

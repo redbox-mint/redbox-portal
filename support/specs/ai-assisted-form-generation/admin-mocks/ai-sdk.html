@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI model settings</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<style>
+  .prov{border:1px solid var(--line);border-radius:var(--r);background:#fff}
+  .prov + .prov{margin-top:10px}
+  .prov > summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 14px}
+  .prov > summary::-webkit-details-marker{display:none}
+  .prov[open] > summary{border-bottom:1px solid var(--line-soft)}
+  .prov > summary .grow{flex:1;min-width:200px}
+  .prov > summary h4{font-size:15px}
+  .prov-b{padding:14px;display:flex;flex-direction:column;gap:14px;background:#fcfcfd}
+  .pkg{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .support td,.support th{text-align:center}
+  .support td:first-child,.support th:first-child{text-align:left}
+  .yes{color:#0f5132;font-weight:700}.no{color:var(--faint)}
+  pre.code{max-width:100%;margin:0;background:#1f2329;color:#e6e6e6;border-radius:var(--r);padding:14px;font-family:var(--mono);font-size:12.5px;line-height:1.55;overflow:auto;white-space:pre}
+  pre.code .k{color:#c792ea}pre.code .s{color:#c3e88d}pre.code .c{color:#7f8a99}pre.code .n{color:#f78c6c}
+  .locked td:first-child b{display:block}
+  .result{border:1px solid var(--line);border-radius:var(--r);background:#fff}
+  .result pre{margin:0;padding:12px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;color:#3d434a;border-bottom:1px solid var(--line-soft)}
+  .result .kv{padding:10px 12px;grid-template-columns:120px 1fr;font-size:13px}
+</style>
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><span>Models</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><a class="btn btn-secondary" href="#sdk-code">View SDK code</a><a class="btn btn-secondary" href="#try">Try a prompt</a></div>
+    </header>
+    <div id="gen-tabs" data-active="models"></div>
+
+    <div class="alert ok" role="status"><div><b>2 providers ready</b>OpenRouter and Amazon Bedrock passed their last test at 09:12. Default model: <b>rdmp-default</b> → <span class="mono">anthropic/claude-haiku-4.5</span> through OpenRouter.</div></div>
+
+    <div class="split">
+      <nav class="split-nav" aria-label="Model settings sections" style="position:sticky;top:16px">
+        <div class="grp">Setup</div>
+        <a href="#providers" class="on" aria-current="true"><span>Providers</span><span class="badge">2</span></a>
+        <a href="#models"><span>Models</span><span class="badge">3</span></a>
+        <div class="grp">Generation</div>
+        <a href="#settings"><span>Default settings</span></a>
+        <a href="#structured"><span>Structured output</span></a>
+        <a href="#routing"><span>OpenRouter routing</span></a>
+        <div class="grp">Operations</div>
+        <a href="#reliability"><span>Time limits &amp; retries</span></a>
+        <a href="#locked"><span>Fixed by ReDBox</span></a>
+        <div class="grp">Check</div>
+        <a href="#try"><span>Try a prompt</span></a>
+        <a href="#sdk-code"><span>SDK code</span></a>
+      </nav>
+
+      <div class="split-main">
+
+        <!-- PROVIDERS -->
+        <div class="fsec" id="providers">
+          <div class="fsec-h"><div><h3>Providers</h3><p>Each provider is an AI SDK provider package. ReDBox creates it with these settings when a draft runs.</p></div></div>
+          <div class="fsec-b">
+
+            <details class="prov" open>
+              <summary>
+                <span class="conn-ic" aria-hidden="true" style="width:32px;height:32px">OR</span>
+                <span class="grow"><h4>OpenRouter</h4><span class="pkg">@ai-sdk/openai-compatible 3.0.31 · createOpenAICompatible()</span></span>
+                <span class="health ok"><span class="dot"></span>Tested 09:12</span>
+                <label class="switch on" onclick="event.preventDefault()"><i></i>On</label>
+                <span class="chev" aria-hidden="true">›</span>
+              </summary>
+              <div class="prov-b">
+                <div class="fgrid">
+                  <div class="field"><label for="or-n">Display name</label><input id="or-n" class="inp" value="OpenRouter" data-dirty></div>
+                  <div class="field"><label for="or-b">Base URL <span class="lock" style="margin-left:4px">🔒</span></label><input id="or-b" class="inp mono" value="https://openrouter.ai/api/v1" readonly><span class="hint">Fixed by the OpenRouter adapter (<span class="mono">baseURL</span>).</span></div>
+                </div>
+                <div class="field">
+                  <label for="or-k">API key <span class="req">*</span></label>
+                  <div class="row" style="flex-wrap:nowrap;gap:8px">
+                    <select class="inp" style="max-width:190px" aria-label="Where the API key is kept"><option>Environment variable</option><option disabled>Secrets manager (not installed)</option></select>
+                    <input id="or-k" class="inp mono" value="OPENROUTER_API_KEY" data-dirty>
+                  </div>
+                  <span class="hint">Passed to the SDK as <span class="mono">apiKey</span>. Saved as <span class="mono">env:OPENROUTER_API_KEY</span>; the value never reaches the browser. <span class="badge ok" style="margin-left:4px">Found on server</span></span>
+                </div>
+                <div class="field">
+                  <span class="lbl">Extra headers <span class="muted" style="font-weight:400">(<span class="mono">headers</span>)</span></span>
+                  <div class="stack-sm">
+                    <div class="maprow"><input class="inp mono" value="HTTP-Referer" aria-label="Header name 1"><span class="arrow">:</span><input class="inp mono" value="https://redbox.example.edu.au" aria-label="Header value 1"><button class="btn btn-ghost btn-sm" type="button" aria-label="Remove header 1">✕</button></div>
+                    <div class="maprow"><input class="inp mono" value="X-Title" aria-label="Header name 2"><span class="arrow">:</span><input class="inp mono" value="ReDBox" aria-label="Header value 2"><button class="btn btn-ghost btn-sm" type="button" aria-label="Remove header 2">✕</button></div>
+                  </div>
+                  <span class="hint">OpenRouter uses these to attribute your app. Authorization, Cookie, Host and Content-Type are always dropped.</span>
+                </div>
+                <div class="row" style="justify-content:space-between"><span class="hint">Structured outputs are switched on for this provider (<span class="mono">supportsStructuredOutputs: true</span>).</span><button class="btn btn-secondary btn-sm" type="button">Test provider</button></div>
+              </div>
+            </details>
+
+            <details class="prov">
+              <summary>
+                <span class="conn-ic" aria-hidden="true" style="width:32px;height:32px">AWS</span>
+                <span class="grow"><h4>Amazon Bedrock</h4><span class="pkg">@ai-sdk/amazon-bedrock 5.0.58 · createAmazonBedrock()</span><span class="sub">Sydney (ap-southeast-2) · server AWS role</span></span>
+                <span class="health ok"><span class="dot"></span>Tested 09:12</span>
+                <label class="switch on" onclick="event.preventDefault()"><i></i>On</label>
+                <span class="chev" aria-hidden="true">›</span>
+              </summary>
+              <div class="prov-b">
+                <div class="fgrid">
+                  <div class="field"><label for="bd-r">Region <span class="req">*</span></label><select id="bd-r" class="inp"><option>Asia Pacific (Sydney) · ap-southeast-2</option><option>Asia Pacific (Melbourne) · ap-southeast-4</option></select><span class="hint">Sets <span class="mono">region</span> and <span class="mono">baseURL</span>.</span></div>
+                </div>
+                <div class="field"><span class="lbl">Credentials</span>
+                  <div class="choices" style="grid-template-columns:1fr 1fr">
+                    <label class="choice"><input type="radio" name="bd-c" checked><span><b>Server AWS role</b><span>AWS default credential chain (<span class="mono">credentialProvider</span>).</span></span></label>
+                    <label class="choice"><input type="radio" name="bd-c"><span><b>Bedrock API key</b><span>Environment variable, sent as <span class="mono">apiKey</span>.</span></span></label>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div class="tbl-wrap" style="margin-top:14px;border:1px dashed #c9cdd2;border-radius:var(--r)"><table class="tbl">
+              <thead><tr><th>Other AI SDK providers</th><th>Package</th><th class="act">Status</th></tr></thead>
+              <tbody>
+                <tr><td>OpenAI-compatible server <span class="sub">vLLM, Ollama, LiteLLM or an institutional gateway</span></td><td class="pkg">@ai-sdk/openai-compatible</td><td class="act"><span class="badge">Installed · adapter needed</span></td></tr>
+                <tr><td>OpenAI</td><td class="pkg">@ai-sdk/openai</td><td class="act"><span class="badge">Not installed</span></td></tr>
+                <tr><td>Anthropic</td><td class="pkg">@ai-sdk/anthropic</td><td class="act"><span class="badge">Not installed</span></td></tr>
+                <tr><td>Azure OpenAI</td><td class="pkg">@ai-sdk/azure</td><td class="act"><span class="badge">Not installed</span></td></tr>
+                <tr><td>Google Vertex AI</td><td class="pkg">@ai-sdk/google-vertex</td><td class="act"><span class="badge">Not installed</span></td></tr>
+              </tbody>
+            </table></div>
+            <p class="hint" style="margin:8px 0 0">Your server operator adds provider packages and lists them in <span class="mono">sails__generation_adapters</span>. Only those appear above.</p>
+          </div>
+        </div>
+
+        <!-- MODELS -->
+        <div class="fsec" id="models">
+          <div class="fsec-h"><div><h3>Models</h3><p>Short names profiles use instead of raw model IDs, so you can swap models without editing every profile.</p></div><button class="btn btn-secondary btn-sm" type="button">+ Add model</button></div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Name</th><th>Provider</th><th>Model ID</th><th>Overrides</th><th>Used by</th><th class="act">Actions</th></tr></thead>
+            <tbody>
+              <tr><td><b class="mono">rdmp-default</b> <span class="badge info">Default</span></td><td>OpenRouter</td><td class="mono">anthropic/claude-haiku-4.5</td><td class="small">Temperature 0.2 · zero data retention</td><td class="small"><a href="profiles.html">1 profile</a></td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for rdmp-default">⋯</button></td></tr>
+              <tr><td><b class="mono">au-only</b></td><td>Amazon Bedrock</td><td class="mono">amazon.nova-lite-v1:0</td><td class="small">Max 4,096 tokens</td><td class="small muted">Not used</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for au-only">⋯</button></td></tr>
+              <tr><td><b class="mono">demo</b></td><td>Demo (no AI)</td><td class="mono">redbox-fixture-rdmp-1</td><td class="small muted">—</td><td class="small muted">Not used</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for demo">⋯</button></td></tr>
+            </tbody>
+          </table></div>
+          <div class="fsec-b" style="border-top:1px solid var(--line)">
+            <div class="field"><label for="m-id">Find a model on OpenRouter</label><input id="m-id" class="inp mono" value="anthropic/claude-haiku-4.5" list="or-models"><datalist id="or-models"><option value="anthropic/claude-haiku-4.5"><option value="openai/gpt-5-mini"><option value="google/gemini-2.5-flash"><option value="meta-llama/llama-4-maverick"></datalist><span class="hint">Search lists only models that support structured output. Each published change creates a new version; runs keep the version they used.</span></div>
+          </div>
+        </div>
+
+        <!-- DEFAULT SETTINGS -->
+        <div class="fsec" id="settings">
+          <div class="fsec-h"><div><h3>Default settings</h3><p>Call settings passed to <span class="mono">generateText()</span>. A model can override any of them.</p></div><button class="btn btn-ghost btn-sm" type="button">Reset to recommended</button></div>
+          <div class="fsec-b stack">
+            <div class="field">
+              <label for="s-t">Temperature <span class="mono muted" style="font-weight:400">temperature</span></label>
+              <div class="range"><span class="small muted">Consistent</span><input id="s-t" type="range" min="0" max="1" step="0.05" value="0.2" data-out="s-t-o" data-dirty><span class="small muted">Varied</span><output id="s-t-o" for="s-t">0.2</output></div>
+              <span class="hint">0–0.3 suits record metadata. Change temperature <i>or</i> top P, not both.</span>
+            </div>
+            <div class="fgrid">
+              <div class="field"><label for="s-mo">Maximum response length <span class="mono muted" style="font-weight:400">maxOutputTokens</span></label><input id="s-mo" class="inp" type="number" value="4096"><span class="hint">About 3,000 words. Too low cuts off long fields.</span></div>
+              <div class="field"><label for="s-tp">Top P <span class="mono muted" style="font-weight:400">topP</span></label><input id="s-tp" class="inp" type="number" step="0.05" placeholder="Provider default"></div>
+              <div class="field"><label for="s-seed">Seed <span class="mono muted" style="font-weight:400">seed</span></label><input id="s-seed" class="inp" type="number" placeholder="None"><span class="hint">Makes repeat runs more alike where supported.</span></div>
+            </div>
+            <div class="field"><label for="s-stop">Stop sequences <span class="mono muted" style="font-weight:400">stopSequences</span></label><div class="chipbox" id="s-stop"><input aria-label="Add stop sequence" placeholder="None. Rarely needed with structured output."></div></div>
+            <details class="fsec" style="margin:0">
+              <summary class="fsec-h"><div><h3 style="font-size:14.5px">Which providers accept which settings</h3><p>Unsupported settings are ignored and flagged when you test</p></div><span class="chev" aria-hidden="true">›</span></summary>
+              <div class="tbl-wrap"><table class="tbl support">
+                <thead><tr><th>Setting</th><th>OpenRouter</th><th>Bedrock</th></tr></thead>
+                <tbody>
+                  <tr><td>temperature</td><td class="yes">✓</td><td class="yes">✓ <span class="sub">0–1</span></td></tr>
+                  <tr><td>maxOutputTokens</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+                  <tr><td>topP</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+                  <tr><td>stopSequences</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+                  <tr><td>seed</td><td class="yes">✓</td><td class="no">—</td></tr>
+                  <tr><td>presencePenalty / frequencyPenalty</td><td class="yes">✓</td><td class="no">—</td></tr>
+                </tbody>
+              </table></div>
+            </details>
+          </div>
+        </div>
+
+        <!-- STRUCTURED OUTPUT -->
+        <details class="fsec" id="structured">
+          <summary class="fsec-h"><div><h3>Structured output</h3><p>Strict JSON schema on · output name redbox_generation_candidate</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b stack">
+            <label class="row" style="gap:8px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Require the model to follow the schema exactly <span class="mono muted">providerOptions.openrouter.strictJsonSchema</span></label>
+            <span class="hint" style="margin-top:-10px">Recommended. ReDBox builds the schema from each profile’s fields (<span class="mono">Output.object()</span>) and rejects responses that don’t match.</span>
+            <div class="field"><label for="po">Extra provider options (JSON) <span class="mono muted" style="font-weight:400">providerOptions</span></label><textarea id="po" class="inp mono" rows="4">{
+  "openrouter": { "strictJsonSchema": true }
+}</textarea><span class="hint">Keyed by provider name, merged into every call. Checked against the provider’s option schema when you save.</span></div>
+          </div>
+        </details>
+
+        <!-- ROUTING -->
+        <details class="fsec" id="routing">
+          <summary class="fsec-h"><div><h3>OpenRouter routing</h3><p>Zero data retention · no prompt logging · fallbacks allowed · cheapest first</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b stack">
+            <p class="small muted" style="margin:0">OpenRouter passes each request to one of several upstream providers. These rules are sent as the request’s <span class="mono">provider</span> object.</p>
+            <label class="row" style="gap:8px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Only use upstream providers with zero data retention <span class="mono muted">zdr</span></label>
+            <label class="row" style="gap:8px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Exclude providers that may store or train on prompts <span class="mono muted">data_collection: "deny"</span></label>
+            <label class="row" style="gap:8px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Fall back to another provider if the first fails <span class="mono muted">allow_fallbacks</span></label>
+            <div class="fgrid">
+              <div class="field"><span class="lbl">Prefer</span><div class="seg" role="group" aria-label="Prefer"><button type="button" class="on" aria-pressed="true">Lowest price</button><button type="button" aria-pressed="false">Fastest</button><button type="button" aria-pressed="false">Lowest latency</button></div></div>
+              <div class="field"><label for="r-only">Only these providers <span class="mono muted" style="font-weight:400">only</span></label><div class="chipbox" id="r-only"><input aria-label="Add provider" placeholder="Any provider"></div></div>
+            </div>
+            <span class="hint">ReDBox always adds <span class="mono">require_parameters: true</span> so a provider that can’t honour structured output is skipped.</span>
+          </div>
+        </details>
+
+        <!-- RELIABILITY -->
+        <details class="fsec" id="reliability">
+          <summary class="fsec-h"><div><h3>Time limits &amp; retries</h3><p>OpenRouter 90 s · Bedrock 90 s · 1 queue retry</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="to-or">OpenRouter time limit (seconds)</label><input id="to-or" class="inp" type="number" value="90" max="90"></div>
+              <div class="field"><label for="to-bd">Bedrock time limit (seconds)</label><input id="to-bd" class="inp" type="number" value="90" max="90"></div>
+            </div>
+            <dl class="ro-list" style="border:1px solid var(--line-soft);border-radius:var(--r)">
+              <div><dt>Retries <span class="lock">🔒</span></dt><dd>1, by the job queue</dd><span class="env">sails__generation_provider_maxRetries</span></div>
+              <div><dt>Largest request <span class="lock">🔒</span></dt><dd>500 KB</dd><span class="env">sails__generation_provider_maxRequestBytes</span></div>
+              <div><dt>Largest response <span class="lock">🔒</span></dt><dd>250 KB</dd><span class="env">sails__generation_provider_maxResponseBytes</span></div>
+              <div><dt>Server time limit <span class="lock">🔒</span></dt><dd>90 seconds</dd><span class="env">sails__generation_provider_timeoutMs</span></div>
+            </dl>
+            <span class="hint">The SDK’s own <span class="mono">maxRetries</span> stays at 0 so a failed run is retried once, visibly, rather than silently inside one request.</span>
+          </div>
+        </details>
+
+        <!-- LOCKED -->
+        <details class="fsec" id="locked">
+          <summary class="fsec-h"><div><h3>Fixed by ReDBox</h3><p>SDK features that stay off for safety and privacy · 5 settings</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="tbl-wrap"><table class="tbl locked">
+            <thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td><b>Streaming</b><span class="mono sub">stream</span></td><td>Off</td><td class="small">The whole answer is validated before a researcher sees it.</td></tr>
+              <tr><td><b>Tools and plugins</b><span class="mono sub">tools, plugins</span></td><td>Off</td><td class="small">The model can’t call out to other services or fetch URLs.</td></tr>
+              <tr><td><b>Telemetry</b><span class="mono sub">telemetry.isEnabled</span></td><td>Off</td><td class="small">Prompts and outputs aren’t recorded by tracing tools.</td></tr>
+              <tr><td><b>Redirects</b><span class="mono sub">fetch redirect</span></td><td>Blocked</td><td class="small">Requests can’t be bounced to an unapproved host.</td></tr>
+              <tr><td><b>SDK retries</b><span class="mono sub">maxRetries</span></td><td>0</td><td class="small">Retries are handled by the job queue (see above).</td></tr>
+            </tbody>
+          </table></div>
+        </details>
+
+        <!-- TRY -->
+        <div class="fsec" id="try">
+          <div class="fsec-h"><div><h3>Try a prompt</h3><p>Runs one <span class="mono">generateText()</span> call with your <b>unsaved</b> settings. Use synthetic text only.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="t-m">Model</label><select id="t-m" class="inp"><option>rdmp-default · OpenRouter · anthropic/claude-haiku-4.5</option><option>au-only · Bedrock · amazon.nova-lite-v1:0</option></select></div>
+              <div class="field"><span class="lbl">Output</span><div class="seg" role="group" aria-label="Output"><button type="button" class="on" aria-pressed="true">Sample schema</button><button type="button" aria-pressed="false">Plain text</button></div></div>
+            </div>
+            <div class="field"><label for="t-p">Prompt</label><textarea id="t-p" class="inp" rows="2">Write a one-sentence storage approach for a project producing de-identified survey responses.</textarea></div>
+            <div><button class="btn btn-secondary" type="button">Run</button></div>
+            <div class="result" aria-live="polite">
+              <pre>{ "storageApproach": "Store de-identified responses on the institution-managed research drive with role-based access and encrypted backups." }</pre>
+              <dl class="kv">
+                <dt>Answered by</dt><dd><span class="mono">anthropic/claude-haiku-4.5</span> via Anthropic</dd>
+                <dt>Finish reason</dt><dd>stop</dd>
+                <dt>Tokens</dt><dd>142 in · 38 out · US$0.0003</dd>
+                <dt>Time</dt><dd>1.4 s</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <!-- SDK CODE -->
+        <details class="fsec" id="sdk-code">
+          <summary class="fsec-h"><div><h3>SDK code</h3><p>What ReDBox will run for <b>rdmp-default</b> with these settings · read-only</p></div><span class="row" style="gap:8px"><button class="btn btn-ghost btn-sm" type="button" onclick="event.preventDefault()">Copy</button><span class="chev" aria-hidden="true">›</span></span></summary>
+          <div class="fsec-b">
+<pre class="code"><span class="k">const</span> openrouter = createOpenAICompatible({
+  name: <span class="s">'openrouter'</span>,
+  baseURL: <span class="s">'https://openrouter.ai/api/v1'</span>,
+  apiKey: process.env.OPENROUTER_API_KEY, <span class="c">// env:OPENROUTER_API_KEY</span>
+  headers: { <span class="s">'HTTP-Referer'</span>: <span class="s">'https://redbox.example.edu.au'</span>, <span class="s">'X-Title'</span>: <span class="s">'ReDBox'</span> },
+  supportsStructuredOutputs: <span class="n">true</span>,
+  transformRequestBody: (body) =&gt; ({ ...body, stream: <span class="n">false</span>,
+    provider: { zdr: <span class="n">true</span>, data_collection: <span class="s">'deny'</span>, allow_fallbacks: <span class="n">true</span>, sort: <span class="s">'price'</span>, require_parameters: <span class="n">true</span> } }),
+});
+
+<span class="k">await</span> generateText({
+  model: openrouter(<span class="s">'anthropic/claude-haiku-4.5'</span>),
+  temperature: <span class="n">0.2</span>,
+  maxOutputTokens: <span class="n">4096</span>,
+  output: Output.object({ schema: <span class="c">/* built from the profile */</span>, name: <span class="s">'redbox_generation_candidate'</span> }),
+  providerOptions: { openrouter: { strictJsonSchema: <span class="n">true</span> } },
+  maxRetries: <span class="n">0</span>,
+  telemetry: { isEnabled: <span class="n">false</span> },
+});</pre>
+          </div>
+        </details>
+
+        <div class="savebar"><span class="state"><span class="dot" style="color:#ffc107"></span>Unsaved: temperature, API key variable</span><div class="row"><button class="btn btn-ghost" type="button">Discard</button><button class="btn btn-primary" type="button">Save changes</button></div></div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Design notes.</b> This screen configures the Vercel AI SDK layer directly, using the SDK’s own vocabulary as secondary labels (<span class="inline-code">apiKey</span>, <span class="inline-code">maxOutputTokens</span>, <span class="inline-code">providerOptions</span>) so admins who know the SDK can map every field, while plain-language labels lead. It follows the long-form app-config pattern: rail, collapsible sections with one-line summaries, sticky save bar. <b>Providers</b> map to <span class="inline-code">createOpenAICompatible()</span> / <span class="inline-code">createAmazonBedrock()</span>; <b>Models</b> are named aliases (like the SDK’s <span class="inline-code">customProvider</span>/registry) so profiles reference <span class="inline-code">rdmp-default</span>, not a raw ID. <b>Default settings</b> are the <span class="inline-code">generateText()</span> call settings, with a support matrix because each adapter accepts a different subset. Hard-coded safety choices in the adapters (no streaming, tools, telemetry or redirects; SDK retries 0) are shown, not hidden, with reasons. “SDK code” renders the effective call so a technical reviewer can check exactly what will run. Stored as today: connections → <span class="inline-code">GenerationModelConnection</span>, models + settings → <span class="inline-code">GenerationModelDeployment</span> (<span class="inline-code">parameters</span>, <span class="inline-code">routingPolicy</span>).</div>
+  </div></main>
+</div>
+</body>
+</html>
