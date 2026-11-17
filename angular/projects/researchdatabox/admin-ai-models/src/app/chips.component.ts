@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
 
 @Component({
   selector: 'ai-model-chips', standalone: true, imports: [FormsModule, I18NextPipe],

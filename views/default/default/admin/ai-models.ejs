@@ -14,7 +14,14 @@
   </div>
 <% } else { %>
   <admin-ai-models data-base-url="<%= BrandingService.getBrandAndPortalPath(req) %>/app/ai-models" data-brand="<%= BrandingService.getBrandNameFromReq(req) %>" data-portal="<%= BrandingService.getPortalFromReq(req) %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-    <img src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <%- include('layout/page-header.ejs', {
+      breadcrumbs: [
+        { labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' },
+        { labelKey: 'admin-nav-integrations' },
+        { labelKey: 'admin-nav-ai-models' }
+      ], titleKey: 'ai-models-title', descriptionKey: 'ai-models-description'
+    }) %>
+    <p role="status"><%= TranslationService.t('ai-models-loading') %></p>
   </admin-ai-models>
 <% } %>
 <%- include('layout/end.ejs') %>

@@ -31,12 +31,15 @@ describe('Admin foundation views', function () {
       try {
         const document = dom.window.document;
         expect(document.querySelectorAll('.rb-admin.admin-layout main')).to.have.lengthOf(1);
-        expect(document.querySelectorAll('h1')).to.have.lengthOf(enabled ? 0 : 1);
+        expect(document.querySelectorAll('h1')).to.have.lengthOf(1);
         expect(document.querySelectorAll('script[type=module]')).to.have.lengthOf(enabled ? 2 : 0);
         if (enabled) {
           const app = document.querySelector('.rb-admin-wrap > admin-ai-models')!;
           expect(app.getAttribute('data-base-url')).to.equal('/brand/portal/app/ai-models');
           expect(app.getAttribute('ngCspNonce')).to.equal('test-nonce');
+          expect(app.querySelector('h1')!.textContent).to.equal('ai-models-title');
+          expect(app.querySelector('[role=status]')!.textContent).to.equal('ai-models-loading');
+          expect(app.querySelector('img')).to.equal(null);
           expect(document.querySelector('main script')).to.equal(null);
           expect(document.querySelector('script[type=module]')!.getAttribute('src')).to.equal('/context/angular/admin-ai-models/browser/polyfills-bundle.js');
         } else {

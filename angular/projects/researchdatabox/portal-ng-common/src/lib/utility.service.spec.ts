@@ -19,15 +19,19 @@ describe('UtilityService', () => {
   it('should reuse a single in-flight dynamic import for matching requests', async () => {
     const module = { evaluate: () => 'ok' };
     let resolveImport: ((value: any) => void) | undefined;
+    let importStarted!: () => void;
+    const started = new Promise<void>(resolve => { importStarted = resolve; });
     const importModuleSpy = spyOn<any>(service, 'importModule').and.callFake(() => {
       return new Promise((resolve) => {
         resolveImport = resolve;
+        importStarted();
       });
     });
 
     const requestA = service.getDynamicImport('http://localhost/default/rdmp', ['dynamicAsset', 'formCompiledItems', 'auto', 'oid-123'], { edit: 'true' });
     const requestB = service.getDynamicImport('http://localhost/default/rdmp', ['dynamicAsset', 'formCompiledItems', 'auto', 'oid-123'], { edit: 'true' });
 
+    await started;
     expect(importModuleSpy).toHaveBeenCalledTimes(1);
 
     resolveImport?.(module);
@@ -72,5 +76,19 @@ describe('UtilityService', () => {
     ).toBeResolvedTo(viewModule);
 
     expect(importModuleSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('serializes object, repeated array and scalar parameters after loading the helpers', async () => {
+    const importModuleSpy = spyOn<any>(service, 'importModule').and.resolveTo({});
+    await service.getDynamicImport('http://localhost/default/rdmp', ['dynamicAsset', 'template'], {
+      settings: { enabled: true }, tags: ['one', 'two'], page: 2, preview: false, empty: null
+    });
+    const url = new URL(importModuleSpy.calls.mostRecent().args[0] as string);
+    expect(url.searchParams.get('settings')).toBe('{"enabled":true}');
+    expect(url.searchParams.getAll('tags')).toEqual(['one', 'two']);
+    expect(url.searchParams.get('page')).toBe('2');
+    expect(url.searchParams.get('preview')).toBe('false');
+    expect(url.searchParams.get('empty')).toBe('null');
+    expect(url.searchParams.get('apiVersion')).toBe('2.0');
   });
 });

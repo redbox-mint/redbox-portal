@@ -83,7 +83,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   .rb-admin-sidebar-toggle { display: none; }
   .rb-admin-sidebar-search { margin: 0 16px 12px; position: relative; }
-  .rb-admin-sidebar-search i { position: absolute; left: 10px; top: 11px; color: var(--admin-muted); }
+  // Fixed shell icons use the same Font Awesome Free artwork without loading the icon font.
+  .rb-admin-icon { display: inline-block; width: 1em; height: 1em; fill: currentColor; vertical-align: -0.125em; flex-shrink: 0; }
+  .rb-admin-sidebar-search :is(i, .rb-admin-icon) { position: absolute; left: 10px; top: 11px; color: var(--admin-muted); }
   .rb-admin-sidebar-search input { padding: 7px 10px 7px 30px; font-size: 13px; }
   .rb-admin-sidebar-section { margin-top: 10px; }
   .rb-admin-sidebar-list { list-style: none; padding: 0; margin: 0; }
@@ -502,7 +504,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
       padding: 12px 20px; border: 0; background: var(--admin-surface); color: var(--admin-heading);
       font: inherit; font-weight: 600; text-align: left;
       small { display: block; font-size: 13px; font-weight: 400; color: var(--admin-muted); }
-      &[aria-expanded='true'] > i { transform: rotate(180deg); }
+      &[aria-expanded='true'] > :is(i, .rb-admin-icon) { transform: rotate(180deg); }
     }
     .rb-admin-sidebar-content { display: none; padding: 12px 0; }
     .rb-admin-sidebar.is-expanded .rb-admin-sidebar-content { display: block; }

@@ -80,7 +80,7 @@
   .ai-adapter-tile { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--admin-radius); background: var(--admin-brand-tint); color: var(--admin-brand); font-size: 12px; font-weight: 700; }
   .ai-provider-state { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-left: auto; font-size: 13px; }
   .ai-provider-state .form-check { display: flex; align-items: center; gap: 6px; padding: 0; }
-  .ai-provider-state .form-check-input { margin: 0; float: none; }
+  .ai-provider-state .form-check-input { margin: 0; float: none; width: 44px; height: 24px; flex-shrink: 0; }
   .ai-provider-state .form-check-label { margin: 0; font-weight: 400; }
   .ai-health { display: inline-flex; align-items: center; gap: 6px; color: var(--admin-muted); }
   .ai-health-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
@@ -102,7 +102,7 @@
   .ai-limit-grid dd { margin: 4px 0 0; overflow-wrap: anywhere; }
   .ai-limit-grid code { font-size: 12px; }
   .ai-limit-grid .rb-admin-hint { display: flex; align-items: baseline; gap: 4px; }
-  .ai-limit-grid .fa-lock { flex: none; }
+  .ai-lock { display: inline-block; width: 0.875em; height: 1em; fill: currentColor; vertical-align: -0.125em; flex: none; }
   .ai-limit-grid .rb-admin-hint code { min-width: 0; overflow-wrap: anywhere; }
   .ai-limit-grid dt { font-size: 13px; }
   .ai-stacked-table table { width: 100%; table-layout: fixed; }

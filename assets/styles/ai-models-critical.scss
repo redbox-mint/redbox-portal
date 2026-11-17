@@ -1,0 +1,52 @@
+// First-paint styles for AI models and its portal shell. The complete portal
+// stylesheet still loads afterwards for hook content and additional icon classes.
+$include-legacy-components: false;
+@import "custom-colors";
+@import "default-colors";
+@import "default-variables";
+@import "custom-variables";
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/variables-dark";
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";
+
+// Utilities used by the screen, portal navigation, language menu and banners.
+$utilities: (
+  "display": map-get($utilities, "display"),
+  "font-family": map-get($utilities, "font-family"),
+  "margin-top": map-get($utilities, "margin-top"),
+  "text-align": map-get($utilities, "text-align"),
+  "color": map-get($utilities, "color")
+);
+@import "~bootstrap/scss/root";
+@import "~bootstrap/scss/reboot";
+@import "~bootstrap/scss/type";
+@import "~bootstrap/scss/images";
+@import "~bootstrap/scss/containers";
+@import "~bootstrap/scss/grid";
+@import "~bootstrap/scss/tables";
+@import "~bootstrap/scss/forms";
+@import "~bootstrap/scss/buttons";
+@import "~bootstrap/scss/transitions";
+@import "~bootstrap/scss/dropdown";
+@import "~bootstrap/scss/nav";
+@import "~bootstrap/scss/navbar";
+@import "~bootstrap/scss/badge";
+@import "~bootstrap/scss/alert";
+@import "~bootstrap/scss/close";
+@import "~bootstrap/scss/helpers/visually-hidden";
+@import "~bootstrap/scss/utilities/api";
+
+// Fixed icons are SVGs; the full portal stylesheet supplies optional icon fonts.
+@import "default-theme";
+@import "custom-theme";
+@import "default-responsive";
+@import "custom-responsive";
+@import "print";
+@import "admin";
+@import "system-message";
+
+// Keep the server-rendered header stable before Angular's local CSS arrives.
+.rb-admin admin-ai-models { display: block; min-width: 0; }

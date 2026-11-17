@@ -37,9 +37,13 @@ export const webpack: WebpackConfig = {
             },
             mode: isDevelopmentAssetMode ? 'development' : 'production',
             devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
-            entry: ['./assets/default/default/styles/default-fonts.css', './assets/default/default/js/client-script.js'],
+            entry: {
+                main: ['./assets/default/default/styles/default-fonts.css', './assets/default/default/js/client-script.js'],
+                'ai-models-critical': ['./assets/default/default/styles/default-fonts.css', './assets/styles/ai-models-critical.scss'],
+            },
             output: {
-                filename: './default/default/js/index.bundle.js',
+                filename: ({ chunk }) => chunk?.name === 'main'
+                    ? './default/default/js/index.bundle.js' : './default/default/js/[name].js',
                 path: outputDir,
                 library: 'redboxClientScript',
                 publicPath: '/',
@@ -48,7 +52,8 @@ export const webpack: WebpackConfig = {
             plugins: [
                 new MiniCssExtractPlugin({
                     // Relative to 'output.path' above!
-                    filename: './default/default/styles/style.min.css',
+                    filename: ({ chunk }: { chunk: { name: string } }) => chunk.name === 'main'
+                        ? './default/default/styles/style.min.css' : './default/default/styles/[name].min.css',
                 }),
                 new CopyPlugin({
                     patterns: [

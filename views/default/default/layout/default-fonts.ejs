@@ -1,3 +1,6 @@
 <% /* Match the font URLs emitted by webpack; versioned names allow normal static caching. */ %>
+<% if (typeof req !== 'undefined' && req.path === BrandingService.getBrandAndPortalPath(req) + '/admin/ai-models') { %>
+<link rel="preload" href="<%= typeof fontPath === 'string' ? fontPath : BrandingService.getRootContext() + '/fonts/google' %>/titillium-web-700-latin-902aff22a868.woff2" as="font" type="font/woff2" crossorigin>
+<% } %>
 <link rel="preload" href="<%= typeof fontPath === 'string' ? fontPath : BrandingService.getRootContext() + '/fonts/google' %>/titillium-web-400-latin-f93ddc83566b.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="<%= typeof fontPath === 'string' ? fontPath : BrandingService.getRootContext() + '/fonts/google' %>/roboto-condensed-400-latin-718ced55c5d8.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<%= typeof fontPath === 'string' ? fontPath : BrandingService.getRootContext() + '/fonts/google' %>/roboto-condensed-400-latin-718ced55c5d8.woff2" as="font" type="font/woff2" crossorigin media="(min-width: 992px)">

@@ -2,7 +2,10 @@ import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulati
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe, TranslationService, AdminDatePipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
+import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
+import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-date.pipe';
+import { AdminModalDirective } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-modal.directive';
 import type {
   GenerationAdminOverview, GenerationAdminModelDraft, GenerationAdminModelVersion,
   GenerationAdminConnection, GenerationAdminPromptResult,
