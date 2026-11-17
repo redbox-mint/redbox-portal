@@ -1,9 +1,9 @@
 'use strict';
 
-// Deliberately case-sensitive. Only an absent selector retains the historical
-// Express default; misspellings must never qualify a different transport.
+// Deliberately case-sensitive. Absence selects the production Fastify default;
+// misspellings must never qualify a different transport.
 function selectedHost(value) {
-  if (value === undefined) return 'express';
+  if (value === undefined) return 'fastify';
   if (value === 'express' || value === 'fastify') return value;
   throw new Error(`Invalid RBPORTAL_PLAYWRIGHT_HOST ${JSON.stringify(value)}; use express or fastify (lowercase).`);
 }
@@ -11,7 +11,7 @@ function selectedHost(value) {
 function assertStartedHost(log, expected) {
   const messages = new Map([
     ['Express host ready.', 'express'],
-    ['Fastify acceptance host ready.', 'fastify'],
+    ['Fastify host ready.', 'fastify'],
   ]);
   const observed = log.split('\n').flatMap(line => {
     try {

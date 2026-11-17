@@ -7,7 +7,7 @@ const repo = path.resolve(__dirname, '../../../..');
 const maintenance = process.argv.includes('--maintenance-mongo');
 if (!maintenance) {
   // Current production consumer gate; the remaining body is the retained
-  // Sails-retirement maintenance-only qualifier.
+  // standalone maintenance-only qualifier.
   execFileSync(process.execPath, [path.join(repo, 'support/integration-testing/qualify-fastify-packages.cjs')], {
     cwd: repo,
     env: process.env,
@@ -48,7 +48,8 @@ function pack(directory) {
 }
 const packed = [
   ...packages.map(name => pack(path.join(repo, 'packages', name))),
-  ...['esm-only', 'esm-hook', 'commonjs-hook'].map(name => pack(path.join(__dirname, 'fixtures', name))),
+  // API1 composition fixtures belong to legacy unit oracles. Maintenance loads
+  // current API2 declarations, including the offline institutional probe.
   pack(path.join(__dirname, '../maintenance/fixtures/probe')),
 ];
 const dependencies = Object.fromEntries(packed.map(item => [item.name, item.spec]));
@@ -63,7 +64,7 @@ fs.writeFileSync(
       private: true,
       dependencies,
       overrides,
-      hookLoadPriority: ['sr-commonjs-hook', 'sr-esm-hook'],
+      hookLoadPriority: ['sr-maintenance-probe'],
     },
     null,
     2

@@ -24,7 +24,7 @@ test('persistent freshness ignores derived bundles and detects all authored conf
   // The underlying host contents must not make the same prepared stack stale.
   await write('bootstrap-data/records/party.json', 'hidden beneath the container bind mount');
   assert.equal(run('check').status, 0);
-  for (const file of ['api/form-config/index.js', 'config/recordtype.js', 'app.express.cjs', 'angular/projects/form/src/app.ts', 'packages/hook/src/playwright/catalogue.ts',
+  for (const file of ['api/form-config/index.js', 'config/recordtype.js', 'app.js', 'portal.cjs', 'angular/projects/form/src/app.ts', 'packages/hook/src/playwright/catalogue.ts',
     'views/record.ejs', 'api/migrations/owned.js', 'config/env/integrationtest.js', '.nvmrc',
     'support/resources/development/bootstrap-data/records/party.json']) {
     await write(file, 'changed authored input');

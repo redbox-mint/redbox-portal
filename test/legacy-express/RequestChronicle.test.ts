@@ -1,7 +1,7 @@
-import { RequestChronicleHelper } from '../../../packages/redbox-core/src/utilities/RequestChronicle';
-const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
-import { csrf } from '../../helpers/csrf';
-import { StreamingMultipart } from '../../../packages/redbox-core/src/http/express/multipart';
+import { RequestChronicleHelper } from '../../packages/redbox-core/src/utilities/RequestChronicle';
+const { portalFixture: fixture } = require("../helpers/portalFixture.cjs");
+import { csrf } from '../helpers/csrf';
+import { StreamingMultipart } from '../../packages/redbox-core/src/http/express/multipart';
 import type { RequestHandler } from 'express';
 import assert from 'node:assert/strict';
 import { request as httpRequest } from 'node:http';

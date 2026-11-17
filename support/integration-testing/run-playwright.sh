@@ -26,4 +26,4 @@ if (($# == 0)); then
   node --test test/playwright-harness/*.test.cjs
   export PLAYWRIGHT_REQUIRE_COMPLETE=true
 fi
-exec node_modules/.bin/playwright test "$@"
+exec node_modules/.bin/playwright test "$@" --retries=0

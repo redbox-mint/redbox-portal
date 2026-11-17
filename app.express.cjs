@@ -1,4 +1,4 @@
-/** Internal v6 default: one production application, HTTP server and signal owner. */
+/** Explicit pre-removal Express oracle. Default production startup is app.js. */
 'use strict';
 const path = require('node:path');
 const pino = require('pino');

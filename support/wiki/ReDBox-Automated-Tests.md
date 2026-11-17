@@ -1,6 +1,5 @@
 # ReDBox Automated Tests
 
-> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
 
 This repository uses a mix of testing strategies including unit, integration, and API tests, largely orchestrated via Docker Compose.
 
@@ -14,7 +13,8 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:bruno:oidc` | API / Auth | Specialized Bruno tests for OIDC flows. |
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
-| `cd packages/redbox-core && npm test` | Package Unit | Runs core domain, HTTP, contract and tooling tests. |
+| `cd packages/redbox-core && npm test` | Package Unit | Runs core domain, native Fastify HTTP, contract and tooling tests. |
+| `cd packages/redbox-core && npm run test:legacy-express:core` | Retained adapter baseline | Explicit Express/API1 implementation tests, excluded from default core and CI; removed in FM-043. |
 | `cd packages/redbox-core && npm run test:http-notifications:mongo` | Mongo Integration | Verifies released-v5 notification conversion and delivery against a disposable Mongo fixture; requires `HTTP_PILOT_TEST_MONGO_URL` ending in `/sr_p4_http`. |
 
 ## Running Tests
@@ -35,12 +35,12 @@ If you only changed backend code in `packages/redbox-core`, `npm run compile:cor
 
 ### 2. Backend Unit/Integration Tests (`test:mocha`)
 
-These tests initialize the actual selected Express application in Docker with real MongoDB and providers.
+These tests initialize the actual selected Fastify application in Docker with real MongoDB and providers.
 
 - **Command**: `npm run test:mocha`
 - **Details**:
     - Spins up a `redboxportal` container defined in `support/integration-testing/docker-compose.mocha.yml`.
-    - Always includes the bootstrap test (`test/express.bootstrap.test.cjs`).
+    - Always includes the bootstrap test (`test/fastify.bootstrap.test.cjs`).
     - Runs Mocha tests directly from `test/integration` using `ts-node` (no separate test compilation step).
     - Live external-network integration tests are disabled by default. Enable them with `RUN_LIVE_INTEGRATION_TESTS=true` when you want to verify real downstream services from a dev environment.
     - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
@@ -181,9 +181,11 @@ Compose entry now includes the maintained Playwright stack; the old deployment
 is retained only as historical retirement evidence. The full current Playwright
 collection and assertions remain unchanged. PDF integration/development profiles
 load explicit fixture configuration and the locally built `rehearsal` image;
-they prepare disposable indexes before starting the sole Express executable.
+they prepare disposable indexes before starting the default Fastify executable.
 
-A freshly generated hook is also exercised in the production portal composition
+Historical pre-cutover qualification below requires explicit `RBPORTAL_PLAYWRIGHT_HOST=express`.
+Current generated/installed qualification uses `npm run test:packed:fastify`.
+A freshly generated hook was also exercised in the retained portal composition
 by `packages/redbox-core/test/qualification/generated-institution.cjs`. Run it
 inside the clean test image with a real disposable
 `SR_GENERATED_APP_MONGO_URL` ending in `/sr_p8_generated_institution` and a running

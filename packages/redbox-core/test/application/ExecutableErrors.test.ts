@@ -16,17 +16,18 @@ describe('executable startup diagnostics', () => {
       const entries: unknown[] = [];
       let exitCode: number | undefined;
       const logger = { error: (...args: unknown[]) => entries.push(args) };
-      runInNewContext(readFileSync(path.resolve(__dirname, '../../../../app.express.cjs'), 'utf8'), {
+      runInNewContext(readFileSync(path.resolve(__dirname, '../../../../app.js'), 'utf8'), {
         __dirname: path.resolve(__dirname, '../../../..'),
         require: (name: string) => {
           if (name === 'node:path') return path;
+          if (name.endsWith('/utilities/PinoLoggerUtils')) return { rememberPinoLoggerDestination() {} };
           if (name === 'pino') return Object.assign(() => logger, { destination: () => ({}) });
           if (name.endsWith('/configuration')) return { ConfigurationError };
           if (name.endsWith('/extensions')) return { ExtensionError };
           if (name.endsWith('/portal') || name.endsWith('/host')) return {};
-          if (name.endsWith('/application'))
+          if (name === './portal.cjs')
             return {
-              createPortalApplication: async () => {
+              createApplication: async () => {
                 throw error;
               },
             };
@@ -34,7 +35,7 @@ describe('executable startup diagnostics', () => {
         },
         process: {
           env: {},
-          argv: ['node', 'app.express.cjs', '--maintenance=indexes:ensure'],
+          argv: ['node', 'app.js', '--maintenance=indexes:ensure'],
           chdir() {},
           exit(code: number) {
             exitCode = code;
@@ -45,7 +46,7 @@ describe('executable startup diagnostics', () => {
       await completed.promise;
       assert.equal(exitCode, 1);
       const [diagnostic, summary] = entries[0] as [Record<string, unknown>, string];
-      assert.equal(summary, 'Express startup or maintenance failed.');
+      assert.equal(summary, 'Fastify startup or maintenance failed.');
       assert.equal(diagnostic.name, error.name);
       assert.equal(
         diagnostic.message,

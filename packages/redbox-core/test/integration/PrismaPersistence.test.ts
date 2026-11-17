@@ -7,9 +7,7 @@ const persistence = { ...runtime, ...storageRuntime };
 import { ensureCachePersistenceIndex } from '../../src/persistence/cache/preflight';
 import { initializeCachePersistence, getCacheEntryRepository } from '../../src/persistence/cache/runtime';
 import { inspectPersistenceIndex, ensurePersistenceIndex } from '../../src/persistence/indexes';
-import { composeHttpSession } from '../../src/http/express/session';
 import { createSinonStubLogger } from '../logger.test';
-import express from 'express';
 import { createServer } from 'node:http';
 import * as sinon from 'sinon';
 import { GridFSDriver } from '../../src/storage/GridFSDriver';
@@ -812,30 +810,7 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
     await assert.rejects(ensurePersistenceIndex(app, descriptor));
     assert.equal(await native.db().collection(descriptor.collection).countDocuments({ configKey: 'same' }), 2);
   });
-  it('shares session transport with the app runtime and closes it only after the store', async () => {
-    const web = express();
-    const sessions = composeHttpSession({ adapter: 'mongo', mongoUrl: url, secret: 'fixture-secret', cookie: { secure: false } }, app);
-    await sessions.ready;
-    web.use(sessions.middleware);
-    web.get('/', (req, res) => {
-      (req.session as any).fixture = true;
-      res.end('ok');
-    });
-    const server = createServer(web);
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    try {
-      const response = await fetch(`http://127.0.0.1:${(server.address() as any).port}/`);
-      assert.equal(await response.text(), 'ok');
-      assert.equal(
-        (await persistence.mongoSessionDatabase(app, { mongoUrl: url })).client,
-        (await persistence.mongoDatabase(app, 'mongodb')).client
-      );
-      assert.equal(await native.db().collection('sessions').countDocuments(), 1);
-    } finally {
-      await new Promise<void>(resolve => server.close(() => resolve()));
-      await sessions.drain();
-    }
-  });
+
   it('fences retained repositories across shutdown and restart without rewriting stored data', async () => {
     const repo = persistence.getReferenceRepositories(app);
     await persistence.cleanupPersistence(app);

@@ -1,3 +1,6 @@
+// Retained baseline only. FM-047 owns the final native performance comparison.
+if (process.env.RBPORTAL_PLAYWRIGHT_HOST !== 'express')
+  throw new Error('Retained performance oracle requires explicit RBPORTAL_PLAYWRIGHT_HOST=express.');
 'use strict';
 // Diagnostic control is loopback-only and never part of the timed request path.
 const assert = require('node:assert/strict');

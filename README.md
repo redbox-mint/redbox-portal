@@ -1,6 +1,5 @@
 # ReDBox Portal
 
-> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](support/specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
 
 [![Build Status](https://circleci.com/gh/redbox-mint/redbox-portal.svg?style=svg)](https://circleci.com/gh/redbox-mint/redbox-portal)
 [![codecov](https://codecov.io/gh/redbox-mint/redbox-portal/branch/master/graph/badge.svg)](https://codecov.io/gh/redbox-mint/redbox-portal)
@@ -41,7 +40,7 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
     This spins up the application and dependencies (MongoDB, etc.) using Docker Compose.
 
 Keep the session secret in your private development environment across restarts.
-The host runs `app.express.cjs`; check `/healthz` for liveness and `/readyz` for
+The host runs `app.js`; check `/healthz` for liveness and `/readyz` for
 completed initialization. Use `npm run debug` with explicit deployment
 configuration for Node inspector diagnostics. See the
 [development workflow](support/development/README.md) for image mode, logs,
@@ -82,3 +81,15 @@ Delivery is at-least-once: a receiver may accept an event before its acknowledge
 Email addresses, IP address fields and user-agent fields are excluded by default; their privacy flags explicitly enable capture. Credential fields are always redacted, and custom denylisted paths add exclusions. The serialized event has a UTF8 byte limit (minimum 1024 bytes, default 65536); oversized content receives an explicit truncation marker while canonical event metadata is preserved. If canonical identity metadata alone exceeds the limit, capture skips the event and logs a bounded error. Changing privacy settings affects future capture and subsequent forwarding, but cannot restore information already excluded at capture.
 
 Tokens, passwords and custom credential headers are masked in configuration responses. Only `Accept`, `Content-Type` and `User-Agent` headers are treated as public. Masks preserve credentials for the same destination ID and target; when changing an endpoint or adapter, replace or explicitly clear masked credentials. HTTP response diagnostics retain status and bounded safe collector information without storing raw response bodies. Configuration saves validate destinations, headers and numeric limits before persistence. Delivery always runs in the background; legacy `nonBlocking:false` normalizes to true, and unsupported `formatOptions` are discarded.
+
+Fastify listens only after initialization and preparation. Before that, both
+`/healthz` and `/readyz` refuse connections. The image allows 180 seconds of
+startup grace, then five readiness failures at 30-second intervals (5-second
+probe timeout). Use `/healthz` for liveness and `/readyz` for traffic readiness;
+a deployment with separate probes must give startup its own budget. Stop grace
+must exceed `server.stopDeadlineMs` (default 30 seconds); PM2 and the deployment
+example allow 45 seconds. After full stop, start a fresh process for Companion.
+
+`node app.express.cjs` is an explicit, temporary pre-removal migration oracle.
+The default executable and all active harnesses use Fastify. Final immutable
+artifact qualification remains FM-044–048.

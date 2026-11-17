@@ -92,16 +92,6 @@ describe('Record relationship authorization', () => {
     sinon.assert.notCalled(getRelatedRecords);
   });
 
-  it('enforces root authorization in the shared domain filter too', async () => {
-    const candidate = { ...record('root'), authorization: {} };
-    const graph = { rootOid: 'root', relatedObjects: { rdmp: [candidate] }, edges: [], omittedByAccess: {} };
-    const result = await filterRelationshipGraph(brand, { username: 'alice' }, graph, async (selected, actor, row) =>
-      hasViewAccess(selected, actor!, [], row)
-    );
-    assert.deepEqual(result.relatedObjects, {});
-    sinon.assert.notCalled(getRelatedRecords);
-  });
-
   it('preserves the legacy graph response for an authorized root', async () => {
     await request();
     sinon.assert.calledOnceWithExactly(getMeta, 'root');

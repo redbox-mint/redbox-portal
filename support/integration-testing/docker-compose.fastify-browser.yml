@@ -1,16 +1,15 @@
 # FM-032: layer over docker-compose.playwright.yml; no application source or
-# compiled bundles are mounted into the portal. Select the baseline in a fresh
-# container with RBPORTAL_PLAYWRIGHT_HOST=express, using the same tested image.
+# compiled bundles are mounted into the portal. The host selector is absent:
+# this overlay qualifies the default Fastify executable.
 services:
   redboxportal:
     entrypoint: ['bash', '/opt/redbox-portal/support/integration-testing/run-fastify-browser.sh']
     mem_limit: 3g
     cpus: 1.25
     environment:
-      RBPORTAL_PLAYWRIGHT_HOST: ${RBPORTAL_PLAYWRIGHT_HOST-fastify}
       REDBOX_PUBLIC_URL: ${PLAYWRIGHT_BASE_URL:?Use the published Tailscale portal URL}
       REDBOX_PORTAL_APP_URL: ${PLAYWRIGHT_BASE_URL}
-      # Match CI's enabled Companion configuration; transfers remain FM-035-owned.
+      # Match CI's enabled Companion configuration.
       UPPY_COMPANION_ENABLED: ${FM032_COMPANION_ENABLED:-true}
     volumes:
       - '../../.tmp/playwright/logs:/opt/redbox-portal/.tmp/playwright/logs'

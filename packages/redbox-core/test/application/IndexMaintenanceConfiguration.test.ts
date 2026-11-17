@@ -32,7 +32,7 @@ describe('standalone maintenance configuration selection', () => {
           join(installed, 'extension.cjs'),
           `
         const fail = () => { throw Error('Maintenance executed business work'); };
-        exports.registerRedboxExtension = () => ({ apiVersion: 1,
+        exports.registerRedboxExtension = () => ({ apiVersion: 2,
           modules: [{ name: 'storage', create: fail }],
           migrations: [{ name: 'must-not-migrate', run: fail }],
           bootstrap: [{ name: 'must-not-bootstrap', run: fail }],

@@ -1,6 +1,5 @@
 Welcome to our Development Guide! This resource aims to help developers effectively understand, contribute to, and navigate our project. Below are key sections:
 
-> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
 
 ## Getting Started
 
@@ -38,7 +37,7 @@ installs/builds all selected packages and browser assets; `npm run dev:run` moun
 and `npm run dev:run:build` exercises image mode. Export `REDBOX_SESSION_SECRET`
 (at least 32 characters) before either command; the complete sequence is in
 [the development workflow](../development/README.md). Core must finish its clean build
-before compiling dependents. `npm start` runs `app.express.cjs`.
+before compiling dependents. `npm start` runs `app.js`.
 
 Startup reads explicit configuration modules and v6 declarations. It never
 creates service/controller/config shims. Run `redbox-dev-tools init NAME --template v6`

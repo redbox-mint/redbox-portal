@@ -83,7 +83,7 @@ done
 portal_options=(--network host --memory=1536m --mount "type=bind,src=$task_config,dst=/deployment.cjs,readonly"
   -e REDBOX_APPLICATION_CONFIG=/deployment.cjs -e REDBOX_SESSION_SECRET=artifact-only-session-secret-at-least-32
   -e REDBOX_PORT=18527 -e REDBOX_ADMIN_PASSWORD=artifact-only-password -e REDBOX_ADMIN_TOKEN=artifact-only-token)
-docker run --rm --init "${portal_options[@]}" "$task_image" node app.express.cjs --maintenance=indexes:ensure > "$task_logs/portal-index-ensure.log" 2>&1
+docker run --rm --init "${portal_options[@]}" "$task_image" node app.js --maintenance=indexes:ensure > "$task_logs/portal-index-ensure.log" 2>&1
 # Exercise the shipped image's actual CMD and HEALTHCHECK.
 docker create --init --name sr-p7-artifact-portal "${portal_options[@]}" \
   "$task_image" > "$task_logs/portal-container.txt"

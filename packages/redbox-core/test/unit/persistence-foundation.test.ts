@@ -373,22 +373,6 @@ describe('app-scoped non-model resource ownership', function () {
     assert.equal(close.callCount, 2);
   });
 
-  it('closes the connect-mongo store created by middleware exactly once', async () => {
-    const { composeHttpSession } =
-      require('../../src/http/express/session') as typeof import('../../src/http/express/session');
-    const MongoStore = require('connect-mongo').default as typeof import('connect-mongo').default;
-    const store = { close: sinon.stub().resolves(), on: sinon.stub().returnsThis() };
-    sinon.stub(MongoStore, 'create').returns(store as unknown as import('connect-mongo').default);
-    const application = app();
-    await initializePersistence(application);
-    sinon
-      .stub(require('../../src/persistence/runtime'), 'mongoSessionDatabase')
-      .resolves({ client: {}, databaseName: 'fixture' });
-    await composeHttpSession({ adapter: 'mongo', secret: 'fixture-only', mongoUrl: 'mongodb://localhost/fixture' }, application).ready;
-    await cleanupPersistence(application);
-    await cleanupPersistence(application);
-    assert.equal(store.close.callCount, 1);
-  });
 });
 
 describe('shared repository groups', () => {

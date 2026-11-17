@@ -4,7 +4,7 @@ const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, rmSync } = require(
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 
-test('Express Mocha selection preserves explicit args, environment paths, defaults and coverage', t => {
+test('Fastify Mocha selection preserves explicit args, environment paths, defaults and coverage', t => {
   const root = path.resolve(__dirname, '../..');
   const fixture = mkdtempSync(path.join(root, '.tmp/mocha-runner-'));
   t.after(() => rmSync(fixture, { recursive: true, force: true }));
@@ -12,8 +12,8 @@ test('Express Mocha selection preserves explicit args, environment paths, defaul
   mkdirSync(path.join(fixture, 'bin'), { recursive: true });
   mkdirSync(path.join(fixture, 'node_modules/.bin'), { recursive: true });
   copyFileSync(
-    path.join(root, 'support/integration-testing/run-mocha-express.sh'),
-    path.join(fixture, 'support/integration-testing/run-mocha-express.sh')
+    path.join(root, 'support/integration-testing/run-mocha-redbox.sh'),
+    path.join(fixture, 'support/integration-testing/run-mocha-redbox.sh')
   );
   writeFileSync(path.join(fixture, 'bin/node'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
   writeFileSync(
@@ -29,7 +29,7 @@ test('Express Mocha selection preserves explicit args, environment paths, defaul
     { env: 'test/ignored.test.ts', args: ['test/explicit.test.ts'], expected: ['test/explicit.test.ts'] },
   ]) {
     const coverage = path.join(fixture, 'coverage/mocha');
-    const output = execFileSync('bash', ['support/integration-testing/run-mocha-express.sh', ...scenario.args], {
+    const output = execFileSync('bash', ['support/integration-testing/run-mocha-redbox.sh', ...scenario.args], {
       cwd: fixture,
       env: {
         ...process.env,
@@ -41,7 +41,7 @@ test('Express Mocha selection preserves explicit args, environment paths, defaul
       encoding: 'utf8',
     });
     const args = JSON.parse(output);
-    assert.deepEqual(args.slice(args.indexOf('test/express.bootstrap.test.cjs') + 1), scenario.expected);
+    assert.deepEqual(args.slice(args.indexOf('test/fastify.bootstrap.test.cjs') + 1), scenario.expected);
     assert.equal(args[args.indexOf('--report-dir') + 1], coverage);
     assert.ok(args.includes('--reporter=lcov'));
   }

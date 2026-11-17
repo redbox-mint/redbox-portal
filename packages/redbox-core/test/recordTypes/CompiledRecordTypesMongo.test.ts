@@ -6,7 +6,7 @@ import { createSinonStubLogger } from '../logger.test';
 import { pilotConfiguration, capturePilotResult } from './pilotFixture';
 const { RecordTypes }: typeof import('../../src/recordTypes') = require('../../dist/recordTypes');
 const { ApplicationRuntime }: typeof import('../../src/application') = require('../../dist/application');
-const { ExpressHost }: typeof import('../../src/http/express') = require('../../dist/http/express');
+const { FastifyHost }: typeof import('../../src/http/fastify/FastifyHost') = require('../../dist/http/fastify/FastifyHost');
 const { initializeReferencePersistence, getReferenceRepositories }: typeof import('../../src/persistence/reference/runtime') = require('../../dist/persistence/reference/runtime');
 const { referenceIndexes }: typeof import('../../src/persistence/reference/preflight') = require('../../dist/persistence/reference/preflight');
 
@@ -15,7 +15,7 @@ describe('compiled owned record types on real MongoDB', function () {
   let native: MongoClient;
   let base: URL;
   const databases: string[] = [];
-  const hosts: InstanceType<typeof ExpressHost>[] = [];
+  const hosts: InstanceType<typeof FastifyHost>[] = [];
   const brand = { id: new ObjectId().toHexString() };
   before(async () => {
     assert(process.env.COMPILED_RECORD_TYPES_TEST_MONGO_URL, 'COMPILED_RECORD_TYPES_TEST_MONGO_URL is required; no skip');
@@ -60,9 +60,10 @@ describe('compiled owned record types on real MongoDB', function () {
       } }],
       postBootstrap: [{ name: 'post', run: async () => { stages.push('post'); assert.equal(application.status().ready, false); } }],
     });
-    const host = new ExpressHost(application, { owner, port: 0, hostname: '127.0.0.1', prepare: async router => {
-      router.get('/test/record-types', async (_req, res) => { res.json({ count: (await firstValueFrom(instance.getAll(brand))).length }); });
+    const host = new FastifyHost(application, { owner, port: 0, hostname: '127.0.0.1', prepare: async router => {
+      router.get('/test/record-types', async () => ({ count: (await firstValueFrom(instance.getAll(brand))).length }));
     } });
+    assert.equal(host.constructor.name, 'FastifyHost');
     hosts.push(host);
     return { host, application, owner, stages, name, instance: () => instance };
   }

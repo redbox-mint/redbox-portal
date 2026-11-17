@@ -32,8 +32,8 @@
     "typescript": "5.9.3"
   },
   "scripts": {
-    "debug": "node --inspect app.express.cjs",
-    "start": "node app.express.cjs",
+    "debug": "node --inspect app.js",
+    "start": "node app.js",
     "lint": "node scripts/verify-core-imports.cjs && oxlint api config typescript packages/*/src",
     "lint:fix": "oxlint api config typescript packages/*/src --fix",
     "format": "prettier --write \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
@@ -111,7 +111,7 @@
     "docs:examples": "ts-node --transpile-only --project support/documentation/tsconfig.json support/documentation/src/examples.ts",
     "docs:check": "ts-node --transpile-only --project support/documentation/tsconfig.json support/documentation/src/check.ts"
   },
-  "main": "app.express.cjs",
+  "main": "app.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/redbox-mint/redbox-portal.git"

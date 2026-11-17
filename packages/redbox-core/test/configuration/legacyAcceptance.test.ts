@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import express from 'express';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render } from 'ejs';
@@ -17,19 +15,15 @@ import {
   CheckboxTreeFieldModelConfig,
 } from '@researchdatabox/sails-ng-common';
 import { loadPortalConfiguration } from '../../src/configuration/portal';
-import { PortalHttp } from '../../src/application/portal/http';
 import { clientConfiguration } from '../../src/pages/clientConfiguration';
 import { Services as Prehydrate } from '../../src/forms/FormPayloadPrehydrate';
 import { Services as Sanitizer } from '../../src/forms/DomSanitizer';
 import { Services as Navigation } from '../../src/navigation/Navigation';
 import { Services as Email } from '../../src/integrations/Email';
-import * as identities from '../../src/persistence/identity/runtime';
-import * as branding from '../../src/persistence/branding/runtime';
-import * as siem from '../../src/persistence/siem/runtime';
-import * as middleware from '../../src/http/express/middleware';
-import * as formDelivery from '../../src/http/express/formDelivery';
-import * as reads from '../../src/http/express/recordReads';
-import * as mutations from '../../src/http/express/recordMutations';
+
+import { nativeBindingFixture } from '../application/nativeBindingFixture';
+import { sourcePortal } from '../application/sourcePortal';
+import * as configuration from '../../src/configuration/portal';
 
 const env = { REDBOX_SESSION_SECRET: 'configuration-acceptance-synthetic-secret' };
 const load = (config: Record<string, unknown> = {}) =>
@@ -38,71 +32,38 @@ const load = (config: Record<string, unknown> = {}) =>
     extensions: { providers: [{ name: 'baseline-data', declaration: { config } }] },
   });
 
-// Capture actual production inputs after startup resolution. Route behavior is covered
-// separately; these tests guard the composition seam that isolated domain tests miss.
+// Capture the concrete controller inputs bound by the executable's API2 installation.
 async function productionInputs(config: Awaited<ReturnType<typeof load>>) {
   const sandbox = sinon.createSandbox();
-  const stop = new Error('record input captured');
-  let delivery!: formDelivery.FormDeliveryHttpInput;
-  let record!: reads.RecordReadHttpInput;
-  let mutation!: mutations.RecordMutationHttpInput;
-  sandbox.stub(identities, 'getIdentityRepositories').returns({} as never);
-  sandbox.stub(branding, 'getBrandingRepository').returns({} as never);
-  sandbox.stub(siem, 'getSiemRepository').returns({} as never);
-  sandbox.stub(middleware, 'prepareHttpMiddleware').resolves({ authenticate: async () => false } as never);
-  for (const file of [
-    'csrf',
-    'login',
-    'pages',
-    'recordTypes',
-    'metadata',
-    'configuration',
-    'configurationWrites',
-    'queryReads',
-  ]) {
-    const module = require('../../src/http/express/' + file);
-    for (const name of Object.keys(module).filter(name => name.startsWith('mount')))
-      sandbox.stub(module, name).returns(undefined);
-  }
-  sandbox.stub(formDelivery, 'mountFormDeliveryRoutes').callsFake((_router, input) => {
-    delivery = input;
-  });
-  sandbox.stub(reads, 'mountRecordReadRoutes').callsFake((_router, input) => {
-    record = input;
-  });
-  sandbox.stub(mutations, 'mountRecordMutationRoutes').callsFake((_router, input) => {
-    mutation = input;
-    throw stop;
-  });
-  const brand = { id: 'brand', name: 'default' };
-  const service = { getDefault: () => brand, getAppConfigurationForBrand: () => ({ auth: {} }) };
-  const refs = new Proxy({}, { get: () => ({ get: () => service }) });
-  const portal = {
-    config,
-    owner: {},
-    log: nothingLogger,
-    data: {
-      reference: refs,
-      records: { get: () => ({}) },
-      storage: () => ({}),
-      search: { get: () => ({}) },
-      accounts: { get: () => ({}) },
-      harvest: { get: () => ({}) },
-    },
-    providers: { audits: { get: () => ({}) } },
-    models: {},
-    prepareExtensions: async () => {},
-  };
+  // Configuration resolution is exercised above; bind its exact resolved result.
+  sandbox.stub(configuration, 'loadPortalConfiguration').resolves(config);
+  let selected: Awaited<ReturnType<typeof nativeBindingFixture>> | undefined;
+  let host: Awaited<ReturnType<typeof sourcePortal.createHost>> | undefined;
   try {
-    const host = new PortalHttp(portal as never, { appPath: '.' });
-    await assert.rejects(host.prepare(express.Router(), createServer()), error => error === stop);
-    return { delivery, record, mutation };
+    selected = await nativeBindingFixture();
+    const portal = selected.portal;
+    host = await sourcePortal.createHost(portal);
+    assert.equal(host.host.constructor.name, 'FastifyHost');
+    sandbox.stub(portal.data.reference.vocabulary, 'get').returns({} as never);
+    const input = (name: string) => {
+      const binding = portal.installation.bindings.find(item => item.factory.name === name);
+      assert(binding, name);
+      return Reflect.get(binding(), 'input');
+    };
+    return {
+      delivery: (() => { const value = input('RecordController'); return { delivery: { prehydrate: value.delivery.prehydrate } }; })(),
+      record: input('webservice/RecordController'),
+      mutation: input('webservice/RecordController'),
+    };
   } finally {
     sandbox.restore();
+    await host?.host.stop();
+    await selected?.close();
   }
 }
 
-describe('baseline configuration acceptance and production consumers', () => {
+describe('baseline configuration acceptance and production consumers', function () {
+  this.timeout(30000);
   for (const rootContext of ['', '/research'])
     it(`binds the canonical creation Location base (${rootContext || 'root'})`, async () => {
       const publicUrl = 'https://public.example.edu' + rootContext;

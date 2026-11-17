@@ -21,7 +21,7 @@ if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then
 fi
 
 # Disposable integration configuration only: prepare indexes explicitly before serving.
-node app.express.cjs --maintenance=indexes:ensure
+node app.js --maintenance=indexes:ensure
 
 exec node_modules/.bin/nyc --no-clean \
   --report-dir /opt/redbox-portal/coverage/bruno-s3 \

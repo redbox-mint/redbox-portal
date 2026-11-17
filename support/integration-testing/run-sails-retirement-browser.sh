@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+[[ "${RBPORTAL_PLAYWRIGHT_HOST:-}" == express ]] || { echo "Historical browser fixture requires explicit Express; use test:playwright:ci for native production acceptance." >&2; exit 1; }
 cd /opt/redbox-portal
 export NODE_ENV=test
 export TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json

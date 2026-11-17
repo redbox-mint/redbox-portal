@@ -17,7 +17,7 @@ describe('The CacheService', function () {
 
   it('persists best-effort creates and updates for a separate cache instance', async function () {
     const { getCacheEntryRepository } = require('@researchdatabox/redbox-core');
-    const CacheModule = require('@researchdatabox/redbox-core/dist/services/CacheService');
+    const CacheModule = require('../../../packages/redbox-core/dist/services/CacheService');
     const { firstValueFrom } = require('rxjs');
     const repository = getCacheEntryRepository(fixture.owner);
     const name = 'p2-service-persistence';

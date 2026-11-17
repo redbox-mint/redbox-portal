@@ -3,8 +3,10 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import { createPortalApplication } from '../../src/application/portal/application';
+import { createPortalFastifyApplication } from '../../src/application/portal/application';
 import { persistenceStatus } from '../../src/persistence/runtime';
+
+import { getMetaRoute } from '../../src/api-routes/groups/records';
 
 describe('production storage extension entrypoint', () => {
   it('reuses the discovered root-only ESM export without assuming /extension or constructing resources', async () => {
@@ -27,13 +29,14 @@ describe('production storage extension entrypoint', () => {
         join(installed, 'index.js'),
         `
         await Promise.resolve();
-        export function registerRedboxExtension() { return { apiVersion: 1, modules: [{ name: 'storage', create() { throw new Error('Offline inspection cannot construct storage'); } }] }; }
+        export function registerRedboxExtension() { return { apiVersion: 2, modules: [{ name: 'storage', create() { throw new Error('Offline inspection cannot construct storage'); } }] }; }
         export function inspectPrismaStagedStorage() { throw new Error('Offline inspection cannot acquire storage'); }
         export function ensurePrismaStagedStorageIndexes() { throw new Error('Offline inspection cannot acquire storage'); }
       `
       );
-      const portal = await createPortalApplication({
+      const portal = await createPortalFastifyApplication({
         appPath: directory,
+        http: { declarations: [getMetaRoute] },
         log: nothingLogger,
         env: { REDBOX_SESSION_SECRET: 'root-entrypoint-test-at-least-32-characters' },
       });

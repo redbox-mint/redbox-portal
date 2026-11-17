@@ -1,0 +1,2380 @@
+{
+  "schema": "fm042-core-case-accounting/1",
+  "generator": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r2/finalize-case-accounting.py",
+  "reports": {
+    "before": {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-independent-review-r2/core-full.json",
+      "sha256": "2c14c07b7b4ffd2bbb0e43d1b9f214e16f379d9c3f3d525d17d84956a81c9cb2",
+      "stats": {
+        "suites": 953,
+        "tests": 25391,
+        "passes": 25288,
+        "pending": 103,
+        "failures": 0,
+        "start": "2026-11-16T16:17:57.707Z",
+        "end": "2026-11-16T16:59:33.068Z",
+        "duration": 2495361
+      }
+    },
+    "default": {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r2/core-full.json",
+      "sha256": "a089b1eb002b4da25c2f4d2bb8a83a59989f92c9d0da2eb9bd8926459335d6c7",
+      "stats": {
+        "suites": 832,
+        "tests": 24041,
+        "passes": 23939,
+        "pending": 102,
+        "failures": 0,
+        "start": "2026-11-16T18:34:50.612Z",
+        "end": "2026-11-16T19:20:10.550Z",
+        "duration": 2719938
+      }
+    },
+    "legacy": {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r2/legacy-core-final.json",
+      "sha256": "35d396ff5fd48394bbd6130e2a56c753193aa69b9ba007bc8c538d642e7bca37",
+      "stats": {
+        "suites": 145,
+        "tests": 1351,
+        "passes": 1350,
+        "pending": 1,
+        "failures": 0,
+        "start": "2026-11-16T18:29:44.726Z",
+        "end": "2026-11-16T18:30:21.225Z",
+        "duration": 36499
+      }
+    }
+  },
+  "defaultSelection": {
+    "beforeFiles": 397,
+    "afterFiles": 322,
+    "legacyFiles": 100,
+    "explanation": "77 original adapter/API1 files excluded; two new default files (unchanged neutral relationship case, semantic audit case). 23 mixed-file legacy extracts do not match the default .test.ts glob."
+  },
+  "countEquation": {
+    "passed": "25288 - 1350 + 1 = 23939",
+    "pending": "103 - 1 = 102"
+  },
+  "originalProductionSuites": {
+    "cases": 57,
+    "paths": [
+      "packages/redbox-core/test/application/PortalAuthentication.test.ts",
+      "packages/redbox-core/test/application/PortalPageArtifacts.test.ts",
+      "packages/redbox-core/test/application/PortalCompanionConfiguration.test.ts",
+      "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+    ],
+    "allIdentitiesRemainInDefault": true,
+    "host": "FastifyHost"
+  },
+  "convertedDefaultFiles": [
+    {
+      "path": "packages/redbox-core/test/application/PortalAuthentication.test.ts",
+      "beforePassed": 39,
+      "defaultPassed": 39,
+      "identitiesUnchanged": true,
+      "host": "FastifyHost",
+      "disposition": "Executable native authentication bindings and real AAF HTTP callbacks; FastifyHost constructor asserted."
+    },
+    {
+      "path": "packages/redbox-core/test/application/PortalPageArtifacts.test.ts",
+      "beforePassed": 1,
+      "defaultPassed": 1,
+      "identitiesUnchanged": true,
+      "host": "FastifyHost",
+      "disposition": "Native production page/assets HTTP precedence; FastifyHost constructor asserted."
+    },
+    {
+      "path": "packages/redbox-core/test/application/PortalCompanionConfiguration.test.ts",
+      "beforePassed": 2,
+      "defaultPassed": 2,
+      "identitiesUnchanged": true,
+      "host": "FastifyHost",
+      "disposition": "Native host and actual production raw-owner provider options; FastifyHost constructor asserted."
+    },
+    {
+      "path": "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+      "beforePassed": 15,
+      "defaultPassed": 15,
+      "identitiesUnchanged": true,
+      "host": "FastifyHost",
+      "disposition": "Executable native API2 installation, controller inputs and consumers; FastifyHost constructor asserted."
+    },
+    {
+      "path": "packages/redbox-core/test/application/PortalPendingAccess.test.ts",
+      "beforePassed": 1,
+      "defaultPassed": 1,
+      "identitiesUnchanged": true,
+      "host": "transport-neutral API2 application; no HTTP host required",
+      "disposition": "Native API2 application; offline lifecycle/persistence access."
+    },
+    {
+      "path": "packages/redbox-core/test/application/PortalQueuePreflight.test.ts",
+      "beforePassed": 2,
+      "defaultPassed": 2,
+      "identitiesUnchanged": true,
+      "host": "transport-neutral API2 application; no HTTP host required",
+      "disposition": "Native API2 application; offline queue operational bindings."
+    },
+    {
+      "path": "packages/redbox-core/test/application/PortalStorageEntrypoint.test.ts",
+      "beforePassed": 1,
+      "defaultPassed": 1,
+      "identitiesUnchanged": true,
+      "host": "transport-neutral API2 application; no HTTP host required",
+      "disposition": "Native API2 application; offline storage-entrypoint binding."
+    },
+    {
+      "path": "packages/redbox-core/test/services/AppConfigService.test.ts",
+      "beforePassed": 79,
+      "defaultPassed": 79,
+      "identitiesUnchanged": true,
+      "host": "FastifyHost",
+      "disposition": "All four HTTP service cases now use executable native host/auth/CSRF; remaining neutral service cases preserved."
+    },
+    {
+      "path": "packages/redbox-core/test/services/RecordsService.test.ts",
+      "beforePassed": 324,
+      "defaultPassed": 324,
+      "identitiesUnchanged": true,
+      "host": "FastifyHost",
+      "disposition": "Three HTTP completion/drain cases now use actual FastifyHost; remaining neutral service cases preserved."
+    }
+  ],
+  "legacyFiles": [
+    {
+      "path": "packages/redbox-core/test/application/PortalRouteCollisions.test.ts",
+      "baselinePath": "packages/redbox-core/test/application/PortalRouteCollisions.test.ts",
+      "passed": 11,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/config/companionAuthorization.test.ts",
+      "baselinePath": "packages/redbox-core/test/config/companionAuthorization.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/config/httpConfigSecurity.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/config/httpConfigSecurity.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/config/httpHookStaticAssets.test.ts",
+      "baselinePath": "packages/redbox-core/test/config/httpHookStaticAssets.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/ActionController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/ActionController.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/AdminController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/AdminController.test.ts",
+      "passed": 11,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/BrandingFontDelivery.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/BrandingFontDelivery.test.ts",
+      "passed": 10,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/BrandingManagement.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/BrandingManagement.test.ts",
+      "passed": 16,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/CoreController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/CoreController.test.ts",
+      "passed": 19,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/CoreControllerNotModified.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/CoreControllerNotModified.test.ts",
+      "passed": 1,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/CoreControllerViewResolution.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/CoreControllerViewResolution.test.ts",
+      "passed": 11,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/FormVocabularyController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/FormVocabularyController.test.ts",
+      "passed": 26,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/NamedQueryNotificationParams.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/NamedQueryNotificationParams.test.ts",
+      "passed": 5,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/RecordAuditController.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/RecordAuditController.test.ts",
+      "passed": 17,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/RecordController.datastream.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/RecordController.datastream.test.ts",
+      "passed": 28,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/RecordRelationshipsAuthorization.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/RecordRelationshipsAuthorization.test.ts",
+      "passed": 9,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/RenderViewController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/RenderViewController.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/RequestChronicleControllers.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/RequestChronicleControllers.test.ts",
+      "passed": 34,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/UserController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/UserController.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/VocabularyController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/VocabularyController.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/attachmentDownloads.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/attachmentDownloads.test.ts",
+      "passed": 15,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/AppConfigController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/AppConfigController.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.test.ts",
+      "passed": 7,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/DashboardConfigController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/DashboardConfigController.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/FigshareCrosswalkController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/FigshareCrosswalkController.test.ts",
+      "passed": 28,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/FigshareVocabularyController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/FigshareVocabularyController.test.ts",
+      "passed": 37,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/FormManagementController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/FormManagementController.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/HarvestRunController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/HarvestRunController.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/IntegrationAuditController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/IntegrationAuditController.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/NamedQueryController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/NamedQueryController.test.ts",
+      "passed": 19,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/RecordSchemaController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/RecordSchemaController.test.ts",
+      "passed": 20,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/RecordTypeController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/RecordTypeController.test.ts",
+      "passed": 5,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/SearchController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/SearchController.test.ts",
+      "passed": 3,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/SiemController.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/SiemController.test.ts",
+      "passed": 60,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/TranslationController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/TranslationController.test.ts",
+      "passed": 1,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/UserManagementController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/UserManagementController.test.ts",
+      "passed": 27,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/controllers/webservice/VocabularyController.test.ts",
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/VocabularyController.test.ts",
+      "passed": 3,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/extensions/composition.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/extensions/composition.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/extensions/handler-lifetime.test.ts",
+      "baselinePath": "packages/redbox-core/test/extensions/handler-lifetime.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/extensions/head-routes.test.ts",
+      "baselinePath": "packages/redbox-core/test/extensions/head-routes.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/extensions/resolution.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/extensions/resolution.test.ts",
+      "passed": 9,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/extensions/route-equivalence.test.ts",
+      "baselinePath": "packages/redbox-core/test/extensions/route-equivalence.test.ts",
+      "passed": 40,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/ApiGroupClosure.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/ApiGroupClosure.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/ExpressHost.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/ExpressHost.test.ts",
+      "passed": 11,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/ExpressPreparation.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/ExpressPreparation.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/HostStateMachine.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/HostStateMachine.test.ts",
+      "passed": 30,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "passed": 33,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/Middleware.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/Middleware.test.ts",
+      "passed": 9,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/Policies.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/http/Policies.test.ts",
+      "passed": 7,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/SessionShutdown.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/SessionShutdown.test.ts",
+      "passed": 1,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/authentication-matrix.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/authentication-matrix.test.ts",
+      "passed": 118,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/datastreamReadDifferential.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/datastreamReadDifferential.test.ts",
+      "passed": 7,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "passed": 59,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/identityDifferential.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/identityDifferential.test.ts",
+      "passed": 32,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/operationLogging.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/operationLogging.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/queryReadErrors.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/queryReadErrors.test.ts",
+      "passed": 7,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordApiMutations.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordApiMutations.test.ts",
+      "passed": 61,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordApiReads.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordApiReads.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordBrowserForms.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserForms.test.ts",
+      "passed": 24,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordBrowserMetadata.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserMetadata.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordBrowserMutations.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserMutations.test.ts",
+      "passed": 17,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordBrowserPages.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserPages.test.ts",
+      "passed": 43,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordBrowserReads.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserReads.test.ts",
+      "passed": 17,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordDatastreamContracts.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordDatastreamContracts.test.ts",
+      "passed": 18,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordDifferentialR14.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordDifferentialR14.test.ts",
+      "passed": 13,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordHarvestDelegation.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordHarvestDelegation.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordProgressContracts.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordProgressContracts.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordReadLimits.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordReadLimits.test.ts",
+      "passed": 15,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordResumableContracts.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/recordResumableContracts.test.ts",
+      "passed": 14,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/vocabularyEntryValidation.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/vocabularyEntryValidation.test.ts",
+      "passed": 9,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts",
+      "baselinePath": "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts",
+      "passed": 12,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/integration/PrismaPersistence.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/integration/PrismaPersistence.test.ts",
+      "passed": 0,
+      "pending": 1
+    },
+    {
+      "path": "packages/redbox-core/test/middleware/RequestChronicleBodyParser.test.ts",
+      "baselinePath": "packages/redbox-core/test/middleware/RequestChronicleBodyParser.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/middleware/redboxSession.test.ts",
+      "baselinePath": "packages/redbox-core/test/middleware/redboxSession.test.ts",
+      "passed": 12,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/middleware/requestChronicle.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/middleware/requestChronicle.test.ts",
+      "passed": 10,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/middleware/requestLifetime.test.ts",
+      "baselinePath": "packages/redbox-core/test/middleware/requestLifetime.test.ts",
+      "passed": 42,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/RequestChroniclePolicies.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/RequestChroniclePolicies.test.ts",
+      "passed": 4,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/brandingAndPortal.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/brandingAndPortal.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/checkAuth.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/checkAuth.test.ts",
+      "passed": 10,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/checkBrandingValid.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/checkBrandingValid.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/companionAttachmentUploadAuth.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/companionAttachmentUploadAuth.test.ts",
+      "passed": 12,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/disallowedHeadRequestHandler.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/disallowedHeadRequestHandler.test.ts",
+      "passed": 5,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/i18nLanguages.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/i18nLanguages.test.ts",
+      "passed": 7,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/isAuthenticated.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/isAuthenticated.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/isWebServiceAuthenticated.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/isWebServiceAuthenticated.test.ts",
+      "passed": 5,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/menuResolver.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/menuResolver.test.ts",
+      "passed": 5,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/noCache.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/noCache.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/pathRuleRouting.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/policies/pathRuleRouting.test.ts",
+      "passed": 14,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/prepWs.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/prepWs.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/sessionAuth.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/sessionAuth.test.ts",
+      "passed": 3,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/setLang.test.ts",
+      "baselinePath": "packages/redbox-core/test/policies/setLang.test.ts",
+      "passed": 2,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/policies/validateApiContractRequest.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/policies/validateApiContractRequest.test.ts",
+      "passed": 7,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/responses/Responses.test.ts",
+      "baselinePath": "packages/redbox-core/test/responses/Responses.test.ts",
+      "passed": 21,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/services/AgendaQueueService.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+      "passed": 1,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/services/AuditFollowupDrain.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/services/AuditFollowupDrain.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/services/BrandingService.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/services/BrandingService.test.ts",
+      "passed": 6,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/services/SecurityEventCapturePrivacy.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/services/SecurityEventCapturePrivacy.test.ts",
+      "passed": 8,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/services/TranslationService.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/services/TranslationService.test.ts",
+      "passed": 3,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/services/UsersService.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/services/UsersService.test.ts",
+      "passed": 1,
+      "pending": 0
+    },
+    {
+      "path": "packages/redbox-core/test/unit/persistence-foundation.legacy.ts",
+      "baselinePath": "packages/redbox-core/test/unit/persistence-foundation.test.ts",
+      "passed": 1,
+      "pending": 0
+    }
+  ],
+  "changedDefaultFileCounts": [
+    {
+      "baselinePath": "packages/redbox-core/test/application/PortalRouteCollisions.test.ts",
+      "before": {
+        "passed": 11,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 11,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/config/companionAuthorization.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/config/httpConfigSecurity.test.ts",
+      "before": {
+        "passed": 22,
+        "pending": 0
+      },
+      "default": {
+        "passed": 18,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/config/httpHookStaticAssets.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/ActionController.test.ts",
+      "before": {
+        "passed": 2,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/AdminController.test.ts",
+      "before": {
+        "passed": 11,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 11,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/BrandingFontDelivery.test.ts",
+      "before": {
+        "passed": 15,
+        "pending": 0
+      },
+      "default": {
+        "passed": 5,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 10,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/BrandingManagement.test.ts",
+      "before": {
+        "passed": 17,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 16,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/CoreController.test.ts",
+      "before": {
+        "passed": 19,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 19,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/CoreControllerNotModified.test.ts",
+      "before": {
+        "passed": 1,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 1,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/CoreControllerViewResolution.test.ts",
+      "before": {
+        "passed": 12,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 11,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/FormVocabularyController.test.ts",
+      "before": {
+        "passed": 26,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 26,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/NamedQueryNotificationParams.test.ts",
+      "before": {
+        "passed": 7,
+        "pending": 0
+      },
+      "default": {
+        "passed": 2,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 5,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/RecordAuditController.test.ts",
+      "before": {
+        "passed": 18,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 17,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/RecordController.datastream.test.ts",
+      "before": {
+        "passed": 28,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 28,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/RecordRelationshipsAuthorization.test.ts",
+      "before": {
+        "passed": 10,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 9,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/RenderViewController.test.ts",
+      "before": {
+        "passed": 2,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/RequestChronicleControllers.test.ts",
+      "before": {
+        "passed": 35,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 34,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/UserController.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/VocabularyController.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/attachmentDownloads.test.ts",
+      "before": {
+        "passed": 15,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 15,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/AppConfigController.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.test.ts",
+      "before": {
+        "passed": 17,
+        "pending": 0
+      },
+      "default": {
+        "passed": 10,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 7,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/DashboardConfigController.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/FigshareCrosswalkController.test.ts",
+      "before": {
+        "passed": 28,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 28,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/FigshareVocabularyController.test.ts",
+      "before": {
+        "passed": 37,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 37,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/FormManagementController.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/HarvestRunController.test.ts",
+      "before": {
+        "passed": 6,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/IntegrationAuditController.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/NamedQueryController.test.ts",
+      "before": {
+        "passed": 19,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 19,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/RecordSchemaController.test.ts",
+      "before": {
+        "passed": 20,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 20,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/RecordTypeController.test.ts",
+      "before": {
+        "passed": 5,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 5,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/SearchController.test.ts",
+      "before": {
+        "passed": 3,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 3,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/SiemController.test.ts",
+      "before": {
+        "passed": 93,
+        "pending": 0
+      },
+      "default": {
+        "passed": 33,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 60,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/TranslationController.test.ts",
+      "before": {
+        "passed": 1,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 1,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/UserManagementController.test.ts",
+      "before": {
+        "passed": 27,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 27,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/controllers/webservice/VocabularyController.test.ts",
+      "before": {
+        "passed": 3,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 3,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/extensions/composition.test.ts",
+      "before": {
+        "passed": 3,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/extensions/handler-lifetime.test.ts",
+      "before": {
+        "passed": 6,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/extensions/head-routes.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/extensions/resolution.test.ts",
+      "before": {
+        "passed": 12,
+        "pending": 0
+      },
+      "default": {
+        "passed": 3,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 9,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/extensions/route-equivalence.test.ts",
+      "before": {
+        "passed": 40,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 40,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/ApiGroupClosure.test.ts",
+      "before": {
+        "passed": 2,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/ExpressHost.test.ts",
+      "before": {
+        "passed": 11,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 11,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/ExpressPreparation.test.ts",
+      "before": {
+        "passed": 2,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/HostStateMachine.test.ts",
+      "before": {
+        "passed": 30,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 30,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "before": {
+        "passed": 33,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 33,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/Middleware.test.ts",
+      "before": {
+        "passed": 9,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 9,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/Policies.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 7,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/SessionShutdown.test.ts",
+      "before": {
+        "passed": 1,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 1,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/authentication-matrix.test.ts",
+      "before": {
+        "passed": 118,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 118,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/datastreamReadDifferential.test.ts",
+      "before": {
+        "passed": 7,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 7,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/fastify/hostAudit.test.ts",
+      "before": {
+        "passed": 0,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 0,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "before": {
+        "passed": 59,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 59,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/identityDifferential.test.ts",
+      "before": {
+        "passed": 32,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 32,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/operationLogging.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/queryReadErrors.test.ts",
+      "before": {
+        "passed": 7,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 7,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordApiMutations.test.ts",
+      "before": {
+        "passed": 61,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 61,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordApiReads.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserForms.test.ts",
+      "before": {
+        "passed": 24,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 24,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserMetadata.test.ts",
+      "before": {
+        "passed": 6,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserMutations.test.ts",
+      "before": {
+        "passed": 17,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 17,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserPages.test.ts",
+      "before": {
+        "passed": 43,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 43,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordBrowserReads.test.ts",
+      "before": {
+        "passed": 17,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 17,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordDatastreamContracts.test.ts",
+      "before": {
+        "passed": 18,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 18,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordDifferentialR14.test.ts",
+      "before": {
+        "passed": 13,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 13,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordHarvestDelegation.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordProgressContracts.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordReadLimits.test.ts",
+      "before": {
+        "passed": 15,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 15,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/recordResumableContracts.test.ts",
+      "before": {
+        "passed": 14,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 14,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/vocabularyEntryValidation.test.ts",
+      "before": {
+        "passed": 9,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 9,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts",
+      "before": {
+        "passed": 12,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 12,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/integration/PrismaPersistence.test.ts",
+      "before": {
+        "passed": 0,
+        "pending": 35
+      },
+      "default": {
+        "passed": 0,
+        "pending": 34
+      },
+      "legacy": {
+        "passed": 0,
+        "pending": 1
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/middleware/RequestChronicleBodyParser.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/middleware/redboxSession.test.ts",
+      "before": {
+        "passed": 12,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 12,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/middleware/requestChronicle.test.ts",
+      "before": {
+        "passed": 11,
+        "pending": 0
+      },
+      "default": {
+        "passed": 1,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 10,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/middleware/requestLifetime.test.ts",
+      "before": {
+        "passed": 42,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 42,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/RequestChroniclePolicies.test.ts",
+      "before": {
+        "passed": 4,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 4,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/brandingAndPortal.test.ts",
+      "before": {
+        "passed": 8,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/checkAuth.test.ts",
+      "before": {
+        "passed": 10,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 10,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/checkBrandingValid.test.ts",
+      "before": {
+        "passed": 6,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/companionAttachmentUploadAuth.test.ts",
+      "before": {
+        "passed": 12,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 12,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/disallowedHeadRequestHandler.test.ts",
+      "before": {
+        "passed": 5,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 5,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/i18nLanguages.test.ts",
+      "before": {
+        "passed": 7,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 7,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/isAuthenticated.test.ts",
+      "before": {
+        "passed": 2,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/isWebServiceAuthenticated.test.ts",
+      "before": {
+        "passed": 5,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 5,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/menuResolver.test.ts",
+      "before": {
+        "passed": 5,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 5,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/noCache.test.ts",
+      "before": {
+        "passed": 6,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/pathRuleRouting.test.ts",
+      "before": {
+        "passed": 23,
+        "pending": 0
+      },
+      "default": {
+        "passed": 9,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 14,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/prepWs.test.ts",
+      "before": {
+        "passed": 6,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/sessionAuth.test.ts",
+      "before": {
+        "passed": 3,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 3,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/setLang.test.ts",
+      "before": {
+        "passed": 2,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 2,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/policies/validateApiContractRequest.test.ts",
+      "before": {
+        "passed": 13,
+        "pending": 0
+      },
+      "default": {
+        "passed": 6,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 7,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/responses/Responses.test.ts",
+      "before": {
+        "passed": 21,
+        "pending": 0
+      },
+      "default": {
+        "passed": 0,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 21,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+      "before": {
+        "passed": 61,
+        "pending": 0
+      },
+      "default": {
+        "passed": 60,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 1,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/services/AuditFollowupDrain.test.ts",
+      "before": {
+        "passed": 10,
+        "pending": 0
+      },
+      "default": {
+        "passed": 4,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/services/BrandingService.test.ts",
+      "before": {
+        "passed": 20,
+        "pending": 0
+      },
+      "default": {
+        "passed": 14,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 6,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/services/SecurityEventCapturePrivacy.test.ts",
+      "before": {
+        "passed": 24,
+        "pending": 0
+      },
+      "default": {
+        "passed": 16,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 8,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/services/TranslationService.test.ts",
+      "before": {
+        "passed": 14,
+        "pending": 0
+      },
+      "default": {
+        "passed": 11,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 3,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/services/UsersService.test.ts",
+      "before": {
+        "passed": 86,
+        "pending": 0
+      },
+      "default": {
+        "passed": 85,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 1,
+        "pending": 0
+      }
+    },
+    {
+      "baselinePath": "packages/redbox-core/test/unit/persistence-foundation.test.ts",
+      "before": {
+        "passed": 12,
+        "pending": 0
+      },
+      "default": {
+        "passed": 11,
+        "pending": 0
+      },
+      "legacy": {
+        "passed": 1,
+        "pending": 0
+      }
+    }
+  ],
+  "neutralRelocation": {
+    "from": "packages/redbox-core/test/controllers/RecordRelationshipsAuthorization.test.ts",
+    "to": "packages/redbox-core/test/records/RelationshipAuthorization.test.ts",
+    "passed": 1,
+    "pending": 0,
+    "title": "Record relationship authorization enforces root authorization in the shared domain filter too",
+    "assertions": "Unchanged neutral relationship graph assertions; original nine HTTP adapter peers selected only by legacy command."
+  },
+  "newDefaultCases": [
+    {
+      "path": "packages/redbox-core/test/http/fastify/hostAudit.test.ts",
+      "title": "FM-042 retained host discovery follows source exports, renamed constructors, namespaces, factories and packed imports",
+      "purpose": "Regression for source-export/symbol discovery of aliases, factories, CommonJS, packed imports and executable references."
+    }
+  ],
+  "caseConservation": {
+    "baselinePassingIdentities": 25288,
+    "baselinePendingIdentities": 103,
+    "missingPassingIdentities": 0,
+    "unexpectedPassingIdentitiesExcludingNewAudit": 0,
+    "missingPendingIdentities": 0,
+    "unexpectedPendingIdentities": 0,
+    "defaultLegacyOverlap": 0,
+    "allOriginalAssertionsPreservedAcrossDefaultAndExplicitLegacy": true,
+    "normalization": ".legacy.ts maps to original .test.ts; the one neutral relationship case maps back to its original controller file. Full titles are otherwise unchanged."
+  },
+  "sourceFreeze": {
+    "before": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r2/pre-core-inputs.json",
+    "after": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r2/post-core-inputs.json",
+    "inputCount": 5508,
+    "unchanged": true,
+    "omittedOutputs": [
+      "FM-042.md",
+      "FM-042-host-paths.json",
+      "FM-042-case-accounting.json"
+    ]
+  },
+  "reviewRound3": {
+    "generator": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r3/account-cases.py",
+    "reports": {
+      "beforeDefault": {
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-independent-review-r3/core-full.json",
+        "sha256": "ac54a49e522720c5fb1e1c2529b5652ba1e660e5cd6c80bbb727bf4fba02c2a1",
+        "stats": {
+          "suites": 832,
+          "tests": 24041,
+          "passes": 23939,
+          "pending": 102,
+          "failures": 0,
+          "start": "2026-11-16T19:32:35.383Z",
+          "end": "2026-11-16T20:19:51.473Z",
+          "duration": 2836090
+        }
+      },
+      "default": {
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r3/core-full.json",
+        "sha256": "edd29b76f1963a683d57bfbca387ec9e9562ac348650f1d4c3dde9bd537613c8",
+        "stats": {
+          "suites": 833,
+          "tests": 24043,
+          "passes": 23941,
+          "pending": 102,
+          "failures": 0,
+          "start": "2026-11-16T22:32:45.779Z",
+          "end": "2026-11-16T23:19:18.320Z",
+          "duration": 2792541
+        }
+      },
+      "beforeLegacy": {
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-independent-review-r3/legacy-core.json",
+        "sha256": "8e1a6df7b09eafae8712f70c83caa1c0b228dffc55b37d86a1b0046cee036257",
+        "stats": {
+          "suites": 145,
+          "tests": 1351,
+          "passes": 1350,
+          "pending": 1,
+          "failures": 0,
+          "start": "2026-11-16T20:23:41.759Z",
+          "end": "2026-11-16T20:24:18.409Z",
+          "duration": 36650
+        }
+      },
+      "legacy": {
+        "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-042-r3/legacy-core.json",
+        "sha256": "663cc12f1ea2fb5c043370169c8cefab94d09c170e70d00f5ac701d99558cc9c",
+        "stats": {
+          "suites": 145,
+          "tests": 1351,
+          "passes": 1350,
+          "pending": 1,
+          "failures": 0,
+          "start": "2026-11-16T23:22:56.693Z",
+          "end": "2026-11-16T23:23:33.482Z",
+          "duration": 36789
+        }
+      }
+    },
+    "newRegressionCases": [
+      {
+        "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/application/PortalAuthentication.test.ts",
+        "title": "production local administrator credential persistence default HTTP fields: fresh startup, local login and restart preserve canonical credentials and roles",
+        "duration": 10322
+      },
+      {
+        "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/application/PortalAuthentication.test.ts",
+        "title": "production local administrator credential persistence custom HTTP fields: fresh startup, local login and restart preserve canonical credentials and roles",
+        "duration": 10844
+      }
+    ],
+    "missingPreviousDefaultPasses": [],
+    "unexpectedDefaultPasses": [],
+    "defaultPendingPreserved": true,
+    "legacyPassesPreserved": true,
+    "legacyPendingPreserved": true,
+    "defaultLegacyPassingOverlap": [],
+    "sourceInputsUnchanged": true,
+    "accounting": "All prior default/legacy full-title/file identities are conserved; exactly two new native production regression cases. Round-2 historical accounting remains above."
+  }
+}

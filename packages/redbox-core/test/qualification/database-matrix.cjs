@@ -5,7 +5,7 @@ const { Readable } = require('node:stream');
 const { MongoClient } = require('mongodb');
 const { firstValueFrom } = require('rxjs');
 const { ApplicationRuntime } = require('../../dist/application');
-const { ExpressHost } = require('../../dist/http/express');
+const { FastifyHost } = require('../../dist/http/fastify/FastifyHost');
 const { RecordTypes } = require('../../dist/recordTypes');
 const runtime = require('../../dist/extensions/storage');
 const { prepareSelectedPersistenceIndexes } = require('../../dist/persistence/maintenance');
@@ -117,12 +117,12 @@ test(
           },
         }
       );
-      host = new ExpressHost(app, {
+      host = new FastifyHost(app, {
         owner,
         hostname: '0.0.0.0',
         port: 0,
         prepare: async router => {
-          router.get('/types', async (_req, res) => res.json(await firstValueFrom(types.get(brand, 'dataset'))));
+          router.get('/types', async (_req, res) => res.send(await firstValueFrom(types.get(brand, 'dataset'))));
         },
       });
       await host.initialize();

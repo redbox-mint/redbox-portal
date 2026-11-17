@@ -36,11 +36,11 @@ services:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
+      test: ["CMD-SHELL", "curl -fsS --max-time 4 http://localhost:1500/readyz"]
       interval: '10s'
       timeout: '5s'
       retries: 10
-      start_period: '60s'
+      start_period: '180s'
     depends_on:
       keycloak:
         condition: 'service_healthy'
@@ -54,7 +54,7 @@ services:
        - "1500"
     environment:
       - NODE_ENV=integrationtest
-      - RBPORTAL_EXPRESS_TEST_PROFILE=general
+      - RBPORTAL_TEST_PROFILE=general
       - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
       - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
       - PORT=1500

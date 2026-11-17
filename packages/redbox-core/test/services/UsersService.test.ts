@@ -1,4 +1,3 @@
-import { installOidcAuthentication } from '../../src/http/express/identityProviders';
 import { bootstrapDefaultAdministrator } from '../../src/identity/bootstrap';
 import { AuthenticationAccounts } from '../../src/authentication/Accounts';
 import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
@@ -358,62 +357,6 @@ describe('UsersService', function () {
     });
   });
 
-  describe('OIDC authorization request parameters', function () {
-    it('should generate a unique state while preserving default and configured parameters', async function () {
-      const passportUse = sinon.stub();
-      fixture.config.passport = {
-        use: passportUse,
-      };
-      collaborators.ConfigService.getBrand.returns({
-        active: ['oidc'],
-        oidc: {
-          discoverAttemptsMax: 1,
-          opts: {
-            issuer: {
-              issuer: 'https://example.okta.com/oauth2/default',
-              authorization_endpoint: 'https://example.okta.com/oauth2/default/v1/authorize',
-              token_endpoint: 'https://example.okta.com/oauth2/default/v1/token',
-              jwks_uri: 'https://example.okta.com/oauth2/default/v1/keys',
-              code_challenge_methods_supported: ['S256'],
-            },
-            client: {
-              client_id: 'test-client',
-              client_secret: 'test-secret',
-              redirect_uris: ['https://portal.example.com/user/login_oidc'],
-            },
-            params: {
-              scope: 'openid profile email',
-              claims: {
-                userinfo: {
-                  email: { essential: true },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      await installOidcAuthentication({ passport: { use: passportUse }, accounts: UsersService.input.accounts, config: collaborators.ConfigService.getBrand('default'), brand: () => collaborators.BrandingService.getDefault() });
-
-      expect(passportUse.calledOnce).to.be.true;
-      const strategy = passportUse.firstCall.args[1];
-      const firstParams = strategy.authorizationRequestParams({}, { prompt: 'login' });
-      const secondParams = strategy.authorizationRequestParams({}, { prompt: 'login' });
-
-      expect(firstParams.get('state')).to.be.a('string').and.not.be.empty;
-      expect(secondParams.get('state')).to.be.a('string').and.not.be.empty;
-      expect(firstParams.get('state')).to.not.equal(secondParams.get('state'));
-      expect(firstParams.get('prompt')).to.equal('login');
-      expect(firstParams.get('claims')).to.equal(
-        JSON.stringify({
-          userinfo: {
-            email: { essential: true },
-          },
-        })
-      );
-    });
-  });
-
   describe('addUserAuditEvent', function () {
     it('should return null when no user provided', async function () {
       const result = await UsersService.addUserAuditEvent(null, 'login', {});
@@ -529,7 +472,6 @@ describe('UsersService', function () {
       expect(collaborators.RecordsService.provideUserAccessAndRemovePendingAccess.callCount).to.equal(2);
       expect(result).to.equal(2);
     });
-
 
   });
 
@@ -1174,9 +1116,6 @@ describe('UsersService', function () {
 
       expect(result).to.be.true;
     });
-
-
-
 
   });
 

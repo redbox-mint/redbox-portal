@@ -578,6 +578,7 @@ describe('AppConfigService', function () {
     });
 
     it('masks webservice single/all responses without mutating the cache and accepts masked round trips', async function () {
+      this.timeout(30000); // Real native production initialization and HTTP/CSRF.
       await service.createConfig('default', 'test', { connection: { token: 'aws-secret' }, visible: true });
       (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
         { configKey: 'test', configData: { connection: { token: reference }, visible: true } },
@@ -608,6 +609,7 @@ describe('AppConfigService', function () {
 
     for (const operation of ['store', 'resolve']) {
       it(`returns a generic API error for AWS ${operation} failures`, async function () {
+        this.timeout(30000);
         if (operation === 'resolve')
           (repositoryFixtures.AppConfig.find as sinon.SinonStub).resolves([
             { configKey: 'test', configData: { connection: { token: reference } } },
@@ -1475,7 +1477,8 @@ describe('SIEM credentials remain bound to their collector target', () => {
     expect(destination.password).to.equal('original-password');
     expect(destination.headers).to.deep.equal({ 'x-private': 'original-private' });
   });
-  it('returns a 400 from generic AppConfig save for credential target validation errors', async () => {
+  it('returns a 400 from generic AppConfig save for credential target validation errors', async function () {
+    this.timeout(30000);
     const save = sinon
       .stub(service, 'createOrUpdateConfig')
       .rejects(new SiemConfigurationError('Replace or explicitly clear every masked credential'));

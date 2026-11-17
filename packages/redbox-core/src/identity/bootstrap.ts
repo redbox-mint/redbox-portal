@@ -23,7 +23,8 @@ export async function bootstrapDefaultAdministrator(input: {
   if (!username) throw new Error('Default administrator username is required for identity bootstrap.');
   if (!input.administrator.id || !input.roles.some(role => role.id === input.administrator.id))
     throw new Error('Default administrator role must belong to the selected bootstrap roles.');
-  const existing = await input.repository.one('user', { [config?.usernameField ?? 'username']: username });
+  // Credential field names configure HTTP extraction, never the persisted schema.
+  const existing = await input.repository.one('user', { username });
   if (existing) {
     // A matching name alone must never turn an unrelated account into an admin.
     const member = await input.repository.one('role', { id: input.administrator.id }, { populate: ['users'] });
@@ -38,8 +39,8 @@ export async function bootstrapDefaultAdministrator(input: {
   const user = await input.repository.create('user', {
     type: 'local',
     name: 'Local Admin',
-    [config.usernameField ?? 'username']: username,
-    [config.passwordField ?? 'password']: config.default.adminPw,
+    username,
+    password: config.default.adminPw,
     email: config.default.email,
     ...(config.default.token ? { token: createHash('sha256').update(config.default.token).digest('base64') } : {}),
   });

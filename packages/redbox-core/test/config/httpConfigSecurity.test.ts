@@ -1,23 +1,13 @@
 import * as path from 'node:path';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
-import express from 'express';
-import supertest from 'supertest';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import { ApplicationRuntime } from '../../src/application';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
-import {
-  buildCompanionSendTokenConfig,
-  buildCompanionSendTokenHtml,
-  isImmutableAssetPath,
-  PageArtifacts,
-  mountStaticPageArtifacts,
-  applyPageHeaders,
-  ExpressHost,
-  HttpIdentity,
-  prepareHttpMiddleware,
-  httpErrorHandler,
-} from '../../src/http/express';
+import { buildCompanionSendTokenConfig, buildCompanionSendTokenHtml } from '../../src/http/express/companionSendToken';
+import { isImmutableAssetPath, applyPageHeaders } from '../../src/pages/headers';
+import { PageArtifacts } from '../../src/pages/Artifacts';
+import { serveStaticAsset } from '../../src/http/fastify/assets';
+import fastify from 'fastify';
 
 let expect!: Chai.ExpectStatic;
 
@@ -74,20 +64,27 @@ describe('HTTP config security helpers', function () {
       artifacts = new PageArtifacts([directory], [directory]);
     });
     afterEach(async () => fs.rm(directory, { recursive: true, force: true }));
-    function request() {
-      const app = express();
-      mountStaticPageArtifacts(app, artifacts);
-      return supertest(app);
+    async function request(url: string) {
+      const app = fastify();
+      app.get('/*', async (req, reply) => {
+        await serveStaticAsset(req, reply, artifacts, '', { publicUrl: 'http://example.invalid', noCache: [] }, async () => {});
+        if (!reply.sent) reply.code(404).send();
+      });
+      try {
+        const response = await app.inject({ method: 'GET', url });
+        expect(response.statusCode).to.equal(200);
+        return response.body;
+      } finally { await app.close(); }
     }
     it('accepts simple branding and portal segments', async () => {
-      expect((await request().get('/default/rdmp_portal-1/assets/app.js').expect(200)).text).to.equal('safe');
+      expect(await request('/default/rdmp_portal-1/assets/app.js')).to.equal('safe');
     });
     it('rejects malicious branding and portal segments', async () => {
       for (const name of ['../default', '%2e%2e', 'default<script>', ''])
         expect(artifacts.find(artifacts.assets, `${name}/rdmp/assets/app.js`)).to.equal(undefined);
     });
     it('excludes query data from resource paths and rejects traversal', async () => {
-      expect((await request().get('/default/rdmp_portal-1/assets/app.js?cache=1').expect(200)).text).to.equal('safe');
+      expect(await request('/default/rdmp_portal-1/assets/app.js?cache=1')).to.equal('safe');
       for (const name of ['../secrets.txt', '%2e%2e/secrets.txt', '/absolute/path', 'assets/%2e%2e/secrets.txt'])
         expect(artifacts.find(artifacts.assets, name)).to.equal(undefined);
     });
@@ -111,23 +108,23 @@ describe('HTTP config security helpers', function () {
   });
 
   describe('owned cache-control response headers', () => {
-    function headers(
+    async function headers(
       pathname: string,
       session: { cookie?: { maxAge?: number } } | false = { cookie: { maxAge: 600000 } },
       noCache: string[] = [],
-      publicUrl = 'https://portal.example.edu'
+      publicUrl = 'https://portal.example.edu',
+      forwarded: Record<string, string> = {}
     ) {
-      const app = express();
-      app.use((req, res) => {
-        applyPageHeaders(
-          req,
-          res,
-          { sessionMaxAgeMs: session ? session.cookie?.maxAge : undefined, noCache, publicUrl },
-          true
-        );
-        res.end();
+      const app = fastify();
+      app.get('/*', async (req, reply) => {
+        applyPageHeaders({ path: req.url.split('?')[0] }, {
+          set: (name: string | Record<string, string>, value?: string) => typeof name === 'string' ? reply.header(name, value!) : reply.headers(name),
+          removeHeader: name => reply.removeHeader(name),
+        }, { sessionMaxAgeMs: session ? session.cookie?.maxAge : undefined, noCache, publicUrl }, true);
+        return reply.send();
       });
-      return supertest(app).get(pathname);
+      try { return await app.inject({ method: 'GET', url: pathname, headers: forwarded }); }
+      finally { await app.close(); }
     }
     it('preserves immutable caching for fingerprinted Angular artifacts', async () => {
       const response = await headers('/default/default/angular/form/browser/main-ABC123DEF.js');
@@ -142,15 +139,12 @@ describe('HTTP config security helpers', function () {
       expect(response.headers['cross-origin-opener-policy']).to.equal('same-origin-allow-popups');
     });
     it('omits the HTTPS-only opener policy on a configured HTTP origin despite forwarded protocol headers', async () => {
-      const response = await headers('/default/default/js/index.bundle.js', false, [], 'http://redboxportal:1500').set(
-        'X-Forwarded-Proto',
-        'https'
-      );
+      const response = await headers('/default/default/js/index.bundle.js', false, [], 'http://redboxportal:1500', { 'X-Forwarded-Proto': 'https' });
       expect(response.headers['cross-origin-opener-policy']).to.equal(undefined);
       expect(response.headers['cache-control']).to.equal('max-age=31536000, private');
     });
     it('retains the opener policy for a configured HTTPS origin despite forwarded HTTP headers', async () => {
-      const response = await headers('/default/default/js/index.bundle.js').set('X-Forwarded-Proto', 'http');
+      const response = await headers('/default/default/js/index.bundle.js', undefined, [], undefined, { 'X-Forwarded-Proto': 'http' });
       expect(response.headers['cross-origin-opener-policy']).to.equal('same-origin-allow-popups');
     });
     for (const { description, session, expected } of [
@@ -169,77 +163,4 @@ describe('HTTP config security helpers', function () {
       });
   });
 
-  describe('explicit raw parser mounts', () => {
-    let host: ExpressHost;
-    let url: string;
-    afterEach(async () => host?.stop());
-    async function fixture(exclusions: string[]) {
-      const owner = { config: {}, log: nothingLogger };
-      host = new ExpressHost(new ApplicationRuntime(owner), {
-        owner,
-        hostname: '127.0.0.1',
-        port: 0,
-        prepare: async router => {
-          await prepareHttpMiddleware(router, {
-            owner,
-            identity: new HttpIdentity({
-              one: async () => null,
-              verifyPassword: async () => false,
-              findByApiTokenHash: async () => null,
-            }),
-            session: { secret: 'parser-fixture-at-least-32-characters', cookie: { secure: false } },
-            log: nothingLogger,
-            parserExclusions: exclusions,
-          });
-          router.use(express.raw({ type: 'application/json' }));
-          router.use((req, res) =>
-            res.json({
-              raw: Buffer.isBuffer(req.body),
-              value: Buffer.isBuffer(req.body) ? req.body.toString() : req.body,
-            })
-          );
-          router.use(httpErrorHandler(nothingLogger));
-        },
-      });
-      await host.initialize();
-      await host.activate();
-      url = `http://127.0.0.1:${host.address()!.port}`;
-    }
-    async function post(pathname: string) {
-      const response = await fetch(url + pathname, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{"value":"kept"}',
-      });
-      expect(response.status).to.equal(200);
-      return response.json() as Promise<{ raw: boolean; value: unknown }>;
-    }
-    it('matches explicit raw mount boundaries, case and query/trailing slash handling', async () => {
-      await fixture(['/default/rdmp/raw']);
-      for (const pathname of [
-        '/default/rdmp/raw',
-        '/default/rdmp/raw/oid-1',
-        '/DEFAULT/RDMP/raw?foo=bar',
-        '/default/rdmp/raw/',
-      ])
-        expect((await post(pathname)).raw).to.equal(true);
-      expect((await post('/default/rdmp/raw-other')).raw).to.equal(false);
-      expect((await post('/raw')).raw).to.equal(false);
-    });
-    it('supports additional authored raw mounts beside upload mounts', async () => {
-      await fixture(['/default/rdmp/raw', '/default/rdmp/hook/callback']);
-      expect((await post('/default/rdmp/hook/callback')).raw).to.equal(true);
-      expect((await post('/default/rdmp/raw')).raw).to.equal(true);
-      expect((await post('/hook/callback')).raw).to.equal(false);
-      expect((await post('/default/rdmp/hook/other')).raw).to.equal(false);
-    });
-    it('reads exclusions from application inputs without global configuration', async () => {
-      await fixture(['/default/rdmp/hook/callback']);
-      expect(await post('/default/rdmp/hook/callback')).to.deep.equal({ raw: true, value: '{"value":"kept"}' });
-    });
-    it('delegates non-matching requests to the owned Express parser', async () => {
-      await fixture(['/default/rdmp/hook/callback']);
-      expect(await post('/default/rdmp/hook/other')).to.deep.equal({ raw: false, value: { value: 'kept' } });
-    });
-  });
 });

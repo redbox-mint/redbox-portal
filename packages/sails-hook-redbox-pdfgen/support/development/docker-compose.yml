@@ -32,8 +32,8 @@ services:
     entrypoint: >-
       /bin/bash -c "set -eu;
       cd /opt/redbox-portal &&
-      node app.express.cjs --maintenance=indexes:ensure &&
-      exec node --enable-source-maps --inspect=0.0.0.0:9876 app.express.cjs;"
+      node app.js --maintenance=indexes:ensure &&
+      exec node --enable-source-maps --inspect=0.0.0.0:9876 app.js;"
 
   mongodb:
     ulimits:

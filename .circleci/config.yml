@@ -430,7 +430,7 @@ jobs:
               echo "timezone=Australia/Brisbane"
             } > .tmp/playwright/run-metadata.txt
       - run:
-          name: Run complete Playwright regression suite
+          name: Run complete Playwright regression suite on default Fastify
           no_output_timeout: 30m
           command: timeout 1800s npm run test:playwright:ci
       - run:
@@ -500,7 +500,7 @@ jobs:
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
       - run:
-          name: Run Mocha tests
+          name: Run Mocha tests on default Fastify
           no_output_timeout: 30m
           command: timeout 1800s npm run test:mocha:ci
       - run:

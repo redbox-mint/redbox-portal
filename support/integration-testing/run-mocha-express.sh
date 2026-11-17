@@ -2,6 +2,7 @@
 # Run the existing application integration suite against the production Express
 # composition. Its explicit test config must select disposable prepared databases.
 set -euo pipefail
+[[ "${RBPORTAL_PLAYWRIGHT_HOST:-}" == express ]] || { echo "Legacy runner requires RBPORTAL_PLAYWRIGHT_HOST=express" >&2; exit 1; }
 cd "$(dirname "$0")/../.."
 export NODE_ENV=integrationtest TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=true
 export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
@@ -11,7 +12,7 @@ if [[ $# == 0 ]]; then
     read -r -a selected_test_paths <<< "${RBPORTAL_MOCHA_TEST_PATHS//$'\n'/ }"
     set -- "${selected_test_paths[@]}"
   else
-    set -- 'test/integration/**/*.test.ts'
+    set -- 'test/integration/**/*.test.ts' 'test/legacy-express/*.test.ts'
   fi
 fi
 coverage_dir="${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/mocha}"

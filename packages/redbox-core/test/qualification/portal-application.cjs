@@ -1,3 +1,6 @@
+// Historical Express qualification only; current installed qualification: npm run test:packed:fastify.
+if (process.env.RBPORTAL_PLAYWRIGHT_HOST !== 'express')
+  throw new Error('Legacy qualification requires explicit RBPORTAL_PLAYWRIGHT_HOST=express; use test:packed:fastify.');
 // Exercises the production application composition, not a test-domain replacement.
 const assert = require('node:assert/strict');
 const { test } = require('node:test');

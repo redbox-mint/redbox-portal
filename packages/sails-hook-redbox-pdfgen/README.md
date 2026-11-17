@@ -1,6 +1,5 @@
 # @researchdatabox/sails-hook-redbox-pdfgen
 
-> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../../support/specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
 
 A ReDBox v6 extension that renders record view pages to PDF with headless Chromium (Puppeteer) and attaches the result to the record as a datastream.
 
@@ -358,6 +357,6 @@ GPL-3.0
 The development and Bruno Compose profiles now build the portal's `rehearsal`
 target (the bundled forms plus this PDF extension). They load
 `support/api-integration-testing/deployment.cjs` and prepare disposable indexes
-before starting `app.express.cjs`. Customize the explicit fixture module for local
+before starting the default Fastify executable, `app.js`. Customize the explicit fixture module for local
 work; do not overwrite emitted core configuration. The synthetic fixture bearer
 authenticates the actor; it does not disable CSRF for browser sessions.

@@ -1,7 +1,8 @@
 const { portalFixture: portal } = require('../../helpers/portalFixture.cjs');
 import { expect } from 'chai';
 import { resolveBrandConfiguration, resolveStartupConfiguration, loadStartupConfiguration } from '@researchdatabox/redbox-core/configuration';
-import { resolveExtensions, discoverInstalledExtensions } from '@researchdatabox/redbox-core/extensions';
+import { resolveExtensionsV2, discoverInstalledExtensions } from '@researchdatabox/redbox-core/extensions';
+import { defineController, bindControllerFactory } from '@researchdatabox/redbox-core/http';
 import { z } from 'zod';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -242,34 +243,38 @@ describe('Explicit configuration and extension resolution', () => {
             const file = await write('application.cjs', 'module.exports = { feature: require("./nested/deep/feature.cjs") };');
             expect((await loadStartupConfiguration({ schema, core, files: { application: file } })).feature.enabled).to.equal(true);
         });
-        it('keeps declared forms in the extension without a form-config registry', () => {
+        it('keeps declared forms in the extension without a form-config registry', async () => {
             const form = { name: 'explicit-form' };
-            const selected = resolveExtensions([{ name: 'hook', root, declaration: { apiVersion: 1, forms: { demo: form } } }]);
+            const selected = await resolveExtensionsV2([{ name: 'hook', root, declaration: { apiVersion: 2, forms: { demo: form } } }], { bindings: [], routing: { policyNames: [] } });
             expect(selected.providers[0].declaration.forms?.demo).to.equal(form);
         });
         it('retains installed asset roots without copying into the application', async () => {
             await write('hook/assets/custom.css', 'body { color: red }');
-            const selected = resolveExtensions([{ name: 'hook', root: path.join(root, 'hook'), declaration: { apiVersion: 1, assets: ['assets'] } }]);
+            const selected = await resolveExtensionsV2([{ name: 'hook', root: path.join(root, 'hook'), declaration: { apiVersion: 2, assets: ['assets'] } }], { bindings: [], routing: { policyNames: [] } });
             expect(selected.assets).to.deep.equal([path.join(root, 'hook', 'assets')]);
             expect(await readdir(root)).to.deep.equal(['hook']);
         });
         it('retains installed view roots without copying into the application', async () => {
             await write('hook/views/home.ejs', 'explicit view');
-            const selected = resolveExtensions([{ name: 'hook', root: path.join(root, 'hook'), declaration: { apiVersion: 1, views: ['views'] } }]);
+            const selected = await resolveExtensionsV2([{ name: 'hook', root: path.join(root, 'hook'), declaration: { apiVersion: 2, views: ['views'] } }], { bindings: [], routing: { policyNames: [] } });
             expect(selected.views).to.deep.equal([path.join(root, 'hook', 'views')]);
             expect(await readdir(root)).to.deep.equal(['hook']);
         });
-        it('selects named service factories without constructing them during resolution', () => {
+        it('selects named service factories without constructing them during resolution', async () => {
             let calls = 0;
             const create = () => { calls++; return { initialize: async () => {}, close: async () => {} }; };
-            const selected = resolveExtensions([{ name: 'hook', root, declaration: { apiVersion: 1, modules: [{ name: 'service', create }] } }]);
+            const selected = await resolveExtensionsV2([{ name: 'hook', root, declaration: { apiVersion: 2, modules: [{ name: 'service', create }] } }], { bindings: [], routing: { policyNames: [] } });
             expect(selected.modules.find(item => item.declaration.name === 'service')?.declaration.create).to.equal(create);
             expect(calls).to.equal(0);
         });
-        it('selects named request handlers without a controller registry', () => {
-            const create = () => (_req: unknown, _res: unknown) => {};
-            const selected = resolveExtensions([{ name: 'hook', root, declaration: { apiVersion: 1, handlers: [{ name: 'show', create }] } }]);
-            expect(selected.handlers.find(item => item.declaration.name === 'show')?.declaration.create).to.equal(create);
+        it('selects named API2 controller actions without constructing them during resolution', async () => {
+            let calls = 0;
+            const controller = defineController({ name: 'Example', actions: ['show'], create: () => { calls++; return { show() {} }; } });
+            const selected = await resolveExtensionsV2([{ name: 'hook', root, declaration: { apiVersion: 2, controllers: [controller] } }], {
+                bindings: [bindControllerFactory(controller, undefined)], routing: { policyNames: [] },
+            });
+            expect(selected.controllerPlan.controllers.find(item => item.declaration.name === 'Example')?.declaration).to.equal(controller);
+            expect(calls).to.equal(0);
         });
         it('rejects legacy response configuration instead of copying response shims', () => {
             expect(() => resolve({ responses: { ok: 'custom' } })).to.throw(/Configuration application at responses/);
@@ -322,8 +327,8 @@ describe('Explicit configuration and extension resolution', () => {
             expect(resolve({ feature: { enabled: true } }).feature.enabled).to.equal(true);
             expect(await readFile(path.join(root, 'branded-config/stray.cjs'), 'utf8')).to.include('must not run');
         });
-        it('resolves an empty extension list without scanning config_dirs', () => {
-            expect(resolve({}, { extensions: resolveExtensions([]) }).feature.enabled).to.equal(false);
+        it('resolves an empty extension list without scanning config_dirs', async () => {
+            expect(resolve({}, { extensions: await resolveExtensionsV2([], { bindings: [], routing: { policyNames: [] } }) }).feature.enabled).to.equal(false);
             expect(() => resolve({ config_dirs: [] })).to.throw(/application/);
         });
         it('deeply merges nested data without mutating either input', () => {

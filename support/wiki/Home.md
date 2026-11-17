@@ -84,7 +84,7 @@ Thank you for visiting the RedBox Portal project wiki! We hope you find this res
 ## ReDBox v6 runtime migration
 
 The backend uses the owned application runtime and API2 Fastify composition.
-The retained Express executable is a legacy pre-cutover baseline (FM-042). Start with
+Fastify is the default executable (FM-042); the retained Express executable is an explicit legacy oracle. Start with
 [Architecture](Architecture-Overview.md), [Configuration](Configuration-Guide.md),
 [extension loading](Redbox-Loader.md), [operator/API-client changes](V6-Client-Compatibility.md)
 and the [upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md).

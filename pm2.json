@@ -2,8 +2,9 @@
   "apps": [
     {
       "name": "redboxportal",
-      "script": "./app.express.cjs",
+      "script": "./app.js",
       "watch": false,
+      "kill_timeout": 45000,
       "env": {
         "NODE_ENV": "development"
       },

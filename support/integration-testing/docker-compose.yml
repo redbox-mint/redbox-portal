@@ -19,7 +19,9 @@ services:
        aliases:
          - rbportal
     init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    working_dir: /opt/redbox-portal
+    stop_grace_period: 45s
+    entrypoint: ['node', 'app.js']
   mongodb:
     volumes:
       - '../resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro'

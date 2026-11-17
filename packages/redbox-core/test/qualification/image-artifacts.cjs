@@ -14,8 +14,9 @@ test('production image contains standalone exports, EJS views and every Angular 
   assert.equal(global.sails, undefined);
   const root = '/opt/redbox-portal';
   assert.equal(process.cwd(), root);
-  const { PageArtifacts } = require('@researchdatabox/redbox-core/http/express');
-  const coreRequire = createRequire(require.resolve('@researchdatabox/redbox-core/http/express'));
+  const corePath = require.resolve('@researchdatabox/redbox-core');
+  const { PageArtifacts } = require(path.join(path.dirname(corePath), 'pages/Artifacts'));
+  const coreRequire = createRequire(corePath);
   const storageRequire = createRequire(require.resolve('@researchdatabox/sails-hook-redbox-storage-mongo/extension'));
   assert.equal(coreRequire('mongodb/package.json').version, '7.7.0');
   assert.equal(storageRequire('mongodb/package.json').version, '7.7.0');

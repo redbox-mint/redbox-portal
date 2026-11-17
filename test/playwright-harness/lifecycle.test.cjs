@@ -12,6 +12,7 @@ async function setup(t) {
   await fs.mkdir(scripts, { recursive: true });
   await fs.mkdir(path.join(root, 'bin'));
   await fs.copyFile('support/integration-testing/playwright.sh', path.join(scripts, 'playwright.sh'));
+  await fs.copyFile('support/integration-testing/playwright-host.cjs', path.join(scripts, 'playwright-host.cjs'));
   await fs.writeFile(path.join(scripts, 'check-playwright-coverage.cjs'), '');
   await fs.writeFile(path.join(scripts, 'playwright-build-state.cjs'), 'if (process.argv[2] === "check" && process.env.PROBE_STALE) process.exit(1);');
   await fs.writeFile(path.join(root, 'bin/git'), '#!/bin/sh\nprintf "candidate-revision\\n"\n', { mode: 0o755 });
@@ -20,7 +21,7 @@ const fs=require('node:fs');const args=process.argv.slice(2);
 fs.appendFileSync(process.env.PROBE_LOG, JSON.stringify(args)+'\\n');
 if(args[0]==='inspect') console.log(args.includes('{{.State.Health.Status}}')?'healthy':'sha256:test-image');
 else if(args.includes('ps')) console.log('owned-portal-id');
-else if(args.includes('logs')) console.log('preserved diagnostic log');
+else if(args.includes('logs')) { console.log('preserved diagnostic log'); if (args[0] === 'logs') console.log(JSON.stringify({ msg: process.env.PROBE_WRONG_HOST ? 'Express host ready.' : 'Fastify host ready.', pid: 17, time: 123 })); }
 else if(args.includes('up') && process.env.PROBE_FAIL_UP) process.exit(23);
 else if(args.includes('run')) {
   if(process.env.PROBE_HOLD) setInterval(()=>{},1000);
@@ -102,4 +103,12 @@ test('an interrupted run preserves logs and removes its disposable stack', { tim
   assert.equal(interrupted.code, 130, interrupted.output);
   assert.equal((await calls()).filter(args => args.includes('down')).length, 2);
   assert.match(await fs.readFile(path.join(root, '.tmp/playwright/logs/portal.log'), 'utf8'), /preserved diagnostic log/);
+});
+
+test('default acceptance refuses a healthy Express container before starting browser tests', async t => {
+  const { run, calls } = await setup(t);
+  const result = await run(['ci'], { PROBE_WRONG_HOST: '1' }).result;
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /host mismatch: expected fastify/);
+  assert.equal((await calls()).some(args => args.includes('run')), false);
 });

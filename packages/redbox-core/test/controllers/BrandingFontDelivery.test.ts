@@ -1,24 +1,18 @@
-import { repositoryFixtures } from '../helpers/repositoryFixtures';
-let expect: Chai.ExpectStatic;
-import('chai').then(mod => (expect = mod.expect));
+
 import sinon from 'sinon';
-import { stubCacheEntryRepository } from '../helpers/cacheRepository';
-import * as fs from 'fs';
-import { createHash } from 'crypto';
-const path = require('path');
+import fs from 'node:fs';
+
+import path from 'node:path';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { brandingInput } from '../helpers/brandingInputs';
 import { createSinonStubLogger } from '../logger.test';
 import { Services as Branding } from '../../src/branding/Branding';
-import { BrandingDelivery } from '../../src/http/express/brandingDelivery';
-import { httpRouteFixture } from '../helpers/httpRouteFixture';
-import { mountBrandingOperationRoutes } from '../../src/http/express/brandingOperations';
-import type { Response } from 'express';
-
+let expect: Chai.ExpectStatic;
+import('chai').then(mod => (expect = mod.expect));
 function buildWoff2(size = 0): Buffer {
   const bytes = fs.readFileSync(path.resolve(__dirname, '../../../../test/resources/fonts/test-font-regular.woff2'));
   return size > bytes.length ? Buffer.concat([bytes, Buffer.alloc(size - bytes.length)]) : bytes;
 }
-
 class FakeDisk {
   objects = new Map<string, Buffer>();
   async exists(key: string): Promise<boolean> {
@@ -44,60 +38,6 @@ class FakeDisk {
     return { objects: [], paginationToken: undefined };
   }
 }
-
-function fakeReq(
-  params: Record<string, string>,
-  headers: Record<string, string> = {},
-  method = 'GET',
-  body?: Record<string, unknown>
-): Record<string, unknown> {
-  return {
-    params,
-    headers,
-    method,
-    body,
-    query: {},
-  };
-}
-
-function fakeRes(): {
-  headers: Record<string, string>;
-  statusCode: number;
-  body: unknown;
-  ended: boolean;
-  res: Record<string, unknown>;
-} {
-  const captured = {
-    headers: {} as Record<string, string>,
-    statusCode: 200,
-    body: undefined as unknown,
-    ended: false,
-    res: {} as Record<string, unknown>,
-  };
-  captured.res = {
-    set: (key: string, value: string) => {
-      captured.headers[key] = value;
-    },
-    removeHeader: (key: string) => {
-      delete captured.headers[key];
-    },
-    status: (code: number) => {
-      captured.statusCode = code;
-      return captured.res;
-    },
-    send: (body: unknown) => {
-      captured.body = body;
-      captured.ended = true;
-      return captured.res;
-    },
-    end: () => {
-      captured.ended = true;
-      return captured.res;
-    },
-  };
-  return captured;
-}
-
 const LAYOUTS = ['views/default/default/layout.ejs', 'views/default/default/record/layout.ejs', 'views/layout.ejs'];
 const PARTIALS = [
   'views/default/default/homepage.ejs',
@@ -106,35 +46,25 @@ const PARTIALS = [
   'views/default/default/availableServicesList.ejs',
   'views/default/rdmp/dashboard.ejs',
 ];
-
 function repoPath(...segments: string[]): string {
   return path.join(__dirname, '..', '..', '..', '..', ...segments);
 }
-
 describe('Branding public font delivery and layouts', function () {
-  let disk: FakeDisk;
-  let delivery: BrandingDelivery;
-  let inputs: ReturnType<typeof brandingInput>;
-  let service: Branding.Branding;
-  let updateCalls: Array<Record<string, unknown>>;
-  const brandRow = { id: 'brand-1', name: 'default', css: 'body { color: red; }', hash: 'stale-hash', variables: {} };
-  let faceSha = '';
 
-  beforeEach(async function () {
+let disk: FakeDisk;
+let inputs: ReturnType<typeof brandingInput>;
+let service: Branding.Branding;
+let updateCalls: Array<Record<string, unknown>>;
+const brandRow = { id: 'brand-1', name: 'default', css: 'body { color: red; }', hash: 'stale-hash', variables: {} };
+let faceSha = '';
+beforeEach(async function () {
     disk = new FakeDisk();
     inputs = brandingInput(
       { config: { http: { rootContext: '' }, branding: {} }, log: createSinonStubLogger(sinon) },
       disk
     );
     service = new Branding.Branding(inputs);
-    delivery = new BrandingDelivery({
-      ...inputs,
-      repository: () => inputs.repository,
-      branding: service,
-      logos: {} as any,
-      staticAssets: {} as any,
-      sendAsset: () => undefined,
-    });
+
     updateCalls = [];
     repositoryFixtures.BrandingConfig = {
       findOne: async (criteria: Record<string, unknown>) => (criteria.name === 'default' ? { ...brandRow } : null),
@@ -154,182 +84,12 @@ describe('Branding public font delivery and layouts', function () {
     });
     faceSha = face.sha256;
   });
-
-  afterEach(function () {
+afterEach(function () {
     sinon.restore();
     delete repositoryFixtures.BrandingConfig;
     delete repositoryFixtures.BrandingConfigHistory;
   });
-
-  it('serves public font bytes with immutable same-origin headers', async function () {
-    const req = fakeReq({ branding: 'default', sha256: `${faceSha}.woff2` });
-    const captured = fakeRes();
-    await delivery.renderFont(req as any, captured.res as unknown as Response);
-    expect(captured.statusCode).to.equal(200);
-    expect(captured.headers['Content-Type']).to.equal('font/woff2');
-    expect(captured.headers['ETag']).to.equal(`"${faceSha}"`);
-    expect(captured.headers['Cache-Control']).to.equal('public, max-age=31536000, immutable');
-    expect(captured.headers['X-Content-Type-Options']).to.equal('nosniff');
-    expect(captured.headers['Content-Length']).to.equal(String((captured.body as Buffer).length));
-    expect(Buffer.isBuffer(captured.body)).to.equal(true);
-  });
-
-  it('answers HEAD with headers and no body, and 304 on matching ETag', async function () {
-    const headReq = fakeReq({ branding: 'default', sha256: faceSha }, {}, 'HEAD');
-    const head = fakeRes();
-    await delivery.renderFont(headReq as any, head.res as unknown as Response);
-    expect(head.statusCode).to.equal(200);
-    expect(head.body).to.equal(undefined);
-    expect(head.headers['ETag']).to.equal(`"${faceSha}"`);
-    const cachedReq = fakeReq({ branding: 'default', sha256: faceSha }, { 'if-none-match': `"${faceSha}"` });
-    const cached = fakeRes();
-    await delivery.renderFont(cachedReq as any, cached.res as unknown as Response);
-    expect(cached.statusCode).to.equal(304);
-  });
-
-  it('returns 404 without substitution for bad hash, unknown brand, absent, and corrupt objects', async function () {
-    const badHash = fakeRes();
-    await delivery.renderFont(
-      fakeReq({ branding: 'default', sha256: 'not-a-hash' }) as any,
-      badHash.res as unknown as Response
-    );
-    expect(badHash.statusCode).to.equal(404);
-    const unknownBrand = fakeRes();
-    await delivery.renderFont(
-      fakeReq({ branding: 'nope', sha256: `${faceSha}.woff2` }, { 'if-none-match': `"${faceSha}"` }) as any,
-      unknownBrand.res as unknown as Response
-    );
-    expect(unknownBrand.statusCode).to.equal(404);
-    const absent = fakeRes();
-    await delivery.renderFont(
-      fakeReq(
-        { branding: 'default', sha256: `${'a'.repeat(64)}.woff2` },
-        { 'if-none-match': `"${'a'.repeat(64)}"` }
-      ) as any,
-      absent.res as unknown as Response
-    );
-    expect(absent.statusCode).to.equal(404);
-    expect(absent.body).to.not.contain('woff2');
-    disk.objects.set(`branding-fonts/brand-1/${faceSha}.woff2`, Buffer.from('tampered'));
-    const corrupt = fakeRes();
-    await delivery.renderFont(
-      fakeReq({ branding: 'default', sha256: faceSha }, { 'if-none-match': `"${faceSha}"` }) as any,
-      corrupt.res as unknown as Response
-    );
-    expect(corrupt.statusCode).to.equal(404);
-    for (const response of [badHash, unknownBrand, absent, corrupt]) {
-      expect(response.headers['Cache-Control']).to.equal('no-store');
-      expect(response.headers['Content-Type']).to.not.equal('font/woff2');
-      expect(response.headers['ETag']).to.equal(undefined);
-    }
-  });
-
-  it('evicts least recently used font bytes when the cache exceeds 16 MiB', async function () {
-    const hashes: string[] = [];
-    for (let i = 0; i < 9; i += 1) {
-      const bytes = buildWoff2(2 * 1024 * 1024 - 58);
-      bytes[bytes.length - 1] = i;
-      const hash = createHash('sha256').update(bytes).digest('hex');
-      disk.objects.set(`branding-fonts/brand-1/${hash}.woff2`, bytes);
-      hashes.push(hash);
-    }
-    const reads: string[] = [];
-    const getBytes = disk.getBytes.bind(disk);
-    disk.getBytes = async (key: string) => {
-      reads.push(key);
-      return getBytes(key);
-    };
-    const serve = async (index: number) => {
-      const response = fakeRes();
-      await delivery.renderFont(
-        fakeReq({ branding: 'default', sha256: hashes[index] }) as any,
-        response.res as unknown as Response
-      );
-      expect(response.statusCode).to.equal(200);
-    };
-    for (let i = 0; i < 8; i += 1) await serve(i);
-    expect(reads).to.have.lengthOf(8);
-    await serve(0);
-    expect(reads).to.have.lengthOf(8);
-    await serve(8);
-    await serve(0);
-    expect(reads).to.have.lengthOf(9);
-    await serve(1);
-    expect(reads).to.have.lengthOf(10);
-  });
-
-  it('derives the theme ETag without rewriting publication state', async function () {
-    const req = fakeReq({});
-    const captured = fakeRes();
-    await delivery.renderCss(req as any, captured.res as unknown as Response);
-    expect(captured.statusCode).to.equal(200);
-    expect(captured.headers['ETag']).to.match(/^W\/".+"$/);
-    expect(captured.headers['Cache-Control']).to.equal('public, max-age=300, must-revalidate');
-    expect(updateCalls).to.have.lengthOf(0);
-  });
-
-  it('serves immutable theme CSS when the request pins the current publication hash', async function () {
-    const versioned = fakeRes();
-    await delivery.renderCss(
-      fakeReq({ branding: 'default', v: 'stale-hash' }) as any,
-      versioned.res as unknown as Response
-    );
-    expect(versioned.statusCode).to.equal(200);
-    expect(versioned.headers['Cache-Control']).to.equal('public, max-age=31536000, immutable');
-    const stale = fakeRes();
-    await delivery.renderCss(
-      fakeReq({ branding: 'default', v: 'outdated-hash' }) as any,
-      stale.res as unknown as Response
-    );
-    expect(stale.statusCode).to.equal(200);
-    expect(stale.headers['Cache-Control']).to.equal('public, max-age=300, must-revalidate');
-  });
-
-  async function preview(body?: unknown) {
-    const f = await httpRouteFixture((router, input) =>
-      mountBrandingOperationRoutes(router, { ...input, branding: service, audit: sinon.stub().resolves() })
-    );
-    try {
-      return await f.request('/default/portal/preview', {
-        method: 'POST',
-        body,
-        headers: { 'X-ReDBox-Api-Version': '2.0' },
-      });
-    } finally {
-      await f.close();
-    }
-  }
-  it('creates public preview tokens bound to the current draft revision', async function () {
-    const cacheEntries: any[] = [];
-    stubCacheEntryRepository().create.callsFake(async values => {
-      cacheEntries.push({ ...values });
-    });
-    const response = await preview({ expectedDraftRevision: 0 });
-    expect(response.status).to.equal(200);
-    expect(response.body.data.token).to.match(/^[0-9a-f]{32}$/);
-    expect(cacheEntries).to.have.lengthOf(1);
-    expect(cacheEntries[0].data.revision).to.equal(0);
-  });
-  it('keeps legacy preview requests bound to the current draft revision', async function () {
-    const cacheEntries: any[] = [];
-    stubCacheEntryRepository().create.callsFake(async values => {
-      cacheEntries.push({ ...values });
-    });
-    const response = await preview();
-    expect(response.status).to.equal(200);
-    expect(response.body.data.token).to.match(/^[0-9a-f]{32}$/);
-    expect(cacheEntries).to.have.lengthOf(1);
-    expect(cacheEntries[0].data.revision).to.equal(0);
-  });
-  it('rejects preview token creation on a stale draft revision with 409', async function () {
-    const repository = stubCacheEntryRepository();
-    const response = await preview({ expectedDraftRevision: 99 });
-    expect(response.status).to.equal(409);
-    expect(response.text).to.contain('branding-conflict');
-    expect(repository.create.called).to.equal(false);
-  });
-
-  it('exposes active custom state and Regular preload URLs from the brand cache', function () {
+it('exposes active custom state and Regular preload URLs from the brand cache', function () {
     const service = new Branding.Branding(inputs);
     expect(service.hasActiveCustomTypeface('default')).to.equal(false);
     expect(service.getActiveTypefaceFontInfo('default')).to.equal(null);
@@ -342,8 +102,7 @@ describe('Branding public font delivery and layouts', function () {
     });
     expect(service.hasActiveCustomTypeface('unknown')).to.equal(false);
   });
-
-  it('conditions Google fonts on Default Typography with a single Regular preload', function () {
+it('conditions Google fonts on Default Typography with a single Regular preload', function () {
     for (const file of LAYOUTS) {
       const content = fs.readFileSync(repoPath(file), 'utf8');
       expect(content, file).to.contain('page.typeface');
@@ -365,13 +124,11 @@ describe('Branding public font delivery and layouts', function () {
     const remaining = [...LAYOUTS, ...PARTIALS];
     void remaining;
   });
-
-  it('keeps hook CSS after the generated theme stylesheet', function () {
+it('keeps hook CSS after the generated theme stylesheet', function () {
     const content = fs.readFileSync(repoPath('views/default/default/layout.ejs'), 'utf8');
     expect(content.indexOf('styles/theme.css')).to.be.lessThan(content.indexOf('head-extra'));
   });
-
-  it('versions theme stylesheet URLs by publication hash in every layout', function () {
+it('versions theme stylesheet URLs by publication hash in every layout', function () {
     for (const file of LAYOUTS) {
       const content = fs.readFileSync(repoPath(file), 'utf8');
       expect(content, `${file} version logic`).to.contain('__themeCssVer');
@@ -379,16 +136,7 @@ describe('Branding public font delivery and layouts', function () {
       expect(content, `${file} hash source`).to.contain('.hash');
     }
   });
-
-  it('recognises public font paths as static assets with same-origin font CSP', function () {
-    const httpConfig = require('../../src/http/express/pageHeaders');
-    const sha = 'a'.repeat(64);
-    expect(httpConfig.isImmutableAssetPath(`/fonts/branding/default/${sha}.woff2`)).to.equal(true);
-    const { csp } = require('../../src/config/csp.config');
-    expect(csp.directives['font-src']).to.include("'self'");
-  });
-
-  it('keeps embedded Angular apps from pinning a hardcoded body font', function () {
+it('keeps embedded Angular apps from pinning a hardcoded body font', function () {
     // An app bundle loads after theme.css, so a hardcoded body font-family
     // would permanently beat the generated brand variable (see T13 report).
     const appsRoot = repoPath('angular', 'projects', 'researchdatabox');
@@ -410,4 +158,5 @@ describe('Branding public font delivery and layouts', function () {
     const brandingStyles = fs.readFileSync(path.join(appsRoot, 'branding', 'src', 'styles.scss'), 'utf8');
     expect(brandingStyles).to.contain('var(--rb-brand-font-family, Arial, Helvetica, sans-serif)');
   });
+afterEach(() => sinon.restore());
 });

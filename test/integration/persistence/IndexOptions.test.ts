@@ -3,7 +3,9 @@ import type { PersistenceOwner } from '@researchdatabox/redbox-core';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { ensurePersistenceIndex, inspectPersistenceIndex, mongoDatabase } from '@researchdatabox/redbox-core';
-import { storageIndexes } from '@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight.js';
+// This repository-only maintenance test inspects a private descriptor helper;
+// it is deliberately outside the installed extension's public export contract.
+import { storageIndexes } from '../../../packages/sails-hook-redbox-storage-mongo/dist/persistence/preflight.js';
 
 describe('Configured native indexes in the loaded portal', () => {
   it('creates TTL and hidden options through maintenance and reports existing-index drift', async () => {

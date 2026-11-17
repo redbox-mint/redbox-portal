@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> API2 authoring and production composition use the migration qualification gates; consult revision-specific evidence for the verdict. The retained `app.express.cjs` default is a legacy pre-cutover executable; FM-042 switches startup and FM-048 records final runtime qualification. See the [migration guide](../specs/fastify-migration/extension-api2.md).
+> API2 authoring and production composition use the migration qualification gates; consult revision-specific evidence for the verdict. The default executable is now Fastify (`app.js`); FM-048 records final runtime qualification. See the [migration guide](../specs/fastify-migration/extension-api2.md).
 
 ReDBox v6 uses a ReDBox-owned application runtime and Fastify HTTP composition on
 Node 26. Angular applications remain embedded in EJS pages. Prisma repositories

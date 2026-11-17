@@ -66,6 +66,7 @@ for major in 8 9; do
       timeout 240 node --test packages/redbox-core/test/qualification/database-matrix.cjs > "$task_logs/${major}-${topology}.log" 2>&1
     tail -15 "$task_logs/${major}-${topology}.log"
     if [[ "${SR_P7_PRODUCTION_PORTAL:-false}" == true ]]; then
+      [[ "${RBPORTAL_PLAYWRIGHT_HOST:-}" == express ]] || { echo "Historical portal matrix requires explicit Express; current native matrix is qualified in FM-046." >&2; exit 1; }
       SR_PORTAL_MONGO_URL="${task_core/sr_p7_matrix/sr_p7_portal_http}" \
       SR_PORTAL_STORAGE_URL="${task_storage/sr_p7_matrix/sr_p7_portal_http}" \
       SR_PORTAL_SOLR_PORT="${SR_PORTAL_SOLR_PORT:?production portal requires a running Solr}" \

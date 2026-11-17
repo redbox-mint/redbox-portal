@@ -172,6 +172,7 @@ async function main() {
     'NODE_OPTIONS=--max-old-space-size=1024',
     '-e',
     `FM007_PROFILE=${cell.profile}`,
+    ...(process.env.RBPORTAL_PLAYWRIGHT_HOST === 'express' ? ['-e', 'RBPORTAL_PLAYWRIGHT_HOST=express'] : []),
     ...(process.env.FM007_TLS === 'true' ? ['-e', 'FM007_TLS=true'] : []),
     '-v',
     `${state}:/fm007-state`,

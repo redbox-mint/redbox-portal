@@ -1,8 +1,7 @@
 # Internal v6 development workflow
 
-> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
 
-The development Compose services run `app.express.cjs` on Node 26.12.1. Both
+The development Compose services run `app.js` on Node 26.12.1. Both
 mount and build modes use the `rehearsal` image target: it installs the bundled
 demo and PDF hooks in the production dependency graph. The pristine production
 `runtime` target continues to omit demo hooks.
@@ -52,10 +51,22 @@ are separate procedures. For explicit maintenance with this Compose deployment:
 
 ```sh
 docker compose -f support/development/docker-compose.yml --profile build run --rm \
-  --entrypoint node rbportal-build app.express.cjs --maintenance=indexes:inspect
+  --entrypoint node rbportal-build app.js --maintenance=indexes:inspect
 ```
 
-Root `npm start` and `npm run debug` run Express; outside Compose provide
+Root `npm start` and `npm run debug` run Fastify; outside Compose provide
 `REDBOX_APPLICATION_CONFIG` and `REDBOX_SESSION_SECRET`. The comparison entrypoints
 were removed in P8. Released-v5 comparisons require a separate artifact and
 isolated data; never run the old host on data already modified by v6.
+
+Fastify listens only after initialization and preparation. Before that, both
+`/healthz` and `/readyz` refuse connections. The image allows 180 seconds of
+startup grace, then five readiness failures at 30-second intervals (5-second
+probe timeout). Use `/healthz` for liveness and `/readyz` for traffic readiness;
+a deployment with separate probes must give startup its own budget. Stop grace
+must exceed `server.stopDeadlineMs` (default 30 seconds); PM2 and the deployment
+example allow 45 seconds. After full stop, start a fresh process for Companion.
+
+`node app.express.cjs` is an explicit, temporary pre-removal migration oracle.
+The default executable and all active harnesses use Fastify. Final immutable
+artifact qualification remains FM-044–048.

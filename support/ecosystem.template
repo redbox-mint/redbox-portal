@@ -1,7 +1,7 @@
 {
   "apps": [{
     "name": "rbportal",
-    "script": "app.express.cjs",
+    "script": "app.js",
     "args": [],
     "watch": false,
     "kill_timeout": 45000,

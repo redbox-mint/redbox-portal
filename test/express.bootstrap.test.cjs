@@ -4,7 +4,10 @@
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const requireCore = require('node:module').createRequire(require.resolve('@researchdatabox/redbox-core/portal'));
-const { createPortalHost, persistenceStatus } = require('@researchdatabox/redbox-core/portal');
+if (process.env.RBPORTAL_PLAYWRIGHT_HOST !== 'express')
+  throw new Error('Legacy Express fixture requires explicit RBPORTAL_PLAYWRIGHT_HOST=express.');
+const { persistenceStatus } = require('@researchdatabox/redbox-core/portal');
+const { createPortalHost } = require('../packages/redbox-core/dist/application/portal/host');
 const { portalFixture: fixture } = require('./helpers/portalFixture.cjs');
 const chai = require('chai');
 Object.assign(global, {

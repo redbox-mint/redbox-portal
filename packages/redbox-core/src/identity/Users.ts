@@ -822,10 +822,6 @@ export namespace Services {
      *
      */
     public addLocalUser = (username: string, name: string, email: string, password: string): Observable<UserModel> => {
-      const authConfig = this.getAuthConfig(this.input.defaultBrand().name);
-      const usernameField = authConfig.local?.usernameField ?? 'username';
-      const passwordField = authConfig.local?.passwordField ?? 'password';
-
       return this.getUserWithUsername(username).pipe(
         flatMap(user => {
           if (user) {
@@ -843,8 +839,8 @@ export namespace Services {
                   if (!_.isEmpty(email)) {
                     newUser['email'] = email;
                   }
-                  newUser[usernameField] = username;
-                  newUser[passwordField] = password;
+                  newUser.username = username;
+                  newUser.password = password;
                   return this.getObservable<UserModel>(() => this.input.repository.create('user', newUser));
                 }
               })
@@ -1210,8 +1206,6 @@ export namespace Services {
       email: string,
       password: string
     ): Observable<UserModel[]> => {
-      const authConfig = this.getAuthConfig(this.input.defaultBrand().name);
-      const passwordField = authConfig.local?.passwordField ?? 'password';
       return this.getUserWithId(userid).pipe(
         flatMap(user => {
           if (user) {
@@ -1231,7 +1225,7 @@ export namespace Services {
                 bcrypt = require('bcryptjs') as BcryptLike;
               }
               const salt = bcrypt.genSaltSync(10);
-              update[passwordField] = bcrypt.hashSync(password, salt);
+              update.password = bcrypt.hashSync(password, salt);
             }
             const q = () =>
               this.input.repository.update(

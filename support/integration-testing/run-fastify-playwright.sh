@@ -7,7 +7,6 @@ cd "$(dirname "$0")/../.."
 : "${PLAYWRIGHT_BASE_URL:?Set the published Tailscale portal URL}"
 : "${REDBOX_PORTAL_APP_URL:?Set the same published Tailscale portal URL}"
 [[ "$PLAYWRIGHT_BASE_URL" == "$REDBOX_PORTAL_APP_URL" ]]
-export RBPORTAL_PLAYWRIGHT_HOST="${RBPORTAL_PLAYWRIGHT_HOST-fastify}"
 node support/integration-testing/playwright-host.cjs
 project="${COMPOSE_PROJECT_NAME:-redbox-playwright-fm032}"
 [[ "$project" =~ ^redbox-playwright(-[a-z0-9_-]+)?$ ]]

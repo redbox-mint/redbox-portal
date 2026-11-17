@@ -171,11 +171,11 @@ candidate_options=(--network "$task_network" --memory=1536m
   -e REDBOX_SESSION_SECRET=rehearsal-only-session-secret-at-least-32)
 for operation in --maintenance=indexes:ensure --maintenance=indexes:inspect --initialize-only; do
   label=${operation//[^a-zA-Z0-9]/-}
-  docker run --rm --init "${candidate_options[@]}" "$task_candidate" node app.express.cjs "$operation" > "$task_logs/candidate$label.log" 2>&1
+  docker run --rm --init "${candidate_options[@]}" "$task_candidate" node app.js "$operation" > "$task_logs/candidate$label.log" 2>&1
 done
 for label in candidate candidate-restarted; do
   task_started=$SECONDS
-  docker run -d --init --name sr-p7-upgrade-v6 -p 127.0.0.1:18508:1500 "${candidate_options[@]}" "$task_candidate" node app.express.cjs > "$task_logs/$label-container.txt"
+  docker run -d --init --name sr-p7-upgrade-v6 -p 127.0.0.1:18508:1500 "${candidate_options[@]}" "$task_candidate" node app.js > "$task_logs/$label-container.txt"
   task_containers+=(sr-p7-upgrade-v6)
   for attempt in {1..180}; do
     if curl -fsS --max-time 2 -o /dev/null http://127.0.0.1:18508/readyz 2>/dev/null; then break; fi

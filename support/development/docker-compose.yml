@@ -49,7 +49,7 @@ x-rbportal-service: &rbportal-service
         - rbportal
   init: true
   stop_grace_period: 60s
-  entrypoint: ["node", "--enable-source-maps", "--inspect=0.0.0.0:9876", "app.express.cjs"]
+  entrypoint: ["node", "--enable-source-maps", "--inspect=0.0.0.0:9876", "app.js"]
   command: []
 
 networks:

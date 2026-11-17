@@ -1,7 +1,8 @@
 import { agendaQueueDefaultJobs } from '../config/agendaQueueJobs';
 import { agendaQueueDefaultOptions } from '../config/agendaQueueDefaults';
 import type { StorageIndexPreparation } from '../persistence/maintenance';
-import { loadInstalledExtensionProviders, resolveExtensions } from '../extensions/resolution';
+import { resolveExtensions } from '../extensions/resolution';
+import { loadInstalledExtensionProvidersV2 } from '../extensions/v2';
 import {
   loadStartupConfiguration,
   deploymentSchema,
@@ -26,7 +27,7 @@ export interface IndexMaintenanceOptions {
 
 /** Standalone selected persistence. Never constructs ApplicationRuntime or business factories. */
 export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
-  const installed = await loadInstalledExtensionProviders(options.appPath);
+  const installed = await loadInstalledExtensionProvidersV2(options.appPath);
   // Only these startup sections are consumed by maintenance. Forms, provider auth,
   // views, domain configuration and executable work remain offline declarations.
   const sections = new Set(['datastores', 'agendaQueue', 'storage', 'redboxSession']);
@@ -35,7 +36,10 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
     return {
       ...provider,
       declaration: {
-        apiVersion: provider.declaration.apiVersion,
+        // The shared data resolver consumes an internal API1-shaped projection.
+        // HTTP declarations never enter it: API2 discovery above validates the
+        // installed contract without constructing a host or controller plan.
+        apiVersion: 1 as const,
         jobs: provider.declaration.jobs,
         // Select storage ownership without composing offline portal factories.
         // Their core prerequisites and named core replacements belong to startup.

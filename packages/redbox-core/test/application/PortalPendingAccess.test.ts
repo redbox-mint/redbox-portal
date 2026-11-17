@@ -4,10 +4,12 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import sinon from 'sinon';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import { createPortalApplication } from '../../src/application/portal/application';
+import { createPortalFastifyApplication } from '../../src/application/portal/application';
 import * as maintenance from '../../src/persistence/maintenance';
 import * as identity from '../../src/persistence/identity/runtime';
 import type { IdentityPersistenceInput } from '../../src/persistence/identity/runtime';
+
+import { getMetaRoute } from '../../src/api-routes/groups/records';
 
 describe('production pending record access binding', () => {
   afterEach(() => sinon.restore());
@@ -24,7 +26,7 @@ describe('production pending record access binding', () => {
       await writeFile(
         join(installed, 'index.cjs'),
         `
-        exports.registerRedboxExtension = () => ({ apiVersion: 1, modules: [{ name: 'storage', create() { throw Error('Must not initialize'); } }] });
+        exports.registerRedboxExtension = () => ({ apiVersion: 2, modules: [{ name: 'storage', create() { throw Error('Must not initialize'); } }] });
         exports.inspectPrismaStagedStorage = exports.ensurePrismaStagedStorageIndexes = async () => [];
       `
       );
@@ -48,8 +50,9 @@ describe('production pending record access binding', () => {
         binding = input;
         throw boundary;
       });
-      const portal = await createPortalApplication({
+      const portal = await createPortalFastifyApplication({
         appPath: directory,
+        http: { declarations: [getMetaRoute] },
         log: nothingLogger,
         env: { REDBOX_SESSION_SECRET: 'pending-access-secret-at-least-32-characters' },
       });

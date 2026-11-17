@@ -13,7 +13,7 @@ const excluded = new Set(['node_modules', 'dist', 'coverage', '.angular', '.tmp'
 const roots = ['packages', 'angular', 'config', 'api', 'tasks', 'scripts', 'views', 'assets',
   'support/integration-testing', 'support/build', 'support/resources/development/bootstrap-data',
   'package.json', 'package-lock.json', '.nvmrc', 'Dockerfile', '.dockerignore',
-  'app.ts', 'app.js', 'app.integrationtest.js', 'app.express.cjs', 'tsconfig.json', 'webpack.config.js'];
+  'app.ts', 'app.js', 'portal.cjs', 'app.integrationtest.js', 'app.express.cjs', 'tsconfig.json', 'webpack.config.js'];
 
 function files(relative) {
   const normalized = relative.split(path.sep).join('/');

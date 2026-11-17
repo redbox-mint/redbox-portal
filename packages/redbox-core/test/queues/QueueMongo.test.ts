@@ -9,7 +9,7 @@ import { initializePersistence, persistenceStatus } from '../../src/persistence/
 import { initializeReferencePersistence, getReferenceRepositories } from '../../src/persistence/reference/runtime';
 import { ensureReferencePersistenceIndexes } from '../../src/persistence/reference/preflight';
 import { GridFSDriver } from '../../src/storage/GridFSDriver';
-import { ExpressHost } from '../../src/http/express';
+import { FastifyHost } from '../../src/http/fastify/FastifyHost';
 import { trackHttpRequestWork } from '../../src/middleware/requestLifetime';
 import { persistenceOperation } from '../../src/persistence/runtime';
 import type { AgendaQueueConfig } from '../../src/config/agendaQueue.config';
@@ -465,7 +465,7 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
         },
       ]);
       apps.push(app);
-      const host = new ExpressHost(app, {
+      const host = new FastifyHost(app, {
         owner,
         hostname: '127.0.0.1',
         port: 0,
@@ -481,11 +481,14 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
               });
             })();
             trackHttpRequestWork(req, work);
-            if (aborted) res.destroy();
-            else res.end('accepted');
+            if (aborted) {
+              res.hijack();
+              res.raw.destroy();
+            } else res.send('accepted');
           });
         },
       });
+      assert.equal(host.constructor.name, 'FastifyHost');
       await host.initialize();
       await host.activate();
       const url = `http://127.0.0.1:${host.address()!.port}/write`;

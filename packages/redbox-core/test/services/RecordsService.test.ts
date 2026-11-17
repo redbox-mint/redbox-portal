@@ -17,7 +17,7 @@ import { Settings } from 'luxon';
 import _ from 'lodash';
 import { of, from, firstValueFrom, Subject } from 'rxjs';
 import * as Effect from 'effect/Effect';
-import { ExpressHost } from '../../src/http/express';
+import { FastifyHost } from '../../src/http/fastify/FastifyHost';
 import { AgendaQueue } from '../../src/queues/AgendaQueue';
 import * as persistenceRuntime from '../../src/persistence/runtime';
 import { drainHttpRequests, hasActiveHttpRequest, retainHttpRequestFollowup, runHttpRequestHandler } from '../../src/middleware/requestLifetime';
@@ -627,7 +627,6 @@ describe('RecordsService', function () {
 
     it('retains the explicitly selected storage collaborator when configuration changes', function () {
       fixture.config.storage = {};
-
 
       expect(RecordsService.storageService).to.equal(mockStorageService);
     });
@@ -11608,7 +11607,7 @@ describe('RecordsService', function () {
           entered.resolve();
           return kind === 'Effect' ? Effect.promise(() => release.promise) : observable;
         });
-        const host = new ExpressHost(application, { owner: fixture, hostname: '127.0.0.1', port: 0,
+        const host = new FastifyHost(application, { owner: fixture, hostname: '127.0.0.1', port: 0,
           prepare: async router => {
             router.post('/save', async (req, res) => {
               const result = await runHttpRequestHandler(req, () => RecordsService.create(
@@ -11616,12 +11615,13 @@ describe('RecordsService', function () {
                 recordTypeWithHooks({ onCreate: { post: [{ function: hook, ...(kind === 'grace-expired' ? { execution: { timeoutMs: 1500 } } : {}) }] } }),
                 { id: 'user', username: 'user-1' }
               ));
-              res.json({ outcome: result.outcome });
+              return res.send({ outcome: result.outcome });
             });
           },
         });
         let shutdown: Promise<void> | undefined;
         try {
+          expect(host.constructor.name).to.equal('FastifyHost');
           await host.initialize(); await host.activate();
           queue.defineJob('completion', {}, async () => {});
           const response = await fetch(`http://127.0.0.1:${host.address()!.port}/save`, { method: 'POST' });

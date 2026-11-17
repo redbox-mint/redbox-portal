@@ -1,6 +1,5 @@
 # Preparing persistence indexes
 
-> Pre-cutover executable instructions: references below to Express, `app.express.cjs` or its test runners describe the retained legacy baseline. API2 extensions use the [Fastify migration guide](../specs/fastify-migration/extension-api2.md). Default executable/image changes and final runtime qualification are FM-042–048; these instructions do not establish a supported Express extension path.
 
 Fresh default dev/test stacks mount `support/resources/mongodb-persistence-indexes.js`
 into MongoDB's official init directory. Use the same qualified script when provisioning fresh deployment databases.
@@ -85,9 +84,9 @@ run the same command in a one-off application container with its existing config
 
 ```bash
 docker compose --profile mount -f support/development/docker-compose.yml run \
-  --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:inspect
+  --rm --no-deps --entrypoint node rbportal-mount app.js --maintenance=indexes:inspect
 docker compose --profile mount -f support/development/docker-compose.yml run \
-  --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:ensure
+  --rm --no-deps --entrypoint node rbportal-mount app.js --maintenance=indexes:ensure
 ```
 
 This executable mode consumes the service's portal configuration selectors and admin environment while keeping factories, listeners, migrations and workers offline.

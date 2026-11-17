@@ -28,7 +28,7 @@ x-bruno-service: &bruno-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
-  - RBPORTAL_EXPRESS_TEST_PROFILE=s3
+  - RBPORTAL_TEST_PROFILE=s3
   - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
   - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
   - PORT=1500
@@ -64,7 +64,7 @@ x-rbportal-service: &rbportal-service
     - '../../package-lock.json:/opt/redbox-portal/package-lock.json:ro'
   stop_grace_period: 30m
   healthcheck:
-    test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
+    test: ['CMD-SHELL', 'curl -fsS --max-time 4 http://localhost:1500/readyz']
     interval: '10s'
     timeout: '5s'
     retries: 30
@@ -108,7 +108,7 @@ services:
       - '../../.tmp/attachments:/attachments'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
-      test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
+      test: ['CMD-SHELL', 'curl -fsS --max-time 4 http://localhost:1500/readyz']
       interval: '10s'
       timeout: '5s'
       retries: 30

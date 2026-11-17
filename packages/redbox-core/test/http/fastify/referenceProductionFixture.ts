@@ -30,6 +30,13 @@ export async function referenceProductionFixture(
   policyConfiguration?: PoliciesConfig,
   beforePrepare?: () => () => void,
   scope?: {
+    readonly hostFactory?: (
+      portal: Awaited<ReturnType<typeof createPortalFastifyApplication>>,
+      options: Parameters<typeof createPortalFastifyHost>[1]
+    ) => ReturnType<typeof createPortalFastifyHost>;
+    /** Leave administrator creation to the real production bootstrap. */
+    readonly bootstrapAdministrator?: boolean;
+    readonly portals?: readonly string[];
     readonly declarations: readonly import('../../../src/http/fastify/routes').ApiRouteSource[];
     readonly configuration?: Record<string, unknown>;
     readonly env?: Record<string, string>;
@@ -191,7 +198,7 @@ export async function referenceProductionFixture(
             pages: scope?.pages,
             policyConfiguration,
             actions: scope?.actions,
-            portals: ['rdmp'],
+            portals: scope?.portals ?? ['rdmp'],
             bindings: scope?.httpBindings,
           },
         })
@@ -226,7 +233,8 @@ export async function referenceProductionFixture(
       ['000000000000000000000015', 'pilot-admin', 'pilot-api-token', [role.id]],
       ['000000000000000000000017', 'reader', 'reader-token', [reader.id]],
       ['000000000000000000000018', 'foreign', 'foreign-token', [foreignRole.id]],
-    ] as const)
+    ] as const) {
+      if (scope?.bootstrapAdministrator && username === 'pilot-admin') continue;
       await identities.create('user', {
         id,
         username,
@@ -237,6 +245,7 @@ export async function referenceProductionFixture(
         token: createHash('sha256').update(token).digest('base64'),
         roles: [...roles],
       });
+    }
     await refs.recordTypes.createDefinition({
       id: '000000000000000000000021',
       name: 'dataRecord',
@@ -271,7 +280,7 @@ export async function referenceProductionFixture(
     let host;
     if (nativeHost) {
       const identity = new HttpIdentity(identities);
-      const plan = await createPortalFastifyHost(portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>, {
+      const plan = await (scope?.hostFactory ?? createPortalFastifyHost)(portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>, {
         prepare: undefined,
         authentication: () => ({
           identity,
@@ -362,6 +371,7 @@ export async function referenceProductionFixture(
       'dataRecord'
     );
     return {
+      applicationOptions: options,
       portal,
       host,
       owner,

@@ -1,8 +1,4 @@
-// The migration acceptance fixture selects the production Fastify composition.
-// Ordinary integration deployments retain the pre-cutover executable.
+// Fastify is the default for every integration profile and preparation mode.
+// The explicit Express selector is retained only until FM-043 removes the oracle.
 const { selectedHost } = require('./support/integration-testing/playwright-host.cjs');
-if (selectedHost(process.env.RBPORTAL_PLAYWRIGHT_HOST) === 'fastify') {
-  require('./support/integration-testing/fastify-playwright.cjs');
-} else {
-  require('./app.express.cjs');
-}
+require(selectedHost(process.env.RBPORTAL_PLAYWRIGHT_HOST) === 'express' ? './app.express.cjs' : './app.js');

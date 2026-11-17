@@ -116,6 +116,7 @@ RUN apt-get update \
 
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/portal.cjs ./portal.cjs
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.express.cjs ./app.express.cjs
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/assets ./assets
@@ -131,14 +132,14 @@ COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_mo
 
 EXPOSE 1500
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
-  CMD ["sh", "-c", "curl -fsS \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=5 \
+  CMD ["sh", "-c", "curl -fsS --max-time 4 \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
 
 USER node
 
 RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
-CMD ["node", "app.express.cjs"]
+CMD ["node", "app.js"]
 
 FROM runtime AS runtime_puppeteer_base
 USER root
@@ -219,9 +220,9 @@ ENV NODE_ENV=development
 ENV TZ=Australia/Brisbane
 RUN ln -s /root/.nvm/versions/node /opt/redbox-build-node
 EXPOSE 1500
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
-  CMD ["sh", "-c", "curl -fsS \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
-CMD ["node", "app.express.cjs"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=5 \
+  CMD ["sh", "-c", "curl -fsS --max-time 4 \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
+CMD ["node", "app.js"]
 
 # Keep the vanilla (pristine) runtime image as the default build target.
 FROM runtime

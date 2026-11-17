@@ -124,9 +124,11 @@ else
     mkdir -p .tmp/playwright/{attachments,email}
   fi
   # Force preparation when up is requested, even if the container configuration is unchanged.
-  "${compose[@]}" up -d --force-recreate --wait "$service" 2>&1 | tee .tmp/playwright/logs/compose-up.log
+  "${compose[@]}" up -d --force-recreate --wait --wait-timeout 2100 "$service" 2>&1 | tee .tmp/playwright/logs/compose-up.log
   container_id="$("${compose[@]}" ps -q "$service")"
 fi
+rm -f .tmp/playwright/logs/observed-host.json
+docker logs "$container_id" 2>&1 | node support/integration-testing/playwright-host.cjs --assert-started
 image_id="$(docker inspect --format '{{.Image}}' "$container_id")"
 revision="$(git rev-parse HEAD)"
 portal_node_version="$("${compose[@]}" exec -T "$service" node --version)"
@@ -134,7 +136,7 @@ node - "$mode" "$project" "$image_id" "$revision" "$portal_node_version" "$((SEC
 const fs = require('node:fs');
 const [mode, project, imageId, revision, portalNodeVersion, setupSeconds] = process.argv.slice(2);
 const state = { mode, project, imageId, revision, portalNodeVersion, setupDurationMs: Number(setupSeconds) * 1000,
-  baseURL: `http://localhost:${process.env.RBPORTAL_PLAYWRIGHT_PORT || 1500}`,
+  baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${process.env.RBPORTAL_PLAYWRIGHT_PORT || 1500}`,
   stubURL: `http://localhost:${process.env.RBPORTAL_PLAYWRIGHT_STUB_PORT || 8787}`,
   browserStubURL: `http://playwright-stubs:${process.env.RBPORTAL_PLAYWRIGHT_STUB_PORT || 8787}`,
   scenariosEnabled: process.env.RBPORTAL_PLAYWRIGHT_SCENARIOS === 'true', observedAt: new Date().toISOString() };

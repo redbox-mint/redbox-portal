@@ -1,2 +1,2 @@
-// Historical suite entry delegates to the sole owned production-host fixture.
-require('./express.bootstrap.test.cjs');
+// Shared production Fastify fixture for the application integration suites.
+require('./fastify.bootstrap.test.cjs');

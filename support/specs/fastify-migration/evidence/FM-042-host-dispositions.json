@@ -1,0 +1,1182 @@
+{
+  "packages/redbox-core/test/application/ExecutableErrors.test.ts": {
+    "disposition": "Converted offline API2 production-bootstrap validation; maintenance never constructs an HTTP host.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/application/ExecutableMaintenance.test.ts": {
+    "disposition": "Converted offline API2 production-bootstrap validation; maintenance never constructs an HTTP host.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/application/IndexMaintenanceExtensions.test.ts": {
+    "disposition": "Converted offline API2 production-bootstrap validation; maintenance never constructs an HTTP host.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/application/InitializationMongo.test.ts": {
+    "disposition": "Only neutral data/module lifecycle and resolution cases remain here; API1 HTTP construction cases are selected separately by the explicit legacy command.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/application/PortalAuthentication.test.ts": {
+    "disposition": "Actual native production API2 application/host; asserts the runtime FastifyHost constructor. Original production assertions remain in default core.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/application/PortalCompanionConfiguration.test.ts": {
+    "disposition": "Actual native production API2 application/host; asserts the runtime FastifyHost constructor. Original production assertions remain in default core.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/application/PortalPageArtifacts.test.ts": {
+    "disposition": "Actual native production API2 application/host; asserts the runtime FastifyHost constructor. Original production assertions remain in default core.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/application/PortalPendingAccess.test.ts": {
+    "disposition": "Native production API2 application; these offline persistence/operational binding checks do not initialize an HTTP host.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/application/PortalQueuePreflight.test.ts": {
+    "disposition": "Native production API2 application; these offline persistence/operational binding checks do not initialize an HTTP host.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/application/PortalRouteCollisions.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/application/PortalStorageEntrypoint.test.ts": {
+    "disposition": "Native production API2 application; these offline persistence/operational binding checks do not initialize an HTTP host.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/config/companionAuthorization.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/config/httpConfigSecurity.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/config/httpConfigSecurity.test.ts": {
+    "disposition": "Native/neutral cases retained in default core; retained Express parser/session implementation cases preserved in matching .legacy.ts.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/config/httpHookStaticAssets.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/config/logConfig.test.ts": {
+    "disposition": "Explicit logger binding of a neutral extension factory; no HTTP composition or listener.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/configuration/legacyAcceptance.test.ts": {
+    "disposition": "Production configuration and default application/controller inputs resolved through the executable native API2 installation; original configuration assertions remain in default core.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/controllers/ActionController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/AdminController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/BrandingFontDelivery.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/BrandingFontDelivery.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/BrandingFontDelivery.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/BrandingFontDelivery.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/BrandingManagement.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/BrandingManagement.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/BrandingManagement.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/BrandingManagement.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/CoreController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/CoreControllerNotModified.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/CoreControllerViewResolution.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/CoreControllerViewResolution.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/CoreControllerViewResolution.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/CoreControllerViewResolution.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/FormVocabularyController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/NamedQueryNotificationParams.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/NamedQueryNotificationParams.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/NamedQueryNotificationParams.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/NamedQueryNotificationParams.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/RecordAuditController.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/RecordAuditController.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/RecordAuditController.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/RecordAuditController.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/RecordController.datastream.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/RecordRelationshipsAuthorization.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/RenderViewController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/RequestChronicleControllers.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/RequestChronicleControllers.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/RequestChronicleControllers.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/RequestChronicleControllers.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/UserController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/VocabularyController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/attachmentDownloads.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/AppConfigController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/webservice/AppConfigSiemValidation.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/webservice/DashboardConfigController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/FigshareCrosswalkController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/FigshareVocabularyController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/FormManagementController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/HarvestRunController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/IntegrationAuditController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/NamedQueryController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/RecordSchemaController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/RecordTypeController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/SearchController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/SiemController.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/controllers/webservice/SiemController.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/SiemController.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/controllers/webservice/SiemController.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/controllers/webservice/TranslationController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/UserManagementController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/controllers/webservice/VocabularyController.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/extensions/HookExampleMongo.test.ts": {
+    "disposition": "Published API2 hook example selects referenceProductionFixture(true) only; its multifunction fixture also contains an unselected retained oracle.",
+    "kind": "native-production"
+  },
+  "packages/redbox-core/test/extensions/composition.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/extensions/composition.test.ts": {
+    "disposition": "Only neutral data/module lifecycle and resolution cases remain here; API1 HTTP construction cases are selected separately by the explicit legacy command.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/extensions/handler-lifetime.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/extensions/head-routes.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/extensions/packed-declarations.test.ts": {
+    "disposition": "Static public-export/route inventory or negative type fixture; does not acquire an Express production host.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/extensions/pdf-lifecycle.cjs": {
+    "disposition": "Transport-neutral application/module lifecycle fixture; composeExtensionApplication constructs no HTTP host.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/extensions/public-exports.test.ts": {
+    "disposition": "Static public-export/route inventory or negative type fixture; does not acquire an Express production host.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/extensions/resolution.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/extensions/resolution.test.ts": {
+    "disposition": "Only neutral data/module lifecycle and resolution cases remain here; API1 HTTP construction cases are selected separately by the explicit legacy command.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/extensions/route-equivalence.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/extensions/storage-mongo.cjs": {
+    "disposition": "Transport-neutral application/module lifecycle fixture; composeExtensionApplication constructs no HTTP host.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/helpers/configurationHttp.ts": {
+    "disposition": "Configuration service HTTP assertions use the executable native API2 production host with real persisted administrator authentication and CSRF; only the settings domain port is supplied by the service fixture. Constructor asserted FastifyHost.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/helpers/httpIdentityFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpInputInventory.cjs": {
+    "disposition": "Static inventory, negative public-export check or explicit selector control; matching text is not default Express construction.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/helpers/httpPagesFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpPolicyFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpRecordMutationsFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpRecordPagesFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpRecordReadsFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpRouteFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/httpVocabularyFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/helpers/pageInputFixture.ts": {
+    "disposition": "Retained adapter fixture, reachable only from explicit legacy cases or as a native differential oracle; transitive default uses are separately reviewed below.",
+    "kind": "legacy-fixture"
+  },
+  "packages/redbox-core/test/hooks/defineRedboxHook.test.ts": {
+    "disposition": "Transport-neutral factory/work bindings; exact input identity and authored promise completion, no HTTP host.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/http/ApiGroupClosure.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/AuthenticationMongo.test.ts": {
+    "disposition": "Retained real-service Express baseline, excluded from default core and reached by explicitly named legacy commands or as the oracle of native gates.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/BrunoPilotMongo.test.ts": {
+    "disposition": "Retained real-service Express baseline, excluded from default core and reached by explicitly named legacy commands or as the oracle of native gates.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/CompanionUploadsMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/ConfigurationMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/CsrfMongo.test.ts": {
+    "disposition": "Retained real-service Express baseline, excluded from default core and reached by explicitly named legacy commands or as the oracle of native gates.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/ExpressHost.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/ExpressPreparation.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/HostStateMachine.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/HttpCompatibility.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/IdentityAdministrationMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/IntegrationAdministrationMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/Middleware.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/MiddlewareMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/NotificationHooksMongo.test.ts": {
+    "disposition": "Retained real-service Express baseline, excluded from default core and reached by explicitly named legacy commands or as the oracle of native gates.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/OidcMongo.test.ts": {
+    "disposition": "Retained real-service Express baseline, excluded from default core and reached by explicitly named legacy commands or as the oracle of native gates.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/PagesMongo.test.ts": {
+    "disposition": "Retained page adapter/route declaration baseline, excluded from default core. Native page differentials explicitly use this as their oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/PilotFailuresMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/Policies.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/http/Policies.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/Policies.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/http/Policies.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/http/ProgressSockets.test.ts": {
+    "disposition": "Raw transport owner shared by the production Fastify host; no Express application or ExpressHost is constructed.",
+    "kind": "shared-owner"
+  },
+  "packages/redbox-core/test/http/ProgressSocketsMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/ProgressStateMachine.test.ts": {
+    "disposition": "Raw transport owner shared by the production Fastify host; no Express application or ExpressHost is constructed.",
+    "kind": "shared-owner"
+  },
+  "packages/redbox-core/test/http/QueryReadsMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/RecordMutationsMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/RecordReadsMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/RecordTypesMongo.test.ts": {
+    "disposition": "Retained real-service Express baseline, excluded from default core and reached by explicitly named legacy commands or as the oracle of native gates.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/ResumableUploadsMongo.test.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/SessionShutdown.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/StreamingMultipart.test.ts": {
+    "disposition": "Raw transport owner shared by the production Fastify host; no Express application or ExpressHost is constructed.",
+    "kind": "shared-owner"
+  },
+  "packages/redbox-core/test/http/authentication-matrix.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/authenticationFixture.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/browserPagesHost.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/datastreamReadDifferential.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/fastify/AssetDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/BundledHooksMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/DatastreamDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/FastifyHost.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/G2Mongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/G3Mongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/GeneratedExtensionMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/IdentityAdministrationDifferentialMongo.test.ts": {
+    "disposition": "Fastify production system under test compared to retained and current Express oracles; native outputs, refusals and state are asserted for each scenario.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/IntegrationBrunoMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/IntegrationDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/IntegrationLifecycleMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/MetadataDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/MutationDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/MutationLifecycleMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/PageDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/PilotMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/PreparedRequestDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/ProgressDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/RawObservationsMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/ReadStreamsMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/ReferenceDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/UploadDifferentialMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/assetBrowser.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/assetRouteCollisions.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/authenticationDifferential.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/authenticationFixture.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/browserHostSelection.test.ts": {
+    "disposition": "Tests runner default/explicit-selector controls, including rejection of an unselected Express executable; this file constructs no production Express host.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/companionMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/companionPortalProcess.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/companion-portal.cjs": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/controllers.types.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/host-survival.cjs": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/logging-survival.cjs": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/abort.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/context.d.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/dispatch.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/listeners.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/operations.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/references.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/structural-interfaces.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/timers.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/fixtures/raw-boundaries/typed-headers-and-close.ts.fixture": {
+    "disposition": "Non-executed source/type fixture for the FM-036 scanner; no production Express host is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/generatedAssetReservations.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/head-audit.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/hooks.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/integrationDifferentialSupport.ts": {
+    "disposition": "Shared domain operations/types borrowing a fixture; host selection belongs to the native differential caller, with retained Express only as its explicit oracle.",
+    "kind": "shared-fixture-operations"
+  },
+  "packages/redbox-core/test/http/fastify/mutationDifferentialSupport.ts": {
+    "disposition": "Shared domain operations/types borrowing a fixture; host selection belongs to the native differential caller, with retained Express only as its explicit oracle.",
+    "kind": "shared-fixture-operations"
+  },
+  "packages/redbox-core/test/http/fastify/mutationRaceSupport.ts": {
+    "disposition": "Shared domain operations/types borrowing a fixture; host selection belongs to the native differential caller, with retained Express only as its explicit oracle.",
+    "kind": "shared-fixture-operations"
+  },
+  "packages/redbox-core/test/http/fastify/pilotMongoFixture.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/pilotResponses.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/productionCompositionInputs.ts": {
+    "disposition": "Inspects the actual createPortalFastifyApplication/createPortalFastifyHost bindings; generic module strings also contain legacy sibling exports, which are never selected.",
+    "kind": "native-binding"
+  },
+  "packages/redbox-core/test/http/fastify/productionConfigurationCases.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/productionRawPortal.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/rawPreparation.test.ts": {
+    "disposition": "Production raw-owner borrowing/cleanup checks for ProgressSockets shared with the native host; no Express app or ExpressHost.",
+    "kind": "shared-owner"
+  },
+  "packages/redbox-core/test/http/fastify/rawRouteReplacementsMongo.test.ts": {
+    "disposition": "Installed API2 native route replacement/control fixture; retained progress declaration and immutable raw oracle are comparison inputs, never a default executable.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/rawSocketFixture.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/rawSocketMongo.test.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/referenceProductionFixture.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/referenceResponses.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedAssetExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedDatastreamExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedIdentityExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedIntegrationExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedMetadataExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedMutationExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedPageExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedProgressExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedRawExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedReadExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedReferenceExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/retainedUploadExpress.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/routes-differential.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/security.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityBodies.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityFailures.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityFixture.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityInventoryDifferential.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityMongo.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityNested.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityOrdering.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityOwnership.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/securityProductionFixture.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/session.test.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/sessionDifferential.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/sessionDifferential.ts": {
+    "disposition": "Native Fastify is the system under test; retained Express imports provide the comparison oracle or a shared transport-neutral owner. Host mode is explicit at each fixture call; no executable fallback.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/sessionLifecycleDifferential.test.ts": {
+    "disposition": "Default native Fastify system under test; imports retained fixtures only as explicit comparison oracles. All native and oracle observations are asserted in this differential file.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fastify/staticOwnership.test.ts": {
+    "disposition": "Checks native static/raw route ownership using shared progress-owner path declarations; no Express application is acquired.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/fastify/translationWildcardTargets.ts": {
+    "disposition": "Native Fastify production system under test; imported retained fixtures are explicit comparison/negative oracles. Native and oracle modes are selected at their call sites.",
+    "kind": "native-sut-express-oracle"
+  },
+  "packages/redbox-core/test/http/fixtures/auth-browser.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/fixtures/companion-preloaded.cjs": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/fixtures/companion-process.cjs": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/fixtures/compiled-pilot.cjs": {
+    "disposition": "Retained Express-only real-service oracle/helper; standalone HTTP package invocations are explicitly test:legacy-express:*; native differential gates may also use it as their comparison leg.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/http/httpInputAcceptance.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/httpInputInventory.test.ts": {
+    "disposition": "Static public-export/route inventory or negative type fixture; does not acquire an Express production host.",
+    "kind": "static-inspection"
+  },
+  "packages/redbox-core/test/http/identityDifferential.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/operationLogging.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/pageFixture.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/pilotFixture.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/prepareRecordReads.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/queryReadErrors.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/readFixture.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/recordApiMutations.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordApiReads.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordBrowserForms.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordBrowserMetadata.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordBrowserMutations.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordBrowserPages.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordBrowserReads.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordDatastreamContracts.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordDifferentialR14.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordHarvestDelegation.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordProgressContracts.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordReadLimits.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordResumableContracts.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/recordWriteFixture.ts": {
+    "disposition": "Retained Express real-service baseline/helper, excluded from default core; native production differentials may explicitly borrow this oracle.",
+    "kind": "explicit-legacy-fixture"
+  },
+  "packages/redbox-core/test/http/vocabularyEntryValidation.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/integration/PrismaPersistence.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/integration/PrismaPersistence.test.ts": {
+    "disposition": "Native/neutral cases retained in default core; retained Express parser/session implementation cases preserved in matching .legacy.ts.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/middleware/RequestChronicleBodyParser.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/middleware/redboxSession.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/middleware/requestChronicle.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/middleware/requestChronicle.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/middleware/requestChronicle.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/middleware/requestChronicle.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/middleware/requestLifetime.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/RequestChroniclePolicies.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/brandingAndPortal.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/checkAuth.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/checkBrandingValid.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/companionAttachmentUploadAuth.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/disallowedHeadRequestHandler.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/i18nLanguages.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/isAuthenticated.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/isWebServiceAuthenticated.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/menuResolver.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/noCache.test.ts": {
+    "disposition": "Retained Express policy/page-header adapter baseline, selected only by test:legacy-express:core.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/pathRuleRouting.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/policies/pathRuleRouting.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/pathRuleRouting.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/policies/pathRuleRouting.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/policies/prepWs.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/sessionAuth.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline via the listed fixture imports; selected only by test:legacy-express:core. Original assertions preserved for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/setLang.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/validateApiContractRequest.legacy.ts": {
+    "disposition": "Retained Express implementation cases only; neutral cases remain in packages/redbox-core/test/policies/validateApiContractRequest.test.ts. Explicit test:legacy-express:core selection; excluded from the default glob.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/policies/validateApiContractRequest.test.ts": {
+    "disposition": "Transport-neutral business/configuration/validation, static layout or logging cases preserved in default core. Retained Express implementation cases are partitioned unchanged into packages/redbox-core/test/policies/validateApiContractRequest.legacy.ts and selected only by test:legacy-express:core.",
+    "kind": "neutral"
+  },
+  "packages/redbox-core/test/qualification/database-matrix.cjs": {
+    "disposition": "Converted database transport matrix probe: FastifyHost; full production portal qualification is separate.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/qualification/generated-institution.cjs": {
+    "disposition": "Historical Express executable qualifier requires explicit RBPORTAL_PLAYWRIGHT_HOST=express; not selected by defaults.",
+    "kind": "explicit-legacy-qualification"
+  },
+  "packages/redbox-core/test/qualification/image-artifacts.cjs": {
+    "disposition": "Image artifact qualifier now selects native Fastify; retained module references occur only in its baseline text.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/qualification/portal-application.cjs": {
+    "disposition": "Historical Express executable qualifier requires explicit RBPORTAL_PLAYWRIGHT_HOST=express; not selected by defaults.",
+    "kind": "explicit-legacy-qualification"
+  },
+  "packages/redbox-core/test/qualification/portal-host.cjs": {
+    "disposition": "Historical Express executable qualifier requires explicit RBPORTAL_PLAYWRIGHT_HOST=express; not selected by defaults.",
+    "kind": "explicit-legacy-qualification"
+  },
+  "packages/redbox-core/test/queues/QueueMongo.test.ts": {
+    "disposition": "Converted generic Mongo gate: production FastifyHost only, with actual constructor assertion; no retained Express variant.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/recordTypes/CompiledRecordTypesMongo.test.ts": {
+    "disposition": "Converted generic Mongo gate: production FastifyHost only, with actual constructor assertion; no retained Express variant.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/recordTypes/RecordTypesMongo.test.ts": {
+    "disposition": "Converted generic Mongo gate: production FastifyHost only, with actual constructor assertion; no retained Express variant.",
+    "kind": "previously-converted-or-static"
+  },
+  "packages/redbox-core/test/responses/Responses.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/AgendaQueueService.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/AgendaQueueService.test.ts": {
+    "disposition": "Neutral business cases stay in default core; transport-specific adapter cases are preserved in the matching .legacy.ts file. RecordsService HTTP completion uses FastifyHost.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/services/AppConfigService.test.ts": {
+    "disposition": "Configuration service HTTP assertions use the executable native API2 production host with real persisted administrator authentication and CSRF; only the settings domain port is supplied by the service fixture. Constructor asserted FastifyHost.",
+    "kind": "converted-fastify"
+  },
+  "packages/redbox-core/test/services/AuditFollowupDrain.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/AuditFollowupDrain.test.ts": {
+    "disposition": "Neutral business cases stay in default core; transport-specific adapter cases are preserved in the matching .legacy.ts file. RecordsService HTTP completion uses FastifyHost.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/services/BrandingService.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/BrandingService.test.ts": {
+    "disposition": "Neutral business cases stay in default core; transport-specific adapter cases are preserved in the matching .legacy.ts file. RecordsService HTTP completion uses FastifyHost.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/services/RecordsService.test.ts": {
+    "disposition": "Neutral business cases stay in default core; transport-specific adapter cases are preserved in the matching .legacy.ts file. RecordsService HTTP completion uses FastifyHost.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/services/RequestChronicleServices.test.ts": {
+    "disposition": "Express Request/Response types only; neutral service/privacy assertions remain in default core with no retained host.",
+    "kind": "type-only"
+  },
+  "packages/redbox-core/test/services/SecurityEventCapturePrivacy.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/SecurityEventCapturePrivacy.test.ts": {
+    "disposition": "Express Request/Response types only; neutral service/privacy assertions remain in default core with no retained host.",
+    "kind": "type-only"
+  },
+  "packages/redbox-core/test/services/TranslationService.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/TranslationService.test.ts": {
+    "disposition": "Neutral business cases stay in default core; transport-specific adapter cases are preserved in the matching .legacy.ts file. RecordsService HTTP completion uses FastifyHost.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/services/UsersService.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/services/UsersService.test.ts": {
+    "disposition": "Neutral business cases stay in default core; transport-specific adapter cases are preserved in the matching .legacy.ts file. RecordsService HTTP completion uses FastifyHost.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/unit/admin-api-docs.test.ts": {
+    "disposition": "Static route declaration assertions plus transport-neutral pages/brandingDelivery document generation shared with Fastify; no Express host/app is constructed.",
+    "kind": "shared-owner"
+  },
+  "packages/redbox-core/test/unit/persistence-foundation.legacy.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "packages/redbox-core/test/unit/persistence-foundation.test.ts": {
+    "disposition": "Native/neutral cases retained in default core; retained Express parser/session implementation cases preserved in matching .legacy.ts.",
+    "kind": "neutral-or-native"
+  },
+  "packages/redbox-core/test/utilities/RequestChronicle.test.ts": {
+    "disposition": "Express Request/Response types only; neutral service/privacy assertions remain in default core with no retained host.",
+    "kind": "type-only"
+  },
+  "support/documentation/test/examples.test.ts": {
+    "disposition": "Static inventory, negative public-export check or explicit selector control; matching text is not default Express construction.",
+    "kind": "previously-converted-or-static"
+  },
+  "test/express.bootstrap.test.cjs": {
+    "disposition": "Historical Express executable qualifier requires explicit RBPORTAL_PLAYWRIGHT_HOST=express; not selected by defaults.",
+    "kind": "explicit-legacy-qualification"
+  },
+  "test/fixtures/sails-retirement/http-acceptance.json": {
+    "disposition": "Static inventory, negative public-export check or explicit selector control; matching text is not default Express construction.",
+    "kind": "previously-converted-or-static"
+  },
+  "test/legacy-express/RequestChronicle.test.ts": {
+    "disposition": "Retained Express adapter/API1 implementation baseline; excluded from npm test and default CI by the explicit legacy glob. Its original assertions are preserved in test:legacy-express:core for FM-043 removal.",
+    "kind": "legacy-only"
+  },
+  "test/playwright-harness/build-state.test.cjs": {
+    "disposition": "Static inventory, negative public-export check or explicit selector control; matching text is not default Express construction.",
+    "kind": "previously-converted-or-static"
+  },
+  "test/tooling/retirement-docs.test.cjs": {
+    "disposition": "Static inventory, negative public-export check or explicit selector control; matching text is not default Express construction.",
+    "kind": "previously-converted-or-static"
+  }
+}

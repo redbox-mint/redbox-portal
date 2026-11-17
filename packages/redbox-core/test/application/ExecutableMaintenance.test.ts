@@ -30,7 +30,7 @@ describe('executable maintenance backend selection', () => {
           path.resolve(__dirname, '../../../../support/wiki/Persistence-Index-Preparation.md'),
           'utf8'
         );
-        assert.ok(guide.includes(`--entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:${mode}`));
+        assert.ok(guide.includes(`--entrypoint node rbportal-mount app.js --maintenance=indexes:${mode}`));
         const fakeProcess = {
           env: {
             REDBOX_APPLICATION_CONFIG: 'application.cjs',
@@ -39,7 +39,7 @@ describe('executable maintenance backend selection', () => {
             REDBOX_ADMIN_PASSWORD: 'maintenance-test-password',
             REDBOX_ADMIN_TOKEN: 'maintenance-test-token',
           },
-          argv: ['node', 'app.express.cjs', `--maintenance=indexes:${mode}`],
+          argv: ['node', 'app.js', `--maintenance=indexes:${mode}`],
           chdir() {},
           stdout: { write() {} },
           uptime: () => 0,
@@ -48,16 +48,14 @@ describe('executable maintenance backend selection', () => {
         const portal = { config: { logging: { level: 'info' }, agendaQueue }, owner: {}, preflight: {} };
         const requirePort = (name: string) => {
           if (name === 'node:path') return path;
+          if (name.endsWith('/utilities/PinoLoggerUtils')) return { rememberPinoLoggerDestination() {} };
           if (name === 'pino') return Object.assign(() => nothingLogger, { destination: () => ({}) });
           if (name.endsWith('/configuration')) return { ConfigurationError: class extends Error {} };
           if (name.endsWith('/extensions')) return { ExtensionError: class extends Error {} };
           if (name.endsWith('/host')) return {};
-          if (name.endsWith('/portal') || name.endsWith('/application'))
+          if (name.endsWith('/portal') || name === './portal.cjs')
             return {
-              createPortalApplication: async (options: {
-                files: Record<string, string>;
-                env: Record<string, string>;
-              }) => {
+              createApplication: async (options: { files: Record<string, string>; env: Record<string, string> }) => {
                 assert.deepEqual(
                   { ...options.files },
                   {
@@ -93,7 +91,7 @@ describe('executable maintenance backend selection', () => {
             };
           throw new Error('Unexpected executable dependency: ' + name);
         };
-        runInNewContext(readFileSync(path.resolve(__dirname, '../../../../app.express.cjs'), 'utf8'), {
+        runInNewContext(readFileSync(path.resolve(__dirname, '../../../../app.js'), 'utf8'), {
           require: requirePort,
           process: fakeProcess,
           __dirname: path.resolve(__dirname, '../../../..'),

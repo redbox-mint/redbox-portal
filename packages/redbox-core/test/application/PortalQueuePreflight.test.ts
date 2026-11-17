@@ -4,10 +4,12 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import sinon from 'sinon';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import { createPortalApplication } from '../../src/application/portal/application';
+import { createPortalFastifyApplication } from '../../src/application/portal/application';
 import * as maintenance from '../../src/persistence/maintenance';
 import { persistenceStatus } from '../../src/persistence/runtime';
 import { agendaQueueDefaultJobs } from '../../src/config/agendaQueueJobs';
+
+import { getMetaRoute } from '../../src/api-routes/groups/records';
 
 describe('production queue index preflight', () => {
   for (const mongoOverride of [false, true]) {
@@ -26,7 +28,7 @@ describe('production queue index preflight', () => {
         await writeFile(
           join(installed, 'index.cjs'),
           `
-          exports.registerRedboxExtension = () => ({ apiVersion: 1, modules: [{ name: 'storage', create() { throw Error('Must not initialize'); } }] });
+          exports.registerRedboxExtension = () => ({ apiVersion: 2, modules: [{ name: 'storage', create() { throw Error('Must not initialize'); } }] });
           exports.inspectPrismaStagedStorage = exports.ensurePrismaStagedStorageIndexes = async () => [];
         `
         );
@@ -48,8 +50,9 @@ describe('production queue index preflight', () => {
               },
             })
         );
-        const portal = await createPortalApplication({
+        const portal = await createPortalFastifyApplication({
           appPath: directory,
+        http: { declarations: [getMetaRoute] },
           log: nothingLogger,
           files: { application },
           env: { REDBOX_SESSION_SECRET: 'queue-preflight-secret-at-least-32-characters' },

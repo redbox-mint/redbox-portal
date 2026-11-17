@@ -6,9 +6,7 @@ import * as sinon from 'sinon';
 import { AgendaQueueUnsupportedFeatureError, AgendaQueue } from '../../src/services/AgendaQueueService';
 import { parseAgendaHistoryRetentionHours, parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
 import { restoreRepositoryFixtures, createDomainFixture } from './testHelper';
-import express from 'express';
 import { createServer } from 'node:http';
-import { composeHttpSession } from '../../src/http/express/session';
 import { runHttpRequestHandler, registerHttpRequestDrain, beginHttpRequest, runHttpRequestContext } from '../../src/middleware/requestLifetime';
 import { EventEmitter } from 'node:events';
 import { toJobId } from 'agenda';
@@ -829,61 +827,6 @@ describe('AgendaQueueService', function () {
       await new Promise<void>(resolve => setImmediate(resolve));
     }
     expect(callbacks).to.equal(1);
-  });
-
-  it('owns completion enqueues from accepted HTTP requests while refusing unrelated and detached callers', async function () {
-    await persistenceRuntime.initializePersistence(environment);
-    environment.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
-    const web = express();
-    // The real application creates HTTP middleware before Agenda's ready hook.
-    web.use(composeHttpSession({ secret: 'fixture', cookie: { secure: false } }, environment).middleware);
-    const agenda = createAgendaStub({ drain: sinon.stub().resolves({ timedOut: false }), stop: sinon.stub().resolves() });
-    const service = createQueue();
-    sinon.stub(service as any, 'createAgendaForBackend').resolves(agenda);
-    await (service as any).handleReady();
-    await service.activate();
-    service.defineJob('completion', {}, async () => {});
-    let enter!: () => void, release!: () => void, detach!: () => void;
-    const started = new Promise<void>(resolve => { enter = resolve; });
-    const held = new Promise<void>(resolve => { release = resolve; });
-    const detachedGate = new Promise<void>(resolve => { detach = resolve; });
-    let detached!: Promise<unknown>;
-    web.get('/', (req, res) => {
-      void runHttpRequestHandler(req, async () => {
-        enter();
-        await held;
-        detached = detachedGate.then(() => service.now('completion'));
-        void detached.catch(() => {});
-        try { await service.now('completion'); res.end('queued'); }
-        catch { res.status(500).end('refused'); }
-      });
-    });
-    const server = createServer(web);
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    const address = server.address();
-    if (!address || typeof address === 'string') throw new Error('Missing fixture address');
-    const request = fetch(`http://127.0.0.1:${address.port}/`);
-    await started;
-    const shutdown = stopOwner(environment);
-    try {
-      await new Promise<void>(resolve => setImmediate(resolve));
-      await assert.rejects(service.now('completion'), /draining/);
-      release();
-      const response = await request;
-      expect(await response.text()).to.equal('queued');
-      expect(response.status).to.equal(200);
-      await shutdown;
-      expect(agenda.now.calledOnce).to.equal(true);
-      detach();
-      await assert.rejects(detached, /draining/);
-    } finally {
-      release();
-      detach();
-      await request.catch(() => {});
-      await shutdown.catch(() => {});
-      await new Promise<void>(resolve => server.close(() => resolve()));
-      await persistenceRuntime.cleanupPersistence(environment);
-    }
   });
 
   it('stops processors before waiting for held enqueue writes during drain', async function () {

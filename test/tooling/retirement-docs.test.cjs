@@ -48,9 +48,11 @@ test('README development commands supply the required session secret', () => {
 
 test('README diagnostics use the current executable and readiness boundary', () => {
   const guide = read('README.md');
-  assert.doesNotMatch(guide, /STARTUP_TIMING|SHIM_VERBOSE|node app\.js|completion of the Sails/);
+  assert.doesNotMatch(guide, /STARTUP_TIMING|SHIM_VERBOSE|completion of the Sails/);
   assert.match(guide, /\/readyz/);
-  assert.ok(fs.existsSync(path.join(root, 'app.express.cjs')));
+  assert.match(guide, /Fastify/);
+  assert.equal(JSON.parse(read('package.json')).scripts.start, 'node app.js');
+  assert.ok(fs.existsSync(path.join(root, 'app.js')));
 });
 
 test('configuration guides explicitly select data and the secrets example loads offline', async () => {

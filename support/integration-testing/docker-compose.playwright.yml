@@ -10,7 +10,7 @@ x-playwright-service: &playwright-service
   working_dir: /opt/redbox-portal
   stop_grace_period: 30m
   environment:
-    PLAYWRIGHT_BASE_URL: http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
+    PLAYWRIGHT_BASE_URL: ${PLAYWRIGHT_BASE_URL:-http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}}
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     PLAYWRIGHT_STUB_URL: http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
@@ -34,7 +34,7 @@ x-playwright-service: &playwright-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
-  - RBPORTAL_EXPRESS_TEST_PROFILE=general
+  - RBPORTAL_TEST_PROFILE=general
   - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
   - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
   - RBPORTAL_PLAYWRIGHT_MODE=${RBPORTAL_PLAYWRIGHT_MODE:-image}
@@ -43,7 +43,7 @@ x-rbportal-env: &rbportal-env
   - RBPORTAL_PLAYWRIGHT_SCENARIOS=${RBPORTAL_PLAYWRIGHT_SCENARIOS:-false}
   - PORT=${RBPORTAL_PLAYWRIGHT_PORT:-1500}
   - REDBOX_PORT=${RBPORTAL_PLAYWRIGHT_PORT:-1500}
-  - REDBOX_PUBLIC_URL=http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
+  - REDBOX_PUBLIC_URL=${PLAYWRIGHT_BASE_URL:-http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}}
   - NODE_OPTIONS=--max-old-space-size=1024
   # Process the real queue promptly so indexing keeps pace with owned fixtures.
   - REDBOX_AGENDA_PROCESS_EVERY=0.1 seconds
@@ -90,11 +90,11 @@ x-rbportal-service: &rbportal-service
     - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
   stop_grace_period: 30m
   healthcheck:
-    test: ['CMD-SHELL', 'curl -fsS http://localhost:$${PORT}/default/rdmp/home']
+    test: ['CMD-SHELL', 'curl -fsS --max-time 4 http://localhost:$${PORT}/readyz']
     interval: '10s'
     timeout: '5s'
     retries: 30
-    start_period: '60s'
+    start_period: '180s'
   depends_on: *rbportal-depends
   expose:
     - '${RBPORTAL_PLAYWRIGHT_PORT:-1500}'
@@ -144,7 +144,7 @@ services:
       - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://localhost:$${PORT}/default/rdmp/home']
+      test: ['CMD-SHELL', 'curl -fsS --max-time 4 http://localhost:$${PORT}/readyz']
       interval: '10s'
       timeout: '5s'
       retries: 30

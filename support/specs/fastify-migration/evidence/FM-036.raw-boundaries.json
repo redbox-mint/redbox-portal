@@ -6426,8 +6426,8 @@
     "packages/redbox-core/src/http/requestValues.ts": "852282c8423c4391d3873e633aa12851042e918a404e7d9cbe8046d7f57999a2",
     "packages/redbox-core/src/http/uploadRoutes.ts": "4025b9d930feb424bed7540a59ecec5ddab7ef8e2305d7072d31e5c4efa4c4fb",
     "packages/redbox-core/src/identity/Roles.ts": "2ccd8dd41aa15cbdf975f77f741504b09a10369115c344ac6d3bbc25e341a0c7",
-    "packages/redbox-core/src/identity/Users.ts": "81108aa8780214d85b6443bc748f857a453f355fbb9a07578ad63ad8f959a261",
-    "packages/redbox-core/src/identity/bootstrap.ts": "d4947918eb8ef346900ec417c9afecb914776a3a62fd5150b3994a595c0e17ab",
+    "packages/redbox-core/src/identity/Users.ts": "1fc56a72edf1c6e320a873220829198d669930ed51b41425c2afb46b285e46cc",
+    "packages/redbox-core/src/identity/bootstrap.ts": "5f3b02fde8dbd4ab9eee35c7ef793c64680b93cad5765bcb5f33a1511017713a",
     "packages/redbox-core/src/identity/index.ts": "d4596ca0cd5648595d009da6b7b72c608d7b8a5807781b3008d8f8d72e17c22c",
     "packages/redbox-core/src/index.ts": "4a056f9f72ffb96bf4ced651854564632258211f36417bb701efd208952c672f",
     "packages/redbox-core/src/integrations/Doi.ts": "63db28f1f6a351bf8e4d52b2f690fefbac1a85019e6157596cac8ed6feb3fbe8",
@@ -6469,7 +6469,7 @@
     "packages/redbox-core/src/integrations/oni/runtime.ts": "250111121e04df95f97f1291b13d4ced68ee8cde975e8ea381efad8ef640dc9d",
     "packages/redbox-core/src/integrations/raid/http.ts": "1b4154ac23f25645f3ab87657616acf85725e3ad311f2d6756775c5f3023dd2d",
     "packages/redbox-core/src/lucene-escape-query.d.ts": "7a5626d68cc8bf5860ffcfc2f749dd6ca2b13675790499de99c54ac20e27754e",
-    "packages/redbox-core/src/maintenance/indexes.ts": "21041a219f49c3bf3f8183ce04f1798b843cc4f6c1dad643b3250c95abd1ec65",
+    "packages/redbox-core/src/maintenance/indexes.ts": "10e6c11f9cee054f2749db2e31d672a0c218be1d6fe0f596077968a06b7a6280",
     "packages/redbox-core/src/middleware/requestLifetime.ts": "60e28bb797988cea440fe6efdccc278c2230903bdadf0f41bec75f5a17ffaed6",
     "packages/redbox-core/src/model/APIActionResponse.ts": "ef914af1c222b9d434d8fba2a7daed7bdceb73c409701999cfbdce9f480654d9",
     "packages/redbox-core/src/model/APIErrorResponse.ts": "9cea1c4b553c75423552afae0f020532bd8ddcd00871b5f95cdcaf4d2dc790a0",
@@ -204956,7 +204956,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-call",
-      "line": 1177,
+      "line": 1173,
       "call": "crypto .createHash('sha256') .update(uuid as string) .digest('base64')",
       "scopes": [
         "Users",
@@ -204986,7 +204986,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-reference",
-      "line": 1177,
+      "line": 1173,
       "call": "crypto .createHash('sha256') .update(uuid as string) .digest",
       "scopes": [
         "Users",
@@ -205016,7 +205016,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-call",
-      "line": 1177,
+      "line": 1173,
       "call": "crypto .createHash('sha256') .update(uuid as string)",
       "scopes": [
         "Users",
@@ -205046,7 +205046,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-reference",
-      "line": 1177,
+      "line": 1173,
       "call": "crypto .createHash('sha256') .update",
       "scopes": [
         "Users",
@@ -205076,7 +205076,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-construction",
-      "line": 1177,
+      "line": 1173,
       "call": "crypto .createHash('sha256')",
       "scopes": [
         "Users",
@@ -205104,7 +205104,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-return",
-      "line": 1184,
+      "line": 1180,
       "call": "return from( this.input.repository.update( 'user', { id: userid, }, { token: uuidHash, } ) ).pipe( map(updatedUsers => { if (!updatedUsers[0]) throw new Error('No such user with id:' + userid); return updatedUsers[0] as UserModel; }) );",
       "scopes": [
         "Users",
@@ -205134,7 +205134,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-call",
-      "line": 1184,
+      "line": 1180,
       "call": "from( this.input.repository.update( 'user', { id: userid, }, { token: uuidHash, } ) ).pipe( map(updatedUsers => { if (!updatedUsers[0]) throw new Error('No such user with id:' + userid); return updatedUsers[0] as UserModel; }) )",
       "scopes": [
         "Users",
@@ -205164,7 +205164,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-handoff",
-      "line": 1184,
+      "line": 1180,
       "call": "from( this.input.repository.update( 'user', { id: userid, }, { token: uuidHash, } ) )",
       "scopes": [
         "Users",
@@ -205195,7 +205195,7 @@
     {
       "file": "packages/redbox-core/src/identity/Users.ts",
       "kind": "typed-handoff",
-      "line": 1185,
+      "line": 1181,
       "call": "this.input.repository.update( 'user', { id: userid, }, { token: uuidHash, } )",
       "scopes": [
         "Users",
@@ -205226,16 +205226,16 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-handoff",
-      "line": 38,
-      "call": "input.repository.create('user', { type: 'local', name: 'Local Admin', [config.usernameField ?? 'username']: username, [config.passwordField ?? 'password']: config.default.adminPw, email: config.default.email, ...(config.default.token ? { token: createHash('sha256').update(config.default.token).diges",
+      "line": 39,
+      "call": "input.repository.create('user', { type: 'local', name: 'Local Admin', username, password: config.default.adminPw, email: config.default.email, ...(config.default.token ? { token: createHash('sha256').update(config.default.token).digest('base64') } : {}), })",
       "scopes": [
         "bootstrapDefaultAdministrator"
       ],
       "iterations": [],
-      "syntaxSha256": "e67641c385535a6fa7ca7ab445e80233333677e24bed077534b3726893d51283",
+      "syntaxSha256": "0f512e50983f485e383f0d8e81c48e1dc597f7071437ba8aafb96f27caf6fecf",
       "operation": "create",
-      "receiverType": "{ token?: string | undefined; type: string; name: string; email: string; }",
-      "receiver": "{\n    type: 'local',\n    name: 'Local Admin',\n    [config.usernameField ?? 'username']: username,\n    [config.passwordField ?? 'password']: config.default.adminPw,\n    email: config.default.email,\n    ...(config.default.token ? { token: createHash('sha256').update(config.default.token).digest('base64') } : {}),\n  }",
+      "receiverType": "{ token?: string | undefined; type: string; name: string; username: string; password: string; email: string; }",
+      "receiver": "{\n    type: 'local',\n    name: 'Local Admin',\n    username,\n    password: config.default.adminPw,\n    email: config.default.email,\n    ...(config.default.token ? { token: createHash('sha256').update(config.default.token).digest('base64') } : {}),\n  }",
       "argumentIndex": 1,
       "profile": "service",
       "owner": "identity/bootstrap.ts; Application service resource; persistence/application owner retains service work independently of HTTP transport",
@@ -205256,7 +205256,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-spread",
-      "line": 44,
+      "line": 45,
       "call": "...(config.default.token ? { token: createHash('sha256').update(config.default.token).digest('base64') } : {})",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205285,7 +205285,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-call",
-      "line": 44,
+      "line": 45,
       "call": "createHash('sha256').update(config.default.token).digest('base64')",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205314,7 +205314,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-reference",
-      "line": 44,
+      "line": 45,
       "call": "createHash('sha256').update(config.default.token).digest",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205343,7 +205343,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-call",
-      "line": 44,
+      "line": 45,
       "call": "createHash('sha256').update(config.default.token)",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205372,7 +205372,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-reference",
-      "line": 44,
+      "line": 45,
       "call": "createHash('sha256').update",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205401,7 +205401,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-construction",
-      "line": 44,
+      "line": 45,
       "call": "createHash('sha256')",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205428,7 +205428,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-handoff",
-      "line": 48,
+      "line": 49,
       "call": "input.repository.addMemberships( 'user', user.id, input.roles.map(role => role.id) )",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -205458,7 +205458,7 @@
     {
       "file": "packages/redbox-core/src/identity/bootstrap.ts",
       "kind": "typed-return",
-      "line": 53,
+      "line": 54,
       "call": "return user;",
       "scopes": [
         "bootstrapDefaultAdministrator"
@@ -215073,7 +215073,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215105,7 +215106,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215137,7 +215139,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215168,7 +215171,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215200,7 +215204,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215232,7 +215237,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215263,7 +215269,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215294,7 +215301,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215325,7 +215333,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215357,7 +215366,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215389,7 +215399,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215420,7 +215431,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215452,7 +215464,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215484,7 +215497,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215515,7 +215529,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215546,7 +215561,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215577,7 +215593,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215608,7 +215625,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215640,7 +215658,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215672,7 +215691,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215705,7 +215725,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215739,7 +215760,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215770,7 +215792,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215801,7 +215824,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215830,7 +215854,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215861,7 +215886,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215890,7 +215916,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215921,7 +215948,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215952,7 +215980,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -215983,7 +216012,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216014,7 +216044,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216048,7 +216079,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216077,7 +216109,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216108,7 +216141,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216139,7 +216173,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216170,7 +216205,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216201,7 +216237,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216232,7 +216269,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216263,7 +216301,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216294,7 +216333,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216325,7 +216365,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216356,7 +216397,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216387,7 +216429,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216418,7 +216461,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216450,7 +216494,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216481,7 +216526,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216512,7 +216558,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216541,7 +216588,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216572,7 +216620,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216601,7 +216650,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216632,7 +216682,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216661,7 +216712,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216692,7 +216744,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216721,7 +216774,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216750,7 +216804,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216779,7 +216834,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216810,7 +216866,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216841,7 +216898,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216870,7 +216928,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216901,7 +216960,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216932,7 +216992,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216963,7 +217024,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -216994,7 +217056,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217025,7 +217088,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217056,7 +217120,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217087,7 +217152,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217118,7 +217184,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217149,7 +217216,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217180,7 +217248,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217211,7 +217280,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217242,7 +217312,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217276,7 +217347,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217309,7 +217381,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217342,7 +217415,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217376,7 +217450,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217409,7 +217484,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217442,7 +217518,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217476,7 +217553,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217509,7 +217587,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217542,7 +217621,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217571,7 +217651,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217602,7 +217683,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217633,7 +217715,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217664,7 +217747,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217696,7 +217780,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217727,7 +217812,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217758,7 +217844,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217789,7 +217876,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217821,7 +217909,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217852,7 +217941,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217883,7 +217973,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217912,7 +218003,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217943,7 +218035,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -217975,7 +218068,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218006,7 +218100,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218037,7 +218132,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218066,7 +218162,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218098,7 +218195,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218129,7 +218227,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218160,7 +218259,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218189,7 +218289,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218220,7 +218321,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218251,7 +218353,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218283,7 +218386,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218314,7 +218418,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218345,7 +218450,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218377,7 +218483,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218408,7 +218515,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218439,7 +218547,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -218470,7 +218579,8 @@
       "tests": [
         "packages/redbox-core/test/http/fastify/FastifyClose.test.ts",
         "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts",
-        "packages/redbox-core/test/services/AgendaQueueService.test.ts"
+        "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+        "packages/redbox-core/test/services/AgendaQueueService.legacy.ts"
       ]
     },
     {
@@ -282032,223 +282142,228 @@
         }
       ]
     },
-    "packages/redbox-core/test/services/AgendaQueueService.test.ts": {
-      "sha256": "4d117605a7b13c2be280152a72e53b3cdc1f35dbbbbc51cc9cddff37803b6c34",
+    "packages/redbox-core/test/services/AgendaQueueService.legacy.ts": {
+      "sha256": "f7095f2bccf4b7d050c84db9d3998087d6c803546666e2121e9c1483bb0ce7be",
       "cases": [
         {
-          "line": 130,
+          "line": 131,
+          "title": "'owns completion enqueues from accepted HTTP requests while refusing unrelated and detached callers'"
+        }
+      ]
+    },
+    "packages/redbox-core/test/services/AgendaQueueService.test.ts": {
+      "sha256": "53481696e7df4ba3d7148462a680ad188ce94c1f3f54b4acbf7b212a2936a98b",
+      "cases": [
+        {
+          "line": 128,
           "title": "'defines scheduled jobs without logging their configured payloads'"
         },
         {
-          "line": 154,
+          "line": 152,
           "title": "'bounds backend connection and retains late settlement for cleanup'"
         },
         {
-          "line": 167,
+          "line": 165,
           "title": "'cleans a rejected backend connection before releasing its owner'"
         },
         {
-          "line": 176,
+          "line": 174,
           "title": "'serializes SQS renewal before release and refuses a later touch of that delivery'"
         },
         {
-          "line": 202,
+          "line": 200,
           "title": "`finishes shutdown when an SQS prefetch receipt is already expired (${errorName})`"
         },
         {
-          "line": 259,
+          "line": 257,
           "title": "`retains a newer SQS receipt when an older delivery with the same job id ${oldAction}s`"
         },
         {
-          "line": 339,
+          "line": 337,
           "title": "`${errorName === 'AccessDenied' ? 'retains owned' : 'forgets ended'} SQS receipts after ${phase} state-save failures (${errorName})`"
         },
         {
-          "line": 409,
+          "line": 407,
           "title": "'owns automatic removal while the final request and Agenda completion interleave'"
         },
         {
-          "line": 441,
+          "line": 439,
           "title": "'owns final Agenda acknowledgement after its watchdog has released the handler'"
         },
         {
-          "line": 473,
+          "line": 471,
           "title": "`releases prefetched ${backendName} claims before waiting for an active handler`"
         },
         {
-          "line": 503,
+          "line": 501,
           "title": "'routes processor single-unlock calls through the owned claim release exactly once'"
         },
         {
-          "line": 521,
+          "line": 519,
           "title": "'does not unlock a successfully released claim again after another worker takes it'"
         },
         {
-          "line": 551,
+          "line": 549,
           "title": "'retains a same-ID late claim when the older release finishes after its failed unlock'"
         },
         {
-          "line": 592,
+          "line": 590,
           "title": "'keeps accepted completion admission after early unlock failure and the original deadline'"
         },
         {
-          "line": 631,
+          "line": 629,
           "title": "'settles a late claim and its unlock before closing the backend'"
         },
         {
-          "line": 659,
+          "line": 657,
           "title": "'retains failed late-claim unlocks for cleanup retry'"
         },
         {
-          "line": 685,
+          "line": 683,
           "title": "'quiesces only its captured HTTP owner when the selected fixture changes'"
         },
         {
-          "line": 704,
+          "line": 702,
           "title": "'refuses another application HTTP context as completion enqueue admission'"
         },
         {
-          "line": 733,
+          "line": 731,
           "title": "'keeps processors stopped while startup index validation is pending'"
         },
         {
-          "line": 756,
+          "line": 754,
           "title": "'retains a pending backend start when another concurrent start fails'"
         },
         {
-          "line": 790,
+          "line": 788,
           "title": "'refuses processors and completion submissions when startup index validation fails'"
         },
         {
-          "line": 804,
+          "line": 802,
           "title": "'honours the drain deadline through prior producer hooks and calls shutdown back once'"
         },
         {
-          "line": 834,
-          "title": "'owns completion enqueues from accepted HTTP requests while refusing unrelated and detached callers'"
-        },
-        {
-          "line": 889,
+          "line": 832,
           "title": "'stops processors before waiting for held enqueue writes during drain'"
         },
         {
-          "line": 916,
+          "line": 859,
           "title": "`bounds worker drain with ${processorState} processor and retains actual handlers for cleanup retry`"
         },
         {
-          "line": 983,
+          "line": 926,
           "title": "'drains accepted Agenda completion writes before persistence refuses operations'"
         },
         {
-          "line": 1016,
+          "line": 959,
           "title": "`durably queues completion audits from accepted ${registration} jobs while refusing new and detached submissions`"
         },
         {
-          "line": 1086,
+          "line": 1029,
           "title": "'drains the real audit storage handler through its notification enqueue'"
         },
         {
-          "line": 1140,
+          "line": 1083,
           "title": "'persists delayed retries from accepted workers while refusing external and detached schedules'"
         },
         {
-          "line": 1187,
+          "line": 1130,
           "title": "'should instantiate without throwing error with explicit inputs'"
         },
         {
-          "line": 1200,
+          "line": 1143,
           "title": "'should have a public initialize method'"
         },
         {
-          "line": 1211,
+          "line": 1154,
           "title": "'should export all public methods with explicit inputs'"
         },
         {
-          "line": 1228,
+          "line": 1171,
           "title": "'accepts supported backend values'"
         },
         {
-          "line": 1234,
+          "line": 1177,
           "title": "'rejects unsupported backend values'"
         },
         {
-          "line": 1238,
+          "line": 1181,
           "title": "'parses non-negative history retention hours'"
         },
         {
-          "line": 1244,
+          "line": 1187,
           "title": "'rejects invalid history retention hours'"
         },
         {
-          "line": 1251,
+          "line": 1194,
           "title": "'allows recurring schedules for Mongo-backed jobs'"
         },
         {
-          "line": 1264,
+          "line": 1207,
           "title": "'defaults unknown jobs to Mongo recurring schedules'"
         },
         {
-          "line": 1270,
+          "line": 1213,
           "title": "'rejects recurring schedules for SQS-backed jobs'"
         },
         {
-          "line": 1284,
+          "line": 1227,
           "title": "'routes now() to the job backend'"
         },
         {
-          "line": 1293,
+          "line": 1236,
           "title": "'preserves explicit zero lock lifetime and processEvery values in agenda options'"
         },
         {
-          "line": 1315,
+          "line": 1258,
           "title": "'routes schedule() to the Mongo backend'"
         },
         {
-          "line": 1328,
+          "line": 1271,
           "title": "'rejects SQS schedules over 15 minutes'"
         },
         {
-          "line": 1346,
+          "line": 1289,
           "title": "'rejects invalid SQS schedules'"
         },
         {
-          "line": 1364,
+          "line": 1307,
           "title": "'rejects jobs() when only SQS is configured'"
         },
         {
-          "line": 1378,
+          "line": 1321,
           "title": "'maps exact-name jobs() queries to Agenda v6 queryJobs()'"
         },
         {
-          "line": 1391,
+          "line": 1334,
           "title": "'maps $in jobs() queries to Agenda v6 queryJobs() names'"
         },
         {
-          "line": 1407,
+          "line": 1350,
           "title": "'rejects jobs() queries that target SQS-backed jobs'"
         },
         {
-          "line": 1428,
+          "line": 1371,
           "title": "'rejects unsupported name query operators when SQS-backed jobs are configured'"
         },
         {
-          "line": 1449,
+          "line": 1392,
           "title": "'moves completed jobs to history idempotently'"
         },
         {
-          "line": 1485,
+          "line": 1428,
           "title": "'applies the default backend and per-job overrides'"
         },
         {
-          "line": 1529,
+          "line": 1472,
           "title": "'starts only the required backends'"
         },
         {
-          "line": 1567,
+          "line": 1510,
           "title": "'allows inline startup every schedules for Mongo-backed jobs'"
         },
         {
-          "line": 1605,
+          "line": 1548,
           "title": "'rejects inline startup every schedules for SQS-backed jobs'"
         }
       ]

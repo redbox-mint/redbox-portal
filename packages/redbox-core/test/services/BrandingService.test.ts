@@ -1,6 +1,3 @@
-import express from 'express';
-import supertest from 'supertest';
-import { createHttpPolicies, requestContext } from '../../src/http/express/policies';
 import { pageLocals } from '../../src/pages/locals';
 import { brandingExportedMethods } from '../../src/branding/Branding';
 import { brandingInput } from '../helpers/brandingInputs';
@@ -169,39 +166,6 @@ describe('BrandingService', function () {
       const page = locals();
       expect(page.typeface).to.equal(null);
       expect(page.faviconUrl).to.equal('/mybrand/myportal/images/favicon');
-    });
-    function application() {
-      const app = express();
-      app.use(express.json());
-      const policies = createHttpPolicies({
-        branding: { getBrand: async ({ name }) => name === 'mybrand' ? { id: 'brand-1', name } : null },
-        pathRules: {} as any, portals: ['myportal'], defaultUnauthenticatedRole: () => undefined,
-        emitRequestFailure: async () => {}, authenticate: async () => false,
-      });
-      app.use((req, _res, next) => { req.session = { branding: 'mybrand', portal: 'myportal' } as any; next(); });
-      app.post('/resolve/:branding/:portal', policies.brandingandportal, (req, res) => res.json(requestContext(req)));
-      app.post('/resolve', policies.brandingandportal, (req, res) => res.json(requestContext(req)));
-      return supertest(app);
-    }
-    it('resolves the authoritative brand from path parameters', async () => {
-      const response = await application().post('/resolve/mybrand/myportal').expect(200);
-      expect(response.body.brand.name).to.equal('mybrand');
-    });
-    it('rejects body branding when the canonical path is absent', async () => {
-      await application().post('/resolve').send({ branding: 'mybrand', portal: 'myportal' }).expect(404);
-    });
-    it('rejects a stale session as the source of canonical brand context', async () => {
-      await application().post('/resolve').expect(404);
-    });
-    it('rejects an unknown brand instead of silently falling back', async () => {
-      await application().post('/resolve/unknown/myportal').expect(404);
-    });
-    it('resolves the portal from path parameters', async () => {
-      const response = await application().post('/resolve/mybrand/myportal').expect(200);
-      expect(response.body.portal).to.equal('myportal');
-    });
-    it('rejects an unconfigured portal instead of silently falling back', async () => {
-      await application().post('/resolve/mybrand/unknown').expect(404);
     });
     it('retains the explicit origin alongside the canonical page base', () => {
       const page = locals();

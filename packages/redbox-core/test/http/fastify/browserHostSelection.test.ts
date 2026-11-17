@@ -9,7 +9,7 @@ const executable = readFileSync(path.join(root, 'app.integrationtest.js'), 'utf8
 
 describe('tested-image browser host selection', () => {
   for (const [value, expected] of [
-    [undefined, 'express'],
+    [undefined, 'fastify'],
     ['express', 'express'],
     ['fastify', 'fastify'],
   ])
@@ -22,9 +22,7 @@ describe('tested-image browser host selection', () => {
           loaded.push(name);
         },
       });
-      assert.deepEqual(loaded, [
-        expected === 'fastify' ? './support/integration-testing/fastify-playwright.cjs' : './app.express.cjs',
-      ]);
+      assert.deepEqual(loaded, [expected === 'fastify' ? './app.js' : './app.express.cjs']);
     });
 
   for (const value of ['fastfy', 'Fastify', 'EXPRESS', '', ' fastify', 'express '])
@@ -46,7 +44,7 @@ describe('tested-image browser host selection', () => {
 
   const ready = (host: string) =>
     JSON.stringify({
-      msg: host === 'fastify' ? 'Fastify acceptance host ready.' : 'Express host ready.',
+      msg: host === 'fastify' ? 'Fastify host ready.' : 'Express host ready.',
       pid: 17,
       time: 123,
     });

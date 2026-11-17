@@ -34,7 +34,7 @@ x-bruno-service: &bruno-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
-  - RBPORTAL_EXPRESS_TEST_PROFILE=general
+  - RBPORTAL_TEST_PROFILE=general
   - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
   - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
   - PORT=1500
@@ -86,11 +86,11 @@ x-rbportal-service: &rbportal-service
     - '../../package-lock.json:/opt/redbox-portal/package-lock.json:ro'
   stop_grace_period: 30m
   healthcheck:
-    test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
+    test: ['CMD-SHELL', 'curl -fsS --max-time 4 http://localhost:1500/readyz']
     interval: '10s'
     timeout: '5s'
     retries: 10
-    start_period: '60s'
+    start_period: '180s'
   depends_on: *rbportal-depends
   expose:
     - '1500'
@@ -146,7 +146,7 @@ services:
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     # Mount version runs npm install so needs longer startup time
     healthcheck:
-      test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
+      test: ['CMD-SHELL', 'curl -fsS --max-time 4 http://localhost:1500/readyz']
       interval: '10s'
       timeout: '5s'
       retries: 30

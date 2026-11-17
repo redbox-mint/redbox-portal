@@ -50,6 +50,6 @@ WSU worked example. See [hook ordering](../specs/fastify-migration/hooks.md),
 [generated references](Generated-Reference-Documentation.md).
 
 The retained Express executable and comparison adapters are legacy development
-baselines until FM-042 cutover. Their private paths are not supported extension
+baselines selected explicitly pending FM-043 removal. Fastify is the default executable. Their private paths are not supported extension
 entrypoints. [Final runtime qualification](../specs/fastify-migration/tasks.md#p7--cutover-candidate-and-qualification)
 remains separate from API2 consumer qualification.

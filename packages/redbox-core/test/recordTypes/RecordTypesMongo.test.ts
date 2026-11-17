@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { MongoClient, ObjectId } from 'mongodb';
 import { firstValueFrom } from 'rxjs';
 import * as sinon from 'sinon';
-import { ExpressHost } from '../../src/http/express';
+import { FastifyHost } from '../../src/http/fastify/FastifyHost';
 import { ApplicationRuntime } from '../../src/application';
 import {
   RecordTypes,
@@ -271,16 +271,17 @@ describe('standalone RecordTypes on real MongoDB', function () {
   it('hosts the real module behind explicit inactive/active admission and closes its Mongo resources', async () => {
     const selectedOwner = await owner();
     const fixture = compose(selectedOwner);
-    const host = new ExpressHost(fixture.app, {
+    const host = new FastifyHost(fixture.app, {
       hostname: '127.0.0.1',
       port: 0,
       prepare: async router => {
         // Deliberately test-only composition; public authenticated routes belong to P4.
-        router.get('/test/cache-size', (_req, res) => {
-          res.json({ count: fixture.recordTypes.getAllCache()?.length });
+        router.get('/test/cache-size', async () => {
+          return { count: fixture.recordTypes.getAllCache()?.length };
         });
       },
     });
+    assert.equal(host.constructor.name, 'FastifyHost');
     try {
       await host.initialize();
       const address = host.address();

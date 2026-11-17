@@ -28,6 +28,7 @@ timeout 3600 node support/integration-testing/fastify-performance/freeze.cjs
 export FM007_IMAGE="$(node -p 'require("./support/specs/fastify-migration/evidence/FM-007-data/artifact.json").image')"
 export FM007_STATE=/home/ubuntu/work/fm007-state
 export FM007_BATCH=express-01
+export RBPORTAL_PLAYWRIGHT_HOST=express # explicit retained baseline only
 # Full matrix takes several hours. Each child has its own 600-second timeout.
 timeout 43200 node support/integration-testing/fastify-performance/run.cjs all
 timeout 120 node support/integration-testing/fastify-performance/report.cjs

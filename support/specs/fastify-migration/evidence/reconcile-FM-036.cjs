@@ -896,7 +896,10 @@ const serviceProofs = {
   'integrations/figshare/worker.ts': ['packages/redbox-core/test/services/figshare-queued.test.ts'],
   'integrations/oni/repository.ts': ['packages/redbox-core/test/services/oni-v2/repository.test.ts'],
   'integrations/raid/http.ts': ['packages/redbox-core/test/services/raid-v2/http.test.ts'],
-  'queues/AgendaQueue.ts': ['packages/redbox-core/test/services/AgendaQueueService.test.ts'],
+  'queues/AgendaQueue.ts': [
+    'packages/redbox-core/test/services/AgendaQueueService.test.ts',
+    'packages/redbox-core/test/services/AgendaQueueService.legacy.ts',
+  ],
   'record-contract/record-contract-compiler.ts': ['packages/redbox-core/test/unit/record-contract/compiler.test.ts'],
   'services/BrandingWoff2Inspector.ts': ['packages/redbox-core/test/services/BrandingWoff2Inspector.test.ts'],
   'services/oni-v2/flydriveOcflStore.ts': ['packages/redbox-core/test/services/oni-v2/flydriveOcflStore.test.ts'],

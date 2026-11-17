@@ -1,57 +1,43 @@
 import assert from 'node:assert/strict';
 import sinon from 'sinon';
-import { join } from 'node:path';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import { PortalHttp } from '../../src/application/portal/http';
+import * as brandingPersistence from '../../src/persistence/branding/runtime';
+import { nativeBindingFixture } from './nativeBindingFixture';
+import { sourcePortal } from './sourcePortal';
 import { resolveCompanionConfiguration } from '../../src/config/companionDefaults';
-import * as persistence from '../../src/persistence/branding/runtime';
+import { portalCompanion } from '../../src/application/portal/rawHttp';
 
-describe('production Companion configuration binding', () => {
+describe('production Companion configuration binding', function () {
+  this.timeout(30000);
   for (const setting of [undefined, 'false']) {
     it(`preserves deferred upload lengths (${setting ?? 'default'}) in native provider options`, async () => {
-      const sandbox = sinon.createSandbox();
-      sandbox.stub(persistence, 'getBrandingRepository').returns({} as never);
-      const root = mkdtempSync(join(tmpdir(), 'redbox-companion-config-'));
-      for (const directory of ['views', 'assets']) mkdirSync(join(root, directory));
       const companion = resolveCompanionConfiguration({
-        UPPY_COMPANION_ENABLED: 'true',
-        UPPY_GOOGLE_KEY: 'test-key',
-        UPPY_GOOGLE_SECRET: 'test-secret',
+        UPPY_COMPANION_ENABLED: 'true', UPPY_GOOGLE_KEY: 'test-key', UPPY_GOOGLE_SECRET: 'test-secret',
         UPPY_COMPANION_SECRET: 'companion-test-secret-at-least-32-characters',
-        UPPY_COMPANION_UPLOAD_URLS: 'http://localhost:1500',
-        UPPY_COMPANION_TUS_DEFERRED_UPLOAD_LENGTH: setting,
+        UPPY_COMPANION_UPLOAD_URLS: 'http://configured.example',
+        ...(setting ? { UPPY_COMPANION_TUS_DEFERRED_UPLOAD_LENGTH: setting } : {}),
       });
-      const portal = {
-        owner: {},
-        log: nothingLogger,
-        resolved: { views: [], assets: [] },
-        config: {
-          companion,
-          branding: {},
-          record: { maxUploadSize: 1000 },
-          server: { rootContext: '', publicUrl: 'http://localhost:1500' },
-        },
-        data: {
-          disks: { get: () => ({ stagingDisk: () => ({}), getStagingDiskConfig: () => ({ driver: 's3' }) }) },
-          records: { get: () => ({}) },
-          progress: { get: () => ({}) },
-        },
-      };
-      const http = new PortalHttp(portal as never, { appPath: root, assetRoots: [join(root, 'assets')] });
+      const f = await nativeBindingFixture({ companion });
+      const sandbox = sinon.createSandbox();
+      const raw = f.portal.installation.raw!;
+      let host: Awaited<ReturnType<typeof sourcePortal.createHost>> | undefined;
       try {
-        await http.initialize();
-        const provider = Reflect.get(http, 'companion');
-        const options = Reflect.get(provider, 'input').options;
-        assert.equal(options.tusDeferredUploadLength, setting !== 'false');
+        // Input-binding test: real production owner, with uninitialized domain ports.
+        sandbox.stub(brandingPersistence, 'getBrandingRepository').returns({} as never);
+        sandbox.stub(f.portal.data.disks, 'get').returns({ stagingDisk: () => ({}), primaryDisk: () => ({}),
+          getStagingDiskConfig: () => ({ driver: 's3' }) } as never);
+        sandbox.stub(f.portal.data.records, 'get').returns({} as never);
+        sandbox.stub(f.portal.data.progress, 'get').returns({} as never);
+        host = await sourcePortal.createHost(f.portal);
+        assert.equal(host.host.constructor.name, 'FastifyHost');
+        await raw.initialize();
+        const provider = portalCompanion(raw);
+        assert(provider, 'Production raw owner must construct Companion');
+        assert.equal(Reflect.get(provider, 'input').options.tusDeferredUploadLength, setting !== 'false');
       } finally {
-        try {
-          await http.close();
-        } finally {
-          sandbox.restore();
-          rmSync(root, { recursive: true, force: true });
-        }
+        await raw.close();
+        sandbox.restore();
+        await host?.host.stop();
+        await f.close();
       }
     });
   }

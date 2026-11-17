@@ -14,12 +14,12 @@ if (values.help || !['inspect', 'reconcile', 'abandon-create', 'link', 'relink',
   console.log('Changes default to dry-run. Pause Figshare workers before applying migration or repairs. No command publishes or transfers ownership.');
   process.exit(values.help ? 0 : 1);
 }
-// Private pre-cutover application composition; no listener is acquired.
-const { createPortalApplication } = require('../../packages/redbox-core/dist/application/portal/application');
+// Same native production selection as startup; no listener is acquired.
+const { createApplication } = require('../../portal.cjs');
 let portal;
 (async () => {
   const { REDBOX_APPLICATION_CONFIG, REDBOX_ENVIRONMENT_CONFIG, REDBOX_LOCAL_CONFIG, ...env } = process.env;
-  portal = await createPortalApplication({
+  portal = await createApplication({
     appPath: root, log: require('@researchdatabox/sails-ng-common').consoleLogger,
     environment: process.env.NODE_ENV || 'production', env,
     files: { application: REDBOX_APPLICATION_CONFIG, environment: REDBOX_ENVIRONMENT_CONFIG, local: REDBOX_LOCAL_CONFIG },

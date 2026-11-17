@@ -1,113 +1,53 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import express, { type RequestHandler } from 'express';
-import sinon from 'sinon';
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import { PortalHttp } from '../../src/application/portal/http';
 import { PageArtifacts } from '../../src/pages/Artifacts';
-import {
-  mountStaticPageArtifacts,
-  mountBrandingDeliveryRoutes,
-  mountDynamicPageAssets,
-} from '../../src/http/express/pageAssets';
-import * as persistence from '../../src/persistence/branding/runtime';
-import { createHttpPolicies } from '../../src/http/express/policies';
+import { referenceProductionFixture } from '../http/fastify/referenceProductionFixture';
+import { referenceReadDeclarations } from '../../src/http/referenceRoutes';
 
 describe('production page artifact precedence', () => {
   it('asserts the complete asset order across sources, specificity, generated routes and bundle selection', async function () {
     // The serial HTTP/filesystem precedence matrix exceeds the unit suite's five-second budget.
-    this.timeout(30_000);
-    const directory = await mkdtemp(join(tmpdir(), 'sr-portal-assets-'));
-    const sandbox = sinon.createSandbox();
-    sandbox.stub(persistence, 'getBrandingRepository').returns({} as never);
-    const compiled = join(directory, '.tmp/public');
-    const high = join(directory, 'hook-high');
-    const low = join(directory, 'hook-low');
-    const source = join(directory, 'assets');
-    const explicit = [join(directory, 'application-high'), join(directory, 'application-low')];
-    const write = async (file: string, bytes: string) => {
-      await mkdir(join(file, '..'), { recursive: true });
-      await writeFile(file, bytes);
-    };
-    try {
-      await mkdir(join(directory, 'views'));
-      for (const root of [compiled, high, low, source, ...explicit]) await mkdir(root, { recursive: true });
-      for (const applicationRoots of [undefined, explicit]) {
-        const server = createServer();
-        let http: PortalHttp | undefined;
-        try {
-          const portal = {
-            owner: {},
-            log: nothingLogger,
-            resolved: { views: [], assets: [high, low] },
-            config: {
-              companion: { enabled: false },
-              branding: {},
-              record: { maxUploadSize: 1000 },
-              server: { rootContext: '', publicUrl: 'http://localhost:1500' },
-            },
-            data: {
-              disks: { get: () => ({ stagingDisk: () => ({}), getStagingDiskConfig: () => ({ driver: 's3' }) }) },
-              records: { get: () => ({}) },
-              progress: { get: () => ({}) },
-            },
-          };
-          http = new PortalHttp(portal as never, { appPath: directory, assetRoots: applicationRoots });
-          await http.initialize();
-          const artifacts: PageArtifacts = Reflect.get(http, 'artifacts');
-          const roots = [...(applicationRoots ?? [compiled]), high, low, source];
-          assert.deepEqual(artifacts.assets, roots);
-          const router = express();
-          router.use((req, _res, next) => {
-            req.session = {} as never;
-            next();
-          });
-          const pass: RequestHandler = (_req, _res, next) => next();
-          const policies = {
-            ...createHttpPolicies({
-              branding: { getBrand: async () => ({ id: 'brand', name: 'institution' }) } as never,
-              portals: ['rdmp'],
-            } as never),
-            browseractor: pass,
-            checkauth: pass,
-            nocache: pass,
-          };
-          const brand = { id: 'brand', name: 'institution', css: '', logo: { storageKey: 'logo' } };
-          mountBrandingDeliveryRoutes(router, {
-            artifacts,
-            policies,
-            policyConfiguration: { '*': true },
-            csrf: { protect: pass } as never,
-            delivery: {
-              repository: () => ({ getBrand: async () => brand }),
-              theme: { generate: () => ({ css: 'body { color: red; }', hash: 'theme' }) },
-              typeface: { readFace: async () => Buffer.from('stored-font') },
-              logos: {
-                getBinaryAsync: async () => Buffer.from('stored-logo'),
-                getCurrentFaviconBinary: async () => ({ buffer: Buffer.from('stored-favicon'), favicon: {} }),
-              },
-              branding: { fetchPreview: async () => ({ css: 'preview-css', hash: 'preview' }) },
-              staticAssets: { imageType: 'image/png', faviconType: 'image/png' },
-              log: nothingLogger,
-            } as never,
-          });
-          mountDynamicPageAssets(router, {
-            artifacts,
-            policies,
-            policyConfiguration: { '*': true },
-            config: { appUrl: 'http://configured.example' },
-            defaultBrand: 'institution',
-            defaultPortal: 'rdmp',
-          } as never);
-          mountStaticPageArtifacts(router, artifacts);
-          server.on('request', router);
-          await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-          const address = server.address();
-          assert(address && typeof address !== 'string');
-          const base = `http://127.0.0.1:${address.port}`;
+    this.timeout(120_000);
+    for (const explicit of [false, true]) {
+      const pageOptions: { assetRoots?: string[] } = {};
+      let roots: string[] = [];
+      const write = async (file: string, bytes: string) => {
+        await mkdir(join(file, '..'), { recursive: true });
+        await writeFile(file, bytes);
+      };
+      const f = await referenceProductionFixture(true, { '*': true }, undefined, {
+        declarations: referenceReadDeclarations, pages: pageOptions, rootContext: '',
+        artifacts: async (directory, provider) => {
+          const compiled = join(directory, '.tmp/public');
+          const high = join(provider, 'hook-high'), low = join(provider, 'hook-low');
+          const source = join(directory, 'assets');
+          const application = [join(directory, 'application-high'), join(directory, 'application-low')];
+          for (const root of [compiled, high, low, source, ...application]) await mkdir(root, { recursive: true });
+          const file = join(provider, 'index.cjs');
+          await writeFile(file, (await readFile(file, 'utf8')).replace('apiVersion:', "assets:['hook-high','hook-low'],apiVersion:"));
+          if (explicit) pageOptions.assetRoots = application;
+          roots = [...(explicit ? application : [compiled]), high, low, source];
+        },
+      });
+      try {
+        assert.equal(f.host.constructor.name, 'FastifyHost');
+        const pages = (f.portal as any).installation.pages;
+        const artifacts: PageArtifacts = pages.artifacts;
+        assert.deepEqual(artifacts.assets, roots);
+        const brand = { ...f.otherBrand, css: '', logo: { storageKey: 'logo' } };
+        // Byte-producing ports are fixtures; all route selection, policies,
+        // precedence and delivery use the real installed native controllers.
+        Object.assign(Reflect.get(pages.delivery, 'input'), {
+          repository: () => ({ getBrand: async () => brand }),
+          theme: { generate: () => ({ css: 'body { color: red; }', hash: 'theme' }) },
+          typeface: { readFace: async () => Buffer.from('stored-font') },
+          logos: { getBinaryAsync: async () => Buffer.from('stored-logo'),
+            getCurrentFaviconBinary: async () => ({ buffer: Buffer.from('stored-favicon'), favicon: {} }) },
+          branding: { fetchPreview: async () => ({ css: 'preview-css', hash: 'preview' }) },
+        });
+        pages.dynamic.config.appUrl = 'http://configured.example';
+        const base = f.url;
           const rows = [
             // Every legacy hook-static folder, including compiled/generated app output.
             ...[
@@ -119,8 +59,8 @@ describe('production page artifact precedence', () => {
               'icons/HASH.svg',
             ].flatMap(resource => [
               {
-                url: '/institution/rdmp/' + resource,
-                candidates: ['institution/rdmp/', 'default/rdmp/', 'default/default/'].map(prefix => prefix + resource),
+                url: '/other/rdmp/' + resource,
+                candidates: ['other/rdmp/', 'default/rdmp/', 'default/default/'].map(prefix => prefix + resource),
               },
               { url: '/' + resource, candidates: [resource] },
             ]),
@@ -159,13 +99,13 @@ describe('production page artifact precedence', () => {
             await rm(join(root, 'angular/example/browser/main-' + roots.indexOf(root) + '.js'));
           }
           for (const [url, expected] of [
-            ['/institution/rdmp/styles/theme.css', 'body{color:red}'],
-            ['/institution/rdmp/preview/token.css', 'preview-css'],
-            ['/institution/rdmp/images/logo', 'stored-logo'],
-            ['/institution/rdmp/images/favicon', 'stored-favicon'],
-            ['/fonts/branding/institution/' + 'a'.repeat(64) + '.woff2', 'stored-font'],
-            ['/institution/rdmp/dynamic/apiClientConfig', 'http://configured.example'],
-            ['/institution/rdmp/api-docs.json', 'openapi'],
+            ['/other/rdmp/styles/theme.css', 'body{color:red}'],
+            ['/other/rdmp/preview/token.css', 'preview-css'],
+            ['/other/rdmp/images/logo', 'stored-logo'],
+            ['/other/rdmp/images/favicon', 'stored-favicon'],
+            ['/fonts/branding/other/' + 'a'.repeat(64) + '.woff2', 'stored-font'],
+            ['/other/rdmp/dynamic/apiClientConfig', 'http://configured.example'],
+            ['/other/rdmp/api-docs.json', 'openapi'],
           ]) {
             for (const root of roots) await write(join(root, url.slice(1)), 'static-shadow');
             const response = await fetch(base + url);
@@ -174,17 +114,9 @@ describe('production page artifact precedence', () => {
           }
           brand.css = 'body { color: blue; }';
           // A publication changes the generated theme, even with static shadows present.
-          const published = await fetch(base + '/institution/rdmp/styles/theme.css');
+          const published = await fetch(base + '/other/rdmp/styles/theme.css');
           assert.equal(await published.text(), 'body{color:#00f}');
-        } finally {
-          if (server.listening)
-            await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
-          await http?.close();
-        }
-      }
-    } finally {
-      sandbox.restore();
-      await rm(directory, { recursive: true, force: true });
+      } finally { await f.close(); }
     }
   });
 });

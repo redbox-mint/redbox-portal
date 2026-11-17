@@ -1,5 +1,5 @@
 // Fresh development volumes only, after the shared domain index script.
-// Existing data uses reviewed app.express.cjs --maintenance=indexes:ensure.
+// Existing data uses reviewed app.js --maintenance=indexes:ensure.
 // These database/collection names match application.cjs and the Compose inputs.
 const agenda = db.getSiblingDB('redbox-agenda').getCollection('agendaJobs');
 agenda.createIndex(

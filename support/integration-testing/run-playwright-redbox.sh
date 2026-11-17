@@ -122,7 +122,7 @@ mkdir -p "$RBPORTAL_COVERAGE_DIR" "$NYC_OUTPUT" .tmp/playwright/logs
 chmod 777 "$RBPORTAL_COVERAGE_DIR" "$NYC_OUTPUT" .tmp/playwright/logs || true
 
 # Disposable integration configuration only: prepare indexes explicitly before serving.
-node app.express.cjs --maintenance=indexes:ensure
+node app.js --maintenance=indexes:ensure
 
 exec node_modules/.bin/nyc --no-clean \
   --temp-dir "$NYC_OUTPUT" \

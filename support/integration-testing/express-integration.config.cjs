@@ -2,7 +2,7 @@
 // Explicit v6 inputs for the existing integration profiles. These fixtures use
 // the providers, databases and bundled development extension.
 const fixtures = require('../../config/env/integrationtest.js');
-const profile = process.env.RBPORTAL_EXPRESS_TEST_PROFILE || 'general';
+const profile = process.env.RBPORTAL_TEST_PROFILE || 'general';
 if (!['general', 'oidc', 's3', 'mocha'].includes(profile)) throw new Error('Unknown integration profile: ' + profile);
 const s3 = profile === 's3';
 module.exports = {

@@ -345,7 +345,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P7 — Cutover candidate and qualification
 
-- [ ] **FM-042 — Switch the sole default executable.**
+- [x] **FM-042 — Switch the sole default executable.**
   - Dependencies: G3–G6.
   - Work: select Fastify in startup/package scripts, Docker and CI; update maintenance/
     test runners, startup/readiness/liveness probes and timeouts.

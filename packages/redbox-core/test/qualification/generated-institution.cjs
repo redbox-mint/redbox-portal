@@ -1,3 +1,6 @@
+// Historical Express qualification only; current installed qualification: npm run test:packed:fastify.
+if (process.env.RBPORTAL_PLAYWRIGHT_HOST !== 'express')
+  throw new Error('Legacy qualification requires explicit RBPORTAL_PLAYWRIGHT_HOST=express; use test:packed:fastify.');
 // A freshly generated, compiled and packed hook in the production portal host.
 // Run with --test --test-force-exit, as for the other production-host qualifiers:
 // the accepted Companion provider cron has process lifetime after owned stop.
