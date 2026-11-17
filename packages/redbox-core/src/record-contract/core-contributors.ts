@@ -473,7 +473,10 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     componentContributor('CheckboxTreeComponent', 'configuration', checkboxTreeContribution),
     nonPersisting('ContentComponent'),
     componentContributor('DataLocationComponent', 'configuration', dataLocationContribution),
-    componentContributor('DateInputComponent', 'nullable', () => ({ kind: 'node', node: scalar('string', true) })),
+    componentContributor('DateInputComponent', 'nullable', () => ({
+      kind: 'node',
+      node: { ...scalar('string', true), annotations: { extensions: { 'x-redbox-format': 'date-time' } } },
+    })),
     nonPersisting('DeleteButtonComponent'),
     componentContributor('DropdownInputComponent', 'nullable', context => choiceContribution(context, true)),
     componentContributor('FileUploadComponent', 'configuration', attachmentArrayContribution),

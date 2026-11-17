@@ -1,6 +1,6 @@
 import { printSchema, GraphQLError, type GraphQLSchema } from 'graphql';
 import { firstValueFrom } from 'rxjs';
-import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
+import type { GridPorts, RecordCollectionStorage } from '../record-graphql/grid-types';
 import { Services as services } from '../CoreService';
 import { recordGraphql, validateRecordGraphqlConfig, type RecordGraphqlConfig } from '../config/recordGraphql.config';
 import { recordSchema } from '../config/recordSchema.config';
@@ -26,16 +26,9 @@ export interface RecordGraphqlDependencies extends ReadPorts, GridPorts {
   readonly getContributorRegistrationIssues: () => readonly RecordContractRegistrationIssue[];
 }
 
-interface GridSearchAdapter {
-  getRecordQuerySchema: (coreId: string, deadline: number) => Promise<GridIndexSchema>;
-  searchRecordPage: (coreId: string, params: URLSearchParams, deadline: number) => Promise<GridIndexPage>;
-}
-function hasGridSearch(value: unknown): value is GridSearchAdapter {
+function hasCollectionStorage(value: unknown): value is RecordCollectionStorage {
   return (
-    value !== null &&
-    typeof value === 'object' &&
-    typeof Reflect.get(value, 'getRecordQuerySchema') === 'function' &&
-    typeof Reflect.get(value, 'searchRecordPage') === 'function'
+    value !== null && typeof value === 'object' && typeof Reflect.get(value, 'executeRecordCollection') === 'function'
   );
 }
 
@@ -76,21 +69,17 @@ export namespace Services {
         getReusableDefinitions: () => sails.config.reusableFormDefinitions,
         getContributorRegistry: () => undefined,
         getContributorRegistrationIssues: () => [],
-        getGridEnvironment: async (caller, recordType, deadline) => {
+        getGridEnvironment: async (caller, recordType) => {
           const type = await firstValueFrom(RecordTypesService.get(caller.brand, recordType));
           if (!type)
             throw new GraphQLError('Record type is unavailable.', { extensions: { code: 'UNKNOWN_RECORD_TYPE' } });
-          const coreId = type.searchCore || 'default';
-          const config = sails.config.solr.cores[coreId];
-          const search: unknown = sails.services[sails.config.search.serviceName];
-          if (!config || !hasGridSearch(search))
-            throw new GraphQLError('Configured search backend does not support record grids.', {
+          const storage: unknown = sails.services[sails.config.storage.serviceName];
+          if (!hasCollectionStorage(storage))
+            throw new GraphQLError('Configured storage provider does not support record collections.', {
               extensions: { code: 'COLLECTION_UNAVAILABLE' },
             });
-          const schema = await search.getRecordQuerySchema(coreId, deadline);
           const steps = await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(type));
           return {
-            coreId,
             recordTypeLabel: sails.config.recordtype?.[recordType]?.labels?.name || recordType,
             workflowLabels: steps.flatMap(step => {
               const workflow = isObject(step.config) && isObject(step.config.workflow) ? step.config.workflow : {};
@@ -98,9 +87,7 @@ export namespace Services {
                 ? [{ value: workflow.stage, label: workflow.stageLabel }]
                 : [];
             }),
-            config,
-            schema,
-            search: (params, until) => search.searchRecordPage(coreId, params, until),
+            execute: request => storage.executeRecordCollection(request),
             cursorSecret: this.dependencies.getConfig().cursorSecret,
           };
         },

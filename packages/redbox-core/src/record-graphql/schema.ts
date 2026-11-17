@@ -151,7 +151,7 @@ export function createRecordYoga(
   ports: ReadPorts,
   gridPorts: GridPorts = {
     getGridEnvironment: async () => {
-      throw new GraphQLError('Collection search is unavailable.', { extensions: { code: 'COLLECTION_UNAVAILABLE' } });
+      throw new GraphQLError('Collection storage is unavailable.', { extensions: { code: 'COLLECTION_UNAVAILABLE' } });
     },
   }
 ) {

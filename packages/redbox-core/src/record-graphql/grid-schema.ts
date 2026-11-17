@@ -45,7 +45,7 @@ const FilterInput = new GraphQLInputObjectType({
     iprefix: {
       type: GraphQLString,
       description:
-        'Literal prefix ignoring ASCII A-Z case only; all other characters match exactly without Unicode normalization. Requires a verified companion binding. Nonempty, well-formed UTF-16, at most 256 UTF-8 bytes.',
+        'Literal prefix ignoring ASCII A-Z case only; all other characters match exactly without Unicode normalization. Nonempty, well-formed UTF-16, at most 256 UTF-8 bytes.',
     },
     in: { type: new GraphQLList(new GraphQLNonNull(ValueInput)) },
     gt: { type: ValueInput },
@@ -171,7 +171,7 @@ export function gridFields(
         if (!pending) {
           pending = ports.getGridEnvironment(context.caller, args.recordType, context.deadline).catch(error => {
             if (error instanceof GraphQLError) throw error;
-            return gridError('SEARCH_UNAVAILABLE', 'Search schema is unavailable; retry the request.');
+            return gridError('STORAGE_UNAVAILABLE', 'Collection storage is unavailable; retry the request.');
           });
           context.gridEnvironments.set(args.recordType, pending);
         }
@@ -222,7 +222,7 @@ export function gridFields(
         if (!pending) {
           pending = ports.getGridEnvironment(context.caller, args.recordType, context.deadline).catch(error => {
             if (error instanceof GraphQLError) throw error;
-            return gridError('SEARCH_UNAVAILABLE', 'Search schema is unavailable; retry the request.');
+            return gridError('STORAGE_UNAVAILABLE', 'Collection storage is unavailable; retry the request.');
           });
           context.gridEnvironments.set(args.recordType, pending);
         }

@@ -1,4 +1,4 @@
-import type { SolrCoreConfig, SolrFieldDefinition } from '../config/solr.config';
+import type { RecordContract } from '../record-contract';
 import type { ReadCaller } from './read-record';
 
 export const COLLECTION_ROW = Symbol('record-grid-row');
@@ -16,6 +16,8 @@ export const GRID_LIMITS = Object.freeze({
   candidates: 200,
   batchSize: 50,
   cursorBytes: 8_192,
+  storageTimeoutMs: 5_000,
+  storageBytes: 262_144,
   cursorAgeMs: 3_600_000,
 });
 export type GridScalar = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME' | 'OBJECT' | 'JSON' | 'MIXED';
@@ -97,25 +99,33 @@ export interface GridCatalogue {
   fields: GridField[];
   variants: GridVariant[];
 }
-export interface GridIndexSchema {
-  copyFields?: Array<{ source: string; dest: string }>;
-  uniqueKey: string;
-  fields: SolrFieldDefinition[];
-  fieldTypes: Array<{ name: string; class: string }>;
-  dynamicFields: SolrFieldDefinition[];
+/** Normalized scalar keys in requested sort order, including deterministic OID ordering. */
+export type GridKey = string | number | boolean | null;
+export interface GridPosition {
+  keys: GridKey[];
 }
-export interface GridIndexPage {
-  oids: string[];
-  nextCursor: string;
+export interface GridCandidate extends GridPosition {
+  oid: string;
+}
+export interface GridStoragePage {
+  candidates: GridCandidate[];
   exhausted: boolean;
+}
+/** Trusted server context and contracts only. No Mongo paths, operators or pipelines cross this boundary. */
+export interface GridStorageRequest {
+  caller: ReadCaller;
+  contracts: readonly RecordContract[];
+  query: GridQuery;
+  after?: GridPosition;
+  deadline: number;
+}
+export interface RecordCollectionStorage {
+  executeRecordCollection(request: GridStorageRequest): Promise<GridStoragePage>;
 }
 export interface GridEnvironment {
   recordTypeLabel?: string;
   workflowLabels?: Array<{ value: string; label: string }>;
-  coreId: string;
-  config: SolrCoreConfig;
-  schema: GridIndexSchema;
-  search: (params: URLSearchParams, deadline: number) => Promise<GridIndexPage>;
+  execute: RecordCollectionStorage['executeRecordCollection'];
   cursorSecret?: string;
 }
 export interface GridPorts {

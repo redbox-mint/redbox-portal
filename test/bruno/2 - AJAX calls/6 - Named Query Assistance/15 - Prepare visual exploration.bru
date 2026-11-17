@@ -74,7 +74,6 @@ docs {
   Successful preparation requires a CSRF-enabled server and token. The committed
   general harness disables token issuance, so it must refuse the session request.
   Mounted NamedQueryPromotion HTTP tests cover successful preparation with real CSRF.
-  Uses the committed general harness and its real Solr schema API. Adds only the
-  parent-declared grid envelope fields if missing, matching SOLR_RECORD_GRID_FIELDS.
-  Run against disposable test Solr/Mongo volumes; down -v removes these fixtures.
+  Discovery uses readable contracts and the Mongo storage collection capability.
+  Run against disposable test Mongo volumes; down -v removes these fixtures.
 }

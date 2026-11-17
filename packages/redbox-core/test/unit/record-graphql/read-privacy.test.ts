@@ -137,7 +137,7 @@ async function harness(
   const record = gridRecord('a');
   record.metadata.payload = stored;
   const environment = gridEnvironment();
-  environment.search = async () => ({ oids: ['a'], nextCursor: 'end', exhausted: true });
+  environment.execute = async () => ({ candidates: [{ oid: 'a', keys: ['a'] }], exhausted: true });
   let reads = 0;
   const { yoga, schema } = createRecordYoga(
     [result.contract],

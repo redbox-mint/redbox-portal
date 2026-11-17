@@ -5,7 +5,7 @@ export interface RecordGraphqlConfig {
   cacheEntries: number;
   /** Maximum configured type/workflow/form variants in one scope. */
   maxVariants: number;
-  /** Shared across instances. Required for collection cursors; never exposed in discovery. */
+  /** Shared across instances. Required for Mongo collection cursors; never exposed in discovery. */
   cursorSecret?: string;
   /** Hard bounds for complete GraphQL report CSV exports. */
   reportExport?: { maxRows: number; maxPages: number; timeoutMs: number; maxBytes: number };
