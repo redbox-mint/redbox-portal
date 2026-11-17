@@ -135,14 +135,14 @@ describe('AI models overview and editors', () => {
   });
   it('shows linked models and blocks deletion of a provider in use', async () => {
     component.askDeleteProvider('connection-or'); fixture.detectChanges(); expect(query('[role=alertdialog] a').getAttribute('href')).toContain('model=rdmp');
-    expect(query<HTMLButtonElement>('.rb-admin-danger-confirm').disabled).toBeTrue(); await component.confirmDelete(); expect(api.deleteConnection).not.toHaveBeenCalled();
+    expect(query('.rb-admin-danger-confirm')).toBeNull(); await component.confirmDelete(); expect(api.deleteConnection).not.toHaveBeenCalled();
   });
   it('deletes an unused provider only after the confirmation action', async () => {
     component.askDeleteProvider('connection-br'); expect(api.deleteConnection).not.toHaveBeenCalled(); await component.confirmDelete(); expect(api.deleteConnection).toHaveBeenCalledWith('connection-br'); expect(component.deleteConfirmation).toBeUndefined();
   });
   it('lists profile usage and offers retirement when model deletion is blocked', () => {
     component.overview!.models[0].uses = [{ key: 'profile', name: 'Drafting profile' }]; component.askDeleteModel('rdmp'); fixture.detectChanges();
-    expect(query('[role=alertdialog]').textContent).toContain('Drafting profile'); expect(query<HTMLButtonElement>('.rb-admin-danger-confirm').disabled).toBeTrue();
+    expect(query('[role=alertdialog]').textContent).toContain('Drafting profile'); expect(query('.rb-admin-danger-confirm')).toBeNull();
     component.offerRetire(); expect(component.selected?.status).toBe('published'); expect(component.retireConfirmation).toBeTrue();
   });
   it('replaces deletion confirmation with newly discovered server usage', async () => {

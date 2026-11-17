@@ -3,14 +3,14 @@
   <fieldset class="rb-admin-form-section-body" [disabled]="busy || item.testing">
     @if (!item.id) {
       <fieldset class="ai-adapter-choices"><legend>{{ 'ai-models-provider-type-updated' | i18next }}</legend>
-        @for (adapter of overview.adapters; track adapter) {
+        @for (adapter of adapterChoices; track adapter) {
           <label class="ai-adapter-choice" [class.selected]="draft.adapterId === adapter">
             <input type="radio" name="provider-type" [value]="adapter" [ngModel]="draft.adapterId" (ngModelChange)="adapterChange($event)">
             <span>{{ adapterLabels[adapter] | i18next }}</span><small class="rb-admin-hint">{{ ('ai-models-adapter-hint-' + adapter) | i18next }}</small>
           </label>
         }
       </fieldset>
-    } @else { <p>{{ adapterLabels[draft.adapterId] | i18next }}</p> }
+    } @else { <p class="ai-provider-type"><span class="ai-field-label">{{ 'ai-models-provider-type-updated' | i18next }}</span>{{ adapterLabels[draft.adapterId] | i18next }}</p> }
     <div class="rb-admin-form-grid">
       <div class="ai-full-row"><label for="provider-name">{{ 'ai-models-name' | i18next }}</label>
         <input id="provider-name" class="form-control" [ngModel]="draft.name" (ngModelChange)="changeName($event)" (blur)="touch('name')" maxlength="200" required aria-describedby="provider-name-error" [attr.aria-invalid]="!!issue('name')">
@@ -30,15 +30,14 @@
       }
       @if (draft.authStrategy === 'bearer') {
         <div class="ai-full-row">
-          @if (draft.secretRef) { <p class="ai-key-state">{{ keyState | i18next }}
-            @if (!replacing) { <button type="button" class="btn btn-sm btn-outline-secondary" (click)="replaceKey()">{{ 'ai-models-replace-key' | i18next }}</button> }
+          @if (draft.secretRef) { <p class="ai-key-state"><span [class.ai-field-error]="keyState === 'ai-models-key-missing'">{{ keyState | i18next }}</span>
+            @if (!replacing) { <button type="button" class="btn btn-sm btn-outline-secondary" (click)="replaceKey()">{{ (item.secretConfigured ? 'ai-models-replace-key' : 'ai-models-add-key') | i18next }}</button> }
           </p> }
           @if (showKeyInput) {
             <label for="provider-api-key">{{ 'ai-models-api-key-updated' | i18next }}</label>
             <input id="provider-api-key" type="password" class="form-control" [(ngModel)]="draft.apiKey" (ngModelChange)="edit()" (blur)="touch('secretRef')" autocomplete="off" spellcheck="false" maxlength="8000" aria-describedby="provider-key-hint provider-key-error" [attr.aria-invalid]="!!issue('secretRef')">
             <small id="provider-key-hint" class="rb-admin-hint">{{ 'ai-models-key-help' | i18next }}</small>
           }
-          @if (draft.secretRef && !item.secretConfigured && !draft.apiKey) { <p class="ai-field-error">{{ 'ai-models-key-missing' | i18next }}</p> }
           <small id="provider-key-error" class="ai-field-error">{{ issue('secretRef') | i18next }}</small>
         </div>
       }

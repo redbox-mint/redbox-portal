@@ -61,8 +61,11 @@ export class ProviderCardComponent implements OnChanges {
   get health(): string { return this.item.savedJson === JSON.stringify(this.draft) ? this.item.savedHealth || 'untested' : 'untested'; }
   get checkedAt(): string | undefined { return this.health !== 'untested' ? this.item.savedHealthCheckedAt : undefined; }
   replacing = false;
+  /** Real services first; the demo provider is a fallback choice. */
+  get adapterChoices(): string[] { return [...this.overview.adapters].sort((a, b) => Number(a === 'fake') - Number(b === 'fake')); }
   get keyState(): string {
-    return this.draft.secretRef?.startsWith('env:') ? 'ai-models-key-server' : this.item.secretConfigured ? 'ai-models-key-saved' : 'ai-models-key-missing';
+    if (!this.item.secretConfigured) return 'ai-models-key-missing';
+    return this.draft.secretRef?.startsWith('env:') ? 'ai-models-key-server' : 'ai-models-key-saved';
   }
   get showKeyInput(): boolean { return this.replacing || !this.draft.secretRef; }
   replaceKey(): void { this.replacing = true; this.draft.apiKey = ''; }

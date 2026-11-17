@@ -15,7 +15,7 @@
     <p>{{ (modelUses.length ? 'ai-models-used-by-profiles' : 'ai-models-unused-model') | i18next }}
       @for (use of modelUses; track use.key) { <a [href]="profileHref(use.key)">{{ use.name }}</a>{{ $last ? '' : ', ' }} }
     </p>
-  } @else { <p>{{ (providerEditor ? 'ai-models-provider-description' : 'ai-models-description-updated') | i18next }}</p> }
+  } @else { <p>{{ (providerEditor ? (activeProvider?.id ? 'ai-models-provider-edit-description' : 'ai-models-provider-description') : 'ai-models-description-updated') | i18next }}</p> }
 </div><div class="rb-admin-page-actions">
   @if (!loading && overview?.enabled) {
     @if (activeProvider; as provider) {
@@ -61,7 +61,8 @@
   @if (activeProvider; as provider) {
     <ai-provider-card [item]="provider" [overview]="overview" [busy]="busy" [keyConflict]="providerKeyUsed(provider)" (changed)="notice = ''" (nameChange)="providerName(provider, $event)"></ai-provider-card>
   } @else if (!editor) {
-    @if (attentionCount) { <p class="alert alert-warning" role="status">{{ 'ai-models-attention-keys' | i18next: { count: attentionCount } }}</p> }
+    @if (attentionProviders.length) { <p class="alert alert-warning" role="status">{{ 'ai-models-attention-keys' | i18next: { count: attentionProviders.length } }}:
+      @for (provider of attentionProviders; track provider.id) { <a [href]="hash() + '#provider=' + provider.id" (click)="$event.preventDefault(); openProvider(provider.id)">{{ provider.name }}</a>{{ $last ? '' : ', ' }} }</p> }
     <section class="rb-admin-form-section" id="ai-providers"><div class="rb-admin-form-section-header"><h2>{{ 'ai-models-editor-section-providers' | i18next }}</h2></div>
       @if (!overview.connections.length) { <div class="rb-admin-empty"><h3>{{ 'ai-models-providers-empty-updated' | i18next }}</h3><p>{{ 'ai-models-providers-empty-description-updated' | i18next }}</p><button class="btn btn-outline-secondary" type="button" (click)="addProvider()">{{ 'ai-models-add-provider' | i18next }}</button></div> }
       @for (provider of overview.connections; track provider.id) {
@@ -154,7 +155,7 @@
               @for (setting of ['maxOutputTokens']; track setting) {
                 @if (accepts(setting)) {
                   <div><label [for]="'ai-setting-' + setting">{{ ('ai-models-behaviour-' + setting) | i18next }}</label>
-                    <input type="number" class="form-control" [id]="'ai-setting-' + setting" [ngModel]="$any(draft.parameters)?.[setting]" (ngModelChange)="setNumber($any(setting), $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'maxOutputTokens' || setting === 'seed' ? 1 : 0.05" [disabled]="!accepts(setting)" [attr.aria-invalid]="!!modelIssues[setting]" [attr.aria-describedby]="'ai-hint-' + setting">
+                    <input type="number" class="form-control ai-short-input" [id]="'ai-setting-' + setting" [ngModel]="$any(draft.parameters)?.[setting]" (ngModelChange)="setNumber($any(setting), $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'maxOutputTokens' || setting === 'seed' ? 1 : 0.05" [disabled]="!accepts(setting)" [attr.aria-invalid]="!!modelIssues[setting]" [attr.aria-describedby]="'ai-hint-' + setting">
                     <small class="rb-admin-hint" [id]="'ai-hint-' + setting">{{ ('ai-models-behaviour-hint-' + setting) | i18next }}</small>
                     <small class="ai-field-error">{{ modelIssues[setting] | i18next }}</small>
                   </div>
@@ -163,7 +164,7 @@
             </div><details class="ai-advanced"><summary>{{ 'ai-models-advanced' | i18next }}</summary><div class="rb-admin-form-grid">
               @for (setting of numericSettings; track setting) { @if (setting !== 'maxOutputTokens' && accepts(setting)) {
                 <div><label [for]="'ai-setting-' + setting">{{ ('ai-models-behaviour-' + setting) | i18next }}</label>
-                <input type="number" class="form-control" [id]="'ai-setting-' + setting" [ngModel]="$any(draft.parameters)?.[setting]" (ngModelChange)="setNumber(setting, $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'seed' ? 1 : 0.05">
+                <input type="number" class="form-control ai-short-input" [id]="'ai-setting-' + setting" [ngModel]="$any(draft.parameters)?.[setting]" (ngModelChange)="setNumber(setting, $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'seed' ? 1 : 0.05">
                 <small class="rb-admin-hint">{{ ('ai-models-behaviour-hint-' + setting) | i18next }}</small><small class="ai-field-error">{{ modelIssues[setting] | i18next }}</small></div>
               } }
               <div><label for="ai-stops">{{ 'ai-models-behaviour-stopSequences' | i18next }}</label>
@@ -275,12 +276,12 @@
   <div class="modal-backdrop show"></div><div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="ai-delete-title" aria-describedby="ai-delete-description" (keydown.escape)="!busy && (deleteConfirmation = undefined); $event.stopPropagation()">
     <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content">
       <div class="modal-header"><h2 class="modal-title" id="ai-delete-title">{{ (target.kind === 'draft' ? 'ai-models-discard-draft' : target.kind === 'model' ? 'ai-models-delete-model' : 'ai-models-delete-provider') | i18next }}</h2></div>
-      <div class="modal-body"><p><strong>{{ target.name }}</strong></p><p id="ai-delete-description">{{ (target.uses.length ? 'ai-models-delete-blocked' : 'ai-models-delete-confirm') | i18next }}</p>
+      <div class="modal-body"><p><strong>{{ target.name }}</strong></p><p id="ai-delete-description">{{ (target.uses.length ? 'ai-models-delete-blocked-' + target.kind : 'ai-models-delete-confirm') | i18next: { count: target.uses.length } }}</p>
         @if (target.uses.length) { <ul>@for (use of target.uses; track use.key) { <li><a [href]="target.kind === 'provider' ? hash(use.key) : profileHref(use.key)" (click)="deleteConfirmation = undefined">{{ use.name }}</a></li> }</ul> }
       </div><div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="deleteConfirmation = undefined" [disabled]="busy">{{ 'ai-models-cancel' | i18next }}</button>
+        <button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="deleteConfirmation = undefined" [disabled]="busy">{{ (target.uses.length ? 'ai-models-close' : 'ai-models-cancel') | i18next }}</button>
         @if (target.kind === 'model' && target.uses.length) { <button type="button" class="btn btn-outline-secondary" (click)="offerRetire()" [disabled]="busy">{{ 'ai-models-retire-instead' | i18next }}</button> }
-        <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDelete()" [disabled]="busy || !!target.uses.length">{{ (target.kind === 'draft' ? 'ai-models-discard-draft' : 'ai-models-delete') | i18next }}</button>
+        @if (!target.uses.length) { <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDelete()" [disabled]="busy">{{ (target.kind === 'draft' ? 'ai-models-discard-draft' : 'ai-models-delete') | i18next }}</button> }
       </div>
     </div></div>
   </div>

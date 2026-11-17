@@ -98,7 +98,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     if (this.activeProvider) return JSON.stringify(this.activeProvider.draft) !== this.activeProvider.savedJson;
     return this.editor ? this.modelJson !== this.savedModelJson : false;
   }
-  get attentionCount(): number { return this.enabledConnections.filter(c => c.authStrategy === 'bearer' && !c.secretConfigured).length; }
+  get attentionProviders() { return this.enabledConnections.filter(c => c.authStrategy === 'bearer' && !c.secretConfigured); }
   get visibleModels(): GenerationAdminModelGroup[] { return this.overview?.models.filter(m => m.versions.some(v => v.status !== 'retired')) ?? []; }
   get modelUses(): GenerationAdminUsage[] { return this.overview?.models.find(m => m.key === this.modelKey)?.uses ?? []; }
   modelLabel(id: string): string { return modelNames[id] ? this.i18n.t(modelNames[id]) : id; }
