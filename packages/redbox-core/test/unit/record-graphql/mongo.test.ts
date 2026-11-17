@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { GraphQLError } from 'graphql';
+import sinon from 'sinon';
 import {
   MongoRecordCollectionProvider,
   compileCollectionPipeline,
@@ -23,6 +24,9 @@ describe('Bounded Mongo collection capability', () => {
       aggregate(pipeline, options) {
         calls++;
         assert.ok(options.maxTimeMS > 0 && options.maxTimeMS <= 250);
+        assert.equal(options.timeoutMS, options.maxTimeMS);
+        assert.equal(options.timeoutMode, 'cursorLifetime');
+        assert.equal(options.signal.aborted, false);
         assert.equal(options.allowDiskUse, false);
         assert.deepEqual(options.collation, { locale: 'simple' });
         assert.deepEqual(
@@ -30,7 +34,7 @@ describe('Bounded Mongo collection capability', () => {
           { $limit: GRID_LIMITS.batchSize }
         );
         assert.ok(!pipeline.some(stage => '$out' in stage || '$merge' in stage || '$count' in stage));
-        return { toArray: async () => [] };
+        return { toArray: async () => [], close: async () => {} };
       },
     };
     const input = { ...request(), deadline: Date.now() + 250 };
@@ -62,8 +66,114 @@ describe('Bounded Mongo collection capability', () => {
       [{ oid: 'a', keys: ['x'.repeat(GRID_LIMITS.storageBytes)] }],
       [{ oid: 'a', keys: [null], overflow: true }],
     ]) {
-      const provider = new MongoRecordCollectionProvider({ aggregate: () => ({ toArray: async () => rows }) });
+      const provider = new MongoRecordCollectionProvider({
+        aggregate: () => ({ toArray: async () => rows, close: async () => {} }),
+      });
       await assert.rejects(() => provider.executeRecordCollection(request()), code('COLLECTION_LIMIT'));
+    }
+  });
+  it('aborts a never-resolving operation on deadline and bounds a stalled close', async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      let signal: AbortSignal;
+      const close = sinon.stub().returns(new Promise<void>(() => {}));
+      const provider = new MongoRecordCollectionProvider({
+        aggregate: (_pipeline, options) => {
+          signal = options.signal;
+          return { toArray: () => new Promise(() => {}), close };
+        },
+      });
+      const result = assert.rejects(
+        () => provider.executeRecordCollection({ ...request(), deadline: Date.now() + 30 }),
+        code('QUERY_TIMEOUT')
+      );
+      await clock.tickAsync(29);
+      assert.equal(close.callCount, 0);
+      await clock.tickAsync(1);
+      await result;
+      assert.equal(signal!.aborted, true);
+      assert.equal(close.callCount, 1);
+      assert.equal(clock.countTimers(), 0);
+    } finally {
+      clock.restore();
+    }
+  });
+  it('cleans up late success/failure without unhandled rejections or timers', async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      for (const lateFailure of [false, true]) {
+        let resolve: (rows: object[]) => void;
+        let reject: (error: Error) => void;
+        const operation = new Promise<object[]>((yes, no) => {
+          resolve = yes;
+          reject = no;
+        });
+        const close = sinon.stub().rejects(new Error('cleanup failed'));
+        const provider = new MongoRecordCollectionProvider({ aggregate: () => ({ toArray: () => operation, close }) });
+        const result = assert.rejects(
+          () => provider.executeRecordCollection({ ...request(), deadline: Date.now() + 20 }),
+          code('QUERY_TIMEOUT')
+        );
+        await clock.tickAsync(20);
+        await result;
+        assert.equal(close.callCount, 1);
+        if (lateFailure) reject!(new Error('late failure'));
+        else resolve!([]);
+        await clock.tickAsync(0);
+        assert.equal(close.callCount, 2);
+        assert.equal(clock.countTimers(), 0);
+      }
+    } finally {
+      clock.restore();
+    }
+  });
+  it('maps driver timeouts across versions and clears timers on success and errors', async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      const failure = new Error('ordinary failure');
+      for (const error of [
+        undefined,
+        failure,
+        Object.assign(new Error('client timeout'), { name: 'MongoOperationTimeoutError' }),
+        Object.assign(new Error('server timeout'), { code: 50 }),
+      ]) {
+        let signal: AbortSignal;
+        const close = sinon.stub().resolves();
+        const provider = new MongoRecordCollectionProvider({
+          aggregate: (_pipeline, options) => {
+            signal = options.signal;
+            return {
+              toArray: async () => {
+                if (error) throw error;
+                return [];
+              },
+              close,
+            };
+          },
+        });
+        if (error)
+          await assert.rejects(
+            () => provider.executeRecordCollection(request()),
+            error === failure ? candidate => candidate === error : code('QUERY_TIMEOUT')
+          );
+        else assert.deepEqual(await provider.executeRecordCollection(request()), { candidates: [], exhausted: true });
+        assert.equal(close.callCount, 1);
+        assert.equal(clock.countTimers(), 0);
+        await clock.tickAsync(10_000);
+        assert.equal(signal!.aborted, false);
+      }
+      const provider = new MongoRecordCollectionProvider({
+        aggregate: () => {
+          throw failure;
+        },
+      });
+      await assert.rejects(
+        () => provider.executeRecordCollection(request()),
+        error => error === failure
+      );
+      assert.equal(clock.countTimers(), 0);
+    } finally {
+      clock.restore();
     }
   });
 });

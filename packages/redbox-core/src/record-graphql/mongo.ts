@@ -11,12 +11,21 @@ import {
 } from './grid-types';
 import { isObject } from './renderer';
 
-/** Minimal driver boundary also supports storage hooks using another pinned driver version. */
+/** Structural boundary for hooks with different drivers. Requires cursor lifetime
+ * timeouts and AbortSignal support (Sails is pinned to MongoDB driver 6.21.0).
+ */
 export interface CollectionMongoSource {
   aggregate(
     pipeline: Document[],
-    options: { maxTimeMS: number; allowDiskUse: boolean; collation: { locale: 'simple' } }
-  ): { toArray(): Promise<Document[]> };
+    options: {
+      maxTimeMS: number;
+      timeoutMS: number;
+      timeoutMode: 'cursorLifetime';
+      signal: AbortSignal;
+      allowDiskUse: boolean;
+      collation: { locale: 'simple' };
+    }
+  ): { toArray(): Promise<Document[]>; close(): Promise<void> };
 }
 const literal = (value: unknown): Document => ({ $literal: value });
 /** Exact object keys, never Mongo's implicit traversal/flattening through stored arrays. */
@@ -240,6 +249,14 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
         'metaMetadata.form': variant.form,
       })),
     });
+  // These are necessary raw predicates, not replacements for scalar validation.
+  // Query matching can also admit arrays; the exact normalized checks below do not.
+  for (const filter of plan.filters) {
+    if (filter.field !== 'record:oid') continue;
+    if (filter.operation === 'eq') scope.push({ redboxOid: { $eq: filter.values[0] } });
+    if (filter.operation === 'in') scope.push({ redboxOid: { $in: filter.values } });
+  }
+  const oidSort = plan.sort.length === 1 && plan.sort[0].field === 'record:oid';
   const used = [...new Set([...plan.filters, ...plan.sort].map(item => item.field))];
   const project: Document = { _id: 0, oid: '$redboxOid' };
   const references = new Map<string, string>();
@@ -252,7 +269,7 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
     project[`v${index}`] = normalizedValue(input, binding.type);
     references.set(id, `$v${index}`);
   }
-  const pipeline: Document[] = [{ $match: { $and: scope } }, { $project: project }];
+  const pipeline: Document[] = [{ $match: { $and: scope } }];
   const matches: Document[] = plan.filters.map(filter => {
     const ref = references.get(filter.field);
     const [value, to] = filter.values;
@@ -302,21 +319,29 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
       })
     )
       gridError('INVALID_CURSOR', 'Cursor keys do not match the current sort.');
-    matches.push({
-      $or: keys.map((key, index) => ({
-        $and: [
-          ...keys.slice(0, index).map((previous, before) => ({ $eq: [previous, literal(values[before])] })),
-          { [plan.sort[index].direction === 1 ? '$gt' : '$lt']: [key, literal(values[index])] },
-        ],
-      })),
-    });
+    // The initial scalar-string guard makes raw OID order/comparison identical
+    // to normalization. Compound tuples still need their normalized keyset.
+    if (oidSort) scope.push({ redboxOid: { [plan.sort[0].direction === 1 ? '$gt' : '$lt']: values[0] } });
+    else
+      matches.push({
+        $or: keys.map((key, index) => ({
+          $and: [
+            ...keys.slice(0, index).map((previous, before) => ({ $eq: [previous, literal(values[before])] })),
+            { [plan.sort[index].direction === 1 ? '$gt' : '$lt']: [key, literal(values[index])] },
+          ],
+        })),
+      });
   }
+  // Sort the raw, string-validated OID before computing metadata. This allows
+  // the existing redboxOid index to supply order and continuation range bounds.
+  if (oidSort) pipeline.push({ $sort: { redboxOid: plan.sort[0].direction } });
+  pipeline.push({ $project: project });
   if (matches.length) pipeline.push({ $match: { $expr: { $and: matches } } });
   const oversized = keys.map(key => ({
     $cond: [{ $eq: [{ $type: key }, 'string'] }, { $gt: [{ $strLenBytes: key }, GRID_LIMITS.cursorBytes / 2] }, false],
   }));
+  if (!oidSort) pipeline.push({ $sort: sort });
   pipeline.push(
-    { $sort: sort },
     { $limit: GRID_LIMITS.batchSize },
     {
       $project: {
@@ -335,13 +360,58 @@ export class MongoRecordCollectionProvider {
       gridError('QUERY_TIMEOUT', 'Collection query timed out.');
     const pipeline = compileCollectionPipeline(request);
     if (Date.now() >= request.deadline) gridError('QUERY_TIMEOUT', 'Collection query timed out.');
-    const results = await this.collection
-      .aggregate(pipeline, {
-        maxTimeMS: Math.max(1, Math.min(GRID_LIMITS.storageTimeoutMs, request.deadline - Date.now())),
+    const timeoutMS = Math.max(1, Math.min(GRID_LIMITS.storageTimeoutMs, request.deadline - Date.now()));
+    const controller = new AbortController();
+    let cursor: ReturnType<CollectionMongoSource['aggregate']> | undefined;
+    // Cleanup must never delay the response or cause an unhandled rejection.
+    // Also close after late settlement: an adapter may finish opening its cursor
+    // after cancellation was requested.
+    const close = () => {
+      try {
+        void cursor?.close().catch(() => {});
+      } catch {
+        // Preserve the operation's result even if an adapter throws during close.
+      }
+    };
+    let timer: ReturnType<typeof setTimeout>;
+    let timedOut = false;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        const error = new Error('Collection query timed out.');
+        reject(error);
+        controller.abort(error);
+      }, timeoutMS);
+    });
+    let results: Document[];
+    try {
+      cursor = this.collection.aggregate(pipeline, {
+        maxTimeMS: timeoutMS,
+        timeoutMS,
+        timeoutMode: 'cursorLifetime',
+        signal: controller.signal,
         allowDiskUse: false,
         collation: { locale: 'simple' },
-      })
-      .toArray();
+      });
+      const operation = cursor.toArray();
+      const closeLate = () => {
+        if (timedOut) close();
+      };
+      void operation.then(closeLate, closeLate);
+      results = await Promise.race([operation, timeout]);
+    } catch (error) {
+      // Names/codes cross driver package boundaries; instanceof does not.
+      if (
+        controller.signal.aborted ||
+        Date.now() >= request.deadline ||
+        (isObject(error) && (error.name === 'MongoOperationTimeoutError' || error.code === 50))
+      )
+        gridError('QUERY_TIMEOUT', 'Collection query timed out.');
+      throw error;
+    } finally {
+      clearTimeout(timer!);
+      close();
+    }
     if (results.length > GRID_LIMITS.batchSize || Buffer.byteLength(JSON.stringify(results)) > GRID_LIMITS.storageBytes)
       gridError('COLLECTION_LIMIT', 'Storage page exceeds its resource bound.');
     const candidates = results.map(row => {
