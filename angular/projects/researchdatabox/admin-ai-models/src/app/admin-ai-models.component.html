@@ -165,10 +165,10 @@
             <label for="ai-temperature">{{ 'ai-models-parameter-temperature' | i18next }} <code>temperature</code></label>
             <div class="ai-temperature">
               <span>{{ 'ai-models-consistent' | i18next }}</span>
-              <input type="range" id="ai-temperature" class="form-range" [ngModel]="draft.parameters?.temperature ?? 0.2" (ngModelChange)="setNumber('temperature', $event)" min="0" [max]="adapter === 'bedrock' ? 1 : 2" step="0.05" [disabled]="!accepts('temperature')" aria-describedby="ai-temperature-hint ai-temperature-error">
+              <input type="range" id="ai-temperature" class="form-range" [ngModel]="draft.parameters?.temperature ?? 0.2" (ngModelChange)="setNumber('temperature', $event)" min="0" [max]="adapter === 'bedrock' ? 1 : 2" step="0.05" [disabled]="readOnly || busy || !accepts('temperature')" aria-describedby="ai-temperature-hint ai-temperature-error">
               <span>{{ 'ai-models-varied' | i18next }}</span>
               <output for="ai-temperature">{{ draft.parameters?.temperature ?? ('ai-models-provider-default' | i18next) }}</output>
-              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="setNumber('temperature', null)" [disabled]="!accepts('temperature')">{{ 'ai-models-clear' | i18next }}</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="setNumber('temperature', null)" [disabled]="readOnly || busy || !accepts('temperature')">{{ 'ai-models-clear' | i18next }}</button>
             </div>
             <p id="ai-temperature-hint" class="rb-admin-hint">{{ 'ai-models-temperature-hint' | i18next }}</p>
             <small id="ai-temperature-error" class="ai-field-error">{{ modelIssues['temperature'] | i18next }}</small>
@@ -190,9 +190,9 @@
             </div>
           </fieldset>
           <details class="ai-support-matrix"><summary>{{ 'ai-models-support-matrix' | i18next }}</summary>
-            <p class="rb-admin-hint">{{ 'ai-models-support-hint' | i18next }}</p><div class="ai-stacked-table"><table class="table"><thead><tr><th scope="col">{{ 'ai-models-setting' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-openrouter' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-bedrock' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-fake' | i18next }}</th></tr></thead><tbody>
+            <p class="rb-admin-hint">{{ 'ai-models-support-hint' | i18next }}</p><div class="ai-stacked-table"><table class="table"><thead><tr><th scope="col">{{ 'ai-models-setting' | i18next }}</th>@for (provider of ['openrouter', 'bedrock', 'fake']; track provider) { <th scope="col" [class.ai-selected-adapter]="adapter === provider">{{ adapterLabels[provider] | i18next }}</th> }</tr></thead><tbody>
               @for (setting of allSettings; track setting) { <tr><th scope="row">{{ ('ai-models-parameter-' + setting) | i18next }}</th>
-                @for (provider of ['openrouter', 'bedrock', 'fake']; track provider) { <td [attr.data-label]="adapterLabels[provider] | i18next">{{ (supported(provider, setting) ? 'ai-models-supported' : 'ai-models-not-supported') | i18next }}</td> }
+                @for (provider of ['openrouter', 'bedrock', 'fake']; track provider) { <td [class.ai-selected-adapter]="adapter === provider" [attr.data-label]="adapterLabels[provider] | i18next"><span aria-hidden="true">{{ supported(provider, setting) ? '✓' : '—' }}</span><span class="visually-hidden">{{ (supported(provider, setting) ? 'ai-models-supported' : 'ai-models-not-supported') | i18next }}</span></td> }
               </tr> }
             </tbody></table></div>
           </details>
@@ -205,22 +205,22 @@
               <div class="rb-admin-form-grid">
                 @for (toggle of ['zdr', 'allow_fallbacks']; track toggle) {
                   <div class="form-check form-switch"><input class="form-check-input" type="checkbox" [id]="'ai-routing-' + toggle" [ngModel]="toggle === 'zdr' ? draft.routingPolicy?.zdr : (draft.routingPolicy?.allow_fallbacks ?? true)" (ngModelChange)="setRouting($any(toggle), $event)">
-                    <label class="form-check-label" [for]="'ai-routing-' + toggle">{{ ('ai-models-routing-' + toggle) | i18next }}</label>
+                    <label class="form-check-label" [for]="'ai-routing-' + toggle">{{ ('ai-models-routing-' + toggle) | i18next }} <code>{{ toggle }}</code></label>
                   </div>
                 }
-                <div><label for="ai-data-collection">{{ 'ai-models-routing-data-collection' | i18next }}</label>
+                <div><label for="ai-data-collection">{{ 'ai-models-routing-data-collection' | i18next }} <code>data_collection</code></label>
                   <select id="ai-data-collection" class="form-select" [ngModel]="draft.routingPolicy?.data_collection || ''" (ngModelChange)="setRouting('data_collection', $event)">
                     <option value="">{{ 'ai-models-provider-default' | i18next }}</option><option value="deny">{{ 'ai-models-deny' | i18next }}</option><option value="allow">{{ 'ai-models-allow' | i18next }}</option>
                   </select>
                 </div>
-                <div><label for="ai-routing-sort">{{ 'ai-models-routing-sort' | i18next }}</label>
+                <div><label for="ai-routing-sort">{{ 'ai-models-routing-sort' | i18next }} <code>sort</code></label>
                   <select id="ai-routing-sort" class="form-select" [ngModel]="draft.routingPolicy?.sort || ''" (ngModelChange)="setRouting('sort', $event)">
                     <option value="">{{ 'ai-models-provider-default' | i18next }}</option>
                     @for (sort of ['price', 'throughput', 'latency']; track sort) { <option [value]="sort">{{ ('ai-models-sort-' + sort) | i18next }}</option> }
                   </select>
                 </div>
                 @for (list of routingLists; track list) {
-                  <div><label [for]="'ai-routing-list-' + list">{{ ('ai-models-routing-' + list) | i18next }}</label>
+                  <div><label [for]="'ai-routing-list-' + list">{{ ('ai-models-routing-' + list) | i18next }} <code>{{ list }}</code></label>
                     <ai-model-chips [inputId]="'ai-routing-list-' + list" [label]="('ai-models-routing-' + list) | i18next" [values]="draft.routingPolicy?.[list] || []" (valuesChange)="setRoutingList(list, $event)" [disabled]="readOnly || busy"></ai-model-chips>
                     <small class="ai-field-error">{{ modelIssues[list] | i18next }}</small>
                   </div>
@@ -246,14 +246,14 @@
             <div aria-live="polite" aria-atomic="true">
               @if (promptError) { <p class="ai-field-error">{{ promptError | i18next }}</p> }
               @if (promptResult) {
-                <div class="ai-prompt-result" data-testid="prompt-result"><pre>{{ promptResult.output }}</pre>
+                <div class="ai-prompt-result" data-testid="prompt-result"><pre class="ai-prompt-output" tabindex="0" role="region" [attr.aria-label]="'ai-models-result-output' | i18next">{{ promptOutput }}</pre>
                   <dl class="ai-metadata">
                     <dt>{{ 'ai-models-result-model' | i18next }}</dt><dd><code>{{ promptResult.actualModel || promptResult.requestedModel }}</code></dd>
-                    <dt>{{ 'ai-models-result-provider' | i18next }}</dt><dd>{{ promptResult.actualProvider || ('ai-models-not-reported' | i18next) }}</dd>
+                    <dt>{{ 'ai-models-result-provider' | i18next }}</dt><dd>{{ connection?.name }}</dd>
                     <dt>{{ 'ai-models-result-finish' | i18next }}</dt><dd>{{ promptResult.finishReason || ('ai-models-not-reported' | i18next) }}</dd>
                     <dt>{{ 'ai-models-result-tokens' | i18next }}</dt><dd>{{ 'ai-models-token-usage' | i18next: { input: promptResult.usage?.inputTokens ?? '—', output: promptResult.usage?.outputTokens ?? '—', total: promptResult.usage?.totalTokens ?? '—' } }}</dd>
                     <dt>{{ 'ai-models-result-cost' | i18next }}</dt><dd>{{ promptResult.usage?.cost ?? ('ai-models-not-reported' | i18next) }}</dd>
-                    <dt>{{ 'ai-models-result-time' | i18next }}</dt><dd>{{ 'ai-models-milliseconds' | i18next: { value: promptResult.latencyMs } }}</dd>
+                    <dt>{{ 'ai-models-result-time' | i18next }}</dt><dd>{{ (promptResult.latencyMs < 1000 ? 'ai-models-time-under-second' : 'ai-models-time-seconds') | i18next: { value: (promptResult.latencyMs / 1000 | number: '1.0-1') } }}</dd>
                   </dl>
                 </div>
               }

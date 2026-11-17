@@ -64,14 +64,14 @@
         </div>
       }
       @if (draft.authStrategy === 'bearer') {
-        <div><label [for]="'scheme-' + (item.id || 'new')">{{ 'ai-models-secret-scheme' | i18next }}</label>
+        <div class="ai-full-row"><label [for]="'scheme-' + (item.id || 'new')">{{ 'ai-models-secret-scheme' | i18next }}</label>
           <select class="form-select" [id]="'scheme-' + (item.id || 'new')" [ngModel]="scheme" (ngModelChange)="setReference($event, reference)">
-            @for (schemeName of overview.secretSchemes; track schemeName) { <option [value]="schemeName">{{ schemeName }}</option> }
+            @for (schemeName of overview.secretSchemes; track schemeName) { <option [value]="schemeName">{{ (schemeName === 'env' ? 'ai-models-secret-env' : 'ai-models-secret-resolver') | i18next: { scheme: schemeName } }}</option> }
           </select>
         </div>
         <div><label [for]="'secret-' + (item.id || 'new')">{{ 'ai-models-api-key-reference' | i18next }}</label>
           <input class="form-control font-monospace" [id]="'secret-' + (item.id || 'new')" [ngModel]="reference" (ngModelChange)="setReference(scheme, $event)" (blur)="touch('secretRef')" autocomplete="off" [attr.aria-invalid]="!!issue('secretRef')" [attr.aria-describedby]="'secret-hint-' + (item.id || 'new')">
-          <small class="rb-admin-hint" [id]="'secret-hint-' + (item.id || 'new')">{{ 'ai-models-secret-hint' | i18next }} <code>{{ draft.secretRef }}</code></small>
+          <small class="rb-admin-hint" [id]="'secret-hint-' + (item.id || 'new')">{{ 'ai-models-secret-reference-hint' | i18next }}@if (reference.trim()) { <span class="d-block">{{ 'ai-models-secret-saved-as' | i18next }} <code>{{ draft.secretRef }}</code></span> }</small>
           <small class="ai-field-error">{{ issue('secretRef') | i18next }}</small>
           @if (item.id && item.savedJson === JSON.stringify(draft)) { <span class="badge rb-admin-badge-info">{{ (item.secretConfigured ? 'ai-models-check-key-found' : 'ai-models-check-key-missing') | i18next }}</span> }
         </div>

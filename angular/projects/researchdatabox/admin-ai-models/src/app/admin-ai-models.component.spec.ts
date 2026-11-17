@@ -15,6 +15,8 @@ const wording: Record<string, string> = {
   'ai-models-check-settings-accepted': english['ai-models-check-settings-accepted'],
   'ai-models-test-hint': english['ai-models-test-hint'],
   'ai-models-adapter-openrouter': english['ai-models-adapter-openrouter'],
+  'ai-models-time-under-second': english['ai-models-time-under-second'],
+  'ai-models-time-seconds': english['ai-models-time-seconds'],
 };
 
 describe('AI models overview and editor', () => {
@@ -105,7 +107,7 @@ describe('AI models overview and editor', () => {
     expect(query('#ai-setting-seed')).toBeNull(); expect(query('.ai-support-matrix').textContent).toContain('ai-models-support-hint');
   });
   it('updates SDK code from the unsaved draft', () => {
-    open(); component.setNumber('maxOutputTokens', 99); fixture.detectChanges(); expect(query('.ai-sdk-code').textContent).toContain('"max_tokens": 99');
+    open(); component.setNumber('maxOutputTokens', 99); fixture.detectChanges(); expect(query('.ai-sdk-code').textContent).toContain('maxOutputTokens: 99');
   });
   it('blocks view and external hash changes when discard is rejected', () => {
     open(); component.modelName('Keep me'); spyOn(window, 'confirm').and.returnValue(false); component.openOverview(); expect(component.draft!.name).toBe('Keep me');
@@ -233,6 +235,51 @@ describe('AI models overview and editor', () => {
     const run = query<HTMLButtonElement>('#ai-try button.btn-outline-secondary:not([aria-pressed])');
     expect(run.disabled).toBeFalse(); await component.runPrompt(); fixture.detectChanges();
     expect(run.disabled).toBeTrue(); expect(run.textContent).toContain('ai-models-cooldown');
+  });
+  it('disables every published setting including the slider and chip input', async () => {
+    component.openModel('rdmp', 1); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const settings = fixture.nativeElement.querySelectorAll('#ai-model input, #ai-model select, #ai-response input, #ai-routing input, #ai-routing select');
+    expect(settings.length).toBeGreaterThan(10);
+    for (const control of settings) expect(control.matches(':disabled')).withContext(control.id).toBeTrue();
+    expect(query('#ai-stops')).toBeTruthy(); expect(query('#ai-try textarea').matches(':disabled')).toBeFalse();
+  });
+  it('shows accessible support symbols and highlights the selected adapter column', () => {
+    open();
+    expect(query('.ai-support-matrix thead .ai-selected-adapter').textContent).toContain('OpenRouter');
+    const rows = fixture.nativeElement.querySelectorAll('.ai-support-matrix tbody tr');
+    for (const row of rows) {
+      expect(row.querySelector('.ai-selected-adapter [aria-hidden]').textContent).toBe('✓');
+      expect(row.querySelector('.ai-selected-adapter .visually-hidden').textContent).toBe('ai-models-supported');
+      expect(row.querySelector('td:last-child [aria-hidden]').textContent).toBe('—');
+    }
+  });
+  it('formats sample JSON safely and shows the connection name and elapsed seconds', async () => {
+    open(); component.prompt = 'Synthetic';
+    api.tryPrompt.and.resolveTo({ output: '{"answer":"<script>synthetic</script>","nested":{"ok":true}}', requestedModel: model.modelId, actualProvider: 'openrouter', latencyMs: 1400 });
+    await component.runPrompt(); fixture.detectChanges();
+    const output = query('.ai-prompt-output');
+    expect(output.textContent).toBe('{\n  "answer": "<script>synthetic</script>",\n  "nested": {\n    "ok": true\n  }\n}');
+    expect(output.querySelector('script')).toBeNull(); expect(output.tabIndex).toBe(0);
+    expect(output.getAttribute('role')).toBe('region'); expect(output.getAttribute('aria-label')).toBeTruthy();
+    expect(query('.ai-metadata').textContent).toContain('OpenRouter');
+    expect(query('.ai-metadata').textContent).toContain('1.4 s');
+    component.promptResult!.latencyMs = 0; fixture.detectChanges();
+    expect(query('.ai-metadata').textContent).toContain('<1 s');
+    component.mode = 'text'; expect(component.promptOutput).toBe(component.promptResult!.output);
+    component.mode = 'sample'; component.promptResult!.output = 'Plain fallback'; expect(component.promptOutput).toBe('Plain fallback');
+  });
+  it('labels the secret source and only shows a saved reference after typing', async () => {
+    component.addProvider(); fixture.detectChanges(); await fixture.whenStable();
+    const provider = fixture.debugElement.queryAll(By.directive(ProviderCardComponent))[0].componentInstance as ProviderCardComponent;
+    provider.adapterChange('openrouter'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const scheme = query<HTMLSelectElement>('#scheme-new');
+    expect(scheme.value).toBe('env'); expect(scheme.selectedOptions[0].textContent).toContain('ai-models-secret-env');
+    expect(query('#secret-hint-new').textContent).not.toContain('ai-models-secret-saved-as');
+    const reference = query<HTMLInputElement>('#secret-new'); reference.value = 'REVIEW_KEY'; reference.dispatchEvent(new Event('input'));
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(query('#secret-hint-new').textContent).toContain('env:REVIEW_KEY');
+    reference.value = ''; reference.dispatchEvent(new Event('input')); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(query('#secret-hint-new').textContent).not.toContain('ai-models-secret-saved-as');
   });
   it('formats publication dates and identifies the publisher and current version', () => {
     const version = component.overview!.models[0].versions[1]; version.publishedAt = '2026-11-17T00:00:00Z'; version.publishedBy = 'bootstrap';

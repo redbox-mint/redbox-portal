@@ -56,28 +56,42 @@ describe('AI model draft validation and SDK code', () => {
   it('matches the reviewed OpenRouter adapter code snapshot', () => {
     expect(sdkCode(model, openrouter)).toEqual(OPENROUTER_SNAPSHOT);
     const code = sdkCode(model, openrouter);
-    expect(code).toContain('process.env.OPENROUTER_API_KEY'); expect(code).toContain('"require_parameters": true');
-    expect(code).toContain('"max_tokens": 4096'); expect(code).toContain('strictJsonSchema: true');
+    expect(code).toContain('process.env.OPENROUTER_API_KEY'); expect(code).toContain('require_parameters: true');
+    expect(code).toContain('maxOutputTokens: 4096'); expect(code).toContain('strictJsonSchema: true');
     expect(code).not.toContain('"maxOutputTokens"'); expect(code).toContain('maxRetries: 0');
   });
   it('matches the reviewed Bedrock adapter code snapshot', () => {
     expect(sdkCode({ ...model, connectionId: bedrock.id, modelId: 'amazon.nova-lite-v1:0', routingPolicy: {} }, bedrock)).toEqual(BEDROCK_SNAPSHOT);
     const code = sdkCode(model, bedrock);
     expect(code).not.toContain('seed'); expect(code).not.toContain('Penalty'); expect(code).not.toContain('providerOptions');
-    expect(code).toContain('"maxOutputTokens": 4096'); expect(code).toContain('credentialProvider: defaultProvider()');
+    expect(code).toContain('maxOutputTokens: 4096'); expect(code).toContain('credentialProvider: defaultProvider()');
+  });
+  it('keeps SDK examples minimal without exposing unsupported or fixture settings', () => {
+    for (const connection of [openrouter, bedrock]) {
+      const code = sdkCode({ ...model, parameters: { ...model.parameters, fixtureResponse: { secret: 'private fixture' } } }, connection);
+      expect(code).toContain('temperature: 0.2,');
+      expect(code).toContain('// ReDBox stops the call after 90 seconds');
+      expect(code).toContain("messages, // built from the profile and the researcher's inputs");
+      expect(code).not.toContain('AbortController'); expect(code).not.toContain('setTimeout');
+      expect(code).not.toContain('guardedFetch'); expect(code).not.toContain('headers: {}');
+      expect(code).not.toContain('fixture');
+    }
+    const roleCode = sdkCode(model, bedrock);
+    expect(roleCode).not.toContain('apiKey'); expect(roleCode).not.toContain('AWS_BEARER_TOKEN_BEDROCK');
   });
   it('does not generate SDK code or expose fixed sample answers for the demo adapter', () => {
     expect(sdkCode({ ...model, parameters: { fixtureResponse: { answers: { private: 'sample' } } } }, { ...openrouter, adapterId: 'fake' })).toBe('');
   });
   it('uses a Bedrock bearer ref safely and strips dropped headers', () => {
     const code = sdkCode(model, { ...bedrock, authStrategy: 'bearer', secretRef: 'env:BEDROCK_KEY', nonSecretHeaders: { 'Content-Type': 'discard', 'X-Title': 'ReDBox' } });
-    expect(code).toContain('process.env.BEDROCK_KEY || process.env.AWS_BEARER_TOKEN_BEDROCK');
+    expect(code).toContain('apiKey: process.env.BEDROCK_KEY');
+    expect(code).not.toContain('credentialProvider'); expect(code).not.toContain('defaultProvider');
     expect(code).not.toContain('Content-Type'); expect(code).not.toContain('discard');
   });
   it('shows a resolver variable for non-env references and never emits the reference as a value', () => {
     const code = sdkCode(model, { ...openrouter, secretRef: 'vault:private/location' });
     expect(code).toContain('apiKey: resolvedSecret'); expect(code).not.toContain('private/location');
     const changed = clone(model); changed.routingPolicy = { ...changed.routingPolicy, zdr: false };
-    expect(sdkCode(changed, openrouter)).toContain('"zdr": false');
+    expect(sdkCode(changed, openrouter)).toContain('zdr: false');
   });
 });

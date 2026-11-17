@@ -5,16 +5,16 @@ import { I18NextPipe } from '@researchdatabox/portal-ng-common';
 @Component({
   selector: 'ai-model-chips', standalone: true, imports: [FormsModule, I18NextPipe],
   template: `
-    <div class="ai-chips">
+    <div class="ai-chips" [class.ai-chips-disabled]="disabled">
       @for (value of values; track $index; let i = $index) {
         <span class="rb-admin-chip"><code>{{ value }}</code>
           @if (!disabled) { <button type="button" class="btn btn-sm btn-outline-secondary" (click)="remove(i)"
             [attr.aria-label]="'ai-models-remove-item' | i18next: { value: value }">×</button> }
         </span>
       }
+      <input class="form-control" [id]="inputId" [(ngModel)]="pending" [attr.aria-label]="label"
+          [disabled]="disabled || values.length >= max" (keydown.enter)="$event.preventDefault(); add()">
       @if (!disabled) {
-        <input class="form-control" [id]="inputId" [(ngModel)]="pending" [attr.aria-label]="label"
-          [disabled]="values.length >= max" (keydown.enter)="$event.preventDefault(); add()">
         <button type="button" class="btn btn-sm btn-outline-secondary" (click)="add()" [disabled]="!pending.trim() || values.length >= max">{{ 'ai-models-add-item' | i18next }}</button>
       }
     </div>`,

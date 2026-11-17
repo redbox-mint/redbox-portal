@@ -76,33 +76,40 @@ export function validateModel(d: GenerationAdminModelDraft, connection?: Generat
   return issues;
 }
 
-/** Code mirrors adapter construction and its wire mapping, rather than implying generic SDK defaults. */
+/** Readable SDK equivalent; comments describe the request guards supplied by ReDBox. */
 export function sdkCode(draft: GenerationAdminModelDraft, connection?: GenerationAdminConnection): string {
-  if (!connection) return '';
-  const json = (value: unknown, indent = 0): string => JSON.stringify(value, null, 2).replace(/\n/g, '\n' + ' '.repeat(indent));
+  if (!connection || connection.adapterId === 'fake') return '';
+  const json = (value: unknown): string => JSON.stringify(value);
+  const properties = (value: Record<string, unknown>, indent: string): string => Object.entries(value)
+    .map(([key, value]) => `${indent}${/^[A-Za-z_$][\w$]*$/.test(key) ? key : json(key)}: ${json(value)},`).join('\n');
   const p: GenerationAdminParameters = draft.parameters ?? {};
   const env = /^env:([A-Za-z_][A-Za-z0-9_]*)$/.exec(connection.secretRef ?? '');
   const secret = env ? `process.env.${env[1]}` : 'resolvedSecret';
   const blocked = new Set(['authorization', 'content-type', 'cookie', 'host', 'set-cookie', 'x-forwarded-host', 'x-forwarded-proto']);
-  const headers = json(Object.fromEntries(Object.entries(connection.nonSecretHeaders ?? {}).filter(([name]) => !blocked.has(name.toLowerCase()))), 2);
-  const common = `  model: provider(${json(draft.modelId)}),\n` +
-    `  messages,\n  output: Output.object({\n    schema: jsonSchema(responseSchema),\n    name: "redbox_generation_candidate",\n  }),\n` +
-    `  maxRetries: 0,\n  abortSignal: abortController.signal,\n` +
-    `  telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },`;
-  const abort = `const abortController = new AbortController();\nconst timeout = setTimeout(() => abortController.abort(), ${connection.timeoutMs});\n`;
-  const generate = (options: string): string => `${abort}try {\n  const result = await generateText({\n${common.replace(/^/gm, '  ')}\n${options.replace(/^/gm, '  ')}\n  });\n} finally {\n  clearTimeout(timeout);\n}`;
-  if (connection.adapterId === 'fake') return '';
+  const headers = Object.fromEntries(Object.entries(connection.nonSecretHeaders ?? {}).filter(([name]) => !blocked.has(name.toLowerCase())));
+  const headerOption = Object.keys(headers).length ? `  headers: {\n${properties(headers, '    ')}\n  },\n` : '';
+  const settings = Object.fromEntries(Object.entries(p).filter(([key, value]) =>
+    ['temperature', ...numericSettings, 'stopSequences'].includes(key) && accepts(connection.adapterId, key) && value !== undefined && (key !== 'stopSequences' || (p.stopSequences?.length ?? 0) > 0)));
+  const call = `// ReDBox stops the call after ${connection.timeoutMs / 1000} seconds\n` +
+    `const result = await generateText({\n  model: provider(${json(draft.modelId)}),\n` +
+    `  messages, // built from the profile and the researcher's inputs\n` +
+    (Object.keys(settings).length ? properties(settings, '  ') + '\n' : '') +
+    `  output: Output.object({\n    schema: jsonSchema(responseSchema),\n    name: "redbox_generation_candidate",\n  }),\n` +
+    `  maxRetries: 0,\n  telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },\n` +
+    (connection.adapterId === 'openrouter' ? `  providerOptions: { openrouter: { strictJsonSchema: true } },\n` : '') +
+    `});`;
   const imports = 'import { generateText, Output, jsonSchema } from "ai";\n';
+  const fetchComment = "  // ReDBox's fetch limits size and blocks redirects\n";
   if (connection.adapterId === 'openrouter') {
-    const names: Record<string, string> = { temperature: 'temperature', maxOutputTokens: 'max_tokens', topP: 'top_p', seed: 'seed', stopSequences: 'stop', presencePenalty: 'presence_penalty', frequencyPenalty: 'frequency_penalty' };
-    const body = Object.fromEntries(Object.entries(p).filter(([key]) => names[key]).map(([key, value]) => [names[key], value]));
     return imports + 'import { createOpenAICompatible } from "@ai-sdk/openai-compatible";\n\n' +
-      `const provider = createOpenAICompatible({\n  name: "openrouter",\n  baseURL: "https://openrouter.ai/api/v1",\n  apiKey: ${secret},\n  headers: ${headers},\n  supportsStructuredOutputs: true,\n  fetch: guardedFetch,\n  transformRequestBody: (sdkBody) => ({\n    ...sdkBody,\n    ...${json(body, 4)},\n    model: ${json(draft.modelId)},\n    stream: false,\n    tools: undefined,\n    plugins: undefined,\n    provider: ${json({ ...draft.routingPolicy, require_parameters: true }, 4)},\n  }),\n  metadataExtractor,\n});\n\n` +
-      generate('  providerOptions: { openrouter: { strictJsonSchema: true } },');
+      `const provider = createOpenAICompatible({\n  name: "openrouter",\n  baseURL: "https://openrouter.ai/api/v1",\n  apiKey: ${secret},\n` +
+      headerOption + `  supportsStructuredOutputs: true,\n` + fetchComment +
+      `  transformRequestBody: (body) => ({\n    ...body,\n    stream: false,\n    tools: undefined,\n    plugins: undefined,\n` +
+      `    provider: {\n${properties({ ...draft.routingPolicy, require_parameters: true }, '      ')}\n    },\n  }),\n});\n\n` + call;
   }
-  const settings = Object.fromEntries(Object.entries(p).filter(([key]) => accepts('bedrock', key) && (key !== 'stopSequences' || (p.stopSequences?.length ?? 0) > 0)));
-  return imports + 'import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";\nimport { defaultProvider } from "@aws-sdk/credential-provider-node";\n\n' +
-    `const apiKey = ${connection.authStrategy === 'bearer' ? secret + ' || ' : ''}process.env.AWS_BEARER_TOKEN_BEDROCK;\n` +
-    `const provider = createAmazonBedrock({\n  region: ${json(connection.region)},\n  baseURL: ${json('https://bedrock-runtime.' + connection.region + '.amazonaws.com')},\n  ...(apiKey ? { apiKey } : { credentialProvider: defaultProvider() }),\n  headers: ${headers},\n  fetch: guardedFetch,\n});\n\n` +
-    generate(`  ...${json(settings, 2)},\n  ...(instructions ? { instructions } : {}),`);
+  return imports + 'import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";\n' +
+    (connection.authStrategy === 'bearer' ? '' : 'import { defaultProvider } from "@aws-sdk/credential-provider-node";\n') +
+    `\nconst provider = createAmazonBedrock({\n  region: ${json(connection.region)},\n` +
+    (connection.authStrategy === 'bearer' ? `  apiKey: ${secret},\n` : `  credentialProvider: defaultProvider(),\n`) +
+    headerOption + fetchComment + `});\n\n` + call;
 }

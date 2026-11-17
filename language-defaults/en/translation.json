@@ -5391,5 +5391,12 @@
   "ai-models-region-eu-south-2": "Europe (Spain)",
   "ai-models-connection-seconds": "Connection time limit (seconds)",
   "ai-models-connection-seconds-hint": "Can't exceed the server limit of {{max}} seconds.",
-  "ai-models-other-compatible-name": "OpenAI-compatible server"
+  "ai-models-other-compatible-name": "OpenAI-compatible server",
+  "ai-models-secret-env": "Server environment variable",
+  "ai-models-secret-resolver": "Secret resolver: {{scheme}}",
+  "ai-models-secret-reference-hint": "Enter a reference, never the credential value.",
+  "ai-models-secret-saved-as": "Saved as",
+  "ai-models-result-output": "Prompt output",
+  "ai-models-time-under-second": "<1 s",
+  "ai-models-time-seconds": "{{value}} s"
 }

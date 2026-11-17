@@ -110,6 +110,12 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     return Object.keys(fixture?.answers ?? {}).length;
   }
   get code(): string { return this.draft ? sdkCode(this.draft, this.connection) : ''; }
+  get promptOutput(): string {
+    const output = this.promptResult?.output ?? '';
+    if (this.mode !== 'sample') return output;
+    try { return JSON.stringify(JSON.parse(output), null, 2); }
+    catch { return output; }
+  }
   get rail(): RailSection[] {
     const ids = this.editor ? ['model', 'response', ...(this.adapter === 'openrouter' ? ['routing'] : []), 'try', 'code', 'versions'] : ['providers', 'models', 'limits', 'fixed'];
     return ids.map(id => ({ id, key: 'ai-models-section-' + id }));

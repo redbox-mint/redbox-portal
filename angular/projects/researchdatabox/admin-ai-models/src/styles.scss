@@ -35,6 +35,18 @@
   .ai-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 8px 20px; margin: 12px 0; }
   .ai-metadata dd { overflow-wrap: anywhere; margin: 0; }
   pre { max-width: 100%; padding: 16px; margin: 16px 0; background: var(--admin-surface); color: var(--admin-ink); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); white-space: pre-wrap; overflow-wrap: anywhere; }
+  label code, legend code { margin-inline-start: 6px; color: var(--admin-muted); font-size: 0.85em; font-weight: 400; overflow-wrap: anywhere; }
+  fieldset[disabled] :is(.form-control, .form-select), .form-control[readonly], .ai-chips-disabled {
+    background-color: var(--admin-surface); color: var(--admin-muted); opacity: 1; cursor: default;
+  }
+  .ai-chips-disabled { min-height: 38px; padding: 6px 12px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); }
+  .ai-chips-disabled input { border: 0; background: transparent; box-shadow: none; padding: 0; min-height: 24px; color: inherit; }
+  .ai-chips-disabled .rb-admin-chip { color: inherit; background: var(--admin-bg); }
+  fieldset[disabled] .form-range { opacity: 0.5; cursor: default; }
+  fieldset[disabled] .form-range::-webkit-slider-thumb { background: var(--admin-muted); }
+  fieldset[disabled] .form-range::-moz-range-thumb { background: var(--admin-muted); }
+  .ai-support-matrix .ai-selected-adapter { background: var(--admin-brand-tint); }
+  .ai-prompt-output { max-height: 320px; overflow: auto; }
   .ai-sdk-code { font-size: 13px; tab-size: 2; }
   .ai-conflict pre { max-height: 340px; overflow: auto; }
   .ai-version-list { list-style: none; padding: 0; }
@@ -58,7 +70,7 @@
   .rb-admin-form-section :is(h2, h3) { font-size: 16px; }
   .ai-full-row { grid-column: 1 / -1; min-width: 0; }
   .rb-admin-form-grid > * { min-width: 0; }
-  #ai-model .rb-admin-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #ai-model .rb-admin-form-grid, #ai-routing .rb-admin-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ai-provider-area > .rb-admin-form-section-body { padding: 16px; }
   .ai-provider > summary { display: flex; flex-wrap: wrap; list-style: none; }
   .ai-provider > summary::-webkit-details-marker { display: none; }
@@ -101,7 +113,7 @@
   .ai-version-list li:first-child { padding-top: 0; }
   .ai-version-list .ai-current-version { color: var(--admin-muted); font-size: 13px; }
   @media (max-width: 575.98px) {
-    #ai-model .rb-admin-form-grid, .ai-limit-grid { grid-template-columns: minmax(0, 1fr); }
+    #ai-model .rb-admin-form-grid, #ai-routing .rb-admin-form-grid, .ai-limit-grid { grid-template-columns: minmax(0, 1fr); }
     .ai-provider > summary > :nth-child(2) { flex-basis: calc(100% - 48px); }
     .ai-provider-state { flex: 1 1 100%; margin: 0; justify-content: flex-start; }
     .ai-provider-chevron { margin-left: auto; }
