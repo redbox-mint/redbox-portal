@@ -1,3 +1,4 @@
+import type { ReadSchemaScope } from '../record-graphql/schema-scope';
 import type { Db, ObjectId as MongoObjectId } from 'mongodb';
 import type { ExplorerQueryAuthor } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
@@ -231,13 +232,19 @@ export namespace Services {
       return { stages: [...stages] };
     }
     /** Admin-only bridge to the parent's real public SDL tooling; introspection stays forbidden. */
-    public async schema(caller: SavedGridCaller) {
+    public async schema(caller: SavedGridCaller, scope?: ReadSchemaScope) {
       if (typeof RecordGraphqlService === 'undefined') throw new SavedGridError(503, 'query-unavailable');
       try {
-        const sdl = await RecordGraphqlService.describeReadSchema(caller);
-        if (Buffer.byteLength(sdl) > 262144) throw new Error('Schema too large');
+        const sdl = await RecordGraphqlService.describeReadSchema(caller, scope);
+        if (Buffer.byteLength(sdl) > 262144)
+          throw new Error(`Editor schema exceeds 262144-byte bound (${Buffer.byteLength(sdl)} bytes).`);
         return { sdl };
-      } catch {
+      } catch (error) {
+        this.updateChronicle(
+          { operation: 'saved-grid.schema', recordType: scope?.recordType, workflowStages: scope?.workflowStages },
+          [error],
+          'warn'
+        );
         throw new SavedGridError(503, 'schema-unavailable');
       }
     }

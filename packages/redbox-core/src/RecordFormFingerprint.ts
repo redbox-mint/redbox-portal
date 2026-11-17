@@ -9,6 +9,10 @@ const RECORD_FORM_FINGERPRINT_MAX_NODES = 50_000;
  * Accessors are never invoked and the serialized contract is never retained.
  */
 export function formatRecordFormFingerprint(value: unknown): RecordFormFingerprint | undefined {
+  return fingerprint(value).value;
+}
+
+function fingerprint(value: unknown): { value?: RecordFormFingerprint; bytes: number; nodes: number } {
   const hash = createHash('sha256');
   const seen = new WeakSet<object>();
   let bytes = 0;
@@ -92,9 +96,9 @@ export function formatRecordFormFingerprint(value: unknown): RecordFormFingerpri
   };
 
   walk(value);
-  if (!bounded) return undefined;
+  if (!bounded) return { bytes, nodes };
   const fingerprint = `sha256:${hash.digest('hex')}`;
-  return isRecordFormFingerprint(fingerprint) ? fingerprint : undefined;
+  return { value: isRecordFormFingerprint(fingerprint) ? fingerprint : undefined, bytes, nodes };
 }
 
 /** Compose individually bounded form contracts without treating a catalogue as one form. */
@@ -108,4 +112,23 @@ export function formatRecordFormCatalogueFingerprint(
   const forms = candidates.map(candidate => formatRecordFormFingerprint(candidate));
   if (forms.some(fingerprint => !fingerprint)) return undefined;
   return formatRecordFormFingerprint({ forms, reusable });
+}
+
+/** Partition a grid snapshot into bounded fields/contracts before hashing its summary.
+ * Retains each 1 MiB/50k-node part bound and an aggregate 8 MiB/250k-node budget.
+ * Unlike a form, a catalogue may contain 1,000 fields across 100 read variants.
+ */
+export function formatRecordGridFingerprint(parts: readonly unknown[]): RecordFormFingerprint | undefined {
+  if (parts.length > 1104) return undefined;
+  let bytes = 0;
+  let nodes = 0;
+  const hashes: RecordFormFingerprint[] = [];
+  for (const part of parts) {
+    const result = fingerprint(part);
+    bytes += result.bytes;
+    nodes += result.nodes;
+    if (!result.value || bytes > 8_388_608 || nodes > 250_000) return undefined;
+    hashes.push(result.value);
+  }
+  return formatRecordFormFingerprint(hashes);
 }

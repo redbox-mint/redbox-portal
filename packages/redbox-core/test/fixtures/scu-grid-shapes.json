@@ -1,0 +1,876 @@
+{
+  "note": "Anonymized declared read shapes reduced after full deployed forms + hook reproduction. Labels, choices, defaults, diagnostics and content removed. Nodes interned to retain all nested fields across sixteen workflow variants without duplication.",
+  "nodes": [
+    {
+      "kind": "scalar",
+      "scalarType": "string",
+      "nullable": true
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "ID": 0,
+        "contributor_author": 0,
+        "contributor_ci": 0,
+        "contributors": 0,
+        "contributors_data_manager": 0,
+        "contributors_external": 0,
+        "contributors_supervisor": 0,
+        "coversheet-id": 0,
+        "dc:coverage_vivo:DateTimeInterval_vivo:end": 0,
+        "dc:coverage_vivo:DateTimeInterval_vivo:start": 0,
+        "dc:subject_anzsrc:for": 0,
+        "dc:subject_anzsrc:seo": 0,
+        "dc:subject_anzsrc:toa_rdf:resource": 0,
+        "description": 0,
+        "display_title": 0,
+        "foaf:fundedBy_foaf:Agent": 0,
+        "irma-id": 0,
+        "oid": 0,
+        "original_title": 0,
+        "status": 0,
+        "title": 0,
+        "type": 0
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 1
+    },
+    {
+      "kind": "scalar",
+      "scalarType": "string",
+      "nullable": false
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 3
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "email": 0,
+        "id": 0,
+        "ID": 0,
+        "name": 0,
+        "orcid": 0,
+        "staff-number": 0,
+        "student-number": 0,
+        "text_full_name": 0,
+        "username": 0
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "email": 0,
+        "honorific": 0,
+        "id": 0,
+        "ID": 0,
+        "name": 0,
+        "orcid": 0,
+        "staff-number": 0,
+        "student-number": 0,
+        "text_full_name": 0,
+        "username": 0
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "email": 0,
+        "honorific": 0,
+        "id": 0,
+        "ID": 0,
+        "name": 0,
+        "orcid": 0,
+        "staff-number": 0,
+        "student-number": 0,
+        "text_full_name": 0,
+        "username": 0
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 7
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "basic_name": 0,
+        "country_code": 0,
+        "geonameid": 0,
+        "title": 0
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 9
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "notation": 3,
+        "label": 3,
+        "name": 3,
+        "genealogy": 4
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 11
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 0
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "provider-id": 0,
+        "provider-name": 0
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 14
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {}
+    },
+    {
+      "kind": "array",
+      "nullable": false,
+      "items": 3
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/research-already-published",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/data-contains-info-about-individuals",
+            "values": ["synthetic0"]
+          },
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/data-in-categories",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/data-relates-to-identifiable-individual",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/data-in-categories",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/ecological-sensitivities-in-data",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/tech-being-exported-overseas",
+            "values": ["synthetic0"]
+          },
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/tech-being-exported-overseas",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-rdmp-data-classification/reference-dsgl",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "any",
+      "nullable": true
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "research-already-published": 17,
+        "data-contains-info-about-individuals": 18,
+        "data-in-categories": 18,
+        "data-relates-to-identifiable-individual": 19,
+        "data-contains-sensitive-personal-info": 20,
+        "data-impact-indigenous-peoples-communities": 20,
+        "data-relate-to-ssbas": 21,
+        "ecological-sensitivities-in-data": 21,
+        "ecological-adverse-impacts": 22,
+        "tech-being-exported-overseas": 21,
+        "reference-dsgl": 23,
+        "tech-be-used-in-harm": 24,
+        "questiontree-outcome-info": 25
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "id": 0
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": false,
+      "items": 27
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "additional-irma-ids": 2,
+        "agls:policy_skos:note": 0,
+        "agls:protectiveMarking_dc:type": 4,
+        "agls:protectiveMarking_skos:note": 0,
+        "change-irma-lavels": 0,
+        "contributor_author": 5,
+        "contributor_ci": 6,
+        "contributors": 8,
+        "contributors_data_manager": 8,
+        "contributors_external": 8,
+        "contributors_supervisor": 8,
+        "dc:accessRights": 0,
+        "dc:coverage_dc:identifier": 10,
+        "dc:coverage_vivo:DateTimeInterval_vivo:end": 0,
+        "dc:coverage_vivo:DateTimeInterval_vivo:start": 0,
+        "dc:rightsHolder_dc:name": 0,
+        "dc:subject_anzsrc:for": 12,
+        "dc:subject_anzsrc:seo": 12,
+        "dc:subject_anzsrc:toa_rdf:resource": 0,
+        "description": 0,
+        "finalKeywords": 13,
+        "foaf:fundedBy_foaf:Agent": 15,
+        "GroupComponent-fields-1": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-2": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-4": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-6": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-8": 16,
+        "GroupComponent-fields-5": 16,
+        "irma-id": 1,
+        "redbox:retentionPeriod_dc:date": 0,
+        "redbox:retentionPeriod_dc:date_skos:note": 4,
+        "scu_calculated_retention_end_date": 0,
+        "scu_contributor_ci_faculty": 0,
+        "scu_current_data_storage": 0,
+        "scu_data_contains_icip": 0,
+        "scu_data_future_use": 0,
+        "scu_data_infra_special_access_rights": 0,
+        "scu_data_special_requests": 0,
+        "scu_entered_retention_end_date": 0,
+        "scu_ethics_needed": 0,
+        "scu_hpc_needed": 0,
+        "scu_ownership_contracts_licenses": 13,
+        "scu_ownership_decision_authority": 0,
+        "scu_ownership_external_parties": 13,
+        "scu_project_type": 0,
+        "scu_rdmp_editable_status": 3,
+        "scu_software_needed": 0,
+        "scu_website_needed": 0,
+        "scu-rdmp-data-classification": 26,
+        "scu-rdmp-data-classification-item-outcome": 0,
+        "scu-rdmp-data-classification-item-outcome-details": 0,
+        "title": 0,
+        "vivo:Dataset_dc_format": 0,
+        "vivo:Dataset_dc:extent": 0,
+        "vivo:Dataset_redbox:DataAnalysisResources": 0,
+        "vivo:Dataset_redbox:DataCollectionMethodology": 0,
+        "vivo:Dataset_redbox:DataCollectionResources": 0,
+        "workspaces": 28
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "label": 3,
+        "dateUpdated": 3
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": false,
+      "items": 30
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "pdf": 31
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "additional-irma-ids": 2,
+        "agls:policy_skos:note": 0,
+        "agls:protectiveMarking_dc:type": 4,
+        "agls:protectiveMarking_skos:note": 0,
+        "change-irma-lavels": 0,
+        "contributor_author": 5,
+        "contributor_ci": 6,
+        "contributors": 8,
+        "contributors_data_manager": 8,
+        "contributors_external": 8,
+        "contributors_supervisor": 8,
+        "dc:accessRights": 0,
+        "dc:coverage_dc:identifier": 10,
+        "dc:coverage_vivo:DateTimeInterval_vivo:end": 0,
+        "dc:coverage_vivo:DateTimeInterval_vivo:start": 0,
+        "dc:rightsHolder_dc:name": 0,
+        "dc:subject_anzsrc:for": 12,
+        "dc:subject_anzsrc:seo": 12,
+        "dc:subject_anzsrc:toa_rdf:resource": 0,
+        "description": 0,
+        "finalKeywords": 13,
+        "foaf:fundedBy_foaf:Agent": 15,
+        "GroupComponent-fields-1": 32,
+        "GroupComponent-fields-4-definition-fields-8-definition-fields-2": 16,
+        "GroupComponent-fields-4-definition-fields-8-definition-fields-4": 16,
+        "GroupComponent-fields-4-definition-fields-8-definition-fields-6": 16,
+        "GroupComponent-fields-4-definition-fields-8-definition-fields-8": 16,
+        "GroupComponent-fields-5": 16,
+        "irma-id": 1,
+        "redbox:retentionPeriod_dc:date": 0,
+        "redbox:retentionPeriod_dc:date_skos:note": 4,
+        "scu_calculated_retention_end_date": 0,
+        "scu_contributor_ci_faculty": 0,
+        "scu_current_data_storage": 0,
+        "scu_data_contains_icip": 0,
+        "scu_data_future_use": 0,
+        "scu_data_infra_special_access_rights": 0,
+        "scu_data_special_requests": 0,
+        "scu_entered_retention_end_date": 0,
+        "scu_ethics_needed": 0,
+        "scu_hpc_needed": 0,
+        "scu_ownership_contracts_licenses": 13,
+        "scu_ownership_decision_authority": 0,
+        "scu_ownership_external_parties": 13,
+        "scu_project_type": 0,
+        "scu_rdmp_editable_status": 3,
+        "scu_software_needed": 0,
+        "scu_website_needed": 0,
+        "scu-rdmp-data-classification": 26,
+        "scu-rdmp-data-classification-item-outcome": 0,
+        "scu-rdmp-data-classification-item-outcome-details": 0,
+        "title": 0,
+        "vivo:Dataset_dc_format": 0,
+        "vivo:Dataset_dc:extent": 0,
+        "vivo:Dataset_redbox:DataAnalysisResources": 0,
+        "vivo:Dataset_redbox:DataCollectionMethodology": 0,
+        "vivo:Dataset_redbox:DataCollectionResources": 0,
+        "workspaces": 28
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "additional-irma-ids": 2,
+        "agls:policy_skos:note": 0,
+        "agls:protectiveMarking_dc:type": 4,
+        "agls:protectiveMarking_skos:note": 0,
+        "change-irma-lavels": 0,
+        "contributor_author": 5,
+        "contributor_ci": 6,
+        "contributors": 8,
+        "contributors_data_manager": 8,
+        "contributors_external": 8,
+        "contributors_supervisor": 8,
+        "dc:accessRights": 0,
+        "dc:coverage_dc:identifier": 10,
+        "dc:coverage_vivo:DateTimeInterval_vivo:end": 0,
+        "dc:coverage_vivo:DateTimeInterval_vivo:start": 0,
+        "dc:rightsHolder_dc:name": 0,
+        "dc:subject_anzsrc:for": 12,
+        "dc:subject_anzsrc:seo": 12,
+        "dc:subject_anzsrc:toa_rdf:resource": 0,
+        "description": 0,
+        "finalKeywords": 13,
+        "foaf:fundedBy_foaf:Agent": 15,
+        "GroupComponent-fields-1": 32,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-2": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-4": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-6": 16,
+        "GroupComponent-fields-4-definition-fields-9-definition-fields-8": 16,
+        "GroupComponent-fields-5": 16,
+        "irma-id": 1,
+        "rdmp-data-status-deleted": 0,
+        "rdmp-data-status-published": 0,
+        "redbox:retentionPeriod_dc:date": 0,
+        "redbox:retentionPeriod_dc:date_skos:note": 4,
+        "scu_calculated_retention_end_date": 0,
+        "scu_contributor_ci_faculty": 0,
+        "scu_current_data_storage": 0,
+        "scu_data_contains_icip": 0,
+        "scu_data_future_use": 0,
+        "scu_data_infra_special_access_rights": 0,
+        "scu_data_special_requests": 0,
+        "scu_entered_retention_end_date": 0,
+        "scu_ethics_needed": 0,
+        "scu_hpc_needed": 0,
+        "scu_ownership_contracts_licenses": 13,
+        "scu_ownership_decision_authority": 0,
+        "scu_ownership_external_parties": 13,
+        "scu_project_type": 0,
+        "scu_rdmp_editable_status": 3,
+        "scu_software_needed": 0,
+        "scu_website_needed": 0,
+        "scu-rdmp-data-classification": 26,
+        "scu-rdmp-data-classification-item-outcome": 0,
+        "scu-rdmp-data-classification-item-outcome-details": 0,
+        "title": 0,
+        "vivo:Dataset_dc_format": 0,
+        "vivo:Dataset_dc:extent": 0,
+        "vivo:Dataset_redbox:DataAnalysisResources": 0,
+        "vivo:Dataset_redbox:DataCollectionMethodology": 0,
+        "vivo:Dataset_redbox:DataCollectionResources": 0,
+        "workspaces": 28
+      }
+    },
+    {
+      "kind": "any",
+      "nullable": true,
+      "reason": "incompatible-read-variants"
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "basic_name": 0,
+        "country_code": 0,
+        "display_title": 0,
+        "geonameid": 0,
+        "latitude": 0,
+        "longitude": 0,
+        "title": 0
+      }
+    },
+    {
+      "kind": "array",
+      "nullable": true,
+      "items": 36
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "oid": 3,
+        "title": 0
+      }
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/research-already-published",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/data-contains-info-about-individuals",
+            "values": ["synthetic0"]
+          },
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/data-in-categories",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/data-relates-to-identifiable-individual",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/data-in-categories",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/ecological-sensitivities-in-data",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/tech-being-exported-overseas",
+            "values": ["synthetic0"]
+          },
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/tech-being-exported-overseas",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "conditional",
+      "nullable": false,
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {
+            "kind": "in",
+            "pointer": "/scu-data-publication-data-classification/reference-dsgl",
+            "values": ["synthetic0"]
+          }
+        ]
+      },
+      "thenNode": 17
+    },
+    {
+      "kind": "object",
+      "nullable": true,
+      "unknownProperties": "allow",
+      "properties": {
+        "research-already-published": 17,
+        "data-contains-info-about-individuals": 39,
+        "data-in-categories": 39,
+        "data-relates-to-identifiable-individual": 40,
+        "data-contains-sensitive-personal-info": 41,
+        "data-impact-indigenous-peoples-communities": 41,
+        "data-relate-to-ssbas": 42,
+        "ecological-sensitivities-in-data": 42,
+        "ecological-adverse-impacts": 43,
+        "tech-being-exported-overseas": 42,
+        "reference-dsgl": 44,
+        "tech-be-used-in-harm": 45,
+        "questiontree-outcome-info": 25
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "additional-irma-ids": 2,
+        "additionalDetailsForReviewer": 0,
+        "citation_doi": 0,
+        "citation_publication_date": 0,
+        "citation_url": 0,
+        "contributor_author": 0,
+        "contributor_ci": 0,
+        "contributors": 0,
+        "contributors_data_manager": 0,
+        "contributors_external": 0,
+        "contributors_supervisor": 0,
+        "creators": 8,
+        "data_size": 0,
+        "dataLicensingAccess_manager": 35,
+        "dataPublication-ethics-contains-icip-data": 0,
+        "dataPublication-ethics-contains-sensitive-data": 0,
+        "dataPublication-ethics-has-approval-to-publish": 0,
+        "dataPublication-ethics-is-de-identified": 0,
+        "dc:accessRights": 0,
+        "dc:subject_anzsrc:for": 12,
+        "dc:subject_anzsrc:seo": 12,
+        "description": 0,
+        "embargoNote": 0,
+        "embargoUntil": 0,
+        "endDate": 0,
+        "finalIdentifiers": 13,
+        "finalKeywords": 13,
+        "foaf:fundedBy_foaf:Agent": 15,
+        "geolocations": 37,
+        "GroupComponent-fields-8": 16,
+        "irma-id": 1,
+        "license_identifier": 0,
+        "license_notes": 0,
+        "license_other_url": 0,
+        "license_statement_url": 0,
+        "no_of_files": 0,
+        "publication-view-actions": 16,
+        "rdmp": 38,
+        "related_data": 35,
+        "related_metadata": 35,
+        "related_publications": 35,
+        "related_websites": 35,
+        "scu_dataPublication_ethics_considerations_information": 0,
+        "scu-data-publication-data-classification": 46,
+        "scu-data-publication-data-classification-item-outcome": 0,
+        "scu-data-publication-data-classification-item-outcome-details": 0,
+        "startDate": 0,
+        "timePeriod": 0,
+        "title": 0,
+        "view_only_contributor_author": 0,
+        "view_only_contributor_ci": 0,
+        "view_only_contributors_supervisor": 35
+      }
+    },
+    {
+      "kind": "object",
+      "nullable": false,
+      "unknownProperties": "allow",
+      "properties": {
+        "generated_view_only_action_bar": 16,
+        "title": 0
+      }
+    }
+  ],
+  "variants": [
+    {
+      "recordType": "rdmp",
+      "stage": "draft",
+      "form": "default-1.0-draft",
+      "root": 29
+    },
+    {
+      "recordType": "rdmp",
+      "stage": "hdrapproval",
+      "form": "default-1.0-hdrapproval",
+      "root": 29
+    },
+    {
+      "recordType": "rdmp",
+      "stage": "submitted",
+      "form": "default-1.0-submitted",
+      "root": 33
+    },
+    {
+      "recordType": "rdmp",
+      "stage": "active",
+      "form": "default-1.0-active",
+      "root": 33
+    },
+    {
+      "recordType": "rdmp",
+      "stage": "ended",
+      "form": "default-1.0-ended",
+      "root": 34
+    },
+    {
+      "recordType": "rdmp",
+      "stage": "closed",
+      "form": "default-1.0-closed",
+      "root": 34
+    },
+    {
+      "recordType": "rdmp",
+      "stage": "abandoned",
+      "form": "default-1.0-abandoned",
+      "root": 34
+    },
+    {
+      "recordType": "dataPublication",
+      "stage": "draft",
+      "form": "dataPublication-1.0-draft",
+      "root": 47
+    },
+    {
+      "recordType": "dataPublication",
+      "stage": "queued",
+      "form": "dataPublication-1.0-queued",
+      "root": 47
+    },
+    {
+      "recordType": "dataPublication",
+      "stage": "published",
+      "form": "dataPublication-1.0-published",
+      "root": 47
+    },
+    {
+      "recordType": "dataPublication",
+      "stage": "retired",
+      "form": "dataPublication-1.0-retired",
+      "root": 47
+    },
+    {
+      "recordType": "party",
+      "stage": "draft",
+      "form": "generated-view-only",
+      "root": 48
+    },
+    {
+      "recordType": "activity",
+      "stage": "draft",
+      "form": "generated-view-only",
+      "root": 48
+    },
+    {
+      "recordType": "funding",
+      "stage": "draft",
+      "form": "generated-view-only",
+      "root": 48
+    },
+    {
+      "recordType": "jira-ts",
+      "stage": "jira-ts-draft",
+      "form": "generated-view-only",
+      "root": 48
+    },
+    {
+      "recordType": "jira-ts",
+      "stage": "jira-ts-provisioning",
+      "form": "generated-view-only",
+      "root": 48
+    }
+  ]
+}

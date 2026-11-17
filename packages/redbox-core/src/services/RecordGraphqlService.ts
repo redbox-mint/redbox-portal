@@ -12,6 +12,7 @@ import {
   type RecordContractContributorRegistry,
   type RecordContractRegistrationIssue,
 } from '../record-contract';
+import { scopeReadCandidates, type ReadSchemaScope } from '../record-graphql/schema-scope';
 import { configuredReadContracts, type ReadContractCandidate } from '../record-graphql/read-contract';
 import { createRecordYoga, QUERY_LIMITS } from '../record-graphql/schema';
 import { isObject } from '../record-graphql/renderer';
@@ -116,8 +117,8 @@ export namespace Services {
     }
 
     /** Private service tooling for integration owners; no HTTP schema-discovery route. */
-    public async describeReadSchema(caller: ReadCaller): Promise<string> {
-      return printSchema((await this.resolveReadSchema(caller)).schema);
+    public async describeReadSchema(caller: ReadCaller, scope?: ReadSchemaScope): Promise<string> {
+      return printSchema((await this.resolveReadSchema(caller, false, scope)).schema);
     }
 
     /** Static named-query validation reuses the deployed schema and scalar contracts.
@@ -203,7 +204,11 @@ export namespace Services {
       }
     }
 
-    private async resolveReadSchema(caller: ReadCaller, schemaOnly = false): Promise<ReadSchema> {
+    private async resolveReadSchema(
+      caller: ReadCaller,
+      schemaOnly = false,
+      scope?: ReadSchemaScope
+    ): Promise<ReadSchema> {
       const config = this.dependencies.getConfig();
       validateRecordGraphqlConfig(config);
       if (!config.enabled && !schemaOnly) {
@@ -222,7 +227,9 @@ export namespace Services {
       }
       // Reload the scoped configuration on every request, so administrative edits
       // and hook changes cannot leave a cached schema stale until a TTL expires.
-      const candidates = await this.dependencies.getCandidates(caller);
+      const allCandidates = await this.dependencies.getCandidates(caller);
+      if (allCandidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
+      const candidates = scopeReadCandidates(allCandidates, scope);
       if (candidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
       const reusableFormDefinitions = this.dependencies.getReusableDefinitions();
       const fingerprint = formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions);

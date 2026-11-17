@@ -9,7 +9,8 @@ import {
   type GridEnvironment,
   type GridSelection,
 } from './grid-types';
-import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { applyReadPresentationHints } from './read-contract';
+import { formatRecordGridFingerprint } from '../RecordFormFingerprint';
 
 export function gridError(code: string, message: string): never {
   throw new GraphQLError(message, { extensions: { code } });
@@ -369,11 +370,13 @@ export function buildCatalogue(
     })),
     revision: '',
   };
-  const revision = formatRecordFormFingerprint({
-    catalogue,
-    semantics: 'mongo-record-collection/1',
-    contracts: scoped,
-  });
+  applyReadPresentationHints(catalogue, scoped);
+  const revision = formatRecordGridFingerprint([
+    { ...catalogue, fields: undefined },
+    { semantics: 'mongo-record-collection/1' },
+    ...catalogue.fields,
+    ...scoped,
+  ]);
   if (!revision) gridError('CATALOGUE_LIMIT', 'Field catalogue fingerprint exceeds its bound.');
   catalogue.revision = revision;
   return { catalogue, bindings };
