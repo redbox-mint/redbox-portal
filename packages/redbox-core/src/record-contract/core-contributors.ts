@@ -422,7 +422,12 @@ async function questionTreeContribution(
               value === null || ['string', 'number', 'boolean'].includes(typeof value)
           )
       : undefined;
-    const answerNode = array(scalar('string', false, answerValues), false);
+    // Native question-tree DSL uses radio scalars for one answer and checkbox
+    // arrays for multiple answers. Visibility rules do not change stored types.
+    const answerNode =
+      context.fieldMode === 'read' && question.answersMax === 1
+        ? scalar('string', true, answerValues)
+        : array(scalar('string', false, answerValues), context.fieldMode === 'read');
     const rule = asRecord(question.rules);
     const condition = questionCondition(rule, context.pointer);
     if (rule.op === 'true' || condition) {

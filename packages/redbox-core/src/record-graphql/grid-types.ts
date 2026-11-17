@@ -71,6 +71,9 @@ export interface GridField {
   groupPath?: string[];
   repeatingSubfield?: boolean;
   repeatingGroupId?: string | null;
+  /** Explicit authoring hints; clients must still check selectable and variant availability. */
+  identity?: boolean;
+  defaultColumn?: number;
   scalarType: GridScalar;
   selectable: boolean;
   availableInAllVariants: boolean;

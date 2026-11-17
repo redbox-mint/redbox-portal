@@ -1,8 +1,8 @@
-import {FormValidatorConfig, FormValidationGroups, FormValidatorTargetFieldConfig} from '../validation/form.model';
+import { FormValidatorConfig, FormValidationGroups, FormValidatorTargetFieldConfig } from '../validation/form.model';
 import { AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines } from './dictionary.outline';
 import { CanVisit } from './visitor/base.outline';
 import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
-import { FormExpressionsConfigOutline } from './form-component.outline';
+import { MetadataReadConfiguration, FormExpressionsConfigOutline } from './form-component.outline';
 import { FormBehaviourConfigFrame } from './form-behaviour.outline';
 import { ValidationOperationDefinition } from '../validation/record-validation.model';
 import type { RelatedFormDescriptors } from '../related-records.model';
@@ -15,6 +15,8 @@ import type { RelatedFormDescriptors } from '../related-records.model';
  * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
  */
 export interface FormConfigFrame {
+  /** Explicit read metadata by exact record type, including generated view-only forms. */
+  readMetadata?: Record<string, MetadataReadConfiguration>;
   /** Derived server data; never trusted as authoritative write configuration. */
   relatedRecords?: RelatedFormDescriptors;
   /**

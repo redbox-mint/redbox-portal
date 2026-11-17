@@ -1,3 +1,4 @@
+import { applyReadPresentationHints } from './read-contract';
 import {
   GraphQLError,
   GraphQLBoolean,
@@ -113,6 +114,8 @@ const Field = new GraphQLObjectType({
     groupPath: { type: stringList },
     repeatingSubfield: { type: GraphQLBoolean },
     repeatingGroupId: { type: GraphQLID },
+    identity: { type: GraphQLBoolean },
+    defaultColumn: { type: GraphQLInt },
     scalarType: { type: new GraphQLNonNull(GraphQLString) },
     selectable: { type: new GraphQLNonNull(GraphQLBoolean) },
     filterable: { type: new GraphQLNonNull(GraphQLBoolean) },
@@ -177,6 +180,7 @@ export function gridFields(
         }
         const environment = await pending;
         const snapshot = buildCatalogue(contracts, args.recordType, args.workflowStages ?? [], environment);
+        applyReadPresentationHints(snapshot.catalogue, contracts);
         if (args.ids !== undefined && args.ids !== null) {
           if (args.ids.length > GRID_LIMITS.fieldIds || new Set(args.ids).size !== args.ids.length)
             gridError('CATALOGUE_LIMIT', 'Request at most 50 distinct field identifiers.');

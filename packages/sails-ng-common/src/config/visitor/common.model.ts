@@ -75,6 +75,7 @@ export class PropertiesHelper {
     // Set the simple properties
     item.name = currentData.name;
     item.module = currentData.module;
+    if (currentData.readShape !== undefined) item.readShape = currentData.readShape;
     if (currentData.relatedDisplay !== undefined) {
       item.relatedDisplay = { ...currentData.relatedDisplay };
     }
