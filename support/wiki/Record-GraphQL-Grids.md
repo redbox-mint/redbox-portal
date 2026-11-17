@@ -72,7 +72,7 @@ query GridFields($type: String!, $stages: [String!]) {
     revision
     variants { typeName workflowStage form }
     fields {
-      id path label labelKey scalarType nullable nested repeating
+      id path label labelKey scalarType nullable nested repeating cardinality
       selectable availableInAllVariants filterable operators sortable
       choices { label value }
       unavailableReason
@@ -106,6 +106,7 @@ A declared title entry has this shape (the `selections` values are described imm
   "nullable": true,
   "nested": false,
   "repeating": false,
+  "cardinality": "SCALAR",
   "selectable": true,
   "availableInAllVariants": true,
   "filterable": true,
@@ -167,7 +168,7 @@ With the default publication draft form:
 
 Require exactly one registered record type. An omitted or empty stage list includes only its configured workflow stages, enforced in both Mongo and current stored-record checks. Unregistered historical stages do not affect rows or `hasNextPage`. Unknown stages are errors. Each stored row's actual type/stage/form chooses its metadata union member; the client cannot substitute a different form. A field available in only some variants has `availableInAllVariants: false` and fragments only for the applicable variants. Such fields remain columns, but filtering and sorting require availability across every form in the selected workflow scope (`VARIANT_SCOPE_REQUIRED` otherwise); narrow the stages to enable those capabilities. Use `metadata.__typename` to find the matching selection and represent an inapplicable field as null in the grid. A missing declared value is returned as null. An unregistered historical form gives a nullable metadata error while retaining the record envelope.
 
-Only non-repeating scalar fields are grid columns. Nested scalar leaves are supported through exact response paths; parent objects and opaque JSON are not columns. Repeating entries have `metadata-list:` identifiers and `repeating: true`; they cannot be columns, filters or sorts. Lists are not flattened. Fields with incompatible shapes across selected stages are unavailable; narrow the workflow scope to resolve them. Collection selections of opaque metadata regions return `UNDECLARED_METADATA` and null rather than exposing unknown children. Existing `record(oid:...)` opaque JSON behavior is preserved. Historical type mismatches retain GraphQL's nullable-field/nullable-item errors.
+Scalar fields, declared objects and declared lists can be grid columns. Nested scalar leaves are supported through exact response paths; opaque JSON is not a column. `cardinality` is `SCALAR` for a single value and `LIST` for a declared array. Only a declared scalar list (see [Declared scalar lists](#declared-scalar-lists)) can be filtered or sorted; object lists, nested lists and their children cannot. Entries inside a list have `metadata-list:` identifiers and `repeating: true`; they cannot be columns, filters or sorts. Lists are not flattened. Fields with incompatible shapes across selected stages are unavailable; narrow the workflow scope to resolve them. Collection selections of opaque metadata regions return `UNDECLARED_METADATA` and null rather than exposing unknown children. Existing `record(oid:...)` opaque JSON behavior is preserved. Historical type mismatches retain GraphQL's nullable-field/nullable-item errors.
 
 ## Filters and sorting
 
@@ -179,9 +180,10 @@ Filters are an AND-only list. Each input has `field` and exactly one operator. `
 | BOOLEAN | EQ, IN, EXISTS | Yes |
 | NUMBER / INTEGER | EQ, IN, GT, LT, BETWEEN, EXISTS | Yes |
 | DATETIME | EQ, IN, GT, LT, BETWEEN, EXISTS | Yes |
-| Object, repeating, opaque, incompatible or partial-variant fields | None | No |
+| Declared scalar list (`cardinality: LIST`) of one of the types above | The element type's operators, matched per element | Yes, by smallest/largest element |
+| Object, object list, nested list, list child, opaque, incompatible or partial-variant fields | None | No |
 
-Nested scalar leaves use exact declared object keys, including names containing colons, dots or dollar signs; stored arrays are never traversed implicitly. Repeating values and children remain selection-only where supported. A scalar declaration containing an array, object or incompatible stored primitive normalizes to missing for filters and sorts. Numeric strings are never coerced. Numeric values must be finite; INTEGER requires a safe integer. Empty strings and false are values. EXISTS tests a valid normalized value, so missing, null and type mismatches match `exists: false`. All other operators exclude them.
+Nested scalar leaves use exact declared object keys, including names containing colons, dots or dollar signs; stored arrays are never traversed implicitly. Object lists and the children of any list remain selection-only where supported. A scalar declaration containing an array, object or incompatible stored primitive normalizes to missing for filters and sorts. Numeric strings are never coerced. Numeric values must be finite; INTEGER requires a safe integer. Empty strings and false are values. EXISTS tests a valid normalized value, so missing, null and type mismatches match `exists: false`. All other operators exclude them.
 
 Text equality and CONTAINS are case-sensitive literal operations. Regex metacharacters are escaped by the server. GT/LT are exclusive and BETWEEN is inclusive; reversed ranges are errors. Input dates require RFC 3339 with seconds, timezone, at most millisecond precision, and a UTC year in 0001–9999. Invalid component ranges, invalid calendar dates, leap seconds and ambiguous local input are rejected. DateInputComponent read contracts carry `x-redbox-format: date` or `date-time` according to `model.config.dateOnly`; hook contributors can use those extensions on readable string nodes. Ordinary string fields remain STRING even when their names resemble dates.
 
@@ -191,11 +193,22 @@ Ascending sorts put null/missing/type mismatches first; descending puts them las
 
 Unknown IDs, unknown input properties, unsupported operators/sorts, repeated sort fields, invalid types and oversize values return errors. No requested operation is silently ignored. A readable field can remain a column while having `filterable: false` and `sortable: false`.
 
+### Declared scalar lists
+
+A field has `cardinality: LIST`, `repeating: true` and filter/sort capabilities when every selected variant's read contract declares it as an array of one scalar type (`STRING`, `NUMBER`, `INTEGER`, `BOOLEAN`, or a date/date-time string), outside any other list. Examples are multi-value checkboxes and repeatable simple inputs, including lists inside plain objects. Capabilities come only from contracts compiled from form configuration; stored records are never sampled. A list in one variant and a single value in another, different element types, or `date` versus `date-time` elements across variants make the field `MIXED`; narrow the workflow scope. Private (`writeOnly`) lists or list items are excluded.
+
+- **Filters match any valid element.** `eq`, `in`, `contains`, `iprefix`, `gt` and `lt` match when at least one element satisfies the operator. `between` requires a **single element** within both bounds. Separate filters on the same list are independent and may each match a different element; there is no same-element correlation across filters.
+- **EXISTS** is true when the list has at least one valid element. Missing, null, empty and non-array stored values have no valid elements.
+- **Elements are normalized like scalars of the declared type.** Invalid elements (wrong type, numeric strings, non-finite numbers, unsafe integers, invalid dates, numeric epochs, null, nested arrays and objects) are ignored, never coerced. Arrays are not flattened, unwound or truncated.
+- **Sorting** uses the smallest valid element for `ASC` and the largest for `DESC`, over all valid elements regardless of filters. A list without valid elements sorts as missing (first for `ASC`, last for `DESC`), with the usual OID tie-break; continuation cursors carry that one scalar key.
+
+Element arrays are computed per candidate after the ACL and scope predicates and are removed before sorting, so the blocking sort holds only scalar keys and the existing page, deadline, result-byte and no-disk-spill bounds apply. Large stored lists are processed in full within the storage deadline; a query that cannot finish returns `QUERY_TIMEOUT` rather than partial results. These semantics change the catalogue revision, so collection cursors issued before deployment return `INVALID_CURSOR`; restart those queries.
+
 ### Literal prefix with ASCII case folding
 
 `{field: "metadata:/dc:identifier", iprefix: "uOn-"}` matches the start of the full stored string, ignoring **ASCII A–Z case only**. For stored string S and prefix P, the contract is `foldAsciiCase(S).startsWith(foldAsciiCase(P))`; the fold replaces A–Z with a–z one code unit at a time. Every other UTF-16 code unit is unchanged. There is no trimming, tokenization, accent removal, Unicode case folding or Unicode normalization. For example, `UON-ΟΣΑ` matches `uon-ΟΣ` but not `uon-οσ` or `uon-ος`; `École` matches `É` but not `é` or decomposed `E\u0301`. Turkish İ/ı, ß/ẞ and fullwidth letters retain their exact distinctions. Spaces, punctuation, controls and supplementary characters are literal text.
 
-Queries must be nonempty, well-formed UTF-16 strings of at most 256 UTF-8 bytes. Empty, null, malformed or oversized values return `INVALID_FILTER_VALUE`. IPREFIX is available on readable non-repeating STRING fields present in every selected variant; no companion field or opt-in mapping is needed. Regex syntax, whitespace, controls and Unicode are literal. The visual explorer retains its existing operator list; IPREFIX can be authored in GraphQL mode.
+Queries must be nonempty, well-formed UTF-16 strings of at most 256 UTF-8 bytes. Empty, null, malformed or oversized values return `INVALID_FILTER_VALUE`. IPREFIX is available on readable STRING fields and declared STRING lists (matching any element) present in every selected variant; no companion field or opt-in mapping is needed. Regex syntax, whitespace, controls and Unicode are literal. The visual explorer retains its existing operator list; IPREFIX can be authored in GraphQL mode.
 
 ## Pagination, permissions and consistency
 
@@ -229,11 +242,13 @@ A client can persist this JSON in its own configuration store:
 }
 ```
 
-On load, refresh the catalogue for that scope. Resolve every column/filter/sort ID and verify scalar types, operators and sort capabilities. Report missing or changed capabilities rather than silently dropping or reinterpreting them. The optional catalogue `revision` helps detect change but is not a persistent field identity. A reused storage path with changed business meaning requires an institution-managed grid migration; the API cannot infer that semantic change. Save neither generated type names nor fragment aliases as the sole identity. Generate selections from the current catalogue.
+On load, refresh the catalogue for that scope. Resolve every column/filter/sort ID and verify scalar types, cardinality, operators and sort capabilities. Report missing or changed capabilities rather than silently dropping or reinterpreting them.
+
+The Record explorer stores `expectedScalarType` and `expectedCardinality` (`SCALAR` or `LIST`) with each visual filter and sort. A definition without `expectedCardinality` was saved with single-value meaning. If the field is now a list (or a saved list field is now a single value), saving, previewing and named-query promotion return `filter-cardinality-changed` or `sort-cardinality-changed`. The explorer marks the condition and offers **Use the current meaning**, which keeps a still-supported operator and its values, then requires an explicit save. List conditions are labelled with their element meaning, such as "Any value equals" and "One value is between", and list sorts as "Ascending (by smallest value)" or "Descending (by largest value)". The optional catalogue `revision` helps detect change but is not a persistent field identity. A reused storage path with changed business meaning requires an institution-managed grid migration; the API cannot infer that semantic change. Save neither generated type names nor fragment aliases as the sole identity. Generate selections from the current catalogue.
 
 ## Verification and references
 
-Core regression tests: `npm --prefix packages/redbox-core run test:record-graphql`. Docker HTTP tests use `RBPORTAL_MOCHA_TEST_PATHS` with `test/integration/services/RecordGraphqlService.test.ts` and `test/integration/services/RecordGraphqlGrid.test.ts` through `npm run test:mocha:mount`. Grid HTTP fixtures add synthetic scalar and nested fields to the title-only publication draft stub and exercise real MongoDB, bearer authentication and route policies. They are not institution-specific production form coverage.
+Core regression tests: `npm --prefix packages/redbox-core run test:record-graphql`. Docker HTTP tests use `RBPORTAL_MOCHA_TEST_PATHS` with `test/integration/services/RecordGraphqlService.test.ts` and `test/integration/services/RecordGraphqlGrid.test.ts` through `npm run test:mocha:mount`. Grid HTTP fixtures add synthetic scalar, nested and scalar-list fields to the title-only publication draft stub and exercise real MongoDB, bearer authentication and route policies. `test/integration/services/RecordGraphqlMongo.test.ts` runs the compiled storage pipelines directly against MongoDB, including scalar-list operators, malformed elements, exact dotted keys, ACL exclusion, min/max sort keyset paging and large-list timings. They are not institution-specific production form coverage.
 
 See [Record Schema Contract Contributors](Record-Schema-Contract-Contributors) and [ReDBox Automated Tests](ReDBox-Automated-Tests).
 

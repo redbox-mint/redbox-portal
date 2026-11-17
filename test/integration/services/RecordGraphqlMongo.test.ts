@@ -317,3 +317,409 @@ describe('Mongo collection index and deadline regressions', function () {
     });
   }
 });
+
+describe('Mongo declared scalar-list collections', function () {
+  this.timeout(120_000);
+  type Node = GridStorageRequest['contracts'][number]['root']['properties'][string];
+  const scalar = (scalarType: 'string' | 'number' | 'integer' | 'boolean', format?: string): Node => ({
+    kind: 'scalar',
+    scalarType,
+    nullable: true,
+    ...(format ? { annotations: { extensions: { 'x-redbox-format': format } } } : {}),
+  });
+  const list = (items: Node): Node => ({ kind: 'array', nullable: true, items });
+  const contracts = (): GridStorageRequest['contracts'] =>
+    gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          tags: list(scalar('string')),
+          scores: list(scalar('integer')),
+          amounts: list(scalar('number')),
+          flags: list(scalar('boolean')),
+          dates: list(scalar('string', 'date-time')),
+          days: list(scalar('string', 'date')),
+          details: {
+            kind: 'object',
+            nullable: true,
+            unknownProperties: 'allow',
+            properties: { codes: list(scalar('string')) },
+          },
+          'literal.list': list(scalar('string')),
+        },
+      },
+    }));
+  let collection;
+  const suffix = randomUUID().slice(0, 8);
+  const id = (key: string) => `list-${key}-${suffix}`;
+  const base = (oid: string, metadata: object, overrides: object = {}) => ({
+    redboxOid: oid,
+    metaMetadata: { brandId: gridCaller.brand.id, type: 'grid-fixture', form: 'draft-form' },
+    workflow: { stage: 'draft' },
+    authorization: { view: ['viewer'] },
+    metadata,
+    ...overrides,
+  });
+  const request = (
+    query: Partial<GridStorageRequest['query']> = {},
+    after?: GridStorageRequest['after']
+  ): GridStorageRequest => ({
+    caller: gridCaller,
+    contracts: contracts(),
+    query: { recordType: 'grid-fixture', ...query },
+    after,
+    deadline: Date.now() + 5000,
+  });
+  const provider = () => new MongoRecordCollectionProvider(collection);
+  const semantic = ['s01', 's02', 's03', 's04', 's05', 's06', 's07', 's08', 's09', 's10', 's11'].map(id);
+  const scope = { field: 'record:oid', in: semantic.map(text => ({ text })) };
+  async function oids(filters: object[]): Promise<string[]> {
+    const page = await provider().executeRecordCollection(request({ filters: [scope, ...filters] as never }));
+    return page.candidates.map(candidate => candidate.oid);
+  }
+  /** Walk every storage page with the real continuation keys. */
+  async function walkPages(query: Partial<GridStorageRequest['query']>): Promise<{ oid: string; keys: unknown[] }[]> {
+    const seen: { oid: string; keys: unknown[] }[] = [];
+    let after: GridStorageRequest['after'];
+    for (let page = 0; page < 100; page++) {
+      const result = await provider().executeRecordCollection(request(query, after));
+      seen.push(...result.candidates);
+      if (result.exhausted) return seen;
+      after = { keys: result.candidates.at(-1)!.keys };
+    }
+    throw new Error('Pagination did not terminate');
+  }
+  before(async () => {
+    collection = Record.getDatastore().manager.collection(`graphql_lists_${randomUUID().replace(/-/g, '')}`);
+    await collection.createIndex({ redboxOid: 1 }, { unique: true });
+    await collection.insertMany([
+      base(id('s01'), {
+        tags: ['alpha', 'beta'],
+        scores: [5, 1, 9],
+        amounts: [1.5, -2],
+        flags: [true],
+        dates: ['2026-01-10T00:00:00Z', new Date('2026-03-01T00:00:00Z')],
+        days: ['2026-02-01'],
+        details: { codes: ['x1'] },
+        'literal.list': ['dot'],
+      }),
+      base(id('s02'), {
+        tags: ['Alphabet'],
+        scores: [3],
+        amounts: [10],
+        flags: [false, true],
+        dates: ['2026-06-01T12:00:00+10:00'],
+        days: ['2026-02-30'],
+        details: { codes: [] },
+        // Implicit traversal trap: not the declared literal "literal.list" key.
+        literal: { list: ['trap'] },
+      }),
+      base(id('s03'), { tags: 'alpha', scores: 4, flags: true, dates: '2026-03-01T00:00:00Z', details: 'x1' }),
+      base(id('s04'), { tags: [], scores: [], 'details.codes': ['x1'], details: { codes: null } }),
+      base(id('s05'), { tags: null, scores: null, details: null }),
+      base(id('s06'), {}),
+      base(id('s07'), {
+        tags: [null, 'gamma', 7, { a: 'alpha' }, ['alpha']],
+        scores: [null, '8', 2.5, Number.NaN, Number.POSITIVE_INFINITY, 6, [1], 2 ** 53, true],
+        amounts: [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, '1', 7, [9]],
+        flags: ['true', 0, null, [true]],
+        dates: [
+          '2026-13-01T00:00:00Z',
+          'not a date',
+          1767225600000,
+          '2026-02-30T00:00:00Z',
+          '2026-01-01T24:00:00Z',
+          ['2026-03-01T00:00:00Z'],
+        ],
+        days: ['2026-02-01T00:00:00', null],
+        details: [{ codes: ['x1'] }],
+      }),
+      base(id('s08'), { tags: ['alpha'], scores: [1] }, { authorization: { view: ['someone-else'] } }),
+      base(
+        id('s09'),
+        { tags: ['alpha'], scores: [1] },
+        {
+          metaMetadata: { brandId: gridCaller.brand.id, type: 'grid-fixture', form: 'other-form' },
+        }
+      ),
+      base(id('s10'), { tags: ['delta', 'alpha'], scores: [2, 8] }),
+      base(id('s11'), { scores: [5] }),
+    ]);
+  });
+  after(async () => {
+    await collection?.drop();
+  });
+
+  it('matches any valid element for EQ, IN, CONTAINS and IPREFIX without flattening or coercion', async () => {
+    const tags = 'metadata:/tags';
+    assert.deepEqual(await oids([{ field: tags, eq: { text: 'alpha' } }]), [id('s01'), id('s10')]);
+    assert.deepEqual(await oids([{ field: tags, in: [{ text: 'gamma' }, { text: 'beta' }] }]), [id('s01'), id('s07')]);
+    assert.deepEqual(await oids([{ field: tags, contains: 'lph' }]), [id('s01'), id('s02'), id('s10')]);
+    assert.deepEqual(await oids([{ field: tags, iprefix: 'ALPHA' }]), [id('s01'), id('s02'), id('s10')]);
+    assert.deepEqual(await oids([{ field: tags, iprefix: 'alphab' }]), [id('s02')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/scores', eq: { number: 6 } }]), [id('s07')]);
+    // The string '8' is never coerced; only s10's numeric element matches.
+    assert.deepEqual(await oids([{ field: 'metadata:/scores', eq: { number: 8 } }]), [id('s10')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/flags', eq: { boolean: false } }]), [id('s02')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/flags', eq: { boolean: true } }]), [id('s01'), id('s02')]);
+  });
+  it('treats EXISTS as at least one valid element and missing/null/empty/non-array/invalid as none', async () => {
+    assert.deepEqual(await oids([{ field: 'metadata:/tags', exists: true }]), [
+      id('s01'),
+      id('s02'),
+      id('s07'),
+      id('s10'),
+    ]);
+    assert.deepEqual(await oids([{ field: 'metadata:/tags', exists: false }]), [
+      id('s03'),
+      id('s04'),
+      id('s05'),
+      id('s06'),
+      id('s11'),
+    ]);
+    assert.deepEqual(await oids([{ field: 'metadata:/flags', exists: true }]), [id('s01'), id('s02')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/dates', exists: true }]), [id('s01'), id('s02')]);
+    // A legacy zone-less timestamp is UTC, as for scalars; the impossible calendar day is not.
+    assert.deepEqual(await oids([{ field: 'metadata:/days', exists: true }]), [id('s01'), id('s07')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/amounts', exists: true }]), [id('s01'), id('s02'), id('s07')]);
+  });
+  it('requires one element inside both BETWEEN bounds while separate filters may match different elements', async () => {
+    const scores = 'metadata:/scores';
+    assert.deepEqual(await oids([{ field: scores, between: { from: { number: 3 }, to: { number: 7 } } }]), [
+      id('s01'),
+      id('s02'),
+      id('s07'),
+      id('s11'),
+    ]);
+    assert.deepEqual(await oids([{ field: scores, between: { from: { number: 2 }, to: { number: 4 } } }]), [
+      id('s02'),
+      id('s10'),
+    ]);
+    assert.deepEqual(
+      await oids([
+        { field: scores, gt: { number: 1 } },
+        { field: scores, lt: { number: 5 } },
+      ]),
+      [id('s01'), id('s02'), id('s10')]
+    );
+    // Non-finite and non-numeric elements never satisfy numeric ranges.
+    assert.deepEqual(await oids([{ field: 'metadata:/amounts', gt: { number: 5 } }]), [id('s02'), id('s07')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/amounts', lt: { number: -1 } }]), [id('s01')]);
+  });
+  it('normalizes date-time and calendar elements strictly, ignoring invalid, numeric and nested values', async () => {
+    const dates = 'metadata:/dates';
+    assert.deepEqual(
+      await oids([
+        {
+          field: dates,
+          between: { from: { dateTime: '2026-02-15T00:00:00Z' }, to: { dateTime: '2026-03-15T00:00:00Z' } },
+        },
+      ]),
+      [id('s01')]
+    );
+    assert.deepEqual(await oids([{ field: dates, gt: { dateTime: '2026-05-31T00:00:00Z' } }]), [id('s02')]);
+    assert.deepEqual(await oids([{ field: dates, eq: { dateTime: '2026-01-10T10:00:00+10:00' } }]), [id('s01')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/days', eq: { dateTime: '2026-02-01T00:00:00Z' } }]), [
+      id('s01'),
+      id('s07'),
+    ]);
+  });
+  it('uses exact declared keys for lists inside objects and dotted names', async () => {
+    assert.deepEqual(await oids([{ field: 'metadata:/details/codes', eq: { text: 'x1' } }]), [id('s01')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/details/codes', exists: false }]), [
+      id('s02'),
+      id('s03'),
+      id('s04'),
+      id('s05'),
+      id('s06'),
+      id('s07'),
+      id('s10'),
+      id('s11'),
+    ]);
+    assert.deepEqual(await oids([{ field: 'metadata:/literal.list', eq: { text: 'dot' } }]), [id('s01')]);
+    assert.deepEqual(await oids([{ field: 'metadata:/literal.list', eq: { text: 'trap' } }]), []);
+  });
+  it('excludes ACL-denied and out-of-scope records before list predicates and sorting', async () => {
+    for (const filter of [
+      { field: 'metadata:/tags', eq: { text: 'alpha' } },
+      { field: 'metadata:/scores', eq: { number: 1 } },
+    ]) {
+      const all = await provider().executeRecordCollection(
+        request({ filters: [filter] as never, sort: [{ field: 'metadata:/tags', direction: 'ASC' }] })
+      );
+      const found = all.candidates.map(candidate => candidate.oid);
+      assert.ok(!found.includes(id('s08')) && !found.includes(id('s09')), JSON.stringify(found));
+    }
+  });
+  for (const direction of ['ASC', 'DESC'] as const)
+    it(`sorts ${direction} by the ${direction === 'ASC' ? 'minimum' : 'maximum'} valid element with null and OID ties`, async () => {
+      const rows = await walkPages({ filters: [scope] as never, sort: [{ field: 'metadata:/scores', direction }] });
+      const order = rows.map(row => row.oid);
+      const keyed = [
+        // [oid, min, max] from valid elements only.
+        ['s01', 1, 9],
+        ['s02', 3, 3],
+        ['s03', null, null],
+        ['s04', null, null],
+        ['s05', null, null],
+        ['s06', null, null],
+        ['s07', 6, 6],
+        ['s10', 2, 8],
+        ['s11', 5, 5],
+      ] as const;
+      const expected = [...keyed]
+        .map(([key, min, max]) => ({ oid: id(key), key: direction === 'ASC' ? min : max }))
+        .sort((a, b) => {
+          if (a.key !== b.key) {
+            if (a.key === null) return direction === 'ASC' ? -1 : 1;
+            if (b.key === null) return direction === 'ASC' ? 1 : -1;
+            return direction === 'ASC' ? a.key - b.key : b.key - a.key;
+          }
+          return a.oid < b.oid ? -1 : 1;
+        });
+      assert.deepEqual(
+        order,
+        expected.map(row => row.oid)
+      );
+      assert.deepEqual(
+        rows.map(row => row.keys[0]),
+        expected.map(row => row.key)
+      );
+      // Sorting is independent of which element a filter matched.
+      const filtered = await provider().executeRecordCollection(
+        request({
+          filters: [scope, { field: 'metadata:/scores', eq: { number: 2 } }] as never,
+          sort: [{ field: 'metadata:/scores', direction }],
+        })
+      );
+      assert.deepEqual(filtered.candidates[0].keys, [direction === 'ASC' ? 2 : 8, id('s10')]);
+    });
+  it('continues exact multi-page keysets for list sorts, including null groups and OID ties', async () => {
+    const tie = `tie-${suffix}`;
+    const docs = Array.from({ length: 173 }, (_, index) => {
+      const oid = `${tie}-${String(index).padStart(4, '0')}`;
+      const pick = index % 7;
+      const value =
+        pick === 0
+          ? undefined
+          : pick === 1
+            ? []
+            : pick === 2
+              ? ['x', 7]
+              : [`k${index % 5}`, `k${(index * 3) % 5}`, ...(index % 2 ? [null] : [])];
+      return base(oid, value === undefined ? {} : { tags: value });
+    });
+    await collection.insertMany(docs);
+    for (const direction of ['ASC', 'DESC'] as const) {
+      const all = await walkPages({ sort: [{ field: 'metadata:/tags', direction }] });
+      const mine = all.filter(row => row.oid.startsWith(tie));
+      const expected = docs
+        .map(doc => {
+          const values = (Array.isArray(doc.metadata.tags) ? doc.metadata.tags : []).filter(
+            (value: unknown): value is string => typeof value === 'string'
+          );
+          const key = values.length ? [...values].sort()[direction === 'ASC' ? 0 : values.length - 1] : null;
+          return { oid: doc.redboxOid, key };
+        })
+        .sort((a, b) => {
+          if (a.key !== b.key) {
+            if (a.key === null) return direction === 'ASC' ? -1 : 1;
+            if (b.key === null) return direction === 'ASC' ? 1 : -1;
+            return (a.key < b.key ? -1 : 1) * (direction === 'ASC' ? 1 : -1);
+          }
+          return a.oid < b.oid ? -1 : 1;
+        });
+      assert.deepEqual(
+        mine.map(row => row.oid),
+        expected.map(row => row.oid),
+        direction
+      );
+      assert.equal(new Set(all.map(row => row.oid)).size, all.length, 'no duplicates across pages');
+      assert.ok(all.length > 50 * 3, 'multiple storage pages were walked');
+      // The global order is monotonic in the projected key, then OID.
+      for (let index = 1; index < all.length; index++) {
+        const [left, right] = [all[index - 1], all[index]];
+        const a = left.keys[0] as string | null;
+        const b = right.keys[0] as string | null;
+        if (a === b) assert.ok(left.oid < right.oid, JSON.stringify([left, right]));
+        else if (direction === 'ASC') assert.ok(a === null || (b !== null && a < b), JSON.stringify([left, right]));
+        else assert.ok(b === null || (a !== null && a > b), JSON.stringify([left, right]));
+      }
+    }
+    await collection.deleteMany({ redboxOid: { $regex: `^${tie}` } });
+  });
+  it('processes large stored lists without truncation within the bounded page and deadline', async () => {
+    const big = `big-${suffix}`;
+    const records = 200;
+    const elements = 5_000;
+    await collection.insertMany(
+      Array.from({ length: records }, (_, index) =>
+        base(`${big}-${String(index).padStart(4, '0')}`, {
+          // The only matching and maximal element is last, so truncation would change results.
+          scores: [...Array.from({ length: elements - 1 }, (_, n) => (n % 1000) + 1), index === 137 ? 1_000_000 : 0],
+          tags: [...Array.from({ length: elements - 1 }, (_, n) => `v${n % 100}`), index === 42 ? 'needle' : 'hay'],
+        })
+      )
+    );
+    const huge = `${big}-huge`;
+    await collection.insertOne(
+      base(huge, { tags: [...Array.from({ length: 100_000 }, (_, n) => `h${n}`), 'needle-tail'] })
+    );
+    try {
+      const timings: Record<string, number> = {};
+      const time = async <T>(label: string, run: () => Promise<T>) => {
+        const start = Date.now();
+        const result = await run();
+        timings[label] = Date.now() - start;
+        return result;
+      };
+      const needle = await time('eq-last-element', () =>
+        provider().executeRecordCollection(request({ filters: [{ field: 'metadata:/tags', eq: { text: 'needle' } }] }))
+      );
+      assert.deepEqual(
+        needle.candidates.map(row => row.oid),
+        [`${big}-0042`]
+      );
+      const tail = await time('eq-after-100k-elements', () =>
+        provider().executeRecordCollection(
+          request({ filters: [{ field: 'metadata:/tags', eq: { text: 'needle-tail' } }] })
+        )
+      );
+      assert.deepEqual(
+        tail.candidates.map(row => row.oid),
+        [huge]
+      );
+      const top = await time('desc-max-sort', () =>
+        provider().executeRecordCollection(
+          request({
+            filters: [{ field: 'metadata:/scores', gt: { number: 999 } }],
+            sort: [{ field: 'metadata:/scores', direction: 'DESC' }],
+          })
+        )
+      );
+      assert.deepEqual(top.candidates[0], { oid: `${big}-0137`, keys: [1_000_000, `${big}-0137`] });
+      assert.equal(top.candidates.length, 50);
+      const explain = await collection
+        .aggregate(
+          compileCollectionPipeline(
+            request({
+              filters: [{ field: 'metadata:/scores', gt: { number: 999 } }],
+              sort: [{ field: 'metadata:/scores', direction: 'DESC' }],
+            })
+          ),
+          { collation: { locale: 'simple' }, allowDiskUse: false }
+        )
+        .explain('executionStats');
+      const text = JSON.stringify(explain);
+      assert.ok(!text.includes('$unwind'), 'no unwind');
+      assert.ok(!/"usedDisk":\s*true/.test(text), 'no disk spill');
+      console.log(
+        'SCALAR_LIST_LARGE',
+        JSON.stringify({ records, elements, hugeElements: 100_001, timings, storageTimeoutMs: 5000 })
+      );
+    } finally {
+      await collection.deleteMany({ redboxOid: { $regex: `^${big}` } });
+    }
+  });
+});

@@ -144,6 +144,34 @@ describe('GraphQL grid over Sails and Mongo', function () {
             component: { class: 'DateInputComponent' },
             model: { class: 'DateInputModel', config: {} },
           },
+          {
+            name: 'colours',
+            component: {
+              class: 'CheckboxInputComponent',
+              config: {
+                options: [
+                  { label: 'Red', value: 'red' },
+                  { label: 'Blue', value: 'blue' },
+                  { label: 'Green', value: 'green' },
+                ],
+              },
+            },
+            model: { class: 'CheckboxInputModel', config: {} },
+          },
+          {
+            name: 'keywords',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: 'keyword',
+                  component: { class: 'SimpleInputComponent' },
+                  model: { class: 'SimpleInputModel', config: {} },
+                },
+              },
+            },
+            model: { class: 'RepeatableModel', config: {} },
+          },
         ],
       },
     });
@@ -321,6 +349,94 @@ describe('GraphQL grid over Sails and Mongo', function () {
     assert.equal(sparse.body.errors, undefined, JSON.stringify(sparse.body));
     assert.deepEqual(sparse.body.data.records.nodes, []);
     assert.equal(sparse.body.data.records.hasNextPage, false);
+  });
+  it('discovers form-declared scalar lists and filters/sorts them by element over HTTP with cursor paging', async () => {
+    const discovery = await send(
+      '{recordFields(recordType:"dataPublication",workflowStages:["draft"],ids:["metadata:/colours","metadata:/keywords","metadata:/people","metadata:/title"]){revision fields{id cardinality repeating scalarType filterable sortable operators choices{label value}}}}'
+    );
+    assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+    const [colours, keywords, people, title] = discovery.body.data.recordFields.fields;
+    for (const field of [colours, keywords]) {
+      assert.equal(field.cardinality, 'LIST', field.id);
+      assert.equal(field.repeating, true, field.id);
+      assert.equal(field.scalarType, 'STRING', field.id);
+      assert.equal(field.filterable, true, field.id);
+      assert.equal(field.sortable, true, field.id);
+    }
+    // Configured option labels apply to list choices; order follows the compiled enum, as for scalars.
+    assert.deepEqual(
+      colours.choices.map(choice => [choice.label, choice.value]).sort(),
+      [
+        ['Blue', 'blue'],
+        ['Green', 'green'],
+        ['Red', 'red'],
+      ]
+    );
+    assert.equal(people.cardinality, 'LIST');
+    assert.equal(people.filterable, false);
+    assert.equal(people.sortable, false);
+    assert.equal(title.cardinality, 'SCALAR');
+    const rows = [
+      { colours: ['red', 'blue'], keywords: ['b', 'y'] },
+      { colours: ['green'], keywords: ['a'] },
+      { colours: 'red', keywords: [] },
+      { colours: [['red']], keywords: null },
+      { colours: ['red'], keywords: ['0'], denied: true },
+      { colours: ['blue', 'red'], keywords: ['c', 'z'] },
+    ];
+    const ids = rows.map((_, index) => `grid-list-${index}-${suffix}`);
+    await Record.createEach(
+      rows.map(({ denied, ...metadata }, index) => ({
+        redboxOid: ids[index],
+        metadata: { title: `List-${suffix}`, ...metadata },
+        metaMetadata: { brandId: brand.id, type: 'dataPublication', form: 'dataPublication-1.0-draft' },
+        workflow: { stage: 'draft' },
+        authorization: { view: denied ? [] : [username], edit: [], viewRoles: [], editRoles: [] },
+      }))
+    );
+    try {
+      const scope = idsFilter(ids);
+      for (const [filter, expected] of [
+        [{ field: colours.id, eq: { text: 'red' } }, [ids[0], ids[5]]],
+        [{ field: colours.id, in: [{ text: 'green' }, { text: 'purple' }] }, [ids[1]]],
+        [{ field: colours.id, exists: false }, [ids[2], ids[3]]],
+        [{ field: keywords.id, iprefix: 'Y' }, [ids[0]]],
+      ] as const) {
+        const response = await send(page, { filters: [scope, filter], first: 50 });
+        assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+        assert.deepEqual(resultIds(response), expected, JSON.stringify(filter));
+      }
+      for (const [direction, expected] of [
+        // ASC uses each record's smallest value; DESC its largest. Missing/empty sort as null with OID ties.
+        ['ASC', [ids[2], ids[3], ids[1], ids[0], ids[5]]],
+        ['DESC', [ids[5], ids[0], ids[1], ids[2], ids[3]]],
+      ] as const) {
+        const seen: string[] = [];
+        let after: string | null = null;
+        for (let n = 0; n < 5; n++) {
+          const response = await send(page, {
+            filters: [scope],
+            sort: [{ field: keywords.id, direction }],
+            first: 2,
+            after,
+          });
+          assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+          seen.push(...resultIds(response));
+          if (!response.body.data.records.hasNextPage) break;
+          after = response.body.data.records.endCursor;
+        }
+        assert.deepEqual(seen, expected, direction);
+      }
+      // Sort keys use all values regardless of a filter matching only one of them.
+      const filtered = await send(page, {
+        filters: [scope, { field: colours.id, eq: { text: 'red' } }],
+        sort: [{ field: keywords.id, direction: 'DESC' }],
+        first: 50,
+      });
+      assert.deepEqual(resultIds(filtered), [ids[5], ids[0]]);
+    } finally {
+      await Record.destroy({ redboxOid: ids });
+    }
   });
   it('rejects empty, malformed and oversized query prefixes and unsupported bindings through HTTP', async () => {
     for (const p of ['', '\ud800', '\udfff', 'x\ud800y', 'a'.repeat(257), 'é'.repeat(129), null]) {
