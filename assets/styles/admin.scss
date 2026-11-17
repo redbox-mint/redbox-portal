@@ -141,7 +141,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .rb-admin-page-header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      h1 { display: flex; flex-wrap: wrap; gap: 8px; min-height: 36px; align-content: start; align-items: baseline; }
+      h1 { min-height: 36px; }
+      h1 .badge { margin-inline-start: 8px; }
       p { min-height: 22px; }
       // Reserves the actions' height before hydration. It shares their grid cell and paints
       // above them, so it must never take clicks.
