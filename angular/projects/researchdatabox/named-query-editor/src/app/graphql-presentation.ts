@@ -29,7 +29,7 @@ let cachedOperation: {
 export function operationInfo(draft: GraphqlNamedQueryDefinition) {
   if (cachedOperation?.document === draft.graphql.document && cachedOperation.name === draft.graphql.operationName)
     return cachedOperation;
-  const ast = parse(draft.graphql.document, { maxTokens: 2000 });
+  const ast = parse(draft.graphql.document, { maxLexicalTokens: 2000 });
   cachedOperation = {
     document: draft.graphql.document,
     name: draft.graphql.operationName,

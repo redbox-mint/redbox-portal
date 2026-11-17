@@ -27,6 +27,21 @@ describe('GraphQL editor contract', () => {
     expect(editorErrors(null, raw.document, JSON.stringify(raw.variables)).length).toBeGreaterThan(0);
     expect(schemaFields(schema, 'Record', 'tit').map(field => field.name)).toEqual(['title']);
   });
+  it('keeps the parser token limit when validating and identifying records', () => {
+    const document = '{ records(recordType: "plan") { nodes { ' + 'oid '.repeat(2001) + '} } }';
+    expect(editorErrors(schema, document, '{}').join()).toContain('2000 tokens');
+    expect(recordIdentityKey(document, ['records', 'nodes'])).toBeNull();
+  });
+  it('validates variable values with GraphQL 17 coercion', () => {
+    const raw = rawDefinition();
+    raw.variables['type'] = 'plan';
+    expect(editorErrors(schema, raw.document, JSON.stringify({ ...raw.variables, first: '25' })).join()).toContain(
+      'Int'
+    );
+    expect(editorErrors(schema, raw.document, JSON.stringify({ ...raw.variables, type: null })).join()).toContain(
+      'type'
+    );
+  });
   it('recognizes only explicit collection cursor bindings and never invents pagination', () => {
     const raw = rawDefinition();
     expect(cursorBinding(raw.document, raw.variables, raw.resultPath)?.after).toBe('after');
