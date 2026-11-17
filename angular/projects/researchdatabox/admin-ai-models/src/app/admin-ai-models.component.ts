@@ -1,7 +1,8 @@
 import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
+import { I18NextPipe, TranslationService, AdminDatePipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import type {
   GenerationAdminOverview, GenerationAdminModelDraft, GenerationAdminModelVersion,
   GenerationAdminConnection, GenerationAdminPromptResult,
@@ -14,7 +15,7 @@ import { accepts, adapterLabels, clone, connectionDraft, curatedModels, Issues, 
 type RailSection = { id: string; key: string };
 @Component({
   selector: 'admin-ai-models', standalone: true,
-  imports: [CommonModule, FormsModule, I18NextPipe, ProviderCardComponent, ChipsComponent],
+  imports: [CommonModule, FormsModule, I18NextPipe, AdminDatePipe, AdminModalDirective, A11yModule, ProviderCardComponent, ChipsComponent],
   providers: [ModelApiService], templateUrl: './admin-ai-models.component.html',
   // Styles intentionally scope under the existing EJS .rb-admin shell, including child controls.
   encapsulation: ViewEncapsulation.None,
@@ -41,6 +42,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   running = false;
   copyStatus = '';
   cooldown = 0;
+  retireConfirmation = false;
   activeSection = 'providers';
   private cooldownUntil = 0;
   private timer?: ReturnType<typeof setInterval>;
@@ -60,6 +62,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     { key: 'vertex', package: '@ai-sdk/google-vertex', status: 'not-installed' },
   ];
   readonly fixedRows = ['schema', 'streaming', 'tools', 'telemetry', 'redirects', 'retries'];
+  readonly fixedKeys: Record<string, string> = { schema: 'strictJsonSchema', streaming: 'stream', tools: 'tools/plugins', telemetry: 'telemetry.isEnabled', redirects: 'fetch redirect', retries: 'maxRetries' };
 
   constructor(public api: ModelApiService, private i18n: TranslationService, private host: ElementRef<HTMLElement>) {}
   async ngOnInit(): Promise<void> {
@@ -100,6 +103,12 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   get isDirty(): boolean {
     return this.editor ? this.modelJson !== this.savedModelJson : this.providers.some(p => !p.id || JSON.stringify(p.draft) !== p.savedJson);
   }
+  get readyConnections(): GenerationAdminConnection[] { return this.enabledConnections.filter(c => c.lastHealthStatus === 'healthy'); }
+  get statusKey(): string { return this.enabledConnections.some(c => c.lastHealthStatus && c.lastHealthStatus !== 'untested') ? 'ai-models-status-ready' : 'ai-models-status-untested'; }
+  get fixtureFieldCount(): number {
+    const fixture = this.draft?.parameters?.fixtureResponse as { answers?: Record<string, unknown> } | undefined;
+    return Object.keys(fixture?.answers ?? {}).length;
+  }
   get code(): string { return this.draft ? sdkCode(this.draft, this.connection) : ''; }
   get rail(): RailSection[] {
     const ids = this.editor ? ['model', 'response', ...(this.adapter === 'openrouter' ? ['routing'] : []), 'try', 'code', 'versions'] : ['providers', 'models', 'limits', 'fixed'];
@@ -118,7 +127,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   private resetProviders(): void {
     this.providers = (this.overview?.connections ?? []).map(c => {
       const draft = connectionDraft(c);
-      return { id: c.id, draft, savedJson: JSON.stringify(draft), keyEdited: true, savedHealth: c.lastHealthStatus || 'untested', secretConfigured: c.secretConfigured };
+      return { id: c.id, draft, savedJson: JSON.stringify(draft), keyEdited: true, savedHealth: c.lastHealthStatus || 'untested', savedHealthCheckedAt: c.lastHealthCheckedAt, secretConfigured: c.secretConfigured };
     });
   }
   async refresh(): Promise<void> { this.overview = await this.api.overview(); this.resetProviders(); }
@@ -143,7 +152,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   private applyHash(hash: string): void {
     const params = new URLSearchParams(hash.slice(1));
     const key = params.get('model');
-    this.draft = undefined; this.selected = undefined; this.isNew = false;
+    this.draft = undefined; this.selected = undefined; this.isNew = false; this.retireConfirmation = false;
     this.error = ''; this.notice = ''; this.conflict = false; this.remote = undefined;
     this.promptResult = undefined; this.promptError = ''; this.prompt = '';
     if (params.has('new')) this.initNewModel();
@@ -235,7 +244,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
       const adapterId = this.overview.adapters[0];
       this.providers.unshift({ draft: { key: '', name: '', adapterId, enabled: true,
         authStrategy: adapterId === 'openrouter' ? 'bearer' : adapterId === 'bedrock' ? 'aws-default-chain' : 'none',
-        ...(adapterId === 'bedrock' ? { region: this.overview.bedrockRegions[0] } : {}),
+        ...(adapterId === 'bedrock' ? { region: this.overview.bedrockRegions.includes('ap-southeast-2') ? 'ap-southeast-2' : this.overview.bedrockRegions[0] } : {}),
         timeoutMs: this.overview.limits.provider.timeoutMs }, savedJson: '', keyEdited: false });
     }
     this.goSection('providers');
@@ -288,7 +297,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
       if (snapshot === JSON.stringify(item.draft)) {
         item.health = health;
         if (item.id && snapshot === item.savedJson) {
-          item.savedHealth = health.ok ? 'healthy' : 'unhealthy'; item.secretConfigured = health.secretConfigured;
+          item.savedHealth = health.ok ? 'healthy' : 'unhealthy'; item.savedHealthCheckedAt = health.checkedAt; item.secretConfigured = health.secretConfigured;
           const connection = this.overview?.connections.find(c => c.id === item.id);
           if (connection) { connection.lastHealthStatus = item.savedHealth; connection.lastHealthCheckedAt = health.checkedAt; }
         }
@@ -299,7 +308,9 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     } finally { item.testing = false; }
   }
   async saveProviders(): Promise<void> {
-    if (this.busy || this.providersInvalid) return;
+    if (this.busy) return;
+    this.providers.forEach(item => item.submitted = true);
+    if (this.providersInvalid) return;
     this.busy = true; this.error = ''; this.notice = '';
     try {
       for (const item of this.providers) {
@@ -340,7 +351,8 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     } catch (error) { this.handle(error); } finally { this.busy = false; }
   }
   async retire(): Promise<void> {
-    if (!this.selected || this.busy || this.isDirty || !window.confirm(this.i18n.t('ai-models-retire-confirm'))) return;
+    if (!this.selected || this.busy || this.isDirty || !this.retireConfirmation) return;
+    this.retireConfirmation = false;
     this.busy = true;
     try { const version = await this.api.retire(this.selected.id); this.selectVersion(version); await this.refresh(); }
     catch (error) { this.handle(error); } finally { this.busy = false; }

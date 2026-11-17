@@ -91,7 +91,7 @@ export function sdkCode(draft: GenerationAdminModelDraft, connection?: Generatio
     `  telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },`;
   const abort = `const abortController = new AbortController();\nconst timeout = setTimeout(() => abortController.abort(), ${connection.timeoutMs});\n`;
   const generate = (options: string): string => `${abort}try {\n  const result = await generateText({\n${common.replace(/^/gm, '  ')}\n${options.replace(/^/gm, '  ')}\n  });\n} finally {\n  clearTimeout(timeout);\n}`;
-  if (connection.adapterId === 'fake') return 'invokeFakeAdapter(' + json({ modelId: draft.modelId, fixtureResponse: p.fixtureResponse }) + ');';
+  if (connection.adapterId === 'fake') return '';
   const imports = 'import { generateText, Output, jsonSchema } from "ai";\n';
   if (connection.adapterId === 'openrouter') {
     const names: Record<string, string> = { temperature: 'temperature', maxOutputTokens: 'max_tokens', topP: 'top_p', seed: 'seed', stopSequences: 'stop', presencePenalty: 'presence_penalty', frequencyPenalty: 'frequency_penalty' };

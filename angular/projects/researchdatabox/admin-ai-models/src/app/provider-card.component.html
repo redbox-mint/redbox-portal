@@ -1,16 +1,24 @@
 <details class="rb-admin-form-section ai-provider" [open]="!item.id" [attr.data-provider]="item.id || 'new'" [attr.data-provider-key]="draft.key">
   <summary class="rb-admin-form-section-header">
-    <div><h3>{{ draft.name || ('ai-models-new-provider' | i18next) }}</h3>
-      <p class="rb-admin-hint">{{ adapterLabels[draft.adapterId] | i18next }} ·
-        @if (draft.adapterId === 'openrouter') { <code>createOpenAICompatible()</code> }
-        @if (draft.adapterId === 'bedrock') { <code>createAmazonBedrock()</code> }
-        @if (draft.region) { <code>{{ draft.region }}</code> }
+    <span class="ai-adapter-tile" aria-hidden="true">{{ draft.adapterId === 'openrouter' ? 'OR' : draft.adapterId === 'bedrock' ? 'AWS' : '⚙' }}</span>
+    <div class="ai-provider-identity"><h3>{{ draft.name || ('ai-models-new-provider' | i18next) }}</h3>
+      <p class="rb-admin-hint">{{ adapterLabels[draft.adapterId] | i18next }}@if (draft.adapterId === 'openrouter') { <span class="ai-provider-separator" aria-hidden="true">·</span> <code>&#64;ai-sdk/openai-compatible</code> }@if (draft.adapterId === 'bedrock') { <span class="ai-provider-separator" aria-hidden="true">·</span> <code>&#64;ai-sdk/amazon-bedrock</code> }
+        @if (draft.region) { <span class="ai-provider-separator" aria-hidden="true">·</span> <code>{{ draft.region }}</code> }
+        @if (draft.adapterId !== 'fake') { <span class="ai-provider-separator" aria-hidden="true">·</span> {{ (draft.authStrategy === 'aws-default-chain' ? 'ai-models-aws-role' : draft.adapterId === 'bedrock' ? 'ai-models-api-key' : 'ai-models-api-key-reference') | i18next }} }
       </p>
     </div>
-    <span class="badge rb-admin-badge-info">{{ (draft.enabled ? 'ai-models-enabled' : 'ai-models-disabled') | i18next }}</span>
-    @if (item.savedHealth && item.savedJson === JSON.stringify(draft)) {
-      <span class="badge rb-admin-badge-info">{{ ('ai-models-health-' + item.savedHealth) | i18next }}</span>
-    }
+    <div class="ai-provider-state">
+      <span class="ai-health" [class.ai-health-ready]="health === 'healthy'" [class.ai-health-failed]="health === 'unhealthy'">
+        <span class="ai-health-dot" aria-hidden="true"></span>
+        @if (checkedAt) { {{ 'ai-models-health-checked' | i18next: { time: (checkedAt | adminDate) } }} }
+        @else { {{ ('ai-models-health-' + health) | i18next }} }
+      </span>
+      <div class="form-check form-switch" (click)="$event.stopPropagation()">
+        <input class="form-check-input" type="checkbox" [id]="'provider-enabled-' + (item.id || 'new')" [(ngModel)]="draft.enabled" (ngModelChange)="edit()" [disabled]="busy">
+        <label class="form-check-label" [for]="'provider-enabled-' + (item.id || 'new')">{{ (draft.enabled ? 'ai-models-enabled' : 'ai-models-disabled') | i18next }}</label>
+      </div>
+      <span class="ai-provider-chevron" aria-hidden="true">›</span>
+    </div>
   </summary>
   <fieldset class="rb-admin-form-section-body" [disabled]="busy">
     @if (!item.id) {
@@ -24,33 +32,29 @@
         }
       </fieldset>
     }
-    <div class="form-check form-switch mb-3">
-      <input class="form-check-input" type="checkbox" [id]="'provider-enabled-' + (item.id || 'new')" [(ngModel)]="draft.enabled" (ngModelChange)="edit()">
-      <label class="form-check-label" [for]="'provider-enabled-' + (item.id || 'new')">{{ 'ai-models-enabled' | i18next }}</label>
-    </div>
     <div class="rb-admin-form-grid">
       <div>
         <label [for]="'provider-name-' + (item.id || 'new')">{{ 'ai-models-display-name' | i18next }}</label>
-        <input class="form-control" [id]="'provider-name-' + (item.id || 'new')" [ngModel]="draft.name" (ngModelChange)="draft.name = $event; nameChange.emit($event); edit()" maxlength="200" required [attr.aria-invalid]="!!issues['name']" [attr.aria-describedby]="'provider-name-error-' + (item.id || 'new')">
-        <small class="ai-field-error" [id]="'provider-name-error-' + (item.id || 'new')">{{ issues['name'] | i18next }}</small>
+        <input class="form-control" [id]="'provider-name-' + (item.id || 'new')" [ngModel]="draft.name" (ngModelChange)="changeName($event)" (blur)="touch('name')" maxlength="200" required [attr.aria-invalid]="!!issue('name')" [attr.aria-describedby]="'provider-name-error-' + (item.id || 'new')">
+        <small class="ai-field-error" [id]="'provider-name-error-' + (item.id || 'new')">{{ issue('name') | i18next }}</small>
       </div>
       <div>
         <label [for]="'provider-key-' + (item.id || 'new')">{{ 'ai-models-key' | i18next }}</label>
-        <input class="form-control font-monospace" [id]="'provider-key-' + (item.id || 'new')" [(ngModel)]="draft.key" (ngModelChange)="item.keyEdited = true; edit()" [readOnly]="!!item.id" maxlength="100" required [attr.aria-invalid]="!!issues['key']" [attr.aria-describedby]="'provider-key-error-' + (item.id || 'new')">
+        <input class="form-control font-monospace" [id]="'provider-key-' + (item.id || 'new')" [ngModel]="draft.key" (ngModelChange)="draft.key = $event; edit()" (input)="item.keyEdited = true" (blur)="touch('key')" [readOnly]="!!item.id" maxlength="100" required [attr.aria-invalid]="!!issue('key')" [attr.aria-describedby]="'provider-key-error-' + (item.id || 'new')">
         <small class="rb-admin-hint">{{ 'ai-models-key-hint' | i18next }}</small>
-        <small class="ai-field-error" [id]="'provider-key-error-' + (item.id || 'new')">{{ issues['key'] | i18next }}</small>
+        <small class="ai-field-error" [id]="'provider-key-error-' + (item.id || 'new')">{{ issue('key') | i18next }}</small>
       </div>
       @if (draft.adapterId !== 'fake') {
-        <div><label [for]="'endpoint-' + (item.id || 'new')">{{ 'ai-models-base-url' | i18next }}</label>
-          <input class="form-control font-monospace" [id]="'endpoint-' + (item.id || 'new')" readOnly [value]="draft.adapterId === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'https://bedrock-runtime.' + (draft.region || '') + '.amazonaws.com'">
+        <div class="ai-full-row"><span class="ai-field-label">{{ 'ai-models-base-url' | i18next }} <i class="fa fa-lock" aria-hidden="true"></i></span>
+          <p class="ai-endpoint"><code>{{ endpoint }}</code></p>
           <small class="rb-admin-hint">{{ 'ai-models-endpoint-hint' | i18next }}</small>
         </div>
       }
       @if (draft.adapterId === 'bedrock') {
-        <div><label [for]="'region-' + (item.id || 'new')">{{ 'ai-models-region' | i18next }}</label>
+        <div class="ai-full-row"><label [for]="'region-' + (item.id || 'new')">{{ 'ai-models-region' | i18next }}</label>
           <select class="form-select" [id]="'region-' + (item.id || 'new')" [(ngModel)]="draft.region" (ngModelChange)="edit()">
-            @for (region of overview.bedrockRegions; track region) { <option [value]="region">{{ region }}</option> }
-          </select><small class="ai-field-error">{{ issues['region'] | i18next }}</small>
+            @for (region of overview.bedrockRegions; track region) { <option [value]="region">{{ ('ai-models-region-' + region) | i18next }} · {{ region }}</option> }
+          </select><small class="ai-field-error">{{ issue('region') | i18next }}</small>
         </div>
         <div><label [for]="'auth-' + (item.id || 'new')">{{ 'ai-models-authentication' | i18next }}</label>
           <select class="form-select" [id]="'auth-' + (item.id || 'new')" [(ngModel)]="draft.authStrategy" (ngModelChange)="authChange()">
@@ -66,16 +70,16 @@
           </select>
         </div>
         <div><label [for]="'secret-' + (item.id || 'new')">{{ 'ai-models-api-key-reference' | i18next }}</label>
-          <input class="form-control font-monospace" [id]="'secret-' + (item.id || 'new')" [ngModel]="reference" (ngModelChange)="setReference(scheme, $event)" autocomplete="off" [attr.aria-invalid]="!!issues['secretRef']" [attr.aria-describedby]="'secret-hint-' + (item.id || 'new')">
+          <input class="form-control font-monospace" [id]="'secret-' + (item.id || 'new')" [ngModel]="reference" (ngModelChange)="setReference(scheme, $event)" (blur)="touch('secretRef')" autocomplete="off" [attr.aria-invalid]="!!issue('secretRef')" [attr.aria-describedby]="'secret-hint-' + (item.id || 'new')">
           <small class="rb-admin-hint" [id]="'secret-hint-' + (item.id || 'new')">{{ 'ai-models-secret-hint' | i18next }} <code>{{ draft.secretRef }}</code></small>
-          <small class="ai-field-error">{{ issues['secretRef'] | i18next }}</small>
+          <small class="ai-field-error">{{ issue('secretRef') | i18next }}</small>
           @if (item.id && item.savedJson === JSON.stringify(draft)) { <span class="badge rb-admin-badge-info">{{ (item.secretConfigured ? 'ai-models-check-key-found' : 'ai-models-check-key-missing') | i18next }}</span> }
         </div>
       }
-      <div><label [for]="'timeout-' + (item.id || 'new')">{{ 'ai-models-timeout' | i18next }}</label>
-        <input class="form-control" type="number" [id]="'timeout-' + (item.id || 'new')" [(ngModel)]="draft.timeoutMs" (ngModelChange)="edit()" min="1" [max]="overview.limits.provider.timeoutMs" step="1" [attr.aria-invalid]="!!issues['timeoutMs']">
-        <small class="rb-admin-hint">{{ 'ai-models-timeout-hint' | i18next: { max: overview.limits.provider.timeoutMs } }}</small>
-        <small class="ai-field-error">{{ issues['timeoutMs'] | i18next }}</small>
+      <div><label [for]="'timeout-' + (item.id || 'new')">{{ 'ai-models-connection-seconds' | i18next }}</label>
+        <input class="form-control" type="number" [id]="'timeout-' + (item.id || 'new')" [ngModel]="timeoutSeconds" (ngModelChange)="setTimeoutSeconds($event)" (blur)="touch('timeoutMs')" min="0.001" [max]="overview.limits.provider.timeoutMs / 1000" step="0.001" [attr.aria-invalid]="!!issue('timeoutMs')">
+        <small class="rb-admin-hint">{{ 'ai-models-connection-seconds-hint' | i18next: { max: overview.limits.provider.timeoutMs / 1000 } }}</small>
+        <small class="ai-field-error">{{ issue('timeoutMs') | i18next }}</small>
       </div>
     </div>
     @if (draft.adapterId !== 'fake') {
@@ -89,7 +93,7 @@
         }
         <button class="btn btn-sm btn-outline-secondary" type="button" (click)="addHeader()" [disabled]="headers.length >= 30">{{ 'ai-models-add-header' | i18next }}</button>
         <p class="rb-admin-hint">{{ 'ai-models-headers-hint' | i18next }}</p>
-        @if (duplicateHeaders || issues['headers']) { <p class="ai-field-error">{{ 'ai-models-validation-headers' | i18next }}</p> }
+        @if (duplicateHeaders || issue('headers')) { <p class="ai-field-error">{{ 'ai-models-validation-headers' | i18next }}</p> }
       </fieldset>
     }
     <div class="rb-admin-page-actions">
@@ -109,7 +113,7 @@
           } @else { <li>{{ (draft.authStrategy === 'none' ? 'ai-models-check-no-key' : 'ai-models-check-aws-chain') | i18next }}</li> }
           <li>{{ (item.health.ok ? 'ai-models-check-settings-accepted' : 'ai-models-check-settings-rejected') | i18next: { adapter: adapterLabels[draft.adapterId] | i18next } }}</li>
         </ul>
-        <p class="rb-admin-hint">{{ 'ai-models-check-timestamp' | i18next: { time: item.health.checkedAt } }}</p>
+        <p class="rb-admin-hint">{{ 'ai-models-check-timestamp' | i18next: { time: (item.health.checkedAt | adminDate) } }}</p>
       }
     </div>
   </fieldset>

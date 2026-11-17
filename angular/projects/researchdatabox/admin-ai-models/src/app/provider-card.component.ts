@@ -1,8 +1,8 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { I18NextPipe, AdminDatePipe } from '@researchdatabox/portal-ng-common';
 import type { GenerationAdminConnectionDraft, GenerationAdminConnectionHealth, GenerationAdminOverview } from '@researchdatabox/sails-ng-common';
-import { adapterLabels, validateConnection, Issues } from './model-settings';
+import { adapterLabels, validateConnection, Issues, slug } from './model-settings';
 
 export interface ProviderDraft {
   id?: string;
@@ -14,10 +14,12 @@ export interface ProviderDraft {
   testing?: boolean;
   invalidHeaders?: boolean;
   savedHealth?: string;
+  savedHealthCheckedAt?: string;
+  submitted?: boolean;
   secretConfigured?: boolean;
 }
 @Component({
-  selector: 'ai-provider-card', standalone: true, imports: [FormsModule, I18NextPipe],
+  selector: 'ai-provider-card', standalone: true, imports: [FormsModule, I18NextPipe, AdminDatePipe],
   templateUrl: './provider-card.component.html',
 })
 export class ProviderCardComponent implements OnChanges {
@@ -32,6 +34,7 @@ export class ProviderCardComponent implements OnChanges {
   @Output() cancel = new EventEmitter<void>();
   readonly adapterLabels = adapterLabels;
   readonly JSON = JSON;
+  touched = new Set<string>();
   headers: { name: string; value: string }[] = [];
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['item']) return;
@@ -43,6 +46,18 @@ export class ProviderCardComponent implements OnChanges {
     if (this.keyConflict) issues['key'] = 'ai-models-validation-key-used';
     return issues;
   }
+  issue(field: string): string { return this.item.submitted || this.touched.has(field) ? this.issues[field] || '' : ''; }
+  touch(field: string): void { this.touched.add(field); }
+  changeName(name: string): void {
+    this.draft.name = name;
+    if (!this.item.keyEdited) this.draft.key = slug(name);
+    this.nameChange.emit(name); this.edit();
+  }
+  get endpoint(): string { return this.draft.adapterId === 'openrouter' ? 'https://openrouter.ai/api/v1' : `https://bedrock-runtime.${this.draft.region || ''}.amazonaws.com`; }
+  get timeoutSeconds(): number { return this.draft.timeoutMs / 1000; }
+  setTimeoutSeconds(value: number | null): void { this.draft.timeoutMs = value === null ? 0 : value * 1000; this.edit(); }
+  get health(): string { return this.item.savedJson === JSON.stringify(this.draft) ? this.item.savedHealth || 'untested' : 'untested'; }
+  get checkedAt(): string | undefined { return this.health !== 'untested' ? this.item.savedHealthCheckedAt : undefined; }
   get scheme(): string { return (this.draft.secretRef ?? '').split(':')[0] || this.overview.secretSchemes[0] || ''; }
   get reference(): string { return (this.draft.secretRef ?? '').split(':').slice(1).join(':'); }
   setReference(scheme: string, reference: string): void { this.draft.secretRef = `${scheme}:${reference}`; this.edit(); }

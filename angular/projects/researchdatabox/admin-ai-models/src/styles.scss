@@ -2,14 +2,9 @@
   display: block; min-width: 0;
   fieldset { min-width: 0; border: 0; margin: 0; padding: 0; }
   fieldset.rb-admin-form-section-body { padding: 20px; }
-  legend { float: none; width: auto; font-size: 1rem; font-weight: 600; }
+  legend { float: none; width: auto; font-size: 14px; font-weight: 600; }
   label { display: block; font-weight: 600; margin-bottom: 5px; }
   .ai-crumb { padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-decoration: underline; }
-  .rb-admin-page-header h1 .badge { font-size: .8rem; vertical-align: middle; }
-  .rb-admin-form-section h2, .ai-section-heading h2 { font-size: 1.125rem; margin: 0; }
-  .rb-admin-form-section h3 { font-size: 1rem; margin: 0; }
-  .ai-section-heading { margin-bottom: 16px; }
-  .ai-section-heading p { margin: 6px 0 0; color: var(--admin-muted); }
   .ai-provider-area { min-height: 420px; }
   .ai-model-area { min-height: 220px; }
   section[id], details[id] { scroll-margin-top: 24px; }
@@ -40,10 +35,10 @@
   .ai-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 8px 20px; margin: 12px 0; }
   .ai-metadata dd { overflow-wrap: anywhere; margin: 0; }
   pre { max-width: 100%; padding: 16px; margin: 16px 0; background: var(--admin-surface); color: var(--admin-ink); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .ai-sdk-code { font-size: .85rem; tab-size: 2; }
+  .ai-sdk-code { font-size: 13px; tab-size: 2; }
   .ai-conflict pre { max-height: 340px; overflow: auto; }
   .ai-version-list { list-style: none; padding: 0; }
-  .ai-version-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-bottom: 12px; }
+  .ai-version-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid var(--admin-soft-line); padding: 12px 0; }
   .ai-version-list [aria-current] { border-color: var(--rb-primary); font-weight: 600; }
   .rb-admin-segmented { margin-bottom: 18px; }
   table th small { display: block; font-weight: 400; }
@@ -56,5 +51,72 @@
     .ai-model-layout > * { width: 100%; max-width: none; flex: 0 1 auto; }
     .rb-admin-section-rail { position: static; }
     .ai-header-row { grid-template-columns: minmax(0, 1fr); }
+  }
+  .rb-admin-page-header h1 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .rb-admin-page-header h1:focus:not(:focus-visible) { outline: none; }
+  .rb-admin-page-header h1 .badge { font-size: 12px; line-height: 1.3; }
+  .rb-admin-form-section :is(h2, h3) { font-size: 16px; }
+  .ai-full-row { grid-column: 1 / -1; min-width: 0; }
+  .rb-admin-form-grid > * { min-width: 0; }
+  #ai-model .rb-admin-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ai-provider-area > .rb-admin-form-section-body { padding: 16px; }
+  .ai-provider > summary { display: flex; flex-wrap: wrap; list-style: none; }
+  .ai-provider > summary::-webkit-details-marker { display: none; }
+  .ai-provider > summary > :nth-child(2) { flex: 1 1 220px; min-width: 0; }
+  .ai-provider-separator { margin-inline: 4px; }
+  .ai-provider summary h3, .ai-provider summary p { overflow-wrap: anywhere; }
+  .ai-adapter-tile { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--admin-radius); background: var(--admin-brand-tint); color: var(--admin-brand); font-size: 12px; font-weight: 700; }
+  .ai-provider-state { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-left: auto; font-size: 13px; }
+  .ai-provider-state .form-check { display: flex; align-items: center; gap: 6px; padding: 0; }
+  .ai-provider-state .form-check-input { margin: 0; float: none; }
+  .ai-provider-state .form-check-label { margin: 0; font-weight: 400; }
+  .ai-health { display: inline-flex; align-items: center; gap: 6px; color: var(--admin-muted); }
+  .ai-health-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+  .ai-health-ready { color: color-mix(in srgb, var(--admin-success) 40%, var(--admin-ink)); }
+  .ai-health-failed { color: var(--admin-danger-ink); }
+  .ai-provider-chevron { font-size: 22px; line-height: 1; }
+  .ai-provider[open] > summary .ai-provider-chevron { transform: rotate(90deg); }
+  .ai-field-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .ai-endpoint { margin: 0; overflow-wrap: anywhere; }
+  .ai-other-providers { border: 1px dashed var(--admin-line); border-radius: var(--admin-radius); overflow: hidden; background: var(--admin-surface); }
+  .ai-other-providers .table { table-layout: fixed; width: 100%; }
+  .ai-other-providers th, .ai-other-providers td { white-space: normal; overflow-wrap: anywhere; }
+  .ai-other-providers th:first-child { width: 42%; }
+  .ai-other-providers tbody th, .ai-stacked-table tbody th { font-size: 14px; font-weight: 400; background: transparent; border-bottom-width: 1px; white-space: normal; }
+  .ai-other-providers .badge { white-space: normal; text-align: left; }
+  .ai-other-providers + .rb-admin-hint { margin: 8px 0 0; }
+  .rb-admin-form-section-header .ai-header-button { border-color: currentColor; flex-shrink: 0; }
+  .ai-limit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 0 0 16px; }
+  .ai-limit-grid dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+  .ai-limit-grid code { font-size: 12px; }
+  .ai-limit-grid .rb-admin-hint { display: flex; align-items: baseline; gap: 4px; }
+  .ai-limit-grid .fa-lock { flex: none; }
+  .ai-limit-grid .rb-admin-hint code { min-width: 0; overflow-wrap: anywhere; }
+  .ai-limit-grid dt { font-size: 13px; }
+  .ai-stacked-table table { width: 100%; table-layout: fixed; }
+  .ai-stacked-table :is(th, td) { overflow-wrap: anywhere; white-space: normal; }
+  #ai-code > summary, #ai-routing > summary { background: var(--admin-panel); color: var(--admin-panel-text); border-radius: calc(var(--admin-radius) - 1px) calc(var(--admin-radius) - 1px) 0 0; }
+  #ai-code > summary :is(h2, p), #ai-routing > summary :is(h2, p) { color: inherit; }
+  #ai-response .alert { margin: 0; }
+  .ai-version-list li:first-child { padding-top: 0; }
+  .ai-version-list .ai-current-version { color: var(--admin-muted); font-size: 13px; }
+  @media (max-width: 575.98px) {
+    #ai-model .rb-admin-form-grid, .ai-limit-grid { grid-template-columns: minmax(0, 1fr); }
+    .ai-provider > summary > :nth-child(2) { flex-basis: calc(100% - 48px); }
+    .ai-provider-state { flex: 1 1 100%; margin: 0; justify-content: flex-start; }
+    .ai-provider-chevron { margin-left: auto; }
+    .ai-other-providers table, .ai-other-providers tbody, .ai-other-providers tr, .ai-other-providers td,
+    .ai-stacked-table table, .ai-stacked-table tbody, .ai-stacked-table tr, .ai-stacked-table td { display: block; width: 100%; }
+    .ai-other-providers th:first-child { width: 100%; }
+    .ai-other-providers thead th:not(:first-child) { display: none; }
+    .ai-other-providers thead, .ai-other-providers thead tr { display: block; }
+    .ai-other-providers tbody th, .ai-stacked-table tbody th { display: block; width: 100%; padding-bottom: 4px; border: 0; }
+    .ai-other-providers td, .ai-stacked-table td { border: 0; padding-top: 4px; padding-bottom: 4px; }
+    .ai-other-providers tr, .ai-stacked-table tr { border-bottom: 1px solid var(--admin-line); padding-bottom: 10px; }
+    .ai-stacked-table thead { display: none; }
+    .ai-stacked-table td[data-label]::before { content: attr(data-label) ': '; color: var(--admin-muted); }
+    .ai-support-matrix { padding: 16px; }
+    .ai-metadata { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .ai-metadata dd { margin-bottom: 12px; }
   }
 }

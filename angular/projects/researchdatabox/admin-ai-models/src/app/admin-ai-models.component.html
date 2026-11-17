@@ -40,7 +40,7 @@
   <div class="rb-admin-empty"><h2>{{ 'ai-models-disabled-title' | i18next }}</h2><p>{{ 'ai-models-disabled-description' | i18next }}</p></div>
 } @else if (overview) {
   @if (!editor) {
-    <div class="alert alert-info" role="status"><strong>{{ 'ai-models-status' | i18next: { count: enabledConnections.length } }}</strong>
+    <div class="alert alert-info" role="status"><strong>{{ statusKey | i18next: { count: statusKey === 'ai-models-status-ready' ? readyConnections.length : enabledConnections.length } }}</strong>
       <span>{{ 'ai-models-status-description' | i18next }}</span>
     </div>
   }
@@ -71,8 +71,9 @@
     </nav>
     <div class="rb-admin-split-main">
       @if (!editor) {
-        <section id="ai-providers" class="ai-provider-area">
-          <div class="ai-section-heading"><h2>{{ 'ai-models-section-providers' | i18next }}</h2><p>{{ 'ai-models-providers-description' | i18next }}</p></div>
+        <section id="ai-providers" class="rb-admin-form-section ai-provider-area">
+          <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-providers' | i18next }}</h2><p>{{ 'ai-models-providers-description' | i18next }}</p></div></div>
+          <div class="rb-admin-form-section-body">
           @if (!providers.length) {
             <div class="rb-admin-empty"><h3>{{ 'ai-models-providers-empty' | i18next }}</h3><p>{{ 'ai-models-providers-empty-description' | i18next }}</p>
               <button class="btn btn-primary" type="button" (click)="addProvider()" [disabled]="!overview.adapters.length">{{ 'ai-models-add-provider' | i18next }}</button>
@@ -82,15 +83,16 @@
           @for (item of providers; track item) {
             <ai-provider-card [item]="item" [overview]="overview" [cooldown]="cooldown" [busy]="busy" [keyConflict]="providerKeyUsed(item)" (changed)="notice = ''" (nameChange)="providerName(item, $event)" (test)="testProvider(item)" (cancel)="cancelProvider(item)"></ai-provider-card>
           }
-          <div class="table-responsive ai-other-providers"><table class="table table-hover">
+          <div class="ai-other-providers"><table class="table table-hover">
             <thead><tr><th scope="col">{{ 'ai-models-other-providers' | i18next }}</th><th scope="col">{{ 'ai-models-package' | i18next }}</th><th scope="col">{{ 'ai-models-status-label' | i18next }}</th></tr></thead>
-            <tbody>@for (provider of otherProviders; track provider.key) { <tr><th scope="row">{{ ('ai-models-other-' + provider.key) | i18next }}</th><td><code>{{ provider.package }}</code></td><td>{{ ('ai-models-' + provider.status) | i18next }}</td></tr> }</tbody>
+            <tbody>@for (provider of otherProviders; track provider.key) { <tr><th scope="row">{{ (provider.key === 'compatible' ? 'ai-models-other-compatible-name' : 'ai-models-other-' + provider.key) | i18next }}@if (provider.key === 'compatible') { <small class="rb-admin-hint">{{ 'ai-models-other-compatible-description' | i18next }}</small> }</th><td><code>{{ provider.package }}</code></td><td><span class="badge rb-admin-badge-info">{{ ('ai-models-' + provider.status) | i18next }}</span></td></tr> }</tbody>
           </table></div>
           <p class="rb-admin-hint">{{ 'ai-models-install-hint' | i18next }}</p>
+          </div>
         </section>
         <section id="ai-models" class="rb-admin-form-section ai-model-area">
           <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-models' | i18next }}</h2><p>{{ 'ai-models-models-description' | i18next }}</p></div>
-            <button class="btn btn-outline-secondary" type="button" (click)="newModel()" [disabled]="busy || !enabledConnections.length" [attr.aria-describedby]="!enabledConnections.length ? 'ai-add-model-hint' : null">{{ 'ai-models-add-model' | i18next }}</button>
+            <button class="btn btn-sm btn-outline-secondary ai-header-button" type="button" (click)="newModel()" [disabled]="busy || !enabledConnections.length" [attr.aria-describedby]="!enabledConnections.length ? 'ai-add-model-hint' : null">{{ 'ai-models-add-model' | i18next }}</button>
           </div>
           @if (!overview.models.length) {
             <div class="rb-admin-empty"><h3>{{ 'ai-models-models-empty' | i18next }}</h3><p>{{ 'ai-models-models-empty-description' | i18next }}</p></div>
@@ -103,8 +105,8 @@
                   <tr [attr.data-model]="model.key"><th scope="row">{{ model.name }}<small><code>{{ model.key }}</code></small></th>
                     <td>{{ connectionName(version.connectionId) }}</td><td><code>{{ version.modelId }}</code></td>
                     <td><span class="badge rb-admin-badge-info">{{ ('ai-models-version-' + version.status) | i18next: { version: version.version } }}</span></td>
-                    <td>{{ 'ai-models-profile-count' | i18next: { count: model.usageCount } }}</td>
-                    <td><a class="btn btn-sm btn-outline-secondary" [href]="hash(model.key)" (click)="$event.preventDefault(); openModel(model.key)">{{ 'ai-models-open' | i18next }}</a></td>
+                    <td [class.rb-admin-hint]="!model.usageCount">{{ (model.usageCount ? 'ai-models-profile-count' : 'ai-models-not-used') | i18next: { count: model.usageCount } }}</td>
+                    <td><a class="btn btn-sm btn-outline-secondary" [href]="hash(model.key)" (click)="$event.preventDefault(); openModel(model.key)">{{ (version.status === 'draft' ? 'ai-models-edit' : 'ai-models-view') | i18next }}</a></td>
                   </tr>
                 }
               }
@@ -113,19 +115,19 @@
         </section>
         <details id="ai-limits" class="rb-admin-form-section" open>
           <summary class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-limits' | i18next }}</h2><p>{{ 'ai-models-limits-summary' | i18next }}</p></div></summary>
-          <div class="rb-admin-form-section-body"><dl class="ai-metadata">
-            <dt>{{ 'ai-models-provider-time-limit' | i18next }}</dt><dd>{{ 'ai-models-milliseconds' | i18next: { value: overview.limits.provider.timeoutMs } }}</dd>
-            <dt>{{ 'ai-models-max-request' | i18next }}</dt><dd>{{ 'ai-models-bytes' | i18next: { value: overview.limits.provider.maxRequestBytes } }}</dd>
-            <dt>{{ 'ai-models-max-response' | i18next }}</dt><dd>{{ 'ai-models-bytes' | i18next: { value: overview.limits.provider.maxResponseBytes } }}</dd>
-            <dt>{{ 'ai-models-queue-retries' | i18next }}</dt><dd>{{ overview.limits.provider.maxRetries }}</dd>
-            <dt>{{ 'ai-models-allowed-hosts' | i18next }}</dt><dd><code>{{ overview.limits.outbound.allowedHosts.join(', ') }}</code></dd>
-            <dt>{{ 'ai-models-test-cooldown' | i18next }}</dt><dd>{{ 'ai-models-milliseconds' | i18next: { value: overview.limits.cooldownMs } }}</dd>
-          </dl><p class="rb-admin-hint">{{ 'ai-models-limits-hint' | i18next }}</p></div>
+          <div class="rb-admin-form-section-body"><dl class="ai-limit-grid">
+            <div><dt>{{ 'ai-models-provider-time-limit' | i18next }}</dt><dd>{{ 'ai-models-seconds' | i18next: { value: overview.limits.provider.timeoutMs / 1000 } }}</dd><dd class="rb-admin-hint"><i class="fa fa-lock" aria-hidden="true"></i> <code>sails__generation_provider_timeoutMs</code></dd></div>
+            <div><dt>{{ 'ai-models-max-request' | i18next }}</dt><dd>{{ 'ai-models-kilobytes' | i18next: { value: overview.limits.provider.maxRequestBytes / 1024 } }}</dd><dd class="rb-admin-hint"><i class="fa fa-lock" aria-hidden="true"></i> <code>sails__generation_provider_maxRequestBytes</code></dd></div>
+            <div><dt>{{ 'ai-models-max-response' | i18next }}</dt><dd>{{ 'ai-models-kilobytes' | i18next: { value: overview.limits.provider.maxResponseBytes / 1024 } }}</dd><dd class="rb-admin-hint"><i class="fa fa-lock" aria-hidden="true"></i> <code>sails__generation_provider_maxResponseBytes</code></dd></div>
+            <div><dt>{{ 'ai-models-queue-retries' | i18next }}</dt><dd>{{ overview.limits.provider.maxRetries }}</dd><dd class="rb-admin-hint"><i class="fa fa-lock" aria-hidden="true"></i> <code>sails__generation_provider_maxRetries</code></dd></div>
+            <div><dt>{{ 'ai-models-allowed-hosts' | i18next }}</dt><dd>{{ overview.limits.outbound.allowedHosts.join(', ') }}</dd><dd class="rb-admin-hint"><i class="fa fa-lock" aria-hidden="true"></i> <code>sails__generation_outbound_allowedHosts</code></dd></div>
+            <div><dt>{{ 'ai-models-test-cooldown' | i18next }}</dt><dd>{{ 'ai-models-seconds' | i18next: { value: overview.limits.cooldownMs / 1000 } }}</dd><dd class="rb-admin-hint"><i class="fa fa-lock" aria-hidden="true"></i> {{ 'ai-models-fixed-by-server' | i18next }}</dd></div>
+</dl><p class="rb-admin-hint">{{ 'ai-models-limits-hint' | i18next }}</p></div>
         </details>
         <details id="ai-fixed" class="rb-admin-form-section" open>
           <summary class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-fixed' | i18next }}</h2><p>{{ 'ai-models-fixed-summary' | i18next }}</p></div></summary>
-          <div class="table-responsive"><table class="table table-hover"><thead><tr><th scope="col">{{ 'ai-models-setting' | i18next }}</th><th scope="col">{{ 'ai-models-behaviour' | i18next }}</th></tr></thead><tbody>
-            @for (row of fixedRows; track row) { <tr><th scope="row">{{ ('ai-models-fixed-' + row) | i18next }}</th><td>{{ ('ai-models-fixed-' + row + '-description') | i18next }}</td></tr> }
+          <div class="ai-stacked-table"><table class="table table-hover"><thead><tr><th scope="col">{{ 'ai-models-setting' | i18next }}</th><th scope="col">{{ 'ai-models-behaviour' | i18next }}</th></tr></thead><tbody>
+            @for (row of fixedRows; track row) { <tr><th scope="row">{{ ('ai-models-fixed-' + row) | i18next }}<small><code>{{ fixedKeys[row] }}</code></small></th><td>{{ ('ai-models-fixed-' + row + '-description') | i18next }}</td></tr> }
           </tbody></table></div>
         </details>
       } @else if (draft) {
@@ -141,10 +143,10 @@
                 <input id="ai-model-key" class="form-control font-monospace" [(ngModel)]="modelKey" (ngModelChange)="keyEdited = true; changed()" [readOnly]="!isNew" maxlength="100" required [attr.aria-invalid]="!!modelIssues['key']" aria-describedby="ai-model-key-error ai-key-hint">
                 <small id="ai-key-hint" class="rb-admin-hint">{{ 'ai-models-key-hint' | i18next }}</small><small id="ai-model-key-error" class="ai-field-error">{{ modelIssues['key'] | i18next }}</small>
               </div>
-              <div><label for="ai-model-connection">{{ 'ai-models-connection' | i18next }}</label>
+              <div class="ai-full-row"><label for="ai-model-connection">{{ 'ai-models-connection' | i18next }}</label>
                 <select id="ai-model-connection" class="form-select" [(ngModel)]="draft.connectionId" (ngModelChange)="changeConnection()" [attr.aria-invalid]="!!modelIssues['connectionId']" aria-describedby="ai-model-connection-error">
-                  @for (connectionItem of overview.connections; track connectionItem.id) { <option [value]="connectionItem.id" [disabled]="!connectionItem.enabled">{{ connectionItem.name }} · {{ healthKey(connectionItem.id) | i18next }}</option> }
-                </select><small id="ai-model-connection-error" class="ai-field-error">{{ modelIssues['connectionId'] | i18next }}</small>
+                  @for (connectionItem of overview.connections; track connectionItem.id) { <option [value]="connectionItem.id" [disabled]="!connectionItem.enabled">{{ connectionItem.name }}</option> }
+                </select><small class="rb-admin-hint">{{ healthKey(draft.connectionId) | i18next }}</small><small id="ai-model-connection-error" class="ai-field-error">{{ modelIssues['connectionId'] | i18next }}</small>
               </div>
               <div><label for="ai-model-id">{{ 'ai-models-model-id' | i18next }}</label>
                 <input id="ai-model-id" class="form-control font-monospace" [(ngModel)]="draft.modelId" (ngModelChange)="changed()" list="ai-curated-models" maxlength="200" required [attr.aria-invalid]="!!modelIssues['modelId']" aria-describedby="ai-model-id-error ai-model-id-hint">
@@ -156,6 +158,9 @@
         </section>
         <section id="ai-response" class="rb-admin-form-section">
           <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-response' | i18next }}</h2><p>{{ 'ai-models-response-description' | i18next }}</p></div></div>
+          @if (adapter === 'fake') {
+            <div class="rb-admin-form-section-body"><div class="alert alert-info" role="status">{{ 'ai-models-demo-settings' | i18next }}</div></div>
+          } @else {
           <fieldset class="rb-admin-form-section-body" [disabled]="readOnly || busy">
             <label for="ai-temperature">{{ 'ai-models-parameter-temperature' | i18next }} <code>temperature</code></label>
             <div class="ai-temperature">
@@ -165,32 +170,33 @@
               <output for="ai-temperature">{{ draft.parameters?.temperature ?? ('ai-models-provider-default' | i18next) }}</output>
               <button type="button" class="btn btn-sm btn-outline-secondary" (click)="setNumber('temperature', null)" [disabled]="!accepts('temperature')">{{ 'ai-models-clear' | i18next }}</button>
             </div>
-            <p id="ai-temperature-hint" class="rb-admin-hint">{{ (accepts('temperature') ? 'ai-models-temperature-hint' : 'ai-models-unsupported-setting') | i18next }}</p>
+            <p id="ai-temperature-hint" class="rb-admin-hint">{{ 'ai-models-temperature-hint' | i18next }}</p>
             <small id="ai-temperature-error" class="ai-field-error">{{ modelIssues['temperature'] | i18next }}</small>
             <div class="rb-admin-form-grid">
               @for (setting of numericSettings; track setting) {
-                @if (setting !== 'presencePenalty' && setting !== 'frequencyPenalty' || adapter === 'openrouter') {
+                @if (accepts(setting)) {
                   <div><label [for]="'ai-setting-' + setting">{{ ('ai-models-parameter-' + setting) | i18next }} <code>{{ setting }}</code></label>
                     <input type="number" class="form-control" [id]="'ai-setting-' + setting" [ngModel]="draft.parameters?.[setting]" (ngModelChange)="setNumber(setting, $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'maxOutputTokens' || setting === 'seed' ? 1 : 0.05" [disabled]="!accepts(setting)" [attr.aria-invalid]="!!modelIssues[setting]" [attr.aria-describedby]="'ai-hint-' + setting">
-                    <small class="rb-admin-hint" [id]="'ai-hint-' + setting">{{ (accepts(setting) ? 'ai-models-parameter-hint-' + setting : 'ai-models-unsupported-setting') | i18next }}</small>
+                    <small class="rb-admin-hint" [id]="'ai-hint-' + setting">{{ ('ai-models-parameter-hint-' + setting) | i18next }}</small>
                     <small class="ai-field-error">{{ modelIssues[setting] | i18next }}</small>
                   </div>
                 }
               }
               <div><label for="ai-stops">{{ 'ai-models-parameter-stopSequences' | i18next }} <code>stopSequences</code></label>
                 <ai-model-chips inputId="ai-stops" [label]="'ai-models-add-stop' | i18next" [values]="draft.parameters?.stopSequences || []" (valuesChange)="setStops($event)" [max]="4" [disabled]="readOnly || busy || !accepts('stopSequences')"></ai-model-chips>
-                <small class="rb-admin-hint">{{ (accepts('stopSequences') ? 'ai-models-stop-hint' : 'ai-models-unsupported-setting') | i18next }}</small>
+                <small class="rb-admin-hint">{{ 'ai-models-stop-hint' | i18next }}</small>
                 <small class="ai-field-error">{{ modelIssues['stopSequences'] | i18next }}</small>
               </div>
             </div>
           </fieldset>
           <details class="ai-support-matrix"><summary>{{ 'ai-models-support-matrix' | i18next }}</summary>
-            <div class="table-responsive"><table class="table"><thead><tr><th scope="col">{{ 'ai-models-setting' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-openrouter' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-bedrock' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-fake' | i18next }}</th></tr></thead><tbody>
+            <p class="rb-admin-hint">{{ 'ai-models-support-hint' | i18next }}</p><div class="ai-stacked-table"><table class="table"><thead><tr><th scope="col">{{ 'ai-models-setting' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-openrouter' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-bedrock' | i18next }}</th><th scope="col">{{ 'ai-models-adapter-fake' | i18next }}</th></tr></thead><tbody>
               @for (setting of allSettings; track setting) { <tr><th scope="row">{{ ('ai-models-parameter-' + setting) | i18next }}</th>
-                @for (provider of ['openrouter', 'bedrock', 'fake']; track provider) { <td>{{ (supported(provider, setting) ? 'ai-models-supported' : 'ai-models-not-supported') | i18next }}</td> }
+                @for (provider of ['openrouter', 'bedrock', 'fake']; track provider) { <td [attr.data-label]="adapterLabels[provider] | i18next">{{ (supported(provider, setting) ? 'ai-models-supported' : 'ai-models-not-supported') | i18next }}</td> }
               </tr> }
             </tbody></table></div>
           </details>
+          }
         </section>
         @if (adapter === 'openrouter') {
           <details id="ai-routing" class="rb-admin-form-section" open>
@@ -228,8 +234,8 @@
           <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-try' | i18next }}</h2><p>{{ 'ai-models-try-description' | i18next }}</p></div></div>
           <div class="rb-admin-form-section-body">
             <div class="rb-admin-segmented" role="group" [attr.aria-label]="'ai-models-output-mode' | i18next">
-              <button type="button" [attr.aria-pressed]="mode === 'sample'" (click)="mode = 'sample'; changed()">{{ 'ai-models-sample-schema' | i18next }}</button>
-              <button type="button" [attr.aria-pressed]="mode === 'text'" (click)="mode = 'text'; changed()">{{ 'ai-models-plain-text' | i18next }}</button>
+              <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="mode === 'sample'" (click)="mode = 'sample'; changed()">{{ 'ai-models-sample-schema' | i18next }}</button>
+              <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="mode === 'text'" (click)="mode = 'text'; changed()">{{ 'ai-models-plain-text' | i18next }}</button>
             </div>
             <label for="ai-prompt">{{ 'ai-models-prompt' | i18next }}</label>
             <textarea id="ai-prompt" class="form-control" rows="4" [(ngModel)]="prompt" (ngModelChange)="changed()" [maxLength]="overview.limits.maxPromptChars" aria-describedby="ai-prompt-count"></textarea>
@@ -256,9 +262,14 @@
         </section>
         <details id="ai-code" class="rb-admin-form-section" open>
           <summary class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-section-code' | i18next }}</h2><p>{{ 'ai-models-code-summary' | i18next }}</p></div></summary>
-          <div class="rb-admin-form-section-body"><p class="rb-admin-hint">{{ 'ai-models-code-hint' | i18next }}</p>
-            <button class="btn btn-sm btn-outline-secondary" type="button" (click)="copyCode()">{{ 'ai-models-copy' | i18next }}</button><span role="status">{{ copyStatus | i18next }}</span>
-            <pre class="ai-sdk-code"><code>{{ code }}</code></pre>
+          <div class="rb-admin-form-section-body">
+            @if (adapter === 'fake') {
+              <p class="rb-admin-hint">{{ 'ai-models-demo-code' | i18next: { count: fixtureFieldCount } }}</p>
+            } @else {
+              <p class="rb-admin-hint">{{ 'ai-models-code-intro' | i18next }}</p>
+              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="copyCode()">{{ 'ai-models-copy' | i18next }}</button><span role="status">{{ copyStatus | i18next }}</span>
+              <pre class="ai-sdk-code"><code>{{ code }}</code></pre>
+            }
           </div>
         </details>
         <section id="ai-versions" class="rb-admin-form-section">
@@ -267,9 +278,11 @@
             @if (isNew) { <p>{{ 'ai-models-versions-empty' | i18next }}</p> }
             <ul class="ai-version-list">@for (version of versions; track version.id) { <li>
               <button class="btn btn-sm btn-outline-secondary" type="button" (click)="openModel(modelKey, version.version)" [attr.aria-current]="version.id === selected?.id ? 'true' : null">{{ ('ai-models-version-' + version.status) | i18next: { version: version.version } }}</button>
-              @if (version.publishedAt) { <span>{{ version.publishedAt | date: 'medium' }}</span> }
+              @if (version.id === selected?.id) { <span class="ai-current-version">{{ 'ai-models-current-version' | i18next }}</span> }
+              @if (version.publishedBy) { <span>{{ 'ai-models-published-by' | i18next: { name: version.publishedBy } }}</span> }
+              @if (version.publishedAt) { <span>{{ version.publishedAt | adminDate }}</span> }
             </li> }</ul>
-            @if (selected && selected.status !== 'retired') { <button type="button" class="btn btn-sm btn-outline-danger" (click)="retire()" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
+            @if (selected && selected.status !== 'retired') { <button type="button" class="btn btn-sm btn-outline-danger" (click)="retireConfirmation = true" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
           </div>
         </section>
       }
@@ -280,8 +293,24 @@
       <span class="rb-admin-save-state">{{ (isDirty ? 'ai-models-unsaved' : 'ai-models-no-changes') | i18next }}</span>
       <div class="rb-admin-page-actions">
         <button type="button" class="btn btn-outline-secondary" (click)="discard()" [disabled]="busy || !isDirty">{{ 'ai-models-discard' | i18next }}</button>
-        <button type="button" class="btn btn-primary" (click)="editor ? saveDraft() : saveProviders()" [disabled]="busy || !isDirty || conflict || (editor ? !!(modelIssues | keyvalue).length : providersInvalid)">{{ (busy ? 'ai-models-saving' : editor ? 'ai-models-save-draft' : 'ai-models-save-changes') | i18next }}</button>
+        <button type="button" class="btn btn-primary" (click)="editor ? saveDraft() : saveProviders()" [disabled]="busy || !isDirty || conflict || (editor ? !!(modelIssues | keyvalue).length : false)">{{ (busy ? 'ai-models-saving' : editor ? 'ai-models-save-draft' : 'ai-models-save-changes') | i18next }}</button>
       </div>
     </div>
   }
+}
+
+@if (retireConfirmation && selected) {
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="ai-retire-title" aria-describedby="ai-retire-description" (keydown.escape)="retireConfirmation = false; $event.stopPropagation()">
+    <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="ai-retire-title">{{ 'ai-models-retire-version' | i18next }}</h2></div>
+        <div class="modal-body"><p><strong>{{ selected.name }} · v{{ selected.version }}</strong></p><p id="ai-retire-description">{{ 'ai-models-retire-confirm' | i18next }}</p></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" cdkFocusInitial (click)="retireConfirmation = false">{{ 'ai-models-cancel' | i18next }}</button>
+          <button class="btn rb-admin-danger-confirm" type="button" (click)="retire()">{{ 'ai-models-retire-version' | i18next }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
 }
