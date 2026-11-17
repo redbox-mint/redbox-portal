@@ -4,6 +4,7 @@ import { OpenRouterGenerationProvider } from '../../src/services/generation/prov
 import { BedrockGenerationProvider } from '../../src/services/generation/providers/BedrockGenerationProvider';
 import { createMockSails } from './testHelper';
 import { generation } from '../../src/config/generation.config';
+import { GenerationError } from '../../src/model/generation';
 
 describe('Generation model Admin adapter settings', () => {
   let original: unknown;
@@ -50,4 +51,18 @@ describe('Generation model Admin adapter settings', () => {
       assert.equal((await provider.healthCheck({ endpoint: 'https://unsafe.invalid', timeoutMs: 1000 })).ok, false);
     }
   });
+  for (const adapter of ['openrouter', 'bedrock']) for (const status of [400, 404]) {
+    it(`maps ${adapter} HTTP ${status} from a minimal call to a safe model error`, async () => {
+      const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
+        message: 'PRIVATE PROVIDER BODY', error: { message: 'PRIVATE PROVIDER BODY', code: status },
+      }), { status, headers: { 'content-type': 'application/json' } }));
+      const provider = adapter === 'bedrock' ? new BedrockGenerationProvider() : new OpenRouterGenerationProvider();
+      await assert.rejects(provider.invoke({
+        connection: { endpoint: adapter === 'bedrock' ? 'https://bedrock-runtime.ap-southeast-2.amazonaws.com' : 'https://openrouter.ai/api/v1', secret: 'PRIVATE', timeoutMs: 1000 },
+        deployment: { modelId: 'unavailable-model', parameters: { maxOutputTokens: 1 } },
+        messages: [{ role: 'user', content: 'Say OK.' }], correlationId: 'provider-test',
+      }, new AbortController().signal), error => error instanceof GenerationError && error.code === 'GENERATION_DEPLOYMENT_INCOMPATIBLE' && !error.message.includes('PRIVATE'));
+      assert.equal(fetchStub.callCount, 1);
+    });
+  }
 });
