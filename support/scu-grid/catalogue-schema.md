@@ -17,3 +17,5 @@ TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node --no-experimental-s
 ```
 
 Exact private baseline commands/logs, integrated checks and release requirements are in the overall ledger. Raw form exports, hook source, screenshots and synthetic diagnostic server scripts remain outside Git.
+
+The exact eight-field/30-column browser probe subsequently exposed a second bound interaction: summing every mutually exclusive metadata type branch exceeded the 200-field rule after contributor objects became correctly selectable. The validator now measures the worst executable concrete-type branch, adding repeated fragments of the same type and conservatively adding abstract/interface branches. All existing field, alias, depth, token, traversal, byte, work-unit, response and time bounds remain. New full-shape contributor regression: **one passing, one failing before**; positive and negative cases pass afterward, including repeated same-type fragments exceeding the bound. With this correction, the exact audited 30-column selection returns three publication records with zero errors in the authenticated browser probe.

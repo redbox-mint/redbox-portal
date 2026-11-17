@@ -8,6 +8,7 @@ import {
   GraphQLUnionType,
   Kind,
   parse,
+  isObjectType,
   type DocumentNode,
   type FragmentDefinitionNode,
   type SelectionSetNode,
@@ -52,36 +53,54 @@ export function boundedQueryRule(): ValidationRule {
       for (const definition of document.definitions) {
         if (definition.kind === Kind.FRAGMENT_DEFINITION) fragments.set(definition.name.value, definition);
       }
-      const visit = (selection: SelectionSetNode, depth: number, active: ReadonlySet<string>): void => {
-        if (cycle || ++steps > QUERY_LIMITS.selectionSteps) return;
+      const visit = (selection: SelectionSetNode, depth: number, active: ReadonlySet<string>): number => {
+        if (cycle || ++steps > QUERY_LIMITS.selectionSteps) return 0;
         maxDepth = Math.max(depth, maxDepth);
-        if (fields > QUERY_LIMITS.fields || depth > QUERY_LIMITS.depth || aliases > QUERY_LIMITS.recordAliases) return;
+        let common = 0;
+        const concrete = new Map<string, number>();
+        const cost = () => common + Math.max(0, ...concrete.values());
+        const addFragment = (
+          fragment:
+            | FragmentDefinitionNode
+            | Extract<SelectionSetNode['selections'][number], { kind: Kind.INLINE_FRAGMENT }>,
+          nextActive: ReadonlySet<string>
+        ): void => {
+          const count = visit(fragment.selectionSet, depth, nextActive);
+          const name = fragment.typeCondition?.name.value;
+          // Concrete object types cannot execute together on one stored object.
+          // Repeated fragments on the same type add together; interfaces/unions
+          // may overlap and are conservatively included in the common cost.
+          if (name && isObjectType(context.getSchema().getType(name)))
+            concrete.set(name, (concrete.get(name) ?? 0) + count);
+          else common += count;
+        };
         for (const field of selection.selections) {
-          if (cycle || ++steps > QUERY_LIMITS.selectionSteps) return;
-          if (fields > QUERY_LIMITS.fields || aliases > QUERY_LIMITS.recordAliases) return;
+          if (cycle || ++steps > QUERY_LIMITS.selectionSteps) break;
+          if (cost() > QUERY_LIMITS.fields || depth > QUERY_LIMITS.depth || aliases > QUERY_LIMITS.recordAliases) break;
           if (field.kind === Kind.FIELD) {
-            fields += 1;
+            common += 1;
             if (depth === 1 && ['record', 'records', 'recordFields'].includes(field.name.value)) aliases += 1;
             if (depth === 1 && field.name.value === 'records') collections++;
             if (depth === 1 && field.name.value === 'recordFields') catalogues++;
             if (field.name.value === '__schema' || field.name.value === '__type') discovery = true;
-            if (field.selectionSet) visit(field.selectionSet, depth + 1, active);
+            if (field.selectionSet) common += visit(field.selectionSet, depth + 1, active);
           } else if (field.kind === Kind.INLINE_FRAGMENT) {
-            visit(field.selectionSet, depth, active);
+            addFragment(field, active);
           } else if (active.has(field.name.value)) {
             cycle = true;
-            return;
+            break;
           } else {
             const fragment = fragments.get(field.name.value);
-            if (fragment) visit(fragment.selectionSet, depth, new Set([...active, field.name.value]));
+            if (fragment) addFragment(fragment, new Set([...active, field.name.value]));
           }
         }
+        return cost();
       };
       for (const definition of document.definitions) {
         if (definition.kind === Kind.OPERATION_DEFINITION) {
           operations += 1;
           invalidOperation ||= definition.operation !== 'query';
-          visit(definition.selectionSet, 1, new Set());
+          fields += visit(definition.selectionSet, 1, new Set());
         }
       }
       if (
