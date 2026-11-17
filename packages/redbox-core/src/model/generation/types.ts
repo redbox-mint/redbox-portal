@@ -184,7 +184,7 @@ export interface GenerationProviderRequest {
   connection: GenerationProviderConnectionContext;
   deployment: GenerationDeploymentConfig;
   messages: Array<{ role: 'system' | 'user'; content: string }>;
-  responseSchema: Record<string, unknown>;
+  responseSchema?: Record<string, unknown>;
   correlationId: string;
 }
 

@@ -5,10 +5,14 @@ export type GenerationSecretResolver = (reference: string) => Promise<string>;
 
 export namespace Services {
   export class GenerationSecretResolverService extends services.Core.Service {
-    protected override _exportedMethods = ['register', 'resolve', 'status'];
+    protected override _exportedMethods = ['register', 'resolve', 'status', 'schemes'];
     private resolvers = new Map<string, GenerationSecretResolver>([
       ['env', async (reference: string) => process.env[reference] ?? ''],
     ]);
+
+    public schemes(): string[] {
+      return [...this.resolvers.keys()].sort();
+    }
 
     public register(scheme: string, resolver: GenerationSecretResolver): void {
       const normalized = scheme.trim().toLowerCase();

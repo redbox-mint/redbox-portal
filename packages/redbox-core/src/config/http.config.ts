@@ -793,6 +793,17 @@ export const http: HttpConfig = {
                 ? normalizedRequestPath.slice(root.length) : root ? '' : normalizedRequestPath;
             // Full route structure: root / brand / portal / app / email-templates.
             const emailAdminPath = /^\/[^/]+\/[^/]+\/app\/email-templates(?:\/|$)/i.test(relativePath);
+            const aiModelsPath = /^\/[^/]+\/[^/]+\/app\/ai-models(?:\/|$)/i.test(relativePath);
+            if (aiModelsPath) {
+                const parser = json({ limit: sails.config.generation?.provider?.maxRequestBytes ?? 512_000, strict: true });
+                return parser(req, res, AsyncResource.bind((error?: unknown) => {
+                    if (!error) return next();
+                    res.set('Cache-Control', 'no-store');
+                    return res.status((error as { type?: string }).type === 'entity.too.large' ? 413 : 400).json({
+                        error: { code: 'GENERATION_REQUEST_INVALID', messageKey: 'ai-models-error-generation-request-invalid', retryable: false },
+                    });
+                }));
+            }
             const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
             if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) return next();
             if (emailAdminPath) {

@@ -40,7 +40,7 @@ export class GenerationModelConnectionClass {
   @Attr({ type: 'string', required: true }) public nameLower!: string;
   @Attr({ type: 'string', required: true }) public adapterId!: string;
   @Attr({ type: 'boolean', defaultsTo: true }) public enabled!: boolean;
-  @Attr({ type: 'string', required: true }) public endpoint!: string;
+  @Attr({ type: 'string' }) public endpoint!: string;
   @Attr({ type: 'string', required: true }) public authStrategy!: string;
   @Attr({ type: 'string' }) public secretRef?: string;
   @Attr({ type: 'json' }) public nonSecretHeaders?: Record<string, string>;
@@ -53,6 +53,7 @@ export class GenerationModelConnectionClass {
 }
 export const GenerationModelConnectionWLDef = toWaterlineModelDef(GenerationModelConnectionClass);
 export interface GenerationModelConnectionAttributes extends Sails.WaterlineAttributes {
+  updatedAt?: string | number;
   brandId: string; key: string; name: string; nameLower: string; adapterId: string; enabled: boolean;
   endpoint: string; authStrategy: string; secretRef?: string; nonSecretHeaders?: Record<string, string>;
   dataPolicy?: Record<string, unknown>; timeoutMs: number; createdBy: string; updatedBy: string;

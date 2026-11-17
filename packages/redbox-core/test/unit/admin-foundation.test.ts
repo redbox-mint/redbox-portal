@@ -19,6 +19,34 @@ const locals = {
 };
 
 describe('Admin foundation views', function () {
+  for (const enabled of [false, true]) {
+    it(`renders the AI models ${enabled ? 'Angular mount' : 'disabled empty state'} inside one admin shell`, async () => {
+      const html = await ejs.renderFile(path.join(views, 'ai-models.ejs'), {
+        ...locals, generationEnabled: enabled,
+        BrandingService: { ...locals.BrandingService, getRootContext: () => '/context',
+          getBrandNameFromReq: () => 'brand', getPortalFromReq: () => 'portal' },
+        CacheService: { getNgAppFileHash: () => '-bundle' }
+      });
+      const dom = new JSDOM(html);
+      try {
+        const document = dom.window.document;
+        expect(document.querySelectorAll('.rb-admin.admin-layout main')).to.have.lengthOf(1);
+        expect(document.querySelectorAll('h1')).to.have.lengthOf(enabled ? 0 : 1);
+        expect(document.querySelectorAll('script[type=module]')).to.have.lengthOf(enabled ? 2 : 0);
+        if (enabled) {
+          const app = document.querySelector('.rb-admin-wrap > admin-ai-models')!;
+          expect(app.getAttribute('data-base-url')).to.equal('/brand/portal/app/ai-models');
+          expect(app.getAttribute('ngCspNonce')).to.equal('test-nonce');
+          expect(document.querySelector('main script')).to.equal(null);
+          expect(document.querySelector('script[type=module]')!.getAttribute('src')).to.equal('/context/angular/admin-ai-models/browser/polyfills-bundle.js');
+        } else {
+          expect(document.querySelector('.rb-admin-empty h2')!.textContent).to.equal('ai-models-disabled-title');
+          expect(document.querySelector('.rb-admin-empty p')!.textContent).to.equal('ai-models-disabled-description');
+        }
+      } finally { dom.window.close(); }
+    });
+  }
+
   it('filters by translated item and section labels, hides empty sections and restores navigation', async function () {
     const html = await ejs.renderFile(path.join(views, 'layout/sidebar.ejs'), locals);
     const dom = new JSDOM(html, { runScripts: 'dangerously' });

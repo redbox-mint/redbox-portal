@@ -57,16 +57,22 @@ const namedQueryMutationPolicies = noCachePlusApiValidationPolicies.flatMap(poli
   policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
 );
 
+// These browser endpoints validate in GenerationModelService and return translated raw JSON errors.
+const generationModelAdminPolicies = ['noCache', 'generationModelAdmin',
+  ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')];
+
 export function buildContractApiPolicies(
   apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()
 ): PoliciesConfig {
   return apiRoutes.reduce((acc, route) => {
     const controllerPolicies = acc[route.controller] as ControllerPolicies | undefined;
     acc[route.controller] = {
-      '*': noCachePlusDefaultPolicies,
+      '*': route.controller === 'GenerationModelAdminController' ? generationModelAdminPolicies : noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
       [route.action]:
-        route.controller === 'webservice/RecordGraphqlController'
+        route.controller === 'GenerationModelAdminController'
+          ? generationModelAdminPolicies
+          : route.controller === 'webservice/RecordGraphqlController'
           ? noCachePlusApiValidationPolicies.map(policy => (policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy))
           : route.controller === 'webservice/NamedQueryController' &&
               ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
@@ -153,6 +159,10 @@ export const policies: PoliciesConfig = {
     renderFont: ['contentSecurityPolicy'],
   },
   ...contractApiPolicies,
+  GenerationModelAdminController: {
+    ...(contractApiPolicies.GenerationModelAdminController as ControllerPolicies),
+    page: ['noCache', ...defaultPolicies.filter(policy => policy !== 'isWebServiceAuthenticated'), 'generationModelAdmin'],
+  },
   // Preserve the route-scoped Companion guard alongside generated record policies.
   RecordController: {
     ...(contractApiPolicies.RecordController as ControllerPolicies),
