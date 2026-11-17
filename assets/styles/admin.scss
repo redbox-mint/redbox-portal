@@ -141,12 +141,13 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .rb-admin-page-header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      h1 { display: flex; flex-wrap: wrap; gap: 8px; min-height: 72px; align-content: start; align-items: baseline; }
-      p { min-height: 44px; }
+      h1 { display: flex; flex-wrap: wrap; gap: 8px; min-height: 36px; align-content: start; align-items: baseline; }
+      p { min-height: 22px; }
       // Reserves the actions' height before hydration. It shares their grid cell and paints
       // above them, so it must never take clicks.
       &::after { content: ''; min-height: 36px; grid-column: 2; grid-row: 1; pointer-events: none; }
     }
+    .rb-admin-page-header > div:first-child { min-height: 66px; }
     .rb-admin-page-actions { grid-column: 2; grid-row: 1; min-height: 36px; }
     @media (max-width: 1199.98px) {
       .rb-admin-page-header {
@@ -157,7 +158,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     }
     @media (max-width: 575.98px) {
       .rb-admin-crumbs { min-height: 44px; }
-      .rb-admin-page-header h1 { min-height: 104px; }
+      .rb-admin-page-header > div:first-child { min-height: 102px; }
     }
   }
   .rb-admin-page-header > div:first-child { flex: 1 1 400px; min-width: 0; }

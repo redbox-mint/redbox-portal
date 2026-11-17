@@ -16,7 +16,7 @@ const deployment = z.object({
   id, brandId: id, key: z.string(), name: z.string(), version: z.number().int(), status: z.enum(['draft', 'published', 'retired']),
   connectionId: id, modelId: z.string(), parameters: z.record(z.string(), z.unknown()).optional(),
   routingPolicy: z.record(z.string(), z.unknown()).optional(), requiredCapabilities: z.record(z.string(), z.boolean()),
-  contentHash: z.string(), createdBy: z.string(), capabilitySnapshot: z.record(z.string(), z.unknown()).optional(),
+  contentHash: z.string(), createdBy: z.string(), createdAt: z.string().optional(), capabilitySnapshot: z.record(z.string(), z.unknown()).optional(),
   publishedBy: z.string().optional(), publishedAt: z.string().optional(),
 });
 const uses = z.array(z.object({ key: z.string(), name: z.string() }));

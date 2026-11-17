@@ -1,6 +1,6 @@
 import type {
   GenerationAdminConnection, GenerationAdminConnectionDraft, GenerationAdminModelDraft,
-  GenerationAdminOverview, GenerationAdminParameters,
+  GenerationAdminOverview,
 } from '@researchdatabox/sails-ng-common';
 
 export const adapterLabels: Record<string, string> = {
@@ -22,10 +22,11 @@ const invalid = 'ai-models-validation-range';
 
 /** Explicit allowlist: never round-trip health, endpoints, audit fields or dataPolicy. */
 export function connectionDraft(connection: GenerationAdminConnectionDraft): GenerationAdminConnectionDraft {
-  const { key, name, adapterId, enabled, authStrategy, timeoutMs, region, secretRef, nonSecretHeaders } = connection;
+  const { key, name, adapterId, enabled, authStrategy, timeoutMs, region, secretRef, apiKey, nonSecretHeaders } = connection;
   return { key, name, adapterId, enabled, authStrategy, timeoutMs,
     ...(adapterId === 'bedrock' ? { region } : {}),
     ...(authStrategy === 'bearer' && secretRef ? { secretRef } : {}),
+    ...(authStrategy === 'bearer' && apiKey ? { apiKey } : {}),
     ...(nonSecretHeaders ? { nonSecretHeaders: clone(nonSecretHeaders) } : {}),
   };
 }
@@ -37,12 +38,12 @@ export function validateConnection(d: GenerationAdminConnectionDraft, overview: 
   const issues: Issues = {};
   if (!validText(d.name)) issues['name'] = 'ai-models-validation-name';
   if (!validKey(d.key)) issues['key'] = 'ai-models-validation-key';
-  if (!overview.adapters.includes(d.adapterId)) issues['adapterId'] = 'ai-models-validation-adapter';
-  if (!Number.isInteger(d.timeoutMs) || d.timeoutMs <= 0 || d.timeoutMs > overview.limits.provider.timeoutMs) issues['timeoutMs'] = invalid;
+  if (!overview.adapters.includes(d.adapterId)) issues['adapterId'] = 'ai-models-validation-adapter-updated';
+  if (!Number.isInteger(d.timeoutMs / 1000) || d.timeoutMs <= 0 || d.timeoutMs > overview.limits.provider.timeoutMs) issues['timeoutMs'] = invalid;
   if (d.adapterId === 'bedrock' && !overview.bedrockRegions.includes(d.region ?? '')) issues['region'] = 'ai-models-validation-region';
   if (d.authStrategy === 'bearer') {
     const [scheme, ...reference] = (d.secretRef ?? '').split(':');
-    if (!overview.secretSchemes.includes(scheme) || !reference.join(':').trim() || (d.secretRef?.length ?? 0) > 500) issues['secretRef'] = 'ai-models-validation-secret';
+    if (!d.apiKey?.trim() && (!overview.secretSchemes.includes(scheme) || !reference.join(':').trim() || (d.secretRef?.length ?? 0) > 500)) issues['secretRef'] = 'ai-models-validation-secret-updated';
   }
   const headers = Object.entries(d.nonSecretHeaders ?? {});
   if (headers.length > 30 || headers.some(([key, value]) =>
@@ -57,7 +58,7 @@ export function validateModel(d: GenerationAdminModelDraft, connection?: Generat
   const issues: Issues = {};
   if (!validText(d.name)) issues['name'] = 'ai-models-validation-name';
   if (!validText(d.modelId)) issues['modelId'] = 'ai-models-validation-model';
-  if (!connection?.enabled) issues['connectionId'] = 'ai-models-validation-connection';
+  if (!connection?.enabled) issues['connectionId'] = 'ai-models-validation-connection-updated';
   const p = d.parameters ?? {};
   const ranges: [NumericSetting, number, number, boolean][] = [
     ['temperature', 0, connection?.adapterId === 'bedrock' ? 1 : 2, false],
@@ -76,40 +77,13 @@ export function validateModel(d: GenerationAdminModelDraft, connection?: Generat
   return issues;
 }
 
-/** Readable SDK equivalent; comments describe the request guards supplied by ReDBox. */
-export function sdkCode(draft: GenerationAdminModelDraft, connection?: GenerationAdminConnection): string {
-  if (!connection || connection.adapterId === 'fake') return '';
-  const json = (value: unknown): string => JSON.stringify(value);
-  const properties = (value: Record<string, unknown>, indent: string): string => Object.entries(value)
-    .map(([key, value]) => `${indent}${/^[A-Za-z_$][\w$]*$/.test(key) ? key : json(key)}: ${json(value)},`).join('\n');
-  const p: GenerationAdminParameters = draft.parameters ?? {};
-  const env = /^env:([A-Za-z_][A-Za-z0-9_]*)$/.exec(connection.secretRef ?? '');
-  const secret = env ? `process.env.${env[1]}` : 'resolvedSecret';
-  const blocked = new Set(['authorization', 'content-type', 'cookie', 'host', 'set-cookie', 'x-forwarded-host', 'x-forwarded-proto']);
-  const headers = Object.fromEntries(Object.entries(connection.nonSecretHeaders ?? {}).filter(([name]) => !blocked.has(name.toLowerCase())));
-  const headerOption = Object.keys(headers).length ? `  headers: {\n${properties(headers, '    ')}\n  },\n` : '';
-  const settings = Object.fromEntries(Object.entries(p).filter(([key, value]) =>
-    ['temperature', ...numericSettings, 'stopSequences'].includes(key) && accepts(connection.adapterId, key) && value !== undefined && (key !== 'stopSequences' || (p.stopSequences?.length ?? 0) > 0)));
-  const call = `// ReDBox stops the call after ${connection.timeoutMs / 1000} seconds\n` +
-    `const result = await generateText({\n  model: provider(${json(draft.modelId)}),\n` +
-    `  messages, // built from the profile and the researcher's inputs\n` +
-    (Object.keys(settings).length ? properties(settings, '  ') + '\n' : '') +
-    `  output: Output.object({\n    schema: jsonSchema(responseSchema),\n    name: "redbox_generation_candidate",\n  }),\n` +
-    `  maxRetries: 0,\n  telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },\n` +
-    (connection.adapterId === 'openrouter' ? `  providerOptions: { openrouter: { strictJsonSchema: true } },\n` : '') +
-    `});`;
-  const imports = 'import { generateText, Output, jsonSchema } from "ai";\n';
-  const fetchComment = "  // ReDBox's fetch limits size and blocks redirects\n";
-  if (connection.adapterId === 'openrouter') {
-    return imports + 'import { createOpenAICompatible } from "@ai-sdk/openai-compatible";\n\n' +
-      `const provider = createOpenAICompatible({\n  name: "openrouter",\n  baseURL: "https://openrouter.ai/api/v1",\n  apiKey: ${secret},\n` +
-      headerOption + `  supportsStructuredOutputs: true,\n` + fetchComment +
-      `  transformRequestBody: (body) => ({\n    ...body,\n    stream: false,\n    tools: undefined,\n    plugins: undefined,\n` +
-      `    provider: {\n${properties({ ...draft.routingPolicy, require_parameters: true }, '      ')}\n    },\n  }),\n});\n\n` + call;
-  }
-  return imports + 'import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";\n' +
-    (connection.authStrategy === 'bearer' ? '' : 'import { defaultProvider } from "@aws-sdk/credential-provider-node";\n') +
-    `\nconst provider = createAmazonBedrock({\n  region: ${json(connection.region)},\n` +
-    (connection.authStrategy === 'bearer' ? `  apiKey: ${secret},\n` : `  credentialProvider: defaultProvider(),\n`) +
-    headerOption + fetchComment + `});\n\n` + call;
-}
+
+export const modelNames: Record<string, string> = {
+  'anthropic/claude-haiku-4.5': 'Claude Haiku 4.5 · Anthropic',
+  'anthropic/claude-sonnet-4.5': 'Claude Sonnet 4.5 · Anthropic',
+  'openai/gpt-4.1-mini': 'GPT-4.1 mini · OpenAI',
+  'google/gemini-2.5-flash': 'Gemini 2.5 Flash · Google',
+  'amazon.nova-lite-v1:0': 'Amazon Nova Lite', 'amazon.nova-pro-v1:0': 'Amazon Nova Pro',
+  'anthropic.claude-3-5-haiku-20241022-v1:0': 'Claude 3.5 Haiku · Anthropic',
+  'redbox-fixture-rdmp-1': 'ai-models-demo-model',
+};

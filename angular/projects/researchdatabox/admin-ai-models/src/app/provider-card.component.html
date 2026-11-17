@@ -1,120 +1,73 @@
-<details class="rb-admin-form-section ai-provider" [open]="!item.id" [attr.data-provider]="item.id || 'new'" [attr.data-provider-key]="draft.key">
-  <summary class="rb-admin-form-section-header">
-    <span class="ai-adapter-tile" aria-hidden="true">{{ draft.adapterId === 'openrouter' ? 'OR' : draft.adapterId === 'bedrock' ? 'AWS' : '⚙' }}</span>
-    <div class="ai-provider-identity"><h3>{{ draft.name || ('ai-models-new-provider' | i18next) }}</h3>
-      <p class="rb-admin-hint">{{ adapterLabels[draft.adapterId] | i18next }}@if (draft.adapterId === 'openrouter') { <span class="ai-provider-separator" aria-hidden="true">·</span> <code>&#64;ai-sdk/openai-compatible</code> }@if (draft.adapterId === 'bedrock') { <span class="ai-provider-separator" aria-hidden="true">·</span> <code>&#64;ai-sdk/amazon-bedrock</code> }
-        @if (draft.region) { <span class="ai-provider-separator" aria-hidden="true">·</span> <code>{{ draft.region }}</code> }
-        @if (draft.adapterId !== 'fake') { <span class="ai-provider-separator" aria-hidden="true">·</span> {{ (draft.authStrategy === 'aws-default-chain' ? 'ai-models-aws-role' : draft.adapterId === 'bedrock' ? 'ai-models-api-key' : 'ai-models-api-key-reference') | i18next }} }
-      </p>
-    </div>
-    <div class="ai-provider-state">
-      <span class="ai-health" [class.ai-health-ready]="health === 'healthy'" [class.ai-health-failed]="health === 'unhealthy'">
-        <span class="ai-health-dot" aria-hidden="true"></span>
-        @if (checkedAt) { {{ 'ai-models-health-checked' | i18next: { time: (checkedAt | adminDate) } }} }
-        @else { {{ ('ai-models-health-' + health) | i18next }} }
-      </span>
-      <div class="form-check form-switch" (click)="$event.stopPropagation()">
-        <input class="form-check-input" type="checkbox" [id]="'provider-enabled-' + (item.id || 'new')" [(ngModel)]="draft.enabled" (ngModelChange)="edit()" [disabled]="busy">
-        <label class="form-check-label" [for]="'provider-enabled-' + (item.id || 'new')">{{ (draft.enabled ? 'ai-models-enabled' : 'ai-models-disabled') | i18next }}</label>
-      </div>
-      <span class="ai-provider-chevron" aria-hidden="true">›</span>
-    </div>
-  </summary>
-  <fieldset class="rb-admin-form-section-body" [disabled]="busy">
+<section class="rb-admin-form-section">
+  <div class="rb-admin-form-section-header"><h2>{{ 'ai-models-provider-details' | i18next }}</h2></div>
+  <fieldset class="rb-admin-form-section-body" [disabled]="busy || item.testing">
     @if (!item.id) {
-      <fieldset class="ai-adapter-choices"><legend>{{ 'ai-models-provider-type' | i18next }}</legend>
+      <fieldset class="ai-adapter-choices"><legend>{{ 'ai-models-provider-type-updated' | i18next }}</legend>
         @for (adapter of overview.adapters; track adapter) {
           <label class="ai-adapter-choice" [class.selected]="draft.adapterId === adapter">
-            <input type="radio" [name]="'adapter-new'" [value]="adapter" [ngModel]="draft.adapterId" (ngModelChange)="adapterChange($event)">
-            <strong>{{ adapterLabels[adapter] | i18next }}</strong>
-            <span class="rb-admin-hint">{{ ('ai-models-adapter-description-' + adapter) | i18next }}</span>
+            <input type="radio" name="provider-type" [value]="adapter" [ngModel]="draft.adapterId" (ngModelChange)="adapterChange($event)">
+            <span>{{ adapterLabels[adapter] | i18next }}</span><small class="rb-admin-hint">{{ ('ai-models-adapter-hint-' + adapter) | i18next }}</small>
           </label>
         }
       </fieldset>
-    }
+    } @else { <p>{{ adapterLabels[draft.adapterId] | i18next }}</p> }
     <div class="rb-admin-form-grid">
-      <div>
-        <label [for]="'provider-name-' + (item.id || 'new')">{{ 'ai-models-display-name' | i18next }}</label>
-        <input class="form-control" [id]="'provider-name-' + (item.id || 'new')" [ngModel]="draft.name" (ngModelChange)="changeName($event)" (blur)="touch('name')" maxlength="200" required [attr.aria-invalid]="!!issue('name')" [attr.aria-describedby]="'provider-name-error-' + (item.id || 'new')">
-        <small class="ai-field-error" [id]="'provider-name-error-' + (item.id || 'new')">{{ issue('name') | i18next }}</small>
+      <div class="ai-full-row"><label for="provider-name">{{ 'ai-models-name' | i18next }}</label>
+        <input id="provider-name" class="form-control" [ngModel]="draft.name" (ngModelChange)="changeName($event)" (blur)="touch('name')" maxlength="200" required aria-describedby="provider-name-error" [attr.aria-invalid]="!!issue('name')">
+        <small id="provider-name-error" class="ai-field-error">{{ issue('name') | i18next }}</small>
       </div>
-      <div>
-        <label [for]="'provider-key-' + (item.id || 'new')">{{ 'ai-models-key' | i18next }}</label>
-        <input class="form-control font-monospace" [id]="'provider-key-' + (item.id || 'new')" [ngModel]="draft.key" (ngModelChange)="draft.key = $event; edit()" (input)="item.keyEdited = true" (blur)="touch('key')" [readOnly]="!!item.id" maxlength="100" required [attr.aria-invalid]="!!issue('key')" [attr.aria-describedby]="'provider-key-error-' + (item.id || 'new')">
-        <small class="rb-admin-hint">{{ 'ai-models-key-hint' | i18next }}</small>
-        <small class="ai-field-error" [id]="'provider-key-error-' + (item.id || 'new')">{{ issue('key') | i18next }}</small>
-      </div>
-      @if (draft.adapterId !== 'fake') {
-        <div class="ai-full-row"><span class="ai-field-label">{{ 'ai-models-base-url' | i18next }} <svg class="ai-lock" viewBox="0 0 448 512" width="14" height="14" aria-hidden="true" focusable="false"><path d="M144 144l0 48 160 0 0-48c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192l0-48C80 64.5 144.5 0 224 0s144 64.5 144 144l0 48 16 0c35.3 0 64 28.7 64 64l0 192c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 256c0-35.3 28.7-64 64-64l16 0z"/></svg></span>
-          <p class="ai-endpoint"><code>{{ endpoint }}</code></p>
-          <small class="rb-admin-hint">{{ 'ai-models-endpoint-hint' | i18next }}</small>
-        </div>
-      }
       @if (draft.adapterId === 'bedrock') {
-        <div class="ai-full-row"><label [for]="'region-' + (item.id || 'new')">{{ 'ai-models-region' | i18next }}</label>
-          <select class="form-select" [id]="'region-' + (item.id || 'new')" [(ngModel)]="draft.region" (ngModelChange)="edit()">
-            @for (region of overview.bedrockRegions; track region) { <option [value]="region">{{ ('ai-models-region-' + region) | i18next }} · {{ region }}</option> }
-          </select><small class="ai-field-error">{{ issue('region') | i18next }}</small>
+        <div><label for="provider-region">{{ 'ai-models-region' | i18next }}</label>
+          <select id="provider-region" class="form-select" [(ngModel)]="draft.region" (ngModelChange)="edit()">
+            @for (region of overview.bedrockRegions; track region) { <option [value]="region">{{ ('ai-models-provider-region-' + region) | i18next }} ({{ region }})</option> }
+          </select>
         </div>
-        <div><label [for]="'auth-' + (item.id || 'new')">{{ 'ai-models-authentication' | i18next }}</label>
-          <select class="form-select" [id]="'auth-' + (item.id || 'new')" [(ngModel)]="draft.authStrategy" (ngModelChange)="authChange()">
-            <option value="aws-default-chain">{{ 'ai-models-aws-role' | i18next }}</option>
-            <option value="bearer">{{ 'ai-models-api-key' | i18next }}</option>
+        <div><label for="provider-auth">{{ 'ai-models-credentials' | i18next }}</label>
+          <select id="provider-auth" class="form-select" [(ngModel)]="draft.authStrategy" (ngModelChange)="authChange()">
+            <option value="aws-default-chain">{{ 'ai-models-aws-role' | i18next }}</option><option value="bearer">{{ 'ai-models-api-key-updated' | i18next }}</option>
           </select>
         </div>
       }
       @if (draft.authStrategy === 'bearer') {
-        <div class="ai-full-row"><label [for]="'scheme-' + (item.id || 'new')">{{ 'ai-models-secret-scheme' | i18next }}</label>
-          <select class="form-select" [id]="'scheme-' + (item.id || 'new')" [ngModel]="scheme" (ngModelChange)="setReference($event, reference)">
-            @for (schemeName of overview.secretSchemes; track schemeName) { <option [value]="schemeName">{{ (schemeName === 'env' ? 'ai-models-secret-env' : 'ai-models-secret-resolver') | i18next: { scheme: schemeName } }}</option> }
-          </select>
-        </div>
-        <div><label [for]="'secret-' + (item.id || 'new')">{{ 'ai-models-api-key-reference' | i18next }}</label>
-          <input class="form-control font-monospace" [id]="'secret-' + (item.id || 'new')" [ngModel]="reference" (ngModelChange)="setReference(scheme, $event)" (blur)="touch('secretRef')" autocomplete="off" [attr.aria-invalid]="!!issue('secretRef')" [attr.aria-describedby]="'secret-hint-' + (item.id || 'new')">
-          <small class="rb-admin-hint" [id]="'secret-hint-' + (item.id || 'new')">{{ 'ai-models-secret-reference-hint' | i18next }}@if (reference.trim()) { <span class="d-block">{{ 'ai-models-secret-saved-as' | i18next }} <code>{{ draft.secretRef }}</code></span> }</small>
-          <small class="ai-field-error">{{ issue('secretRef') | i18next }}</small>
-          @if (item.id && item.savedJson === JSON.stringify(draft)) { <span class="badge rb-admin-badge-info">{{ (item.secretConfigured ? 'ai-models-check-key-found' : 'ai-models-check-key-missing') | i18next }}</span> }
+        <div class="ai-full-row">
+          @if (draft.secretRef) { <p class="ai-key-state">{{ keyState | i18next }}
+            @if (!replacing) { <button type="button" class="btn btn-sm btn-outline-secondary" (click)="replaceKey()">{{ 'ai-models-replace-key' | i18next }}</button> }
+          </p> }
+          @if (showKeyInput) {
+            <label for="provider-api-key">{{ 'ai-models-api-key-updated' | i18next }}</label>
+            <input id="provider-api-key" type="password" class="form-control" [(ngModel)]="draft.apiKey" (ngModelChange)="edit()" (blur)="touch('secretRef')" autocomplete="off" spellcheck="false" maxlength="8000" aria-describedby="provider-key-hint provider-key-error" [attr.aria-invalid]="!!issue('secretRef')">
+            <small id="provider-key-hint" class="rb-admin-hint">{{ 'ai-models-key-help' | i18next }}</small>
+          }
+          @if (draft.secretRef && !item.secretConfigured && !draft.apiKey) { <p class="ai-field-error">{{ 'ai-models-key-missing' | i18next }}</p> }
+          <small id="provider-key-error" class="ai-field-error">{{ issue('secretRef') | i18next }}</small>
         </div>
       }
-      <div><label [for]="'timeout-' + (item.id || 'new')">{{ 'ai-models-connection-seconds' | i18next }}</label>
-        <input class="form-control" type="number" [id]="'timeout-' + (item.id || 'new')" [ngModel]="timeoutSeconds" (ngModelChange)="setTimeoutSeconds($event)" (blur)="touch('timeoutMs')" min="0.001" [max]="overview.limits.provider.timeoutMs / 1000" step="0.001" [attr.aria-invalid]="!!issue('timeoutMs')">
-        <small class="rb-admin-hint">{{ 'ai-models-connection-seconds-hint' | i18next: { max: overview.limits.provider.timeoutMs / 1000 } }}</small>
-        <small class="ai-field-error">{{ issue('timeoutMs') | i18next }}</small>
-      </div>
     </div>
-    @if (draft.adapterId !== 'fake') {
-      <fieldset class="ai-headers"><legend>{{ 'ai-models-extra-headers' | i18next }} <code>headers</code></legend>
-        @for (header of headers; track $index; let i = $index) {
+    <div class="form-check form-switch mt-4"><input id="provider-enabled" class="form-check-input" type="checkbox" [(ngModel)]="draft.enabled" (ngModelChange)="edit()" aria-describedby="provider-off-hint"><label for="provider-enabled" class="form-check-label">{{ (draft.enabled ? 'ai-models-on' : 'ai-models-disabled-updated') | i18next }}</label></div>
+    <p id="provider-off-hint" class="rb-admin-hint">{{ 'ai-models-off-help' | i18next }}</p>
+    <details class="ai-advanced"><summary>{{ 'ai-models-advanced' | i18next }}</summary>
+      <div class="rb-admin-form-grid">
+        <div><label for="provider-key">{{ 'ai-models-key' | i18next }}</label>
+          <input id="provider-key" class="form-control" [(ngModel)]="draft.key" (ngModelChange)="item.keyEdited = true; edit()" (blur)="touch('key')" [readOnly]="!!item.id" maxlength="100" aria-describedby="provider-key-slug-error">
+          <small id="provider-key-slug-error" class="ai-field-error">{{ issue('key') | i18next }}</small>
+        </div>
+        <div><label for="provider-timeout">{{ 'ai-models-provider-time-limit' | i18next }}</label>
+          <input id="provider-timeout" class="form-control" type="number" [ngModel]="timeoutSeconds" (ngModelChange)="setTimeoutSeconds($event)" min="1" [max]="overview.limits.provider.timeoutMs / 1000" step="1" aria-describedby="provider-timeout-hint provider-timeout-error">
+          <small id="provider-timeout-hint" class="rb-admin-hint">{{ 'ai-models-timeout-max' | i18next: { seconds: overview.limits.provider.timeoutMs / 1000 } }}</small>
+          <small id="provider-timeout-error" class="ai-field-error">{{ issues['timeoutMs'] | i18next }}</small>
+        </div>
+      </div>
+      <div class="ai-headers"><h3>{{ 'ai-models-extra-headers' | i18next }}</h3><p class="rb-admin-hint">{{ 'ai-models-headers-hint-updated' | i18next }}</p>
+        @for (header of headers; track $index; let index = $index) {
           <div class="ai-header-row">
-            <input class="form-control" [attr.aria-label]="'ai-models-header-name' | i18next: { index: i + 1 }" [(ngModel)]="header.name" (ngModelChange)="updateHeaders()">
-            <input class="form-control" [attr.aria-label]="'ai-models-header-value' | i18next: { index: i + 1 }" [(ngModel)]="header.value" (ngModelChange)="updateHeaders()" maxlength="2000">
-            <button class="btn btn-sm btn-outline-secondary" type="button" (click)="removeHeader(i)">{{ 'ai-models-remove' | i18next }}</button>
+            <div><label [for]="'header-name-' + index">{{ 'ai-models-header-name-updated' | i18next }}</label><input class="form-control" [id]="'header-name-' + index" [(ngModel)]="header.name" (ngModelChange)="updateHeaders()"></div>
+            <div><label [for]="'header-value-' + index">{{ 'ai-models-header-value-updated' | i18next }}</label><input class="form-control" [id]="'header-value-' + index" [(ngModel)]="header.value" (ngModelChange)="updateHeaders()"></div>
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeHeader(index)">{{ 'ai-models-remove' | i18next }}</button>
           </div>
         }
-        <button class="btn btn-sm btn-outline-secondary" type="button" (click)="addHeader()" [disabled]="headers.length >= 30">{{ 'ai-models-add-header' | i18next }}</button>
-        <p class="rb-admin-hint">{{ 'ai-models-headers-hint' | i18next }}</p>
-        @if (duplicateHeaders || issue('headers')) { <p class="ai-field-error">{{ 'ai-models-validation-headers' | i18next }}</p> }
-      </fieldset>
-    }
-    <div class="rb-admin-page-actions">
-      <button type="button" class="btn btn-outline-secondary" (click)="test.emit()" [disabled]="invalid || cooldown > 0 || item.testing">
-        {{ (item.testing ? 'ai-models-testing' : 'ai-models-test-provider') | i18next }}
-        @if (cooldown) { <span>{{ 'ai-models-cooldown' | i18next: { seconds: cooldown } }}</span> }
-      </button>
-      @if (!item.id) { <button type="button" class="btn btn-outline-secondary" (click)="cancel.emit()">{{ 'ai-models-cancel' | i18next }}</button> }
-    </div>
-    <p class="rb-admin-hint">{{ 'ai-models-test-hint' | i18next }}</p>
-    <div aria-live="polite" aria-atomic="true" class="ai-connection-results">
-      @if (item.error) { <p class="ai-field-error">{{ item.error | i18next }}</p> }
-      @if (item.health) {
-        <ul>
-          @if (draft.authStrategy === 'bearer') {
-            <li>{{ (item.health.secretConfigured ? 'ai-models-check-key-found' : 'ai-models-check-key-missing') | i18next }}</li>
-          } @else { <li>{{ (draft.authStrategy === 'none' ? 'ai-models-check-no-key' : 'ai-models-check-aws-chain') | i18next }}</li> }
-          <li>{{ (item.health.ok ? 'ai-models-check-settings-accepted' : 'ai-models-check-settings-rejected') | i18next: { adapter: adapterLabels[draft.adapterId] | i18next } }}</li>
-        </ul>
-        <p class="rb-admin-hint">{{ 'ai-models-check-timestamp' | i18next: { time: (item.health.checkedAt | adminDate) } }}</p>
-      }
-    </div>
+        <small class="ai-field-error">{{ (duplicateHeaders ? 'ai-models-validation-headers' : issues['headers']) | i18next }}</small>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="addHeader()" [disabled]="headers.length >= 30">{{ 'ai-models-add-header' | i18next }}</button>
+      </div>
+    </details>
   </fieldset>
-</details>
+</section>

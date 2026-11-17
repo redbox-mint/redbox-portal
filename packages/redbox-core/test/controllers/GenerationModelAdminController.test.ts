@@ -68,7 +68,7 @@ describe('Generation model Admin HTTP boundary', () => {
     await controller.updateDraft(req, res);
     assert.equal(res.status.lastCall.args[0], 409);
     assert.deepEqual(res.json.lastCall.args[0], { error: { code: 'GENERATION_TARGET_CONFLICT',
-      messageKey: 'ai-models-error-generation-target-conflict', retryable: false } });
+      messageKey: 'ai-models-provider-error-generation-target-conflict', retryable: false } });
     const unknown = mapGenerationModelAdminError(new Error('PRIVATE BODY AND SECRET'));
     assert.equal(unknown.status, 503); assert.equal(JSON.stringify(unknown).includes('PRIVATE'), false);
   });

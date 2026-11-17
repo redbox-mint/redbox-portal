@@ -6,7 +6,7 @@ import { ConfigService } from 'projects/researchdatabox/portal-ng-common/src/lib
 import { HttpClientService } from 'projects/researchdatabox/portal-ng-common/src/lib/httpClient.service';
 import { UtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/utility.service';
 import type {
-  GenerationAdminOverview, GenerationAdminConnectionDraft, GenerationAdminConnection,
+  GenerationAdminDeletion, GenerationAdminOverview, GenerationAdminConnectionDraft, GenerationAdminConnection,
   GenerationAdminConnectionHealth, GenerationAdminCreateModel, GenerationAdminUpdateDraft,
   GenerationAdminModelVersion, GenerationAdminTryPrompt, GenerationAdminPromptResult,
 } from '@researchdatabox/sails-ng-common';
@@ -35,8 +35,8 @@ export class ModelApiService extends HttpClientService {
     } catch (error) {
       const status = error instanceof HttpErrorResponse ? error.status : 0;
       const key = error instanceof HttpErrorResponse ? error.error?.error?.messageKey : undefined;
-      throw new ModelApiError(status, typeof key === 'string' && /^ai-models-error-[a-z-]+$/.test(key)
-        ? key : status === 403 ? 'ai-models-error-generation-source-forbidden' : 'ai-models-error-generation-provider-unavailable');
+      throw new ModelApiError(status, typeof key === 'string' && /^ai-models-provider-error-[a-z-]+$/.test(key)
+        ? key : status === 403 ? 'ai-models-provider-error-generation-source-forbidden' : 'ai-models-provider-error-generation-provider-unavailable');
     }
   }
   overview(): Promise<GenerationAdminOverview> { return this.request('GET', '/overview'); }
@@ -53,5 +53,8 @@ export class ModelApiService extends HttpClientService {
   version(id: string): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/versions`); }
   publish(id: string): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/publish`); }
   retire(id: string): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/retire`); }
+  deleteConnection(id: string): Promise<GenerationAdminDeletion> { return this.request('DELETE', `/connections/${encodeURIComponent(id)}`); }
+  discardDraft(id: string): Promise<GenerationAdminDeletion> { return this.request('DELETE', `/models/${encodeURIComponent(id)}`); }
+  deleteModel(key: string): Promise<GenerationAdminDeletion> { return this.request('DELETE', `/models/by-key/${encodeURIComponent(key)}`); }
   tryPrompt(body: GenerationAdminTryPrompt): Promise<GenerationAdminPromptResult> { return this.request('POST', '/try-prompt', body); }
 }

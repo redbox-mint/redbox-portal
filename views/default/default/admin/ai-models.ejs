@@ -10,7 +10,7 @@
   }) %>
   <div class="rb-admin-empty">
     <h2><%= TranslationService.t('ai-models-disabled-title') %></h2>
-    <p><%= TranslationService.t('ai-models-disabled-description') %></p>
+    <p><%= TranslationService.t('ai-models-disabled-description-updated') %></p>
   </div>
 <% } else { %>
   <admin-ai-models data-base-url="<%= BrandingService.getBrandAndPortalPath(req) %>/app/ai-models" data-brand="<%= BrandingService.getBrandNameFromReq(req) %>" data-portal="<%= BrandingService.getPortalFromReq(req) %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
@@ -20,7 +20,7 @@
         { labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' },
         { labelKey: 'admin-nav-integrations' },
         { labelKey: 'admin-nav-ai-models' }
-      ], titleKey: 'ai-models-title', descriptionKey: 'ai-models-description'
+      ], titleKey: 'ai-models-title', descriptionKey: 'ai-models-description-updated'
     }) %>
     </div>
     <p role="status"><%= TranslationService.t('ai-models-loading') %></p>

@@ -8,12 +8,12 @@ import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib
 import { AdminModalDirective } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-modal.directive';
 import type {
   GenerationAdminOverview, GenerationAdminModelDraft, GenerationAdminModelVersion,
-  GenerationAdminConnection, GenerationAdminPromptResult,
+  GenerationAdminConnection, GenerationAdminPromptResult, GenerationAdminUsage, GenerationAdminModelGroup,
 } from '@researchdatabox/sails-ng-common';
 import { ModelApiService, ModelApiError } from './model-api.service';
 import { ProviderCardComponent, ProviderDraft } from './provider-card.component';
 import { ChipsComponent } from './chips.component';
-import { accepts, adapterLabels, clone, connectionDraft, curatedModels, Issues, modelDraft, numericSettings, NumericSetting, sdkCode, slug, validateConnection, validateModel, validKey } from './model-settings';
+import { accepts, adapterLabels, clone, connectionDraft, curatedModels, Issues, modelDraft, numericSettings, NumericSetting, modelNames, slug, validateConnection, validateModel, validKey } from './model-settings';
 
 type RailSection = { id: string; key: string };
 @Component({
@@ -43,7 +43,10 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   promptResult?: GenerationAdminPromptResult;
   promptError = '';
   running = false;
-  copyStatus = '';
+  activeProvider?: ProviderDraft;
+  profileKey = '';
+  otherModel = false;
+  deleteConfirmation?: { kind: 'provider' | 'draft' | 'model'; id: string; name: string; uses: GenerationAdminUsage[] };
   cooldown = 0;
   retireConfirmation = false;
   activeSection = 'providers';
@@ -57,8 +60,6 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   readonly numericSettings = numericSettings;
   readonly routingLists = ['only', 'ignore', 'order'] as const;
   readonly allSettings = ['temperature', ...numericSettings, 'stopSequences'];
-  readonly fixedRows = ['schema', 'streaming', 'tools', 'telemetry', 'redirects', 'retries'];
-  readonly fixedKeys: Record<string, string> = { schema: 'strictJsonSchema', streaming: 'stream', tools: 'tools/plugins', telemetry: 'telemetry.isEnabled', redirects: 'fetch redirect', retries: 'maxRetries' };
 
   constructor(public api: ModelApiService, private i18n: TranslationService, private host: ElementRef<HTMLElement>) {}
   async ngOnInit(): Promise<void> {
@@ -77,6 +78,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     cancelAnimationFrame(this.scrollFrame);
   }
   get baseUrl(): string { return this.api.brandingAndPortalUrl; }
+  get providerEditor(): boolean { return !!this.activeProvider; }
   get editor(): boolean { return !!this.draft; }
   get readOnly(): boolean { return !!this.selected && this.selected.status !== 'draft'; }
   get connection(): GenerationAdminConnection | undefined { return this.overview?.connections.find(c => c.id === this.draft?.connectionId); }
@@ -91,21 +93,34 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     if (this.isNew && this.overview?.models.some(m => m.key === this.modelKey)) issues['key'] = 'ai-models-validation-key-used';
     return issues;
   }
-  get providersInvalid(): boolean {
-    return this.providers.some(p => p.invalidHeaders || this.providerKeyUsed(p) || !this.overview || Object.keys(validateConnection(p.draft, this.overview)).length > 0) ||
-      new Set(this.providers.map(p => p.draft.key)).size !== this.providers.length;
-  }
   get modelJson(): string { return JSON.stringify({ key: this.modelKey, draft: this.draft }); }
   get isDirty(): boolean {
-    return this.editor ? this.modelJson !== this.savedModelJson : this.providers.some(p => !p.id || JSON.stringify(p.draft) !== p.savedJson);
+    if (this.activeProvider) return JSON.stringify(this.activeProvider.draft) !== this.activeProvider.savedJson;
+    return this.editor ? this.modelJson !== this.savedModelJson : false;
   }
-  get readyConnections(): GenerationAdminConnection[] { return this.enabledConnections.filter(c => c.lastHealthStatus === 'healthy'); }
-  get statusKey(): string { return this.enabledConnections.some(c => c.lastHealthStatus && c.lastHealthStatus !== 'untested') ? 'ai-models-status-ready' : 'ai-models-status-untested'; }
-  get fixtureFieldCount(): number {
-    const fixture = this.draft?.parameters?.fixtureResponse as { answers?: Record<string, unknown> } | undefined;
-    return Object.keys(fixture?.answers ?? {}).length;
+  get attentionCount(): number { return this.enabledConnections.filter(c => c.authStrategy === 'bearer' && !c.secretConfigured).length; }
+  get visibleModels(): GenerationAdminModelGroup[] { return this.overview?.models.filter(m => m.versions.some(v => v.status !== 'retired')) ?? []; }
+  get modelUses(): GenerationAdminUsage[] { return this.overview?.models.find(m => m.key === this.modelKey)?.uses ?? []; }
+  modelLabel(id: string): string { return modelNames[id] ? this.i18n.t(modelNames[id]) : id; }
+  modelState(group: GenerationAdminModelGroup): string {
+    const live = group.versions.find(v => v.status === 'published');
+    const draft = group.versions.find(v => v.status === 'draft');
+    return [live ? this.i18n.t('ai-models-live-version', { version: live.version }) : this.i18n.t('ai-models-not-live'),
+      ...(draft ? [this.i18n.t('ai-models-version-draft', { version: draft.version })] : [])].join(' · ');
   }
-  get code(): string { return this.draft ? sdkCode(this.draft, this.connection) : ''; }
+  providerUsage(id: string): GenerationAdminUsage[] {
+    return this.overview?.models.filter(m => m.versions.some(v => v.connectionId === id)).map(m => ({ key: m.key, name: m.name })) ?? [];
+  }
+  providerType(c: GenerationAdminConnection): string {
+    return this.i18n.t(adapterLabels[c.adapterId]) + (c.adapterId === 'bedrock' ? ' · ' + this.i18n.t('ai-models-provider-region-' + c.region, { defaultValue: c.region }) : '');
+  }
+  get providerInvalid(): boolean {
+    const p = this.activeProvider;
+    return !p || !!p.invalidHeaders || this.providerKeyUsed(p) || !this.overview || !!Object.keys(validateConnection(p.draft, this.overview)).length;
+  }
+  get pickerModel(): string { return this.otherModel || !this.modelOptions.includes(this.draft?.modelId ?? '') ? 'other' : this.draft!.modelId; }
+  pickModel(value: string): void { this.otherModel = value === 'other'; if (this.draft) this.draft.modelId = this.otherModel ? '' : value; this.changed(); }
+  useDefaultTemperature(useDefault: boolean): void { this.setNumber('temperature', useDefault ? null : 0.2); }
   get promptOutput(): string {
     const output = this.promptResult?.output ?? '';
     if (this.mode !== 'sample') return output;
@@ -113,19 +128,18 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     catch { return output; }
   }
   get rail(): RailSection[] {
-    const ids = this.editor ? ['model', 'response', ...(this.adapter === 'openrouter' ? ['routing'] : []), 'try', 'code', 'versions'] : ['providers', 'models', 'limits', 'fixed'];
-    return ids.map(id => ({ id, key: 'ai-models-section-' + id }));
+    const ids = this.editor ? ['model', 'response', ...(this.adapter === 'openrouter' ? ['routing'] : []), 'try', 'versions'] : [];
+    return ids.map(id => ({ id, key: 'ai-models-editor-section-' + id }));
   }
   get canRun(): boolean { return !!this.draft && !Object.keys(this.modelIssues).length && !!this.prompt.trim() && this.prompt.length <= (this.overview?.limits.maxPromptChars ?? 2000); }
-  get canPublish(): boolean { return !!this.selected && !this.readOnly && !this.isDirty && !this.conflict && !Object.keys(this.modelIssues).length; }
+  get canPublish(): boolean { return !!this.draft && !this.readOnly && !this.conflict && !Object.keys(this.modelIssues).length; }
   accepts(setting: string): boolean { return accepts(this.adapter, setting); }
-  supported(adapter: string, setting: string): boolean { return accepts(adapter, setting); }
   healthKey(id: string): string {
     const connection = this.overview?.connections.find(c => c.id === id);
-    return !connection?.enabled ? 'ai-models-disabled' : 'ai-models-health-' + (connection.lastHealthStatus || 'untested');
+    return !connection?.enabled ? 'ai-models-disabled-updated' : connection.authStrategy === 'bearer' && !connection.secretConfigured ? 'ai-models-key-missing' : 'ai-models-provider-health-' + (connection.lastHealthStatus || 'untested');
   }
   connectionName(id: string): string { return this.overview?.connections.find(c => c.id === id)?.name ?? id; }
-  firstVersion(key: string): GenerationAdminModelVersion | undefined { return this.overview?.models.find(m => m.key === key)?.versions[0]; }
+  firstVersion(key: string): GenerationAdminModelVersion | undefined { return this.overview?.models.find(m => m.key === key)?.versions.find(v => v.status !== 'retired'); }
   private resetProviders(): void {
     this.providers = (this.overview?.connections ?? []).map(c => {
       const draft = connectionDraft(c);
@@ -135,7 +149,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   async refresh(): Promise<void> { this.overview = await this.api.overview(); this.resetProviders(); }
   async retryLoad(): Promise<void> { this.loading = true; this.error = ''; await this.ngOnInit(); }
   private handle(error: unknown): void {
-    this.error = error instanceof ModelApiError ? error.messageKey : 'ai-models-error-generation-provider-unavailable';
+    this.error = error instanceof ModelApiError ? error.messageKey : 'ai-models-provider-error-generation-provider-unavailable';
     if (error instanceof ModelApiError && error.status === 409) { this.conflict = true; this.remote = undefined; }
   }
   private confirmDiscard(): boolean { return !this.isDirty || window.confirm(this.i18n.t('ai-models-discard-confirm')); }
@@ -154,16 +168,18 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   private applyHash(hash: string): void {
     const params = new URLSearchParams(hash.slice(1));
     const key = params.get('model');
-    this.draft = undefined; this.selected = undefined; this.isNew = false; this.retireConfirmation = false;
+    this.draft = undefined; this.selected = undefined; this.isNew = false; this.retireConfirmation = false; this.activeProvider = undefined; this.profileKey = params.get('profile') || ''; this.deleteConfirmation = undefined; this.otherModel = false;
     this.error = ''; this.notice = ''; this.conflict = false; this.remote = undefined;
-    this.promptResult = undefined; this.promptError = ''; this.prompt = '';
-    if (params.has('new')) this.initNewModel();
+    this.promptResult = undefined; this.promptError = ''; this.prompt = this.i18n.t('ai-models-example-prompt');
+    if (params.has('provider')) {
+      this.activeProvider = params.get('provider') === 'new' ? this.makeProvider() : this.providers.find(p => p.id === params.get('provider'));
+    } else if (params.has('new')) this.initNewModel();
     else if (key) {
       const versions = this.overview?.models.find(m => m.key === key)?.versions;
       const version = params.get('version');
       const selected = version ? versions?.find(v => String(v.version) === version) : versions?.[0];
       if (selected) this.selectVersion(selected);
-      else this.error = 'ai-models-error-generation-action-not-available';
+      else this.error = 'ai-models-provider-error-generation-action-not-available';
     }
     this.activeSection = params.get('section') || (this.editor ? 'model' : 'providers');
     this.acceptedHash = hash;
@@ -175,11 +191,11 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     if (next === this.acceptedHash) return;
     const previousState = new URLSearchParams(this.acceptedHash.slice(1));
     const state = new URLSearchParams(next.slice(1));
-    const sameView = ['model', 'version', 'new'].every(key => previousState.get(key) === state.get(key));
+    const sameView = ['model', 'version', 'new', 'provider', 'profile'].every(key => previousState.get(key) === state.get(key));
     if (!sameView && (this.busy || !this.confirmDiscard())) {
       history.replaceState(null, '', window.location.pathname + window.location.search + this.acceptedHash); return;
     }
-    if (sameView) { this.acceptedHash = next; this.goSection(state.get('section') || this.rail[0].id, false); }
+    if (sameView) { this.acceptedHash = next; this.goSection(state.get('section') || (this.rail[0]?.id ?? 'model'), false); }
     else { this.resetProviders(); this.applyHash(next); this.focusEditor(); }
   }
   openOverview(): void {
@@ -197,11 +213,11 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   private initNewModel(): void {
     if (!this.enabledConnections.length) { this.error = 'ai-models-no-enabled-connection'; return; }
     this.isNew = true; this.modelKey = ''; this.keyEdited = false;
-    this.draft = { name: '', modelId: '', connectionId: this.enabledConnections[0].id, parameters: {}, routingPolicy: {} };
+    this.draft = { name: '', modelId: curatedModels[this.enabledConnections[0].adapterId]?.[0] ?? '', connectionId: this.enabledConnections[0].id, parameters: {}, routingPolicy: {} };
   }
   private selectVersion(version: GenerationAdminModelVersion): void {
     this.selected = clone(version); this.modelKey = version.key; this.keyEdited = true;
-    this.draft = modelDraft(version); this.savedModelJson = this.modelJson;
+    this.draft = modelDraft(version); this.otherModel = !this.modelOptions.includes(version.modelId); this.savedModelJson = this.modelJson;
   }
   private focusEditor(): void { requestAnimationFrame(() => this.host.nativeElement.querySelector<HTMLElement>('h1')?.focus()); }
   goSection(id: string, updateHash = true): void {
@@ -219,7 +235,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     this.scrollFrame = requestAnimationFrame(() => {
       this.scrollFrame = 0;
       const sections = this.rail.filter(section => (this.host.nativeElement.querySelector('#ai-' + section.id)?.getBoundingClientRect().top ?? Infinity) <= 160);
-      this.activeSection = sections.at(-1)?.id ?? this.rail[0].id;
+      this.activeSection = sections.at(-1)?.id ?? this.rail[0]?.id ?? 'model';
     });
   }
   @HostListener('window:beforeunload', ['$event'])
@@ -238,32 +254,75 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   }
   providerKeyUsed(item: ProviderDraft): boolean { return this.providers.some(p => p !== item && p.draft.key === item.draft.key) || !!this.overview?.connections.some(c => c.id !== item.id && c.key === item.draft.key); }
   providerName(item: ProviderDraft, name: string): void { if (!item.keyEdited) item.draft.key = slug(name); }
-  addProvider(): void {
-    if (this.busy || !this.overview?.adapters.length) return;
-    if (this.editor && !this.confirmDiscard()) return;
-    if (this.editor) { this.setHash(this.hash()); this.applyHash(''); }
-    if (!this.providers.some(p => !p.id)) {
-      const adapterId = this.overview.adapters[0];
-      this.providers.unshift({ draft: { key: '', name: '', adapterId, enabled: true,
-        authStrategy: adapterId === 'openrouter' ? 'bearer' : adapterId === 'bedrock' ? 'aws-default-chain' : 'none',
-        ...(adapterId === 'bedrock' ? { region: this.overview.bedrockRegions.includes('ap-southeast-2') ? 'ap-southeast-2' : this.overview.bedrockRegions[0] } : {}),
-        timeoutMs: this.overview.limits.provider.timeoutMs }, savedJson: '', keyEdited: false });
-    }
-    this.goSection('providers');
-    requestAnimationFrame(() => this.host.nativeElement.querySelector<HTMLElement>('[data-provider="new"] input')?.focus());
+  private makeProvider(): ProviderDraft {
+    const adapterId = this.overview!.adapters[0];
+    const draft = { key: '', name: '', adapterId, enabled: true,
+      authStrategy: (adapterId === 'openrouter' ? 'bearer' : adapterId === 'bedrock' ? 'aws-default-chain' : 'none') as 'bearer' | 'aws-default-chain' | 'none',
+      ...(adapterId === 'bedrock' ? { region: 'ap-southeast-2' } : {}), timeoutMs: this.overview!.limits.provider.timeoutMs };
+    return { draft, savedJson: JSON.stringify(draft), keyEdited: false };
   }
-  cancelProvider(item: ProviderDraft): void {
-    if (!window.confirm(this.i18n.t('ai-models-discard-confirm'))) return;
-    this.providers = this.providers.filter(p => p !== item);
+  openProvider(id: string): void {
+    if (this.busy || !this.confirmDiscard()) return;
+    this.resetProviders(); this.setHash(this.hash() + '#provider=' + encodeURIComponent(id));
+    this.applyHash(window.location.hash); this.focusEditor();
+  }
+  addProvider(): void { if (this.overview?.adapters.length) this.openProvider('new'); }
+  cancelProvider(_item: ProviderDraft): void { this.openOverview(); }
+  async saveProvider(): Promise<void> {
+    const item = this.activeProvider;
+    if (!item || this.busy) return;
+    item.submitted = true; if (this.providerInvalid) return;
+    this.busy = true; this.error = '';
+    try {
+      const saved = await this.api.saveConnection(connectionDraft(item.draft), item.id);
+      // Drop the plaintext immediately, including after refresh failures.
+      delete item.draft.apiKey;
+      await this.refresh();
+      this.activeProvider = this.providers.find(p => p.id === saved.id);
+      this.setHash(this.hash() + '#provider=' + encodeURIComponent(saved.id)); this.notice = 'ai-models-saved';
+    } catch (error) { this.handle(error); } finally { this.busy = false; }
+  }
+  askDeleteProvider(id: string): void {
+    const provider = this.overview?.connections.find(c => c.id === id);
+    if (provider) this.deleteConfirmation = { kind: 'provider', id, name: provider.name, uses: this.providerUsage(id) };
+  }
+  askDeleteModel(key: string): void {
+    const model = this.overview?.models.find(m => m.key === key);
+    if (model) this.deleteConfirmation = { kind: 'model', id: key, name: model.name, uses: model.uses ?? [] };
+  }
+  askDiscardDraft(): void {
+    if (!this.selected) { this.openOverview(); return; }
+    this.deleteConfirmation = { kind: 'draft', id: this.selected.id, name: this.selected.name + ' · v' + this.selected.version, uses: [] };
+  }
+  profileHref(key: string): string { return this.hash() + '#profile=' + encodeURIComponent(key); }
+  get profileName(): string { return this.overview?.models.flatMap(m => m.uses ?? []).find(p => p.key === this.profileKey)?.name ?? this.profileKey; }
+  get profileModels(): GenerationAdminModelGroup[] { return this.overview?.models.filter(m => m.uses?.some(p => p.key === this.profileKey)) ?? []; }
+  async confirmDelete(): Promise<void> {
+    const target = this.deleteConfirmation;
+    if (!target || this.busy || target.uses.length) return;
+    this.busy = true; this.error = '';
+    try {
+      const result = target.kind === 'provider' ? await this.api.deleteConnection(target.id) : target.kind === 'draft' ? await this.api.discardDraft(target.id) : await this.api.deleteModel(target.id);
+      if (!result.deleted) { target.uses = result.uses; return; }
+      this.deleteConfirmation = undefined;
+      await this.refresh(); this.setHash(this.hash()); this.applyHash(''); this.focusEditor(); this.notice = 'ai-models-deleted';
+    } catch (error) { this.handle(error); } finally { this.busy = false; }
+  }
+  offerRetire(): void {
+    const group = this.overview?.models.find(m => m.key === this.deleteConfirmation?.id);
+    const published = group?.versions.find(v => v.status === 'published');
+    if (!published) return;
+    this.deleteConfirmation = undefined; this.openModel(group!.key, published.version); this.retireConfirmation = true;
   }
   modelName(name: string): void { if (this.draft) this.draft.name = name; if (!this.keyEdited) this.modelKey = slug(name); this.changed(); }
-  changed(): void { this.promptResult = undefined; this.promptError = ''; this.copyStatus = ''; this.notice = ''; }
+  changed(): void { this.promptResult = undefined; this.promptError = ''; this.notice = ''; }
   changeConnection(): void {
     if (!this.draft) return;
     if (this.adapter !== 'openrouter') this.draft.routingPolicy = {};
     // Keep unsupported settings visible in the support matrix, but remove them from this adapter's draft.
     for (const name of this.allSettings) if (!this.accepts(name)) delete (this.draft.parameters as Record<string, unknown>)[name];
     if (this.adapter !== 'fake') delete this.draft.parameters?.fixtureResponse;
+    this.otherModel = false; this.draft.modelId = curatedModels[this.adapter]?.[0] ?? '';
     this.changed();
   }
   setNumber(name: NumericSetting, value: number | null): void {
@@ -305,24 +364,9 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
         }
       }
     } catch (error) {
-      if (snapshot === JSON.stringify(item.draft)) item.error = error instanceof ModelApiError ? error.messageKey : 'ai-models-error-generation-provider-unavailable';
+      if (snapshot === JSON.stringify(item.draft)) item.error = error instanceof ModelApiError ? error.messageKey : 'ai-models-provider-error-generation-provider-unavailable';
       if (error instanceof ModelApiError && error.status === 429) this.startCooldown();
     } finally { item.testing = false; }
-  }
-  async saveProviders(): Promise<void> {
-    if (this.busy) return;
-    this.providers.forEach(item => item.submitted = true);
-    if (this.providersInvalid) return;
-    this.busy = true; this.error = ''; this.notice = '';
-    try {
-      for (const item of this.providers) {
-        if (item.id && item.savedJson === JSON.stringify(item.draft)) continue;
-        const saved = await this.api.saveConnection(connectionDraft(item.draft), item.id);
-        item.id = saved.id; item.draft = connectionDraft(saved); item.savedJson = JSON.stringify(item.draft);
-      }
-      await this.refresh(); this.notice = 'ai-models-saved';
-    } catch (error) { this.handle(error); }
-    finally { this.busy = false; }
   }
   async saveDraft(): Promise<void> {
     if (!this.draft || this.busy || this.readOnly || this.conflict || Object.keys(this.modelIssues).length) return;
@@ -339,6 +383,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   }
   async publish(): Promise<void> {
     if (!this.canPublish || this.busy) return;
+    if (this.isNew || this.isDirty) { await this.saveDraft(); if (this.isNew || this.isDirty || this.error) return; }
     this.busy = true; this.error = '';
     try { const saved = await this.api.publish(this.selected!.id); this.selectVersion(saved); await this.refresh(); this.notice = 'ai-models-published'; }
     catch (error) { this.handle(error); } finally { this.busy = false; }
@@ -395,15 +440,11 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
       const result = await this.api.tryPrompt({ draft: modelDraft(this.draft), prompt: this.prompt, mode: this.mode });
       if (!this.disposed && snapshot === this.modelJson + this.prompt + this.mode) this.promptResult = result;
     } catch (error) {
-      if (snapshot === this.modelJson + this.prompt + this.mode) this.promptError = error instanceof ModelApiError ? error.messageKey : 'ai-models-error-generation-provider-unavailable';
+      if (snapshot === this.modelJson + this.prompt + this.mode) this.promptError = error instanceof ModelApiError ? error.messageKey : 'ai-models-provider-error-generation-provider-unavailable';
       if (error instanceof ModelApiError && error.status === 429) this.startCooldown();
     } finally { this.running = false; }
   }
   testModel(): void { this.goSection('try'); requestAnimationFrame(() => this.host.nativeElement.querySelector<HTMLElement>('#ai-prompt')?.focus()); }
-  async copyCode(): Promise<void> {
-    try { await navigator.clipboard.writeText(this.code); this.copyStatus = 'ai-models-copied'; }
-    catch { this.copyStatus = 'ai-models-copy-failed'; }
-  }
   json(value: unknown): string { return JSON.stringify(value, null, 2); }
   parameterMin(name: string): number | null { return name === 'maxOutputTokens' ? 1 : name === 'topP' ? 0 : name.includes('Penalty') ? -2 : null; }
   parameterMax(name: string): number | null { return name === 'topP' ? 1 : name.includes('Penalty') ? 2 : null; }

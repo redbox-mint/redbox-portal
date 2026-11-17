@@ -44,7 +44,7 @@ describe('Admin foundation views', function () {
           expect(document.querySelector('script[type=module]')!.getAttribute('src')).to.equal('/context/angular/admin-ai-models/browser/polyfills-bundle.js');
         } else {
           expect(document.querySelector('.rb-admin-empty h2')!.textContent).to.equal('ai-models-disabled-title');
-          expect(document.querySelector('.rb-admin-empty p')!.textContent).to.equal('ai-models-disabled-description');
+          expect(document.querySelector('.rb-admin-empty p')!.textContent).to.equal('ai-models-disabled-description-updated');
         }
       } finally { dom.window.close(); }
     });

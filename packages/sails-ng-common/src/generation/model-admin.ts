@@ -59,6 +59,7 @@ export interface GenerationAdminModelVersion extends GenerationAdminModelDraft {
   requiredCapabilities: Record<string, boolean>;
   capabilitySnapshot?: Record<string, unknown>;
   createdBy: string;
+  createdAt?: string;
   publishedBy?: string;
   publishedAt?: string;
 }

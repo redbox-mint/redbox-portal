@@ -4,24 +4,26 @@
   fieldset.rb-admin-form-section-body { padding: 20px; }
   legend { float: none; width: auto; font-size: 14px; font-weight: 600; }
   label { display: block; font-weight: 600; margin-bottom: 5px; }
+  .ai-field-label { display: block; font-weight: 600; margin-bottom: 5px; }
+  .form-check-label { display: inline; }
   .ai-crumb { padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-decoration: underline; }
-  .ai-provider-area { min-height: 420px; }
-  .ai-model-area { min-height: 220px; }
-  section[id], details[id] { scroll-margin-top: 24px; }
+  section[id] { scroll-margin-top: 24px; }
   .ai-model-layout { align-items: flex-start; }
-  .rb-admin-section-rail { position: sticky; top: 16px; flex: 0 0 200px; }
-  .rb-admin-section-rail a { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .rb-admin-section-rail { position: sticky; top: 16px; flex: 0 0 160px; }
   .rb-admin-split-main { min-width: 0; }
   .ai-adapter-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; margin-bottom: 20px; }
   .ai-adapter-choices legend { grid-column: 1 / -1; }
   .ai-adapter-choice { display: grid; grid-template-columns: 18px 1fr; align-content: start; gap: 8px; padding: 14px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); cursor: pointer; }
   .ai-adapter-choice .rb-admin-hint { grid-column: 2; }
   .ai-adapter-choice.selected { border-color: var(--rb-primary); background: color-mix(in srgb, var(--rb-primary) 8%, var(--admin-bg)); }
-  .ai-header-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; margin-bottom: 8px; }
-  .ai-headers { margin-top: 20px; }
+  .ai-header-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; margin-bottom: 8px; align-items: end; }
+  .ai-headers, .ai-advanced { margin-top: 24px; }
+  .ai-advanced { border-top: 1px solid var(--admin-line); padding-top: 16px; }
+  .ai-advanced summary { font-weight: 600; cursor: pointer; margin-bottom: 12px; }
   .ai-field-error { display: block; color: var(--admin-danger-ink); margin-top: 4px; }
   .ai-field-error:empty { display: none; }
-  .ai-connection-results { min-height: 24px; }
+  .ai-connection-results { max-width: 32ch; font-size: 13px; }
+  .ai-key-state { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .ai-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .ai-chips input { flex: 1 1 120px; min-width: 0; }
   .rb-admin-chip { max-width: 100%; }
@@ -29,94 +31,55 @@
   .ai-temperature { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
   .ai-temperature input { flex: 1 1 160px; width: auto; }
   .ai-temperature output { min-width: 3ch; font-weight: 600; }
-  .ai-support-matrix { padding: 16px 20px; border-top: 1px solid var(--admin-line); }
-  .ai-support-matrix summary { font-weight: 600; cursor: pointer; }
-  .ai-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 8px 20px; margin: 12px 0; }
+  .ai-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 8px 20px; margin: 0; }
   .ai-metadata dd { overflow-wrap: anywhere; margin: 0; }
   pre { max-width: 100%; padding: 16px; margin: 16px 0; background: var(--admin-surface); color: var(--admin-ink); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); white-space: pre-wrap; overflow-wrap: anywhere; }
-  label code, legend code { margin-inline-start: 6px; color: var(--admin-muted); font-size: 0.85em; font-weight: 400; overflow-wrap: anywhere; }
-  fieldset[disabled] :is(.form-control, .form-select), .form-control[readonly], .ai-chips-disabled {
-    background-color: var(--admin-surface); color: var(--admin-muted); opacity: 1; cursor: default;
-  }
-  .ai-chips-disabled { min-height: 38px; padding: 6px 12px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); }
-  .ai-chips-disabled input { border: 0; background: transparent; box-shadow: none; padding: 0; min-height: 24px; color: inherit; }
-  .ai-chips-disabled .rb-admin-chip { color: inherit; background: var(--admin-bg); }
-  fieldset[disabled] .form-range { opacity: 0.5; cursor: default; }
-  fieldset[disabled] .form-range::-webkit-slider-thumb { background: var(--admin-muted); }
-  fieldset[disabled] .form-range::-moz-range-thumb { background: var(--admin-muted); }
-  .ai-support-matrix .ai-selected-adapter { background: var(--admin-brand-tint); }
   .ai-prompt-output { max-height: 320px; overflow: auto; }
-  .ai-sdk-code { font-size: 13px; tab-size: 2; }
   .ai-conflict pre { max-height: 340px; overflow: auto; }
   .ai-version-list { list-style: none; padding: 0; }
   .ai-version-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid var(--admin-soft-line); padding: 12px 0; }
   .ai-version-list [aria-current] { border-color: var(--rb-primary); font-weight: 600; }
-  .rb-admin-segmented { margin-bottom: 18px; }
-  table th small { display: block; font-weight: 400; }
-  table code { overflow-wrap: anywhere; }
+  .ai-version-list li:first-child { padding-top: 0; }
+  .ai-current-version { color: var(--admin-muted); font-size: 13px; }
   .ai-loading { min-height: 700px; }
   .ai-skeleton { min-height: 260px; margin: 20px 0; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-surface); }
-  .alert-info > span { display: block; }
-  @media (max-width: 991.98px) {
-    .ai-model-layout { flex-direction: column; flex-wrap: nowrap; }
-    .ai-model-layout > * { width: 100%; max-width: none; flex: 0 1 auto; }
-    .rb-admin-section-rail { position: static; }
-    .ai-header-row { grid-template-columns: minmax(0, 1fr); }
-  }
   .rb-admin-page-header h1 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .rb-admin-page-header h1:focus:not(:focus-visible) { outline: none; }
   .rb-admin-page-header h1 .badge { font-size: 12px; line-height: 1.3; }
   .rb-admin-form-section :is(h2, h3) { font-size: 16px; }
   .ai-full-row { grid-column: 1 / -1; min-width: 0; }
   .rb-admin-form-grid > * { min-width: 0; }
-  #ai-model .rb-admin-form-grid, #ai-routing .rb-admin-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ai-provider-area > .rb-admin-form-section-body { padding: 16px; }
-  .ai-provider > summary { display: flex; flex-wrap: wrap; list-style: none; }
-  .ai-provider > summary::-webkit-details-marker { display: none; }
-  .ai-provider > summary > :nth-child(2) { flex: 1 1 220px; min-width: 0; }
-  .ai-provider-separator { margin-inline: 4px; }
-  .ai-provider summary h3, .ai-provider summary p { overflow-wrap: anywhere; }
-  .ai-adapter-tile { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--admin-radius); background: var(--admin-brand-tint); color: var(--admin-brand); font-size: 12px; font-weight: 700; }
-  .ai-provider-state { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-left: auto; font-size: 13px; }
-  .ai-provider-state .form-check { display: flex; align-items: center; gap: 6px; padding: 0; }
-  .ai-provider-state .form-check-input { margin: 0; float: none; width: 44px; height: 24px; flex-shrink: 0; }
-  .ai-provider-state .form-check-label { margin: 0; font-weight: 400; }
-  .ai-health { display: inline-flex; align-items: center; gap: 6px; color: var(--admin-muted); }
-  .ai-health-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+  .ai-provider-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 20px; border-bottom: 1px solid var(--admin-soft-line); }
+  .ai-provider-row:last-child { border-bottom: 0; }
+  .ai-provider-row :is(h3, p) { margin: 0; overflow-wrap: anywhere; }
+  .ai-provider-row h3 { margin-bottom: 4px; }
+  .ai-provider-row .rb-admin-hint { margin-top: 4px; }
+  .ai-health { color: var(--admin-muted); }
   .ai-health-ready { color: color-mix(in srgb, var(--admin-success) 40%, var(--admin-ink)); }
   .ai-health-failed { color: var(--admin-danger-ink); }
-  .ai-provider-chevron { font-size: 22px; line-height: 1; }
-  .ai-provider[open] > summary .ai-provider-chevron { transform: rotate(90deg); }
-  .ai-field-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-  .ai-endpoint { margin: 0; overflow-wrap: anywhere; }
-  .ai-stacked-table tbody th { font-size: 14px; font-weight: 400; background: transparent; border-bottom-width: 1px; white-space: normal; }
-  .rb-admin-form-section-header .ai-header-button { border-color: currentColor; flex-shrink: 0; }
-  .ai-limit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 0 0 16px; }
-  .ai-limit-grid dd { margin: 4px 0 0; overflow-wrap: anywhere; }
-  .ai-limit-grid code { font-size: 12px; }
-  .ai-limit-grid .rb-admin-hint { display: flex; align-items: baseline; gap: 4px; }
-  .ai-lock { display: inline-block; width: 0.875em; height: 1em; fill: currentColor; vertical-align: -0.125em; flex: none; }
-  .ai-limit-grid .rb-admin-hint code { min-width: 0; overflow-wrap: anywhere; }
-  .ai-limit-grid dt { font-size: 13px; }
-  .ai-stacked-table table { width: 100%; table-layout: fixed; }
-  .ai-stacked-table :is(th, td) { overflow-wrap: anywhere; white-space: normal; }
-  #ai-code > summary, #ai-routing > summary { background: var(--admin-panel); color: var(--admin-panel-text); border-radius: calc(var(--admin-radius) - 1px) calc(var(--admin-radius) - 1px) 0 0; }
-  #ai-code > summary :is(h2, p), #ai-routing > summary :is(h2, p) { color: inherit; }
-  #ai-response .alert { margin: 0; }
-  .ai-version-list li:first-child { padding-top: 0; }
-  .ai-version-list .ai-current-version { color: var(--admin-muted); font-size: 13px; }
+  .ai-model-table table { width: 100%; table-layout: fixed; margin-bottom: 0; }
+  .ai-model-table :is(th, td) { overflow-wrap: anywhere; white-space: normal; }
+  .ai-model-table th:first-child { width: 20%; }
+  .ai-model-table th:last-child { width: 17%; }
+  @media (max-width: 991.98px) {
+    .ai-model-layout { flex-direction: column; flex-wrap: nowrap; }
+    .ai-model-layout > * { width: 100%; max-width: none; flex: 0 1 auto; }
+    .rb-admin-section-rail { position: static; }
+    .ai-header-row { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 767.98px) {
+    .ai-provider-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .ai-model-table :is(table, tbody, tr, th, td) { display: block; width: 100%; }
+    .ai-model-table :is(th:first-child, th:last-child) { width: 100%; }
+    .ai-model-table tbody th { padding-bottom: 4px; border: 0; font-size: 16px; }
+    .ai-model-table td { border: 0; padding-top: 4px; padding-bottom: 4px; }
+    .ai-model-table tr { border-bottom: 1px solid var(--admin-line); padding: 12px 8px; }
+    .ai-model-table tr:last-child { border-bottom: 0; }
+    .ai-model-table thead { display: none; }
+    .ai-model-table td[data-label]::before { content: attr(data-label) ': '; color: var(--admin-muted); }
+  }
   @media (max-width: 575.98px) {
-    #ai-model .rb-admin-form-grid, #ai-routing .rb-admin-form-grid, .ai-limit-grid { grid-template-columns: minmax(0, 1fr); }
-    .ai-provider > summary > :nth-child(2) { flex-basis: calc(100% - 48px); }
-    .ai-provider-state { flex: 1 1 100%; margin: 0; justify-content: flex-start; }
-    .ai-provider-chevron { margin-left: auto; }
-    .ai-stacked-table table, .ai-stacked-table tbody, .ai-stacked-table tr, .ai-stacked-table td { display: block; width: 100%; }
-    .ai-stacked-table tbody th { display: block; width: 100%; padding-bottom: 4px; border: 0; }
-    .ai-stacked-table td { border: 0; padding-top: 4px; padding-bottom: 4px; }
-    .ai-stacked-table tr { border-bottom: 1px solid var(--admin-line); padding-bottom: 10px; }
-    .ai-stacked-table thead { display: none; }
-    .ai-stacked-table td[data-label]::before { content: attr(data-label) ': '; color: var(--admin-muted); }
-    .ai-support-matrix { padding: 16px; }
+    .rb-admin-form-grid { grid-template-columns: minmax(0, 1fr); }
     .ai-metadata { grid-template-columns: minmax(0, 1fr); gap: 4px; }
     .ai-metadata dd { margin-bottom: 12px; }
   }

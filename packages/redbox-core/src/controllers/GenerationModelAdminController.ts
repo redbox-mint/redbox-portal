@@ -8,7 +8,7 @@ import type { Services } from '../services/GenerationModelService';
 export function mapGenerationModelAdminError(error: unknown) {
   const safe = asGenerationError(error);
   return { status: safe.status, body: { error: { code: safe.code,
-    messageKey: `ai-models-error-${safe.code.toLowerCase().replaceAll('_', '-')}`, retryable: safe.retryable } } };
+    messageKey: `ai-models-provider-error-${safe.code.toLowerCase().replaceAll('_', '-')}`, retryable: safe.retryable } } };
 }
 
 export namespace Controllers {

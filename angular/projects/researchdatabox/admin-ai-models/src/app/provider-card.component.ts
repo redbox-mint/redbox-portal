@@ -1,7 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
-import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-date.pipe';
 import type { GenerationAdminConnectionDraft, GenerationAdminConnectionHealth, GenerationAdminOverview } from '@researchdatabox/sails-ng-common';
 import { adapterLabels, validateConnection, Issues, slug } from './model-settings';
 
@@ -20,7 +19,7 @@ export interface ProviderDraft {
   secretConfigured?: boolean;
 }
 @Component({
-  selector: 'ai-provider-card', standalone: true, imports: [FormsModule, I18NextPipe, AdminDatePipe],
+  selector: 'ai-provider-card', standalone: true, imports: [FormsModule, I18NextPipe],
   templateUrl: './provider-card.component.html',
 })
 export class ProviderCardComponent implements OnChanges {
@@ -39,6 +38,8 @@ export class ProviderCardComponent implements OnChanges {
   headers: { name: string; value: string }[] = [];
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['item']) return;
+    this.replacing = false;
+    this.touched.clear();
     this.headers = Object.entries(this.item.draft.nonSecretHeaders ?? {}).map(([name, value]) => ({ name, value }));
   }
   get draft(): GenerationAdminConnectionDraft { return this.item.draft; }
@@ -59,18 +60,21 @@ export class ProviderCardComponent implements OnChanges {
   setTimeoutSeconds(value: number | null): void { this.draft.timeoutMs = value === null ? 0 : value * 1000; this.edit(); }
   get health(): string { return this.item.savedJson === JSON.stringify(this.draft) ? this.item.savedHealth || 'untested' : 'untested'; }
   get checkedAt(): string | undefined { return this.health !== 'untested' ? this.item.savedHealthCheckedAt : undefined; }
-  get scheme(): string { return (this.draft.secretRef ?? '').split(':')[0] || this.overview.secretSchemes[0] || ''; }
-  get reference(): string { return (this.draft.secretRef ?? '').split(':').slice(1).join(':'); }
-  setReference(scheme: string, reference: string): void { this.draft.secretRef = `${scheme}:${reference}`; this.edit(); }
+  replacing = false;
+  get keyState(): string {
+    return this.draft.secretRef?.startsWith('env:') ? 'ai-models-key-server' : this.item.secretConfigured ? 'ai-models-key-saved' : 'ai-models-key-missing';
+  }
+  get showKeyInput(): boolean { return this.replacing || !this.draft.secretRef; }
+  replaceKey(): void { this.replacing = true; this.draft.apiKey = ''; }
   edit(): void { this.item.health = undefined; this.item.error = ''; this.changed.emit(); }
   adapterChange(adapter: string): void {
     this.draft.adapterId = adapter;
     this.draft.authStrategy = adapter === 'openrouter' ? 'bearer' : adapter === 'bedrock' ? 'aws-default-chain' : 'none';
     this.draft.region = adapter === 'bedrock' ? this.overview.bedrockRegions.includes('ap-southeast-2') ? 'ap-southeast-2' : this.overview.bedrockRegions[0] : undefined;
-    delete this.draft.secretRef;
+    delete this.draft.secretRef; delete this.draft.apiKey;
     this.edit();
   }
-  authChange(): void { if (this.draft.authStrategy !== 'bearer') delete this.draft.secretRef; this.edit(); }
+  authChange(): void { if (this.draft.authStrategy !== 'bearer') delete this.draft.secretRef; delete this.draft.apiKey; this.edit(); }
   updateHeaders(): void {
     this.item.invalidHeaders = this.duplicateHeaders;
     this.draft.nonSecretHeaders = Object.fromEntries(this.headers.map(header => [header.name, header.value]));

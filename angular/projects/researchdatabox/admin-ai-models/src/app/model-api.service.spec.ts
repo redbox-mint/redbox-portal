@@ -32,6 +32,9 @@ describe('ModelApiService', () => {
     await expectAsync(pending).toBeResolvedTo(overview);
   });
   const cases = [
+    { name: 'deletes provider', method: 'DELETE', path: '/connections/id', body: undefined, call: (a: ModelApiService) => a.deleteConnection('id') },
+    { name: 'discards draft', method: 'DELETE', path: '/models/id', body: undefined, call: (a: ModelApiService) => a.discardDraft('id') },
+    { name: 'deletes model', method: 'DELETE', path: '/models/by-key/key', body: undefined, call: (a: ModelApiService) => a.deleteModel('key') },
     { name: 'creates connection', method: 'POST', path: '/connections', body: connectionDraft(openrouter), call: (a: ModelApiService) => a.saveConnection(connectionDraft(openrouter)) },
     { name: 'updates connection', method: 'PUT', path: '/connections/id%2Fone', body: connectionDraft(openrouter), call: (a: ModelApiService) => a.saveConnection(connectionDraft(openrouter), 'id/one') },
     { name: 'tests unsaved connection', method: 'POST', path: '/connections/test', body: { connection: connectionDraft(openrouter), connectionId: 'id' }, call: (a: ModelApiService) => a.testConnection(connectionDraft(openrouter), 'id') },
@@ -51,12 +54,12 @@ describe('ModelApiService', () => {
   }
   it('retains stable server message keys and 409 status', async () => {
     const pending = api.saveModel('id', { ...modelDraft(model), expectedContentHash: model.contentHash });
-    const assertion = expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ status: 409, messageKey: 'ai-models-error-generation-target-conflict' }));
-    await Promise.resolve(); http.expectOne(base + '/models/id').flush({ error: { messageKey: 'ai-models-error-generation-target-conflict' } }, { status: 409, statusText: 'Conflict' }); await assertion;
+    const assertion = expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ status: 409, messageKey: 'ai-models-provider-error-generation-target-conflict' }));
+    await Promise.resolve(); http.expectOne(base + '/models/id').flush({ error: { messageKey: 'ai-models-provider-error-generation-target-conflict' } }, { status: 409, statusText: 'Conflict' }); await assertion;
   });
   it('normalizes middleware errors without displaying private server bodies', async () => {
     const pending = api.overview(); const assertion = expectAsync(pending).toBeRejectedWith(jasmine.any(ModelApiError));
     await Promise.resolve(); http.expectOne(base + '/overview').flush('private backend details', { status: 403, statusText: 'Forbidden' }); await assertion;
-    try { await pending; } catch (error) { expect((error as ModelApiError).messageKey).toBe('ai-models-error-generation-source-forbidden'); }
+    try { await pending; } catch (error) { expect((error as ModelApiError).messageKey).toBe('ai-models-provider-error-generation-source-forbidden'); }
   });
 });
