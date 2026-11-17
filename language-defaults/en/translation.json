@@ -4394,7 +4394,7 @@
   "data-grids-op-list-exists": "Has at least one value",
   "data-grids-ascending-list": "Ascending (by smallest value)",
   "data-grids-descending-list": "Descending (by largest value)",
-  "data-grids-list-filter-help": "This field holds a list. A condition matches a record when any one of its values matches; a range must contain a single value. Separate conditions can each match a different value.",
+  "data-grids-list-filter-help": "This field holds a list. A condition matches a record when any one of its values matches. For a range, at least one list value must meet both bounds. Separate conditions can each match a different value.",
   "data-grids-list-sort-help": "This field holds a list. Ascending order uses each record's smallest value and descending order its largest value. Records with no values sort as empty.",
   "data-grids-filter-cardinality-changed": "This condition's field changed between a single value and a list, or the condition was saved before list conditions were supported. Confirm the current meaning before saving or viewing results.",
   "data-grids-repair-filter-cardinality": "Use the current meaning",

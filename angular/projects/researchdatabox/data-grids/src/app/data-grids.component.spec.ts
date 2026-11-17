@@ -14,7 +14,7 @@ import {
   GridRequestError,
   GridSourceUnavailable,
 } from './data-grid-source';
-import { GridDefinition, GridPage, GridScope } from './data-grid.model';
+import { GridDefinition, GridPage, GridScope, Operator } from './data-grid.model';
 import { editorSchema, rawDefinition } from './graphql-query';
 import { testSdl } from './data-grid.testing';
 import { DiscoveredField, parsePage, parseSavedQuery, partialFieldErrors } from './record-grid.protocol';
@@ -1026,6 +1026,41 @@ describe('Data grid editor', () => {
     const persisted = source.save.calls.mostRecent().args[0] as GridDefinition;
     expect(persisted.filters[0].expectedCardinality).toBe('LIST');
     expect(persisted.sort?.expectedCardinality).toBe('LIST');
+  });
+  it('preserves unavailable filters instead of offering or applying cardinality repair', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    // A pre-fix repair dirties the draft; never let a reopen block on the native discard prompt.
+    const confirm = spyOn(window, 'confirm').and.returnValue(true);
+    const scores = component.catalogue!.scopes[0].fields.find(field => field.id === 'scores')!;
+    const cases: { partial: boolean; operators: Operator[] }[] = [
+      { partial: true, operators: [] },
+      { partial: false, operators: [] },
+      { partial: true, operators: ['eq', 'between', 'exists'] },
+    ];
+    for (const unavailable of cases) {
+      scores.partial = unavailable.partial;
+      scores.operators = unavailable.operators;
+      const grid = validGrid();
+      grid.filters = [{ fieldId: 'scores', expectedScalarType: 'INTEGER', operator: 'gt', values: ['3'] }];
+      component.open(grid);
+      component.filterEditor = 0;
+      await render();
+      const filter = component.draft!.filters[0];
+      expect(component.filterCardinalityChanged(filter)).toBeFalse();
+      expect(fixture.nativeElement.querySelector('.explorer-filter-cardinality')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.rb-admin-chip.explorer-chip-repair')).toBeNull();
+      expect(fixture.nativeElement.querySelector('#filter-op-0').value).toBe('gt');
+      const before = structuredClone(filter);
+      component.repairFilterCardinality(filter);
+      await render();
+      expect(filter).toEqual(before);
+      expect(fixture.nativeElement.querySelector('#filter-op-0').value).toBe('gt');
+      expect(component.dirty).toBeFalse();
+      expect(component.canPreview).toBeFalse();
+      expect(component.issues.map(issue => issue.key)).toContain('unavailable-filter');
+    }
+    expect(confirm).not.toHaveBeenCalled();
   });
   it('resets an operator that the repaired list meaning no longer supports', async () => {
     addLists();

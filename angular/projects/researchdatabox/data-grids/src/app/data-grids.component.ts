@@ -712,16 +712,25 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     const field = this.field(filter.fieldId);
     return !!field && filter.expectedScalarType !== scalarTypeFor(field);
   }
-  /** Type drift has its own reset; cardinality drift keeps compatible values for explicit confirmation. */
+  /**
+   * Type drift has its own reset; cardinality drift keeps compatible values for explicit confirmation.
+   * Repair is offered only while the field can be queried in this scope: an unavailable field (partial
+   * discovery or no operators) keeps its saved draft until the user picks another field or removes it.
+   */
   filterCardinalityChanged(filter: GridFilter): boolean {
     const field = this.field(filter.fieldId);
     return (
-      !!field && !this.filterTypeChanged(filter) && (filter.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)
+      !!field &&
+      !!scalarTypeFor(field) &&
+      !field.partial &&
+      field.operators.length > 0 &&
+      !this.filterTypeChanged(filter) &&
+      (filter.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)
     );
   }
   repairFilterCardinality(filter: GridFilter): void {
     const field = this.field(filter.fieldId);
-    if (!field) return;
+    if (!field || !this.filterCardinalityChanged(filter)) return;
     filter.expectedCardinality = cardinalityFor(field);
     if (field.operators.includes(filter.operator)) this.changed();
     else this.chooseOperator(filter, field.operators[0]);
