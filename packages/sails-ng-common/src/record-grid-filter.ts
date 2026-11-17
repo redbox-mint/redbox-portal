@@ -91,7 +91,7 @@ export function recordGridFilter(
 ): NamedQueryJson {
   if (
     !field.filterable ||
-    field.repeating ||
+    (field.repeating && !['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(field.scalarType)) ||
     !field.availableInAllVariants ||
     !field.operators.some(operator => operator.toLowerCase() === filter.operator)
   )

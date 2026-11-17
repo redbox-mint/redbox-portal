@@ -342,7 +342,7 @@ export namespace Services {
         const field = fields.find(field => field.id === filter.fieldId);
         if (
           !field ||
-          field.repeating ||
+          (field.repeating && !['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(field.scalarType)) ||
           !field.availableInAllVariants ||
           !field.operators.includes(filter.operator.toUpperCase())
         )

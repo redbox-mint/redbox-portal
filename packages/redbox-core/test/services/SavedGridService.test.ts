@@ -127,6 +127,37 @@ describe('Saved grids persistence boundary', () => {
       )
     );
   });
+  it('persists verified scalar-list element filters while rejecting list sorts', async () => {
+    fields.push({
+      id: 'metadata:/finalKeywords',
+      scalarType: 'STRING',
+      selectable: true,
+      repeating: true,
+      availableInAllVariants: true,
+      operators: ['EQ', 'IN', 'EXISTS'],
+      sortable: false,
+    });
+    const grid = {
+      ...definition(),
+      filters: [
+        {
+          fieldId: 'metadata:/finalKeywords',
+          operator: 'eq',
+          expectedScalarType: 'STRING',
+          values: ['Synthetic keyword'],
+        },
+      ],
+    };
+    const saved = await service.create(scope, grid, {});
+    assert.deepEqual((await service.read(scope, saved.id)).filters, grid.filters);
+    await assert.rejects(
+      service.create(
+        scope,
+        { ...grid, sort: { fieldId: 'metadata:/finalKeywords', direction: 'asc', expectedScalarType: 'STRING' } },
+        {}
+      )
+    );
+  });
   it('saves declared single-person objects but rejects scalar operations and opaque objects', async () => {
     const id = 'metadata:/contributor_ci';
     fields.push({
@@ -247,14 +278,19 @@ describe('Saved grids persistence boundary', () => {
   it('exposes bounded actual schema tooling and handles missing schema safely', async () => {
     const caller = { user: 'admin' };
     let received: unknown;
+    let requestedScope: unknown;
     setGlobal('RecordGraphqlService', {
-      describeReadSchema: async (value: unknown) => {
+      describeReadSchema: async (value: unknown, scope: unknown) => {
         received = value;
+        requestedScope = scope;
         return 'type Query { record: String }';
       },
     });
     assert.equal((await service.schema(caller)).sdl, 'type Query { record: String }');
     assert.equal(received, caller);
+    const selected = { recordType: 'rdmp', workflowStages: ['draft'] };
+    await service.schema(caller, selected);
+    assert.deepEqual(requestedScope, selected);
     setGlobal('RecordGraphqlService', { describeReadSchema: async () => 'x'.repeat(262145) });
     await assert.rejects(service.schema(caller), (e: SavedGridError) => e.code === 'schema-unavailable');
   });

@@ -170,6 +170,8 @@ function selection(contract: RecordContract, tokens: readonly (string | null)[],
   };
 }
 function scalarType(shape: ReadShape): GridScalar {
+  if (shape.kind === 'array' && ['string', 'number', 'integer', 'boolean'].includes(shape.items.kind))
+    return scalarType(shape.items);
   switch (shape.kind) {
     case 'string':
       return 'STRING';
@@ -268,6 +270,7 @@ export function buildCatalogue(
               : scalarType(shape);
         const existing = fields.get(id);
         if (existing) {
+          if (existing.repeating !== repeating) existing.scalarType = 'MIXED';
           existing.repeating ||= repeating;
           existing.selectable &&=
             !tokens.includes(null) &&

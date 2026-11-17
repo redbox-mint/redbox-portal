@@ -64,13 +64,16 @@ describe('shared visual grid filter validation', () => {
   });
   for (const unavailable of [
     { filterable: false },
-    { repeating: true },
+    { repeating: true, scalarType: 'JSON' },
     { availableInAllVariants: false },
     { operators: [] },
   ])
     it(`rejects unavailable fresh capabilities ${JSON.stringify(unavailable)}`, () => {
       assert.throws(() => recordGridFilter(filter, { ...field, ...unavailable }), /schema-changed/);
     });
+  it('accepts verified scalar-list element predicates without changing operand types', () => {
+    assert.deepEqual(recordGridFilter(filter, { ...field, repeating: true }), recordGridFilter(filter, field));
+  });
   it('rejects missing or changed type bindings and unsupported scalar discovery', () => {
     assert.throws(() => recordGridFilter({ ...filter, expectedScalarType: undefined }, field), /filter-type-changed/);
     assert.throws(() => recordGridFilter(filter, { ...field, scalarType: 'NUMBER' }), /filter-type-changed/);
