@@ -5,7 +5,13 @@ import { gridContracts, gridEnvironment } from '../../fixtures/record-grid.fixtu
 describe('Business metadata capabilities with Mongo collections', () => {
   it('exposes declared business scalars without Solr opt-in mappings', () => {
     const fields = buildCatalogue(gridContracts(), 'grid-fixture', [], gridEnvironment()).catalogue.fields;
-    for (const id of ['metadata:/title', 'metadata:/amount', 'metadata:/active', 'metadata:/eventDate', 'metadata:/dc:title']) {
+    for (const id of [
+      'metadata:/title',
+      'metadata:/amount',
+      'metadata:/active',
+      'metadata:/eventDate',
+      'metadata:/dc:title',
+    ]) {
       const field = fields.find(item => item.id === id)!;
       assert.equal(field.filterable, true, id);
       assert.equal(field.sortable, true, id);
@@ -15,11 +21,16 @@ describe('Business metadata capabilities with Mongo collections', () => {
   it('keeps repeating and private fields unavailable to Mongo scalar predicates', () => {
     const contracts = gridContracts();
     for (const contract of contracts)
-      contract.root.properties.tags = { kind: 'array', nullable: true, items: { kind: 'scalar', scalarType: 'string', nullable: true } };
+      Object.assign(contract.root.properties, {
+        tags: { kind: 'array', nullable: true, items: { kind: 'scalar', scalarType: 'string', nullable: true } },
+      });
     const fields = buildCatalogue(contracts, 'grid-fixture', [], gridEnvironment()).catalogue.fields;
     const tags = fields.find(item => item.id === 'metadata:/tags')!;
     assert.equal(tags.filterable, false);
     assert.equal(tags.sortable, false);
-    assert.equal(fields.some(item => item.id === 'metadata:/secret'), false);
+    assert.equal(
+      fields.some(item => item.id === 'metadata:/secret'),
+      false
+    );
   });
 });

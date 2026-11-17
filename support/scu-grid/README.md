@@ -2,6 +2,18 @@
 
 17 November 2026. Private diagnostic inputs and screenshots were not added to Git. This work used the complete supplied branding-scoped v5 forms and actual SCU `feature/v5-refactor` reusable definitions before reducing fixtures. Scalar record contents were constructed from the supplied kind descriptors; they are synthetic, not imported customer records.
 
+## Current branch after Mongo rebase — 18 November 2026
+
+The integration branch is now `bugfix/record-grid-reliability`, rebased onto `feature/graphql-mongo-collections` at `4dd23546d`. The evidence and five-layer branch table below describe the original Solr-based implementation before this rebase; those layer branches were not rewritten. The original integration head is preserved at `backup/record-grid-reliability-before-mongo-rebase` (`42e4c469e`).
+
+The target branch replaces GraphQL collection execution with Mongo storage. Conflict resolution keeps that implementation: declared scalar metadata can filter/sort without Solr mappings or a Solr reindex. Obsolete GraphQL Solr bindings/configuration and preIndex restoration code were not reintroduced. Scalar arrays remain readable but cannot filter or sort in the current Mongo implementation; object-list children also remain unavailable. The historical Solr keyword membership evidence below does not establish Mongo list support.
+
+Composite catalogue fingerprints now retain the Mongo semantics marker and hash declared fields/contracts rather than Solr schema/configuration. The invalidation regression changes a contract instead of an unrelated Solr index. Scoped editor schemas, bounded read declarations, identity hints, partial results and worst-executable-variant query accounting are retained. The Angular parser keeps GraphQL 17's `maxLexicalTokens` option from the new base. Read declarations and lookup identity hints still require hook-owned configuration.
+
+Post-rebase validation passed with refreshed dependencies and rebuilt `sails-ng-common`: **137 GraphQL tests** including core TypeScript checking, **202 Angular data-grid tests**, and **24 SavedGridService/fingerprint tests**. No Docker integration or browser scenarios were rerun after the rebase; the earlier results below remain historical Solr evidence. `git diff --check` passed. Dependency manifests and lockfiles were not changed.
+
+Replayed commit heads, in order: `ecf837dd2` (read declarations), `d49e09be0` (catalogue/schema), `295169b0e` (adapted capability checks), `26781043c` (variant complexity), `e863470b4` (UI), `3e6ddb33d` (original evidence ledger). A subsequent compatibility commit records the final test adjustments and this rebase note.
+
 ## Base and reproduction inputs
 
 The assigned checkout began at master `1058d0b1c`. Master contains neither the GraphQL nor the explorer implementation. The bugfix branch was fast-forwarded to the existing explorer stack base `224ed41ff` (`origin/feature/record-explorer-ux`), which contains the audited implementation. The SCU hook clone used for reproduction was `4c24dc9` on `feature/v5-refactor`. The user-provided clone was on legacy `main`; it was read without modification.

@@ -25,7 +25,9 @@ describe('SCU deployed multi-stage read catalogue regression', () => {
     assert.equal(first.variants.length, 7);
     assert.equal(formatRecordFormFingerprint(first), undefined, 'catalogue alone exceeds the old one-form byte budget');
     assert.equal(buildCatalogue(contracts, 'rdmp', [], environment).catalogue.revision, first.revision);
-    contracts[0].root.properties['new_field'] = { kind: 'scalar', scalarType: 'string', nullable: true };
+    Object.assign(contracts[0].root.properties, {
+      new_field: { kind: 'scalar', scalarType: 'string', nullable: true },
+    });
     assert.notEqual(buildCatalogue(contracts, 'rdmp', [], environment).catalogue.revision, first.revision);
   });
   it('executes the audited minimal HTTP query with authoritative unique record OIDs', async () => {

@@ -1,3 +1,5 @@
+> Historical Solr evidence. After the 18 November 2026 rebase onto `feature/graphql-mongo-collections`, GraphQL collections use Mongo storage. The Solr bindings and reindex steps below are not required for current GraphQL collections. Declared scalar fields receive Mongo capabilities directly; scalar lists currently remain unavailable for filtering/sorting. See `scu-grid/README.md` for the rebase scope.
+
 # Business metadata filter and sort capabilities: finding 5
 
 Sanitized implementation evidence, 17 November 2026. No customer record values,
