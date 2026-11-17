@@ -6,6 +6,7 @@
  */
 
 export { emailTemplateAdmin } from './emailTemplateAdmin';
+export { generationModelAdmin } from './generationModelAdmin';
 export { brandingAndPortal } from './brandingAndPortal';
 export { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 export { checkRecordGraphqlAuth } from './checkRecordGraphqlAuth';
@@ -26,6 +27,7 @@ export { validateApiContractRequest } from './validateApiContractRequest';
 
 // Re-export as a namespace for convenient access
 import { emailTemplateAdmin } from './emailTemplateAdmin';
+import { generationModelAdmin } from './generationModelAdmin';
 import { brandingAndPortal } from './brandingAndPortal';
 import { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 import { checkRecordGraphqlAuth } from './checkRecordGraphqlAuth';
@@ -46,6 +48,7 @@ import { validateApiContractRequest } from './validateApiContractRequest';
 
 export const Policies = {
   emailTemplateAdmin,
+  generationModelAdmin,
   brandingAndPortal,
   checkAuth,
   checkRecordSchemaAuth,
