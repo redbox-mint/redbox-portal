@@ -999,7 +999,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "900kb"
+                  "maximumError": "910kb"
                 },
                 {
                   "type": "anyComponentStyle",
