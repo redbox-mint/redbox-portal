@@ -66,7 +66,7 @@ function nodeHints(
       shortLabel?: string;
       groups?: string[];
       vocabulary?: string;
-      dateTime?: boolean;
+      scalarTypes: Set<GridScalar | 'DATE'>;
       choices: GridField['choices'];
     }
   >(),
@@ -74,7 +74,7 @@ function nodeHints(
 ) {
   if (node.annotations?.writeOnly || (shape.kind === 'json' && shape.reason === 'restricted-shape')) return output;
   const id = metadataFieldId(tokens);
-  const hint = output.get(id) ?? { choices: [] };
+  const hint = output.get(id) ?? { choices: [], scalarTypes: new Set<GridScalar | 'DATE'>() };
   const configuredGroups = node.annotations?.extensions?.['x-redbox-group-path'];
   const currentGroups = [
     ...groups,
@@ -85,7 +85,18 @@ function nodeHints(
   hint.groups ??= [...new Set(currentGroups)];
   const shortLabel = node.annotations?.extensions?.['x-redbox-short-label'];
   if (typeof shortLabel === 'string') hint.shortLabel ??= shortLabel;
-  if (node.kind === 'scalar' && node.annotations?.extensions?.['x-redbox-format'] === 'date-time') hint.dateTime = true;
+  if (node.kind === 'scalar') {
+    const format = node.annotations?.extensions?.['x-redbox-format'];
+    hint.scalarTypes.add(
+      node.annotations?.extensions?.['x-redbox-format-conflict'] === true
+        ? 'MIXED'
+        : node.scalarType === 'string' && format === 'date'
+          ? 'DATE'
+          : node.scalarType === 'string' && format === 'date-time'
+            ? 'DATETIME'
+            : scalarType(fromTree(node))
+    );
+  }
   const label = node.annotations?.extensions?.['x-redbox-label'] ?? node.annotations?.description;
   if (typeof label === 'string' && !hint.label) hint.label = label;
   const vocabulary = node.annotations?.extensions?.['x-redbox-vocabulary'];
@@ -181,6 +192,7 @@ export function buildCatalogue(
 ): CatalogueSnapshot {
   const scoped = scopedContracts(contracts, recordType, stages);
   const fields = new Map<string, GridField>();
+  const dateFormats = new Map<string, GridScalar | 'DATE'>();
   for (const [name, label, type] of recordFields)
     fields.set(`record:${name}`, {
       id: `record:${name}`,
@@ -247,7 +259,12 @@ export function buildCatalogue(
             ? 'Metadata'
             : rawGroup.slice(1)
           : rawGroup;
-        const type = shape.kind === 'string' && hint?.dateTime ? 'DATETIME' : scalarType(shape);
+        const type =
+          hint && (hint.scalarTypes.size > 1 || hint.scalarTypes.has('MIXED'))
+            ? 'MIXED'
+            : shape.kind === 'string' && (hint?.scalarTypes.has('DATE') || hint?.scalarTypes.has('DATETIME'))
+              ? 'DATETIME'
+              : scalarType(shape);
         const existing = fields.get(id);
         if (existing) {
           existing.repeating ||= repeating;
@@ -257,9 +274,13 @@ export function buildCatalogue(
               ? declaredSelection(shape) !== null
               : !['OBJECT', 'JSON'].includes(type));
           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
+          // Calendar dates and instants use the same query input, but distinct
+          // persisted meanings must not silently replace one another across forms.
+          if (type === 'DATETIME' && dateFormats.get(id) !== [...hint!.scalarTypes][0]) existing.scalarType = 'MIXED';
           existing.selections.push(selection(contract, tokens, shape));
           existing.choices.push(...(hint?.choices ?? []));
-        } else
+        } else {
+          if (type === 'DATETIME') dateFormats.set(id, [...hint!.scalarTypes][0]);
           fields.set(id, {
             id,
             path: pointer(tokens),
@@ -290,6 +311,7 @@ export function buildCatalogue(
             selections: [selection(contract, tokens, shape)],
             unavailableReason: null,
           });
+        }
         if (fields.size > GRID_LIMITS.catalogueFields)
           gridError('CATALOGUE_LIMIT', 'Field catalogue exceeds its bound; narrow the workflow scope.');
       }

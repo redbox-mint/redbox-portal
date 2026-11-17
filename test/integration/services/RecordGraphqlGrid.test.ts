@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
 import { recordGraphql } from '@researchdatabox/redbox-core';
+
+// Native fixtures must use the BSON version pinned by Sails' datastore driver.
+const { Decimal128, Long, ObjectId }: Pick<typeof import('mongodb'), 'Decimal128' | 'Long' | 'ObjectId'> =
+  createRequire(require.resolve('sails-mongo'))('mongodb');
 
 describe('GraphQL grid over Sails and Mongo', function () {
   this.timeout(180_000);
@@ -538,6 +543,99 @@ describe('GraphQL grid over Sails and Mongo', function () {
       );
       assert.deepEqual(resultIds({ body: impostor.data }).sort(), [userView, userEdit, legacy].sort());
     }
+  });
+  it('matches hasViewAccess for scalar role grants, legacy precedence and stringified owned IDs before hydration', async () => {
+    const native = Record.getDatastore().manager.collection(Record.tableName);
+    const objectId = new ObjectId();
+    const roleBrand = {
+      ...brand,
+      roles: [
+        { id: '123', name: '123' },
+        { id: 'fraction', name: '1.5' },
+        { id: 'boolean', name: 'true' },
+        { id: 'leading-zero', name: '01' },
+        { id: 'exponent', name: '1e+21' },
+        { id: objectId.toHexString(), name: 'Researcher' },
+        { id: 'duplicate', name: '123' },
+      ],
+    };
+    const roles = [
+      { id: 123 },
+      { id: 'fraction' },
+      { id: 'boolean' },
+      { id: 'leading-zero' },
+      { id: 'exponent' },
+      { id: objectId },
+    ];
+    const caller = {
+      brand: roleBrand,
+      portal: 'rdmp',
+      user: { id: 'scalar-reader', username: 'scalar-reader' },
+      roles,
+    };
+    const cases = [
+      { authorization: { viewRoles: 123 } },
+      { authorization: { editRoles: [123, 'unowned'] } },
+      { authorization: { viewRoles: 1.5 } },
+      { authorization: { viewRoles: true } },
+      { authorization: { viewRoles: '01' } },
+      { authorization: { viewRoles: 1e21 } },
+      { authorization: { viewRoles: 'Researcher' } },
+      { authorization: { view: 'scalar-reader' } },
+      { authorization: null, authorization_viewRoles: 123 },
+      { authorization: false, authorization_editRoles: true },
+      { authorization: {}, authorization_viewRoles: 123 },
+      { authorization: [], authorization_viewRoles: 123 },
+      { authorization: { viewRoles: 1 } },
+      { authorization: { viewRoles: 'unowned' } },
+      { authorization: { view: 123 } },
+      { authorization: { viewRoles: Long.fromNumber(123) } },
+    ];
+    const ids: string[] = [];
+    for (const stored of cases) {
+      const oid = await fixture({ title: 'scalar-acl' });
+      await native.updateOne({ redboxOid: oid }, { $set: stored });
+      ids.push(oid);
+    }
+    const stored = await native.find({ redboxOid: { $in: ids } }).toArray();
+    const expected = stored
+      .filter(record => RecordsService.hasViewAccess(roleBrand, caller.user, roles, record))
+      .map(record => record.redboxOid)
+      .sort();
+    assert.equal(expected.length, 11);
+    const access = RecordsService.hasViewAccess;
+    const hydrated: string[] = [];
+    RecordsService.hasViewAccess = (...args) => {
+      hydrated.push(args[3].redboxOid);
+      return access(...args);
+    };
+    try {
+      const response = await RecordGraphqlService.execute(caller, {
+        query: page,
+        variables: { filters: [idsFilter(ids)], first: 50 },
+      });
+      assert.deepEqual(resultIds({ body: response.data }).sort(), expected);
+      assert.deepEqual(hydrated.sort(), expected);
+      const duplicate = await RecordGraphqlService.execute(
+        { ...caller, roles: [{ id: 'duplicate' }] },
+        { query: page, variables: { filters: [idsFilter(ids)], first: 50 } }
+      );
+      assert.deepEqual(resultIds({ body: duplicate.data }), [ids[7]]);
+    } finally {
+      RecordsService.hasViewAccess = access;
+    }
+    // Non-JSON grants that String(value) could coerce are intentionally excluded.
+    const malformed: string[] = [];
+    for (const grant of [['Researcher'], { name: 'Researcher' }, Decimal128.fromString('123.000')]) {
+      const oid = await fixture({ title: 'malformed-acl' });
+      await native.updateOne({ redboxOid: oid }, { $set: { authorization: { viewRoles: [grant] } } });
+      malformed.push(oid);
+    }
+    const response = await RecordGraphqlService.execute(caller, {
+      query: page,
+      variables: { filters: [idsFilter(malformed)], first: 50 },
+    });
+    assert.deepEqual(resultIds({ body: response.data }), []);
   });
   it('paginates duplicate and null keys in both directions, treating invalid scalar storage as missing', async () => {
     const ids: string[] = [];

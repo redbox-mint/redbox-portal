@@ -28,7 +28,8 @@ Compatible scalar leaves present in all selected variants gain operations withou
 index mappings. Private, opaque, incompatible and repeating paths remain excluded
 from filtering and sorting. Nested object keys use exact `$getField` expressions;
 arrays cannot implicitly supply values to scalar declarations. DateInputComponent
-adds a `date-time` format annotation while retaining its existing string schema.
+adds a `date` or `date-time` format annotation according to its model's `dateOnly`
+configuration while retaining its existing string schema.
 
 Mongo matches brand, type, configured workflow stages, and viewer/editor user or
 canonical brand-role grants before returning candidates. Admin has no record ACL

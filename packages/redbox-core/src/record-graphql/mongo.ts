@@ -140,9 +140,20 @@ function permissions(request: GridStorageRequest): Document {
     !Array.isArray(caller.brand.roles)
   )
     gridError('UNAUTHENTICATED', 'Authenticated record collection context is required.');
-  const roles = caller.roles.flatMap(role => (isObject(role) && typeof role.id === 'string' ? [{ id: role.id }] : []));
+  const roles = caller.roles.flatMap(role => (isObject(role) && role.id != null ? [{ id: String(role.id) }] : []));
   const names = recordRoleNames(caller.brand, roles);
+  // recordHasAccess resolves role names with String(value). Invert that mapping
+  // for JSON scalars so Mongo numeric formatting cannot change JS name semantics.
+  const roleValues = names.flatMap<string | number | boolean>(name => {
+    const numeric = Number(name);
+    return [
+      name,
+      ...(Number.isFinite(numeric) && String(numeric) === name ? [numeric] : []),
+      ...(name === 'true' ? [true] : name === 'false' ? [false] : []),
+    ];
+  });
   const clauses = ['edit', 'view', 'editRoles', 'viewRoles'].map(name => {
+    const roleGrant = name.endsWith('Roles');
     const raw = {
       $cond: [
         {
@@ -160,8 +171,27 @@ function permissions(request: GridStorageRequest): Document {
             {
               $size: {
                 $setIntersection: [
-                  { $cond: [{ $isArray: '$$acl' }, '$$acl', [{ $ifNull: ['$$acl', null] }]] },
-                  literal(name.endsWith('Roles') ? names : [caller.user.username]),
+                  {
+                    $filter: {
+                      input: { $cond: [{ $isArray: '$$acl' }, '$$acl', [{ $ifNull: ['$$acl', null] }]] },
+                      as: 'grant',
+                      cond: roleGrant
+                        ? {
+                            $or: [
+                              { $in: [{ $type: '$$grant' }, ['string', 'bool', 'int', 'double']] },
+                              {
+                                $and: [
+                                  { $eq: [{ $type: '$$grant' }, 'long'] },
+                                  { $gte: ['$$grant', Number.MIN_SAFE_INTEGER] },
+                                  { $lte: ['$$grant', Number.MAX_SAFE_INTEGER] },
+                                ],
+                              },
+                            ],
+                          }
+                        : { $eq: [{ $type: '$$grant' }, 'string'] },
+                    },
+                  },
+                  literal(roleGrant ? roleValues : [caller.user.username]),
                 ],
               },
             },
