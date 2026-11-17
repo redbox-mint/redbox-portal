@@ -139,6 +139,30 @@ function normalizedValue(input: unknown, type: GridScalar): Document {
   }
   return { $let: { vars: { value: input }, in: expression } };
 }
+/** Valid elements of a stored array, each normalized exactly as a scalar of the
+ * declared type. Missing, null and non-array values have no elements; invalid
+ * and null elements (including nested arrays and objects) are dropped rather
+ * than coerced. Elements are never flattened and the array is never truncated. */
+function normalizedList(input: unknown, type: GridScalar): Document {
+  return {
+    $let: {
+      vars: { list: input },
+      in: {
+        $cond: [
+          { $isArray: '$$list' },
+          {
+            $filter: {
+              input: { $map: { input: '$$list', as: 'item', in: normalizedValue('$$item', type) } },
+              as: 'element',
+              cond: { $ne: ['$$element', null] },
+            },
+          },
+          [],
+        ],
+      },
+    },
+  };
+}
 function permissions(request: GridStorageRequest): Document {
   const { caller } = request;
   if (
@@ -259,21 +283,34 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
   const oidSort = plan.sort.length === 1 && plan.sort[0].field === 'record:oid';
   const used = [...new Set([...plan.filters, ...plan.sort].map(item => item.field))];
   const project: Document = { _id: 0, oid: '$redboxOid' };
+  // Scalar fields project one normalized value (v). Lists project their valid
+  // elements (l) for predicates, plus one scalar sort key (v) when sorted.
   const references = new Map<string, string>();
+  const lists = new Map<string, string>();
+  const listKeys: Document = {};
   for (const [index, id] of used.entries()) {
     const binding = snapshot.bindings.get(id) ?? gridError('UNKNOWN_FIELD', 'Field is unavailable.');
     const input =
       id === 'record:createdOn'
         ? { $ifNull: ['$metaMetadata.createdOn', '$dateCreated'] }
         : storedValue(binding.tokens);
-    project[`v${index}`] = normalizedValue(input, binding.type);
+    if (binding.cardinality === 'LIST') {
+      project[`l${index}`] = normalizedList(input, binding.type);
+      lists.set(id, `$l${index}`);
+      const sorted = plan.sort.find(item => item.field === id);
+      // ASC orders by the smallest valid element and DESC by the largest,
+      // independently of filters. No valid element is null, as for scalars.
+      if (sorted) listKeys[`v${index}`] = { [sorted.direction === 1 ? '$min' : '$max']: `$l${index}` };
+    } else project[`v${index}`] = normalizedValue(input, binding.type);
     references.set(id, `$v${index}`);
   }
   const pipeline: Document[] = [{ $match: { $and: scope } }];
   const matches: Document[] = plan.filters.map(filter => {
-    const ref = references.get(filter.field);
+    const list = lists.get(filter.field);
+    const ref = list ? '$$element' : references.get(filter.field);
     const [value, to] = filter.values;
-    if (filter.operation === 'exists') return { [value ? '$ne' : '$eq']: [ref, null] };
+    if (filter.operation === 'exists')
+      return list ? { [value ? '$gt' : '$eq']: [{ $size: list }, 0] } : { [value ? '$ne' : '$eq']: [ref, null] };
     let comparison: Document;
     if (filter.operation === 'contains' || filter.operation === 'iprefix') {
       // ASCII-only folding in the pattern preserves non-ASCII case exactly.
@@ -296,6 +333,9 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
       const operators: Record<string, string> = { eq: '$eq', gt: '$gt', lt: '$lt' };
       comparison = { [operators[filter.operation]]: [ref, literal(value)] };
     }
+    // Each list predicate, including both BETWEEN bounds, is evaluated on one
+    // element. Separate filters are independent and may match different elements.
+    if (list) return { $anyElementTrue: [{ $map: { input: list, as: 'element', in: comparison } }] };
     return { $and: [{ $ne: [ref, null] }, comparison] };
   });
   const sort: Document = {};
@@ -336,7 +376,10 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
   // the existing redboxOid index to supply order and continuation range bounds.
   if (oidSort) pipeline.push({ $sort: { redboxOid: plan.sort[0].direction } });
   pipeline.push({ $project: project });
+  if (Object.keys(listKeys).length) pipeline.push({ $addFields: listKeys });
   if (matches.length) pipeline.push({ $match: { $expr: { $and: matches } } });
+  // Sort only scalar keys: working element arrays never reach the blocking sort.
+  if (lists.size) pipeline.push({ $project: Object.fromEntries([...lists.values()].map(list => [list.slice(1), 0])) });
   const oversized = keys.map(key => ({
     $cond: [{ $eq: [{ $type: key }, 'string'] }, { $gt: [{ $strLenBytes: key }, GRID_LIMITS.cursorBytes / 2] }, false],
   }));

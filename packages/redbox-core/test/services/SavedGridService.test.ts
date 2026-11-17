@@ -50,6 +50,8 @@ describe('Saved grids persistence boundary', () => {
         scalarType: 'STRING',
         selectable: true,
         repeating: false,
+        cardinality: 'SCALAR',
+        filterable: true,
         availableInAllVariants: true,
         operators: ['EQ', 'CONTAINS', 'IN', 'EXISTS'],
         sortable: true,
@@ -102,6 +104,8 @@ describe('Saved grids persistence boundary', () => {
       scalarType: 'JSON',
       selectable: true,
       repeating: true,
+      cardinality: 'LIST',
+      filterable: false,
       availableInAllVariants: true,
       operators: [],
       sortable: false,
@@ -127,35 +131,70 @@ describe('Saved grids persistence boundary', () => {
       )
     );
   });
-  it('persists advertised scalar-list filters for forward compatibility and rejects list sorts', async () => {
+  it('persists declared scalar-list filters and min/max sorts with explicit LIST cardinality', async () => {
     fields.push({
       id: 'metadata:/finalKeywords',
       scalarType: 'STRING',
       selectable: true,
       repeating: true,
+      cardinality: 'LIST',
+      filterable: true,
       availableInAllVariants: true,
       operators: ['EQ', 'IN', 'EXISTS'],
-      sortable: false,
+      sortable: true,
     });
-    const grid = {
-      ...definition(),
-      filters: [
-        {
-          fieldId: 'metadata:/finalKeywords',
-          operator: 'eq',
-          expectedScalarType: 'STRING',
-          values: ['Synthetic keyword'],
-        },
-      ],
+    const filter = {
+      fieldId: 'metadata:/finalKeywords',
+      operator: 'eq',
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+      values: ['Synthetic keyword'],
     };
+    const sort = {
+      fieldId: 'metadata:/finalKeywords',
+      direction: 'desc',
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+    };
+    const grid = { ...definition(), filters: [filter], sort };
     const saved = await service.create(scope, grid, {});
-    assert.deepEqual((await service.read(scope, saved.id)).filters, grid.filters);
+    const reopened = await service.read(scope, saved.id);
+    assert.deepEqual(reopened.filters, grid.filters);
+    assert.deepEqual(reopened.sort, sort);
+    // Legacy definitions without expectedCardinality are scalar and require repair.
+    const { expectedCardinality: _filter, ...legacyFilter } = filter;
+    const { expectedCardinality: _sort, ...legacySort } = sort;
     await assert.rejects(
-      service.create(
-        scope,
-        { ...grid, sort: { fieldId: 'metadata:/finalKeywords', direction: 'asc', expectedScalarType: 'STRING' } },
-        {}
-      )
+      service.update(scope, saved.id, 1, { ...grid, filters: [legacyFilter] }, {}),
+      (e: SavedGridError) => e.code === 'filter-cardinality-changed'
+    );
+    await assert.rejects(
+      service.update(scope, saved.id, 1, { ...grid, sort: legacySort }, {}),
+      (e: SavedGridError) => e.code === 'sort-cardinality-changed'
+    );
+    await assert.rejects(
+      service.create(scope, { ...grid, filters: [{ ...filter, expectedCardinality: 'SCALAR' }] }, {}),
+      (e: SavedGridError) => e.code === 'filter-cardinality-changed'
+    );
+    await assert.rejects(
+      service.create(scope, { ...grid, filters: [{ ...filter, expectedCardinality: 'MANY' }] }, {}),
+      (e: SavedGridError) => e.code === 'invalid-definition'
+    );
+    // A field that becomes scalar again rejects saved LIST semantics.
+    fields = fields.map(field =>
+      (field as { id: string }).id === filter.fieldId ? { ...field, repeating: false, cardinality: 'SCALAR' } : field
+    );
+    await assert.rejects(
+      service.update(scope, saved.id, 1, { ...grid, sort: legacySort }, {}),
+      (e: SavedGridError) => e.code === 'filter-cardinality-changed'
+    );
+    await assert.rejects(
+      service.update(scope, saved.id, 1, { ...grid, filters: [] }, {}),
+      (e: SavedGridError) => e.code === 'sort-cardinality-changed'
+    );
+    assert.equal(
+      (await service.update(scope, saved.id, 1, { ...grid, filters: [legacyFilter], sort: legacySort }, {})).revision,
+      2
     );
   });
   it('saves declared single-person objects but rejects scalar operations and opaque objects', async () => {
@@ -165,6 +204,8 @@ describe('Saved grids persistence boundary', () => {
       scalarType: 'OBJECT',
       selectable: true,
       repeating: false,
+      cardinality: 'SCALAR',
+      filterable: true,
       availableInAllVariants: true,
       operators: [],
       sortable: false,
@@ -384,6 +425,8 @@ describe('Saved grids persistence boundary', () => {
         scalarType: 'INTEGER',
         selectable: true,
         repeating: false,
+        cardinality: 'SCALAR',
+        filterable: true,
         availableInAllVariants: true,
         operators: ['EQ', 'BETWEEN'],
         sortable: true,
@@ -518,6 +561,8 @@ describe('Saved grids persistence boundary', () => {
         scalarType: 'NUMBER',
         selectable: true,
         repeating: false,
+        cardinality: 'SCALAR',
+        filterable: true,
         availableInAllVariants: true,
         operators: ['EQ'],
         sortable: true,
@@ -542,6 +587,8 @@ describe('Saved grids persistence boundary', () => {
         scalarType: 'DATETIME',
         selectable: true,
         repeating: false,
+        cardinality: 'SCALAR',
+        filterable: true,
         availableInAllVariants: true,
         operators: ['EQ'],
         sortable: true,
@@ -618,6 +665,8 @@ describe('Saved grids persistence boundary', () => {
         scalarType: 'NUMBER',
         selectable: true,
         repeating: false,
+        cardinality: 'SCALAR',
+        filterable: true,
         availableInAllVariants: true,
         operators: ['EQ'],
         sortable: true,

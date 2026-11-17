@@ -18,7 +18,7 @@ describe('Business metadata capabilities with Mongo collections', () => {
       assert.ok(field.operators.includes('EQ'), id);
     }
   });
-  it('keeps repeating and private fields unavailable to Mongo scalar predicates', () => {
+  it('exposes declared scalar lists with LIST cardinality and keeps object lists and private fields unavailable', () => {
     const contracts = gridContracts();
     for (const contract of contracts)
       Object.assign(contract.root.properties, {
@@ -26,8 +26,14 @@ describe('Business metadata capabilities with Mongo collections', () => {
       });
     const fields = buildCatalogue(contracts, 'grid-fixture', [], gridEnvironment()).catalogue.fields;
     const tags = fields.find(item => item.id === 'metadata:/tags')!;
-    assert.equal(tags.filterable, false);
-    assert.equal(tags.sortable, false);
+    assert.equal(tags.cardinality, 'LIST');
+    assert.equal(tags.filterable, true);
+    assert.equal(tags.sortable, true);
+    const people = fields.find(item => item.id === 'metadata:/people')!;
+    assert.equal(people.cardinality, 'LIST');
+    assert.equal(people.filterable, false);
+    assert.equal(people.sortable, false);
+    assert.equal(people.unavailableReason, 'REPEATING_FIELD');
     assert.equal(
       fields.some(item => item.id === 'metadata:/secret'),
       false

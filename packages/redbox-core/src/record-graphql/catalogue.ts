@@ -4,6 +4,7 @@ import { fromTree, fieldName, hash, metadataTypeName, type ReadShape } from './r
 import {
   GRID_LIMITS,
   type GridCatalogue,
+  type GridCardinality,
   type GridField,
   type GridScalar,
   type GridEnvironment,
@@ -25,8 +26,10 @@ const recordFields = [
 ] as const;
 export interface CatalogueSnapshot {
   catalogue: GridCatalogue;
-  bindings: Map<string, { tokens: string[]; type: GridScalar }>;
+  bindings: Map<string, { tokens: string[]; type: GridScalar; cardinality: GridCardinality }>;
 }
+const scalarShapes = ['string', 'number', 'integer', 'boolean'];
+const queryScalars: readonly GridScalar[] = ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'];
 
 export function scopedContracts(
   contracts: readonly RecordContract[],
@@ -215,6 +218,7 @@ export function buildCatalogue(
       nullable: name !== 'oid',
       nested: false,
       repeating: false,
+      cardinality: 'SCALAR',
       filterable: false,
       operators: [],
       sortable: false,
@@ -255,6 +259,13 @@ export function buildCatalogue(
           short && !short.startsWith('@')
             ? short
             : fallbackLabel.charAt(0).toUpperCase() + fallbackLabel.slice(1).toLowerCase();
+        // A declared homogeneous scalar list outside any repeating ancestor takes
+        // its value semantics (date formats, choices) from its item declaration.
+        const scalarList = shape.kind === 'array' && scalarShapes.includes(shape.items.kind) && !tokens.includes(null);
+        const cardinality: GridCardinality = shape.kind === 'array' ? 'LIST' : 'SCALAR';
+        const itemHint = scalarList ? hints.get(metadataFieldId([...tokens, null])) : undefined;
+        const typeHint = scalarList ? itemHint : hint;
+        const valueShape = shape.kind === 'array' && scalarList ? shape.items : shape;
         const groupPath = hint?.groups?.length ? hint.groups : ['@data-grids-field-group-metadata'];
         const rawGroup = groupPath.at(-1)!;
         const group = rawGroup.startsWith('@')
@@ -263,14 +274,19 @@ export function buildCatalogue(
             : rawGroup.slice(1)
           : rawGroup;
         const type =
-          hint && (hint.scalarTypes.size > 1 || hint.scalarTypes.has('MIXED'))
+          typeHint && (typeHint.scalarTypes.size > 1 || typeHint.scalarTypes.has('MIXED'))
             ? 'MIXED'
-            : shape.kind === 'string' && (hint?.scalarTypes.has('DATE') || hint?.scalarTypes.has('DATETIME'))
+            : valueShape.kind === 'string' &&
+                (typeHint?.scalarTypes.has('DATE') || typeHint?.scalarTypes.has('DATETIME'))
               ? 'DATETIME'
               : scalarType(shape);
+        // Later duplicates win: configured labels on the list override item enum values.
+        const choices = [...(itemHint?.choices ?? []), ...(hint?.choices ?? [])];
+        const vocabulary = hint?.vocabulary ?? itemHint?.vocabulary;
         const existing = fields.get(id);
         if (existing) {
-          if (existing.repeating !== repeating) existing.scalarType = 'MIXED';
+          if (existing.repeating !== repeating || existing.cardinality !== cardinality) existing.scalarType = 'MIXED';
+          if (cardinality === 'LIST') existing.cardinality = 'LIST';
           existing.repeating ||= repeating;
           existing.selectable &&=
             !tokens.includes(null) &&
@@ -280,11 +296,13 @@ export function buildCatalogue(
           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
           // Calendar dates and instants use the same query input, but distinct
           // persisted meanings must not silently replace one another across forms.
-          if (type === 'DATETIME' && dateFormats.get(id) !== [...hint!.scalarTypes][0]) existing.scalarType = 'MIXED';
+          if (type === 'DATETIME' && dateFormats.get(id) !== [...typeHint!.scalarTypes][0])
+            existing.scalarType = 'MIXED';
           existing.selections.push(selection(contract, tokens, shape));
-          existing.choices.push(...(hint?.choices ?? []));
+          existing.choices.push(...choices);
+          if (vocabulary) existing.vocabulary ??= vocabulary;
         } else {
-          if (type === 'DATETIME') dateFormats.set(id, [...hint!.scalarTypes][0]);
+          if (type === 'DATETIME') dateFormats.set(id, [...typeHint!.scalarTypes][0]);
           fields.set(id, {
             id,
             path: pointer(tokens),
@@ -307,11 +325,12 @@ export function buildCatalogue(
             nullable: true,
             nested: tokens.length > 1,
             repeating,
+            cardinality,
             filterable: false,
             operators: [],
             sortable: false,
-            choices: hint?.choices ?? [],
-            ...(hint?.vocabulary ? { vocabulary: hint.vocabulary } : {}),
+            choices,
+            ...(vocabulary ? { vocabulary } : {}),
             selections: [selection(contract, tokens, shape)],
             unavailableReason: null,
           });
@@ -331,11 +350,12 @@ export function buildCatalogue(
       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
     field.choices = [...new Map(field.choices.map(choice => [JSON.stringify(choice.value), choice])).values()];
     if (field.scalarType === 'MIXED') field.selectable = false;
-    // Withhold scalar-list filter bindings until Mongo collection execution supports them.
-    // The validators already accept advertised scalar-list operators so saved and validated queries
-    // can survive that capability switch without a format change.
-    if (!field.selectable || field.repeating || ['OBJECT', 'JSON'].includes(field.scalarType)) {
-      field.unavailableReason = field.repeating ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
+    // Only declared scalar lists that are not themselves inside a list support
+    // element predicates; object lists and their children remain unavailable.
+    const scalarList =
+      field.cardinality === 'LIST' && !field.repeatingSubfield && queryScalars.includes(field.scalarType);
+    if (!field.selectable || (field.repeating && !scalarList) || !queryScalars.includes(field.scalarType)) {
+      field.unavailableReason = field.repeating && !scalarList ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
       continue;
     }
     if (!field.availableInAllVariants) {
@@ -360,7 +380,7 @@ export function buildCatalogue(
           : ['EQ', 'IN', 'GT', 'LT', 'BETWEEN', 'EXISTS'];
     field.filterable = true;
     field.sortable = true;
-    bindings.set(field.id, { tokens, type: field.scalarType });
+    bindings.set(field.id, { tokens, type: field.scalarType, cardinality: field.cardinality });
   }
   const catalogue: GridCatalogue = {
     recordType,
@@ -379,7 +399,7 @@ export function buildCatalogue(
   applyReadPresentationHints(catalogue, scoped);
   const revision = formatRecordGridFingerprint([
     { ...catalogue, fields: undefined },
-    { semantics: 'mongo-record-collection/1' },
+    { semantics: 'mongo-record-collection/2' },
     ...catalogue.fields,
     ...scoped,
   ]);

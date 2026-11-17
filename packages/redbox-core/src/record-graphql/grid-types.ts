@@ -21,6 +21,10 @@ export const GRID_LIMITS = Object.freeze({
   cursorAgeMs: 3_600_000,
 });
 export type GridScalar = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME' | 'OBJECT' | 'JSON' | 'MIXED';
+/** SCALAR fields hold one value. LIST fields hold a declared array; scalar-list
+ * predicates match any valid element and sorting uses the minimum (ASC) or
+ * maximum (DESC) valid element. */
+export type GridCardinality = 'SCALAR' | 'LIST';
 export type GridOperator = 'EQ' | 'CONTAINS' | 'IPREFIX' | 'IN' | 'GT' | 'LT' | 'BETWEEN' | 'EXISTS';
 export interface GridValue {
   text?: string;
@@ -80,6 +84,7 @@ export interface GridField {
   nullable: boolean;
   nested: boolean;
   repeating: boolean;
+  cardinality: GridCardinality;
   filterable: boolean;
   operators: GridOperator[];
   sortable: boolean;

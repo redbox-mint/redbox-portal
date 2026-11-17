@@ -6,13 +6,17 @@ import { z } from 'zod';
 import { Kind, parse, visit } from 'graphql';
 import { normalizeTimestamp } from '../utilities/SavedGridTimestamp';
 import { Services as services } from '../CoreService';
+import { recordGridFilter, recordGridSort } from '@researchdatabox/sails-ng-common';
 
 const fieldId = z.string().min(1).max(512);
+// Absent means a legacy definition saved with scalar semantics.
+const expectedCardinality = z.enum(['SCALAR', 'LIST']).optional();
 const operand = z.string().refine(value => Buffer.byteLength(value, 'utf8') <= 256);
 const filter = z
   .strictObject({
     fieldId,
     expectedScalarType: z.enum(['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME']).optional(),
+    expectedCardinality,
     operator: z.enum(['eq', 'contains', 'gt', 'lt', 'between', 'in', 'exists']),
     values: z.array(operand).min(1).max(20),
   })
@@ -36,6 +40,7 @@ const visualDefinition = z.strictObject({
       fieldId,
       direction: z.enum(['asc', 'desc']),
       expectedScalarType: z.enum(['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME']).optional(),
+      expectedCardinality,
     })
     .nullable(),
   pageSize: z.union([z.literal(25), z.literal(50)]),
@@ -139,6 +144,8 @@ const discovery = z.object({
           scalarType: z.string(),
           selectable: z.boolean(),
           repeating: z.boolean(),
+          cardinality: z.enum(['SCALAR', 'LIST']),
+          filterable: z.boolean(),
           availableInAllVariants: z.boolean(),
           operators: z.array(z.string()),
           sortable: z.boolean(),
@@ -149,7 +156,7 @@ const discovery = z.object({
 });
 const discoveryQuery = `query SavedGridFields($type: String!, $stages: [String!]) {
   recordFields(recordType: $type, workflowStages: $stages) {
-    fields { id scalarType selectable repeating availableInAllVariants operators sortable }
+    fields { id scalarType selectable repeating cardinality filterable availableInAllVariants operators sortable }
   }
 }`;
 
@@ -325,31 +332,37 @@ export namespace Services {
               ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME', 'OBJECT'].includes(field.scalarType))
         );
       if (grid.columns.some(id => !selectable(id))) throw new SavedGridError(400, 'schema-changed');
+      // Shared checks reject capability, type and cardinality drift. A legacy
+      // definition (no expected cardinality) is SCALAR and must be repaired explicitly.
+      const shared = <T>(check: () => T): T => {
+        try {
+          return check();
+        } catch (error) {
+          const code = error instanceof Error ? error.message : '';
+          if (
+            [
+              'schema-changed',
+              'filter-type-changed',
+              'filter-cardinality-changed',
+              'sort-type-changed',
+              'sort-cardinality-changed',
+            ].includes(code)
+          )
+            throw new SavedGridError(400, code);
+          throw new SavedGridError(400, 'invalid-definition');
+        }
+      };
       const sort = grid.sort;
-      if (
-        sort &&
-        !fields.some(
-          field => field.id === sort.fieldId && field.sortable && !field.repeating && field.availableInAllVariants
-        )
-      )
-        throw new SavedGridError(400, 'schema-changed');
-      if (
-        sort &&
-        (!sort.expectedScalarType ||
-          sort.expectedScalarType !== fields.find(field => field.id === sort.fieldId)?.scalarType)
-      )
-        throw new SavedGridError(400, 'sort-type-changed');
+      if (sort) {
+        const field = fields.find(field => field.id === sort.fieldId);
+        if (!field) throw new SavedGridError(400, 'schema-changed');
+        shared(() => recordGridSort(sort, field));
+      }
       for (const filter of grid.filters) {
         const field = fields.find(field => field.id === filter.fieldId);
-        if (
-          !field ||
-          (field.repeating && !['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(field.scalarType)) ||
-          !field.availableInAllVariants ||
-          !field.operators.includes(filter.operator.toUpperCase())
-        )
+        if (!field || !field.operators.includes(filter.operator.toUpperCase()))
           throw new SavedGridError(400, 'schema-changed');
-        if (!filter.expectedScalarType || filter.expectedScalarType !== field.scalarType)
-          throw new SavedGridError(400, 'filter-type-changed');
+        shared(() => recordGridFilter(filter, field));
         if (filter.operator === 'exists') continue;
         const typed = filter.values.map(value => {
           if (['NUMBER', 'INTEGER', 'FLOAT'].includes(field.scalarType)) {

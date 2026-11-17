@@ -44,6 +44,7 @@ const fields = () => [
     selectable: true,
     filterable: true,
     repeating: false,
+    cardinality: 'SCALAR',
     availableInAllVariants: true,
     operators: ['EQ'],
     sortable: true,
@@ -55,6 +56,7 @@ const fields = () => [
     selectable: true,
     filterable: true,
     repeating: false,
+    cardinality: 'SCALAR',
     availableInAllVariants: true,
     operators: ['CONTAINS'],
     sortable: true,
@@ -258,6 +260,46 @@ describe('Detached explorer named-query promotion', () => {
       });
       await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status, code: expectedCode });
     });
+  it('promotes declared scalar-list filters and sorts only with explicit LIST cardinality', async () => {
+    const list = {
+      ...fields()[1],
+      id: 'metadata:/keywords',
+      repeating: true,
+      cardinality: 'LIST',
+      operators: ['EQ', 'BETWEEN'],
+    };
+    execute.resolves({ status: 200, data: { data: { recordFields: { fields: [...fields(), list] } } } });
+    const filter = {
+      fieldId: list.id,
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+      operator: 'eq',
+      values: ['alpha'],
+    };
+    const sort = { fieldId: list.id, expectedScalarType: 'STRING', expectedCardinality: 'LIST', direction: 'asc' };
+    const result = await prepareExplorerNamedQuery({ ...visual(), filters: [filter], sort }, caller);
+    assert.deepEqual(result.variableValues.filters, [{ field: list.id, eq: { text: 'alpha' } }]);
+    assert.deepEqual(result.variableValues.sort, [{ field: list.id, direction: 'ASC' }]);
+    const { expectedCardinality: _filter, ...legacyFilter } = filter;
+    const { expectedCardinality: _sort, ...legacySort } = sort;
+    await assert.rejects(prepareExplorerNamedQuery({ ...visual(), filters: [legacyFilter], sort }, caller), {
+      status: 400,
+      code: 'filter-cardinality-changed',
+    });
+    await assert.rejects(prepareExplorerNamedQuery({ ...visual(), filters: [filter], sort: legacySort }, caller), {
+      status: 400,
+      code: 'sort-cardinality-changed',
+    });
+    // Repeating fields that discovery does not declare as scalar lists stay unavailable.
+    execute.resolves({
+      status: 200,
+      data: { data: { recordFields: { fields: [...fields(), { ...list, cardinality: 'SCALAR' }] } } },
+    });
+    await assert.rejects(prepareExplorerNamedQuery({ ...visual(), filters: [filter] }, caller), {
+      status: 400,
+      code: 'schema-changed',
+    });
+  });
   it('normalizes unexpected upstream errors and malformed successful discovery safely', async () => {
     execute.resolves(graphqlFailure(500, 'PRIVATE_CODE', 'PRIVATE QUERY AND VALUES'));
     await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status: 503, code: 'UNAVAILABLE' });

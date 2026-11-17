@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { recordGridFilter, recordGridFilterValue, type RecordGridOperator } from '../../src/record-grid-filter';
+import {
+  recordGridFilter,
+  recordGridFilterValue,
+  recordGridSort,
+  type RecordGridOperator,
+} from '../../src/record-grid-filter';
 
 const field = {
   scalarType: 'STRING',
@@ -71,8 +76,72 @@ describe('shared visual grid filter validation', () => {
     it(`rejects unavailable fresh capabilities ${JSON.stringify(unavailable)}`, () => {
       assert.throws(() => recordGridFilter(filter, { ...field, ...unavailable }), /schema-changed/);
     });
-  it('accepts advertised scalar-list filters for forward compatibility and preserves operand types', () => {
-    assert.deepEqual(recordGridFilter(filter, { ...field, repeating: true }), recordGridFilter(filter, field));
+  it('accepts declared scalar-list element predicates only with matching expected LIST cardinality', () => {
+    const list = { ...field, repeating: true, cardinality: 'LIST' as const };
+    const listFilter = { ...filter, expectedCardinality: 'LIST' as const };
+    // Operands are unchanged; storage applies any-element semantics.
+    assert.deepEqual(recordGridFilter(listFilter, list), recordGridFilter(filter, field));
+    // Legacy (missing) and explicit SCALAR expectations require visible repair.
+    assert.throws(() => recordGridFilter(filter, list), /filter-cardinality-changed/);
+    assert.throws(
+      () => recordGridFilter({ ...filter, expectedCardinality: 'SCALAR' }, list),
+      /filter-cardinality-changed/
+    );
+    assert.throws(() => recordGridFilter(listFilter, field), /filter-cardinality-changed/);
+    assert.throws(
+      () => recordGridFilter(listFilter, { ...field, cardinality: 'SCALAR' }),
+      /filter-cardinality-changed/
+    );
+    // Type drift is reported first so its repair also resets the cardinality.
+    assert.throws(() => recordGridFilter(filter, { ...list, scalarType: 'NUMBER' }), /filter-type-changed/);
+  });
+  for (const unavailable of [
+    { repeating: true },
+    { repeating: true, cardinality: 'SCALAR' as const },
+    { repeating: false, cardinality: 'LIST' as const },
+    { repeating: true, cardinality: 'LIST' as const, scalarType: 'JSON' },
+    { repeating: true, cardinality: 'LIST' as const, scalarType: 'MIXED' },
+  ])
+    it(`rejects repeating fields that are not declared scalar lists ${JSON.stringify(unavailable)}`, () => {
+      assert.throws(
+        () => recordGridFilter({ ...filter, expectedCardinality: 'LIST' }, { ...field, ...unavailable }),
+        /schema-changed/
+      );
+    });
+  it('validates sorts against current capabilities, type and cardinality', () => {
+    const sortField = { scalarType: 'STRING', sortable: true, repeating: false, availableInAllVariants: true };
+    const sort = { fieldId: 'metadata:/title', direction: 'desc' as const, expectedScalarType: 'STRING' };
+    assert.deepEqual(recordGridSort(sort, sortField), { field: 'metadata:/title', direction: 'DESC' });
+    assert.deepEqual(
+      recordGridSort({ ...sort, expectedCardinality: 'SCALAR' }, { ...sortField, cardinality: 'SCALAR' }),
+      {
+        field: 'metadata:/title',
+        direction: 'DESC',
+      }
+    );
+    const list = { ...sortField, repeating: true, cardinality: 'LIST' as const };
+    assert.deepEqual(recordGridSort({ ...sort, direction: 'asc', expectedCardinality: 'LIST' }, list), {
+      field: 'metadata:/title',
+      direction: 'ASC',
+    });
+    assert.throws(() => recordGridSort(sort, list), /sort-cardinality-changed/);
+    assert.throws(
+      () => recordGridSort({ ...sort, expectedCardinality: 'LIST' }, sortField),
+      /sort-cardinality-changed/
+    );
+    assert.throws(() => recordGridSort({ ...sort, expectedScalarType: undefined }, sortField), /sort-type-changed/);
+    assert.throws(() => recordGridSort(sort, { ...sortField, scalarType: 'NUMBER' }), /sort-type-changed/);
+    for (const unavailable of [
+      { sortable: false },
+      { availableInAllVariants: false },
+      { repeating: true },
+      { repeating: true, cardinality: 'LIST' as const, scalarType: 'JSON' },
+    ])
+      assert.throws(
+        () => recordGridSort({ ...sort, expectedCardinality: 'LIST' }, { ...sortField, ...unavailable }),
+        /schema-changed/
+      );
+    assert.throws(() => recordGridSort({ ...sort, direction: 'up' as never }, sortField), /schema-changed/);
   });
   it('rejects missing or changed type bindings and unsupported scalar discovery', () => {
     assert.throws(() => recordGridFilter({ ...filter, expectedScalarType: undefined }, field), /filter-type-changed/);

@@ -100,6 +100,12 @@ const Choice = new GraphQLObjectType({
   name: 'RecordFieldChoice',
   fields: bounded({ label: { type: new GraphQLNonNull(GraphQLString) }, value: { type: JsonScalar } }),
 });
+const Cardinality = new GraphQLEnumType({
+  name: 'RecordFieldCardinality',
+  description:
+    'SCALAR fields hold one value. LIST fields hold a declared scalar list: each filter matches any valid element (BETWEEN needs one element within both bounds), separate filters may match different elements, and ASC/DESC sorting uses the minimum/maximum valid element.',
+  values: { SCALAR: {}, LIST: {} },
+});
 const Field = new GraphQLObjectType({
   name: 'RecordField',
   fields: bounded({
@@ -124,6 +130,7 @@ const Field = new GraphQLObjectType({
     nullable: { type: new GraphQLNonNull(GraphQLBoolean) },
     nested: { type: new GraphQLNonNull(GraphQLBoolean) },
     repeating: { type: new GraphQLNonNull(GraphQLBoolean) },
+    cardinality: { type: new GraphQLNonNull(Cardinality) },
     operators: { type: new GraphQLNonNull(stringList) },
     choices: { type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Choice))) },
     selections: { type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Selection))) },
