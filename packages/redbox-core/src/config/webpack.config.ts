@@ -53,7 +53,10 @@ export const webpack: WebpackConfig = {
                 new MiniCssExtractPlugin({
                     // Relative to 'output.path' above!
                     filename: ({ chunk }: { chunk: { name: string } }) => chunk.name === 'main'
-                        ? './default/default/styles/style.min.css' : './default/default/styles/[name].[contenthash:12].min.css',
+                        ? './default/default/styles/style.min.css'
+                        : chunk.name === 'admin-initial'
+                            ? './default/default/styles/[name].[contenthash:12].min.css'
+                            : './default/default/styles/[name].min.css',
                 }),
                 new CopyPlugin({
                     patterns: [
