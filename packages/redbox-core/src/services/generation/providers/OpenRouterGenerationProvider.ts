@@ -169,6 +169,9 @@ export class OpenRouterGenerationProvider implements GenerationProviderAdapter {
             input.correlationId
           );
         }
+        if (error.statusCode === 400 || error.statusCode === 404) {
+          throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Model is not available for this provider');
+        }
         if (error.statusCode === 408 || error.statusCode === 504) {
           throw new GenerationError(
             'GENERATION_PROVIDER_TIMEOUT',

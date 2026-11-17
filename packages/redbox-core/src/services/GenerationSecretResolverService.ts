@@ -7,6 +7,11 @@ export namespace Services {
   export class GenerationSecretResolverService extends services.Core.Service {
     protected override _exportedMethods = ['register', 'resolve', 'status', 'schemes'];
     private resolvers = new Map<string, GenerationSecretResolver>([
+      ['appconfig', async (reference: string) => {
+        const [brandId, key, extra] = reference.split(':');
+        if (!brandId || !key || extra) return '';
+        return AppConfigService.getGenerationProviderKey(brandId, key);
+      }],
       ['env', async (reference: string) => process.env[reference] ?? ''],
     ]);
 

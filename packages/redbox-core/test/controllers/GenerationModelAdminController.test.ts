@@ -11,7 +11,7 @@ import { policies } from '../../src/config/policies.config';
 import { generationModelAdminRoutes } from '../../src/api-routes/groups/ai-models';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from '../services/testHelper';
 
-const actions = ['page','overview','createConnection','updateConnection','testConnection','createModel','newVersion','updateDraft','publish','retire','tryPrompt'];
+const actions = ['page','overview','createConnection','updateConnection','testConnection','createModel','newVersion','updateDraft','publish','retire','tryPrompt','deleteConnection','discardDraft','deleteModel'];
 describe('Generation model Admin HTTP boundary', () => {
   let req: any, res: any, controller: Controllers.GenerationModelAdmin, service: any;
   let originals: Map<string, unknown>;
@@ -25,7 +25,7 @@ describe('Generation model Admin HTTP boundary', () => {
       body: {}, query: {}, isAuthenticated: () => true, user: { id: 'actor', roles: [{ id: 'admin-a' }] } };
     res = { set: sinon.stub().returnsThis(), status: sinon.stub().returnsThis(), json: sinon.stub().returnsThis() };
     service = Object.fromEntries(['adminOverview','saveAdminConnection','testConnectionDraft','createModel','newDeploymentVersion',
-      'updateDeploymentDraft','publishDeployment','retireDeployment','tryPrompt'].map(name => [name, sinon.stub().resolves({ ok: true })]));
+      'updateDeploymentDraft','publishDeployment','retireDeployment','tryPrompt','deleteConnection','discardDeployment','deleteModel'].map(name => [name, sinon.stub().resolves({ ok: true })]));
     sails.services.generationmodelservice = service;
   });
   afterEach(() => {
@@ -87,7 +87,7 @@ describe('Generation model Admin HTTP boundary', () => {
     assert.equal(Policies.generationModelAdmin, generationModelAdmin);
   });
   it('declares every route with CSRF/session auth and excludes bearer promotion', () => {
-    assert.equal(generationModelAdminRoutes.length, 10);
+    assert.equal(generationModelAdminRoutes.length, 13);
     for (const route of generationModelAdminRoutes) {
       assert.equal(route.csrf, true); assert.deepEqual(route.security, [{ sessionAuth: [] }]);
       assert.ok(routes[route.method + ' ' + route.path]); assert.ok(route.responses?.[409]);

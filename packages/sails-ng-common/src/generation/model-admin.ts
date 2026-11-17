@@ -28,6 +28,8 @@ export interface GenerationAdminConnectionDraft {
   authStrategy: 'bearer' | 'aws-default-chain' | 'none';
   /** Omit to retain on update; an installed scheme followed by a reference. */
   secretRef?: string;
+  /** Write only. Omit to retain the saved key. */
+  apiKey?: string;
   nonSecretHeaders?: Record<string, string>;
   timeoutMs: number;
 }
@@ -65,6 +67,7 @@ export interface GenerationAdminModelGroup {
   name: string;
   versions: GenerationAdminModelVersion[];
   usageCount: number;
+  uses?: GenerationAdminUsage[];
 }
 export interface GenerationAdminOverview {
   enabled: boolean;
@@ -89,6 +92,8 @@ export interface GenerationAdminConnectionHealth {
   secretConfigured: boolean;
   checkedAt: string;
   capabilities: Record<string, boolean>;
+  latencyMs: number;
+  errorCode?: string;
 }
 export interface GenerationAdminTryPrompt {
   draft: GenerationAdminModelDraft;
@@ -107,3 +112,6 @@ export interface GenerationAdminPromptResult {
 export interface GenerationAdminErrorResponse {
   error: { code: string; messageKey: string; retryable: boolean };
 }
+
+export interface GenerationAdminUsage { key: string; name: string; }
+export interface GenerationAdminDeletion { deleted: boolean; uses: GenerationAdminUsage[]; }

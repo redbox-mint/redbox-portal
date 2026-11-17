@@ -30,6 +30,8 @@ describe('Generation model Admin service', () => {
       definition[name](values, (error?: Error) => error ? reject(error) : resolve());
     });
     Reflect.set(globalThis, name, {
+      destroyOne: async (criteria: any) => { const index = rows.findIndex(row => matches(row, criteria)); return index < 0 ? undefined : rows.splice(index, 1)[0]; },
+      destroy: async (criteria: any) => { for (let i = rows.length - 1; i >= 0; i--) if (matches(rows[i], criteria)) rows.splice(i, 1); },
       find: async (criteria: any) => structuredClone(rows.filter(row => matches(row, criteria))),
       findOne: async (criteria: any) => structuredClone(rows.find(row => matches(row, criteria))),
       create: (values: any) => ({ fetch: async () => {
@@ -45,7 +47,7 @@ describe('Generation model Admin service', () => {
     });
   }
   beforeEach(() => {
-    originals = new Map(['sails', 'GenerationModelConnection', 'GenerationModelDeployment', 'GenerationProfile', 'GenerationProfileVersion']
+    originals = new Map(['sails', 'GenerationModelConnection', 'GenerationModelDeployment', 'GenerationProfile', 'GenerationProfileVersion', 'AppConfigService']
       .map(name => [name, Reflect.get(globalThis, name)]));
     const mock = createMockSails(); mock.config.generation = structuredClone(generation); mock.config.generation.enabled = true;
     Reflect.set(globalThis, 'sails', mock);
@@ -61,6 +63,7 @@ describe('Generation model Admin service', () => {
       actualProvider: 'provider', finishReason: 'stop', usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3, cost: 0.001, body: 'PRIVATE BODY' }, body: 'PRIVATE BODY' });
     sails.services.generationproviderregistryservice = { list: () => ['openrouter', 'bedrock', 'fake', 'unconfigured'],
       get: () => ({ healthCheck: health, invoke }) };
+    Reflect.set(globalThis, 'AppConfigService', { setGenerationProviderKey: sinon.stub().resolves(), getGenerationProviderKey: () => 'STORED_KEY' });
     service = new Services.GenerationModelService();
   });
   afterEach(() => {
@@ -118,7 +121,7 @@ describe('Generation model Admin service', () => {
     const resolver = sails.services.generationsecretresolverservice;
     resolver.register('vault', async () => 'PRIVATE');
     const result = await service.adminOverview('a');
-    assert.deepEqual(result.secretSchemes, ['env','vault']);
+    assert.deepEqual(result.secretSchemes, ['appconfig','env','vault']);
     assert.deepEqual(result.adapters, ['openrouter','bedrock','fake']);
     assert.equal(result.limits.cooldownMs, 5000);
     assert.equal(JSON.stringify(result).includes('RESOLVED_PRIVATE_CREDENTIAL'), false);
@@ -144,7 +147,7 @@ describe('Generation model Admin service', () => {
   });
   it('tests unsaved connections without persisting and returns only safe health fields', async () => {
     const result = await service.testConnectionDraft('a', 'actor', { connection: connectionDraft({ name: 'Unsaved' }) });
-    assert.equal(result.ok, true); assert.equal(result.secretConfigured, true); assert.equal(health.callCount, 1);
+    assert.equal(result.ok, true); assert.equal(result.secretConfigured, true); assert.equal(invoke.callCount, 1);
     assert.equal(tables.GenerationModelConnection.length, 1);
     assert.equal(tables.GenerationModelConnection[0].lastHealthStatus, undefined);
     assert.equal(JSON.stringify(result).includes('PRIVATE'), false);
@@ -156,7 +159,7 @@ describe('Generation model Admin service', () => {
     assert.equal(tables.GenerationModelConnection[0].lastHealthStatus, 'healthy');
   });
   it('does not stamp a connection edited while healthCheck is in flight', async () => {
-    health.callsFake(async () => { tables.GenerationModelConnection[0].updatedAt = 'changed'; return { ok: true, capabilities: {} }; });
+    invoke.callsFake(async () => { tables.GenerationModelConnection[0].updatedAt = 'changed'; return { content: 'OK' }; });
     await service.testConnectionDraft('a', 'actor', { connectionId: 'c1', connection: connectionDraft() });
     assert.equal(tables.GenerationModelConnection[0].lastHealthStatus, undefined);
   });
@@ -180,8 +183,8 @@ describe('Generation model Admin service', () => {
   it('bounds connection health and prompt invocation by the provider time limit and aborts invoke', async () => {
     sails.config.generation.provider.timeoutMs = 10;
     tables.GenerationModelConnection[0].timeoutMs = 10;
-    health.returns(new Promise(() => {}));
-    await rejects(service.testConnectionDraft('a', 'actor', { connection: connectionDraft({ timeoutMs: 10 }) }), 'GENERATION_PROVIDER_TIMEOUT');
+    invoke.returns(new Promise(() => {}));
+    assert.equal((await service.testConnectionDraft('a', 'actor', { connection: connectionDraft({ timeoutMs: 10 }) })).errorCode, 'GENERATION_PROVIDER_TIMEOUT');
     invoke.returns(new Promise(() => {}));
     await rejects(service.tryPrompt('a', 'other', { draft: modelDraft(), prompt: 'Hi', mode: 'text' }), 'GENERATION_PROVIDER_TIMEOUT');
     assert.equal(invoke.firstCall.args[1].aborted, true);
@@ -258,6 +261,7 @@ describe('Generation model Admin service', () => {
   });
   it('guards retirement of a published profile reference, including disabled profiles', async () => {
     const row = await create();
+    tables.GenerationModelDeployment[0].status = 'published';
     tables.GenerationProfile.push({ id: 'p', brandId: 'a', publishedVersionId: 'pv', enabled: false });
     tables.GenerationProfileVersion.push({ id: 'pv', brandId: 'a', definition: { modelDeploymentId: row.id } });
     await rejects(service.retireDeployment('a', row.id), 'GENERATION_INVALID_STATE');
@@ -274,6 +278,57 @@ describe('Generation model Admin service', () => {
     }
     const group = (await service.adminOverview('a')).models[0];
     assert.equal(group.usageCount, 2); assert.deepEqual(group.versions.map(version => version.version), [2,1]);
+  });
+  it('stores replacements with AppConfig and retains a stored key without exposing its value', async () => {
+    const safe: any = await service.saveAdminConnection('a', connectionDraft({ apiKey: 'NEW_PRIVATE_KEY', secretRef: undefined }), 'actor', 'c1');
+    assert.deepEqual((AppConfigService.setGenerationProviderKey as any).firstCall.args, ['a', 'provider', 'NEW_PRIVATE_KEY']);
+    assert.equal(safe.secretRef, 'appconfig:a:provider');
+    assert.equal(safe.apiKey, undefined); assert.ok(!JSON.stringify(safe).includes('NEW_PRIVATE_KEY'));
+    await service.saveAdminConnection('a', connectionDraft({ secretRef: undefined }), 'actor', 'c1');
+    assert.equal(tables.GenerationModelConnection[0].secretRef, 'appconfig:a:provider');
+  });
+  it('tests one minimal real adapter request using a replacement without saving it', async () => {
+    await create();
+    const result = await service.testConnectionDraft('a', 'actor', { connectionId: 'c1', connection: connectionDraft({ apiKey: 'DRAFT_KEY' }) });
+    assert.equal(result.ok, true); assert.equal(invoke.firstCall.args[0].connection.secret, 'DRAFT_KEY');
+    assert.equal(invoke.firstCall.args[0].deployment.modelId, 'test-model');
+    assert.equal(invoke.firstCall.args[0].deployment.parameters.maxOutputTokens, 1);
+    assert.equal(invoke.firstCall.args[0].responseSchema, undefined);
+    assert.equal((AppConfigService.setGenerationProviderKey as any).callCount, 0);
+    assert.equal(tables.GenerationModelConnection[0].lastHealthStatus, undefined);
+  });
+  it('returns only a safe failure code, stamps unchanged providers and enforces outbound hosts', async () => {
+    invoke.rejects(new GenerationError('GENERATION_PROVIDER_AUTH_FAILED', 'PRIVATE BODY'));
+    const result = await service.testConnectionDraft('a', 'actor', { connectionId: 'c1', connection: connectionDraft() });
+    assert.equal(result.ok, false); assert.equal(result.errorCode, 'GENERATION_PROVIDER_AUTH_FAILED');
+    assert.equal(tables.GenerationModelConnection[0].lastHealthStatus, 'unhealthy');
+    assert.ok(!JSON.stringify(result).includes('PRIVATE'));
+    sails.config.generation.outbound.allowedHosts = [];
+    invoke.resetHistory();
+    const blocked = await service.testConnectionDraft('a', 'other', { connection: connectionDraft() });
+    assert.equal(blocked.errorCode, 'GENERATION_DEPLOYMENT_INCOMPATIBLE'); assert.equal(invoke.callCount, 0);
+  });
+  it('blocks provider deletion for every referenced version and clears the key when unused', async () => {
+    await create();
+    assert.deepEqual(await service.deleteConnection('a', 'c1'), { deleted: false, uses: [{ key: 'alias', name: 'Model' }] });
+    tables.GenerationModelDeployment.length = 0;
+    assert.equal((await service.deleteConnection('a', 'c1')).deleted, true);
+    assert.deepEqual((AppConfigService.setGenerationProviderKey as any).lastCall.args, ['a', 'provider', '']);
+    assert.equal(tables.GenerationModelConnection.length, 0);
+  });
+  it('discards only unused drafts and deletes a model only when no profile version uses it', async () => {
+    const row = await create();
+    const next = await service.newDeploymentVersion('a', row.id, 'actor');
+    tables.GenerationProfile.push({ id: 'p', brandId: 'a', key: 'profile', name: 'Profile' });
+    tables.GenerationProfileVersion.push({ id: 'old', brandId: 'a', profileId: 'p', definition: { modelDeploymentId: row.id } });
+    assert.deepEqual(await service.deleteModel('a', row.key), { deleted: false, uses: [{ key: 'profile', name: 'Profile' }] });
+    assert.equal((await service.discardDeployment('a', row.id)).deleted, false);
+    assert.equal((await service.discardDeployment('a', next.id)).deleted, true);
+    tables.GenerationModelDeployment[0].status = 'published';
+    await rejects(service.discardDeployment('a', row.id), 'GENERATION_INVALID_STATE');
+    tables.GenerationProfileVersion.length = 0;
+    assert.equal((await service.deleteModel('a', row.key)).deleted, true);
+    assert.equal(tables.GenerationModelDeployment.length, 0);
   });
   it('rejects references across brands before any provider invocation', async () => {
     await rejects(service.createModel('b', { key: 'foreign', ...modelDraft() }, 'actor'), 'GENERATION_ACTION_NOT_AVAILABLE');

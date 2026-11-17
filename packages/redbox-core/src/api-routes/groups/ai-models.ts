@@ -19,12 +19,14 @@ const deployment = z.object({
   contentHash: z.string(), createdBy: z.string(), capabilitySnapshot: z.record(z.string(), z.unknown()).optional(),
   publishedBy: z.string().optional(), publishedAt: z.string().optional(),
 });
-const health = z.object({ ok: z.boolean(), secretConfigured: z.boolean(), checkedAt: z.string(), capabilities: z.record(z.string(), z.boolean()) });
+const uses = z.array(z.object({ key: z.string(), name: z.string() }));
+const deletion = z.object({ deleted: z.boolean(), uses });
+const health = z.object({ ok: z.boolean(), secretConfigured: z.boolean(), checkedAt: z.string(), capabilities: z.record(z.string(), z.boolean()), latencyMs: z.number(), errorCode: z.string().optional() });
 const overview = z.object({
   enabled: z.boolean(), adapters: z.array(z.string()), secretSchemes: z.array(z.string()), bedrockRegions: z.array(z.string()),
   limits: z.object({ provider: z.object({ timeoutMs: z.number(), maxRequestBytes: z.number(), maxResponseBytes: z.number(), maxRetries: z.number() }),
     outbound: z.object({ allowedHosts: z.array(z.string()) }), cooldownMs: z.number(), maxPromptChars: z.number() }),
-  connections: z.array(connection), models: z.array(z.object({ key: z.string(), name: z.string(), versions: z.array(deployment), usageCount: z.number() })),
+  connections: z.array(connection), models: z.array(z.object({ key: z.string(), name: z.string(), versions: z.array(deployment), usageCount: z.number(), uses })),
 });
 const promptResult = z.object({
   output: z.string(), requestedModel: z.string(), actualModel: z.string().optional(), actualProvider: z.string().optional(),
@@ -50,6 +52,9 @@ function route(method: HttpMethod, path: string, action: string, summary: string
   });
 }
 export const generationModelAdminRoutes = [
+  route('delete', '/connections/:connectionId', 'deleteConnection', 'Delete an unused provider and clear its key', deletion, undefined, 'connectionId'),
+  route('delete', '/models/by-key/:key', 'deleteModel', 'Delete all model versions unless a profile uses one', deletion, undefined, 'key'),
+  route('delete', '/models/:deploymentId', 'discardDraft', 'Discard an unused draft version', deletion, undefined, 'deploymentId'),
   route('get', '/overview', 'overview', 'Get AI model configuration', overview),
   route('post', '/connections', 'createConnection', 'Create a provider connection', connection, connectionDraftSchema),
   route('put', '/connections/:connectionId', 'updateConnection', 'Update a provider connection', connection, connectionDraftSchema, 'connectionId'),

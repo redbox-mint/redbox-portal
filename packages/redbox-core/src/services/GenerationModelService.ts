@@ -1,6 +1,6 @@
 import { Services as services } from '../CoreService';
 import { randomUUID } from 'node:crypto';
-import { canonicalHash, GenerationDeploymentConfig, GenerationError, GenerationProviderAdapter } from '../model/generation';
+import { canonicalHash, GenerationDeploymentConfig, GenerationError, GenerationProviderAdapter, asGenerationError } from '../model/generation';
 import type { GenerationModelConnectionAttributes } from '../waterline-models/GenerationModelConnection';
 import type { GenerationModelDeploymentAttributes } from '../waterline-models/GenerationModelDeployment';
 import type { GenerationProfileAttributes } from '../waterline-models/GenerationProfile';
@@ -20,7 +20,7 @@ export namespace Services {
     protected override _exportedMethods = [
       'createConnection', 'safeConnection', 'createDeployment', 'testDeployment', 'publishDeployment',
       'adminOverview', 'saveAdminConnection', 'testConnectionDraft', 'createModel', 'newDeploymentVersion',
-      'updateDeploymentDraft', 'retireDeployment', 'tryPrompt',
+      'updateDeploymentDraft', 'retireDeployment', 'tryPrompt', 'deleteConnection', 'discardDeployment', 'deleteModel',
     ];
 
     public async createConnection(
@@ -129,6 +129,11 @@ export namespace Services {
         if (timer) clearTimeout(timer);
       }
     }
+    private checkOutbound(adapterId: string, endpoint: string): void {
+      if (adapterId !== 'fake' && !sails.config.generation.outbound.allowedHosts.includes(new URL(endpoint).hostname)) {
+        throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Provider host is not allowed by the server');
+      }
+    }
     private async connection(brandId: string, id: string): Promise<GenerationModelConnectionAttributes> {
       const value = await GenerationModelConnection.findOne({ id, brandId });
       if (!value) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Connection not found');
@@ -169,12 +174,16 @@ export namespace Services {
         // Additional installed adapters require an explicit safe admin configuration contract.
         throw new GenerationError('GENERATION_REQUEST_INVALID', 'Unsupported admin connection adapter');
       }
-      if (draft.authStrategy === 'bearer') {
+      if (draft.apiKey && draft.authStrategy !== 'bearer') throw new GenerationError('GENERATION_REQUEST_INVALID', 'API key is not used by this provider');
+      if (draft.authStrategy === 'bearer' && !draft.apiKey) {
         const separator = secretRef.indexOf(':');
         if (separator < 1 || !secretRef.slice(separator + 1).trim() ||
             !this.resolver().schemes().includes(secretRef.slice(0, separator))) {
           throw new GenerationError('GENERATION_REQUEST_INVALID', 'Use an installed secret resolver reference');
         }
+      }
+      if (secretRef.startsWith('appconfig:') && secretRef !== saved?.secretRef) {
+        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Stored credentials belong to their provider');
       }
       return { key: draft.key, name: draft.name, nameLower: draft.name.toLowerCase(), adapterId: draft.adapterId,
         enabled: draft.enabled, endpoint, authStrategy: draft.authStrategy, secretRef,
@@ -184,6 +193,13 @@ export namespace Services {
     public async saveAdminConnection(brandId: string, input: unknown, actorId: string, connectionId?: string) {
       const saved = connectionId ? await this.connection(brandId, connectionId) : undefined;
       const fields = await this.validatedConnection(input, saved);
+      const { apiKey } = parseAdminInput(connectionDraftSchema, input);
+      if (apiKey) {
+        await AppConfigService.setGenerationProviderKey(brandId, fields.key, apiKey);
+        fields.secretRef = `appconfig:${brandId}:${fields.key}`;
+      } else if (saved?.secretRef?.startsWith('appconfig:') && fields.authStrategy !== 'bearer') {
+        await AppConfigService.setGenerationProviderKey(brandId, fields.key, '');
+      }
       const value = saved
         ? await GenerationModelConnection.updateOne({ id: saved.id, brandId }).set({ ...fields, updatedBy: actorId,
           lastHealthStatus: '', lastHealthCheckedAt: '' })
@@ -197,15 +213,32 @@ export namespace Services {
       const saved = body.connectionId ? await this.connection(brandId, body.connectionId) : undefined;
       const draft = await this.validatedConnection(body.connection, saved);
       this.takeCooldown(brandId, actorId);
-      const result = await this.bounded(draft.timeoutMs, async () => {
-        const status = draft.secretRef ? await this.resolver().status(draft.secretRef) : { configured: false };
-        const secret = draft.secretRef && status.configured ? await this.resolver().resolve(draft.secretRef) : undefined;
-        const health = await this.registry().get(draft.adapterId).healthCheck({ ...draft, secret });
-        return { ok: health.ok && (!draft.secretRef || status.configured), secretConfigured: status.configured,
-          capabilities: this.safeCapabilities(health.capabilities), checkedAt: new Date().toISOString() };
-      });
+      const { apiKey } = body.connection;
+      const start = Date.now();
+      let secretConfigured = !!apiKey;
+      let errorCode: string | undefined;
+      try {
+        await this.bounded(draft.timeoutMs, async signal => {
+          const secret = apiKey || (draft.secretRef ? await this.resolver().resolve(draft.secretRef) : undefined);
+          secretConfigured = !!secret;
+          if (draft.authStrategy === 'bearer' && !secret) throw new GenerationError('GENERATION_NOT_CONFIGURED', 'API key missing');
+          const versions = saved ? requireWaterlineRows<GenerationModelDeploymentAttributes>(
+            await GenerationModelDeployment.find({ brandId, connectionId: saved.id }), 'GenerationModelDeployment') : [];
+          const modelId = versions.sort((a, b) => b.version - a.version)[0]?.modelId
+            ?? ({ bedrock: 'amazon.nova-micro-v1:0', openrouter: 'openai/gpt-4.1-mini', fake: 'demo' }[draft.adapterId]!);
+          this.checkOutbound(draft.adapterId, draft.endpoint);
+          await this.registry().get(draft.adapterId).invoke({
+            connection: { ...draft, secret },
+            deployment: { modelId, parameters: { maxOutputTokens: 1,
+              ...(draft.adapterId === 'fake' ? { fixtureResponse: 'OK' } : {}) } },
+            messages: [{ role: 'user', content: 'Say OK.' }], correlationId: randomUUID(),
+          }, signal);
+        });
+      } catch (error) { errorCode = asGenerationError(error).code; }
+      const result = { ok: !errorCode, secretConfigured, checkedAt: new Date().toISOString(),
+        latencyMs: Date.now() - start, errorCode, capabilities: {} };
       // Compare all editable fields and guard the write against an edit during the test.
-      if (saved && canonicalHash(this.connectionContent(saved)) === canonicalHash(this.connectionContent(draft))) {
+      if (saved && !apiKey && canonicalHash(this.connectionContent(saved)) === canonicalHash(this.connectionContent(draft))) {
         await GenerationModelConnection.updateOne({ id: saved.id, brandId, updatedAt: saved.updatedAt, name: saved.name, adapterId: saved.adapterId,
           enabled: saved.enabled, endpoint: saved.endpoint, authStrategy: saved.authStrategy, timeoutMs: saved.timeoutMs }).set({
           lastHealthStatus: result.ok ? 'healthy' : 'unhealthy', lastHealthCheckedAt: result.checkedAt,
@@ -270,6 +303,7 @@ export namespace Services {
     }
     public async retireDeployment(brandId: string, id: string) {
       const saved = await this.deployment(brandId, id);
+      if (saved.status !== 'published') throw new GenerationError('GENERATION_INVALID_STATE', 'Only published versions may be retired');
       const profiles = requireWaterlineRows<GenerationProfileAttributes>(await GenerationProfile.find({ brandId }), 'GenerationProfile');
       const ids = profiles.map(value => value.publishedVersionId).filter((value): value is string => !!value);
       const published = ids.length ? requireWaterlineRows<GenerationProfileVersionAttributes>(
@@ -278,6 +312,39 @@ export namespace Services {
         throw new GenerationError('GENERATION_INVALID_STATE', 'A published profile uses this model version');
       }
       return GenerationModelDeployment.updateOne({ id: saved.id, brandId }).set({ status: 'retired' });
+    }
+    public async deleteConnection(brandId: string, id: string) {
+      const saved = await this.connection(brandId, id);
+      const versions = requireWaterlineRows<GenerationModelDeploymentAttributes>(
+        await GenerationModelDeployment.find({ brandId, connectionId: id }), 'GenerationModelDeployment');
+      const uses = [...new Map(versions.map(v => [v.key, { key: v.key, name: v.name }])).values()];
+      if (uses.length) return { deleted: false, uses };
+      // Clear through AppConfig before deleting so a failure leaves a retryable provider.
+      await AppConfigService.setGenerationProviderKey(brandId, saved.key, '');
+      await GenerationModelConnection.destroyOne({ brandId, id });
+      return { deleted: true, uses: [] };
+    }
+    private async profileUses(brandId: string, ids: string[]) {
+      const versions = requireWaterlineRows<GenerationProfileVersionAttributes>(await GenerationProfileVersion.find({ brandId }), 'GenerationProfileVersion');
+      const profiles = requireWaterlineRows<GenerationProfileAttributes>(await GenerationProfile.find({ brandId }), 'GenerationProfile');
+      const used = new Set(versions.filter(v => ids.includes(v.definition.modelDeploymentId)).map(v => v.profileId));
+      return profiles.filter(p => used.has(p.id)).map(p => ({ key: p.key, name: p.name }));
+    }
+    public async discardDeployment(brandId: string, id: string) {
+      const saved = await this.deployment(brandId, id);
+      if (saved.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only drafts can be discarded');
+      const uses = await this.profileUses(brandId, [id]);
+      if (uses.length) return { deleted: false, uses };
+      await GenerationModelDeployment.destroyOne({ brandId, id, status: 'draft', contentHash: saved.contentHash });
+      return { deleted: true, uses: [] };
+    }
+    public async deleteModel(brandId: string, key: string) {
+      const versions = requireWaterlineRows<GenerationModelDeploymentAttributes>(await GenerationModelDeployment.find({ brandId, key }), 'GenerationModelDeployment');
+      if (!versions.length) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Model not found');
+      const uses = await this.profileUses(brandId, versions.map(v => v.id));
+      if (uses.length) return { deleted: false, uses };
+      await GenerationModelDeployment.destroy({ brandId, key });
+      return { deleted: true, uses: [] };
     }
     public async adminOverview(brandId: string) {
       const rows = await Promise.all([
@@ -294,7 +361,9 @@ export namespace Services {
         const ids = new Set(versions.map(value => value.id));
         const usageCount = profiles.filter(profile => [profile.latestVersionId, profile.publishedVersionId]
           .some(id => id && ids.has(profileDeploymentIds.get(id) ?? ''))).length;
-        return { key, name: versions[0].name,
+        const uses = profiles.filter(profile => profileVersions.some(v => v.profileId === profile.id && ids.has(v.definition.modelDeploymentId)))
+          .map(p => ({ key: p.key, name: p.name }));
+        return { key, name: versions[0].name, uses,
           versions: versions.map(version => ({ ...version, parameters: sdkParameters(version.parameters) })), usageCount };
       });
       return { enabled: sails.config.generation.enabled,
@@ -313,6 +382,7 @@ export namespace Services {
       const start = Date.now();
       return this.bounded(connection.timeoutMs, async signal => {
         const secret = connection.secretRef ? await this.resolver().resolve(connection.secretRef) : undefined;
+        this.checkOutbound(connection.adapterId, connection.endpoint);
         const response = await this.registry().get(connection.adapterId).invoke({
           connection: { endpoint: connection.endpoint, timeoutMs: Math.min(connection.timeoutMs, sails.config.generation.provider.timeoutMs),
             nonSecretHeaders: connection.nonSecretHeaders, secret },

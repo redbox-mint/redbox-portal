@@ -15,7 +15,7 @@ export namespace Controllers {
   export class GenerationModelAdmin extends controllers.Core.Controller {
     protected override _exportedMethods = [
       'page', 'overview', 'createConnection', 'updateConnection', 'testConnection', 'createModel',
-      'newVersion', 'updateDraft', 'publish', 'retire', 'tryPrompt',
+      'newVersion', 'updateDraft', 'publish', 'retire', 'tryPrompt', 'deleteConnection', 'discardDraft', 'deleteModel',
     ];
     private service() {
       return requireService<Services.GenerationModelService>('generationmodelservice', ['adminOverview']);
@@ -70,6 +70,15 @@ export namespace Controllers {
     }
     public retire(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, brand => this.service().retireDeployment(brand, getRouteParam(req, 'deploymentId')));
+    }
+    public deleteConnection(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, brand => this.service().deleteConnection(brand, getRouteParam(req, 'connectionId')));
+    }
+    public discardDraft(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, brand => this.service().discardDeployment(brand, getRouteParam(req, 'deploymentId')));
+    }
+    public deleteModel(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, brand => this.service().deleteModel(brand, getRouteParam(req, 'key')));
     }
     public tryPrompt(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, (brand, actor) => this.service().tryPrompt(brand, actor, req.body));

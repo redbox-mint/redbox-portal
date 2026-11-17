@@ -36,6 +36,7 @@ export const connectionDraftSchema = z.object({
   region: z.enum(BEDROCK_REGIONS).optional(),
   authStrategy: z.enum(['bearer', 'aws-default-chain', 'none']),
   secretRef: z.string().max(500).optional(),
+  apiKey: z.string().trim().min(1).max(8000).refine(value => !['__REDACTED__', '__CLEAR_SECRET__'].includes(value)).optional(),
   nonSecretHeaders: z.record(z.string(), z.string().max(2000)).optional(),
   timeoutMs: z.number().int().positive().max(2_147_483_647),
 }).strict();
