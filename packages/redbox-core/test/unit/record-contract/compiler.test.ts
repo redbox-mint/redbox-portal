@@ -1075,7 +1075,8 @@ describe('RecordContractCompiler and core contributors', function () {
       return { kind: 'node', node: { kind: 'scalar', nullable: false, scalarType: 'string' } };
     });
     expectCompiled(
-      await compiler({ ...generousLimits, contributorTimeoutMs: 60 }, [slow]).compile({
+      // Leave scheduling headroom for the successful path on loaded CI workers.
+      await compiler({ ...generousLimits, contributorTimeoutMs: 1000 }, [slow]).compile({
         form: form([field('slow', 'SlowComponent')]),
         context: publicContext,
       })
