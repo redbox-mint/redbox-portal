@@ -1,3 +1,4 @@
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import type { GenerationProfileDefinition, ProfileOverview, ProfileProblem } from '@researchdatabox/sails-ng-common';
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const questionTypes = ['text', 'textarea', 'boolean', 'date', 'enum', 'multiEnum'] as const;
@@ -18,6 +19,7 @@ export function profileProblems(d: GenerationProfileDefinition, overview: Profil
   for (const path of source?.allowedPaths ?? []) if (!sourceForm?.fields.some(f => f.pointer === path)) add('source', 'source-field', undefined, path);
   if (source && (!Number.isInteger(source.maxBytes) || source.maxBytes < 1 || source.maxBytes > limits.maxFieldBytes)) add('source', 'source-size');
   for (const q of d.questions) {
+    if (q.options && q.options.length > GENERATION_QUESTION_OPTION_LIMIT) add('questions', 'question-options', q.label, q.id);
     if (!(q.label?.trim() || q.labelKey) || !questionTypes.includes(q.type) || ['enum', 'multiEnum'].includes(q.type) && (!q.options?.length || new Set(q.options.map(o => o.value)).size !== q.options.length) ||
       q.maxLength !== undefined && (!Number.isInteger(q.maxLength) || q.maxLength <= 0) || q.sourceDefaultExpression && !source?.allowedPaths.includes(q.sourceDefaultExpression)) add('questions', 'question', q.label, q.id);
   }
@@ -28,8 +30,10 @@ export function profileProblems(d: GenerationProfileDefinition, overview: Profil
   for (const field of d.targetFields) {
     const actual = form?.fields.find(f => f.pointer === field.metadataPointer);
     if (!actual) add('fields', 'target-field', field.label, field.id);
-    else if (!actual.output || !field.expectedComponentClasses.includes(actual.component) || actual.output.kind !== field.output.kind ||
-      'values' in actual.output && (!('values' in field.output) || JSON.stringify([...actual.output.values].sort()) !== JSON.stringify([...field.output.values].sort()))) add('fields', 'field-changed', actual.label, field.id);
+    else if (!actual.output) add('fields', 'field-uneditable', actual.label, field.id);
+    else if (!field.expectedComponentClasses.includes(actual.component) || actual.output.kind !== field.output.kind ||
+      'values' in actual.output && (!('values' in field.output) || JSON.stringify([...actual.output.values].sort()) !== JSON.stringify([...field.output.values].sort())) ||
+      'maxLength' in actual.output && !!actual.output.maxLength && (field.maxLength ?? ('maxLength' in field.output ? field.output.maxLength ?? Infinity : Infinity)) > actual.output.maxLength) add('fields', 'field-changed', actual.label, field.id);
     if (field.maxLength !== undefined && (!Number.isInteger(field.maxLength) || field.maxLength < 1 || actual?.output && 'maxLength' in actual.output && actual.output.maxLength && field.maxLength > actual.output.maxLength)) add('fields', 'length', actual?.label || field.label, field.id);
   }
   const documents = d.documentSources;

@@ -1,3 +1,6 @@
+import { createRecordContractFixture } from '../fixtures/record-contract.fixtures';
+import { profileDefinitionSchema } from '../../src/services/generation/profile-admin-validation';
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import { strict as assert } from 'node:assert';
 import * as sinon from 'sinon';
 import { generation } from '../../src/config/generation.config';
@@ -122,6 +125,73 @@ describe('Drafting profile administration', () => {
     assert.deepEqual(await service.validate('a', d), []);
     d.targetFields[0].output = { kind: kind === 'enumArray' ? 'enum' : 'enumArray', values: ['one'] };
     assert.ok((await service.validate('a', d)).some(p => p.messageKey === 'ai-profiles-problem-field-changed'));
+  });
+  it('inherits real model maxLength validators using the form validation groups through publication and candidate validation', async () => {
+    const form: any = createRecordContractFixture().form;
+    const title = form.componentDefinitions.find(f => f.name === 'title');
+    title.model.config.validators.push({ class: 'maxLength', config: { maxLength: 10 }, groups: { include: ['submit'] } });
+    const derive = () => profileFormFields(form, s => s).find(f => f.pointer === '/title')!;
+    assert.deepEqual(derive().output, { kind: 'string', maxLength: 256 });
+    form.enabledValidationGroups = ['submit']; assert.deepEqual(derive().output, { kind: 'string', maxLength: 10 });
+    form.enabledValidationGroups = ['all'];
+    title.model.config.validators.at(-1).groups = { exclude: ['all'] };
+    assert.deepEqual(derive().output, { kind: 'string', maxLength: 256 });
+    form.enabledValidationGroups = []; assert.deepEqual(derive().output, { kind: 'string', maxLength: 10 });
+    form.enabledValidationGroups = ['draft'];
+    catalog.forms[1].fields = [derive()];
+    const d = definition(); Object.assign(d.targetFields[0], { metadataPointer: '/title', expectedComponentClasses: ['SimpleInputComponent'], output: derive().output });
+    assert.deepEqual(await service.validate('a', d), []);
+    const schema: any = sails.services.generationschemaservice.buildProviderSchema(d);
+    assert.equal(schema.properties.answers.properties.summary.properties.value.maxLength, 256);
+    const validateCandidate = (value: string) => sails.services.generationschemaservice.validateCandidate({ runId: 'r', definition: { ...d, targetFields: [{ ...d.targetFields[0], grounding: 'inferenceAllowed' }] }, evidence: [], baseTargetDigest: '', rawContent: JSON.stringify({ answers: { summary: { value, evidenceIds: [], rationale: '' } } }) });
+    assert.doesNotThrow(() => validateCandidate('a'.repeat(256)));
+    assert.throws(() => validateCandidate('a'.repeat(300)));
+    for (const output of [{ kind: 'string' }, { kind: 'string', maxLength: 300 }] as const) {
+      d.targetFields[0].output = output;
+      assert.ok((await service.validate('a', d)).some(p => p.messageKey === 'ai-profiles-problem-field-changed'));
+    }
+  });
+  for (const disabledAt of ['field', 'group']) it('excludes model-disabled targets inherited from ' + disabledAt + ' and blocks existing profile publication', async () => {
+    const form: any = createRecordContractFixture().form;
+    const group = form.componentDefinitions.find(f => f.name === 'details');
+    const child = group.component.config.componentDefinitions[0];
+    (disabledAt === 'group' ? group : child).model.config.disabled = true;
+    const fields = profileFormFields(form, s => s);
+    const target = fields.find(f => f.pointer === '/details/description')!;
+    assert.ok(target); assert.equal(target.output, undefined);
+    assert.ok(fields.find(f => f.pointer === '/title')!.output);
+    catalog.forms[1].fields = fields;
+    const v = tables.GenerationProfileVersion[0];
+    Object.assign(v.definition.targetFields[0], { metadataPointer: target.pointer, label: target.label, expectedComponentClasses: [target.component] });
+    assert.ok((await service.validate('a', v.definition)).some(p => p.messageKey === 'ai-profiles-problem-field-uneditable' && p.label === 'Description'));
+    await assert.rejects(service.publish('a', 'v', { expectedContentHash: v.contentHash }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_PROFILE_INVALID');
+  });
+  it('excludes dropdown placeholders from drafting enums and prefilled questions without changing form options', async () => {
+    const form: any = createRecordContractFixture().form;
+    const dropdown = form.componentDefinitions.find(f => f.name === 'fixed_choice');
+    // Same empty-value placeholder supported by the real dropdown, plus a legacy whitespace placeholder.
+    dropdown.component.config.options.unshift({ value: '', label: 'Please select' }, { value: '  ', label: 'Please select' });
+    const before = structuredClone(dropdown.component.config.options);
+    const field = profileFormFields(form, s => s).find(f => f.pointer === '/fixed_choice')!;
+    assert.deepEqual(field.options, before.slice(2));
+    assert.deepEqual(field.output, { kind: 'enum', values: ['alpha', 'beta'] });
+    assert.deepEqual(dropdown.component.config.options, before);
+    catalog.forms[1].fields = [field];
+    const d = definition(); Object.assign(d.targetFields[0], { metadataPointer: field.pointer, expectedComponentClasses: [field.component], output: field.output, options: field.options });
+    d.questions = [{ id: 'choice', label: 'Choose one', type: 'enum', required: false, sourceDefaultExpression: '/title', options: field.options }];
+    const saved = await service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin');
+    assert.deepEqual(saved.problems, []);
+    await service.publish('a', 'v', { expectedContentHash: saved.contentHash }, 'admin');
+    assert.deepEqual((sails.services.generationschemaservice.buildProviderSchema(saved.definition) as any).properties.answers.properties.summary.properties.value.enum, ['alpha', 'beta']);
+  });
+  it('shares the question option count boundary with the save API and publication checks', async () => {
+    const d = definition();
+    const options = Array.from({ length: GENERATION_QUESTION_OPTION_LIMIT }, (_, i) => ({ value: 'country-' + i, label: 'Country ' + i }));
+    d.questions = [{ id: 'country', label: 'Country?', type: 'enum', required: false, options }];
+    assert.equal(profileDefinitionSchema.safeParse(d).success, true);
+    options.push({ value: 'extra', label: 'Extra country' });
+    assert.equal(profileDefinitionSchema.safeParse(d).success, false);
+    assert.ok((await service.validate('a', d)).some(p => p.messageKey === 'ai-profiles-problem-question-options' && p.row === 'country'));
   });
   it('preserves saved profile question text across publication, run launch and the researcher API contract consumed by the panel', async () => {
     const d = definition(); d.questions = structuredClone(profileQuestionContract);

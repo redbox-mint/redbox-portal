@@ -1,6 +1,9 @@
 import type { GenerationQuestion } from './question';
 import type { GenerationDocumentPolicy } from './document';
 
+/** Maximum choices accepted by the profile save API and question editor. */
+export const GENERATION_QUESTION_OPTION_LIMIT = 100;
+
 export type GenerationProfileOutput =
   | { kind: 'string' | 'richText'; maxLength?: number }
   | { kind: 'boolean' | 'date' }

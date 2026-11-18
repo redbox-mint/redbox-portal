@@ -132,18 +132,19 @@
           @if (q.type === 'enum' || q.type === 'multiEnum') {
             <fieldset><legend class="fs-6">{{ 'ai-profiles-options' | i18next }}</legend>
               <p class="rb-admin-hint">{{ 'ai-profiles-options-edit-help' | i18next }}</p>
+              @if ((q.options?.length || 0) > questionOptionLimit) { <p role="alert">{{ 'ai-profiles-problem-question-options' | i18next: { label: q.label } }}</p> }
               @for (option of q.options; track option.value; let i = $index) {
                 <div class="mb-2">
                   <label [for]="'profile-question-option-' + i">{{ 'ai-profiles-option-label' | i18next: { number: i + 1 } }}</label>
                   <div class="d-flex gap-2"><input [id]="'profile-question-option-' + i" class="form-control" [(ngModel)]="option.label" maxlength="500"><button type="button" class="btn btn-outline-danger" (click)="removeQuestionOption(i)" [attr.aria-label]="'ai-profiles-remove-option' | i18next: { number: i + 1 }">{{ 'ai-profiles-remove' | i18next }}</button></div>
                 </div>
               }
-              <button type="button" class="btn btn-outline-secondary" (click)="addQuestionOption()">{{ 'ai-profiles-add-option' | i18next }}</button>
+              <button type="button" class="btn btn-outline-secondary" [disabled]="(q.options?.length || 0) >= questionOptionLimit" (click)="addQuestionOption()">{{ 'ai-profiles-add-option' | i18next }}</button>
             </fieldset>
           }
           <label class="profile-check"><input type="checkbox" [(ngModel)]="q.required">{{ 'ai-profiles-required' | i18next }}</label>
           @if (q.type === 'text' || q.type === 'textarea') { <div><label for="profile-question-length">{{ 'ai-profiles-max-length' | i18next }}</label><input id="profile-question-length" class="form-control" type="number" min="1" max="16000" [(ngModel)]="q.maxLength"></div> }
-          <div><label for="profile-question-prefill">{{ 'ai-profiles-prefill' | i18next }}</label><select id="profile-question-prefill" class="form-select" [ngModel]="q.sourceDefaultExpression || ''" (ngModelChange)="pickQuestionPrefill($event)"><option value="">{{ 'ai-profiles-no-prefill' | i18next }}</option>@for (f of questionPrefillFields; track f.pointer) { <option [value]="f.pointer">{{ f.label }}</option> }</select>@if (questionIsChoice) { <p class="rb-admin-hint">{{ 'ai-profiles-choice-prefill-help' | i18next }}</p>@if (q.sourceDefaultExpression) { <p role="status">{{ 'ai-profiles-choice-prefill-selected' | i18next: { label: sourceLabel(q.sourceDefaultExpression) } }}</p> } }</div>
+          <div><label for="profile-question-prefill">{{ 'ai-profiles-prefill' | i18next }}</label><select id="profile-question-prefill" class="form-select" [ngModel]="q.sourceDefaultExpression || ''" (ngModelChange)="pickQuestionPrefill($event)"><option value="">{{ 'ai-profiles-no-prefill' | i18next }}</option>@for (f of questionPrefillFields; track f.pointer) { <option [value]="f.pointer">{{ f.label }}</option> }</select>@if (questionIsChoice) { <p class="rb-admin-hint">{{ 'ai-profiles-choice-prefill-help' | i18next }}</p>@for (field of oversizedQuestionPrefillFields; track field.pointer) { <p class="rb-admin-hint">{{ 'ai-profiles-prefill-too-many-choices' | i18next: { label: field.label, limit: questionOptionLimit } }}</p> }@if (q.sourceDefaultExpression) { <p role="status">{{ 'ai-profiles-choice-prefill-selected' | i18next: { label: sourceLabel(q.sourceDefaultExpression) } }}</p> } }</div>
         }
         @if (m.kind === 'field' && field; as f) {
           <div><label for="profile-field-choice">{{ 'ai-profiles-form-field' | i18next }}</label><select id="profile-field-choice" class="form-select" [ngModel]="f.metadataPointer" (ngModelChange)="pickField($event)" cdkFocusInitial><option value="">{{ 'ai-profiles-pick-field' | i18next }}</option>@for (choice of targetChoices; track choice.pointer) { <option [value]="choice.pointer">{{ choice.label }}</option> }</select><p class="rb-admin-hint">{{ 'ai-profiles-field-format-help' | i18next }}</p></div>

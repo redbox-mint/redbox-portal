@@ -1,10 +1,12 @@
-import { FormPathHelper, type FormComponentDefinitionOutline, type FormConfigFrame, type ProfileField, type GenerationProfileOutput } from '@researchdatabox/sails-ng-common';
+import { FormPathHelper, FormConfig, ValidatorsSupport, type FormValidatorConfig, type FormComponentDefinitionOutline, type FormConfigFrame, type ProfileField, type GenerationProfileOutput } from '@researchdatabox/sails-ng-common';
 
-type FieldNode = { name?: string; component?: { class?: string; config?: Record<string, unknown> }; layout?: { config?: Record<string, unknown> }; validators?: { maxLength?: { value?: number } } };
+type FieldNode = { name?: string; component?: { class?: string; config?: Record<string, unknown> }; layout?: { config?: Record<string, unknown> }; model?: { config?: { disabled?: boolean; validators?: FormValidatorConfig[] } } };
 
 /** Use the same metadata lineage as GenerationSchemaService; display only form labels. */
 export function profileFormFields(form: FormConfigFrame, translate: (text: string) => string): ProfileField[] {
   const fields: ProfileField[] = [];
+  const defaults = new FormConfig();
+  const validators = new ValidatorsSupport();
   const visit = (items: unknown[], parents: string[], group: string, blocked = false) => {
     for (const raw of items) {
       if (!raw || typeof raw !== 'object') continue;
@@ -18,14 +20,19 @@ export function profileFormFields(form: FormConfigFrame, translate: (text: strin
         ? String(item.name ?? '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/^./, (c: string) => c.toUpperCase())
         : translated).replace(/<[^>]*>/g, '').trim() || translate('ai-profiles-unnamed-field');
       const component = String(item.component?.class ?? '');
-      const disabled = blocked || config.disabled === true || config.readonly === true || config.editMode === false;
+      const disabled = blocked || item.model?.config?.disabled === true || config.disabled === true || config.readonly === true || config.editMode === false;
       const options = Array.isArray(config.options) ? config.options.flatMap((option: unknown) => {
         if (!option || typeof option !== 'object') return [];
         const value: unknown = Reflect.get(option, 'value');
-        return typeof value === 'string' ? [{ value, label: translate(String(Reflect.get(option, 'label') ?? value)) }] : [];
+        return typeof value === 'string' && value.trim() ? [{ value, label: translate(String(Reflect.get(option, 'label') ?? value)) }] : [];
       }) : [];
       let output: GenerationProfileOutput | undefined;
-      const maxLength = config.maxLength ?? item.validators?.maxLength?.value;
+      const limits = [config.maxLength, ...validators.enabledValidators(
+        form.validationGroups ?? defaults.validationGroups!, form.enabledValidationGroups ?? defaults.enabledValidationGroups!,
+        item.model?.config?.validators ?? [],
+      ).filter(v => v.class === 'maxLength').map(v => v.config?.maxLength)]
+        .filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0);
+      const maxLength = limits.length ? Math.min(...limits) : undefined;
       if (['SimpleInputComponent', 'TextAreaComponent', 'RichTextEditorComponent'].includes(component)) output = { kind: component === 'RichTextEditorComponent' ? 'richText' : 'string', ...(typeof maxLength === 'number' && Number.isInteger(maxLength) ? { maxLength } : {}) };
       else if (component === 'DateInputComponent') output = { kind: 'date' };
       else if (component === 'CheckboxInputComponent' && config.booleanMode === true) output = { kind: 'boolean' };

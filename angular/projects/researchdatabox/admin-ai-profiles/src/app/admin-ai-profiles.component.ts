@@ -1,3 +1,4 @@
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +19,7 @@ type Modal = { kind: 'create' | 'duplicate' | 'question' | 'field' | 'case' | 'd
   imports: [CommonModule, FormsModule, A11yModule, I18NextPipe, AdminDatePipe, AdminModalDirective, ProfileValueComponent], providers: [ProfileApiService],
   templateUrl: './admin-ai-profiles.component.html', encapsulation: ViewEncapsulation.None })
 export class AdminAiProfilesComponent implements OnInit, OnDestroy {
+  readonly questionOptionLimit = GENERATION_QUESTION_OPTION_LIMIT;
   overview?: ProfileOverview;
   profile?: ProfileSummary;
   selected?: ProfileVersion;
@@ -77,7 +79,8 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   get sourceForm() { return this.overview?.forms.find(f => f.name === this.overview?.recordTypes.find(t => t.name === this.source?.recordType)?.formName); }
   get sourceFields(): ProfileField[] { return this.sourceForm?.fields ?? []; }
   get selectedSourceFields(): ProfileField[] { return this.sourceFields.filter(f => this.source?.allowedPaths.includes(f.pointer)); }
-  get questionPrefillFields(): ProfileField[] { return this.selectedSourceFields.filter(f => !this.questionIsChoice || !!f.options?.length); }
+  get oversizedQuestionPrefillFields(): ProfileField[] { return this.questionIsChoice ? this.selectedSourceFields.filter(f => (f.options?.length ?? 0) > this.questionOptionLimit) : []; }
+  get questionPrefillFields(): ProfileField[] { return this.selectedSourceFields.filter(f => !this.questionIsChoice || !!f.options?.length && f.options.length <= this.questionOptionLimit); }
   get questionIsChoice(): boolean { return !!this.question && ['enum', 'multiEnum'].includes(this.question.type); }
   get sourceGroups(): string[] { return [...new Set(this.sourceFields.map(f => f.group))]; }
   get targetForm() { return this.overview?.forms.find(f => f.name === this.draft?.targetForm?.formName); }
@@ -93,7 +96,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   get nameUsed(): boolean { return !!this.modal?.name.trim() && !!this.overview?.profiles.some(p => p.name.toLowerCase() === this.modal?.name.trim().toLowerCase()); }
   get modalValid(): boolean {
     if (!this.modal) return false;
-    if (this.modal.kind === 'question') return !!this.question?.label?.trim() && (!['enum', 'multiEnum'].includes(this.question.type) || !!this.question.options?.length && this.question.options.every(o => !!o.label?.trim())) && (this.question.maxLength == null || Number.isInteger(this.question.maxLength) && this.question.maxLength > 0);
+    if (this.modal.kind === 'question') return !!this.question?.label?.trim() && (!['enum', 'multiEnum'].includes(this.question.type) || !!this.question.options?.length && this.question.options.length <= this.questionOptionLimit && this.question.options.every(o => !!o.label?.trim())) && (this.question.maxLength == null || Number.isInteger(this.question.maxLength) && this.question.maxLength > 0);
     if (this.modal.kind === 'field') return !!this.field?.metadataPointer && !!this.field.expectedComponentClasses.length && (this.field.maxLength == null || Number.isInteger(this.field.maxLength) && this.field.maxLength > 0);
     if (this.modal.kind === 'case') return !!this.testCase?.name.trim();
     return !!this.modal.name.trim() && !this.nameUsed;
@@ -172,7 +175,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     this.question.options = this.question.options?.map(o => ({ value: o.value, label: this.text(o.label, o.labelKey) }));
     this.modal = { kind: 'question', name: '', index };
   }
-  addQuestionOption(): void { if (this.question) (this.question.options ??= []).push({ value: this.id('option'), label: '' }); }
+  addQuestionOption(): void { if (this.question && (this.question.options?.length ?? 0) < this.questionOptionLimit) (this.question.options ??= []).push({ value: this.id('option'), label: '' }); }
   removeQuestionOption(index: number): void { this.question?.options?.splice(index, 1); }
   questionTypeChanged(): void {
     if (!this.question) return;

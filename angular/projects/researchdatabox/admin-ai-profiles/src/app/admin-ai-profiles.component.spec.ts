@@ -1,3 +1,5 @@
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
+import { profileProblems } from './profile-settings';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import english from '../../../../../../language-defaults/en/translation.json';
@@ -23,6 +25,45 @@ describe('Drafting profile editor', () => {
   afterEach(() => { fixture.destroy(); history.replaceState(null, '', original); });
   const query = (s: string): HTMLElement => fixture.nativeElement.querySelector(s);
   const open = () => { component.open('profile'); fixture.detectChanges(); };
+  for (const type of ['enum', 'multiEnum'] as const) it(`blocks oversized source choice prefill and explains the option limit for ${type}`, async () => {
+    open();
+    const options = Array.from({ length: GENERATION_QUESTION_OPTION_LIMIT + 1 }, (_, i) => ({ value: 'country-' + i, label: 'Country ' + i }));
+    component.sourceForm!.fields.push({ pointer: '/country', label: 'Country', group: 'Activity', component: 'DropdownInputComponent', options, output: { kind: 'enum', values: options.map(o => o.value) } });
+    component.toggleSource('/country', true);
+    component.editQuestion(); component.question!.label = 'Which country?'; component.question!.type = type; component.questionTypeChanged();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(Array.from((query('#profile-question-prefill') as HTMLSelectElement).options).map(o => o.text)).not.toContain('Country');
+    expect(query('.modal').textContent).toContain(`Country has more than ${GENERATION_QUESTION_OPTION_LIMIT} choices`);
+    component.pickQuestionPrefill('/country');
+    expect(component.question!.sourceDefaultExpression).toBeUndefined(); expect(component.question!.options).toBeUndefined();
+    // Existing oversized questions cannot be accepted, and their publication problem names the question.
+    component.question!.options = clone(options); expect(component.modalValid).toBeFalse();
+    component.draft!.questions.push(clone(component.question!));
+    expect(profileProblems(component.draft!, component.overview!).some(p => p.messageKey === 'ai-profiles-problem-question-options' && p.label === 'Which country?')).toBeTrue();
+    fixture.detectChanges(); expect(query('.modal [role="alert"]').textContent).toContain('Remove choices until there are 100 or fewer');
+    component.question!.options!.pop(); options.pop();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(Array.from((query('#profile-question-prefill') as HTMLSelectElement).options).map(o => o.text)).toContain('Country');
+    component.pickQuestionPrefill('/country');
+    expect(component.question!.options).toEqual(options); expect(component.modalValid).toBeTrue();
+    component.addQuestionOption(); expect(component.question!.options!.length).toBe(GENERATION_QUESTION_OPTION_LIMIT);
+    expect((Array.from(query('.modal').querySelectorAll('button')).find(b => b.textContent?.includes('Add option')) as HTMLButtonElement).disabled).toBeTrue();
+  });
+  it('carries an inherited model character limit through target selection and rejects missing or wider saved contracts', async () => {
+    open(); const actual = component.targetForm!.fields[0]; actual.output = { kind: 'string', maxLength: 256 };
+    component.editField(0); component.pickField(actual.pointer);
+    expect(component.fieldMaxLength).toBe(256); expect(component.field!.output).toEqual({ kind: 'string', maxLength: 256 });
+    component.field!.maxLength = null as any; await component.submitModal();
+    expect(component.draft!.targetFields[0].maxLength).toBeUndefined();
+    expect(component.canPublish).toBeTrue();
+    component.draft!.targetFields[0].output = { kind: 'string' };
+    expect(component.canPublish).toBeFalse();
+    component.draft!.targetFields[0].output = { kind: 'string', maxLength: 300 };
+    expect(component.canPublish).toBeFalse();
+    actual.output = undefined;
+    expect(component.targetChoices.some(f => f.pointer === actual.pointer)).toBeFalse();
+    expect(component.problems.some(p => p.messageKey === 'ai-profiles-problem-field-uneditable')).toBeTrue();
+  });
   it('uses hash state and one header without an Angular router', () => { open(); expect(location.hash).toContain('profile=profile'); expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1); expect(api.overview).toHaveBeenCalledTimes(1); });
   it('shows labelled source and target fields without metadata paths', () => { open(); expect(query('#profile-source').textContent).toContain('Activity title'); expect(query('#profile-fields').textContent).toContain('Summary'); expect(fixture.nativeElement.textContent).not.toContain('/summary'); });
   it('saves incomplete drafts but blocks publishing with linked problems', async () => { open(); component.draft!.targetFields = []; fixture.detectChanges(); expect(component.canPublish).toBeFalse(); expect(query('#profile-problems a')).toBeTruthy(); await component.saveDraft(); expect(api.save).toHaveBeenCalled(); await component.publish(); expect(api.publish).not.toHaveBeenCalled(); });

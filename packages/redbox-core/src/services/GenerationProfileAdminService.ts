@@ -1,3 +1,4 @@
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import { pointersOverlap } from './GenerationBindingService';
 import { requireProfileModel } from './GenerationProfileService';
 import type { GenerationBindingAttributes } from '../waterline-models/GenerationBinding';
@@ -114,6 +115,7 @@ export namespace Services {
       }
       for (const q of definition.questions ?? []) {
         const label = q.label || (q.labelKey ? TranslationService.t(q.labelKey) : TranslationService.t('ai-profiles-question-text'));
+        if (q.options && q.options.length > GENERATION_QUESTION_OPTION_LIMIT) add('questions', 'question-options', label, q.id);
         if (!(q.label?.trim() || q.labelKey?.trim()) || (q.maxLength !== undefined && (!Number.isSafeInteger(q.maxLength) || q.maxLength <= 0)) ||
           (['enum', 'multiEnum'].includes(q.type) && (!q.options?.length || new Set(q.options.map(o => o.value)).size !== q.options.length)) ||
           (q.sourceDefaultExpression && !definition.sourceSlots.some(slot => slot.allowedPaths.includes(q.sourceDefaultExpression!)))) add('questions', 'question', label, q.id);
@@ -144,9 +146,10 @@ export namespace Services {
           const actual = targetForm?.fields.find(f => f.pointer === field.metadataPointer);
           const label = actual?.label || field.label || TranslationService.t('ai-profiles-unnamed-field');
           if (!actual) add('fields', 'target-field', label, field.id, targetForm?.label);
-          else if (!actual.output || !field.expectedComponentClasses.includes(actual.component) || actual.output.kind !== field.output?.kind ||
+          else if (!actual.output) add('fields', 'field-uneditable', label, field.id, targetForm?.label);
+          else if (!field.expectedComponentClasses.includes(actual.component) || actual.output.kind !== field.output?.kind ||
             ('values' in actual.output && (!('values' in field.output) || canonicalHash([...actual.output.values].sort()) !== canonicalHash([...field.output.values].sort()))) ||
-            ('maxLength' in actual.output && actual.output.maxLength && (field.maxLength ?? ('maxLength' in field.output ? field.output.maxLength ?? 0 : 0)) > actual.output.maxLength)) add('fields', 'field-changed', label, field.id, targetForm?.label);
+            ('maxLength' in actual.output && actual.output.maxLength && (field.maxLength ?? ('maxLength' in field.output ? field.output.maxLength ?? Infinity : Infinity)) > actual.output.maxLength)) add('fields', 'field-changed', label, field.id, targetForm?.label);
         }
       }
       for (const field of definition.targetFields ?? []) {

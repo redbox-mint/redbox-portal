@@ -1,3 +1,4 @@
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import { z } from 'zod';
 import type { GenerationProfileDefinition, GenerationProfileOutput } from '@researchdatabox/sails-ng-common';
 const text = z.string().max(16000);
@@ -17,7 +18,7 @@ export const profileDefinitionSchema: z.ZodType<GenerationProfileDefinition> = z
   documentSources: z.object({ formats: z.array(z.enum(['pdf', 'docx', 'txt'])), maxFiles: z.number(), maxFileBytes: z.number(), maxTextBytes: z.number() }).optional(),
   questions: z.array(z.object({ id, label: text.optional(), labelKey: text.optional(), helpText: text.optional(), helpTextKey: text.optional(),
     type: z.enum(['text', 'textarea', 'boolean', 'date', 'enum', 'multiEnum']), required: z.boolean(), maxLength: z.number().optional(),
-    sourceDefaultExpression: text.optional(), options: z.array(z.object({ value: text, label: text.optional(), labelKey: text.optional() })).max(100).optional() })).max(50),
+    sourceDefaultExpression: text.optional(), options: z.array(z.object({ value: text, label: text.optional(), labelKey: text.optional() })).max(GENERATION_QUESTION_OPTION_LIMIT).optional() })).max(50),
   targetFields: z.array(z.object({ id, label: text.optional(), metadataPointer: text, expectedComponentClasses: z.array(id).max(20), output,
     options: z.array(z.object({ value: text, label: text })).max(500).optional(),
     operation: z.literal('fill'), maxLength: z.number().optional(), knowledgeTags: z.array(id).max(100).optional(), reviewedAnswerIds: z.array(id).max(50).optional(),
