@@ -5343,6 +5343,7 @@
   "ai-models-created-by": "Created by {{name}}",
   "ai-profiles-title": "AI drafting profiles",
   "ai-profiles-description": "Choose what each drafting profile can read, ask and fill.",
+  "ai-profiles-overview-description": "Choose the source information, questions and fields for each profile. Test drafts before publishing.",
   "ai-profiles-editor-description": "Set up a draft, test it with synthetic examples, then publish it for researchers.",
   "ai-profiles-loading": "Loading drafting profiles…",
   "ai-profiles-create": "Create profile",

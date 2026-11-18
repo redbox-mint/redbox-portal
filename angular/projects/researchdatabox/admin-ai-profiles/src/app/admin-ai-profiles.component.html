@@ -5,7 +5,7 @@
     @if (draft) { <li><span aria-current="page">{{ name }}</span></li> }
   </ol></nav>
   <header class="rb-admin-page-header"><div><h1 tabindex="-1">{{ draft ? name : ('ai-profiles-title' | i18next) }} @if (selected) { <span class="badge" [class.rb-admin-badge-warning]="!readOnly" [class.rb-admin-badge-success]="selected.status === 'published'">{{ versionKey(selected) | i18next: { version: selected.version } }}</span> }</h1>
-    <p>{{ (draft ? 'ai-profiles-editor-description' : 'ai-profiles-description') | i18next }}</p></div>
+    <p>{{ (draft ? 'ai-profiles-editor-description' : 'ai-profiles-overview-description') | i18next }}</p></div>
     @if (!loading && overview) { <div class="rb-admin-page-actions">
       @if (!draft) { <button class="btn btn-primary" type="button" (click)="askCreate()" [disabled]="busy || !overview.forms.length">{{ 'ai-profiles-create' | i18next }}</button> }
       @else if (!readOnly) {
