@@ -240,7 +240,7 @@ describe('Generation document sources', function () {
     });
     expect(frozen.sources).to.have.length(1);
     expect(frozen.sourceEvidence.filter(item => item.id.startsWith('document:')).length).to.be.greaterThan(1);
-    expect(frozen.sourceEvidence.some(item => item.label === 'activity /summary')).to.equal(true);
+    expect(frozen.sourceEvidence.some(item => item.label === 'Summary')).to.equal(true);
     expect(frozen.sourceEvidence.some(item => item.id.startsWith('document-review:'))).to.equal(true);
     expect(JSON.stringify(frozen)).not.to.contain('private');
   });

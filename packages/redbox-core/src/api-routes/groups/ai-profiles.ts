@@ -1,9 +1,14 @@
 import { defineApiRoute } from '../define';
 import { z } from '../zod-openapi';
 import { responseField } from '../schemas/common';
-import { profileCreateSchema, profileSaveSchema, profileCopySchema } from '../../services/GenerationProfileAdminService';
+import { profileCreateSchema, profileCopySchema } from '../../services/GenerationProfileAdminService';
 import type { HttpMethod } from '../types';
 const id = z.string().min(1).max(200);
+// The service validates the full definition (profile-admin-validation.ts). Its target field output format is recursive,
+// which OpenAPI dereferencing turns into a circular document, so the docs describe the definition as an object.
+const profileSaveDocsSchema = z.object({ name: profileCopySchema.shape.name,
+  definition: z.record(z.string(), z.unknown()).openapi({ description: 'Drafting profile definition: source fields, questions, fields to fill, model, guidance and test cases.' }),
+  expectedContentHash: z.string().min(1).max(100) }).strict();
 function route(method: HttpMethod, path: string, action: string, summary: string, body?: z.ZodType, param?: string) {
   return defineApiRoute({ method, path: '/:branding/:portal/app/ai-profiles' + path, controller: 'GenerationProfileAdminController', action,
     csrf: true, security: [{ sessionAuth: [] }], extensions: { 'x-redbox-roles': ['Admin'] }, tags: ['AI drafting profiles'], summary,
@@ -19,7 +24,7 @@ export const generationProfileAdminRoutes = [
   route('post', '/profiles', 'create', 'Create profile draft v1', profileCreateSchema),
   route('post', '/profiles/:key/duplicate', 'duplicate', 'Duplicate newest profile version', profileCopySchema, 'key'),
   route('delete', '/profiles/:key', 'remove', 'Delete unused unpublished profile', undefined, 'key'),
-  route('put', '/versions/:versionId', 'save', 'Save draft and return validation warnings', profileSaveSchema, 'versionId'),
+  route('put', '/versions/:versionId', 'save', 'Save draft and return validation warnings', profileSaveDocsSchema, 'versionId'),
   route('post', '/versions/:versionId/publish', 'publish', 'Publish a valid draft', z.object({ expectedContentHash: id }).strict(), 'versionId'),
   route('post', '/versions/:versionId/versions', 'newVersion', 'Create next draft version', undefined, 'versionId'),
   route('post', '/versions/:versionId/retire', 'retire', 'Retire published version', undefined, 'versionId'),
