@@ -72,13 +72,14 @@ function nodeHints(
       vocabulary?: string;
       scalarTypes: Set<GridScalar | 'DATE'>;
       choices: GridField['choices'];
+      configuredChoices: GridField['choices'];
     }
   >(),
   groups: string[] = []
 ) {
   if (node.annotations?.writeOnly || (shape.kind === 'json' && shape.reason === 'restricted-shape')) return output;
   const id = metadataFieldId(tokens);
-  const hint = output.get(id) ?? { choices: [], scalarTypes: new Set<GridScalar | 'DATE'>() };
+  const hint = output.get(id) ?? { choices: [], configuredChoices: [], scalarTypes: new Set<GridScalar | 'DATE'>() };
   const configuredGroups = node.annotations?.extensions?.['x-redbox-group-path'];
   const currentGroups = [
     ...groups,
@@ -118,8 +119,11 @@ function nodeHints(
         !Array.isArray(choice) &&
         typeof choice.label === 'string' &&
         ['string', 'number', 'boolean'].includes(typeof choice.value)
-      )
-        hint.choices.push({ label: choice.label, value: choice.value as string | number | boolean });
+      ) {
+        const configured = { label: choice.label, value: choice.value as string | number | boolean };
+        hint.choices.push(configured);
+        hint.configuredChoices.push(configured);
+      }
   output.set(id, hint);
   if (node.kind === 'object' && shape.kind === 'object')
     for (const [key, child] of Object.entries(node.properties))
@@ -198,6 +202,7 @@ export function buildCatalogue(
 ): CatalogueSnapshot {
   const scoped = scopedContracts(contracts, recordType, stages);
   const fields = new Map<string, GridField>();
+  const configuredChoices = new Map<string, GridField['choices']>();
   const dateFormats = new Map<string, GridScalar | 'DATE'>();
   for (const [name, label, type] of recordFields)
     fields.set(`record:${name}`, {
@@ -282,6 +287,11 @@ export function buildCatalogue(
               : scalarType(shape);
         // Later duplicates win: configured labels on the list override item enum values.
         const choices = [...(itemHint?.choices ?? []), ...(hint?.choices ?? [])];
+        configuredChoices.set(id, [
+          ...(configuredChoices.get(id) ?? []),
+          ...(itemHint?.configuredChoices ?? []),
+          ...(hint?.configuredChoices ?? []),
+        ]);
         const vocabulary = hint?.vocabulary ?? itemHint?.vocabulary;
         const existing = fields.get(id);
         if (existing) {
@@ -348,7 +358,14 @@ export function buildCatalogue(
   for (const field of fields.values()) {
     field.availableInAllVariants =
       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
-    field.choices = [...new Map(field.choices.map(choice => [JSON.stringify(choice.value), choice])).values()];
+    field.choices = [
+      ...new Map(
+        [...field.choices, ...(configuredChoices.get(field.id) ?? [])].map(choice => [
+          JSON.stringify(choice.value),
+          choice,
+        ])
+      ).values(),
+    ];
     if (field.scalarType === 'MIXED') field.selectable = false;
     // Only declared scalar lists that are not themselves inside a list support
     // element predicates; object lists and their children remain unavailable.

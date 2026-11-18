@@ -237,6 +237,20 @@ describe('GraphQL grid over Sails and Mongo', function () {
       assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
     }
   });
+  it('executes matching discovery revisions in Mongo and rejects stale first-page revisions', async () => {
+    const discovery = await send(catalogue);
+    assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+    const revision = discovery.body.data.recordFields.revision;
+    const query = page
+      .replace('query(', 'query($revision:String,')
+      .replace('records(recordType:', 'records(revision:$revision,recordType:');
+    const valid = await send(query, { revision, filters: onlyOurRows });
+    assert.equal(valid.body.errors, undefined, JSON.stringify(valid.body));
+    assert.equal(valid.body.data.records.nodes.length, 2);
+    const stale = await send(query, { revision: `${revision}-stale`, filters: onlyOurRows });
+    assert.equal(stale.body.errors?.[0].extensions.code, 'CATALOGUE_CHANGED');
+    assert.equal(stale.body.data.records, null);
+  });
   it('requires route read permission for both discovery and collections', async () => {
     await PathRule.updateOne({ id: ruleId }).set({ can_read: false });
     await firstValueFrom(PathRulesService.loadRules());
@@ -364,14 +378,11 @@ describe('GraphQL grid over Sails and Mongo', function () {
       assert.equal(field.sortable, true, field.id);
     }
     // Configured option labels apply to list choices; order follows the compiled enum, as for scalars.
-    assert.deepEqual(
-      colours.choices.map(choice => [choice.label, choice.value]).sort(),
-      [
-        ['Blue', 'blue'],
-        ['Green', 'green'],
-        ['Red', 'red'],
-      ]
-    );
+    assert.deepEqual(colours.choices.map(choice => [choice.label, choice.value]).sort(), [
+      ['Blue', 'blue'],
+      ['Green', 'green'],
+      ['Red', 'red'],
+    ]);
     assert.equal(people.cardinality, 'LIST');
     assert.equal(people.filterable, false);
     assert.equal(people.sortable, false);
@@ -382,19 +393,19 @@ describe('GraphQL grid over Sails and Mongo', function () {
       { colours: 'red', keywords: [] },
       { colours: [['red']], keywords: null },
       { colours: ['red'], keywords: ['0'], denied: true },
-      { colours: ['blue', 'red'], keywords: ['c', 'z'] },
+      { colours: ['blue', 'red'], keywords: ['b', 'c', 'z'] },
     ];
     const ids = rows.map((_, index) => `grid-list-${index}-${suffix}`);
-    await Record.createEach(
-      rows.map(({ denied, ...metadata }, index) => ({
-        redboxOid: ids[index],
-        metadata: { title: `List-${suffix}`, ...metadata },
-        metaMetadata: { brandId: brand.id, type: 'dataPublication', form: 'dataPublication-1.0-draft' },
-        workflow: { stage: 'draft' },
-        authorization: { view: denied ? [] : [username], edit: [], viewRoles: [], editRoles: [] },
-      }))
-    );
     try {
+      await Record.createEach(
+        rows.map(({ denied, ...metadata }, index) => ({
+          redboxOid: ids[index],
+          metadata: { title: `List-${suffix}`, ...metadata },
+          metaMetadata: { brandId: brand.id, type: 'dataPublication', form: 'dataPublication-1.0-draft' },
+          workflow: { stage: 'draft' },
+          authorization: { view: denied ? [] : [username], edit: [], viewRoles: [], editRoles: [] },
+        }))
+      );
       const scope = idsFilter(ids);
       for (const [filter, expected] of [
         [{ field: colours.id, eq: { text: 'red' } }, [ids[0], ids[5]]],
@@ -402,7 +413,7 @@ describe('GraphQL grid over Sails and Mongo', function () {
         [{ field: colours.id, exists: false }, [ids[2], ids[3]]],
         [{ field: keywords.id, iprefix: 'Y' }, [ids[0]]],
       ] as const) {
-        const response = await send(page, { filters: [scope, filter], first: 50 });
+        const response = await send(page, { filters: [scope, { ...filter, expectedCardinality: 'LIST' }], first: 50 });
         assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
         assert.deepEqual(resultIds(response), expected, JSON.stringify(filter));
       }
@@ -416,20 +427,28 @@ describe('GraphQL grid over Sails and Mongo', function () {
         for (let n = 0; n < 5; n++) {
           const response = await send(page, {
             filters: [scope],
-            sort: [{ field: keywords.id, direction }],
+            sort: [{ field: keywords.id, direction, expectedCardinality: 'LIST' }],
             first: 2,
             after,
           });
           assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
           seen.push(...resultIds(response));
-          if (!response.body.data.records.hasNextPage) break;
+          if (n === 2) {
+            assert.equal(resultIds(response).length, 1);
+            assert.equal(response.body.data.records.hasNextPage, false);
+            assert.equal(response.body.data.records.endCursor, null);
+          }
+          if (!response.body.data.records.hasNextPage) {
+            assert.equal(n, 2);
+            break;
+          }
           after = response.body.data.records.endCursor;
         }
         assert.deepEqual(seen, expected, direction);
       }
       // Sort keys use all values regardless of a filter matching only one of them.
       const filtered = await send(page, {
-        filters: [scope, { field: colours.id, eq: { text: 'red' } }],
+        filters: [scope, { field: keywords.id, eq: { text: 'b' } }],
         sort: [{ field: keywords.id, direction: 'DESC' }],
         first: 50,
       });

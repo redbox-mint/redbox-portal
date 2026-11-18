@@ -1,4 +1,8 @@
-import { recordGridFilter, recordGridSort } from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
+import {
+  recordGridFilter,
+  recordGridSort,
+  isWellFormedRecordGridText,
+} from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
 import { recordGridRequest } from '@researchdatabox/sails-ng-common/dist/src/record-grid-query';
 import {
   GridDefinition,
@@ -271,6 +275,7 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
   const selections = fields.flatMap(field => field.selections);
   return recordGridRequest({
     recordType: scope.recordType,
+    revision: discovery.revision,
     workflowStage: scope.workflowStage,
     selections,
     filters,
@@ -506,7 +511,8 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
       values.some(value => new TextEncoder().encode(value).length > 256) ||
       (operator !== 'in' && values.length !== (operator === 'between' ? 2 : 1)) ||
       (operator === 'exists' && !['true', 'false'].includes(values[0])) ||
-      (['contains', 'iprefix'].includes(operator) && !values[0])
+      (['contains', 'iprefix'].includes(operator) && !values[0]) ||
+      (operator === 'iprefix' && !isWellFormedRecordGridText(values[0]))
     )
       return invalid();
     return {

@@ -36,11 +36,18 @@ const RangeInput = new GraphQLInputObjectType({
   name: 'RecordFilterRange',
   fields: { from: { type: new GraphQLNonNull(ValueInput) }, to: { type: new GraphQLNonNull(ValueInput) } },
 });
+const Cardinality = new GraphQLEnumType({
+  name: 'RecordFieldCardinality',
+  description:
+    'SCALAR fields hold one value. LIST fields hold a declared array. For queryable scalar lists, each filter matches any valid element (BETWEEN needs one element within both bounds), separate filters may match different elements, and ASC/DESC sorting uses the minimum/maximum valid element. Object and nested lists cannot filter or sort.',
+  values: { SCALAR: {}, LIST: {} },
+});
 const FilterInput = new GraphQLInputObjectType({
   name: 'RecordFilterInput',
   description: 'Exactly one supported operator. Filters are combined with AND.',
   fields: {
     field: { type: new GraphQLNonNull(GraphQLID) },
+    expectedCardinality: { type: Cardinality },
     eq: { type: ValueInput },
     contains: { type: GraphQLString },
     iprefix: {
@@ -58,7 +65,11 @@ const FilterInput = new GraphQLInputObjectType({
 const Direction = new GraphQLEnumType({ name: 'RecordSortDirection', values: { ASC: {}, DESC: {} } });
 const SortInput = new GraphQLInputObjectType({
   name: 'RecordSortInput',
-  fields: { field: { type: new GraphQLNonNull(GraphQLID) }, direction: { type: new GraphQLNonNull(Direction) } },
+  fields: {
+    field: { type: new GraphQLNonNull(GraphQLID) },
+    direction: { type: new GraphQLNonNull(Direction) },
+    expectedCardinality: { type: Cardinality },
+  },
 });
 const scopeArgs = { recordType: { type: new GraphQLNonNull(GraphQLString) }, workflowStages: { type: stringList } };
 
@@ -100,12 +111,7 @@ const Choice = new GraphQLObjectType({
   name: 'RecordFieldChoice',
   fields: bounded({ label: { type: new GraphQLNonNull(GraphQLString) }, value: { type: JsonScalar } }),
 });
-const Cardinality = new GraphQLEnumType({
-  name: 'RecordFieldCardinality',
-  description:
-    'SCALAR fields hold one value. LIST fields hold a declared array. For queryable scalar lists, each filter matches any valid element (BETWEEN needs one element within both bounds), separate filters may match different elements, and ASC/DESC sorting uses the minimum/maximum valid element. Object and nested lists cannot filter or sort.',
-  values: { SCALAR: {}, LIST: {} },
-});
+
 const Field = new GraphQLObjectType({
   name: 'RecordField',
   fields: bounded({
@@ -222,6 +228,7 @@ export function gridFields(
       type: Page,
       args: {
         ...scopeArgs,
+        revision: { type: GraphQLString },
         filters: { type: new GraphQLList(new GraphQLNonNull(FilterInput)) },
         sort: { type: new GraphQLList(new GraphQLNonNull(SortInput)) },
         first: { type: GraphQLInt, defaultValue: GRID_LIMITS.defaultPageSize },

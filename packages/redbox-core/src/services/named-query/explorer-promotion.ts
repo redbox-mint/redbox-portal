@@ -89,7 +89,14 @@ function candidateMappings(document: string, resultPath: string[]): GraphqlNamed
 export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCaller): Promise<NamedQueryPromotionDraft> {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Buffer.byteLength(JSON.stringify(input)) > 65536)
     throw new SavedGridError(400, 'invalid-definition');
-  const { id, revision, updatedAt: _updatedAt, updatedBy: _updatedBy, publishedAs: _publishedAs, ...values } = input as Record<string, unknown>;
+  const {
+    id,
+    revision,
+    updatedAt: _updatedAt,
+    updatedBy: _updatedBy,
+    publishedAs: _publishedAs,
+    ...values
+  } = input as Record<string, unknown>;
   if (
     (id !== undefined && !savedGridId.safeParse(id).success) ||
     (revision !== undefined && !savedGridRevision.safeParse(revision).success)
@@ -172,11 +179,22 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
     const sort = grid.sort;
     const sortField = sort && fields.find(field => field.id === sort.fieldId);
     if (sort && !sortField) throw new SavedGridError(400, 'schema-changed');
-    const sorts = sort && sortField ? [shared(() => recordGridSort(sort, sortField))] : [];
+    const sorts =
+      sort && sortField
+        ? [
+            {
+              ...shared(() => recordGridSort(sort, sortField)),
+              expectedCardinality: sort.expectedCardinality ?? 'SCALAR',
+            },
+          ]
+        : [];
     const filters = grid.filters.map(filter => {
       const field = fields.find(field => field.id === filter.fieldId);
       if (!field) throw new SavedGridError(400, 'schema-changed');
-      return shared(() => recordGridFilter(filter, field));
+      return {
+        ...shared(() => recordGridFilter(filter, field)),
+        expectedCardinality: filter.expectedCardinality ?? 'SCALAR',
+      };
     });
     const generated = recordGridRequest({
       recordType: grid.recordType,

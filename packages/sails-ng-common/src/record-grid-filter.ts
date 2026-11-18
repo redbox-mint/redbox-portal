@@ -8,6 +8,11 @@ export type RecordGridCardinality = 'SCALAR' | 'LIST';
 const RECORD_GRID_SCALARS = ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'];
 export const RECORD_GRID_FILTER_LIMITS = { valueLength: 256, listItems: 20 };
 
+/** Unicode mode matches isolated surrogates while accepting valid supplementary pairs. */
+export function isWellFormedRecordGridText(value: string): boolean {
+  return !/[\uD800-\uDFFF]/u.test(value);
+}
+
 /** Same timestamp subset as the parent collection endpoint: timezone, calendar validity, at most milliseconds and UTC years 1–9999. */
 export function normalizeTimestamp(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/i.exec(value);
@@ -63,7 +68,11 @@ export function recordGridFilterValue(
   if (['gt', 'lt', 'between'].includes(operator) && !['NUMBER', 'INTEGER', 'DATETIME'].includes(scalarType))
     throw new Error('invalid-operator-type');
   if (operator === 'contains' && (scalarType !== 'STRING' || !values[0].length)) throw new Error('empty-contains');
-  if (operator === 'iprefix' && (scalarType !== 'STRING' || !values[0].length)) throw new Error('invalid-iprefix');
+  if (
+    operator === 'iprefix' &&
+    (scalarType !== 'STRING' || !values[0].length || !isWellFormedRecordGridText(values[0]))
+  )
+    throw new Error('invalid-iprefix');
   const converted = values.map(value => {
     if (scalarType === 'NUMBER' || scalarType === 'INTEGER') {
       if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) throw new Error('invalid-number');
@@ -108,7 +117,7 @@ export function recordGridFilter(
     values: readonly string[];
   },
   field: RecordGridFieldCapabilities & { filterable: boolean; operators: readonly string[] }
-): NamedQueryJson {
+): Record<string, NamedQueryJson> {
   const cardinality = queryableCardinality(field);
   if (
     !field.filterable ||

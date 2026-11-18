@@ -149,7 +149,9 @@ export function queryPlan(query: GridQuery, snapshot: CatalogueSnapshot): Collec
       gridError('INVALID_FILTER', 'Each filter must specify a stable field identifier.');
     const field = fields.get(filter.field);
     if (!field) gridError('UNKNOWN_FIELD', `Unknown or stale field identifier: ${filter.field}`);
-    const operations = Object.keys(filter).filter(key => key !== 'field');
+    if (filter.expectedCardinality != null && filter.expectedCardinality !== field.cardinality)
+      gridError('FILTER_CARDINALITY_CHANGED', 'Filter field cardinality changed; repair the definition.');
+    const operations = Object.keys(filter).filter(key => !['field', 'expectedCardinality'].includes(key));
     if (operations.length !== 1) gridError('INVALID_FILTER', 'Each filter must specify exactly one operator.');
     const operation = operations[0];
     if (!snapshot.bindings.has(field.id) || !field.operators.includes(operation.toUpperCase() as GridOperator))
@@ -180,13 +182,15 @@ export function queryPlan(query: GridQuery, snapshot: CatalogueSnapshot): Collec
   for (const item of sorts) {
     if (
       !isObject(item) ||
-      Object.keys(item).some(key => !['field', 'direction'].includes(key)) ||
+      Object.keys(item).some(key => !['field', 'direction', 'expectedCardinality'].includes(key)) ||
       typeof item.field !== 'string' ||
       !['ASC', 'DESC'].includes(item.direction)
     )
       gridError('INVALID_SORT', 'Sort fields require ASC or DESC.');
     const field = fields.get(item.field);
     if (!field) gridError('UNKNOWN_FIELD', `Unknown or stale field identifier: ${item.field}`);
+    if (item.expectedCardinality != null && item.expectedCardinality !== field.cardinality)
+      gridError('SORT_CARDINALITY_CHANGED', 'Sort field cardinality changed; repair the definition.');
     if (!field.sortable || seen.has(item.field))
       gridError('UNSUPPORTED_SORT', `Sorting is not supported or is repeated for ${item.field}.`);
     seen.add(item.field);
@@ -208,6 +212,8 @@ export async function readCollection(
   if (!Number.isInteger(first) || first < 1 || first > GRID_LIMITS.pageSize)
     gridError('INVALID_PAGE_SIZE', 'Page size must be between 1 and 50.');
   const snapshot = buildCatalogue(contracts, query.recordType, query.workflowStages ?? [], environment);
+  if (query.revision != null && query.revision !== snapshot.catalogue.revision)
+    gridError('CATALOGUE_CHANGED', 'Field catalogue changed; refresh fields before querying.');
   const plan = queryPlan(query, snapshot);
   // Historical forms must not turn undeclared/private stored paths into
   // filter or sorting oracles. Recheck hydrated scope after candidate selection.

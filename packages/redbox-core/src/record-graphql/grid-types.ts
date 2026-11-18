@@ -34,6 +34,7 @@ export interface GridValue {
 }
 export interface GridFilter {
   field: string;
+  expectedCardinality?: GridCardinality;
   eq?: GridValue;
   contains?: string;
   iprefix?: string;
@@ -45,10 +46,12 @@ export interface GridFilter {
 }
 export interface GridSort {
   field: string;
+  expectedCardinality?: GridCardinality;
   direction: 'ASC' | 'DESC';
 }
 export interface GridQuery {
   recordType: string;
+  revision?: string;
   workflowStages?: string[];
   filters?: GridFilter[];
   sort?: GridSort[];

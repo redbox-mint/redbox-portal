@@ -21,6 +21,11 @@ const filter = {
 };
 
 describe('shared visual grid filter validation', () => {
+  it('rejects malformed UTF-16 prefixes and accepts supplementary characters', () => {
+    for (const value of ['\ud800', '\udfff', 'x\ud800y'])
+      assert.throws(() => recordGridFilterValue('STRING', 'iprefix', [value]));
+    assert.equal(recordGridFilterValue('STRING', 'iprefix', ['😀']), '😀');
+  });
   it('builds typed operands from current raw values without mutating inputs', () => {
     const before = structuredClone(filter);
     assert.deepEqual(recordGridFilter(filter, field), { field: filter.fieldId, eq: { text: 'current' } });

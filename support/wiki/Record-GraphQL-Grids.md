@@ -199,10 +199,12 @@ A field has `cardinality: LIST`, `repeating: true` and filter/sort capabilities 
 
 - **Filters match any valid element.** `eq`, `in`, `contains`, `iprefix`, `gt` and `lt` match when at least one element satisfies the operator. `between` requires a **single element** within both bounds. Separate filters on the same list are independent and may each match a different element; there is no same-element correlation across filters.
 - **EXISTS** is true when the list has at least one valid element. Missing, null, empty and non-array stored values have no valid elements.
-- **Elements are normalized like scalars of the declared type.** Invalid elements (wrong type, numeric strings, non-finite numbers, unsafe integers, invalid dates, numeric epochs, null, nested arrays and objects) are ignored, never coerced. Arrays are not flattened, unwound or truncated.
+- **Elements are normalized like scalars of the declared type.** Invalid elements (wrong type, numeric strings, non-finite numbers, unsafe INTEGER elements or BSON long values, invalid dates, numeric epochs, null, nested arrays and objects) are ignored, never coerced. The safe-integer bound does not apply to finite NUMBER doubles. Arrays are not flattened, unwound or truncated.
 - **Sorting** uses the smallest valid element for `ASC` and the largest for `DESC`, over all valid elements regardless of filters. A list without valid elements sorts as missing (first for `ASC`, last for `DESC`), with the usual OID tie-break; continuation cursors carry that one scalar key.
 
 Element arrays are computed per candidate after the ACL and scope predicates and are removed before sorting, so the blocking sort holds only scalar keys and the existing page, deadline, result-byte and no-disk-spill bounds apply. Large stored lists are processed in full within the storage deadline; a query that cannot finish returns `QUERY_TIMEOUT` rather than partial results. These semantics change the catalogue revision, so collection cursors issued before deployment return `INVALID_CURSOR`; restart those queries.
+
+Visual collection requests pass the discovered catalogue `revision` to `records`. A stale revision returns `CATALOGUE_CHANGED` before filter/sort planning or storage reads; refresh fields and retry. Promoted visual named queries retain `expectedCardinality` on each filter and sort. Execution returns `FILTER_CARDINALITY_CHANGED` or `SORT_CARDINALITY_CHANGED` if a bound field changes between `SCALAR` and `LIST`; repair and republish the definition rather than silently changing its meaning. These optional arguments also let direct GraphQL callers opt in to the same checks.
 
 ### Literal prefix with ASCII case folding
 

@@ -5,7 +5,7 @@ import { prepareExplorerNamedQuery } from '../../src/services/named-query/explor
 import { Services as Editors } from '../../src/services/NamedQueryEditorService';
 import { Services as Rules } from '../../src/services/PathRulesService';
 import { createRecordYoga } from '../../src/record-graphql/schema';
-import { gridContracts } from '../fixtures/record-grid.fixtures';
+import { gridContracts, gridHarness } from '../fixtures/record-grid.fixtures';
 import { metadataTypeName } from '../../src/record-graphql/renderer';
 import { validateGraphqlNamedQuery } from '../../src/services/named-query/graphql-validation';
 
@@ -122,8 +122,12 @@ describe('Detached explorer named-query promotion', () => {
     assert.deepEqual(request.variables.ids, input.columns);
     assert.ok(result.definition.graphql.document.includes('currentLabel: title'));
     assert.ok(!result.definition.graphql.document.includes('CURRENT_VALUE'));
-    assert.deepEqual(result.variableValues.filters, [{ field: 'metadata:/title', contains: 'CURRENT_VALUE' }]);
-    assert.deepEqual(result.variableValues.sort, [{ field: 'metadata:/title', direction: 'DESC' }]);
+    assert.deepEqual(result.variableValues.filters, [
+      { field: 'metadata:/title', expectedCardinality: 'SCALAR', contains: 'CURRENT_VALUE' },
+    ]);
+    assert.deepEqual(result.variableValues.sort, [
+      { field: 'metadata:/title', direction: 'DESC', expectedCardinality: 'SCALAR' },
+    ]);
     assert.equal(result.variableValues.first, 50);
     assert.equal(result.variableValues.after, null);
     assert.deepEqual(result.definition.graphql.variables, {});
@@ -230,7 +234,9 @@ describe('Detached explorer named-query promotion', () => {
       };
       const before = structuredClone(input);
       const result = await prepareExplorerNamedQuery(input, caller);
-      assert.deepEqual(result.variableValues.filters, [{ field: found[1].id, ...operand }]);
+      assert.deepEqual(result.variableValues.filters, [
+        { field: found[1].id, expectedCardinality: 'SCALAR', ...operand },
+      ]);
       assert.deepEqual(input, before);
     });
   for (const [status, code] of [
@@ -264,6 +270,34 @@ describe('Detached explorer named-query promotion', () => {
       });
       await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status, code: expectedCode });
     });
+  it('rejects promoted scalar filter and sort bindings after they become lists', async () => {
+    const changed = gridContracts().map(contract => ({
+      ...contract,
+      context: { ...contract.context, recordType: 'plan' },
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          title: {
+            kind: 'array' as const,
+            nullable: true,
+            items: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
+          },
+        },
+      },
+    }));
+    for (const sortOnly of [false, true]) {
+      const input = { ...visual(), columns: ['record:oid'], ...(sortOnly ? { filters: [] } : { sort: null }) };
+      const prepared = await prepareExplorerNamedQuery(input, caller);
+      const harness = gridHarness([], changed);
+      const response = await harness.query(prepared.definition.graphql.document, prepared.variableValues);
+      assert.equal(
+        response.body.errors?.[0].extensions.code,
+        sortOnly ? 'SORT_CARDINALITY_CHANGED' : 'FILTER_CARDINALITY_CHANGED'
+      );
+      assert.equal(harness.calls.length, 0);
+    }
+  });
   it('promotes a saved IPREFIX list filter using its single string operand', async () => {
     const list = {
       ...fields()[1],
@@ -282,7 +316,7 @@ describe('Detached explorer named-query promotion', () => {
     };
     const input = { ...visual(), filters: [filter] };
     const result = await prepareExplorerNamedQuery(input, caller);
-    assert.deepEqual(result.variableValues.filters, [{ field: list.id, iprefix: 'ALP' }]);
+    assert.deepEqual(result.variableValues.filters, [{ field: list.id, expectedCardinality: 'LIST', iprefix: 'ALP' }]);
     assert.deepEqual(input.filters, [filter]);
   });
   it('promotes declared scalar-list filters and sorts only with explicit LIST cardinality', async () => {
@@ -303,8 +337,10 @@ describe('Detached explorer named-query promotion', () => {
     };
     const sort = { fieldId: list.id, expectedScalarType: 'STRING', expectedCardinality: 'LIST', direction: 'asc' };
     const result = await prepareExplorerNamedQuery({ ...visual(), filters: [filter], sort }, caller);
-    assert.deepEqual(result.variableValues.filters, [{ field: list.id, eq: { text: 'alpha' } }]);
-    assert.deepEqual(result.variableValues.sort, [{ field: list.id, direction: 'ASC' }]);
+    assert.deepEqual(result.variableValues.filters, [
+      { field: list.id, expectedCardinality: 'LIST', eq: { text: 'alpha' } },
+    ]);
+    assert.deepEqual(result.variableValues.sort, [{ field: list.id, direction: 'ASC', expectedCardinality: 'LIST' }]);
     const { expectedCardinality: _filter, ...legacyFilter } = filter;
     const { expectedCardinality: _sort, ...legacySort } = sort;
     await assert.rejects(prepareExplorerNamedQuery({ ...visual(), filters: [legacyFilter], sort }, caller), {

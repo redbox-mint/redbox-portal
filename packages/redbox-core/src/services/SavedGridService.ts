@@ -4,9 +4,8 @@ import type { ExplorerQueryAuthor } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
 import { Kind, parse, visit } from 'graphql';
-import { normalizeTimestamp } from '../utilities/SavedGridTimestamp';
 import { Services as services } from '../CoreService';
-import { recordGridFilter, recordGridSort } from '@researchdatabox/sails-ng-common';
+import { recordGridFilter, recordGridSort, isWellFormedRecordGridText } from '@researchdatabox/sails-ng-common';
 
 const fieldId = z.string().min(1).max(512);
 // Absent means a legacy definition saved with scalar semantics.
@@ -22,7 +21,8 @@ const filter = z
   })
   .refine(value => value.operator === 'in' || value.values.length === (value.operator === 'between' ? 2 : 1))
   .refine(value => value.operator !== 'exists' || ['true', 'false'].includes(value.values[0]))
-  .refine(value => !['contains', 'iprefix'].includes(value.operator) || value.values[0].length > 0);
+  .refine(value => !['contains', 'iprefix'].includes(value.operator) || !!value.values[0]?.length)
+  .refine(value => value.operator !== 'iprefix' || value.values.every(isWellFormedRecordGridText));
 const visualDefinition = z.strictObject({
   mode: z.literal('visual').optional(),
   version: z.literal(1),
@@ -363,29 +363,6 @@ export namespace Services {
         if (!field || !field.operators.includes(filter.operator.toUpperCase()))
           throw new SavedGridError(400, 'schema-changed');
         shared(() => recordGridFilter(filter, field));
-        if (filter.operator === 'exists') continue;
-        const typed = filter.values.map(value => {
-          if (['NUMBER', 'INTEGER', 'FLOAT'].includes(field.scalarType)) {
-            if (
-              !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()) ||
-              !Number.isFinite(Number(value)) ||
-              (field.scalarType === 'INTEGER' && !Number.isSafeInteger(Number(value)))
-            )
-              throw new SavedGridError(400, 'invalid-definition');
-            return Number(value);
-          }
-          if (field.scalarType === 'BOOLEAN' && !['true', 'false'].includes(value))
-            throw new SavedGridError(400, 'invalid-definition');
-          if (field.scalarType === 'DATETIME') {
-            try {
-              return Date.parse(normalizeTimestamp(value));
-            } catch {
-              throw new SavedGridError(400, 'invalid-definition');
-            }
-          }
-          return value;
-        });
-        if (filter.operator === 'between' && typed[0] > typed[1]) throw new SavedGridError(400, 'invalid-definition');
       }
       return grid;
     }

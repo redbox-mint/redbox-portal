@@ -150,17 +150,19 @@ describe('Saved grids persistence boundary', () => {
       };
       const saved = await service.create(scope, { ...definition(), filters: [filter] }, {});
       assert.deepEqual((await service.read(scope, saved.id)).filters, [filter]);
-      await assert.rejects(
-        service.create(
-          scope,
-          {
-            ...definition(),
-            filters: [{ ...filter, values: [''] }],
-          },
-          {}
-        ),
-        (e: SavedGridError) => e.code === 'invalid-definition'
-      );
+      for (const values of [[], [''], ['\ud800'], ['x\udfff']]) {
+        await assert.rejects(
+          service.create(
+            scope,
+            {
+              ...definition(),
+              filters: [{ ...filter, values }],
+            },
+            {}
+          ),
+          (e: SavedGridError) => e.code === 'invalid-definition'
+        );
+      }
     });
   it('persists declared scalar-list filters and min/max sorts with explicit LIST cardinality', async () => {
     fields.push({

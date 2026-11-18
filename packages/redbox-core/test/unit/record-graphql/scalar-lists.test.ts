@@ -49,6 +49,66 @@ function operators(pipeline: Document[]): Set<string> {
 }
 
 describe('Declared scalar-list discovery', () => {
+  it('keeps configured labels ahead of enum fallbacks in either variant order', () => {
+    const item = { ...scalar('string'), enum: ['red', 'blue'] };
+    const labelled = list(item, { extensions: { 'x-redbox-choice-labels': [{ label: 'Red', value: 'red' }] } });
+    for (const [draft, published] of [
+      [labelled, list(item)],
+      [list(item), labelled],
+    ]) {
+      const choices = field(contracts({ colours: draft }, { colours: published }), 'metadata:/colours').field!.choices;
+      assert.deepEqual(choices, [
+        { label: 'Red', value: 'red' },
+        { label: 'blue', value: 'blue' },
+      ]);
+    }
+  });
+  it('rejects discovery revisions from a different cardinality before executing storage', async () => {
+    const old = gridHarness([], contracts({ tags: scalar('string') }));
+    const discovery = await old.query('{ recordFields(recordType:"grid-fixture") { revision } }');
+    const revision = discovery.body.data!.recordFields!.revision;
+    const changed = gridHarness([], contracts({ tags: list(scalar('string')) }));
+    const response = await changed.query(
+      'query($revision:String) { records(recordType:"grid-fixture",revision:$revision,filters:[{field:"metadata:/tags",contains:"a"}]) { nodes { oid } } }',
+      { revision }
+    );
+    assert.equal(response.body.errors?.[0].extensions.code, 'CATALOGUE_CHANGED');
+    assert.equal(changed.calls.length, 0);
+    const current = await changed.query('{ recordFields(recordType:"grid-fixture") { revision } }');
+    const valid = await changed.query(
+      'query($revision:String) { records(recordType:"grid-fixture",revision:$revision) { nodes { oid } } }',
+      { revision: current.body.data!.recordFields!.revision }
+    );
+    assert.equal(valid.body.errors, undefined);
+  });
+  it('rejects saved filter and sort expectations when scalar/list cardinality changes', async () => {
+    for (const [node, expected] of [
+      [list(scalar('string')), 'SCALAR'],
+      [scalar('string'), 'LIST'],
+    ] as const) {
+      const harness = gridHarness([], contracts({ tags: node }));
+      for (const [argument, value, error] of [
+        [
+          'filters',
+          { field: 'metadata:/tags', expectedCardinality: expected, eq: { text: 'red' } },
+          'FILTER_CARDINALITY_CHANGED',
+        ],
+        [
+          'sort',
+          { field: 'metadata:/tags', expectedCardinality: expected, direction: 'ASC' },
+          'SORT_CARDINALITY_CHANGED',
+        ],
+      ] as const) {
+        const type = argument === 'filters' ? 'RecordFilterInput' : 'RecordSortInput';
+        const response = await harness.query(
+          `query($input:[${type}!]) { records(recordType:"grid-fixture",${argument}:$input) { nodes { oid } } }`,
+          { input: [value] }
+        );
+        assert.equal(response.body.errors?.[0].extensions.code, error);
+        assert.equal(harness.calls.length, 0);
+      }
+    }
+  });
   it('reports LIST cardinality and element capabilities for root lists and lists inside plain objects', () => {
     const input = contracts({
       keywords: list(scalar('string')),

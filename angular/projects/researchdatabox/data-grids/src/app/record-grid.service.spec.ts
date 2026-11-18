@@ -447,6 +447,7 @@ describe('RecordGridService HTTP contract', () => {
     expect(page.request.body.query).not.toContain('injected');
     expect(page.request.body.variables).toEqual({
       type: 'plan',
+      revision: 'r1',
       filters: [{ field: title.id, contains: 'x" } injected {' }],
       sort: [{ field: title.id, direction: 'DESC' }],
       first: 25,
@@ -679,6 +680,9 @@ describe('RecordGridService HTTP contract', () => {
   }));
   for (const [status, code, expected] of [
     [200, 'INVALID_CURSOR', 'cursor-expired'],
+    [200, 'CATALOGUE_CHANGED', 'schema-changed'],
+    [200, 'FILTER_CARDINALITY_CHANGED', 'filter-cardinality-changed'],
+    [200, 'SORT_CARDINALITY_CHANGED', 'sort-cardinality-changed'],
     [400, 'QUERY_LIMIT', 'query-limit'],
     [200, 'REINDEX_REQUIRED', 'reindex-required'],
     [200, 'COLLECTION_LIMIT', 'collection-limit'],
@@ -1028,8 +1032,17 @@ describe('Declared scalar-list protocol', () => {
     expect(reopened).toEqual(saved);
     const query = queryFor(reopened, { ...scope, fields: found.fields, revision: found.revision }, null);
     const variables: Record<string, unknown> = collectionRequest(query, scope, found).variables;
+    expect(variables['revision']).toBe(found.revision);
     expect(variables['filters']).toEqual([{ field: keywords.id, iprefix: 'ALP' }]);
     expect(() => parseSavedDefinition({ ...saved, filters: [{ ...saved.filters[0], values: [''] }] })).toThrow();
+    for (const value of ['\ud800', '\udfff', 'x\ud800y']) {
+      const malformed = { ...saved, filters: [{ ...saved.filters[0], values: [value] }] };
+      expect(() => parseSavedDefinition(malformed)).toThrow();
+      expect(() => collectionRequest({ ...query, definition: malformed }, scope, found)).toThrow();
+    }
+    expect(
+      parseSavedDefinition({ ...saved, filters: [{ ...saved.filters[0], values: ['😀'] }] }).filters[0].values
+    ).toEqual(['😀']);
   });
   it('generates list filters and sorts only with explicit LIST cardinality', () => {
     const found = parseDiscovery(discovery([keywords, oid]), key => key);

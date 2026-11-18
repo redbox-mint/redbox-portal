@@ -242,7 +242,9 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
   const { query, caller } = request;
   if (
     !isObject(query) ||
-    Object.keys(query).some(key => !['recordType', 'workflowStages', 'filters', 'sort', 'first', 'after'].includes(key))
+    Object.keys(query).some(
+      key => !['recordType', 'revision', 'workflowStages', 'filters', 'sort', 'first', 'after'].includes(key)
+    )
   )
     gridError('INVALID_SCOPE', 'Invalid collection query.');
   const auth = permissions(request);
