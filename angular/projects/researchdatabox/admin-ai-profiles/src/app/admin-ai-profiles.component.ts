@@ -217,7 +217,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     try {
       const saved = await this.api.save(this.selected.id, { name: this.name.trim(), definition: clone(this.draft), expectedContentHash: this.selected.contentHash });
       this.selected = saved; this.draft = clone(saved.definition); this.name = this.name.trim(); this.saved = this.json;
-      await this.refresh(); this.profile = this.overview!.profiles.find(p => p.key === this.profile?.key); this.notice = this.problems.length ? 'ai-profiles-draft-saved-problems' : 'ai-profiles-draft-saved'; this.noticeParams = { count: this.problems.length }; return true;
+      await this.refresh(); this.profile = this.overview!.profiles.find(p => p.key === this.profile?.key); this.notice = this.problems.length ? (this.problems.length === 1 ? 'ai-profiles-draft-saved-problem' : 'ai-profiles-draft-saved-problems') : 'ai-profiles-draft-saved'; this.noticeParams = { count: this.problems.length }; return true;
     } catch (e) { this.handle(e); return false; } finally { this.busy = false; }
   }
   async publish(): Promise<void> {
@@ -254,7 +254,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
       const remaining = m.kind === 'discard' ? this.overview?.profiles.find(p => p.key === m.key) : undefined;
       const live = remaining?.versions.find(v => v.id === remaining.publishedVersionId) || remaining?.versions[0];
       history.replaceState(null, '', this.href(remaining?.key, live?.version)); this.applyHash();
-      this.notice = m.kind === 'retire' ? 'ai-profiles-retired-notice-named' : m.kind === 'discard' ? 'ai-profiles-version-discarded' : 'ai-profiles-profile-deleted';
+      this.notice = m.kind === 'retire' ? 'ai-profiles-retired-notice-named' : m.kind === 'discard' ? 'ai-profiles-draft-discarded-version' : 'ai-profiles-profile-deleted';
       this.noticeParams = { name: m.name, version };
     } catch (e) { this.handle(e); } finally { this.busy = false; }
   }

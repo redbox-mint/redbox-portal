@@ -64,7 +64,7 @@ describe('Drafting profile editor', () => {
     open(); await component.saveDraft(); fixture.detectChanges();
     expect(query('[role="status"]').textContent).toBe('Draft saved.');
     component.draft!.targetFields = []; await component.saveDraft(); fixture.detectChanges();
-    expect(query('[role="status"]').textContent).toContain('1 problems to fix before publishing');
+    expect(query('[role="status"]').textContent).toContain('1 problem to fix before publishing');
   });
   it('keeps the live profile open after discarding a later draft and names the version', async () => {
     const p = component.overview!.profiles[0];
@@ -76,7 +76,7 @@ describe('Drafting profile editor', () => {
     await component.confirmAction(); fixture.detectChanges();
     expect(component.selected?.id).toBe('v1'); expect(component.readOnly).toBeTrue();
     expect(location.hash).toContain('profile=profile');
-    expect(query('[role="status"]').textContent).toContain('Draft v2 of Research plan discarded.');
+    expect(query('[role="status"]').textContent).toContain('Draft v2 discarded.');
   });
   it('keeps model and guidance open and labels add and edit dialogs', () => {
     open(); expect(query('#profile-model').tagName).toBe('SECTION'); expect(query('#profile-guidance').tagName).toBe('SECTION');

@@ -5592,5 +5592,8 @@
   "ai-profiles-problem-document-settings": "Source record — uploaded documents: choose at least one file type and positive whole-number file and size limits within the server limits.",
   "ai-profiles-problem-question-settings": "Questions: remove duplicate questions and edit each question to provide text, distinct choices and a selected pre-fill field.",
   "ai-profiles-problem-field-list": "Fields to fill: remove duplicate fields and pick each field from the target form again.",
-  "ai-profiles-problem-field-settings": "{{label}}: choose this field from the target form again to restore its format and review settings."
+  "ai-profiles-problem-field-settings": "{{label}}: choose this field from the target form again to restore its format and review settings.",
+  "ai-profiles-draft-saved-problem": "Draft saved. 1 problem to fix before publishing.",
+  "ai-profiles-fix-problem": "Fix 1 problem before publishing",
+  "ai-profiles-draft-discarded-version": "Draft v{{version}} discarded."
 }
