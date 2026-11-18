@@ -9,6 +9,7 @@ import { emptyGrid, GridCatalogue, GridPage, GridQuery, GridScope, queryFor } fr
 import {
   collectionRequest,
   discoveryQuery,
+  fieldErrorLocation,
   parseDiscovery,
   parsePage,
   partialFieldErrors,
@@ -767,30 +768,85 @@ describe('Record grid protocol', () => {
     );
     expect<unknown>(page.rows.map(row => row.values[title.id])).toEqual(['Nested', null, null]);
   });
-  it('maps nested list failures and null parents through generated response paths', () => {
-    const nested = {
+  it('keeps an indexed error from matching an unrelated field with a similar response path', () => {
+    const list = {
       ...title,
-      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'a', 'b'] }],
+      id: 'metadata:/contacts',
+      repeating: true,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact'] }],
     };
-    const fields = parseDiscovery(discovery([nested, oid]), key => key).fields;
-    for (const suffix of [['metadata'], ['metadata', 'a'], ['metadata', 'a', 'b', 1, 'name']]) {
-      const errors = partialFieldErrors(
-        [
-          {
-            path: ['records', 'nodes', 0, ...suffix],
-            message: 'Never expose internal details',
-            extensions: { code: 'HISTORICAL_VALUE_TYPE' },
-          },
-        ],
-        { nodes: [{ oid: 'actual-oid', metadata: null }] },
-        request(),
-        fields
-      );
-      expect(errors.length).toBe(1);
-      expect(errors[0].fieldId).toBe(title.id);
-      expect(errors[0].oid).toBe('actual-oid');
-      expect(JSON.stringify(errors)).not.toContain('Never expose');
-    }
+    const child = {
+      ...title,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact', 'name'] }],
+    };
+    const fields = parseDiscovery(discovery([list, child]), key => key).fields;
+    const path = ['records', 'nodes', 0, 'metadata', 'contact', 1, 'name'];
+    const records = { nodes: [{ oid: 'actual-oid', metadata: { __typename: 'M_draft', contact: [{}, null] } }] };
+    const diagnostic = { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid' };
+    const input = request();
+    expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([diagnostic]);
+    input.definition.columns.push(list.id);
+    expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([
+      { ...diagnostic, fieldId: list.id, label: list.label, nested: true },
+    ]);
+  });
+  it('attributes errors across nested list indices to the field and record', () => {
+    const list = {
+      ...title,
+      repeating: true,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'teams'] }],
+    };
+    const fields = parseDiscovery(discovery([list]), key => key).fields;
+    const path = ['records', 'nodes', 1, 'metadata', 'teams', 0, 0, 'members', 1, 'name'];
+    const metadata = { __typename: 'M_draft', teams: [[{ members: [{ name: 'Ada' }, { name: null }] }]] };
+    const errors = partialFieldErrors(
+      [{ path, message: 'Never expose internal details', extensions: { code: 'HISTORICAL_VALUE_TYPE' } }],
+      { nodes: [{ oid: 'other-oid' }, { oid: 'actual-oid', metadata }] },
+      request(),
+      fields
+    );
+    expect(errors).toEqual([
+      {
+        code: 'HISTORICAL_VALUE_TYPE',
+        path,
+        row: 1,
+        oid: 'actual-oid',
+        fieldId: list.id,
+        label: list.label,
+        nested: true,
+      },
+    ]);
+    expect(
+      fieldErrorLocation(
+        path.slice(3),
+        ['metadata', 'teams', 'members', 'name'],
+        { metadata },
+        {
+          repeatingSubfield: true,
+          repeating: false,
+        }
+      )
+    ).toBe('field');
+  });
+  it('attributes a failed parent object to its column only', () => {
+    const parent = {
+      ...title,
+      id: 'metadata:/contact',
+      scalarType: 'OBJECT',
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact'] }],
+    };
+    const child = {
+      ...title,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact', 'name'] }],
+    };
+    const fields = parseDiscovery(discovery([parent, child]), key => key).fields;
+    const path = ['records', 'nodes', 0, 'metadata', 'contact'];
+    const records = { nodes: [{ oid: 'actual-oid', metadata: { __typename: 'M_draft', contact: null } }] };
+    const input = request();
+    input.definition.columns.push(parent.id);
+    expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([
+      { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid', fieldId: parent.id, label: parent.label },
+    ]);
   });
   it('rejects malformed pages, missing aliases and non-scalar values', () => {
     const found = parseDiscovery(discovery(), key => key);

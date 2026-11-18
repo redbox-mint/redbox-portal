@@ -515,7 +515,7 @@
                   @if (schemaError) {
                     <div class="alert alert-danger" role="alert">
                       <p>{{ text(schemaError) }}</p>
-                      <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
+                      <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema(true)">
                         {{ text('refresh-schema') }}
                       </button>
                     </div>
@@ -524,7 +524,7 @@
                     <summary>{{ text('full-schema') }}</summary>
                     <pre class="explorer-json">{{ schemaSdl }}</pre>
                     <p class="rb-admin-hint">{{ text('graphql-limits') }}</p>
-                    <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
+                    <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema(true)">
                       {{ text('refresh-schema') }}
                     </button>
                     @if (rawErrors.length) {

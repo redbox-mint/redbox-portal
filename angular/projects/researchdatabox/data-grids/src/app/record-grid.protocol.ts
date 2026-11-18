@@ -242,17 +242,38 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
     after: request.after,
   });
 }
-/** An error may affect a field through a failed parent, the field itself or a nested child. */
-export function fieldErrorLocation(path: (string | number)[], responsePath: string[]): 'field' | 'nested' | undefined {
-  if (path.length > responsePath.length && responsePath.every((part, index) => part === path[index])) return 'nested';
-  // List indices are response positions, never part of generated field selections.
-  const fields = path.filter(part => typeof part === 'string');
-  return fields.slice(0, responsePath.length).every((part, index) => part === responsePath[index])
-    ? 'field'
-    : undefined;
+/** Match a field's own path or an error below it, respecting list boundaries. */
+export function fieldErrorLocation(
+  path: (string | number)[],
+  responsePath: string[],
+  value: unknown,
+  field?: Pick<GridField, 'repeating' | 'repeatingSubfield'>
+): 'field' | 'nested' | undefined {
+  let matched = 0;
+  let nested = false;
+  for (const segment of path) {
+    const belowField = matched === responsePath.length;
+    if (typeof segment === 'number') {
+      if (!belowField && field?.repeatingSubfield === false) return undefined;
+      if (belowField && !nested && field?.repeating === false) return undefined;
+      // An error can leave the value null, so use the response shape when it is available.
+      if (value != null && !Array.isArray(value)) return undefined;
+      value = Array.isArray(value) ? value[segment] : undefined;
+    } else {
+      if (Array.isArray(value) || (!belowField && segment !== responsePath[matched])) return undefined;
+      if (!belowField) matched++;
+      value =
+        value != null && typeof value === 'object' && Object.hasOwn(value, segment)
+          ? Reflect.get(value, segment)
+          : undefined;
+    }
+    nested ||= belowField;
+  }
+  if (matched === responsePath.length) return nested ? 'nested' : 'field';
+  return undefined;
 }
 
-/** Match response aliases, including errors in nested children or nullable parents. */
+/** Match response aliases and keep diagnostics without a matching field. */
 export function partialFieldErrors(
   value: unknown,
   records: unknown,
@@ -282,7 +303,7 @@ export function partialFieldErrors(
       for (const { responsePath, variant } of field.selections) {
         if (responsePath[0] === 'metadata' && node['metadata'] && variant !== object(node['metadata'])['__typename'])
           continue;
-        const location = fieldErrorLocation(relative, responsePath);
+        const location = fieldErrorLocation(relative, responsePath, node, field);
         if (location)
           return [
             {

@@ -1030,6 +1030,26 @@ describe('Data grid editor', () => {
       expect(component.rawErrors).toEqual([]);
     });
   });
+  it('backs off failed scoped schema refreshes for five seconds', async () => {
+    const clock = spyOn(Date, 'now').and.returnValue(1_000);
+    const schema = jasmine.createSpy().and.rejectWith(new Error('Schema discovery failed'));
+    source.schema = schema;
+    component.open(validGrid(), false);
+    await component.switchMode('graphql');
+
+    clock.and.returnValue(5_999);
+    await component.loadSchema();
+    expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ recordType: 'plan' }));
+    expect(component.schemaError).toBe('schema-unavailable');
+    expect(component.schemaLoading).toBeFalse();
+
+    clock.and.returnValue(6_000);
+    schema.and.resolveTo(testSdl);
+    await component.loadSchema();
+    expect(schema).toHaveBeenCalledTimes(2);
+    expect(component.schemaSdl).toBe(testSdl);
+    expect(component.schemaError).toBe('');
+  });
   it('blocks raw preview and save when scoped schema discovery fails, then allows both after retry', async () => {
     component.open(validGrid(), false);
     const schema = jasmine.createSpy().and.resolveTo(testSdl);
@@ -1066,7 +1086,12 @@ describe('Data grid editor', () => {
     expect(source.save).not.toHaveBeenCalled();
 
     schema.and.resolveTo(testSdl);
-    await component.loadSchema();
+    spyOn(component, 'ngOnInit');
+    fixture.detectChanges();
+    const retry: HTMLButtonElement = fixture.nativeElement.querySelector('.alert-danger button');
+    retry.click();
+    await fixture.whenStable();
+    expect(schema).toHaveBeenCalledTimes(2);
     expect(component.schema).not.toBe(previousSchema);
     expect(component.schemaError).toBe('');
     await component.preview();
@@ -1209,6 +1234,7 @@ describe('Data grid editor', () => {
     component.scope!.fields[0].selections = [
       { variant: '', selection: 'metadata { g_hash }', responsePath: ['metadata', 'g_hash'] },
     ];
+    component.scope!.fields[0].repeating = true;
     const data = {
       records: {
         nodes: [
@@ -1228,14 +1254,16 @@ describe('Data grid editor', () => {
       ],
     });
     await component.preview();
-    expect(component.fieldErrors.map(error => error.label)).toEqual(['Title', 'Title']);
+    expect(component.fieldErrors.map(error => error.label)).toEqual(['Title', undefined]);
     expect(component.fieldErrors.map(error => error.oid)).toEqual(['nested', 'parent']);
     const render = component.columnDefs.find(column => column.colId === 'metadata.g_hash')!.cellRenderer;
     const cell: HTMLElement = render({ data: component.rows[0], value: component.rows[0].values['metadata.g_hash'] });
     expect(cell.tagName).toBe('BUTTON');
     expect(cell.textContent).toContain('usable');
     expect(cell.querySelector<HTMLElement>('.text-danger')?.title).toContain('HISTORICAL_VALUE_TYPE');
-    expect(render({ data: component.rows[1], value: null }).textContent).toContain('FIELD_ERROR');
+    const parent = component.columnDefs.find(column => column.colId === 'metadata')!.cellRenderer;
+    expect(parent({ data: component.rows[1], value: null }).textContent).toContain('FIELD_ERROR');
+    expect(render({ data: component.rows[1], value: null }).textContent).not.toContain('FIELD_ERROR');
     expect(render({ data: component.rows[2], value: null }).textContent).not.toContain('FIELD_ERROR');
     component.selectResultPath('missing');
     expect(component.responseView).toBe('json');

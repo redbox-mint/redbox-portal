@@ -108,7 +108,7 @@ export function rawRows(
   data: unknown,
   path: string[],
   identityKey: string | null = null
-): { rows: GridRow[]; columns: string[] } {
+): { rows: GridRow[]; columns: string[]; items: unknown[] } {
   let value: unknown = data;
   for (const key of path) {
     if (!value || typeof value !== 'object' || !Object.hasOwn(value, key))
@@ -162,7 +162,7 @@ export function rawRows(
     };
   });
   if (rows.length && !columns.size) throw new GridRequestError('result-path-invalid');
-  return { rows, columns: [...columns] };
+  return { rows, columns: [...columns], items: value };
 }
 export { rawDefinition } from './raw-definition';
 

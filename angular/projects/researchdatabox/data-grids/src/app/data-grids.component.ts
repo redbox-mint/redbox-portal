@@ -53,6 +53,13 @@ import {
   editableQuery,
 } from './data-grid.model';
 
+const SCHEMA_FAILURE_BACKOFF_MS = 5_000;
+
+interface SchemaRequest {
+  promise: Promise<string>;
+  failedAt?: number;
+}
+
 @Component({
   selector: 'data-grids',
   templateUrl: './data-grids.component.html',
@@ -122,7 +129,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   private modeSequence = 0;
   /** Record type and stage the currently loaded SDL was scoped to; null means the global schema. */
   private schemaScopeKey: string | null = null;
-  private readonly schemaRequests = new Map<string | null, Promise<string>>();
+  private readonly schemaRequests = new Map<string | null, SchemaRequest>();
   private promotionSequence = 0;
   busy = false;
   loadingPage = false;
@@ -953,7 +960,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     cell.setAttribute('aria-label', `${cell.getAttribute('aria-label')}. ${message}`);
     return cell;
   }
-  async loadSchema(): Promise<void> {
+  async loadSchema(retry = false): Promise<void> {
     const seq = ++this.schemaSequence;
     this.schemaLoading = true;
     this.schemaError = '';
@@ -967,12 +974,27 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       const scope = this.resolveSchemaScope(this.unlinked ? (this.graphqlEngine ?? (await enginePromise)) : null);
       if (seq !== this.schemaSequence || this.disposed) return;
       const key = this.scopeKeyFor(scope);
+      const now = Date.now();
+      for (const [scopeKey, entry] of this.schemaRequests) {
+        if (
+          entry.failedAt !== undefined &&
+          ((retry && scopeKey === key) || now - entry.failedAt >= SCHEMA_FAILURE_BACKOFF_MS)
+        )
+          this.schemaRequests.delete(scopeKey);
+      }
       let request = this.schemaRequests.get(key);
       if (!request) {
-        request = this.source.schema(scope).finally(() => this.schemaRequests.delete(key));
-        this.schemaRequests.set(key, request);
+        const entry: SchemaRequest = { promise: this.source.schema(scope) };
+        this.schemaRequests.set(key, entry);
+        void entry.promise.then(
+          () => this.schemaRequests.delete(key),
+          () => {
+            entry.failedAt = Date.now();
+          }
+        );
+        request = entry;
       }
-      const [sdl, engine] = await Promise.all([request.catch(() => undefined), enginePromise]);
+      const [sdl, engine] = await Promise.all([request.promise.catch(() => undefined), enginePromise]);
       if (seq !== this.schemaSequence || this.disposed || key !== this.scopeKeyFor(this.resolveSchemaScope(engine)))
         return;
       if (sdl === undefined) throw new GridRequestError('schema-unavailable');
@@ -1116,7 +1138,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         const relative = matches ? error.path.slice(prefix.length + 1) : [];
         const field = this.scope?.fields.find(field =>
           field.selections?.some(
-            selection => relative.length > 0 && fieldErrorLocation(relative, selection.responsePath)
+            selection => matches && fieldErrorLocation(relative, selection.responsePath, mapped.items[row], field)
           )
         );
         return {
@@ -1161,7 +1183,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         column.cellRenderer = (params: { value: GridRow['values'][string]; data?: GridRow }) => {
           const failures =
             params.data?.errors?.flatMap(error => {
-              const location = fieldErrorLocation(error.path.slice(prefix.length + 1), path);
+              if (error.row === undefined) return [];
+              const location = fieldErrorLocation(error.path.slice(prefix.length + 1), path, mapped.items[error.row], {
+                repeatingSubfield: false,
+              });
               return location ? [{ code: error.code, nested: location === 'nested' }] : [];
             }) ?? [];
           return this.renderCell(params.value, failures, () => render(params));
