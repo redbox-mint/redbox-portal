@@ -266,7 +266,7 @@
     "@types/node": "24.12.4",
     "ajv": "8.20.0",
     "chai": "6.2.2",
-    "css-loader": "7.1.4",
+    "css-loader": "7.1.5",
     "dompurify": "3.4.17",
     "gh-pages": "6.3.0",
     "mini-css-extract-plugin": "2.10.2",
