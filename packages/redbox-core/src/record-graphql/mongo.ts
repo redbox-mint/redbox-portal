@@ -232,6 +232,7 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
   const plan = queryPlan(query, snapshot);
   if (
     query.first !== undefined &&
+    query.first !== null &&
     (!Number.isInteger(query.first) || query.first < 1 || query.first > GRID_LIMITS.pageSize)
   )
     gridError('INVALID_PAGE_SIZE', 'Page size must be between 1 and 50.');
