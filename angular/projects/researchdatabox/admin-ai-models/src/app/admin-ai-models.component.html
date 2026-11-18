@@ -301,13 +301,3 @@
     </div>
   </div>
 }
-
-@if (profileKey) {
-  <div class="modal-backdrop show"></div><div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="profile-usage-title" (keydown.escape)="openOverview(); $event.stopPropagation()">
-    <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content">
-      <div class="modal-header"><h2 id="profile-usage-title" class="modal-title">{{ profileName }}</h2></div>
-      <div class="modal-body"><p>{{ 'ai-models-profile-usage-description' | i18next }}</p><ul>@for (group of profileModels; track group.key) { <li><a [href]="hash(group.key)" (click)="$event.preventDefault(); openModel(group.key)">{{ group.name }}</a></li> }</ul></div>
-      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial (click)="openOverview()">{{ 'ai-models-cancel' | i18next }}</button></div>
-    </div></div>
-  </div>
-}

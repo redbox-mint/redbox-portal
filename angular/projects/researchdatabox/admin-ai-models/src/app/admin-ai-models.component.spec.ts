@@ -142,6 +142,7 @@ describe('AI models overview and editors', () => {
   });
   it('lists profile usage and offers retirement when model deletion is blocked', () => {
     component.overview!.models[0].uses = [{ key: 'profile', name: 'Drafting profile' }]; component.askDeleteModel('rdmp'); fixture.detectChanges();
+    expect(query('[role=alertdialog] a').getAttribute('href')).toBe('/brand/portal/admin/ai-profiles#profile=profile');
     expect(query('[role=alertdialog]').textContent).toContain('Drafting profile'); expect(query('.rb-admin-danger-confirm')).toBeNull();
     component.offerRetire(); expect(component.selected?.status).toBe('published'); expect(component.retireConfirmation).toBeTrue();
   });

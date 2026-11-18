@@ -1,0 +1,71 @@
+.rb-admin admin-ai-profiles {
+  display: block; min-width: 0; min-height: 900px;
+  fieldset { min-width: 0; border: 0; margin: 0; padding: 0; }
+  legend { float: none; width: auto; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .form-check-label { display: inline; }
+  .rb-admin-page-header h1 { overflow-wrap: anywhere; }
+  .rb-admin-page-header h1:focus { outline: none; }
+  .rb-admin-page-header h1 .badge { font-size: 12px; line-height: 1.3; vertical-align: middle; }
+  .profile-stack { display: grid; gap: 20px; }
+  .profile-layout { align-items: flex-start; }
+  .rb-admin-section-rail { position: sticky; top: 16px; flex: 0 0 160px; }
+  .rb-admin-split-main { min-width: 0; }
+  .rb-admin-form-section { scroll-margin-top: 20px; }
+  .rb-admin-form-section h2 { font-size: 16px; }
+  .profile-summary { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr); gap: 8px 20px; margin: 0; }
+  .profile-summary dd { margin: 0; overflow-wrap: anywhere; }
+  .profile-prose { white-space: pre-wrap; }
+  .profile-item { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--admin-line); overflow-wrap: anywhere; }
+  .profile-item:first-child { padding-top: 0; }
+  .profile-item > div:first-child { flex: 1 1 240px; min-width: 0; }
+  .profile-item p { margin: 4px 0; }
+  .profile-row-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: start; }
+  .profile-invalid { border-left: 3px solid var(--admin-danger-ink); padding-left: 12px; }
+  .profile-problem-text { display: block; color: var(--admin-danger-ink); }
+  .profile-check { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; font-weight: 400; }
+  .profile-check input { flex: none; }
+  .profile-picker { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); padding: 16px; }
+  .profile-picker h3 { font-size: 14px; margin: 16px 0 4px; color: var(--admin-muted); }
+  .profile-advanced { border-top: 1px solid var(--admin-line); padding-top: 14px; }
+  .profile-advanced summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+  .profile-origins { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-origins legend { grid-column: 1 / -1; }
+  .profile-origin { display: flex; gap: 10px; padding: 12px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); }
+  .profile-origin small { display: block; font-weight: 400; }
+  .profile-test-result { margin-top: 20px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); padding: 16px; }
+  .profile-use { display: block; }
+  .profile-table { overflow: visible; }
+  .profile-table table { width: 100%; table-layout: fixed; margin: 0; }
+  .profile-table :is(th, td) { overflow-wrap: anywhere; white-space: normal; }
+  .profile-table th:first-child { width: 20%; }
+  .profile-more { position: relative; }
+  .profile-more summary { min-width: 30px; list-style: none; }
+  .profile-more[open] > div { position: absolute; z-index: 5; right: 0; padding: 8px; display: grid; gap: 8px; background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); min-width: 120px; }
+  @media (max-width: 991.98px) {
+    .profile-layout { flex-direction: column; flex-wrap: nowrap; }
+    .profile-layout > * { width: 100%; max-width: none; flex: 0 1 auto; }
+    .rb-admin-section-rail { position: static; }
+  }
+  @media (max-width: 767.98px) {
+    .profile-table :is(table, tbody, tr, th, td) { display: block; width: 100%; }
+    .profile-table th:first-child { width: 100%; }
+    .profile-table tbody th { border: 0; padding-bottom: 4px; font-size: 16px; }
+    .profile-table td { border: 0; padding-top: 4px; padding-bottom: 4px; }
+    .profile-table tr { border-bottom: 1px solid var(--admin-line); padding: 12px 8px; }
+    .profile-table thead { display: none; }
+    .profile-table td[data-label]::before { content: attr(data-label) ': '; color: var(--admin-muted); }
+    .profile-summary { grid-template-columns: 1fr; gap: 4px; }
+    .profile-summary dd { margin-bottom: 10px; }
+    .profile-origins { grid-template-columns: 1fr; }
+  }
+}
+.rb-admin admin-ai-profiles .profile-table .rb-admin-hint { display: block; margin-top: 4px; font-weight: 400; }
+.rb-admin admin-ai-profiles .profile-table .table > :is(tbody, thead) > tr > :is(th, td) { white-space: normal; }
+
+.rb-admin admin-ai-profiles .rb-admin-form-section-header {
+  flex-wrap: wrap;
+  gap: 12px;
+  > div:first-child { flex: 1 1 220px; }
+  > button { flex-shrink: 0; }
+}

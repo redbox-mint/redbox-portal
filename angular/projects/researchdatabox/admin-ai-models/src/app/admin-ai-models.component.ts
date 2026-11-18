@@ -44,7 +44,6 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   promptError = '';
   running = false;
   activeProvider?: ProviderDraft;
-  profileKey = '';
   otherModel = false;
   deleteConfirmation?: { kind: 'provider' | 'draft' | 'model'; id: string; name: string; uses: GenerationAdminUsage[] };
   cooldown = 0;
@@ -168,7 +167,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   private applyHash(hash: string): void {
     const params = new URLSearchParams(hash.slice(1));
     const key = params.get('model');
-    this.draft = undefined; this.selected = undefined; this.isNew = false; this.retireConfirmation = false; this.activeProvider = undefined; this.profileKey = params.get('profile') || ''; this.deleteConfirmation = undefined; this.otherModel = false;
+    this.draft = undefined; this.selected = undefined; this.isNew = false; this.retireConfirmation = false; this.activeProvider = undefined; this.deleteConfirmation = undefined; this.otherModel = false;
     this.error = ''; this.notice = ''; this.conflict = false; this.remote = undefined;
     this.promptResult = undefined; this.promptError = ''; this.prompt = this.i18n.t('ai-models-example-prompt');
     if (params.has('provider')) {
@@ -294,9 +293,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     if (!this.selected) { this.openOverview(); return; }
     this.deleteConfirmation = { kind: 'draft', id: this.selected.id, name: this.selected.name + ' · v' + this.selected.version, uses: [] };
   }
-  profileHref(key: string): string { return this.hash() + '#profile=' + encodeURIComponent(key); }
-  get profileName(): string { return this.overview?.models.flatMap(m => m.uses ?? []).find(p => p.key === this.profileKey)?.name ?? this.profileKey; }
-  get profileModels(): GenerationAdminModelGroup[] { return this.overview?.models.filter(m => m.uses?.some(p => p.key === this.profileKey)) ?? []; }
+  profileHref(key: string): string { return this.baseUrl + '/admin/ai-profiles#profile=' + encodeURIComponent(key); }
   async confirmDelete(): Promise<void> {
     const target = this.deleteConfirmation;
     if (!target || this.busy || target.uses.length) return;

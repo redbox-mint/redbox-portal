@@ -1,0 +1,45 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Subject } from 'rxjs';
+import english from '../../../../../../language-defaults/en/translation.json';
+import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
+import { AdminAiProfilesComponent } from './admin-ai-profiles.component';
+import { ProfileApiService, ProfileApiError } from './profile-api.service';
+import { clone } from './profile-settings';
+import { overview, version } from './test-fixtures';
+describe('Drafting profile editor', () => {
+  let fixture: ComponentFixture<AdminAiProfilesComponent>, component: AdminAiProfilesComponent, api: jasmine.SpyObj<ProfileApiService>, original: string;
+  const changes = new Subject<void>();
+  const t = (key: string, options?: Record<string, unknown>) => ((english as Record<string,string>)[key] || key || '').replace(/{{(\w+)}}/g, (_, k) => String(options?.[k] ?? ''));
+  beforeEach(async () => {
+    original = location.pathname + location.search + location.hash; history.replaceState(null, '', location.pathname);
+    api = jasmine.createSpyObj('api', ['waitForInit','overview','create','save','publish','version','retire','duplicate','discard','remove','tests']);
+    api.brandingAndPortalUrl = '/brand/portal'; api.waitForInit.and.resolveTo(api); api.overview.and.callFake(async () => clone(overview));
+    api.save.and.callFake(async (_id, body) => ({ ...clone(version), definition: body.definition, contentHash: 'saved-hash' })); api.publish.and.resolveTo({ ...clone(version), status: 'published' });
+    api.version.and.resolveTo({ ...clone(version), id: 'v2', version: 2 }); api.remove.and.resolveTo({ deleted: true, uses: [], hasPublished: false, runCount: 0 }); api.discard.and.resolveTo({ deleted: true, uses: [], hasPublished: false, runCount: 0 });
+    api.tests.and.resolveTo([{ name: 'Synthetic example', passed: true, ranAt: '2026-11-18T00:00:00Z', fields: [{ label: 'Summary', value: '<script>untrusted</script>', evidence: ['Activity title'], passed: true }] }]);
+    await TestBed.configureTestingModule({ imports: [AdminAiProfilesComponent], providers: [{ provide: TranslationService, useValue: { t, waitForInit: async () => undefined, isInitializing: () => false, translationChanges$: changes } }] }).overrideComponent(AdminAiProfilesComponent, { set: { providers: [{ provide: ProfileApiService, useValue: api }] } }).compileComponents();
+    fixture = TestBed.createComponent(AdminAiProfilesComponent); component = fixture.componentInstance; fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+  });
+  afterEach(() => { fixture.destroy(); history.replaceState(null, '', original); });
+  const query = (s: string): HTMLElement => fixture.nativeElement.querySelector(s);
+  const open = () => { component.open('profile'); fixture.detectChanges(); };
+  it('uses hash state and one header without an Angular router', () => { open(); expect(location.hash).toContain('profile=profile'); expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1); expect(api.overview).toHaveBeenCalledTimes(1); });
+  it('shows labelled source and target fields without metadata paths', () => { open(); expect(query('#profile-source').textContent).toContain('Activity title'); expect(query('#profile-fields').textContent).toContain('Summary'); expect(fixture.nativeElement.textContent).not.toContain('/summary'); });
+  it('saves incomplete drafts but blocks publishing with linked problems', async () => { open(); component.draft!.targetFields = []; fixture.detectChanges(); expect(component.canPublish).toBeFalse(); expect(query('#profile-problems a')).toBeTruthy(); await component.saveDraft(); expect(api.save).toHaveBeenCalled(); await component.publish(); expect(api.publish).not.toHaveBeenCalled(); });
+  it('saves before publishing and passes the saved concurrency hash', async () => { open(); component.draft!.purpose = 'Changed'; await component.publish(); expect(api.save).toHaveBeenCalled(); expect(api.publish).toHaveBeenCalledWith('v1', 'saved-hash'); });
+  it('keeps local edits on conflict and requires an explicit resolution', async () => { open(); component.name = 'Local'; api.save.and.rejectWith(new ProfileApiError(409, 'ai-profiles-error-generation-target-conflict')); await component.saveDraft(); expect(component.conflict).toBeTrue(); expect(component.name).toBe('Local'); await component.reloadConflict(); component.resolveConflict(true); expect(component.conflict).toBeFalse(); expect(component.name).toBe('Local'); });
+  it('guards hash navigation and leaving a dirty page', () => { open(); component.name = 'Changed'; spyOn(window, 'confirm').and.returnValue(false); component.open(); expect(component.draft).toBeDefined(); const e = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent; component.beforeUnload(e); expect(e.defaultPrevented).toBeTrue(); });
+  it('edits direct question text and adds all six answer types', async () => { open(); for (const type of component.questionTypes) { component.editQuestion(); component.question!.label = 'Question ' + type; component.question!.type = type; component.questionTypeChanged(); component.optionsText = 'First\nSecond'; await component.submitModal(); } expect(component.draft!.questions.length).toBe(7); expect(component.draft!.questions.at(-1)!.options![0].label).toBe('First'); expect(component.draft!.questions.at(-1)!.labelKey).toBeUndefined(); });
+  it('reorders questions with buttons and removes stale answer references', () => { open(); spyOn(window, 'confirm').and.returnValue(true); component.draft!.targetFields[0].reviewedAnswerIds = ['question']; component.remove(component.draft!.questions, 0); expect(component.draft!.targetFields[0].reviewedAnswerIds).toEqual([]); });
+  it('derives field output and always marks a fallback for review', () => { open(); component.editField(0); component.pickField('/summary'); component.setFallback('Review this'); expect(component.field!.output).toEqual({ kind: 'string', maxLength: 200 }); expect(component.field!.fallback!.reviewRequired).toBeTrue(); });
+  it('prevents duplicate field choices and explains a profile name that is already used', () => {
+    open(); component.editField(); expect(component.targetChoices).toEqual([]);
+    component.askCreate(); component.modal!.name = 'Research plan'; fixture.detectChanges();
+    expect(component.nameUsed).toBeTrue(); expect(component.modalValid).toBeFalse(); expect(query('.modal').textContent).toContain('already uses this name');
+  });
+  it('blocks deletion and lists linked form actions', () => { const p = component.overview!.profiles[0]; p.hasPublished = true; p.uses = [{ key: 'action', name: 'Create plan', href: '/record/plan/edit' }]; component.askDelete(p); fixture.detectChanges(); expect(query('.modal a').getAttribute('href')).toBe('/brand/portal/record/plan/edit'); expect((query('.rb-admin-danger-confirm') as HTMLButtonElement).disabled).toBeTrue(); });
+  it('only deletes after the dialog confirmation and discards through the version endpoint', async () => { component.askDelete(component.overview!.profiles[0]); expect(api.remove).not.toHaveBeenCalled(); await component.confirmAction(); expect(api.remove).toHaveBeenCalledWith('profile'); open(); component.askDiscard(); await component.confirmAction(); expect(api.discard).toHaveBeenCalledWith('v1'); });
+  it('renders published content as a summary, with no disabled editor controls or save bar', () => { component.overview!.profiles[0].versions[0].status = 'published'; open(); expect(query('#profile-about dl')).toBeTruthy(); expect(query('#profile-about input')).toBeNull(); expect(query('.rb-admin-save-bar')).toBeNull(); });
+  it('runs real API tests after saving and renders values as text', async () => { open(); await component.runTests(); fixture.detectChanges(); expect(api.tests).toHaveBeenCalledWith('v1'); expect(query('.profile-test-result').textContent).toContain('<script>untrusted</script>'); expect(query('.profile-test-result script')).toBeNull(); });
+  it('invalidates test results when the profile changes', async () => { open(); await component.runTests(); component.changed(); expect(component.results).toEqual([]); });
+});
