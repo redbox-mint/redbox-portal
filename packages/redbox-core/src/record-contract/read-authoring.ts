@@ -59,6 +59,22 @@ export function compileMetadataReadShape(
   return visit(value, 0);
 }
 
+/** Retain only the excluded branches when an author omits a private subtree. */
+function readPrivacyExclusions(node: ContractNode): ContractNode {
+  if (node.annotations?.writeOnly) return node;
+  if (node.kind === 'object')
+    return {
+      ...node,
+      properties: Object.fromEntries(
+        Object.entries(node.properties)
+          .filter(([, child]) => hasWriteOnlyFields(child))
+          .map(([name, child]) => [name, readPrivacyExclusions(child)])
+      ),
+    };
+  if (node.kind === 'array') return { ...node, items: readPrivacyExclusions(node.items) };
+  return { ...node, annotations: { ...node.annotations, writeOnly: true } };
+}
+
 /** Authoring can narrow a shape but cannot make a contributor's private data readable. */
 export function retainReadPrivacy(declared: ContractNode, existing?: ContractNode): ContractNode {
   if (!existing || !hasWriteOnlyFields(existing)) return declared;
@@ -67,12 +83,17 @@ export function retainReadPrivacy(declared: ContractNode, existing?: ContractNod
   if (existing.kind === 'object' && declared.kind === 'object')
     return {
       ...declared,
-      properties: Object.fromEntries(
-        Object.entries(declared.properties).map(([name, node]) => [
+      properties: Object.fromEntries([
+        ...Object.entries(declared.properties).map(([name, node]) => [
           name,
           retainReadPrivacy(node, existing.properties[name]),
-        ])
-      ),
+        ]),
+        // Preserve omitted exclusions for later readMetadata replacements,
+        // without reintroducing omitted public siblings into this declaration.
+        ...Object.entries(existing.properties)
+          .filter(([name, node]) => !Object.hasOwn(declared.properties, name) && hasWriteOnlyFields(node))
+          .map(([name, node]) => [name, readPrivacyExclusions(node)]),
+      ]),
     };
   if (existing.kind === 'array' && declared.kind === 'array')
     return { ...declared, items: retainReadPrivacy(declared.items, existing.items) };

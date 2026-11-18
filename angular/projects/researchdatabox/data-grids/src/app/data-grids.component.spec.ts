@@ -1064,6 +1064,69 @@ describe('Data grid editor', () => {
       expect(component.rawErrors).toEqual([]);
     });
   });
+  it('reloads the matching schema after refreshing fields in linked GraphQL mode', async () => {
+    component.open(validGrid(), false);
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    source.fields = jasmine.createSpy().and.resolveTo([structuredClone(scope)]);
+    await component.switchMode('graphql');
+    const previous = component.schema;
+    await component.chooseScope(scope.id);
+    expect(source.schema).toHaveBeenCalledTimes(2);
+    expect(source.schema).toHaveBeenCalledWith(
+      jasmine.objectContaining({ recordType: scope.recordType, workflowStage: scope.workflowStage })
+    );
+    expect(component.schema).not.toBeNull();
+    expect(component.schema).not.toBe(previous);
+    expect(component.schemaSdl).toBe(testSdl);
+    expect(component.rawErrors).toEqual([]);
+    await component.switchMode('visual');
+    await component.chooseScope(scope.id);
+    expect(source.schema).toHaveBeenCalledTimes(2);
+  });
+  it('cancels a save awaiting schema discovery and ignores its late continuation', async () => {
+    component.open(validGrid(), false);
+    const schema = jasmine.createSpy().and.resolveTo(testSdl);
+    source.schema = schema;
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.unlink();
+    const pending = deferred<string>();
+    schema.and.returnValue(pending.promise);
+    component.rawDraft.document = '{ records(recordType:"organisation") { nodes { oid } } }';
+    component.rawChanged();
+    component.beginSave();
+    component.publishAfterSave = true;
+    const saving = component.confirmSave();
+    expect(component.saving).toBeTrue();
+    expect(component.preparingSave).toBeTrue();
+    expect(component.canSave).toBeFalse();
+    component.cancelSave();
+    expect(component.saving).toBeFalse();
+    expect(component.saveOpen).toBeFalse();
+    component.beginSave();
+    pending.resolve(testSdl);
+    await saving;
+    expect(source.save).not.toHaveBeenCalled();
+    expect(component.saveOpen).toBeTrue();
+    expect(component.publishAfterSave).toBeFalse();
+    await component.confirmSave();
+    expect(source.save).toHaveBeenCalledTimes(1);
+  });
+  it('prevents Escape cancellation after persistence starts', async () => {
+    component.open(validGrid(), false);
+    const pending = deferred<GridDefinition>();
+    source.save.and.returnValue(pending.promise);
+    component.beginSave();
+    const saving = component.confirmSave();
+    const event = new Event('cancel', { cancelable: true });
+    component.cancelSave(event);
+    expect(event.defaultPrevented).toBeTrue();
+    expect(component.saveOpen).toBeTrue();
+    expect(component.saving).toBeTrue();
+    pending.resolve({ ...validGrid(), id: 'saved' });
+    await saving;
+    expect(component.saveOpen).toBeFalse();
+  });
   it('backs off failed scoped schema refreshes for five seconds', async () => {
     const clock = spyOn(Date, 'now').and.returnValue(1_000);
     const schema = jasmine.createSpy().and.rejectWith(new Error('Schema discovery failed'));
@@ -1116,6 +1179,8 @@ describe('Data grid editor', () => {
     expect(component.schemaError).toBe('schema-unavailable');
     expect(component.previewError).toBe('schema-unavailable');
     expect(component.error).toBe('schema-unavailable');
+    expect(component.saving).toBeFalse();
+    expect(component.preparingSave).toBeFalse();
     expect(rawResponse).not.toHaveBeenCalled();
     expect(source.save).not.toHaveBeenCalled();
 
