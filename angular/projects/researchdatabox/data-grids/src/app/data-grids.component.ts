@@ -122,6 +122,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   private modeSequence = 0;
   /** Record type and stage the currently loaded SDL was scoped to; null means the global schema. */
   private schemaScopeKey: string | null = null;
+  private readonly schemaRequests = new Map<string | null, Promise<string>>();
   private promotionSequence = 0;
   busy = false;
   loadingPage = false;
@@ -849,7 +850,15 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     }
   }
   async save(asNew = false, name?: string): Promise<void> {
-    if (this.unlinked) await this.refreshRawSchema();
+    if (this.unlinked) {
+      const draft = this.rawDraft;
+      const schemaReady = await this.refreshRawSchema();
+      if (this.disposed || !this.unlinked || this.rawDraft !== draft) return;
+      if (!schemaReady) {
+        this.error = 'schema-unavailable';
+        return;
+      }
+    }
     if (!this.canSave || !this.activeDefinition) return;
     const draft = this.activeDefinition;
     const original = JSON.stringify(draft);
@@ -928,62 +937,73 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       );
     return node;
   }
-  async loadSchema(reset = true): Promise<void> {
+  async loadSchema(): Promise<void> {
     const seq = ++this.schemaSequence;
     this.schemaLoading = true;
     this.schemaError = '';
-    if (reset) {
+    if (!this.unlinked) {
       this.schema = null;
       this.schemaSdl = '';
     }
     try {
       if (!this.source.schema) throw new GridRequestError('schema-unavailable');
-      const enginePromise = import('./graphql-query');
-      let schemaScope = this.scope ?? undefined;
-      if (this.unlinked) {
-        const engine = await enginePromise;
-        const variables = JSON.parse(this.variablesText) as Record<string, unknown>;
-        const type = engine.queryRecordType(this.rawDraft.document, variables);
-        schemaScope = type ? { id: 'editor-schema', label: type, recordType: type, fields: [] } : undefined;
-        if (seq !== this.schemaSequence || this.disposed) return;
+      const enginePromise = this.graphqlEngine ? Promise.resolve(this.graphqlEngine) : import('./graphql-query');
+      const scope = this.resolveSchemaScope(this.unlinked ? (this.graphqlEngine ?? (await enginePromise)) : null);
+      if (seq !== this.schemaSequence || this.disposed) return;
+      const key = this.scopeKeyFor(scope);
+      let request = this.schemaRequests.get(key);
+      if (!request) {
+        request = this.source.schema(scope).finally(() => this.schemaRequests.delete(key));
+        this.schemaRequests.set(key, request);
       }
-      const [sdl, engine] = await Promise.all([this.source.schema(schemaScope), enginePromise]);
-      if (seq === this.schemaSequence && !this.disposed) {
-        if (seq !== this.schemaSequence || this.disposed) return;
-        this.graphqlEngine = engine;
-        this.schemaSdl = sdl;
-        this.schema = this.graphqlEngine.editorSchema(sdl);
-        this.schemaScopeKey = this.scopeKeyFor(schemaScope);
-        this.schemaType = this.schema.getQueryType()?.name ?? 'Query';
-      }
+      const [sdl, engine] = await Promise.all([request.catch(() => undefined), enginePromise]);
+      if (seq !== this.schemaSequence || this.disposed || key !== this.scopeKeyFor(this.resolveSchemaScope(engine)))
+        return;
+      if (sdl === undefined) throw new GridRequestError('schema-unavailable');
+      const schema = engine.editorSchema(sdl);
+      this.graphqlEngine = engine;
+      this.schemaSdl = sdl;
+      this.schema = schema;
+      this.schemaScopeKey = key;
+      this.schemaType = schema.getQueryType()?.name ?? 'Query';
     } catch {
       if (seq === this.schemaSequence && !this.disposed) this.schemaError = 'schema-unavailable';
     } finally {
       if (seq === this.schemaSequence && !this.disposed) this.schemaLoading = false;
     }
   }
+  private resolveSchemaScope(engine: DataGridsComponent['graphqlEngine']): GridScope | undefined {
+    if (!this.unlinked) return this.scope;
+    const variables = JSON.parse(this.variablesText) as Record<string, unknown>;
+    const type = engine?.queryRecordType(this.rawDraft.document, variables);
+    return type ? { id: 'editor-schema', label: type, recordType: type, fields: [] } : undefined;
+  }
   private scopeKeyFor(scope: GridScope | undefined): string | null {
     return scope ? `${scope.recordType}\u0000${scope.workflowStage ?? ''}` : null;
   }
   /**
-   * Reload the schema when the raw query no longer matches the scope its SDL was fetched for,
-   * so a valid query for another record type or stage is never rejected against a stale SDL.
-   * The previously loaded SDL stays in place until the fresh one arrives, so validation and
-   * previews never see a missing schema.
+   * Keep the previous SDL visible while fetching the current scope.
+   * Running or saving requires that the current scope has loaded.
    */
-  private async refreshRawSchema(): Promise<void> {
-    if (!this.unlinked || this.mode !== 'graphql' || this.saving || !this.source.schema) return;
-    let variables: Record<string, unknown> = {};
+  private async refreshRawSchema(): Promise<boolean> {
+    if (!this.unlinked || this.disposed) return false;
     try {
-      variables = JSON.parse(this.variablesText) as Record<string, unknown>;
+      const engine = this.graphqlEngine ?? (await import('./graphql-query'));
+      const key = this.scopeKeyFor(this.resolveSchemaScope(engine));
+      if (this.schema && key === this.schemaScopeKey) {
+        this.schemaError = '';
+        return true;
+      }
+      await this.loadSchema();
+      return (
+        !this.disposed &&
+        this.unlinked &&
+        !!this.schema &&
+        this.schemaScopeKey === this.scopeKeyFor(this.resolveSchemaScope(engine))
+      );
     } catch {
-      return; // Keep the loaded schema until the variables are valid JSON again.
+      return false; // Keep the loaded schema until the variables are valid JSON again.
     }
-    const engine = this.graphqlEngine ?? (await import('./graphql-query'));
-    const type = engine.queryRecordType(this.rawDraft.document, variables);
-    const desired = type ? { id: 'editor-schema', label: type, recordType: type, fields: [] } : this.scope;
-    if (this.scopeKeyFor(desired) === this.schemaScopeKey) return;
-    await this.loadSchema(false);
   }
   async switchMode(mode: 'visual' | 'graphql'): Promise<void> {
     if (mode === this.mode || this.saving) return;
@@ -1165,8 +1185,12 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     try {
       if (this.unlinked) {
         // Let a pending scoped-schema reload land before the run, unless an edit already superseded it.
-        await this.refreshRawSchema();
+        const schemaReady = await this.refreshRawSchema();
         if (seq !== this.sequence || this.disposed) return;
+        if (!schemaReady) {
+          this.previewError = 'schema-unavailable';
+          return;
+        }
         if (this.rawErrors.length) return;
       }
       const snapshot = structuredClone(this.rawDraft);

@@ -881,8 +881,9 @@ describe('Data grid editor', () => {
         )
       );
     source.schema = schemaSpy;
-    const editor = component as unknown as { refreshRawSchema(): Promise<void> };
+    const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
     await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
     component.unlink();
     await editor.refreshRawSchema();
     expect((schemaSpy.calls.mostRecent().args[0] as GridScope | undefined)?.recordType).toBe('plan');
@@ -894,6 +895,83 @@ describe('Data grid editor', () => {
     expect(scopeArg?.workflowStage).toBeUndefined();
     expect(component.rawErrors).toEqual([]);
     expect(component.schemaError).toBe('');
+  });
+  it('blocks raw preview and save when scoped schema discovery fails, then allows both after retry', async () => {
+    component.open(validGrid(), false);
+    const schema = jasmine.createSpy().and.resolveTo(testSdl);
+    source.schema = schema;
+    const rawResponse = jasmine.createSpy().and.resolveTo({ data: { records: { nodes: [{ oid: 'one' }] } } });
+    source.rawResponse = rawResponse;
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.unlink();
+    await component.loadSchema();
+
+    const previousSchema = component.schema;
+    const pending = deferred<string>();
+    schema.calls.reset();
+    schema.and.returnValue(pending.promise);
+    component.rawDraft.document = '{ records(recordType:"organisation") { nodes { oid } } }';
+    component.rawChanged();
+    const previewing = component.preview();
+    const saving = component.save();
+    expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ recordType: 'organisation' }));
+    expect(component.schema).toBe(previousSchema);
+    expect(component.rawErrors).toEqual([]);
+    expect(rawResponse).not.toHaveBeenCalled();
+    expect(source.save).not.toHaveBeenCalled();
+
+    pending.reject(new Error('Schema discovery failed'));
+    await Promise.all([previewing, saving]);
+    expect(component.schema).toBe(previousSchema);
+    expect(component.schemaSdl).toBe(testSdl);
+    expect(component.schemaError).toBe('schema-unavailable');
+    expect(component.previewError).toBe('schema-unavailable');
+    expect(component.error).toBe('schema-unavailable');
+    expect(rawResponse).not.toHaveBeenCalled();
+    expect(source.save).not.toHaveBeenCalled();
+
+    schema.and.resolveTo(testSdl);
+    await component.loadSchema();
+    expect(component.schema).not.toBe(previousSchema);
+    expect(component.schemaError).toBe('');
+    await component.preview();
+    await component.save();
+    expect(rawResponse).toHaveBeenCalledTimes(1);
+    expect(source.save).toHaveBeenCalledTimes(1);
+    expect(component.previewError).toBe('');
+    expect(component.error).toBe('');
+  });
+  it('reuses the loaded global schema when an unlinked edit stops identifying a single record type', async () => {
+    component.open(validGrid(), false);
+    const globalSdl = testSdl.replace('type Query {', 'type Query { record(oid: ID!): Record,');
+    const pending = deferred<string>();
+    const schema = jasmine.createSpy().and.callFake((requested?: GridScope) => {
+      if (!requested) return Promise.resolve(globalSdl);
+      return requested.workflowStage ? Promise.resolve(testSdl) : pending.promise;
+    });
+    source.schema = schema;
+    const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ record(oid:"one") { oid } }';
+    component.unlink();
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    expect(schema).toHaveBeenCalledTimes(2);
+    expect(schema.calls.mostRecent().args[0]).toBeUndefined();
+
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.rawChanged();
+    const scopedRefresh = editor.refreshRawSchema();
+    component.rawDraft.document = '{ record(oid:"two") { oid } }';
+    component.rawChanged();
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    expect(schema).toHaveBeenCalledTimes(3);
+
+    pending.resolve(testSdl);
+    await scopedRefresh;
+    expect(component.schemaSdl).toBe(globalSdl);
+    expect(component.rawErrors).toEqual([]);
+    expect(schema).toHaveBeenCalledTimes(3);
   });
   it('loads the schema while visual generation is still pending', async () => {
     component.open(validGrid());

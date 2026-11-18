@@ -253,12 +253,10 @@ describe('RecordGridService HTTP contract', () => {
     let failure: GridRequestError | undefined;
     service.raw('{ records { nodes { oid } } }', {}).catch(error => (failure = error));
     flushMicrotasks();
-    http
-      .expectOne(url)
-      .flush({
-        data: { records: { nodes: [{ oid: 'one' }] } },
-        errors: [{ path: ['records', 'nodes', 0, 'title'], extensions: { code: 'HISTORICAL_VALUE_TYPE' } }],
-      });
+    http.expectOne(url).flush({
+      data: { records: { nodes: [{ oid: 'one' }] } },
+      errors: [{ path: ['records', 'nodes', 0, 'title'], extensions: { code: 'HISTORICAL_VALUE_TYPE' } }],
+    });
     flushMicrotasks();
     expect(failure?.key).toBe('preview-failed');
   }));
@@ -289,16 +287,33 @@ describe('RecordGridService HTTP contract', () => {
     expect(JSON.stringify(response)).not.toContain('PRIVATE');
     expect(Object.keys(data)).toEqual(['record']);
   }));
-  for (const response of [
-    { data: null, errors: [{ path: ['plans', 'nodes', 0, 'title'] }] },
-    { data: { plans: null }, errors: [{ path: ['plans'] }] },
-    { data: { plans: {} }, errors: [{}] },
-    { data: { plans: {} }, errors: [{ path: ['plans', 'nodes', -1, 'title'] }] },
-  ])
+  for (const [response, expected] of [
+    [{ data: null, errors: [{ extensions: { code: 'QUERY_LIMIT' } }] }, 'query-limit'],
+    [
+      { data: null, errors: [{ path: ['plans', 'nodes', 0, 'title'], extensions: { code: 'QUERY_LIMIT' } }] },
+      'query-limit',
+    ],
+    [
+      { data: { plans: null }, errors: [{ path: ['plans'], extensions: { code: 'COLLECTION_LIMIT' } }] },
+      'collection-limit',
+    ],
+    [{ data: { plans: {} }, errors: [{}] }, 'preview-failed'],
+    [{ data: { plans: {} }, errors: [{ path: ['plans', 'nodes', -1, 'title'] }] }, 'preview-failed'],
+    [
+      {
+        data: { plans: { nodes: [{ title: null }] } },
+        errors: [
+          { path: ['plans', 'nodes', 0, 'title'], extensions: { code: 'QUERY_TIMEOUT' } },
+          { path: ['other'], extensions: { code: 'QUERY_LIMIT' } },
+        ],
+      },
+      'query-limit',
+    ],
+  ] as const)
     it(
       'keeps top-level and malformed raw failures fatal: ' + JSON.stringify(response),
       fakeAsync(() => {
-        let failure: unknown, result: unknown;
+        let failure: GridRequestError | undefined, result: unknown;
         service.rawResponse('{ plans { nodes { title } } }', {}).then(
           value => (result = value),
           error => (failure = error)
@@ -308,6 +323,7 @@ describe('RecordGridService HTTP contract', () => {
         flushMicrotasks();
         expect(result).toBeUndefined();
         expect(failure instanceof GridRequestError).toBeTrue();
+        expect(failure?.key).toBe(expected);
       })
     );
   it('retains raw request-size and transport protections', fakeAsync(() => {

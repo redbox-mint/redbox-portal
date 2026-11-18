@@ -474,6 +474,7 @@ describe('Record grid catalogue and pagination', () => {
     for (const id of blocked.records.keys()) blocked.denied.add(id);
     const result = await blocked.query(pageQuery);
     assert.equal(result.body.data?.records, null);
+    assert.deepEqual(result.body.errors?.[0].path, ['records']);
     assert.equal(result.body.errors?.[0].extensions.code, 'COLLECTION_LIMIT');
     assert.equal(blocked.reads.length, 200);
     assert.equal(blocked.calls.length, 4);

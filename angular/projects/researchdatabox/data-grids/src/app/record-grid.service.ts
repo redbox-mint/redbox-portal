@@ -302,20 +302,22 @@ export class RecordGridService extends HttpClientService implements DataGridSour
       );
       if (response['errors'] !== undefined) {
         const errors = array(response['errors']);
-        const topLevelFailure = errors.some(value => {
+        if (!partial && errors.length) throw this.graphqlError(errors);
+        const fatalErrors = errors.filter(value => {
           const path = object(value)['path'];
           if (partial === 'raw') {
-            const data = object(response['data']);
-            return (
+            if (
               !Array.isArray(path) ||
               path.length < 2 ||
               path.length > 32 ||
               typeof path[0] !== 'string' ||
-              !Object.hasOwn(data, path[0]) ||
-              !data[path[0]] ||
-              typeof data[path[0]] !== 'object' ||
               path.some(part => typeof part !== 'string' && (!Number.isSafeInteger(part) || Number(part) < 0))
-            );
+            )
+              return true;
+            const data = response['data'];
+            if (!data || typeof data !== 'object' || Array.isArray(data) || !Object.hasOwn(data, path[0])) return true;
+            const root = Reflect.get(data, path[0]);
+            return !root || typeof root !== 'object';
           }
           return (
             !Array.isArray(path) ||
@@ -326,7 +328,7 @@ export class RecordGridService extends HttpClientService implements DataGridSour
             path.length < 4
           );
         });
-        if (errors.length && (!partial || topLevelFailure)) throw this.graphqlError(errors);
+        if (fatalErrors.length) throw this.graphqlError(partial === 'raw' ? fatalErrors : errors);
       }
       return partial ? response : object(response['data']);
     } catch (error) {
