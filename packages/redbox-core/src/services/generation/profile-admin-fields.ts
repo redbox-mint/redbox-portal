@@ -28,9 +28,9 @@ export function profileFormFields(form: FormConfigFrame, translate: (text: strin
       const maxLength = config.maxLength ?? item.validators?.maxLength?.value;
       if (['SimpleInputComponent', 'TextAreaComponent', 'RichTextEditorComponent'].includes(component)) output = { kind: component === 'RichTextEditorComponent' ? 'richText' : 'string', ...(typeof maxLength === 'number' && Number.isInteger(maxLength) ? { maxLength } : {}) };
       else if (component === 'DateInputComponent') output = { kind: 'date' };
-      else if (component === 'CheckboxInputComponent' && !options.length) output = { kind: 'boolean' };
+      else if (component === 'CheckboxInputComponent' && config.booleanMode === true) output = { kind: 'boolean' };
       else if (['RadioInputComponent', 'DropdownInputComponent', 'CheckboxInputComponent', 'TypeaheadInputComponent'].includes(component) && options.length) {
-        output = component === 'CheckboxInputComponent' || config.multipleValues === true || config.multiple === true
+        output = (component === 'CheckboxInputComponent' ? config.multipleValues !== false : config.multipleValues === true || config.multiple === true)
           ? { kind: 'enumArray', values: options.map((o) => o.value), maxItems: options.length }
           : { kind: 'enum', values: options.map((o) => o.value) };
       }

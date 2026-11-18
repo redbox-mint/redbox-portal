@@ -117,6 +117,14 @@ export namespace Services {
           (q.sourceDefaultExpression && !definition.sourceSlots.some(slot => slot.allowedPaths.includes(q.sourceDefaultExpression!)))) add('questions', 'question', label, q.id);
       }
       const bindings = profileId ? requireWaterlineRows<GenerationBindingAttributes>(await GenerationBinding.find({ brandId, profileId }), 'GenerationBinding') : [];
+      for (const binding of bindings) {
+        const slot = definition.sourceSlots.find(s => s.id === binding.sourceRelationship?.sourceSlotId);
+        if (binding.sourceRecordType
+          ? !slot || slot.recordType !== binding.sourceRecordType || definition.sourceSlots.some(s => s.id !== slot.id && s.required !== false)
+          : !definition.documentSources || definition.sourceSlots.some(s => s.required !== false) || !!binding.sourceRelationship || !!binding.sourceValueMappings?.length) {
+          add('source', 'action-source', binding.name);
+        }
+      }
       const target = definition.targetForm ?? (bindings[0] ? { recordType: bindings[0].targetRecordType, formName: bindings[0].targetFormName! } : undefined);
       const form = c.forms.find(f => f.name === target?.formName && f.recordType === target.recordType);
       if (!form) add('fields', 'form');
@@ -259,7 +267,12 @@ export namespace Services {
       this.enabled(); const profile = await this.profile(brandId, key); const summary = await this.summary(brandId, profile, await this.catalog(brandId));
       const result = { deleted: false, uses: summary.uses, hasPublished: summary.hasPublished, runCount: summary.runCount };
       if (result.hasPublished || result.uses.length || result.runCount) return result;
-      await GenerationProfileVersion.destroy({ brandId, profileId: profile.id }); await GenerationProfile.destroyOne({ brandId, id: profile.id });
+      // Claim deletion on the same parent publication reserves before updating a
+      // version. A stale summary can therefore never authorize deleting a publication.
+      const deleted = await GenerationProfile.destroyOne({ brandId, id: profile.id,
+        or: [{ publishedVersionId: null }, { publishedVersionId: '' }] });
+      if (!deleted) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile changed concurrently');
+      await GenerationProfileVersion.destroy({ brandId, profileId: profile.id });
       return { ...result, deleted: true };
     }
     public async retire(brandId: string, id: string, actor: string) { this.enabled(); return this.profiles().retire(brandId, id, actor); }

@@ -382,7 +382,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     if (!this.canPublish || this.busy) return;
     if (this.isNew || this.isDirty) { await this.saveDraft(); if (this.isNew || this.isDirty || this.error) return; }
     this.busy = true; this.error = '';
-    try { const saved = await this.api.publish(this.selected!.id); this.selectVersion(saved); await this.refresh(); this.notice = 'ai-models-published'; }
+    try { const saved = await this.api.publish(this.selected!.id, { expectedContentHash: this.selected!.contentHash }); this.selectVersion(saved); await this.refresh(); this.notice = 'ai-models-published'; }
     catch (error) { this.handle(error); } finally { this.busy = false; }
   }
   async newVersion(): Promise<void> {

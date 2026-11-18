@@ -15,6 +15,7 @@ import {
 import { GenerationApiService } from './generation-api.service';
 import { GenerationPatchApplierService } from './generation-patch-applier.service';
 import { GenerationProvenanceStoreService } from './generation-provenance-store.service';
+import { launchedQuestionContract } from './generation-question-contract.fixture';
 import { GenerationSidePanelComponent } from './generation-side-panel.component';
 
 describe('GenerationSidePanelComponent', () => {
@@ -797,10 +798,10 @@ class StatusTestTranslationPipe implements PipeTransform {
 }
 
 describe('Generation paused-status rendering', () => {
-  it('renders admin question text, help and options while retaining bootstrap translation keys', async () => {
+  it('renders the saved-profile launch contract through the researcher API, including text, help and accessible names', async () => {
     const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['getRun', 'execute']);
-    api.getRun.and.resolveTo({ runId: 'paused-render', status: 'completed', phase: 'population',
-      attemptCount: 1, retryable: false, questions: [], result: null });
+    api.getRun.and.resolveTo({ runId: 'profile-contract', status: 'draft', phase: 'context', purpose: 'Draft a plan from synthetic project information.',
+      attemptCount: 0, retryable: false, questions: structuredClone(launchedQuestionContract), result: null });
     const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
     eventBus.select$.and.returnValue(EMPTY);
     const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
@@ -823,25 +824,16 @@ describe('Generation paused-status rendering', () => {
     const component = fixture.componentInstance;
     fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('') }));
     fixture.detectChanges();
-    component.activeSession.set({ runId: 'paused-render', bindingKey: 'documents', initialValues: [], autoOpen: true });
-    component.run.set({ runId: 'paused-render', status: 'draft', phase: 'provider', purpose: 'Draft a plan from synthetic project information.',
-      attemptCount: 1, retryable: false, questions: [], result: null });
-    const questions: GenerationQuestion[] = [
-      { id: 'direct', label: 'What do you plan to collect?', helpText: 'Describe synthetic data only.', labelKey: 'old-key', type: 'enum', required: false, options: [{ value: 'one', label: 'Interview transcripts', labelKey: 'old-option' }] },
-      { id: 'several', label: 'Which methods?', type: 'multiEnum', required: true, options: [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }] },
-      { id: 'yesno', label: 'Approved?', type: 'boolean', required: false },
-      { id: 'legacy', labelKey: 'bootstrap-question', helpTextKey: 'bootstrap-help', type: 'text', required: false },
-    ];
-    component.questions.set(questions);
-    component.questionForm.addControl('direct', new FormControl('one'));
-    component.questionForm.addControl('legacy', new FormControl(''));
-    component.questionForm.addControl('several', new FormControl([], { validators: control => control.value?.length ? null : { required: true } }));
-    component.questionForm.addControl('yesno', new FormControl(null));
+    fixture.componentRef.setInput('session', { runId: 'profile-contract', bindingKey: 'documents', initialValues: [], autoOpen: true });
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(api.getRun).toHaveBeenCalledWith('profile-contract');
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Draft a plan from synthetic project information.');
     expect(host.textContent).toContain('What do you plan to collect?');
     expect(host.textContent).toContain('Describe synthetic data only.');
+    expect(host.querySelector('label[for="generation-question-direct"]')?.textContent).toContain('What do you plan to collect?');
     expect(host.textContent).toContain('Interview transcripts');
     expect(host.textContent).toContain('bootstrap-question');
     expect(host.textContent).not.toContain('old-key');
@@ -857,7 +849,9 @@ describe('Generation paused-status rendering', () => {
     const yesno = host.querySelector<HTMLSelectElement>('#generation-question-yesno')!;
     yesno.selectedIndex = 2; yesno.dispatchEvent(new Event('change')); fixture.detectChanges();
     expect(component.questionForm.get('yesno')?.value).toBeFalse();
-    expect(host.querySelector<HTMLSelectElement>('#generation-question-direct')?.value).toBe('one');
+    const direct = host.querySelector<HTMLSelectElement>('#generation-question-direct')!;
+    direct.value = 'one'; direct.dispatchEvent(new Event('change')); fixture.detectChanges();
+    expect<unknown>(component.questionForm.get('direct')?.value).toBe('one');
     fixture.destroy();
   });
   it('renders paused feedback and a resume button that reads status while generation remains disabled', async () => {

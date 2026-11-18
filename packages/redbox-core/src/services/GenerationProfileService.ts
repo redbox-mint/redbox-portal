@@ -188,12 +188,24 @@ export namespace Services {
           throw new GenerationError('GENERATION_PROFILE_INVALID', 'Published knowledge version was not found');
         }
       }
+      const profile = await GenerationProfile.findOne({ id: version.profileId, brandId });
+      if (!profile || profile.publishedVersionId === versionId) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile changed concurrently');
+      // Reserve publication on the parent before changing the version. Deletion
+      // claims that same parent only while it has no publication reservation.
+      const claimed = await GenerationProfile.updateOne({ id: version.profileId, brandId,
+        publishedVersionId: profile.publishedVersionId ?? null }).set({ publishedVersionId: versionId, updatedBy: actorId });
+      if (!claimed) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile changed concurrently');
       const publishedAt = new Date().toISOString();
-      const published = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: version.contentHash }).set({
-        status: 'published', publishedBy: actorId, publishedAt,
-      });
-      if (!published) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
-      await GenerationProfile.updateOne({ id: version.profileId, brandId }).set({ publishedVersionId: versionId, updatedBy: actorId });
+      let published: GenerationProfileVersionAttributes | null;
+      try {
+        published = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: version.contentHash }).set({
+          status: 'published', publishedBy: actorId, publishedAt,
+        });
+        if (!published) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
+      } catch (error) {
+        await GenerationProfile.updateOne({ id: version.profileId, brandId, publishedVersionId: versionId }).set({ publishedVersionId: profile.publishedVersionId || '' });
+        throw error;
+      }
       return published;
     }
 

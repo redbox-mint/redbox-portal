@@ -2,6 +2,8 @@ import { strict as assert } from 'node:assert';
 import * as sinon from 'sinon';
 import { generation } from '../../src/config/generation.config';
 import { Services } from '../../src/services/GenerationProfileAdminService';
+import { profileQuestionContract, launchedQuestionContract } from '../../../../angular/projects/researchdatabox/form/src/app/generation/generation-question-contract.fixture';
+import { Services as Runs } from '../../src/services/GenerationRunService';
 import { Services as Profiles } from '../../src/services/GenerationProfileService';
 import { Services as Schemas } from '../../src/services/GenerationSchemaService';
 import { Services as Prompts } from '../../src/services/GenerationPromptService';
@@ -16,16 +18,16 @@ const definition = (): GenerationProfileDefinition => ({ purpose: 'Draft a plan'
   sourceSlots: [{ id: 'source', recordType: 'activity', allowedPaths: ['/title'], maxBytes: 1024 }],
   targetForm: { recordType: 'plan', formName: 'plan-form' }, questions: [], targetFields: [{ id: 'summary', label: 'Summary', metadataPointer: '/summary', expectedComponentClasses: ['TextAreaComponent'], output: { kind: 'string', maxLength: 200 }, operation: 'fill', grounding: 'sourceRequired' }],
   modelDeploymentId: 'model', knowledgeCollectionVersionIds: [], contextLimits: { totalBytes: 4096, maxKnowledgeChunks: 5, maxChunkBytes: 1024 }, fixtureTests: [] });
-const names = ['sails', 'GenerationProfile', 'GenerationProfileVersion', 'GenerationBinding', 'GenerationRun', 'GenerationModelDeployment', 'GenerationModelConnection', 'TranslationService'];
+const names = ['sails', 'GenerationProfile', 'GenerationProfileVersion', 'GenerationBinding', 'GenerationRun', 'GenerationRunArtifact', 'GenerationModelDeployment', 'GenerationModelConnection', 'TranslationService', 'User', 'BrandingService'];
 describe('Drafting profile administration', () => {
   let service: Services.GenerationProfileAdminService, tables: Record<string, any[]>, originals: Map<string, unknown>, catalog: Omit<ProfileOverview, 'profiles'>;
-  const matches = (r: any, c: any) => Object.entries(c).every(([k, v]: [string, any]) => Array.isArray(v) ? v.includes(r[k]) : v && typeof v === 'object' && v.in ? v.in.includes(r[k]) : r[k] === v);
+  const matches = (r: any, c: any) => Object.entries(c).every(([k, v]: [string, any]) => k === 'or' ? v.some((branch: any) => matches(r, branch)) : v === null ? r[k] == null : Array.isArray(v) ? v.includes(r[k]) : v && typeof v === 'object' && v.in ? v.in.includes(r[k]) : r[k] === v);
   beforeEach(() => {
     originals = new Map(names.map(n => [n, Reflect.get(globalThis, n)]));
     const mock = createMockSails(); mock.config.generation = { ...structuredClone(generation), enabled: true }; Reflect.set(globalThis, 'sails', mock);
     Reflect.set(globalThis, 'TranslationService', { t: (s: string) => s });
     tables = {};
-    for (const n of names.filter(n => !['sails','TranslationService'].includes(n))) {
+    for (const n of names.filter(n => !['sails','TranslationService','User','BrandingService'].includes(n))) {
       const rows = tables[n] = [];
       Reflect.set(globalThis, n, { find: async (c: any) => structuredClone(rows.filter(r => matches(r, c))), findOne: async (c: any) => structuredClone(rows.find(r => matches(r, c))),
         count: async (c: any) => rows.filter(r => matches(r, c)).length,
@@ -48,6 +50,107 @@ describe('Drafting profile administration', () => {
     tables.GenerationProfileVersion.push({ id: 'v', brandId: 'a', profileId: 'p', version: 1, status: 'draft', definition: definition(), contentHash: canonicalHash(definition()), createdBy: 'admin' });
   });
   afterEach(() => { sinon.restore(); for (const [n, v] of originals) v === undefined ? Reflect.deleteProperty(globalThis, n) : Reflect.set(globalThis, n, v); });
+  it('preserves a publication that wins after deletion reads its version snapshot', async () => {
+    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
+    const validate = service.validate.bind(service); let published = false;
+    sinon.stub(service, 'validate').callsFake(async (...args) => {
+      const problems = await validate(...args);
+      if (!published) { published = true; await sails.services.generationprofileservice.publish('a', 'v', 'publisher', tables.GenerationProfileVersion[0].contentHash); }
+      return problems;
+    });
+    await assert.rejects(service.remove('a', 'plan'), (e: GenerationError) => e.code === 'GENERATION_TARGET_CONFLICT');
+    assert.equal(tables.GenerationProfileVersion[0].status, 'published');
+    assert.equal(tables.GenerationProfileVersion[0].publishedBy, 'publisher');
+    assert.equal(tables.GenerationProfile[0].publishedVersionId, 'v');
+  });
+  it('blocks deletion even while a winning publication has reserved the parent but not updated its version', async () => {
+    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
+    const update = GenerationProfileVersion.updateOne.bind(GenerationProfileVersion);
+    let deletion: Promise<unknown> | undefined;
+    sinon.stub(GenerationProfileVersion, 'updateOne').callsFake((criteria: any) => ({ set: async (values: any) => {
+      if (values.status === 'published') {
+        deletion = assert.rejects(service.remove('a', 'plan'), (e: GenerationError) => e.code === 'GENERATION_TARGET_CONFLICT');
+        await deletion;
+      }
+      return update(criteria).set(values);
+    } }) as any);
+    await sails.services.generationprofileservice.publish('a', 'v', 'publisher', tables.GenerationProfileVersion[0].contentHash);
+    assert.ok(deletion); assert.equal(tables.GenerationProfileVersion[0].status, 'published');
+  });
+  it('refuses publication when deletion wins the parent claim after the publisher reads its parent', async () => {
+    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
+    const update = GenerationProfile.updateOne.bind(GenerationProfile);
+    sinon.stub(GenerationProfile, 'updateOne').callsFake((criteria: any) => ({ set: async (values: any) => {
+      assert.equal((await service.remove('a', 'plan')).deleted, true);
+      return update(criteria).set(values);
+    } }) as any);
+    await assert.rejects(sails.services.generationprofileservice.publish('a', 'v', 'publisher', tables.GenerationProfileVersion[0].contentHash), (e: GenerationError) => e.code === 'GENERATION_TARGET_CONFLICT');
+    assert.equal(tables.GenerationProfile.length, 0); assert.equal(tables.GenerationProfileVersion.length, 0);
+  });
+  it('releases the parent publication reservation when a draft changes before its version update', async () => {
+    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
+    sinon.stub(GenerationProfileVersion, 'updateOne').returns({ set: async () => undefined } as any);
+    await assert.rejects(sails.services.generationprofileservice.publish('a', 'v', 'publisher', tables.GenerationProfileVersion[0].contentHash));
+    assert.equal(tables.GenerationProfile[0].publishedVersionId, '');
+    assert.equal((await service.remove('a', 'plan')).deleted, true);
+  });
+  for (const mismatch of ['record type', 'slot', 'document-only', 'required record', 'extra required record']) it('blocks publication when a consuming action has an incompatible ' + mismatch, async () => {
+    const v = tables.GenerationProfileVersion[0];
+    const binding: any = { brandId: 'a', profileId: 'p', name: 'Create plan from activity', sourceRecordType: 'activity', sourceRelationship: { sourceSlotId: 'source' }, targetRecordType: 'plan', targetFormName: 'plan-form' };
+    tables.GenerationBinding.push(binding);
+    assert.equal((await service.validate('a', v.definition, 'p')).length, 0);
+    if (mismatch === 'record type') { v.definition.sourceSlots[0].recordType = 'plan'; v.definition.sourceSlots[0].allowedPaths = ['/summary']; }
+    if (mismatch === 'slot') v.definition.sourceSlots[0].id = 'replacement';
+    if (mismatch === 'document-only') { v.definition.sourceSlots = []; v.definition.documentSources = { ...generation.documents, formats: ['txt'] }; }
+    if (mismatch === 'required record') { delete binding.sourceRecordType; delete binding.sourceRelationship; v.definition.documentSources = { ...generation.documents, formats: ['txt'] }; }
+    if (mismatch === 'extra required record') v.definition.sourceSlots.push({ ...v.definition.sourceSlots[0], id: 'extra', required: true });
+    const problems = await service.validate('a', v.definition, 'p');
+    assert.ok(problems.some(p => p.section === 'source' && p.messageKey === 'ai-profiles-problem-action-source' && p.label === binding.name));
+    await assert.rejects(service.publish('a', 'v', { expectedContentHash: v.contentHash }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_PROFILE_INVALID');
+  });
+  it('accepts document-only actions with no required records and matching record actions with optional extra records', async () => {
+    const d = definition(); d.documentSources = { ...generation.documents, formats: ['txt'] }; d.sourceSlots[0].required = false;
+    tables.GenerationBinding.push({ brandId: 'a', profileId: 'p', name: 'Documents', targetRecordType: 'plan', targetFormName: 'plan-form' });
+    assert.deepEqual(await service.validate('a', d, 'p'), []);
+    tables.GenerationBinding[0].sourceRecordType = 'activity'; tables.GenerationBinding[0].sourceRelationship = { sourceSlotId: 'source' };
+    d.sourceSlots.push({ ...d.sourceSlots[0], id: 'optional' });
+    assert.deepEqual(await service.validate('a', d, 'p'), []);
+  });
+  for (const [config, kind] of [[{ multipleValues: false }, 'enum'], [{ multipleValues: true }, 'enumArray'], [{}, 'enumArray'], [{ booleanMode: true }, 'boolean'], [{ booleanMode: true, multipleValues: false }, 'boolean']] as const) it('derives checkbox output ' + kind + ' for ' + JSON.stringify(config), async () => {
+    const form: any = { componentDefinitions: [{ name: 'summary', model: { class: 'CheckboxInputModel' }, component: { class: 'CheckboxInputComponent', config: { ...config, options: [{ value: 'one', label: 'One' }] } } }] };
+    const fields = profileFormFields(form, s => s); assert.equal(fields[0].output?.kind, kind);
+    catalog.forms[1].fields = fields;
+    const d = definition(); d.targetFields[0].expectedComponentClasses = ['CheckboxInputComponent']; d.targetFields[0].output = fields[0].output!;
+    assert.deepEqual(await service.validate('a', d), []);
+    d.targetFields[0].output = { kind: kind === 'enumArray' ? 'enum' : 'enumArray', values: ['one'] };
+    assert.ok((await service.validate('a', d)).some(p => p.messageKey === 'ai-profiles-problem-field-changed'));
+  });
+  it('preserves saved profile question text across publication, run launch and the researcher API contract consumed by the panel', async () => {
+    const d = definition(); d.questions = structuredClone(profileQuestionContract);
+    d.sourceSlots[0].required = false; d.documentSources = { ...generation.documents, formats: ['txt'] };
+    const saved = await service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin');
+    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
+    await service.publish('a', 'v', { expectedContentHash: saved.contentHash }, 'admin');
+    const binding = { id: 'binding', brandId: 'a', key: 'create-plan', profileId: 'p', enabled: true, allowedRoles: ['Researcher'], targetRecordType: 'plan', targetFormName: 'plan-form', targetStartingWorkflowStage: 'draft' };
+    tables.GenerationBinding.push(binding);
+    sails.config.workflow = { plan: { draft: { starting: true, config: { form: 'plan-form', workflow: { stage: 'draft' }, authorization: { editRoles: ['Researcher'] } } } } } as any;
+    Reflect.set(globalThis, 'User', { findOne: () => ({ populate: async () => ({ id: 'researcher', roles: [{ name: 'Researcher' }] }) }) });
+    Reflect.set(globalThis, 'BrandingService', { getBrandById: () => ({ id: 'a' }) });
+    sails.services.generationbindingservice = {
+      authorizeLaunch: async () => ({ binding, profileVersion: await sails.services.generationprofileservice.resolvePublished('a', 'p') }),
+      buildTargetUrl: () => '/plan', buildCompletionValues: () => [],
+    };
+    sails.services.generationcryptoservice = {
+      encrypt: async (_brand: string, _run: string, payload: unknown) => ({ payloadVersion: 1, encryptionKeyId: 'test', iv: 'iv', authTag: 'tag', ciphertext: JSON.stringify(payload) }),
+      decrypt: async (_brand: string, _run: string, envelope: any) => JSON.parse(envelope.ciphertext),
+    };
+    const actor = { brandId: 'a', branding: 'default', portal: 'rdmp', userId: 'researcher', username: 'researcher', roles: ['Researcher'] };
+    const runs = new Runs.GenerationRunService();
+    const launch = await runs.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+    const view = await runs.getForActor(actor, launch.runId);
+    assert.deepEqual(JSON.parse(JSON.stringify(view.questions)), launchedQuestionContract);
+    assert.equal(view.status, 'draft'); assert.equal(tables.GenerationRunArtifact.length, 1);
+  });
   it('creates an incomplete saveable first draft without a template', async () => {
     const p = await service.create('a', { name: 'New plan', sourceRecordType: 'activity', targetFormName: 'plan-form' }, 'admin');
     assert.equal(p.versions[0].version, 1); assert.equal(p.versions[0].status, 'draft'); assert.ok(p.versions[0].problems.length); assert.equal(p.versions[0].definition.targetForm?.formName, 'plan-form');

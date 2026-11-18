@@ -5502,6 +5502,7 @@
   "ai-profiles-problem-instructions": "About: add instructions of up to 4,000 characters.",
   "ai-profiles-problem-model": "Model: choose an available published model.",
   "ai-profiles-problem-guidance": "Guidance: a selected collection is no longer published. Choose a published collection.",
+  "ai-profiles-problem-action-source": "The source record settings no longer match the form action {{label}}. Restore compatible source settings before publishing.",
   "ai-profiles-problem-source": "Source record: choose an available record type and at least one field.",
   "ai-profiles-problem-source-field": "Source record: a selected field is no longer in the form. Select the fields again.",
   "ai-profiles-problem-form": "Fields to fill: choose an available target form.",

@@ -83,6 +83,10 @@ export class FakeGenerationProvider implements GenerationProviderAdapter {
         return [id, { value: valueFor(field.properties?.value ?? { type: 'string' }, allowed), evidenceIds: allowed.slice(0, 1), rationale: 'Deterministic demonstration using the supplied evidence.' }];
       })) });
     }
+    if (content === undefined && (!schema || schema.properties?.answer?.type === 'string')) {
+      const answer = 'Synthetic demonstration response';
+      content = schema ? JSON.stringify({ answer }) : answer;
+    }
     if (content === undefined) {
       throw new Error(`No fake generation fixture registered for ${input.correlationId}`);
     }

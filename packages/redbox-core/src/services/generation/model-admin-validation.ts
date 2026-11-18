@@ -30,6 +30,7 @@ export const modelDraftSchema = z.object({
   parameters: modelParametersSchema.optional(), routingPolicy: modelRoutingSchema.optional(),
 }).strict();
 export const createModelSchema = modelDraftSchema.extend({ key });
+export const publishModelSchema = z.object({ expectedContentHash: z.string().min(1) }).strict();
 export const updateModelSchema = modelDraftSchema.extend({ expectedContentHash: z.string().regex(/^[a-f0-9]{64}$/) });
 export const connectionDraftSchema = z.object({
   key, name: text, adapterId: text, enabled: z.boolean(),

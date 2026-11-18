@@ -49,6 +49,7 @@ export interface GenerationAdminModelDraft {
 }
 export interface GenerationAdminCreateModel extends GenerationAdminModelDraft { key: string; }
 export interface GenerationAdminUpdateDraft extends GenerationAdminModelDraft { expectedContentHash: string; }
+export interface GenerationAdminPublishModel { expectedContentHash: string; }
 export interface GenerationAdminModelVersion extends GenerationAdminModelDraft {
   id: string;
   brandId: string;

@@ -41,7 +41,7 @@ describe('ModelApiService', () => {
     { name: 'creates model', method: 'POST', path: '/models', body: { ...modelDraft(model), key: model.key }, call: (a: ModelApiService) => a.createModel({ ...modelDraft(model), key: model.key }) },
     { name: 'updates with concurrency hash', method: 'PUT', path: '/models/id%2Fone', body: { ...modelDraft(model), expectedContentHash: model.contentHash }, call: (a: ModelApiService) => a.saveModel('id/one', { ...modelDraft(model), expectedContentHash: model.contentHash }) },
     { name: 'copies version', method: 'POST', path: '/models/id/versions', body: undefined, call: (a: ModelApiService) => a.version('id') },
-    { name: 'publishes', method: 'POST', path: '/models/id/publish', body: undefined, call: (a: ModelApiService) => a.publish('id') },
+    { name: 'publishes', method: 'POST', path: '/models/id/publish', body: { expectedContentHash: model.contentHash }, call: (a: ModelApiService) => a.publish('id', { expectedContentHash: model.contentHash }) },
     { name: 'retires', method: 'POST', path: '/models/id/retire', body: undefined, call: (a: ModelApiService) => a.retire('id') },
     { name: 'tries prompt', method: 'POST', path: '/try-prompt', body: { draft: modelDraft(model), prompt: 'Synthetic example', mode: 'sample' }, call: (a: ModelApiService) => a.tryPrompt({ draft: modelDraft(model), prompt: 'Synthetic example', mode: 'sample' }) },
   ];

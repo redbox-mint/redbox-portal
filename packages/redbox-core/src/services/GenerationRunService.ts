@@ -107,7 +107,8 @@ export namespace Services {
         const contextService = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
         const defaults = contextService.buildQuestionDefaults(authorized.profileVersion.definition, authorized.source?.metadata ?? {});
         const questions: GenerationQuestion[] = authorized.profileVersion.definition.questions.map((question) => ({
-          id: question.id, labelKey: question.labelKey, helpTextKey: question.helpTextKey, type: question.type,
+          id: question.id, label: question.label, helpText: question.helpText,
+          labelKey: question.labelKey, helpTextKey: question.helpTextKey, type: question.type,
           required: question.required, options: question.options, maxLength: question.maxLength,
           defaultValue: defaults.find((item) => item.id === question.id)?.value as GenerationQuestion['defaultValue'],
         }));

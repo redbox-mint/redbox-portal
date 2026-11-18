@@ -50,7 +50,7 @@ describe('Generation bootstrap and deployment lifecycle', () => {
     requiredCapabilities: { structuredOutput: true }, createdBy: 'test', ...changes,
   });
   function matches(row: Record<string, any>, criteria: Record<string, any>): boolean {
-    return Object.entries(criteria).every(([key, value]) => value && typeof value === 'object' && 'in' in value
+    return Object.entries(criteria).every(([key, value]) => value === null ? row[key] == null : value && typeof value === 'object' && 'in' in value
       ? value.in.includes(row[key]) : row[key] === value);
   }
   function install(name: string, definition: unknown): void {

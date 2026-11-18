@@ -83,14 +83,15 @@ export namespace Services {
       return { ok: health.ok, capabilities: this.safeCapabilities(health.capabilities), checkedAt: health.checkedAt };
     }
 
-    public async publishDeployment(brandId: string, deploymentId: string, actorId: string): Promise<GenerationModelDeploymentAttributes> {
+    public async publishDeployment(brandId: string, deploymentId: string, actorId: string, expectedContentHash?: string): Promise<GenerationModelDeploymentAttributes> {
       const draft = await this.deployment(brandId, deploymentId);
       if (draft.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only drafts may be published');
+      if (expectedContentHash && draft.contentHash !== expectedContentHash) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Model draft changed');
       const capabilitySnapshot = await this.testDeployment(brandId, deploymentId);
-      const updated = await GenerationModelDeployment.updateOne({ id: deploymentId, brandId, status: 'draft', contentHash: draft.contentHash }).set({
+      const updated = await GenerationModelDeployment.updateOne({ id: deploymentId, brandId, status: 'draft', contentHash: expectedContentHash ?? draft.contentHash }).set({
         status: 'published', capabilitySnapshot, publishedBy: actorId, publishedAt: new Date().toISOString(),
       });
-      if (!updated) throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft deployments may be published');
+      if (!updated) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Model draft changed');
       return updated;
     }
     private readonly adminCooldown = new Map<string, number>();
@@ -194,6 +195,26 @@ export namespace Services {
       const saved = connectionId ? await this.connection(brandId, connectionId) : undefined;
       const fields = await this.validatedConnection(input, saved);
       const { apiKey } = parseAdminInput(connectionDraftSchema, input);
+      // Reserve the unique identity before touching its credential. A rejected
+      // concurrent create must never write to the winner's AppConfig key.
+      if (!saved && apiKey) {
+        const reserved = await this.createConnection(brandId, { ...fields, enabled: false, secretRef: '', createdBy: actorId, updatedBy: actorId });
+        let value: GenerationModelConnectionAttributes | null;
+        try {
+          await AppConfigService.setGenerationProviderKey(brandId, fields.key, apiKey);
+          value = await GenerationModelConnection.updateOne({ id: reserved.id, brandId }).set({
+            ...fields, secretRef: `appconfig:${brandId}:${fields.key}`,
+          });
+          if (!value) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Connection not found');
+        } catch (error) {
+          // Keep the disabled reservation if clearing fails, so nobody else can
+          // acquire this identity while its credential may still be present.
+          await AppConfigService.setGenerationProviderKey(brandId, fields.key, '');
+          await GenerationModelConnection.destroyOne({ id: reserved.id, brandId, enabled: false });
+          throw error;
+        }
+        return this.safeConnection(value);
+      }
       if (apiKey) {
         await AppConfigService.setGenerationProviderKey(brandId, fields.key, apiKey);
         fields.secretRef = `appconfig:${brandId}:${fields.key}`;

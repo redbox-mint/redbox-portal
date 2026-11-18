@@ -63,6 +63,14 @@ describe('Generation model Admin HTTP boundary', () => {
     await controller.createModel(req, res);
     assert.equal(res.status.lastCall.args[0], 403); assert.equal(service.createModel.callCount, 1);
   });
+  it('requires and forwards the reviewed model hash through publication', async () => {
+    req.body = { expectedContentHash: 'reviewed-hash' };
+    await controller.publish(req, res);
+    assert.deepEqual(service.publishDeployment.firstCall.args, ['a', 'version', 'actor', 'reviewed-hash']);
+    service.publishDeployment.resetHistory(); req.body = {};
+    await controller.publish(req, res);
+    assert.equal(res.status.lastCall.args[0], 400); assert.equal(service.publishDeployment.callCount, 0);
+  });
   it('returns translated 409 errors without provider messages, bodies or secrets', async () => {
     service.updateDeploymentDraft.rejects(new GenerationError('GENERATION_TARGET_CONFLICT', 'PRIVATE BODY'));
     await controller.updateDraft(req, res);

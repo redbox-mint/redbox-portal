@@ -8,7 +8,7 @@ import { UtilityService } from 'projects/researchdatabox/portal-ng-common/src/li
 import type {
   GenerationAdminDeletion, GenerationAdminOverview, GenerationAdminConnectionDraft, GenerationAdminConnection,
   GenerationAdminConnectionHealth, GenerationAdminCreateModel, GenerationAdminUpdateDraft,
-  GenerationAdminModelVersion, GenerationAdminTryPrompt, GenerationAdminPromptResult,
+  GenerationAdminModelVersion, GenerationAdminPublishModel, GenerationAdminTryPrompt, GenerationAdminPromptResult,
 } from '@researchdatabox/sails-ng-common';
 
 export class ModelApiError extends Error {
@@ -51,7 +51,7 @@ export class ModelApiService extends HttpClientService {
     return this.request('PUT', `/models/${encodeURIComponent(id)}`, draft);
   }
   version(id: string): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/versions`); }
-  publish(id: string): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/publish`); }
+  publish(id: string, body: GenerationAdminPublishModel): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/publish`, body); }
   retire(id: string): Promise<GenerationAdminModelVersion> { return this.request('POST', `/models/${encodeURIComponent(id)}/retire`); }
   deleteConnection(id: string): Promise<GenerationAdminDeletion> { return this.request('DELETE', `/connections/${encodeURIComponent(id)}`); }
   discardDraft(id: string): Promise<GenerationAdminDeletion> { return this.request('DELETE', `/models/${encodeURIComponent(id)}`); }

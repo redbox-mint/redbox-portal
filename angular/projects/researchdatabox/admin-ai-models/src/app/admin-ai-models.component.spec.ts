@@ -120,8 +120,16 @@ describe('AI models overview and editors', () => {
     expect(query('#ai-model dl')).toBeTruthy(); expect(query('#ai-model input')).toBeNull(); expect(query('.rb-admin-save-bar')).toBeNull();
     await component.newVersion(); expect(api.version).toHaveBeenCalledWith('model-v1'); expect(component.selected?.version).toBe(3);
   });
+  it('publishes a locally clean model with the hash the administrator reviewed and reports a stale conflict', async () => {
+    open();
+    api.publish.and.rejectWith(new ModelApiError(409, 'ai-models-provider-error-generation-target-conflict'));
+    await component.publish();
+    expect(api.saveModel).not.toHaveBeenCalled();
+    expect(api.publish).toHaveBeenCalledWith(model.id, { expectedContentHash: model.contentHash });
+    expect(component.conflict).toBeTrue();
+  });
   it('saves dirty settings before publishing and stops when the save fails', async () => {
-    open(); component.modelName('Updated'); await component.publish(); expect(api.saveModel).toHaveBeenCalled(); expect(api.publish).toHaveBeenCalledWith('model-v2');
+    open(); component.modelName('Updated'); await component.publish(); expect(api.saveModel).toHaveBeenCalled(); expect(api.publish).toHaveBeenCalledWith('model-v2', { expectedContentHash: component.selected!.contentHash });
     component.openModel(model.key); component.modelName('Another'); api.publish.calls.reset(); api.saveModel.and.rejectWith(new ModelApiError(409, 'ai-models-provider-error-generation-target-conflict'));
     await component.publish(); expect(api.publish).not.toHaveBeenCalled(); expect(component.conflict).toBeTrue();
   });

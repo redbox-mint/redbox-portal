@@ -3,6 +3,7 @@ import * as sinon from 'sinon';
 import { generation } from '../../src/config/generation.config';
 import { Services } from '../../src/services/GenerationModelService';
 import { Services as SecretServices } from '../../src/services/GenerationSecretResolverService';
+import { FakeGenerationProvider } from '../../src/services/generation/providers/FakeGenerationProvider';
 import { GenerationError, canonicalHash } from '../../src/model/generation';
 import { GenerationModelConnectionWLDef } from '../../src/waterline-models/GenerationModelConnection';
 import { GenerationModelDeploymentWLDef } from '../../src/waterline-models/GenerationModelDeployment';
@@ -36,7 +37,9 @@ describe('Generation model Admin service', () => {
       findOne: async (criteria: any) => structuredClone(rows.find(row => matches(row, criteria))),
       create: (values: any) => ({ fetch: async () => {
         const row = { id: name + (rows.length + 1), ...structuredClone(values) };
-        await hook('beforeCreate', row); rows.push(row); return structuredClone(row);
+        await hook('beforeCreate', row);
+        if (name === 'GenerationModelConnection' && rows.some(r => r.brandId === row.brandId && r.key === row.key)) throw Object.assign(new Error('Duplicate connection'), { code: 'E_UNIQUE' });
+        rows.push(row); return structuredClone(row);
       } }),
       updateOne: (criteria: any) => ({ set: async (values: any) => {
         await hook('beforeUpdate', values);
@@ -82,6 +85,60 @@ describe('Generation model Admin service', () => {
   ]) {
     it(`rejects invalid SDK parameters ${JSON.stringify(parameters)}`, async () => { await rejects(create(parameters)); });
   }
+  it('leaves the saved credential untouched when a stale browser creates a duplicate provider', async () => {
+    const existing = tables.GenerationModelConnection[0]; existing.secretRef = 'appconfig:a:provider';
+    await assert.rejects(service.saveAdminConnection('a', connectionDraft({ apiKey: 'REJECTED_KEY', secretRef: undefined }), 'other'));
+    assert.equal((AppConfigService.setGenerationProviderKey as any).callCount, 0);
+    assert.equal(await sails.services.generationsecretresolverservice.resolve(existing.secretRef), 'STORED_KEY');
+  });
+  it('reserves a concurrent provider identity before either request can replace its credential', async () => {
+    const writes: string[] = []; let release!: () => void; let entered!: () => void;
+    const writing = new Promise<void>(resolve => { entered = resolve; });
+    const wait = new Promise<void>(resolve => { release = resolve; });
+    (AppConfigService.setGenerationProviderKey as any).callsFake(async (_brand: string, _key: string, value: string) => { writes.push(value); entered(); await wait; });
+    const input = connectionDraft({ key: 'new-provider', name: 'New provider', apiKey: 'WINNING_KEY', secretRef: undefined });
+    const first = service.saveAdminConnection('a', input, 'first');
+    await writing;
+    assert.equal(tables.GenerationModelConnection.find(r => r.key === input.key).enabled, false);
+    await assert.rejects(service.saveAdminConnection('a', { ...input, apiKey: 'REJECTED_KEY' }, 'second'));
+    release(); const saved: any = await first;
+    assert.deepEqual(writes, ['WINNING_KEY']); assert.equal(saved.enabled, true); assert.equal(saved.secretRef, 'appconfig:a:new-provider');
+  });
+  it('clears a partially written credential before releasing a failed provider reservation', async () => {
+    const writer = AppConfigService.setGenerationProviderKey as any;
+    writer.onFirstCall().rejects(new Error('Write failed')); writer.onSecondCall().resolves();
+    await assert.rejects(service.saveAdminConnection('a', connectionDraft({ key: 'failed', name: 'Failed', apiKey: 'PRIVATE', secretRef: undefined }), 'actor'));
+    assert.deepEqual(writer.secondCall.args, ['a', 'failed', '']);
+    assert.equal(tables.GenerationModelConnection.some(r => r.key === 'failed'), false);
+  });
+  it('rejects an unreviewed model hash before testing or publishing newer saved settings', async () => {
+    const row = await create();
+    const newer = await service.updateDeploymentDraft('a', row.id, { ...modelDraft({ parameters: { temperature: 0.4 } }), expectedContentHash: row.contentHash });
+    await rejects(service.publishDeployment('a', row.id, 'actor', row.contentHash), 'GENERATION_TARGET_CONFLICT');
+    assert.equal(health.callCount, 0); assert.equal(tables.GenerationModelDeployment[0].status, 'draft');
+    assert.equal((await service.publishDeployment('a', row.id, 'actor', newer.contentHash)).status, 'published');
+  });
+  it('rejects a model edit that wins during its publication capability test', async () => {
+    const row = await create();
+    health.callsFake(async () => { await service.updateDeploymentDraft('a', row.id, { ...modelDraft({ parameters: { temperature: 0.4 } }), expectedContentHash: row.contentHash }); return { ok: true, capabilities: { structuredOutput: true, nonStreaming: true, textInput: true } }; });
+    await rejects(service.publishDeployment('a', row.id, 'actor', row.contentHash), 'GENERATION_TARGET_CONFLICT');
+    assert.equal(tables.GenerationModelDeployment[0].status, 'draft');
+  });
+  for (const mode of ['sample', 'text'] as const) it('tries an admin-created demo model in ' + mode + ' mode without fixtures', async () => {
+    const provider = new FakeGenerationProvider();
+    sails.services.generationproviderregistryservice.get = () => provider;
+    const connection: any = await service.saveAdminConnection('a', connectionDraft({ key: 'demo', name: 'Demo', adapterId: 'fake', authStrategy: 'none', secretRef: undefined }), 'actor');
+    const draft = modelDraft({ connectionId: connection.id, modelId: 'demo' });
+    await service.createModel('a', { key: 'demo', ...draft }, 'actor');
+    const result = await service.tryPrompt('a', 'actor', { draft, prompt: 'Synthetic example', mode });
+    assert.equal(mode === 'sample' ? JSON.parse(result.output).answer : result.output, 'Synthetic demonstration response');
+    provider.registerFixture('default', 'Deliberately invalid output');
+    const explicit = await service.tryPrompt('a', 'other', { draft, prompt: 'Synthetic example', mode });
+    assert.equal(explicit.output, 'Deliberately invalid output');
+    provider.clearFixtures();
+    const fixture = await provider.invoke({ connection: {} as any, deployment: { modelId: 'demo', parameters: { fixtureResponse: 'Configured invalid output' } }, messages: [], correlationId: 'explicit', responseSchema: { type: 'object', properties: { answer: { type: 'string' } } } }, new AbortController().signal);
+    assert.equal(fixture.content, 'Configured invalid output');
+  });
   it('accepts boundary settings using SDK names and creates draft v1 with a canonical hash', async () => {
     const row = await create({ temperature: 2, topP: 0, maxOutputTokens: 1, presencePenalty: -2, frequencyPenalty: 2,
       seed: -42, stopSequences: ['a','b','c','d'] });
@@ -244,12 +301,12 @@ describe('Generation model Admin service', () => {
     });
   }
   it('publishes drafts and copies any existing version into the next immutable-key draft', async () => {
-    const row = await create(); const published = await service.publishDeployment('a', row.id, 'publisher');
+    const row = await create(); const published = await service.publishDeployment('a', row.id, 'publisher', row.contentHash);
     assert.equal(published.status, 'published');
     const next = await service.newDeploymentVersion('a', row.id, 'actor'); assert.equal(next.version, 2); assert.equal(next.status, 'draft');
     assert.equal(next.key, row.key); assert.equal(next.publishedBy, undefined);
     const third = await service.newDeploymentVersion('a', row.id, 'actor'); assert.equal(third.version, 3);
-    await rejects(service.publishDeployment('a', row.id, 'actor'), 'GENERATION_INVALID_STATE');
+    await rejects(service.publishDeployment('a', row.id, 'actor', row.contentHash), 'GENERATION_INVALID_STATE');
   });
   it('converts legacy snake_case settings when cloning an existing version', async () => {
     const row = await create(); tables.GenerationModelDeployment[0].parameters = { max_tokens: 100, top_p: 0.4, stop: ['end'] };

@@ -1,7 +1,7 @@
 import { defineApiRoute } from '../define';
 import { z } from '../zod-openapi';
 import { responseField } from '../schemas/common';
-import { connectionDraftSchema, createModelSchema, testConnectionSchema, tryPromptSchema, updateModelSchema } from '../../services/generation/model-admin-validation';
+import { connectionDraftSchema, createModelSchema, testConnectionSchema, tryPromptSchema, updateModelSchema, publishModelSchema } from '../../services/generation/model-admin-validation';
 import type { HttpMethod } from '../types';
 
 const error = z.object({ error: z.object({ code: z.string(), messageKey: z.string(), retryable: z.boolean(), correlationId: z.string().optional() }) });
@@ -62,7 +62,7 @@ export const generationModelAdminRoutes = [
   route('post', '/models', 'createModel', 'Create model draft v1', deployment, createModelSchema),
   route('post', '/models/:deploymentId/versions', 'newVersion', 'Copy a model version to the next draft version', deployment, undefined, 'deploymentId'),
   route('put', '/models/:deploymentId', 'updateDraft', 'Save a model draft with an expected content hash', deployment, updateModelSchema, 'deploymentId'),
-  route('post', '/models/:deploymentId/publish', 'publish', 'Publish a model draft', deployment, undefined, 'deploymentId'),
+  route('post', '/models/:deploymentId/publish', 'publish', 'Publish a model draft', deployment, publishModelSchema, 'deploymentId'),
   route('post', '/models/:deploymentId/retire', 'retire', 'Retire a version unless a published profile uses it', deployment, undefined, 'deploymentId'),
   route('post', '/try-prompt', 'tryPrompt', 'Try an unsaved model draft', promptResult, tryPromptSchema),
 ];

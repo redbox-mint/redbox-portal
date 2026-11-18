@@ -2,6 +2,7 @@ import { Controllers as controllers } from '../CoreController';
 import { asGenerationError } from '../model/generation';
 import { requireGenerationModelAdmin } from '../policies/generationModelAdmin';
 import { getRouteParam } from '../utilities/RequestParamUtils';
+import { parseAdminInput, publishModelSchema } from '../services/generation/model-admin-validation';
 import { requireService } from '../services/generation/require-service';
 import type { Services } from '../services/GenerationModelService';
 
@@ -66,7 +67,7 @@ export namespace Controllers {
       return this.run(req, res, brand => this.service().updateDeploymentDraft(brand, getRouteParam(req, 'deploymentId'), req.body));
     }
     public publish(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, (brand, actor) => this.service().publishDeployment(brand, getRouteParam(req, 'deploymentId'), actor));
+      return this.run(req, res, (brand, actor) => this.service().publishDeployment(brand, getRouteParam(req, 'deploymentId'), actor, parseAdminInput(publishModelSchema, req.body).expectedContentHash));
     }
     public retire(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, brand => this.service().retireDeployment(brand, getRouteParam(req, 'deploymentId')));
