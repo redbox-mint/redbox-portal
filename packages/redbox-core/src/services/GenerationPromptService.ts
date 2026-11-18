@@ -46,7 +46,7 @@ export namespace Services {
         .map((item) => aliasByEvidenceId.get(item.id))
         .filter((alias): alias is string => alias !== undefined);
       const fieldCatalogue = input.definition.targetFields.map((field) => ({
-        id: field.id, label: field.label || field.id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' '), output: field.output, maxLength: field.maxLength, grounding: field.grounding,
+        id: field.id, label: field.label || field.id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' '), output: field.output, options: field.options, maxLength: field.maxLength, grounding: field.grounding,
         allowedEvidenceIds: allowedAliases(field),
       }));
       const translate = (key: string) => TranslationService.t(key, undefined, 'en', BrandingService.getBrandById(input.brandId).name);

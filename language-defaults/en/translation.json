@@ -5442,6 +5442,8 @@
   "ai-profiles-required": "Required",
   "ai-profiles-optional": "Optional",
   "ai-profiles-max-length": "Maximum length (characters)",
+  "ai-profiles-choice-prefill-help": "Only source fields with choices are shown. Selecting a field replaces this question’s choices with that field’s choices.",
+  "ai-profiles-choice-prefill-selected": "The choices now come from {{label}}.",
   "ai-profiles-prefill": "Pre-fill from",
   "ai-profiles-no-prefill": "No pre-fill",
   "ai-profiles-no-questions": "No questions added.",

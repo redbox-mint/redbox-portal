@@ -16,6 +16,7 @@ export interface GenerationProfileDefinition {
   questions: Array<Omit<GenerationQuestion, 'defaultValue'> & { sourceDefaultExpression?: string }>;
   targetFields: Array<{
     id: string; label?: string; metadataPointer: string; expectedComponentClasses: string[];
+    options?: Array<{ value: string; label: string }>;
     output: GenerationProfileOutput; operation: 'fill'; maxLength?: number; knowledgeTags?: string[]; reviewedAnswerIds?: string[];
     grounding: 'sourceRequired' | 'guidanceRequired' | 'sourceOrGuidance' | 'inferenceAllowed';
     fallback?: { value: unknown; reasonCode: string; reviewRequired: boolean };

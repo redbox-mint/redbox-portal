@@ -1,3 +1,4 @@
+import { Services as SchemaServices } from '../../src/services/GenerationSchemaService';
 import { Services as PromptServices } from '../../src/services/GenerationPromptService';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
@@ -118,6 +119,23 @@ describe('Generation worker lifecycle', () => {
     expect(answer.selectedOptions).to.deep.equal([{ value: 'one', label: 'research-brand:option-key' }, { value: 'two', label: 'Interviews' }]);
     expect(answer.evidenceId).to.match(/^E/);
     expect(messages.filter(m => m.role === 'system').every(m => !/research-brand:|Interviews/.test(m.content))).to.equal(true);
+  });
+
+  it('sends target choice meanings through the real worker prompt without widening its schema', async () => {
+    const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Not required' }];
+    const definition = { systemInstructions: 'Use source facts', questions: [], targetFields: [{ id: 'ethics', label: 'Ethics approval', output: { kind: 'enum', values: ['1', '2'] }, options, grounding: 'sourceRequired' }], sourceSlots: [], documentSources: {}, contextLimits: { maxKnowledgeChunks: 2, totalBytes: 4096 } };
+    Reflect.set(globalThis, 'GenerationProfileVersion', { findOne: async () => ({ definition }) });
+    sails.services.generationpromptservice = new PromptServices.GenerationPromptService();
+    const build = new SchemaServices.GenerationSchemaService();
+    sails.services.generationschemaservice.buildProviderSchema = build.buildProviderSchema.bind(build);
+    Object.assign(artifact, await crypto.encrypt(run.brandId, run.id, { frozenInput: { sourceEvidence: [], answers: [], baseTargetDigest: 'base' } }));
+    await execute();
+    expect(run.status, JSON.stringify(run)).to.equal('completed'); expect(invoke.calledOnce).to.equal(true);
+    const request = invoke.firstCall.args[0];
+    const catalogue = JSON.parse(request.messages.find(m => m.content.startsWith('OUTPUT FIELD CATALOGUE')).content.split('\n')[1]);
+    expect(catalogue[0].options).to.deep.equal(options);
+    expect(request.responseSchema.properties.answers.properties.ethics.properties.value.enum).to.deep.equal(['1', '2']);
+    expect(JSON.stringify(request.responseSchema)).not.to.include('Approved');
   });
 
   it('uses the resolved provider credential for invocation without retaining it in encrypted artifacts', async () => {

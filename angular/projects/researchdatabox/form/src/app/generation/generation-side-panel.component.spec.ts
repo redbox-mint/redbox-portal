@@ -100,6 +100,25 @@ describe('GenerationSidePanelComponent', () => {
     fixture.detectChanges();
   });
 
+  it('drops unmatched prefilled choice values so researchers can clear every answer', async () => {
+    const options = [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }];
+    api.getRun.and.resolveTo(run('choice-prefill', 'draft', [
+      { id: 'single', type: 'enum', required: true, options, defaultValue: 'removed' },
+      { id: 'several', type: 'multiEnum', required: true, options, defaultValue: ['removed', 'one'] },
+      { id: 'valid', type: 'enum', required: false, options, defaultValue: 'two' },
+    ]));
+    fixture.componentRef.setInput('session', { runId: 'choice-prefill', bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    fixture.detectChanges(); await fixture.whenStable();
+    expect<unknown>(component.questionForm.get('single')?.value).toBeNull();
+    expect(component.questionForm.get('single')?.invalid).toBeTrue();
+    expect<unknown>(component.questionForm.get('valid')?.value).toBe('two');
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual(['one']);
+    expect(component.isChoiceSelected('several', 'one')).toBeTrue();
+    component.toggleChoice('several', 'one', false);
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual([]);
+    expect(component.questionForm.get('several')?.invalid).toBeTrue();
+  });
+
   function trackPointers(pointers: string[]): void {
     component.candidate.set({
       runId: 'edited-run', candidateDigest: 'digest', baseTargetDigest: 'base',

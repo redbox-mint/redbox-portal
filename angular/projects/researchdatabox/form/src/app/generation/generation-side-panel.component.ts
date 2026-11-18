@@ -422,8 +422,12 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.questions.set(questions);
     for (const existing of Object.keys(this.questionForm.controls)) this.questionForm.removeControl(existing);
     for (const question of questions) {
+      let value = retainedAnswers.has(question.id) ? retainedAnswers.get(question.id) ?? null : question.defaultValue ?? null;
+      const options = new Set(question.options?.map(option => option.value));
+      if (question.type === 'enum' && (typeof value !== 'string' || !options.has(value))) value = null;
+      if (question.type === 'multiEnum') value = Array.isArray(value) ? value.filter(item => options.has(item)) : [];
       this.questionForm.addControl(question.id, new FormControl<GenerationQuestionValue>(
-        retainedAnswers.has(question.id) ? retainedAnswers.get(question.id) ?? null : question.defaultValue ?? null,
+        value,
         this.questionValidators(question),
       ));
     }

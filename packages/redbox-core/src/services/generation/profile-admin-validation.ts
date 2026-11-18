@@ -19,6 +19,7 @@ export const profileDefinitionSchema: z.ZodType<GenerationProfileDefinition> = z
     type: z.enum(['text', 'textarea', 'boolean', 'date', 'enum', 'multiEnum']), required: z.boolean(), maxLength: z.number().optional(),
     sourceDefaultExpression: text.optional(), options: z.array(z.object({ value: text, label: text.optional(), labelKey: text.optional() })).max(100).optional() })).max(50),
   targetFields: z.array(z.object({ id, label: text.optional(), metadataPointer: text, expectedComponentClasses: z.array(id).max(20), output,
+    options: z.array(z.object({ value: text, label: text })).max(500).optional(),
     operation: z.literal('fill'), maxLength: z.number().optional(), knowledgeTags: z.array(id).max(100).optional(), reviewedAnswerIds: z.array(id).max(50).optional(),
     grounding: z.enum(['sourceRequired', 'guidanceRequired', 'sourceOrGuidance', 'inferenceAllowed']),
     fallback: z.object({ value: z.unknown(), reasonCode: id, reviewRequired: z.boolean() }).optional() })).max(100),

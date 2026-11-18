@@ -68,6 +68,56 @@ describe('Drafting profile editor', () => {
     expect(component.draft!.questions[0].options).toEqual([{ value: 'two', label: 'Surveys' }]);
     expect(query('[role="status"]').textContent).toContain('Which methods? were cleared in 2 test cases');
   });
+  for (const type of ['enum', 'multiEnum'] as const) it(`copies source choices and excludes free-text prefill for ${type} questions`, async () => {
+    open();
+    const options = [{ value: 'interviews', label: 'Interviews' }, { value: 'surveys', label: 'Surveys' }];
+    component.sourceForm!.fields.push({ pointer: '/methods', label: 'Research methods', group: 'Activity', component: 'CheckboxInputComponent', output: { kind: 'enumArray', values: options.map(o => o.value) }, options });
+    component.toggleSource('/methods', true);
+    component.editQuestion(); component.question!.label = 'Which methods?'; component.question!.type = type; component.questionTypeChanged();
+    component.addQuestionOption(); component.question!.options![0].label = 'Old choice';
+    fixture.detectChanges(); await fixture.whenStable();
+    const select = query('#profile-question-prefill') as HTMLSelectElement;
+    expect(Array.from(select.options).map(o => o.text)).toEqual(['No pre-fill', 'Research methods']);
+    select.value = '/methods'; select.dispatchEvent(new Event('change')); await fixture.whenStable(); fixture.detectChanges();
+    expect(component.question!.options).toEqual(options);
+    expect(query('.modal').textContent).toContain('The choices now come from Research methods.');
+    await component.submitModal(); await component.saveDraft();
+    const saved = api.save.calls.mostRecent().args[1].definition.questions.at(-1)!;
+    expect(saved.options).toEqual(options); expect(saved.sourceDefaultExpression).toBe('/methods');
+    component.editQuestion(component.draft!.questions.length - 1); component.question!.options![0].label = 'Structured interviews'; await component.submitModal();
+    expect(component.draft!.questions.at(-1)!.options![0].value).toBe('interviews');
+    expect(options[0].label).toBe('Interviews');
+    component.editQuestion(); component.question!.label = 'Title?'; component.question!.sourceDefaultExpression = '/title';
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(Array.from((query('#profile-question-prefill') as HTMLSelectElement).options).map(o => o.value)).toContain('/title');
+    component.question!.type = type; component.questionTypeChanged(); expect(component.question!.sourceDefaultExpression).toBeUndefined();
+  });
+  it('saves target choice meanings and removes them when a text field is picked', async () => {
+    open(); const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Not required' }];
+    component.targetForm!.fields.push({ pointer: '/ethics', label: 'Ethics approval', group: 'Plan', component: 'DropdownInputComponent', output: { kind: 'enum', values: ['1', '2'] }, options });
+    component.editField(); component.pickField('/ethics'); await component.submitModal(); await component.saveDraft();
+    expect(api.save.calls.mostRecent().args[1].definition.targetFields[1].options).toEqual(options);
+    expect(component.draft!.targetFields[1].output).toEqual({ kind: 'enum', values: ['1', '2'] });
+    component.draft!.targetFields.splice(0, 1); component.editField(0); component.pickField('/summary');
+    expect(component.field!.options).toBeUndefined(); expect(options[0].label).toBe('Approved');
+  });
+  it('omits cleared question and field character limits from the saved draft and retains the form limit', async () => {
+    open(); component.editQuestion(0); component.question!.maxLength = 50;
+    fixture.detectChanges(); await fixture.whenStable();
+    const questionLimit = query('#profile-question-length') as HTMLInputElement;
+    questionLimit.value = ''; questionLimit.dispatchEvent(new Event('input')); await fixture.whenStable();
+    expect(component.question!.maxLength).toBeNull(); expect(component.modalValid).toBeTrue(); await component.submitModal();
+    component.editField(0); component.field!.maxLength = 50; fixture.detectChanges(); await fixture.whenStable();
+    const fieldLimit = query('#profile-field-length') as HTMLInputElement;
+    fieldLimit.value = ''; fieldLimit.dispatchEvent(new Event('input')); await fixture.whenStable();
+    expect(component.field!.maxLength).toBeNull(); expect(component.modalValid).toBeTrue(); await component.submitModal();
+    await component.saveDraft(); const saved = api.save.calls.mostRecent().args[1].definition;
+    expect(Object.hasOwn(saved.questions[0], 'maxLength')).toBeFalse();
+    expect(Object.hasOwn(saved.targetFields[0], 'maxLength')).toBeFalse();
+    expect(saved.targetFields[0].output).toEqual({ kind: 'string', maxLength: 200 });
+    expect(component.canPublish).toBeTrue();
+  });
+
   it('reorders questions with buttons and removes stale answer references', () => { open(); spyOn(window, 'confirm').and.returnValue(true); component.draft!.targetFields[0].reviewedAnswerIds = ['question']; component.remove(component.draft!.questions, 0); expect(component.draft!.targetFields[0].reviewedAnswerIds).toEqual([]); });
   it('derives field output and always marks a fallback for review', () => { open(); component.editField(0); component.pickField('/summary'); component.setFallback('Review this'); expect(component.field!.output).toEqual({ kind: 'string', maxLength: 200 }); expect(component.field!.fallback!.reviewRequired).toBeTrue(); });
   it('prevents duplicate field choices and explains a profile name that is already used', () => {

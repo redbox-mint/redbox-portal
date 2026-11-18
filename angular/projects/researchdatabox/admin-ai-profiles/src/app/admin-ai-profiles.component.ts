@@ -77,6 +77,8 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   get sourceForm() { return this.overview?.forms.find(f => f.name === this.overview?.recordTypes.find(t => t.name === this.source?.recordType)?.formName); }
   get sourceFields(): ProfileField[] { return this.sourceForm?.fields ?? []; }
   get selectedSourceFields(): ProfileField[] { return this.sourceFields.filter(f => this.source?.allowedPaths.includes(f.pointer)); }
+  get questionPrefillFields(): ProfileField[] { return this.selectedSourceFields.filter(f => !this.questionIsChoice || !!f.options?.length); }
+  get questionIsChoice(): boolean { return !!this.question && ['enum', 'multiEnum'].includes(this.question.type); }
   get sourceGroups(): string[] { return [...new Set(this.sourceFields.map(f => f.group))]; }
   get targetForm() { return this.overview?.forms.find(f => f.name === this.draft?.targetForm?.formName); }
   get targetChoices(): ProfileField[] { return this.targetForm?.fields.filter(f => !!f.output && (!this.draft?.targetFields.some(target => target.metadataPointer === f.pointer) || f.pointer === this.field?.metadataPointer)) ?? []; }
@@ -91,8 +93,8 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   get nameUsed(): boolean { return !!this.modal?.name.trim() && !!this.overview?.profiles.some(p => p.name.toLowerCase() === this.modal?.name.trim().toLowerCase()); }
   get modalValid(): boolean {
     if (!this.modal) return false;
-    if (this.modal.kind === 'question') return !!this.question?.label?.trim() && (!['enum', 'multiEnum'].includes(this.question.type) || !!this.question.options?.length && this.question.options.every(o => !!o.label?.trim())) && (!this.question.maxLength || this.question.maxLength > 0);
-    if (this.modal.kind === 'field') return !!this.field?.metadataPointer && !!this.field.expectedComponentClasses.length;
+    if (this.modal.kind === 'question') return !!this.question?.label?.trim() && (!['enum', 'multiEnum'].includes(this.question.type) || !!this.question.options?.length && this.question.options.every(o => !!o.label?.trim())) && (this.question.maxLength == null || Number.isInteger(this.question.maxLength) && this.question.maxLength > 0);
+    if (this.modal.kind === 'field') return !!this.field?.metadataPointer && !!this.field.expectedComponentClasses.length && (this.field.maxLength == null || Number.isInteger(this.field.maxLength) && this.field.maxLength > 0);
     if (this.modal.kind === 'case') return !!this.testCase?.name.trim();
     return !!this.modal.name.trim() && !this.nameUsed;
   }
@@ -172,7 +174,19 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   }
   addQuestionOption(): void { if (this.question) (this.question.options ??= []).push({ value: this.id('option'), label: '' }); }
   removeQuestionOption(index: number): void { this.question?.options?.splice(index, 1); }
-  questionTypeChanged(): void { if (this.question && !['text', 'textarea'].includes(this.question.type)) delete this.question.maxLength; else if (this.question) this.question.maxLength ??= 2000; }
+  questionTypeChanged(): void {
+    if (!this.question) return;
+    if (!['text', 'textarea'].includes(this.question.type)) delete this.question.maxLength; else this.question.maxLength ??= 2000;
+    if (this.question.sourceDefaultExpression && !this.questionPrefillFields.some(f => f.pointer === this.question!.sourceDefaultExpression)) delete this.question.sourceDefaultExpression;
+    if (this.questionIsChoice && this.question.sourceDefaultExpression) this.pickQuestionPrefill(this.question.sourceDefaultExpression);
+  }
+  pickQuestionPrefill(pointer: string): void {
+    if (!this.question) return;
+    const source = this.questionPrefillFields.find(f => f.pointer === pointer);
+    if (!source) { delete this.question.sourceDefaultExpression; return; }
+    this.question.sourceDefaultExpression = pointer;
+    if (this.questionIsChoice) this.question.options = clone(source.options!);
+  }
   editField(index?: number): void {
     this.field = index === undefined ? { id: this.id('field'), metadataPointer: '', expectedComponentClasses: [], output: { kind: 'string' }, operation: 'fill', grounding: 'sourceRequired', reviewedAnswerIds: this.draft!.questions.map(q => q.id) } : clone(this.draft!.targetFields[index]);
     this.topicsText = this.field.knowledgeTags?.join(', ') ?? ''; this.modal = { kind: 'field', name: '', index };
@@ -181,6 +195,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     const chosen = this.targetChoices.find(f => f.pointer === pointer);
     if (!this.field || !chosen?.output) return;
     this.field.metadataPointer = pointer; this.field.label = chosen.label; this.field.expectedComponentClasses = [chosen.component]; this.field.output = clone(chosen.output);
+    if (chosen.options?.length) this.field.options = clone(chosen.options); else delete this.field.options;
     this.field.reviewedAnswerIds = this.draft!.questions.map(q => q.id);
     if ('maxLength' in chosen.output) this.field.maxLength = chosen.output.maxLength; else delete this.field.maxLength;
     delete this.field.fallback;
@@ -196,6 +211,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     this.changed();
     if (m.kind === 'question' && this.question) {
       const q = clone(this.question); delete q.labelKey; delete q.helpTextKey;
+      if (q.maxLength == null) delete q.maxLength;
       q.options = ['enum', 'multiEnum'].includes(q.type) ? q.options?.map(o => ({ value: o.value, label: o.label!.trim() })) : undefined;
       if (m.index !== undefined && q.options) {
         const removed = this.draft!.questions[m.index].options?.filter(o => !q.options!.some(option => option.value === o.value)) ?? [];
@@ -212,6 +228,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
       this.replace(this.draft!.questions, m.index, q);
       if (m.index === undefined) for (const f of this.draft!.targetFields) f.reviewedAnswerIds = [...(f.reviewedAnswerIds ?? []), q.id];
     } else if (m.kind === 'field' && this.field) {
+      if (this.field.maxLength == null) delete this.field.maxLength;
       this.field.knowledgeTags = this.topicsText.split(',').map(t => t.trim()).filter(Boolean);
       this.replace(this.draft!.targetFields, m.index, clone(this.field));
     } else if (m.kind === 'case' && this.testCase) this.replace(this.draft!.fixtureTests ??= [], m.index, clone(this.testCase));

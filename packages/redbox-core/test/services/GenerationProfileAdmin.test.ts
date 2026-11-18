@@ -281,6 +281,31 @@ describe('Drafting profile administration', () => {
     const result = await service.runTests('a', 'v', 'admin');
     assert.equal(result[0].passed, true); assert.equal(result[0].fields[0].value, 'Synthetic project');
   });
+  for (const kind of ['enum', 'enumArray'] as const) it(`saves target ${kind} choice meanings and sends them to synthetic providers without widening the output`, async () => {
+    const d = definition(); const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Not required' }];
+    d.targetFields[0] = { ...d.targetFields[0], output: { kind, values: ['1', '2'] }, options };
+    catalog.forms[1].fields[0].output = d.targetFields[0].output;
+    catalog.forms[1].fields[0].options = options;
+    d.fixtureTests = [{ name: 'Ethics example', source: { '/title': 'Approval has been granted' }, answers: {} }];
+    const saved = await service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin');
+    assert.deepEqual(saved.definition.targetFields[0].options, options);
+    sails.services.generationknowledgeservice = { retrieve: async () => [] };
+    const invoke = sinon.stub().resolves([{ content: '{}' }]); sails.services.generationmodelservice = { testProfileRequests: invoke };
+    await service.runTests('a', 'v', 'admin');
+    const request = invoke.firstCall.args[3][0];
+    const catalogue = JSON.parse(request.messages.find(m => m.content.startsWith('OUTPUT FIELD CATALOGUE')).content.split('\n')[1]);
+    assert.deepEqual(catalogue[0].options, options);
+    const output = request.responseSchema.properties.answers.properties.summary.properties.value;
+    assert.deepEqual(kind === 'enum' ? output.enum : output.items.enum, ['1', '2']);
+    assert.ok(!JSON.stringify(request.responseSchema).includes('Approved'));
+    delete tables.GenerationProfileVersion[0].definition.targetFields[0].options;
+    await service.runTests('a', 'v', 'admin');
+    const legacy = invoke.secondCall.args[3][0];
+    const legacyCatalogue = JSON.parse(legacy.messages.find(m => m.content.startsWith('OUTPUT FIELD CATALOGUE')).content.split('\n')[1]);
+    assert.equal(legacyCatalogue[0].options, undefined);
+    assert.deepEqual(legacy.responseSchema, request.responseSchema);
+  });
+
   it('sends selected direct and legacy choice meanings inside untrusted reviewed answers', async () => {
     const d = tables.GenerationProfileVersion[0].definition;
     d.questions = [
