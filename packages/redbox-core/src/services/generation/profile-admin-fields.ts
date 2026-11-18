@@ -2,6 +2,13 @@ import { FormPathHelper, FormConfig, ValidatorsSupport, type FormValidatorConfig
 
 type FieldNode = { name?: string; component?: { class?: string; config?: Record<string, unknown> }; layout?: { config?: Record<string, unknown> }; model?: { config?: { disabled?: boolean; validators?: FormValidatorConfig[] } } };
 
+/** Form labels may contain markup; admins and the model see plain text. Strips tags until none remain, then stray angle brackets. */
+function plainText(value: string): string {
+  let text = value;
+  for (let previous = ''; previous !== text;) { previous = text; text = text.replace(/<[^<>]*>/g, ''); }
+  return text.replace(/[<>]/g, '').trim();
+}
+
 /** Use the same metadata lineage as GenerationSchemaService; display only form labels. */
 export function profileFormFields(form: FormConfigFrame, translate: (text: string) => string): ProfileField[] {
   const fields: ProfileField[] = [];
@@ -16,9 +23,9 @@ export function profileFormFields(form: FormConfigFrame, translate: (text: strin
       const tokens = [...parents, ...FormPathHelper.metadataTokensForComponent(raw as FormComponentDefinitionOutline)];
       const rawLabel = String(layout.label ?? config.label ?? 'ai-profiles-unnamed-field');
       const translated = translate(rawLabel);
-      const label = (translated === rawLabel && /^@|^[a-z]+(?:-[a-z0-9]+){2,}$/i.test(rawLabel)
+      const label = plainText(translated === rawLabel && /^@|^[a-z]+(?:-[a-z0-9]+){2,}$/i.test(rawLabel)
         ? String(item.name ?? '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/^./, (c: string) => c.toUpperCase())
-        : translated).replace(/<[^>]*>/g, '').trim() || translate('ai-profiles-unnamed-field');
+        : translated) || translate('ai-profiles-unnamed-field');
       const component = String(item.component?.class ?? '');
       const disabled = blocked || item.model?.config?.disabled === true || config.disabled === true || config.readonly === true || config.editMode === false;
       const extractOptions = (choices: unknown) => Array.isArray(choices) ? choices.flatMap((option: unknown) => {

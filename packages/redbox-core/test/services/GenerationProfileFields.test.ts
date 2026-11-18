@@ -32,6 +32,12 @@ describe('Drafting profile choice catalogue', () => {
     });
   }
 
+  it('shows field labels as plain text even when tags are nested or split', () => {
+    const form = { componentDefinitions: [{ name: 'title', model: { class: 'SimpleInputModel' },
+      component: { class: 'SimpleInputComponent', config: {} }, layout: { config: { label: '<scr<script>ipt>Project <b>title</b> >' } } }] } as FormConfigFrame;
+    assert.equal(profileFormFields(form, text => text)[0].label, 'Project title');
+  });
+
   for (const component of ['DropdownInputComponent', 'RadioInputComponent', 'CheckboxInputComponent', 'TypeaheadInputComponent']) {
     it(`filters placeholders and translates fixed ${component} choices consistently`, () => {
       const choices = [{ value: '', label: 'Placeholder' }, { value: ' ', label: 'Placeholder' }, null, 'invalid',

@@ -31,7 +31,7 @@
     </div>
     <a class="sb-item" href="#"><span>Overview</span></a>
     ${sections.map(([title, items]) => `
-      <div class="sb-sec"><div class="sb-h"><span>${title.replace('&', '&amp;')}</span></div>
+      <div class="sb-sec"><div class="sb-h"><span>${title.replaceAll('&', '&amp;')}</span></div>
       ${items.map((it) => {
         if (typeof it === 'string') return `<a class="sb-item" href="#"><span>${it}</span></a>`;
         const [label, href, tag, tagCls, active] = it;
