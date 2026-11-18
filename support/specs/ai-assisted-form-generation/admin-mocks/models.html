@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI drafting models</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><span>Models</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><a class="btn btn-primary" href="connection-edit.html">+ Add provider connection</a></div>
+    </header>
+    <div id="gen-tabs" data-active="models"></div>
+
+    <section aria-labelledby="conn-h" style="margin-bottom:28px">
+      <div class="spread" style="margin-bottom:12px">
+        <div><h2 id="conn-h" style="font-size:20px">Provider connections</h2><p class="small muted" style="margin:2px 0 0">Where requests are sent and how ReDBox signs in. Credentials stay on the server and are never shown again after saving.</p></div>
+      </div>
+      <div class="conn-grid">
+        <article class="conn">
+          <div class="conn-h">
+            <span class="conn-ic" aria-hidden="true">AWS</span>
+            <div style="flex:1;min-width:0"><h3>Amazon Bedrock (Sydney)</h3><span class="sub">Amazon Bedrock · <span class="mono">demo-bedrock-generation</span></span></div>
+            <span class="badge ok">Enabled</span>
+          </div>
+          <dl class="kv">
+            <dt>Endpoint</dt><dd class="mono" style="word-break:break-all">bedrock-runtime.ap-southeast-2.amazonaws.com</dd>
+            <dt>Sign-in</dt><dd>Server AWS role (default credential chain)</dd>
+            <dt>Data handling</dt><dd>Stays in Australia · not used for training <span class="sub">Verified by Local Admin, 2 Nov 2026</span></dd>
+            <dt>Time limit</dt><dd>90 seconds</dd>
+            <dt>Used by</dt><dd><a href="#deployments">1 model</a></dd>
+          </dl>
+          <div class="conn-f">
+            <span class="health ok"><span class="dot"></span>Healthy · 09:12</span>
+            <span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn btn-secondary btn-sm" type="button">Test</button><a class="btn btn-secondary btn-sm" href="connection-edit.html">Edit</a><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Amazon Bedrock (Sydney)">⋯</button></span>
+          </div>
+        </article>
+
+        <article class="conn">
+          <div class="conn-h">
+            <span class="conn-ic" aria-hidden="true" style="background:#eceef1;color:#3d434a">⚙</span>
+            <div style="flex:1;min-width:0"><h3>Demo provider (no AI)</h3><span class="sub">Demo · <span class="mono">demo-fake-generation</span></span></div>
+            <span class="badge ok">Enabled</span>
+          </div>
+          <dl class="kv">
+            <dt>Endpoint</dt><dd class="muted">Not needed</dd>
+            <dt>Sign-in</dt><dd class="muted">None</dd>
+            <dt>Data handling</dt><dd>Synthetic test data only <span class="sub">Returns fixed answers. Use it to try forms safely.</span></dd>
+            <dt>Time limit</dt><dd>10 seconds</dd>
+            <dt>Used by</dt><dd><a href="#deployments">1 model</a></dd>
+          </dl>
+          <div class="conn-f">
+            <span class="health ok"><span class="dot"></span>Healthy · 09:12</span>
+            <span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn btn-secondary btn-sm" type="button">Test</button><a class="btn btn-secondary btn-sm" href="connection-edit.html">Edit</a><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Demo provider">⋯</button></span>
+          </div>
+        </article>
+
+        <a class="conn" href="connection-edit.html" style="align-items:center;justify-content:center;border-style:dashed;min-height:220px;color:var(--muted);text-align:center;padding:24px">
+          <span style="font-size:28px;line-height:1">+</span>
+          <b style="color:var(--heading);margin-top:6px">Add provider connection</b>
+          <span class="small">OpenRouter is installed but not set up</span>
+        </a>
+      </div>
+    </section>
+
+    <div class="card" id="deployments">
+      <div class="card-h"><h2>Models</h2><span class="row" style="gap:10px"><span class="meta">2 models · each published version is fixed</span><a class="btn btn-secondary btn-sm" href="deployment-edit.html">+ Add model</a></span></div>
+      <div class="filters">
+        <div class="field grow"><label for="d-s">Search</label><input id="d-s" class="inp" placeholder="Name or model ID"></div>
+        <div class="field"><span class="lbl">Status</span><div class="seg" role="group" aria-label="Status"><button type="button" class="on" aria-pressed="true">All</button><button type="button" aria-pressed="false">Published</button><button type="button" aria-pressed="false">Draft</button><button type="button" aria-pressed="false">Retired</button></div></div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Name</th><th>Model</th><th>Connection</th><th>Version</th><th>Can do</th><th>Used by</th><th class="act">Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="deployment-edit.html"><b>Amazon Nova Lite for RDMPs</b></a><span class="sub">Temperature 0.2 · up to 4,096 output tokens</span></td>
+            <td class="mono">amazon.nova-lite-v1:0</td>
+            <td>Amazon Bedrock (Sydney)</td>
+            <td><span class="badge ok">v1 published</span></td>
+            <td><span class="legend"><span class="badge">Structured output</span><span class="badge">Text</span></span></td>
+            <td class="small"><a href="profiles.html">1 profile (draft)</a></td>
+            <td class="act"><a class="btn btn-secondary btn-sm" href="deployment-edit.html">New version</a> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Amazon Nova Lite for RDMPs">⋯</button></td>
+          </tr>
+          <tr>
+            <td><a href="deployment-edit.html"><b>Deterministic RDMP demo</b></a><span class="sub">Fixed sample answers</span></td>
+            <td class="mono">redbox-fixture-rdmp-1</td>
+            <td>Demo provider (no AI)</td>
+            <td><span class="badge ok">v1 published</span></td>
+            <td><span class="legend"><span class="badge">Structured output</span><span class="badge">Text</span></span></td>
+            <td class="small muted">Not used</td>
+            <td class="act"><a class="btn btn-secondary btn-sm" href="deployment-edit.html">New version</a> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Deterministic RDMP demo">⋯</button></td>
+          </tr>
+        </tbody>
+      </table></div>
+      <div class="card-f"><span>Showing 2 of 2</span><span>⋯ menu: Test · Version history · Retire</span></div>
+    </div>
+
+    <div class="note"><b>Design notes.</b> The data model splits <span class="inline-code">GenerationModelConnection</span> (where/how) from <span class="inline-code">GenerationModelDeployment</span> (which model, which settings, immutable versions). The UI keeps that split but names it plainly: a <b>connection</b> is reusable credentials; a <b>model</b> is what profiles choose. Connections are cards because there are few and their health matters at a glance; models are a table because they version. Data-handling is shown in words with who verified it and when (the <span class="inline-code">dataPolicy</span> JSON), because it is the first thing a privacy reviewer asks. Providers that the operator installed but no one configured get a prompt card. Published versions are not editable: the row action is “New version”, which copies to a draft.</div>
+  </div></main>
+</div>
+</body>
+</html>

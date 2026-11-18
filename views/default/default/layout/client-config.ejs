@@ -14,5 +14,5 @@
 %>
 <meta name="rb-client-config" content="<%= clientConfigJson.trim() %>">
 <% if (standardBackend) { for (const language of languages) { %>
-<link rel="preload" as="fetch" crossorigin="anonymous" href="<%= BrandingService.getRootContext() %>/<%= clientConfig.branding %>/<%= clientConfig.portal %>/locales/<%= encodeURIComponent(language) %>/translation.json">
+<link rel="preload" as="fetch" fetchpriority="low" crossorigin="anonymous" href="<%= BrandingService.getRootContext() %>/<%= clientConfig.branding %>/<%= clientConfig.portal %>/locales/<%= encodeURIComponent(language) %>/translation.json">
 <% } } %>

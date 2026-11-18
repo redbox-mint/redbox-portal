@@ -27,6 +27,7 @@
 
     <div class="rb-generation-panel__body">
       @if (!completed()) {
+        @if (run()?.purpose) { <p class="rb-generation-panel__purpose">{{ run()?.purpose }}</p> }
         <p class="rb-generation-panel__intro">{{ 'generation-panel-intro' | i18next }}</p>
         <form [formGroup]="questionForm" (ngSubmit)="generate()">
           @if (run()?.documentPolicy; as policy) {
@@ -65,10 +66,10 @@
           }
           @for (question of questions(); track question.id; let number = $index) {
             <div class="rb-generation-question">
-              <label [for]="'generation-question-' + question.id">
+              @if (question.type !== 'multiEnum') { <label [for]="'generation-question-' + question.id">
                 <span class="rb-generation-question__number">{{ number + 1 }}</span>
-                {{ question.labelKey | i18next }}
-              </label>
+                {{ question.label || (question.labelKey | i18next) }}
+              </label> }
               @switch (question.type) {
                 @case ('textarea') {
                   <textarea class="form-control" rows="3" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength"></textarea>
@@ -83,22 +84,27 @@
                 @case ('enum') {
                   <select class="form-select" [id]="'generation-question-' + question.id" [formControlName]="question.id">
                     @for (option of question.options ?? []; track option.value) {
-                      <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+                      <option [value]="option.value">{{ option.label || (option.labelKey | i18next) }}</option>
                     }
                   </select>
                 }
                 @case ('multiEnum') {
-                  <select class="form-select" multiple [id]="'generation-question-' + question.id" [formControlName]="question.id">
-                    @for (option of question.options ?? []; track option.value) {
-                      <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+                  <fieldset class="rb-generation-question__choices" [disabled]="questionForm.get(question.id)?.disabled">
+                    <legend><span class="rb-generation-question__number">{{ number + 1 }}</span> {{ question.label || (question.labelKey | i18next) }}</legend>
+                    @for (option of question.options ?? []; track option.value; let optionIndex = $index) {
+                      <div class="form-check">
+                        <input #choice class="form-check-input" type="checkbox" [id]="'generation-question-' + question.id + '-' + optionIndex"
+                          [checked]="isChoiceSelected(question.id, option.value)" (change)="toggleChoice(question.id, option.value, choice.checked)">
+                        <label class="form-check-label" [for]="'generation-question-' + question.id + '-' + optionIndex">{{ option.label || (option.labelKey | i18next) }}</label>
+                      </div>
                     }
-                  </select>
+                  </fieldset>
                 }
                 @default {
                   <input class="form-control" [type]="question.type === 'date' ? 'date' : 'text'" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength" />
                 }
               }
-              @if (question.helpTextKey) { <div class="form-text">{{ question.helpTextKey | i18next }}</div> }
+              @if (question.helpText || question.helpTextKey) { <div class="form-text">{{ question.helpText || (question.helpTextKey | i18next) }}</div> }
             </div>
           }
 
@@ -139,14 +145,14 @@
         }
         @if (conflicts().length > 0) {
           <div class="alert alert-warning" role="alert">
-            {{ 'generation-conflicts' | i18next }}: {{ conflicts().join(', ') }}
+            {{ 'generation-conflicts' | i18next }}: {{ conflictFieldLabels() }}
           </div>
         }
         @for (item of candidate()?.items ?? []; track item.fieldId) {
           @if (item.reviewRequired && provenance.byPointer()[item.metadataPointer]?.reviewRequired) {
             <article class="rb-generation-review">
               <span class="badge text-bg-warning">{{ 'generation-review-required' | i18next }}</span>
-              <h3>{{ item.fieldId }}</h3>
+              <h3>{{ item.label || candidateFieldLabel(item.fieldId) }}</h3>
               <p>{{ item.rationale }}</p>
               <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markReviewed(item.fieldId, item.metadataPointer)">
                 {{ 'generation-mark-reviewed' | i18next }}

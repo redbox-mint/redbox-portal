@@ -23,7 +23,7 @@ interface SchemaLike {
   ): Map<string, { disabled: boolean }>;
 }
 
-function pointersOverlap(left: string, right: string): boolean {
+export function pointersOverlap(left: string, right: string): boolean {
   return left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
 }
 

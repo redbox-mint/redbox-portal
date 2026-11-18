@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI drafting profiles</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><span>Profiles</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><button class="btn btn-primary" type="button">+ Create profile</button></div>
+    </header>
+    <div id="gen-tabs" data-active="profiles"></div>
+
+    <div class="card">
+      <div class="card-h"><h2>Profiles</h2><span class="meta">1 profile · 0 published</span></div>
+      <div class="filters">
+        <div class="field grow"><label for="p-s">Search</label><input id="p-s" class="inp" placeholder="Profile name or record type"></div>
+        <div class="field"><span class="lbl">Status</span><div class="seg" role="group" aria-label="Status"><button type="button" class="on" aria-pressed="true">All</button><button type="button" aria-pressed="false">Published</button><button type="button" aria-pressed="false">Has draft</button><button type="button" aria-pressed="false">Retired</button></div></div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Profile</th><th>Reads</th><th>Fills</th><th>Model</th><th>Status</th><th>Last test</th><th class="act">Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="profile-edit.html"><b>Research Activity → RDMP</b></a><span class="sub">Draft an editable RDMP from the linked Research Activity.</span></td>
+            <td>Research Activity <span class="sub">8 fields · documents</span></td>
+            <td>Data management plan <span class="sub">10 fields · 5 questions</span></td>
+            <td class="small">Amazon Nova Lite for RDMPs v1</td>
+            <td><span class="badge warn">Draft v1</span><span class="sub" style="color:var(--danger-ink)">1 problem</span></td>
+            <td class="small"><span class="health ok"><span class="dot"></span>3 of 3 passed</span><span class="sub">Today 09:30</span></td>
+            <td class="act"><a class="btn btn-secondary btn-sm" href="profile-edit.html">Edit</a> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Research Activity → RDMP">⋯</button></td>
+          </tr>
+        </tbody>
+      </table></div>
+      <div class="card-f"><span>Showing 1 of 1</span><span>⋯ menu: Duplicate · Version history · Retire · Export JSON</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h plain"><h2>Start from a template</h2><span class="meta muted">Creates a draft you can change before publishing</span></div>
+      <div class="card-b tile-grid">
+        <div class="tile"><div class="tile-h"><span class="tile-ic" aria-hidden="true">✎</span><h3>RDMP from Research Activity</h3></div><p class="small muted" style="margin:10px 16px">Fills plan summary, data types, storage, sharing and retention.</p><div style="padding:0 16px 14px"><button class="btn btn-secondary btn-sm" type="button">Use template</button></div></div>
+        <div class="tile"><div class="tile-h"><span class="tile-ic" aria-hidden="true">✎</span><h3>Data record from RDMP</h3></div><p class="small muted" style="margin:10px 16px">Carries title, description, keywords and access conditions forward.</p><div style="padding:0 16px 14px"><button class="btn btn-secondary btn-sm" type="button">Use template</button></div></div>
+        <div class="tile"><div class="tile-h"><span class="tile-ic" aria-hidden="true">+</span><h3>Blank profile</h3></div><p class="small muted" style="margin:10px 16px">Choose source and target record types yourself.</p><div style="padding:0 16px 14px"><button class="btn btn-secondary btn-sm" type="button">Start blank</button></div></div>
+      </div>
+    </div>
+
+    <div class="note"><b>Design notes.</b> “Reads” and “Fills” summarise the source slots and target fields so admins can recognise a profile without opening it. Status shows the newest version and whether it has validation problems, which is why the Overview checklist is stuck. Templates lower the blank-page cost of the most complex object; they’d ship as JSON alongside the bootstrap data.</div>
+  </div></main>
+</div>
+</body>
+</html>

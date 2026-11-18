@@ -46,3 +46,5 @@ export * from './groups/dashboard-records';
 export * from './groups/party-import';
 
 export * from './groups/figshare-source-update';
+
+export * from './groups/ai-models';

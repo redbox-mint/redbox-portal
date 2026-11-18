@@ -8,8 +8,15 @@
     <% const adminLogo = req.path === adminPath || req.path.startsWith(adminPath + '/') || (typeof adminParties !== 'undefined' && adminParties); %>
     <% const logoBrand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)); %>
     <% const defaultLogo = !logoBrand?.logo && ['logo.svg', 'logo.png'].includes(sails.config.static_assets.logoName); %>
+    <% const inlineDefaultLogo = defaultLogo && sails.config.static_assets.logoName === 'logo.svg' && typeof adminInitialStyles !== 'undefined' && adminInitialStyles === true; %>
     <<%= adminLogo ? 'div' : 'h1' %><% if (adminLogo || hasLogoHeadingText) { %> class="<%= [adminLogo ? 'rb-admin-site-logo' : '', hasLogoHeadingText ? 'logo-with-heading' : ''].filter(Boolean).join(' ') %>"<% } %>>
-      <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>" fetchpriority="high" <% if (defaultLogo) { %>width="171" height="100"<% } %>/>
+      <% if (inlineDefaultLogo) { %>
+        <svg class="rb-inline-logo" xmlns="http://www.w3.org/2000/svg" width="171" height="100" viewBox="0 0 614 359" role="img" aria-label="<%= TranslationService.t('logo-alt-text') %>">
+          <%- include('../../../../assets/images/logo.svg').replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/id="([^"]+)"/g, 'id="rb-default-logo-$1"').replace(/url\(#([^)]+)\)/g, 'url(#rb-default-logo-$1)') %>
+        </svg>
+      <% } else { %>
+        <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>" fetchpriority="high" <% if (defaultLogo) { %>width="171" height="100"<% } %>/>
+      <% } %>
       <% if (hasLogoHeadingText) { %>
         <span class="logo-heading-text"><%= logoHeadingText %></span>
       <% } %>

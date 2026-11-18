@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI drafting guidance</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><span>Guidance</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><button class="btn btn-primary" type="button">+ New guidance collection</button></div>
+    </header>
+    <div id="gen-tabs" data-active="knowledge"></div>
+
+    <div class="split">
+      <nav class="split-nav" aria-label="Guidance collections">
+        <div class="grp">Collections</div>
+        <a href="#" class="on" aria-current="true"><span>Research Data Stewardship Guide</span><span class="badge warn">v2</span></a>
+      </nav>
+
+      <div class="split-main">
+        <div class="card">
+          <div class="card-h"><h2>Research Data Stewardship Guide</h2><span class="meta">Editing draft v2 · v1 is live</span></div>
+          <div class="card-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="k-n">Name</label><input id="k-n" class="inp" value="Research Data Stewardship Guide" data-dirty></div>
+              <div class="field"><label for="k-s">How passages are chosen</label><select id="k-s" class="inp"><option>By topic tags on each field</option></select><span class="hint">Fields only receive passages that share one of their topics.</span></div>
+            </div>
+            <div class="field"><label for="k-d">Description</label><input id="k-d" class="inp" value="Approved storage, sharing, retention and ethics guidance from the Office of Research Data."></div>
+          </div>
+          <div class="card-f"><span>Used by 1 profile · Research Activity → RDMP (uses v1 until updated)</span><span class="row" style="gap:6px"><button class="btn btn-secondary btn-sm" type="button">Compare with v1</button><button class="btn btn-primary btn-sm" type="button">Publish v2</button></span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h plain"><h2>Documents</h2><span class="row" style="gap:6px"><button class="btn btn-secondary btn-sm" type="button">Upload Markdown or text</button><button class="btn btn-secondary btn-sm" type="button">+ Write document</button></span></div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Document</th><th>Authority</th><th>In effect</th><th>Topics</th><th class="num">Passages</th><th class="act">Actions</th></tr></thead>
+            <tbody>
+              <tr><td><b>Storage and backup standard</b><span class="sub">Office of Research Data · Public</span></td><td><span class="badge brand">Institution policy</span></td><td class="small">1 Jan 2026 –</td><td><span class="legend"><span class="badge">storage</span></span></td><td class="num">11</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Storage and backup standard">⋯</button></td></tr>
+              <tr><td><b>Sharing participant data</b><span class="sub">Human Research Ethics · Internal</span></td><td><span class="badge brand">Institution policy</span></td><td class="small">1 Mar 2026 –</td><td><span class="legend"><span class="badge">sharing</span><span class="badge">ethics</span></span></td><td class="num">9</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Sharing participant data">⋯</button></td></tr>
+              <tr><td><b>Retention schedule summary</b><span class="sub">Records &amp; Archives · Public</span></td><td><span class="badge info">Guidance</span></td><td class="small">1 Jul 2025 – <span style="color:var(--danger-ink)">30 Nov 2026</span></td><td><span class="legend"><span class="badge">retention</span></span></td><td class="num">7</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Retention schedule summary">⋯</button></td></tr>
+              <tr style="background:var(--success-tint)"><td><b>Example RDMP wording</b> <span class="badge ok">New in v2</span><span class="sub">Office of Research Data · Public</span></td><td><span class="badge">Example</span></td><td class="small muted">Always</td><td><span class="legend"><span class="badge">storage</span><span class="badge">sharing</span></span></td><td class="num">11</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Example RDMP wording">⋯</button></td></tr>
+            </tbody>
+          </table></div>
+          <div class="card-f"><span>4 documents · 38 passages · all text stays in ReDBox until a field needs it</span><span style="color:var(--danger-ink)">1 document expires in 13 days</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h plain"><h2>Try it</h2><span class="meta muted">See which passages a field would receive</span></div>
+          <div class="filters">
+            <div class="field grow"><label for="q">Question or sample text</label><input id="q" class="inp" value="Can we share de-identified interview transcripts?"></div>
+            <div class="field"><label for="qt">Field</label><select id="qt" class="inp"><option>Sharing and access · sharing, ethics</option><option>Storage approach · storage</option></select></div>
+            <div class="field" style="min-width:0"><button class="btn btn-secondary" type="button">Find passages</button></div>
+          </div>
+          <div class="card-b">
+            <div class="chunk"><div class="chunk-h"><b>Sharing participant data</b><span class="badge brand">Institution policy</span><span class="badge">sharing</span><span class="score">Rank 1</span></div><p>De-identified participant-level data may be shared only where consent permits and a disclosure-risk review has been completed by the data steward…</p></div>
+            <div class="chunk"><div class="chunk-h"><b>Sharing participant data</b><span class="badge brand">Institution policy</span><span class="badge">ethics</span><span class="score">Rank 2</span></div><p>Ethics approval conditions take precedence over general sharing guidance. Record the approval number in the plan…</p></div>
+            <div class="chunk"><div class="chunk-h"><b>Example RDMP wording</b><span class="badge">Example</span><span class="badge">sharing</span><span class="score">Rank 3</span></div><p>“Aggregate outputs will be shared openly. Requests for participant-level data will be reviewed against consent…”</p></div>
+            <p class="small muted" style="margin:10px 0 0">Showing 3 of 12 passages within the profile limit of 40.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Design notes.</b> “Knowledge collection” is labelled <b>Guidance</b>: admins upload policy, not a knowledge base. Documents carry the <span class="inline-code">authority</span>, effective dates and <span class="inline-code">tags</span> the model needs, shown as badges so admins can spot a mis-tagged document. Expiring documents are flagged before they silently drop out. “Try it” is the <span class="inline-code">test-retrieval</span> endpoint with a field picker, so admins check retrieval in the same terms profiles use. Drafts follow the same versioning language as models and profiles.</div>
+  </div></main>
+</div>
+</body>
+</html>

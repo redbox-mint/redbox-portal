@@ -771,7 +771,10 @@ describe('API routes contract layer', function () {
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
       const expected =
-        route.controller === 'webservice/NamedQueryController' && ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
+        ['GenerationModelAdminController', 'GenerationProfileAdminController'].includes(route.controller)
+          ? ['noCache', 'generationModelAdmin', ...expectedPolicies.filter(policy =>
+              !['noCache', 'isWebServiceAuthenticated', 'validateApiContractRequest'].includes(policy))]
+          : route.controller === 'webservice/NamedQueryController' && ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
           ? [...(route.method === 'get' ? [] : ['namedQueryMutationCsrf']), ...expectedPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')]
           :
         (route.controller === 'webservice/NamedQueryController' &&

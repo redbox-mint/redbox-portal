@@ -446,6 +446,8 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/app/email-templates/templates/:templateId/history': { controller: 'EmailTemplateAdminController', action: 'history' },
   'get /:branding/:portal/app/email-templates/templates/:templateId/history/:version': { controller: 'EmailTemplateAdminController', action: 'historyVersion' },
   'post /:branding/:portal/app/email-templates/templates/:templateId/history/:version/restore': { controller: 'EmailTemplateAdminController', action: 'restore' },
+  'get /:branding/:portal/admin/ai-profiles': { controller: 'GenerationProfileAdminController', action: 'page', locals: { pageTitleKey: 'ai-profiles-title' } },
+  'get /:branding/:portal/admin/ai-models': { controller: 'GenerationModelAdminController', action: 'page', locals: { pageTitleKey: 'ai-models-title' } },
   'get /:branding/:portal/admin/email-templates': { controller: 'EmailTemplateAdminController', action: 'page' },
 
   // App config routes

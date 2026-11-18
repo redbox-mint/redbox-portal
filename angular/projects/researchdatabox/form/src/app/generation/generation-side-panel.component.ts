@@ -349,6 +349,12 @@ export class GenerationSidePanelComponent implements OnDestroy {
     queueMicrotask(() => this.restoreFocusTo?.focus());
   }
 
+  public candidateFieldLabel(fieldId: string): string {
+    return this.candidate()?.items.find(item => item.fieldId === fieldId)?.label ||
+      fieldId.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase());
+  }
+  public conflictFieldLabels(): string { return this.conflicts().map(id => this.candidateFieldLabel(id)).join(', '); }
+
   public async markReviewed(fieldId: string, pointer: string): Promise<void> {
     const form = this.form();
     if (!form || this.destroyed) return;
@@ -397,6 +403,20 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }
   }
 
+  isChoiceSelected(id: string, value: string): boolean {
+    const selected = this.questionForm.get(id)?.value;
+    return Array.isArray(selected) && selected.includes(value);
+  }
+
+  toggleChoice(id: string, value: string, checked: boolean): void {
+    const control = this.questionForm.get(id);
+    if (!control || control.disabled) return;
+    const selected = Array.isArray(control.value) ? control.value as string[] : [];
+    control.setValue(checked ? [...new Set([...selected, value])] : selected.filter(v => v !== value));
+    control.markAsDirty();
+    control.markAsTouched();
+  }
+
   private configureQuestions(
     questions: GenerationQuestion[],
     retainedAnswers: ReadonlyMap<string, GenerationQuestionValue> = new Map(),
@@ -404,8 +424,12 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.questions.set(questions);
     for (const existing of Object.keys(this.questionForm.controls)) this.questionForm.removeControl(existing);
     for (const question of questions) {
+      let value = retainedAnswers.has(question.id) ? retainedAnswers.get(question.id) ?? null : question.defaultValue ?? null;
+      const options = new Set(question.options?.map(option => option.value));
+      if (question.type === 'enum' && (typeof value !== 'string' || !options.has(value))) value = null;
+      if (question.type === 'multiEnum') value = Array.isArray(value) ? value.filter(item => options.has(item)) : [];
       this.questionForm.addControl(question.id, new FormControl<GenerationQuestionValue>(
-        retainedAnswers.has(question.id) ? retainedAnswers.get(question.id) ?? null : question.defaultValue ?? null,
+        value,
         this.questionValidators(question),
       ));
     }

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI drafting form actions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><span>Form actions</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><a class="btn btn-primary" href="action-edit.html">+ Add form action</a></div>
+    </header>
+    <div id="gen-tabs" data-active="actions"></div>
+
+    <div class="card">
+      <div class="card-h"><h2>Form actions</h2><span class="meta">0 actions</span></div>
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 15h6M7 11h10"></path><path d="M17 15l1.5-1.5L20 15l-1.5 1.5z"></path></svg>
+        <h3>No “Draft with AI” buttons yet</h3>
+        <p>A form action puts a button on a record, for example “Create data management plan” on a Research Activity, and links it to a profile.</p>
+        <div class="row" style="justify-content:center"><a class="btn btn-primary" href="action-edit.html">Add form action</a><a class="btn btn-secondary" href="profiles.html">Review profiles</a></div>
+        <p class="small" style="margin-top:14px">You can add an action now and turn it on after its profile is published.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h plain"><h2>When populated</h2><span class="meta muted">Reference layout</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Button</th><th>Appears on</th><th>Creates</th><th>Who can use it</th><th>Profile</th><th>Status</th><th class="act">Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Create data management plan</b><span class="sub">Primary record actions</span></td>
+            <td>Research Activity <span class="sub">Draft stage · view and edit</span></td>
+            <td>Data management plan <span class="sub">Starts at Draft</span></td>
+            <td class="small">Researcher, Librarians, Admin</td>
+            <td class="small"><a href="profile-edit.html">Research Activity → RDMP</a><span class="sub">Waiting for publish</span></td>
+            <td><label class="switch"><i></i><span class="sr-only" style="position:absolute;left:-9999px">Enabled</span>Off</label></td>
+            <td class="act"><a class="btn btn-secondary btn-sm" href="action-edit.html">Edit</a> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="note"><b>Design notes.</b> <span class="inline-code">GenerationBinding</span> is called a <b>form action</b> here: admins think in terms of “which button shows where”, not bindings. The empty state explains the concept in one sentence and is the most likely first visit. The list reads left to right as a sentence: <i>button</i> on <i>record</i> creates <i>record</i> for <i>roles</i> using <i>profile</i>. The enable switch is inline because turning a button off is the common incident response. Delete is only offered for actions that have never run; otherwise ⋯ offers Disable.</div>
+  </div></main>
+</div>
+</body>
+</html>

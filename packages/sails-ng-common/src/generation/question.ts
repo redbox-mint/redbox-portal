@@ -5,13 +5,16 @@ export type GenerationQuestionValue = string | boolean | string[] | null;
 
 export interface GenerationQuestionOption {
   value: string;
-  labelKey: string;
+  labelKey?: string;
+  label?: string;
 }
 
 export interface GenerationQuestion {
   id: string;
-  labelKey: string;
+  labelKey?: string;
+  label?: string;
   helpTextKey?: string;
+  helpText?: string;
   type: GenerationQuestionType;
   required: boolean;
   options?: GenerationQuestionOption[];

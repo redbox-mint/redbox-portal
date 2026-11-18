@@ -38,6 +38,7 @@ export interface ConfigModelInfo {
 }
 
 export type ConfigModelKey =
+    | 'generationProviderSecrets'
     | 'systemMessage'
     | 'authorizedDomainsEmails'
     | 'menu'
@@ -53,6 +54,12 @@ export type ConfigModelKey =
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
+        ['generationProviderSecrets', {
+            modelName: 'GenerationProviderSecrets',
+            class: class GenerationProviderSecrets { keys: Record<string, string> = {}; },
+            schema: { type: 'object', properties: { keys: { type: 'object', additionalProperties: { type: 'string' } } } },
+            secretFields: ['keys.*']
+        }],
         ['systemMessage', {
             descriptionKey: 'admin-config-description-systemMessage',
             modelName: 'SystemMessage',
