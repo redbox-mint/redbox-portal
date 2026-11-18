@@ -16,6 +16,8 @@ export interface RecordContractCompileChildrenOptions {
 }
 
 export interface RecordContractContributorCompileContext {
+  /** Read projection may differ from existing write-validation vocabulary. */
+  readonly fieldMode?: 'edit' | 'read';
   readonly component: Readonly<FormComponentDefinitionFrame>;
   readonly pointer: RecordContractPointer;
   readonly publicContext: RecordContractPublicContext;

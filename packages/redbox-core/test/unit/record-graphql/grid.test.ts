@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
+import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import sinon from 'sinon';
 import { createRecordYoga } from '../../../src/record-graphql/schema';
 import { metadataTypeName } from '../../../src/record-graphql/renderer';
 import { GRID_LIMITS } from '../../../src/record-graphql/grid-types';
 import { buildCatalogue } from '../../../src/record-graphql/catalogue';
-import { gridIndexBindings, gridSourceValue } from '../../../src/record-graphql/index-bindings';
 import { queryPlan } from '../../../src/record-graphql/collection';
-import { gridHarness, gridCaller, gridEnvironment, gridContracts } from '../../fixtures/record-grid.fixtures';
+import { gridHarness, gridCaller, gridEnvironment, gridContracts, object } from '../../fixtures/record-grid.fixtures';
 
 const pageQuery = `query($after: String, $first: Int = 2, $stages: [String!]) { records(recordType: "grid-fixture", workflowStages: $stages, first: $first, after: $after) { nodes { oid workflowStep } hasNextPage endCursor } }`;
 
@@ -17,14 +17,14 @@ describe('Record grid catalogue and pagination', () => {
     const fields = new Map(catalogue.fields.map(field => [field.id, field]));
     assert.equal(fields.get('metadata:/title')?.label, 'Record title');
     assert.equal(fields.get('metadata:/title')?.sortable, true);
-    assert.deepEqual(fields.get('metadata:/title')?.operators, ['EQ', 'CONTAINS', 'IN', 'EXISTS']);
+    assert.deepEqual(fields.get('metadata:/title')?.operators, ['EQ', 'CONTAINS', 'IPREFIX', 'IN', 'EXISTS']);
     assert.deepEqual(
       fields.get('metadata:/title')?.choices.map(choice => choice.value),
       ['first', 'second']
     );
     assert.equal(fields.get('metadata:/eventDate')?.scalarType, 'DATETIME');
-    assert.deepEqual(fields.get('metadata:/details/note')?.operators, ['EXISTS']);
-    assert.equal(fields.get('metadata:/details/note')?.sortable, false);
+    assert.deepEqual(fields.get('metadata:/details/note')?.operators, ['EQ', 'CONTAINS', 'IPREFIX', 'IN', 'EXISTS']);
+    assert.equal(fields.get('metadata:/details/note')?.sortable, true);
     assert.equal(fields.get('metadata:/publication_note')?.availableInAllVariants, false);
     assert.equal(fields.get('metadata:/title')?.availableInAllVariants, true);
     assert.equal(fields.get('metadata:/secret'), undefined);
@@ -33,13 +33,6 @@ describe('Record grid catalogue and pagination', () => {
     assert.equal(fields.get('metadata:/people')?.unavailableReason, 'REPEATING_FIELD');
     assert.ok(
       catalogue.fields.some(field => field.repeating && !field.selectable && !field.filterable && !field.sortable)
-    );
-    env.config.preIndex!.copy = [];
-    assert.equal(
-      buildCatalogue(gridContracts(), 'grid-fixture', [], env).catalogue.fields.find(
-        field => field.id === 'metadata:/title'
-      )?.filterable,
-      false
     );
   });
   it('adds short labels, form hierarchy, repeating-child hints and friendly type labels without changing capabilities', async () => {
@@ -364,18 +357,6 @@ describe('Record grid catalogue and pagination', () => {
       { name: 'Two', email: null, children: [] },
     ]);
   });
-  it('does not advertise mappings polluted by search-engine copy rules', () => {
-    const env = gridEnvironment();
-    env.schema.copyFields = [{ source: 'unrelated', dest: '*_title' }];
-    assert.equal(
-      buildCatalogue(gridContracts(), 'grid-fixture', [], env).catalogue.fields.find(
-        field => field.id === 'metadata:/title'
-      )?.filterable,
-      false
-    );
-    env.schema.copyFields = [{ source: 'unrelated', dest: 'redbox_grid_*' }];
-    assert.throws(() => buildCatalogue(gridContracts(), 'grid-fixture', [], env), /protected collection/);
-  });
   it('returns stage-specific fragments and shares hydration with single-record aliases', async () => {
     const h = gridHarness(['a', 'b']);
     h.records.get('b')!.workflow.stage = 'published';
@@ -399,8 +380,6 @@ describe('Record grid catalogue and pagination', () => {
   });
   it('does not query private values in inapplicable workflow or historical form variants', async () => {
     const env = gridEnvironment();
-    env.config.recordGraphqlFields!['metadata:/publication_note'] = 'grid_title';
-    env.config.preIndex!.copy = [{ source: 'metadata.publication_note', dest: 'grid_title' }];
     const full = buildCatalogue(gridContracts(), 'grid-fixture', [], env).catalogue.fields.find(
       field => field.id === 'metadata:/publication_note'
     )!;
@@ -495,6 +474,7 @@ describe('Record grid catalogue and pagination', () => {
     for (const id of blocked.records.keys()) blocked.denied.add(id);
     const result = await blocked.query(pageQuery);
     assert.equal(result.body.data?.records, null);
+    assert.deepEqual(result.body.errors?.[0].path, ['records']);
     assert.equal(result.body.errors?.[0].extensions.code, 'COLLECTION_LIMIT');
     assert.equal(blocked.reads.length, 200);
     assert.equal(blocked.calls.length, 4);
@@ -532,10 +512,7 @@ describe('Record grid catalogue and pagination', () => {
         ['b']
       );
       assert.equal(next.body.data?.records?.hasNextPage, false);
-      const stageFilter = h.calls[0].getAll('fq').find(value => value.includes('redbox_grid_stage'));
-      assert.ok(stageFilter);
-      assert.ok([...h.calls[0].values()].includes('draft'));
-      assert.ok([...h.calls[0].values()].includes('published'));
+      assert.deepEqual(h.calls[0].query.workflowStages, stages);
       const last = gridHarness(['a', 'retired']);
       last.records.get('retired')!.workflow.stage = 'retired';
       const exhausted = await last.query(pageQuery, { first: 1, stages });
@@ -579,8 +556,24 @@ describe('Record grid catalogue and pagination', () => {
       (await h.query(pageQuery, { after: cursor, first: 1 })).body.errors?.[0].extensions.code,
       'INVALID_CURSOR'
     );
-    h.environment.config.recordGraphqlFields = {};
+    h.contracts[0] = { ...h.contracts[0], diagnostics: [{ code: 'changed', severity: 'warning', message: 'changed' }] };
     assert.equal((await h.query(pageQuery, { after: cursor })).body.errors?.[0].extensions.code, 'INVALID_CURSOR');
+  });
+  it('invalidates the retired Solr cursor format safely', async () => {
+    const h = gridHarness();
+    const domain = 'redbox-record-grid-cursor/1';
+    const key = createHash('sha256').update(domain).update('\0').update(h.environment.cursorSecret!).digest();
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    cipher.setAAD(Buffer.from(domain));
+    const encrypted = Buffer.concat([
+      cipher.update(JSON.stringify({ mark: '*', skip: 0, version: 1, scope: 'retired', expires: Date.now() + 10000 })),
+      cipher.final(),
+    ]);
+    const after = Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString('base64url');
+    const response = await h.query(pageQuery, { after });
+    assert.equal(response.body.errors?.[0].extensions.code, 'INVALID_CURSOR');
+    assert.equal(h.calls.length, 0);
   });
   it('expires cursors and rechecks revoked visibility on later pages', async () => {
     const h = gridHarness(['a', 'b', 'c', 'd']);
@@ -652,7 +645,7 @@ describe('Record grid catalogue and pagination', () => {
     assert.deepEqual(body.data.record.metadata.opaque, { undeclared: 'private' });
     assert.equal(body.errors[0].extensions.code, 'UNDECLARED_METADATA');
   });
-  it('rejects stale field IDs, unknown stages, extra collection aliases and unsupported index schemas', async () => {
+  it('rejects stale field IDs, unknown stages, extra collection aliases', async () => {
     const h = gridHarness();
     assert.equal(
       (await h.query('{ recordFields(recordType:"grid-fixture",ids:["metadata:/removed"]) { revision } }')).body
@@ -672,8 +665,6 @@ describe('Record grid catalogue and pagination', () => {
       400
     );
     assert.equal(h.calls.length, 0);
-    h.environment.schema.fields = h.environment.schema.fields.filter(field => field.name !== 'redbox_grid_type');
-    assert.equal((await h.query(pageQuery)).body.errors?.[0].extensions.code, 'REINDEX_REQUIRED');
   });
   it('bounds page sizes and rejects missing shared cursor configuration', async () => {
     const h = gridHarness();
@@ -691,27 +682,21 @@ describe('Typed grid search planning', () => {
   const plan = (
     filters: Parameters<typeof queryPlan>[0]['filters'],
     sort: Parameters<typeof queryPlan>[0]['sort'] = []
-  ) => queryPlan({ recordType: 'grid-fixture', filters, sort }, snapshot, env, gridCaller.brand.id);
-  it('builds typed parameters, literal filters and deterministic sorts', () => {
-    const params = plan(
+  ) => queryPlan({ recordType: 'grid-fixture', filters, sort }, snapshot);
+  it('normalizes typed values while keeping text literal and adding the OID tie break', () => {
+    const result = plan(
       [
-        { field: 'metadata:/title', eq: { text: 'x\" OR *:* {!term f=id}' } },
-        { field: 'metadata:/amount', between: { from: { number: 1 }, to: { number: 9 } } },
-        { field: 'metadata:/active', eq: { boolean: false } },
+        { field: 'metadata:/title', eq: { text: '$x \" OR *:*' } },
         { field: 'metadata:/eventDate', gt: { dateTime: '2026-01-01T12:00:00+12:00' } },
       ],
       [{ field: 'metadata:/amount', direction: 'ASC' }]
     );
-    assert.equal(params.get('sort'), 'grid_amount asc,id asc');
-    assert.ok(params.getAll('fq').some(value => value === 'grid_amount:["1" TO "9"]'));
-    assert.ok([...params.values()].includes('x\" OR *:* {!term f=id}'));
-    assert.ok(params.getAll('fq').some(value => value.includes('2026-01-01T00:00:00.000Z')));
-    assert.ok(params.getAll('fq').every(value => !value.includes('x\" OR *:*')));
-    assert.ok(
-      plan([{ field: 'metadata:/title', contains: '*:* " OR x' }])
-        .getAll('fq')
-        .some(value => value.includes('\\*\\:'))
-    );
+    assert.deepEqual(result.filters[0].values, ['$x \" OR *:*']);
+    assert.deepEqual(result.filters[1].values, [Date.parse('2026-01-01T00:00:00Z')]);
+    assert.deepEqual(result.sort, [
+      { field: 'metadata:/amount', direction: 1 },
+      { field: 'record:oid', direction: 1 },
+    ]);
   });
   it('validates timestamp components before normalization for every date operator', async () => {
     const invalidDates = [
@@ -742,7 +727,7 @@ describe('Typed grid search planning', () => {
         );
     }
     const valid = plan([{ field: 'metadata:/eventDate', eq: { dateTime: '2026-01-02T23:59:59.999+23:59' } }]);
-    assert.ok([...valid.values()].includes('2026-01-02T00:00:59.999Z'));
+    assert.deepEqual(valid.filters[0].values, [Date.parse('2026-01-02T00:00:59.999Z')]);
     const h = gridHarness();
     const result = await h.query(
       'query($value:RecordFilterValue!){records(recordType:"grid-fixture",filters:[{field:"metadata:/eventDate",eq:$value}]){hasNextPage}}',
@@ -757,7 +742,6 @@ describe('Typed grid search planning', () => {
     [{ field: 'metadata:/amount', eq: { text: 'x' } }],
     [{ field: 'metadata:/title', eq: { text: 'x', number: 1 } }],
     [{ field: 'metadata:/title', eq: { text: 'x' }, exists: true }],
-    [{ field: 'metadata:/details/note', eq: { text: 'x' } }],
     [{ field: 'metadata:/title', in: [] }],
     [{ field: 'metadata:/title', contains: '' }],
     [{ field: 'metadata:/title', eq: { text: 'x'.repeat(257) } }],
@@ -772,39 +756,11 @@ describe('Typed grid search planning', () => {
       assert.throws(() => plan(filters as Parameters<typeof plan>[0])));
   it('rejects invalid sorts rather than silently ignoring them', () => {
     for (const sort of [
-      [{ field: 'metadata:/details/note', direction: 'ASC' }],
+      [{ field: 'metadata:/people', direction: 'ASC' }],
       [{ field: 'metadata:/removed', direction: 'ASC' }],
       [{ field: 'metadata:/title', direction: 'SIDEWAYS' }],
       Array.from({ length: 4 }, () => ({ field: 'metadata:/title', direction: 'ASC' })),
     ])
       assert.throws(() => plan([], sort as Parameters<typeof plan>[1]));
-  });
-});
-
-describe('Namespaced scalar index bindings', () => {
-  it('accepts literal namespace colons and hyphens but rejects ambiguous paths and prototype keys', () => {
-    const env = gridEnvironment();
-    const names = [
-      'uon:ethicsApprovalStatus',
-      'dc:coverage_vivo:DateTimeInterval_vivo:start',
-      'data-owner',
-      'nested.value',
-      'array[0]',
-      '__proto__',
-      'constructor',
-      'prototype',
-    ];
-    env.config.recordGraphqlFields = Object.fromEntries(
-      names.map((name, index) => ['metadata:/' + name, 'grid_namespace_' + index])
-    );
-    env.config.preIndex = {
-      copy: names.map((name, index) => ({ source: 'metadata.' + name, dest: 'grid_namespace_' + index })),
-    };
-    const bindings = gridIndexBindings(env.config);
-    assert.deepEqual(
-      [...bindings.keys()],
-      names.slice(0, 3).map(name => 'metadata:/' + name)
-    );
-    assert.equal(gridSourceValue({ 'uon:ethicsApprovalStatus': 'approved' }, ['uon:ethicsApprovalStatus']), 'approved');
   });
 });

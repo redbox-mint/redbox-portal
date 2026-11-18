@@ -422,7 +422,12 @@ async function questionTreeContribution(
               value === null || ['string', 'number', 'boolean'].includes(typeof value)
           )
       : undefined;
-    const answerNode = array(scalar('string', false, answerValues), false);
+    // Native question-tree DSL uses radio scalars for one answer and checkbox
+    // arrays for multiple answers. Visibility rules do not change stored types.
+    const answerNode =
+      context.fieldMode === 'read' && question.answersMax === 1
+        ? scalar('string', true, answerValues)
+        : array(scalar('string', false, answerValues), context.fieldMode === 'read');
     const rule = asRecord(question.rules);
     const condition = questionCondition(rule, context.pointer);
     if (rule.op === 'true' || condition) {
@@ -473,7 +478,15 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     componentContributor('CheckboxTreeComponent', 'configuration', checkboxTreeContribution),
     nonPersisting('ContentComponent'),
     componentContributor('DataLocationComponent', 'configuration', dataLocationContribution),
-    componentContributor('DateInputComponent', 'nullable', () => ({ kind: 'node', node: scalar('string', true) })),
+    componentContributor('DateInputComponent', 'nullable', context => ({
+      kind: 'node',
+      node: {
+        ...scalar('string', true),
+        annotations: {
+          extensions: { 'x-redbox-format': modelConfig(context.component).dateOnly === true ? 'date' : 'date-time' },
+        },
+      },
+    })),
     nonPersisting('DeleteButtonComponent'),
     componentContributor('DropdownInputComponent', 'nullable', context => choiceContribution(context, true)),
     componentContributor('FileUploadComponent', 'configuration', attachmentArrayContribution),

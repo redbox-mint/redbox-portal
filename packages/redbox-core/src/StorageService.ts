@@ -1,3 +1,4 @@
+import type { GridStorageRequest, GridStoragePage } from './record-graphql/grid-types';
 import type { RelatedRecordReadContext } from './related-records/types';
 import type { RecordFieldWriteResult } from './RecordWriteOptions';
 import { Readable } from 'node:stream';
@@ -64,6 +65,8 @@ export interface RecordQueryOptions {
  * Type safety will be improved incrementally in future phases.
  */
 export interface StorageService {
+  /** Bounded collections over trusted readable contracts and authenticated server context. */
+  executeRecordCollection?(request: GridStorageRequest): Promise<GridStoragePage>;
   create(
     brand: unknown,
     record: unknown,

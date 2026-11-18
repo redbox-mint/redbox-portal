@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import axios from 'axios';
 import supertest from 'supertest';
 import sinon from 'sinon';
 import { firstValueFrom } from 'rxjs';
-import { recordGraphql, SOLR_RECORD_GRID_FIELDS, migrateFormConfigVerify, ConstructFormConfigVisitor, ValidatorFormConfigVisitor } from '@researchdatabox/redbox-core';
+import { recordGraphql, migrateFormConfigVerify, ConstructFormConfigVisitor, ValidatorFormConfigVisitor } from '@researchdatabox/redbox-core';
 
-/** Real Sails policies, bearer/session auth, Waterline/Mongo and Solr execution. */
+/** Real Sails policies, bearer/session auth, Waterline/Mongo collection execution. */
 describe('GraphQL named query execution over HTTP', function () {
   this.timeout(180_000);
   const suffix = randomUUID().replace(/-/g, '');
@@ -30,7 +29,6 @@ describe('GraphQL named query execution over HTTP', function () {
   let previousToken;
   let originalConfig;
   let originalQueries;
-  let solrUrl;
   let session: supertest.Agent;
   let csrf: string;
   let definition;
@@ -80,12 +78,7 @@ describe('GraphQL named query execution over HTTP', function () {
     await ruleFor(`/${foreign.name}/rdmp/query/vocab/${alias}`, role.id, foreign);
     await firstValueFrom(BrandingService.loadAvailableBrands(null));
     await firstValueFrom(PathRulesService.loadRules());
-    const options = sails.config.solr.cores.default.options;
-    solrUrl = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
-    const live = (await axios.get(`${solrUrl}/schema`)).data.schema;
-    const missing = SOLR_RECORD_GRID_FIELDS.filter(field => !live.fields.some(found => found.name === field.name));
-    if (missing.length) await axios.post(`${solrUrl}/schema`, { 'add-field': missing });
-    const created = await Record.createEach(
+    await Record.createEach(
       [...ids, ...sparseIds].map((oid, index) => ({
         redboxOid: oid,
         metadata: { title: `Label ${index}`, private_note: `PRIVATE_DATA_${suffix}` },
@@ -104,14 +97,6 @@ describe('GraphQL named query execution over HTTP', function () {
         },
       }))
     ).fetch();
-    const search = sails.services.solrsearchservice;
-    await axios.post(
-      `${solrUrl}/update`,
-      created.map(row => search.preIndex({ ...row, storage_id: row.id })),
-      { params: { commit: true } }
-    );
-    // Stale permitted Solr hits with current denied stored ACLs must hit the
-    // existing 200-candidate bound rather than produce an empty successful page.
     await Record.update({ redboxOid: sparseIds }).set({
       authorization: { view: [], edit: [], viewRoles: [], editRoles: [] },
     });
@@ -167,8 +152,6 @@ describe('GraphQL named query execution over HTTP', function () {
   after(async () => {
     sails.config.recordGraphql = originalConfig;
     sails.config.vocab.queries = originalQueries;
-    if (solrUrl)
-      await axios.post(`${solrUrl}/update`, { delete: { query: `redbox_grid_oid:*${suffix}*` }, commit: {} });
     await Record.destroy({ redboxOid: [...ids, ...sparseIds] });
     await NamedQuery.destroy({ name });
     await RBReport.destroy({ name });
@@ -375,7 +358,7 @@ describe('GraphQL named query execution over HTTP', function () {
       NamedQueryService.performNamedQueryFromConfig(loaded, { search: main }, brand, 0, 25, { username: 'admin' })
     );
   });
-  it('rejects private fields, partial GraphQL data and scan failures with safe errors on saved/direct paths', async () => {
+  it('rejects private fields and partial GraphQL data, and excludes inaccessible saved-query rows', async () => {
     const actual = await NamedQueryService.getNamedQueryConfig(brand, name);
     assert.equal(actual.source, 'graphql');
     const caller = { brand, portal: 'rdmp', user: { ...admin, roles: brand.roles }, roles: brand.roles };
@@ -411,9 +394,9 @@ describe('GraphQL named query execution over HTTP', function () {
     const failed = await preview(partial).expect(422); // admin still cannot read foreign brand
     assert.ok(!failed.body.data);
     for (const route of [rest, vocab]) {
-      const bounded = await route({ search: sparse }).expect(422);
-      assert.ok(JSON.stringify(bounded.body).includes('COLLECTION_LIMIT'));
-      assert.ok(!bounded.body.data);
+      const empty = (await route({ search: sparse }).expect(200)).body.data;
+      assert.deepEqual(empty.records, []);
+      assert.equal(empty.pagination.hasNextPage, false);
     }
   });
   it('rejects unversioned reports and retains the first-page accumulation guard', async () => {

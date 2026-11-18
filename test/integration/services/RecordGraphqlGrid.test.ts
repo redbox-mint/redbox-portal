@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import axios from 'axios';
+import { createRequire } from 'node:module';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
-import { recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
+import { recordGraphql } from '@researchdatabox/redbox-core';
 
-describe('GraphQL grid over Sails and Solr', function () {
+// Native fixtures must use the BSON version pinned by Sails' datastore driver.
+const { Decimal128, Long, ObjectId }: Pick<typeof import('mongodb'), 'Decimal128' | 'Long' | 'ObjectId'> =
+  createRequire(require.resolve('sails-mongo'))('mongodb');
+
+describe('GraphQL grid over Sails and Mongo', function () {
   this.timeout(180_000);
   const suffix = randomUUID().replace(/-/g, '');
   const path = '/default/rdmp/api/graphql';
@@ -16,27 +20,11 @@ describe('GraphQL grid over Sails and Solr', function () {
   );
   let app;
   let configBefore;
-  let coreBefore;
   let formBefore;
   let formId;
   let userId;
   let ruleId;
-  let url;
   let brand;
-  const fields = {
-    title: `grid_title_${suffix}`,
-    amount: `grid_amount_${suffix}`,
-    active: `grid_active_${suffix}`,
-    eventDate: `grid_date_${suffix}`,
-  };
-  const prefixField = {
-    name: `grid_title_iprefix_v1_${suffix}`,
-    type: 'string',
-    indexed: true,
-    stored: false,
-    multiValued: false,
-    docValues: false,
-  };
   const prefixRows: Array<{ oid: string; title: unknown; visible: boolean }> = [];
   const unicodeCases: Array<[string, string[], string[]]> = [
     ['ΟΣΑ', ['ΟΣ'], ['οσ', 'ος']],
@@ -87,40 +75,7 @@ describe('GraphQL grid over Sails and Solr', function () {
     app = sails.hooks.http.app;
     brand = BrandingService.getDefault();
     configBefore = sails.config.recordGraphql;
-    coreBefore = sails.config.solr.cores.default;
     sails.config.recordGraphql = { ...recordGraphql, enabled: true, cursorSecret: `grid-integration-secret-${suffix}` };
-    sails.config.solr.cores.default = {
-      ...coreBefore,
-      recordGraphqlFields: Object.fromEntries(
-        Object.entries(fields).map(([path, field]) => [`metadata:/${path}`, field])
-      ),
-      recordGraphqlCaseInsensitivePrefixFields: { 'metadata:/title': prefixField.name },
-      schema: { ...coreBefore.schema, 'add-field': [...coreBefore.schema['add-field'], prefixField] },
-      preIndex: {
-        ...coreBefore.preIndex,
-        copy: [
-          ...(coreBefore.preIndex?.copy ?? []),
-          ...Object.entries(fields).map(([source, dest]) => ({ source: `metadata.${source}`, dest })),
-        ],
-      },
-    };
-    const options = coreBefore.options;
-    url = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
-    const live = (await axios.get(`${url}/schema`)).data.schema;
-    const definitions = [
-      ...SOLR_RECORD_GRID_FIELDS,
-      prefixField,
-      ...Object.entries(fields).map(([key, name]) => ({
-        name,
-        type: key === 'amount' ? 'pdouble' : key === 'eventDate' ? 'pdate' : key === 'active' ? 'boolean' : 'string',
-        indexed: true,
-        stored: true,
-        multiValued: false,
-        docValues: true,
-      })),
-    ];
-    const missing = definitions.filter(field => !live.fields.some(found => found.name === field.name));
-    if (missing.length) await axios.post(`${url}/schema`, { 'add-field': missing });
     const form = await firstValueFrom(FormsService.getFormByName('dataPublication-1.0-draft', true, brand.id));
     assert.ok(form?.configuration);
     formBefore = form.configuration;
@@ -130,6 +85,50 @@ describe('GraphQL grid over Sails and Solr', function () {
         ...form.configuration,
         componentDefinitions: [
           ...form.configuration.componentDefinitions,
+          {
+            name: 'details',
+            component: {
+              class: 'GroupComponent',
+              config: {
+                componentDefinitions: [
+                  {
+                    name: 'note',
+                    component: { class: 'SimpleInputComponent' },
+                    model: { class: 'SimpleInputModel', config: {} },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            name: 'people',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: 'person',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: { class: 'SimpleInputComponent' },
+                          model: { class: 'SimpleInputModel', config: {} },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            model: { class: 'RepeatableModel', config: {} },
+          },
+          {
+            name: 'count',
+            component: { class: 'SimpleInputComponent', config: { type: 'number' } },
+            model: { class: 'SimpleInputModel', config: { validators: [{ class: 'integer' }] } },
+          },
           {
             name: 'amount',
             component: { class: 'SimpleInputComponent', config: { type: 'number', label: 'Amount' } },
@@ -144,6 +143,34 @@ describe('GraphQL grid over Sails and Solr', function () {
             name: 'eventDate',
             component: { class: 'DateInputComponent' },
             model: { class: 'DateInputModel', config: {} },
+          },
+          {
+            name: 'colours',
+            component: {
+              class: 'CheckboxInputComponent',
+              config: {
+                options: [
+                  { label: 'Red', value: 'red' },
+                  { label: 'Blue', value: 'blue' },
+                  { label: 'Green', value: 'green' },
+                ],
+              },
+            },
+            model: { class: 'CheckboxInputModel', config: {} },
+          },
+          {
+            name: 'keywords',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: 'keyword',
+                  component: { class: 'SimpleInputComponent' },
+                  model: { class: 'SimpleInputModel', config: {} },
+                },
+              },
+            },
+            model: { class: 'RepeatableModel', config: {} },
           },
         ],
       },
@@ -165,6 +192,8 @@ describe('GraphQL grid over Sails and Solr', function () {
           title: `Equal-${suffix}`,
           amount: index === 5 ? null : index,
           active: index % 2 === 0,
+          details: { note: 'nested-value' },
+          people: [{ name: 'One' }, { name: 'Two' }],
           eventDate: `2026-01-0${index + 1}T00:00:00.000Z`,
         },
         metaMetadata: {
@@ -176,11 +205,8 @@ describe('GraphQL grid over Sails and Solr', function () {
         workflow: { stage: index === 7 ? `unregistered-${suffix}` : index === 8 ? 'published' : 'draft' },
         authorization: { view: index === 1 || index === 3 ? [] : [username], edit: [], viewRoles: [], editRoles: [] },
       });
-      await sails.services.solrsearchservice.solrAddOrUpdate({ attrs: { data: await RecordsService.getMeta(oid) } });
     }
-    // Use the real protected pre-index pipeline and one bulk Solr commit for these
-    // isolated fixtures; repeated per-document commits obscure the bounded-query tests.
-    const created = await Record.createEach(
+    await Record.createEach(
       prefixRows.map(row => ({
         redboxOid: row.oid,
         metadata: { title: row.title },
@@ -194,21 +220,13 @@ describe('GraphQL grid over Sails and Solr', function () {
         authorization: { view: row.visible ? [username] : [], edit: [], viewRoles: [], editRoles: [] },
       }))
     ).fetch();
-    const documents = created.map(record =>
-      sails.services.solrsearchservice.preIndex({ ...record, storage_id: record.id })
-    );
-    await axios.post(`${url}/update`, documents, { params: { commit: true } });
   });
   after(async () => {
-    if (url) {
-      await axios.post(`${url}/update`, { delete: { query: `redbox_grid_oid:*${suffix}` }, commit: {} });
-    }
     await Record.destroy({ redboxOid: [...oids, ...prefixRows.map(row => row.oid)] });
     if (formId && formBefore) await Form.updateOne({ id: formId }).set({ configuration: formBefore });
     if (userId) await User.destroy({ id: userId });
     if (ruleId) await PathRule.destroy({ id: ruleId });
     if (configBefore !== undefined) sails.config.recordGraphql = configBefore;
-    if (coreBefore) sails.config.solr.cores.default = coreBefore;
     await firstValueFrom(PathRulesService.loadRules());
   });
   it('uses real bearer authentication and route rules for both collection and catalogue', async () => {
@@ -218,6 +236,33 @@ describe('GraphQL grid over Sails and Solr', function () {
       assert.equal(response.status, 200, JSON.stringify(response.body));
       assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
     }
+  });
+  it('executes matching discovery revisions in Mongo and rejects stale first-page revisions', async () => {
+    const discovery = await send(catalogue);
+    assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+    const revision = discovery.body.data.recordFields.revision;
+    const query = page
+      .replace('query(', 'query($revision:String,')
+      .replace('records(recordType:', 'records(revision:$revision,recordType:');
+    const valid = await send(query, { revision, filters: onlyOurRows });
+    assert.equal(valid.body.errors, undefined, JSON.stringify(valid.body));
+    assert.equal(valid.body.data.records.nodes.length, 2);
+    const stale = await send(query, { revision: `${revision}-stale`, filters: onlyOurRows });
+    assert.equal(stale.body.errors?.[0].extensions.code, 'CATALOGUE_CHANGED');
+    assert.equal(stale.body.data.records, null);
+  });
+  it('uses the default Mongo-backed page size when first is explicitly null', async () => {
+    const filters = [{ field: 'metadata:/title', iprefix: `Boundary-` }];
+    const response = await send(page, { first: null, filters });
+    assert.equal(response.status, 200, JSON.stringify(response.body));
+    assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+    const result = response.body.data.records;
+    assert.deepEqual(
+      result.nodes.map(row => row.oid),
+      boundaryRows.slice(0, 25).map(row => row.oid)
+    );
+    assert.equal(result.hasNextPage, true);
+    assert.equal(typeof result.endCursor, 'string');
   });
   it('requires route read permission for both discovery and collections', async () => {
     await PathRule.updateOne({ id: ruleId }).set({ can_read: false });
@@ -233,7 +278,7 @@ describe('GraphQL grid over Sails and Solr', function () {
       await firstValueFrom(PathRulesService.loadRules());
     }
   });
-  it('discovers real index capabilities and executes server-generated metadata selections', async () => {
+  it('discovers contract capabilities and executes server-generated metadata selections', async () => {
     const response = await send(catalogue);
     assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
     const entries = response.body.data.recordFields.fields;
@@ -266,7 +311,7 @@ describe('GraphQL grid over Sails and Solr', function () {
     const substring = await prefixPage(`qual-${suffix}`);
     assert.equal(substring.body.errors, undefined, JSON.stringify(substring.body));
     assert.deepEqual(substring.body.data.records.nodes, []);
-    // Indexed permissions remain hints: revoke storage access without reindexing.
+    // A permission change takes effect without indexing.
     const authorization = (await RecordsService.getMeta(oids[0])).authorization;
     await Record.updateOne({ redboxOid: oids[0] }).set({ authorization: { ...authorization, view: [] } });
     try {
@@ -277,259 +322,7 @@ describe('GraphQL grid over Sails and Solr', function () {
       await Record.updateOne({ redboxOid: oids[0] }).set({ authorization });
     }
   });
-  it('withdraws discovery and rejects execution when the opt-in or live copy-rule guarantee is absent', async () => {
-    const core = sails.config.solr.cores.default;
-    const mapping = core.recordGraphqlCaseInsensitivePrefixFields;
-    const assertUnsupported = async () => {
-      const discovery = await send(catalogue);
-      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
-      const title = discovery.body.data.recordFields.fields.find(field => field.id === 'metadata:/title');
-      assert.ok(title.operators.includes('EQ'));
-      assert.ok(!title.operators.includes('IPREFIX'));
-      const response = await prefixPage('equal-');
-      assert.equal(response.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(response.body));
-      assert.equal(response.body.data.records, null);
-    };
-    delete core.recordGraphqlCaseInsensitivePrefixFields;
-    try {
-      await assertUnsupported();
-    } finally {
-      core.recordGraphqlCaseInsensitivePrefixFields = mapping;
-    }
-    const copy = { source: fields.title, dest: prefixField.name };
-    await axios.post(`${url}/schema`, { 'add-copy-field': copy });
-    try {
-      await assertUnsupported();
-    } finally {
-      await axios.post(`${url}/schema`, { 'delete-copy-field': copy });
-    }
-    const restored = await send(catalogue);
-    assert.equal(restored.body.errors, undefined, JSON.stringify(restored.body));
-    assert.ok(
-      restored.body.data.recordFields.fields.find(field => field.id === 'metadata:/title').operators.includes('IPREFIX')
-    );
-  });
-  it('supports discovery and collection execution with no configured schema fields or metadata mappings', async () => {
-    const core = sails.config.solr.cores.default;
-    const before = {
-      schema: core.schema,
-      primary: core.recordGraphqlFields,
-      prefix: core.recordGraphqlCaseInsensitivePrefixFields,
-    };
-    core.schema = {};
-    delete core.recordGraphqlFields;
-    delete core.recordGraphqlCaseInsensitivePrefixFields;
-    try {
-      const discovery = await send(
-        '{recordFields(recordType:"dataPublication",workflowStages:["draft"],ids:["record:oid"]){fields{id operators}}}'
-      );
-      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
-      assert.ok(discovery.body.data.recordFields.fields[0].operators.includes('EQ'));
-      const response = await send(page, { filters: [{ field: 'record:oid', eq: { text: oids[0] } }] });
-      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
-      assert.deepEqual(
-        response.body.data.records.nodes.map(row => row.oid),
-        [oids[0]]
-      );
-    } finally {
-      core.schema = before.schema;
-      core.recordGraphqlFields = before.primary;
-      core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
-    }
-  });
-  it('rejects defaulted companions and matches only real strings after removing the Solr default and reindexing', async () => {
-    const core = sails.config.solr.cores.default;
-    const before = { schema: core.schema, prefix: core.recordGraphqlCaseInsensitivePrefixFields };
-    const companion = { ...prefixField, name: `${prefixField.name}_default_test` };
-    const rows = [undefined, null, 42, false, [], { nested: 'text' }, '', 'Ghost-Prefix-real'].map(value =>
-      prefixRow(value)
-    );
-    await axios.post(`${url}/schema`, { 'add-field': { ...companion, default: 'ghost-prefix' } });
-    // Configuration has no default: the live schema alone must withdraw IPREFIX.
-    core.schema = { ...core.schema, 'add-field': [...core.schema['add-field'], companion] };
-    core.recordGraphqlCaseInsensitivePrefixFields = { 'metadata:/title': companion.name };
-    try {
-      const created = await Record.createEach(
-        rows.map(row => ({
-          redboxOid: row.oid,
-          metadata: row.title === undefined ? {} : { title: row.title },
-          metaMetadata: {
-            brandId: brand.id,
-            type: 'dataPublication',
-            form: 'dataPublication-1.0-draft',
-            searchCore: 'default',
-          },
-          workflow: { stage: 'draft' },
-          authorization: { view: [username], edit: [], viewRoles: [], editRoles: [] },
-        }))
-      ).fetch();
-      const documents = created.map(record =>
-        sails.services.solrsearchservice.preIndex({ ...record, storage_id: record.id })
-      );
-      assert.deepEqual(
-        documents.map(document => document.redbox_grid_oid),
-        rows.map(row => row.oid)
-      );
-      for (const document of documents.slice(0, 6)) assert.ok(!Object.hasOwn(document, companion.name));
-      assert.equal(documents[6][companion.name], '');
-      assert.equal(documents[7][companion.name], 'ghost-prefix-real');
-      await axios.post(`${url}/update`, documents, { params: { commit: true } });
-      const rawMatches = async () =>
-        (
-          await axios.get(`${url}/select`, {
-            params: {
-              q: `{!prefix f=${companion.name} v=$needle}`,
-              needle: 'ghost-prefix',
-              fq: '{!terms f=redbox_grid_oid v=$rbFixtureIds}',
-              rbFixtureIds: rows.map(row => row.oid).join(','),
-              rows: 20,
-              fl: 'redbox_grid_oid',
-              wt: 'json',
-            },
-          })
-        ).data.response;
-      // Solr defaults manufacture matches for omitted sources and even the empty string.
-      const polluted = await rawMatches();
-      assert.equal(polluted.numFound, rows.length, JSON.stringify(polluted));
-      assert.deepEqual(polluted.docs.map(row => row.redbox_grid_oid).sort(), rows.map(row => row.oid).sort());
-      const discovery = await send(catalogue);
-      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
-      assert.ok(
-        !discovery.body.data.recordFields.fields
-          .find(field => field.id === 'metadata:/title')
-          .operators.includes('IPREFIX')
-      );
-      const rejected = await prefixPage('ghost-prefix');
-      assert.equal(rejected.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(rejected.body));
-      assert.equal(rejected.body.data.records, null);
-
-      await axios.post(`${url}/schema`, { 'replace-field': companion });
-      await axios.post(`${url}/update`, documents, { params: { commit: true } });
-      assert.equal((await rawMatches()).numFound, 1);
-      const restored = await send(catalogue);
-      assert.equal(restored.body.errors, undefined, JSON.stringify(restored.body));
-      assert.ok(
-        restored.body.data.recordFields.fields
-          .find(field => field.id === 'metadata:/title')
-          .operators.includes('IPREFIX')
-      );
-      const result = await prefixPage('ghost-prefix', 25, [
-        { field: 'record:oid', in: rows.map(row => ({ text: row.oid })) },
-      ]);
-      assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
-      assert.deepEqual(
-        result.body.data.records.nodes.map(row => row.oid),
-        [rows[7].oid]
-      );
-      assert.equal(result.body.data.records.hasNextPage, false);
-    } finally {
-      await axios.post(`${url}/schema`, { 'replace-field': companion });
-      core.schema = before.schema;
-      core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
-    }
-  });
-  it('rejects required companions and indexes omitted sources and unrelated record types after schema repair', async () => {
-    const core = sails.config.solr.cores.default;
-    const before = { schema: core.schema, prefix: core.recordGraphqlCaseInsensitivePrefixFields };
-    const companion = { ...prefixField, name: `${prefixField.name}_required_test`, required: false };
-    const rows = [undefined, null, 42, false, [], { nested: 'text' }, '', 'Required-Actual'].map(value =>
-      prefixRow(value)
-    );
-    const unrelated = prefixRow(undefined);
-    rows.push(unrelated);
-    const created = await Record.createEach(
-      rows.map(row => ({
-        redboxOid: row.oid,
-        metadata: row.title === undefined ? {} : { title: row.title },
-        metaMetadata: {
-          brandId: brand.id,
-          type: row === unrelated ? 'rdmp' : 'dataPublication',
-          form: row === unrelated ? 'rdmp-1.0-draft' : 'dataPublication-1.0-draft',
-          searchCore: 'default',
-        },
-        workflow: { stage: 'draft' },
-        authorization: { view: [username], edit: [], viewRoles: [], editRoles: [] },
-      }))
-    ).fetch();
-    await axios.post(`${url}/schema`, { 'add-field': { ...companion, required: true } });
-    // Configuration permits omission, so this independently exercises live required:true.
-    core.schema = { ...core.schema, 'add-field': [...core.schema['add-field'], companion] };
-    core.recordGraphqlCaseInsensitivePrefixFields = { 'metadata:/title': companion.name };
-    try {
-      const documents = created.map(record =>
-        sails.services.solrsearchservice.preIndex({ ...record, storage_id: record.id })
-      );
-      const omitted = [...documents.slice(0, 6), documents[8]];
-      for (const document of omitted) assert.ok(!Object.hasOwn(document, companion.name));
-      assert.equal(documents[6][companion.name], '');
-      assert.equal(documents[7][companion.name], 'required-actual');
-      const discovery = await send(catalogue);
-      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
-      assert.ok(
-        !discovery.body.data.recordFields.fields
-          .find(field => field.id === 'metadata:/title')
-          .operators.includes('IPREFIX')
-      );
-      const rejected = await prefixPage('required');
-      assert.equal(rejected.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(rejected.body));
-      assert.equal(rejected.body.data.records, null);
-
-      // Solr enforces required fields across every record type in the core.
-      for (const document of omitted) {
-        const response = await axios.post(`${url}/update`, [document], {
-          params: { commit: true },
-          validateStatus: () => true,
-        });
-        assert.equal(response.status, 400, JSON.stringify(response.data));
-        assert.match(response.data.error.msg, /missing required field/);
-        assert.ok(response.data.error.msg.includes(companion.name), JSON.stringify(response.data));
-      }
-
-      // Capability rejection cannot fix a required live field; repair it before retrying indexing.
-      await axios.post(`${url}/schema`, { 'replace-field': companion });
-      const indexed = await axios.post(`${url}/update`, documents, { params: { commit: true } });
-      assert.equal(indexed.data.responseHeader.status, 0, JSON.stringify(indexed.data));
-      const scope = {
-        fq: '{!terms f=redbox_grid_oid v=$rbRequiredFixtureIds}',
-        rbRequiredFixtureIds: rows.map(row => row.oid).join(','),
-        rows: 20,
-        fl: 'redbox_grid_oid,redbox_grid_type',
-        wt: 'json',
-      };
-      const all = (await axios.get(`${url}/select`, { params: { ...scope, q: '*:*' } })).data.response;
-      assert.equal(all.numFound, rows.length, JSON.stringify(all));
-      assert.deepEqual(all.docs.map(row => row.redbox_grid_oid).sort(), rows.map(row => row.oid).sort());
-      assert.equal(all.docs.find(row => row.redbox_grid_oid === unrelated.oid).redbox_grid_type, 'rdmp');
-      const matches = (
-        await axios.get(`${url}/select`, {
-          params: { ...scope, q: `{!prefix f=${companion.name} v=$rbRequiredPrefix}`, rbRequiredPrefix: 'required' },
-        })
-      ).data.response;
-      assert.equal(matches.numFound, 1, JSON.stringify(matches));
-      assert.equal(matches.docs[0].redbox_grid_oid, rows[7].oid);
-      const restored = await send(catalogue);
-      assert.equal(restored.body.errors, undefined, JSON.stringify(restored.body));
-      assert.ok(
-        restored.body.data.recordFields.fields
-          .find(field => field.id === 'metadata:/title')
-          .operators.includes('IPREFIX')
-      );
-      const result = await prefixPage('required', 25, [
-        { field: 'record:oid', in: rows.map(row => ({ text: row.oid })) },
-      ]);
-      assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
-      assert.deepEqual(
-        result.body.data.records.nodes.map(row => row.oid),
-        [rows[7].oid]
-      );
-      assert.equal(result.body.data.records.hasNextPage, false);
-    } finally {
-      core.schema = before.schema;
-      core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
-      await axios.post(`${url}/schema`, { 'replace-field': companion });
-    }
-  });
-  it('matches positive literal wildcard, quote, backslash, bracket and search-syntax prefixes in real Solr', async () => {
+  it('matches positive literal wildcard, quote, backslash, bracket and search-syntax prefixes in real Mongo', async () => {
     for (const [i, p] of literalPrefixes.entries()) {
       const response = await prefixPage(p, 50);
       assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
@@ -564,7 +357,7 @@ describe('GraphQL grid over Sails and Solr', function () {
       assert.deepEqual(response.body.data.records.nodes, []);
     }
   });
-  it('proves 25 versus 26 visible prefix matches and keeps sparse ACL failure explicit', async () => {
+  it('proves 25 versus 26 visible prefix matches and excludes sparse inaccessible records in Mongo', async () => {
     const exact = await prefixPage(`boundary-exact25-${suffix}`);
     assert.equal(exact.body.errors, undefined, JSON.stringify(exact.body));
     assert.deepEqual(
@@ -580,8 +373,102 @@ describe('GraphQL grid over Sails and Solr', function () {
     assert.ok(more.body.data.records.endCursor);
     assert.ok(!JSON.stringify(more.body).includes('total'));
     const sparse = await prefixPage(sparsePrefix);
-    assert.equal(sparse.body.errors?.[0].extensions.code, 'COLLECTION_LIMIT', JSON.stringify(sparse.body));
-    assert.equal(sparse.body.data.records, null);
+    assert.equal(sparse.body.errors, undefined, JSON.stringify(sparse.body));
+    assert.deepEqual(sparse.body.data.records.nodes, []);
+    assert.equal(sparse.body.data.records.hasNextPage, false);
+  });
+  it('discovers form-declared scalar lists and filters/sorts them by element over HTTP with cursor paging', async () => {
+    const discovery = await send(
+      '{recordFields(recordType:"dataPublication",workflowStages:["draft"],ids:["metadata:/colours","metadata:/keywords","metadata:/people","metadata:/title"]){revision fields{id cardinality repeating scalarType filterable sortable operators choices{label value}}}}'
+    );
+    assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+    const [colours, keywords, people, title] = discovery.body.data.recordFields.fields;
+    for (const field of [colours, keywords]) {
+      assert.equal(field.cardinality, 'LIST', field.id);
+      assert.equal(field.repeating, true, field.id);
+      assert.equal(field.scalarType, 'STRING', field.id);
+      assert.equal(field.filterable, true, field.id);
+      assert.equal(field.sortable, true, field.id);
+    }
+    // Configured option labels apply to list choices; order follows the compiled enum, as for scalars.
+    assert.deepEqual(colours.choices.map(choice => [choice.label, choice.value]).sort(), [
+      ['Blue', 'blue'],
+      ['Green', 'green'],
+      ['Red', 'red'],
+    ]);
+    assert.equal(people.cardinality, 'LIST');
+    assert.equal(people.filterable, false);
+    assert.equal(people.sortable, false);
+    assert.equal(title.cardinality, 'SCALAR');
+    const rows = [
+      { colours: ['red', 'blue'], keywords: ['b', 'y'] },
+      { colours: ['green'], keywords: ['a'] },
+      { colours: 'red', keywords: [] },
+      { colours: [['red']], keywords: null },
+      { colours: ['red'], keywords: ['0'], denied: true },
+      { colours: ['blue', 'red'], keywords: ['b', 'c', 'z'] },
+    ];
+    const ids = rows.map((_, index) => `grid-list-${index}-${suffix}`);
+    try {
+      await Record.createEach(
+        rows.map(({ denied, ...metadata }, index) => ({
+          redboxOid: ids[index],
+          metadata: { title: `List-${suffix}`, ...metadata },
+          metaMetadata: { brandId: brand.id, type: 'dataPublication', form: 'dataPublication-1.0-draft' },
+          workflow: { stage: 'draft' },
+          authorization: { view: denied ? [] : [username], edit: [], viewRoles: [], editRoles: [] },
+        }))
+      );
+      const scope = idsFilter(ids);
+      for (const [filter, expected] of [
+        [{ field: colours.id, eq: { text: 'red' } }, [ids[0], ids[5]]],
+        [{ field: colours.id, in: [{ text: 'green' }, { text: 'purple' }] }, [ids[1]]],
+        [{ field: colours.id, exists: false }, [ids[2], ids[3]]],
+        [{ field: keywords.id, iprefix: 'Y' }, [ids[0]]],
+      ] as const) {
+        const response = await send(page, { filters: [scope, { ...filter, expectedCardinality: 'LIST' }], first: 50 });
+        assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+        assert.deepEqual(resultIds(response), expected, JSON.stringify(filter));
+      }
+      for (const [direction, expected] of [
+        // ASC uses each record's smallest value; DESC its largest. Missing/empty sort as null with OID ties.
+        ['ASC', [ids[2], ids[3], ids[1], ids[0], ids[5]]],
+        ['DESC', [ids[5], ids[0], ids[1], ids[2], ids[3]]],
+      ] as const) {
+        const seen: string[] = [];
+        let after: string | null = null;
+        for (let n = 0; n < 5; n++) {
+          const response = await send(page, {
+            filters: [scope],
+            sort: [{ field: keywords.id, direction, expectedCardinality: 'LIST' }],
+            first: 2,
+            after,
+          });
+          assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+          seen.push(...resultIds(response));
+          if (n === 2) {
+            assert.equal(resultIds(response).length, 1);
+            assert.equal(response.body.data.records.hasNextPage, false);
+            assert.equal(response.body.data.records.endCursor, null);
+          }
+          if (!response.body.data.records.hasNextPage) {
+            assert.equal(n, 2);
+            break;
+          }
+          after = response.body.data.records.endCursor;
+        }
+        assert.deepEqual(seen, expected, direction);
+      }
+      // Sort keys use all values regardless of a filter matching only one of them.
+      const filtered = await send(page, {
+        filters: [scope, { field: keywords.id, eq: { text: 'b' } }],
+        sort: [{ field: keywords.id, direction: 'DESC' }],
+        first: 50,
+      });
+      assert.deepEqual(resultIds(filtered), [ids[5], ids[0]]);
+    } finally {
+      await Record.destroy({ redboxOid: ids });
+    }
   });
   it('rejects empty, malformed and oversized query prefixes and unsupported bindings through HTTP', async () => {
     for (const p of ['', '\ud800', '\udfff', 'x\ud800y', 'a'.repeat(257), 'é'.repeat(129), null]) {
@@ -594,7 +481,7 @@ describe('GraphQL grid over Sails and Solr', function () {
       assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
       assert.deepEqual(response.body.data.records.nodes, []);
     }
-    for (const field of ['record:oid', 'metadata:/amount', 'metadata:/active', 'metadata:/eventDate']) {
+    for (const field of ['metadata:/amount', 'metadata:/active', 'metadata:/eventDate']) {
       const response = await send(page, { filters: [{ field, iprefix: 'a' }] });
       assert.equal(response.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(response.body));
       assert.equal(response.body.data.records, null);
@@ -616,7 +503,7 @@ describe('GraphQL grid over Sails and Solr', function () {
     assert.ok(!JSON.stringify(first.body).includes('total'));
     assert.ok(!JSON.stringify(rows).includes(oids[1]));
   });
-  it('executes typed numeric, date and boolean filters in Solr with explicit sorting', async () => {
+  it('executes typed numeric, date and boolean filters in Mongo with explicit sorting', async () => {
     const result = await send(page, {
       filters: [
         ...onlyOurRows,
@@ -661,7 +548,7 @@ describe('GraphQL grid over Sails and Solr', function () {
       [oids[2]]
     );
   });
-  it('limits omitted and empty stage scopes to configured stages in Solr and storage', async () => {
+  it('limits omitted and empty stage scopes to configured stages in Mongo and storage', async () => {
     const query = `query($stages:[String!],$filters:[RecordFilterInput!]){records(recordType:"dataPublication",workflowStages:$stages,filters:$filters,first:50){nodes{oid workflowStep} hasNextPage endCursor}}`;
     const filters = [{ field: 'record:oid', in: oids.map(text => ({ text })) }];
     for (const stages of [undefined, [], ['draft']]) {
@@ -672,14 +559,6 @@ describe('GraphQL grid over Sails and Solr', function () {
       assert.equal(response.body.data.records.hasNextPage, false);
       assert.equal(response.body.data.records.endCursor, null);
     }
-    // Simulate an index that still claims a configured stage after storage moved.
-    const stored = await RecordsService.getMeta(oids[7]);
-    await sails.services.solrsearchservice.solrAddOrUpdate({
-      attrs: { data: { ...stored, workflow: { stage: 'draft' } } },
-    });
-    const stale = await send(query, { filters });
-    assert.equal(stale.body.errors, undefined, JSON.stringify(stale.body));
-    assert.ok(!stale.body.data.records.nodes.some(row => row.oid === oids[7]));
   });
   it('rejects invalid timestamp components through the authenticated HTTP contract', async () => {
     for (const dateTime of ['2026-01-01T00:00:00+99:99', '2026-01-01T24:00:00Z', '2026-01-01T00:00:00-01:60']) {
@@ -708,6 +587,487 @@ describe('GraphQL grid over Sails and Solr', function () {
       const result = await send(page, variables);
       assert.ok(result.body.errors);
       assert.equal(result.body.data.records, null);
+    }
+  });
+  async function fixture(
+    metadata: object,
+    authorization = { view: [username], edit: [], viewRoles: [], editRoles: [] },
+    overrides: object = {}
+  ) {
+    const row = prefixRow('fixture');
+    await Record.create({
+      redboxOid: row.oid,
+      metadata,
+      metaMetadata: { brandId: brand.id, type: 'dataPublication', form: 'dataPublication-1.0-draft' },
+      workflow: { stage: 'draft' },
+      authorization,
+      ...overrides,
+    });
+    return row.oid;
+  }
+  const idsFilter = (ids: string[]) => ({ field: 'record:oid', in: ids.map(text => ({ text })) });
+  const resultIds = response => {
+    assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+    return response.body.data.records.nodes.map(row => row.oid);
+  };
+  it('reads current Mongo writes while the configured search provider and Solr config are unavailable', async () => {
+    const search = sails.config.search.serviceName;
+    const solr = sails.config.solr;
+    sails.config.search.serviceName = 'not-installed';
+    sails.config.solr = undefined;
+    try {
+      const oid = await fixture({ title: 'before-write', amount: 10 });
+      const discovery = await send(catalogue);
+      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+      const filters = [idsFilter([oid]), { field: 'metadata:/title', eq: { text: 'before-write' } }];
+      assert.deepEqual(resultIds(await send(page, { filters })), [oid]);
+      await Record.updateOne({ redboxOid: oid }).set({ metadata: { title: 'after-write', amount: 11 } });
+      assert.deepEqual(resultIds(await send(page, { filters })), []);
+      assert.deepEqual(
+        resultIds(await send(page, { filters: [idsFilter([oid]), { field: 'metadata:/amount', eq: { number: 11 } }] })),
+        [oid]
+      );
+    } finally {
+      sails.config.search.serviceName = search;
+      sails.config.solr = solr;
+    }
+  });
+  it('applies ACLs inside Mongo before hydration even if the defensive access override is permissive', async () => {
+    const originalAccess = RecordsService.hasViewAccess;
+    const originalRead = RecordsService.getMeta;
+    const hydrated: string[] = [];
+    RecordsService.hasViewAccess = () => true;
+    RecordsService.getMeta = async oid => {
+      hydrated.push(oid);
+      return originalRead.call(RecordsService, oid);
+    };
+    try {
+      assert.deepEqual(
+        resultIds(await send(page, { filters: [idsFilter(oids)], first: 50 })),
+        [oids[0], oids[2], oids[4], oids[5]].sort()
+      );
+      for (const oid of [oids[1], oids[3], oids[6], oids[7], oids[8]]) assert.ok(!hydrated.includes(oid));
+    } finally {
+      RecordsService.hasViewAccess = originalAccess;
+      RecordsService.getMeta = originalRead;
+    }
+  });
+  it('matches canonical role IDs, viewer/editor grants and legacy ACLs without implicit Admin or public access', async () => {
+    const empty = { view: [], edit: [], viewRoles: [], editRoles: [] };
+    const userView = await fixture({ title: 'acl' }, { ...empty, view: ['acl-reader'] });
+    const userEdit = await fixture({ title: 'acl' }, { ...empty, edit: ['acl-reader'] });
+    const researcher = await fixture({ title: 'acl' }, { ...empty, viewRoles: ['Researcher'] });
+    const admin = await fixture({ title: 'acl' }, { ...empty, editRoles: ['Admin'] });
+    const guest = await fixture({ title: 'acl' }, { ...empty, viewRoles: ['Guest'] });
+    const nobody = await fixture({ title: 'acl' }, empty);
+    const legacy = await fixture({ title: 'acl' }, null, { authorization_view: 'acl-reader' });
+    // Nested authorization takes precedence over a legacy grant.
+    const shadowed = await fixture({ title: 'acl' }, empty);
+    const native = Record.getDatastore().manager.collection(Record.tableName);
+    await native.updateOne({ redboxOid: legacy }, { $set: { authorization_view: 'acl-reader' } });
+    await native.updateOne({ redboxOid: shadowed }, { $set: { authorization_view: 'acl-reader' } });
+    const ids = [userView, userEdit, researcher, admin, guest, nobody, legacy, shadowed];
+    for (const [roleName, granted] of [
+      ['Researcher', researcher],
+      ['Admin', admin],
+      ['Guest', guest],
+    ]) {
+      const role = RolesService.getRole(brand, roleName);
+      assert.ok(role, roleName);
+      const caller = {
+        brand,
+        portal: 'rdmp',
+        user: { id: 'acl-reader', username: 'acl-reader' },
+        roles: [{ id: role.id }],
+      };
+      const response = await RecordGraphqlService.execute(caller, {
+        query: page,
+        variables: { filters: [idsFilter(ids)], first: 50 },
+      });
+      assert.deepEqual(resultIds({ body: response.data }).sort(), [userView, userEdit, granted, legacy].sort());
+      const impostor = await RecordGraphqlService.execute(
+        { ...caller, roles: [{ id: 'wrong-id', name: roleName }] },
+        { query: page, variables: { filters: [idsFilter(ids)], first: 50 } }
+      );
+      assert.deepEqual(resultIds({ body: impostor.data }).sort(), [userView, userEdit, legacy].sort());
+    }
+  });
+  it('matches hasViewAccess for scalar role grants, legacy precedence and stringified owned IDs before hydration', async () => {
+    const native = Record.getDatastore().manager.collection(Record.tableName);
+    const objectId = new ObjectId();
+    const roleBrand = {
+      ...brand,
+      roles: [
+        { id: '123', name: '123' },
+        { id: 'fraction', name: '1.5' },
+        { id: 'boolean', name: 'true' },
+        { id: 'leading-zero', name: '01' },
+        { id: 'exponent', name: '1e+21' },
+        { id: objectId.toHexString(), name: 'Researcher' },
+        { id: 'duplicate', name: '123' },
+      ],
+    };
+    const roles = [
+      { id: 123 },
+      { id: 'fraction' },
+      { id: 'boolean' },
+      { id: 'leading-zero' },
+      { id: 'exponent' },
+      { id: objectId },
+    ];
+    const caller = {
+      brand: roleBrand,
+      portal: 'rdmp',
+      user: { id: 'scalar-reader', username: 'scalar-reader' },
+      roles,
+    };
+    const cases = [
+      { authorization: { viewRoles: 123 } },
+      { authorization: { editRoles: [123, 'unowned'] } },
+      { authorization: { viewRoles: 1.5 } },
+      { authorization: { viewRoles: true } },
+      { authorization: { viewRoles: '01' } },
+      { authorization: { viewRoles: 1e21 } },
+      { authorization: { viewRoles: 'Researcher' } },
+      { authorization: { view: 'scalar-reader' } },
+      { authorization: null, authorization_viewRoles: 123 },
+      { authorization: false, authorization_editRoles: true },
+      { authorization: {}, authorization_viewRoles: 123 },
+      { authorization: [], authorization_viewRoles: 123 },
+      { authorization: { viewRoles: 1 } },
+      { authorization: { viewRoles: 'unowned' } },
+      { authorization: { view: 123 } },
+      { authorization: { viewRoles: Long.fromNumber(123) } },
+    ];
+    const ids: string[] = [];
+    for (const stored of cases) {
+      const oid = await fixture({ title: 'scalar-acl' });
+      await native.updateOne({ redboxOid: oid }, { $set: stored });
+      ids.push(oid);
+    }
+    const stored = await native.find({ redboxOid: { $in: ids } }).toArray();
+    const expected = stored
+      .filter(record => RecordsService.hasViewAccess(roleBrand, caller.user, roles, record))
+      .map(record => record.redboxOid)
+      .sort();
+    assert.equal(expected.length, 11);
+    const access = RecordsService.hasViewAccess;
+    const hydrated: string[] = [];
+    RecordsService.hasViewAccess = (...args) => {
+      hydrated.push(args[3].redboxOid);
+      return access(...args);
+    };
+    try {
+      const response = await RecordGraphqlService.execute(caller, {
+        query: page,
+        variables: { filters: [idsFilter(ids)], first: 50 },
+      });
+      assert.deepEqual(resultIds({ body: response.data }).sort(), expected);
+      assert.deepEqual(hydrated.sort(), expected);
+      const duplicate = await RecordGraphqlService.execute(
+        { ...caller, roles: [{ id: 'duplicate' }] },
+        { query: page, variables: { filters: [idsFilter(ids)], first: 50 } }
+      );
+      assert.deepEqual(resultIds({ body: duplicate.data }), [ids[7]]);
+    } finally {
+      RecordsService.hasViewAccess = access;
+    }
+    // Non-JSON grants that String(value) could coerce are intentionally excluded.
+    const malformed: string[] = [];
+    for (const grant of [['Researcher'], { name: 'Researcher' }, Decimal128.fromString('123.000')]) {
+      const oid = await fixture({ title: 'malformed-acl' });
+      await native.updateOne({ redboxOid: oid }, { $set: { authorization: { viewRoles: [grant] } } });
+      malformed.push(oid);
+    }
+    const response = await RecordGraphqlService.execute(caller, {
+      query: page,
+      variables: { filters: [idsFilter(malformed)], first: 50 },
+    });
+    assert.deepEqual(resultIds({ body: response.data }), []);
+  });
+  it('paginates duplicate and null keys in both directions, treating invalid scalar storage as missing', async () => {
+    const ids: string[] = [];
+    for (const amount of [null, undefined, '3', [3], { value: 3 }, 3, 3, 8])
+      ids.push(await fixture({ title: 'sort-null', ...(amount === undefined ? {} : { amount }) }));
+    for (const direction of ['ASC', 'DESC']) {
+      const rows: string[] = [];
+      let after: string | null = null;
+      for (let n = 0; n < 6; n++) {
+        const response = await send(page, {
+          filters: [idsFilter(ids)],
+          sort: [{ field: 'metadata:/amount', direction }],
+          first: 2,
+          after,
+        });
+        const current = resultIds(response);
+        assert.ok(current.length > 0, JSON.stringify(response.body));
+        rows.push(...current);
+        if (!response.body.data.records.hasNextPage) {
+          assert.equal(response.body.data.records.endCursor, null);
+          break;
+        }
+        after = response.body.data.records.endCursor;
+        assert.ok(after);
+      }
+      assert.deepEqual(rows, direction === 'ASC' ? ids : [ids[7], ids[5], ids[6], ...ids.slice(0, 5)]);
+      assert.equal(new Set(rows).size, ids.length);
+    }
+    assert.deepEqual(
+      resultIds(
+        await send(page, { filters: [idsFilter(ids), { field: 'metadata:/amount', gt: { number: 2 } }], first: 50 })
+      ),
+      ids.slice(5)
+    );
+    assert.deepEqual(
+      resultIds(
+        await send(page, { filters: [idsFilter(ids), { field: 'metadata:/amount', exists: false }], first: 50 })
+      ),
+      ids.slice(0, 5)
+    );
+  });
+  it('enforces integer and boolean storage types with compound keyset sorting', async () => {
+    const ids: string[] = [];
+    for (const [count, active] of [
+      [null, null],
+      [2.5, 'true'],
+      ['2', 1],
+      [2, true],
+      [2, false],
+      [3, true],
+    ])
+      ids.push(await fixture({ title: 'compound', count, active }));
+    const sort = [
+      { field: 'metadata:/count', direction: 'ASC' },
+      { field: 'metadata:/active', direction: 'DESC' },
+    ];
+    const first = await send(page, { filters: [idsFilter(ids)], sort, first: 3 });
+    assert.deepEqual(resultIds(first), ids.slice(0, 3));
+    assert.equal(first.body.data.records.hasNextPage, true);
+    const last = await send(page, {
+      filters: [idsFilter(ids)],
+      sort,
+      first: 3,
+      after: first.body.data.records.endCursor,
+    });
+    assert.deepEqual(resultIds(last), ids.slice(3));
+    assert.equal(last.body.data.records.hasNextPage, false);
+    assert.deepEqual(
+      resultIds(
+        await send(page, {
+          filters: [
+            idsFilter(ids),
+            { field: 'metadata:/count', in: [{ number: 2 }, { number: 3 }] },
+            { field: 'metadata:/active', in: [{ boolean: true }] },
+          ],
+          first: 50,
+        })
+      ),
+      [ids[3], ids[5]]
+    );
+    for (const number of [2.5, Number.MAX_SAFE_INTEGER + 1]) {
+      const response = await send(page, { filters: [{ field: 'metadata:/count', eq: { number } }] });
+      assert.equal(response.body.errors?.[0].extensions.code, 'INVALID_FILTER_VALUE');
+    }
+  });
+  it('normalizes stored dates across BSON, offsets, UTC, date-only and legacy local formats', async () => {
+    const ids: string[] = [];
+    for (const eventDate of [
+      '2026-01-02T12:00:00+12:00',
+      '2026-01-02T00:00:00Z',
+      '2026-01-02',
+      '2026-01-02T00:00:00',
+      '2026-02-30',
+      '2026-01-02T24:00:00Z',
+      1767312000000,
+      ['2026-01-02'],
+      null,
+    ])
+      ids.push(await fixture({ title: 'date-normalization', eventDate }));
+    const bson = await fixture({ title: 'date-bson' });
+    await Record.getDatastore()
+      .manager.collection(Record.tableName)
+      .updateOne({ redboxOid: bson }, { $set: { 'metadata.eventDate': new Date('2026-01-02T00:00:00Z') } });
+    ids.push(bson);
+    const match = await send(page, {
+      filters: [idsFilter(ids), { field: 'metadata:/eventDate', eq: { dateTime: '2026-01-02T00:00:00Z' } }],
+      first: 50,
+    });
+    assert.deepEqual(resultIds(match), [...ids.slice(0, 4), bson]);
+    const missing = await send(page, {
+      filters: [idsFilter(ids), { field: 'metadata:/eventDate', exists: false }],
+      first: 50,
+    });
+    assert.deepEqual(resultIds(missing), ids.slice(4, 9));
+    const sort = [{ field: 'metadata:/eventDate', direction: 'ASC' }];
+    const seen: string[] = [];
+    let after: string | null = null;
+    for (let n = 0; n < 6; n++) {
+      const response = await send(page, { filters: [idsFilter(ids)], sort, first: 2, after });
+      const current = resultIds(response);
+      assert.ok(current.length);
+      seen.push(...current);
+      if (!response.body.data.records.hasNextPage) break;
+      after = response.body.data.records.endCursor;
+      assert.ok(after);
+    }
+    assert.deepEqual(seen, [...ids.slice(4, 9), ...ids.slice(0, 4), bson]);
+  });
+  it('uses declared nested scalar paths and rejects arrays, undeclared paths and wrong filter types', async () => {
+    const catalogueResponse = await send(
+      '{recordFields(recordType:"dataPublication",workflowStages:["draft"]){fields{id path repeating filterable sortable selections{selection responsePath}}}}'
+    );
+    assert.equal(catalogueResponse.body.errors, undefined, JSON.stringify(catalogueResponse.body));
+    const fields = catalogueResponse.body.data.recordFields.fields;
+    assert.equal(fields.find(field => field.id === 'metadata:/details/note').filterable, true);
+    assert.equal(fields.find(field => field.id === 'metadata:/people').filterable, false);
+    assert.ok(fields.some(field => field.repeating && !field.filterable && !field.sortable));
+    const valid = await fixture({ details: { note: '$literal.*[x]' } });
+    const array = await fixture({ details: [{ note: '$literal.*[x]' }] });
+    assert.deepEqual(
+      resultIds(
+        await send(page, {
+          filters: [idsFilter([valid, array]), { field: 'metadata:/details/note', eq: { text: '$literal.*[x]' } }],
+        })
+      ),
+      [valid]
+    );
+    for (const filter of [
+      { field: 'metadata:/details/note', contains: '.*[x]' },
+      { field: 'metadata:/details/note', iprefix: '$LITERAL.' },
+    ])
+      assert.deepEqual(resultIds(await send(page, { filters: [idsFilter([valid, array]), filter] })), [valid]);
+    for (const filter of [
+      { field: 'metadata:/people', exists: true },
+      { field: 'metadata:/details.$where', exists: true },
+      { field: 'metadata:/amount', eq: { text: '3' } },
+      { field: 'metadata:/active', gt: { boolean: true } },
+      { field: 'metadata:/eventDate', eq: { dateTime: '2026-02-30T00:00:00Z' } },
+      { field: 'metadata:/amount', between: { from: { number: 3 }, to: { number: 2 } } },
+    ]) {
+      const response = await send(page, { filters: [filter] });
+      assert.ok(response.body.errors, JSON.stringify(filter));
+      assert.equal(response.body.data.records, null);
+    }
+  });
+  it('binds encrypted continuations to actor, brand, scope, sort, filters and read schema', async () => {
+    const variables = { filters: onlyOurRows, first: 1 };
+    const response = await send(page, variables);
+    const cursor = response.body.data.records.endCursor;
+    assert.ok(cursor);
+    for (const changed of [
+      { after: cursor.slice(0, -6) + 'ABCDEF' },
+      { after: cursor, filters: [...onlyOurRows, { field: 'metadata:/active', exists: true }] },
+      { after: cursor, sort: [{ field: 'metadata:/title', direction: 'DESC' }] },
+      { after: cursor, first: 2 },
+    ]) {
+      const result = await send(page, { ...variables, ...changed });
+      assert.equal(result.body.errors?.[0].extensions.code, 'INVALID_CURSOR', JSON.stringify(result.body));
+    }
+    const role = RolesService.getRole(brand, 'Researcher');
+    for (const caller of [
+      { brand, portal: 'rdmp', user: { id: userId, username: 'different-actor' }, roles: [{ id: role.id }] },
+      {
+        brand: { ...brand, id: 'foreign-brand' },
+        portal: 'rdmp',
+        user: { id: userId, username },
+        roles: [{ id: role.id }],
+      },
+    ]) {
+      const result = await RecordGraphqlService.execute(caller, {
+        query: page,
+        variables: { ...variables, after: cursor },
+      });
+      assert.equal(
+        result.data.errors?.[0].extensions.code,
+        caller.brand.id === brand.id ? 'INVALID_CURSOR' : 'UNKNOWN_RECORD_TYPE',
+        JSON.stringify(result)
+      );
+    }
+    const changedType = await send(page.replace('recordType:"dataPublication"', 'recordType:"rdmp"'), {
+      ...variables,
+      filters: [idsFilter(oids.slice(0, 2))],
+      after: cursor,
+    });
+    assert.equal(changedType.body.errors?.[0].extensions.code, 'INVALID_CURSOR', JSON.stringify(changedType.body));
+    const changedStage = await send(
+      'query($after:String,$filters:[RecordFilterInput!]){records(recordType:"dataPublication",workflowStages:["published"],first:1,after:$after,filters:$filters){hasNextPage}}',
+      { after: cursor, filters: onlyOurRows }
+    );
+    assert.equal(changedStage.body.errors?.[0].extensions.code, 'INVALID_CURSOR', JSON.stringify(changedStage.body));
+    const form = await Form.findOne({ id: formId });
+    await Form.updateOne({ id: formId }).set({
+      configuration: {
+        ...form.configuration,
+        componentDefinitions: [
+          ...form.configuration.componentDefinitions,
+          { name: 'newSchemaField', component: { class: 'SimpleInputComponent' } },
+        ],
+      },
+    });
+    try {
+      const changedSchema = await send(page, { ...variables, after: cursor });
+      assert.equal(
+        changedSchema.body.errors?.[0].extensions.code,
+        'INVALID_CURSOR',
+        JSON.stringify(changedSchema.body)
+      );
+    } finally {
+      await Form.updateOne({ id: formId }).set({ configuration: form.configuration });
+    }
+  });
+  it('fails clearly for unsupported providers, storage failures and sparse defensive overrides', async () => {
+    const storage = sails.services[sails.config.storage.serviceName];
+    const execute = storage.executeRecordCollection;
+    storage.executeRecordCollection = undefined;
+    try {
+      const result = await send(page);
+      assert.equal(result.body.errors?.[0].extensions.code, 'COLLECTION_UNAVAILABLE', JSON.stringify(result.body));
+    } finally {
+      storage.executeRecordCollection = execute;
+    }
+    storage.executeRecordCollection = async () => {
+      throw new Error('Mongo offline: private details');
+    };
+    try {
+      const result = await send(page);
+      assert.equal(result.body.errors?.[0].extensions.code, 'STORAGE_UNAVAILABLE', JSON.stringify(result.body));
+      assert.ok(!JSON.stringify(result.body).includes('private details'));
+    } finally {
+      storage.executeRecordCollection = execute;
+    }
+    const access = RecordsService.hasViewAccess;
+    RecordsService.hasViewAccess = (...args) =>
+      !String(args[3].metadata.title).startsWith('Boundary-') && access.apply(RecordsService, args);
+    try {
+      const result = await prefixPage('boundary-');
+      assert.deepEqual(resultIds(result), []);
+      assert.equal(result.body.data.records.hasNextPage, false);
+    } finally {
+      RecordsService.hasViewAccess = access;
+    }
+    // Work-bound exhaustion is an error, never a false empty page or continuation.
+    const count = 201;
+    const prefix = `override-${suffix}`;
+    await Record.createEach(
+      Array.from({ length: count }, () => {
+        const row = prefixRow(prefix);
+        return {
+          redboxOid: row.oid,
+          metadata: { title: prefix },
+          metaMetadata: { brandId: brand.id, type: 'dataPublication', form: 'dataPublication-1.0-draft' },
+          workflow: { stage: 'draft' },
+          authorization: { view: [username] },
+        };
+      })
+    );
+    RecordsService.hasViewAccess = (...args) =>
+      !String(args[3].metadata.title).startsWith(prefix) && access.apply(RecordsService, args);
+    try {
+      const result = await prefixPage(prefix);
+      assert.equal(result.body.errors?.[0].extensions.code, 'COLLECTION_LIMIT', JSON.stringify(result.body));
+      assert.equal(result.body.data.records, null);
+    } finally {
+      RecordsService.hasViewAccess = access;
     }
   });
 });

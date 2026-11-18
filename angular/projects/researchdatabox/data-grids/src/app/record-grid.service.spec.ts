@@ -9,8 +9,10 @@ import { emptyGrid, GridCatalogue, GridPage, GridQuery, GridScope, queryFor } fr
 import {
   collectionRequest,
   discoveryQuery,
+  fieldErrorLocation,
   parseDiscovery,
   parsePage,
+  partialFieldErrors,
   parseSavedDefinition,
   parseSavedQuery,
   scopeId,
@@ -38,7 +40,7 @@ const oid = {
   labelKey: null,
   selections: [{ variant: '', selection: 'oid', responsePath: ['oid'] }],
 };
-const discovery = (fields = [title, oid], revision = 'r1') => ({
+const discovery = (fields: object[] = [title, oid], revision = 'r1') => ({
   revision,
   variants: [{ workflowStage: 'draft' }, { workflowStage: 'review' }],
   fields,
@@ -212,6 +214,131 @@ describe('RecordGridService HTTP contract', () => {
     expect(generated?.query).toContain(title.selections[0].selection);
     expect(generated?.query).not.toContain('injected');
   }));
+  it('retains usable raw GraphQL rows when a nested free-form alias fails', fakeAsync(() => {
+    let data: unknown, failure: unknown;
+    // Prefer the additive response API, retaining the original strict raw fallback for older sources.
+    const execution = service.rawResponse
+      ? service
+          .rawResponse('{ plans: records(recordType:"plan") { nodes { oid title: workflowStep } } }', {})
+          .then(response => response.data)
+      : service.raw('{ plans: records(recordType:"plan") { nodes { oid title: workflowStep } } }', {});
+    execution.then(
+      value => (data = value),
+      error => (failure = error)
+    );
+    flushMicrotasks();
+    const partial = {
+      plans: {
+        nodes: [
+          { oid: 'broken', title: null },
+          { oid: 'empty', title: null },
+          { oid: 'usable', title: 'Draft' },
+        ],
+      },
+    };
+    http.expectOne(url).flush({
+      data: partial,
+      errors: [
+        {
+          message: 'PRIVATE internal exception',
+          path: ['plans', 'nodes', 0, 'title'],
+          extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+        },
+      ],
+    });
+    flushMicrotasks();
+    expect(failure).toBeUndefined();
+    expect(data).toEqual(partial);
+  }));
+  it('keeps legacy raw consumers strict while the response API is additive', fakeAsync(() => {
+    let failure: GridRequestError | undefined;
+    service.raw('{ records { nodes { oid } } }', {}).catch(error => (failure = error));
+    flushMicrotasks();
+    http.expectOne(url).flush({
+      data: { records: { nodes: [{ oid: 'one' }] } },
+      errors: [{ path: ['records', 'nodes', 0, 'title'], extensions: { code: 'HISTORICAL_VALUE_TYPE' } }],
+    });
+    flushMicrotasks();
+    expect(failure?.key).toBe('preview-failed');
+  }));
+  it('returns explicit safe raw diagnostics without modifying GraphQL data', fakeAsync(() => {
+    let response: unknown;
+    service.rawResponse('{ record { oid } }', {}).then(value => (response = value));
+    flushMicrotasks();
+    const data = { record: { oid: 'one', metadata: null } };
+    http.expectOne(url).flush({
+      data,
+      errors: [
+        {
+          message: 'PRIVATE stack',
+          path: ['record', 'metadata', 'g_hash'],
+          extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+        },
+        { message: 'PRIVATE stack', path: ['record', 'metadata'], extensions: { code: 'unsafe message' } },
+      ],
+    });
+    flushMicrotasks();
+    expect(response).toEqual({
+      data,
+      errors: [
+        { code: 'HISTORICAL_VALUE_TYPE', path: ['record', 'metadata', 'g_hash'] },
+        { code: 'FIELD_ERROR', path: ['record', 'metadata'] },
+      ],
+    });
+    expect(JSON.stringify(response)).not.toContain('PRIVATE');
+    expect(Object.keys(data)).toEqual(['record']);
+  }));
+  for (const [response, expected] of [
+    [{ data: null, errors: [{ extensions: { code: 'QUERY_LIMIT' } }] }, 'query-limit'],
+    [
+      { data: null, errors: [{ path: ['plans', 'nodes', 0, 'title'], extensions: { code: 'QUERY_LIMIT' } }] },
+      'query-limit',
+    ],
+    [
+      { data: { plans: null }, errors: [{ path: ['plans'], extensions: { code: 'COLLECTION_LIMIT' } }] },
+      'collection-limit',
+    ],
+    [{ data: { plans: {} }, errors: [{}] }, 'preview-failed'],
+    [{ data: { plans: {} }, errors: [{ path: ['plans', 'nodes', -1, 'title'] }] }, 'preview-failed'],
+    [
+      {
+        data: { plans: { nodes: [{ title: null }] } },
+        errors: [
+          { path: ['plans', 'nodes', 0, 'title'], extensions: { code: 'QUERY_TIMEOUT' } },
+          { path: ['other'], extensions: { code: 'QUERY_LIMIT' } },
+        ],
+      },
+      'query-limit',
+    ],
+  ] as const)
+    it(
+      'keeps top-level and malformed raw failures fatal: ' + JSON.stringify(response),
+      fakeAsync(() => {
+        let failure: GridRequestError | undefined, result: unknown;
+        service.rawResponse('{ plans { nodes { title } } }', {}).then(
+          value => (result = value),
+          error => (failure = error)
+        );
+        flushMicrotasks();
+        http.expectOne(url).flush(response);
+        flushMicrotasks();
+        expect(result).toBeUndefined();
+        expect(failure instanceof GridRequestError).toBeTrue();
+        expect(failure?.key).toBe(expected);
+      })
+    );
+  it('retains raw request-size and transport protections', fakeAsync(() => {
+    let failure: GridRequestError | undefined;
+    service.rawResponse('x'.repeat(65537), {}).catch(error => (failure = error));
+    flushMicrotasks();
+    expect(failure?.key).toBe('query-limit');
+    http.expectNone(url);
+    service.rawResponse('{ record { oid } }', {}).catch(error => (failure = error));
+    flushMicrotasks();
+    http.expectOne(url).flush({}, { status: 503, statusText: 'Unavailable' });
+    flushMicrotasks();
+    expect(failure?.key).toBe('query-unavailable');
+  }));
   it('loads actual scoped SDL and executes raw documents/variables with session CSRF', fakeAsync(() => {
     let sdl: string | undefined, data: unknown;
     service.schema().then(value => (sdl = value));
@@ -227,6 +354,16 @@ describe('RecordGridService HTTP contract', () => {
     execution.flush({ data: { record: { oid: 'abc' } } });
     flushMicrotasks();
     expect(data).toEqual({ record: { oid: 'abc' } });
+  }));
+  it('requests only the selected record type and workflow editor SDL', fakeAsync(() => {
+    let sdl: string | undefined;
+    service.schema({ ...scope, workflowStage: 'review' }).then(value => (sdl = value));
+    flushMicrotasks();
+    http
+      .expectOne('/context/brand/portal/app/data-grids/schema?recordType=plan&workflowStage=review')
+      .flush({ data: { sdl: 'type Query { oid: ID }' } });
+    flushMicrotasks();
+    expect(sdl).toContain('type Query');
   }));
   it('parses catalogue responses at the accepted variable-depth boundary', fakeAsync(() => {
     let nested: import('./data-grid.model').JsonValue = 'leaf';
@@ -310,6 +447,7 @@ describe('RecordGridService HTTP contract', () => {
     expect(page.request.body.query).not.toContain('injected');
     expect(page.request.body.variables).toEqual({
       type: 'plan',
+      revision: 'r1',
       filters: [{ field: title.id, contains: 'x" } injected {' }],
       sort: [{ field: title.id, direction: 'DESC' }],
       first: 25,
@@ -332,6 +470,124 @@ describe('RecordGridService HTTP contract', () => {
     expect<unknown>(result.rows[0].values[oid.id]).toBe('one');
     expect(result.pageInfo).toEqual({ hasNextPage: true, endCursor: 'opaque' });
   }));
+  it('retains current partial rows and maps aliases to failed field IDs and record OIDs', fakeAsync(() => {
+    let result: GridPage | undefined;
+    let error: unknown;
+    service
+      .query(request())
+      .then(value => (result = value))
+      .catch(value => (error = value));
+    flushMicrotasks();
+    http.expectOne(url).flush({ data: { recordFields: discovery() } });
+    flushMicrotasks();
+    http.expectOne(url).flush({
+      data: {
+        records: {
+          nodes: [
+            { oid: 'record-oid-one', metadata: { __typename: 'M_draft', g_title: null } },
+            { oid: 'record-oid-two', metadata: { __typename: 'M_draft', g_title: 'Usable title' } },
+            { oid: 'record-oid-three', metadata: { __typename: 'M_draft', g_title: null } },
+          ],
+          hasNextPage: false,
+          endCursor: null,
+        },
+      },
+      errors: [
+        {
+          message: 'Stored value does not match the current field type.',
+          path: ['records', 'nodes', 0, 'metadata', 'g_title'],
+          extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+        },
+      ],
+    });
+    flushMicrotasks();
+    expect(error).toBeUndefined();
+    expect(result?.rows.length).toBe(3);
+    expect(result).toEqual(
+      jasmine.objectContaining({
+        errors: [
+          jasmine.objectContaining({
+            code: 'HISTORICAL_VALUE_TYPE',
+            fieldId: title.id,
+            oid: 'record-oid-one',
+            row: 0,
+          }),
+        ],
+      })
+    );
+    expect(result?.rows[2].values[title.id]).toBeNull();
+    expect(result?.rows[0].errors?.[0].label).toBe('Title');
+    expect(result?.rows[2].errors).toEqual([]);
+    expect(result?.response?.['data']).toBeDefined();
+    expect(JSON.stringify(result?.response)).not.toContain('Stored value');
+  }));
+  it('marks all selected metadata fields failed when their parent resolver fails', fakeAsync(() => {
+    const summary = {
+      ...title,
+      id: 'metadata:/summary',
+      selections: [
+        {
+          variant: 'M_draft',
+          selection: '... on M_draft { g_summary: summary }',
+          responsePath: ['metadata', 'g_summary'],
+        },
+      ],
+    };
+    const input = request();
+    input.definition.columns.push(summary.id);
+    let result: GridPage | undefined;
+    service.query(input).then(value => (result = value));
+    flushMicrotasks();
+    http.expectOne(url).flush({ data: { recordFields: discovery([title, oid, summary]) } });
+    flushMicrotasks();
+
+    const path = ['records', 'nodes', 0, 'metadata'];
+    http.expectOne(url).flush({
+      data: {
+        records: {
+          nodes: [
+            { oid: 'failed', metadata: null },
+            { oid: 'usable', metadata: { __typename: 'M_draft', g_title: 'Usable title', g_summary: 'Summary' } },
+          ],
+          hasNextPage: false,
+          endCursor: null,
+        },
+      },
+      errors: [{ path, message: 'Private details', extensions: { code: 'UNRESOLVED_READ_CONTRACT' } }],
+    });
+    flushMicrotasks();
+
+    expect<unknown>(result?.rows.map(row => row.values)).toEqual([
+      { [title.id]: null, [oid.id]: 'failed', [summary.id]: null },
+      { [title.id]: 'Usable title', [oid.id]: 'usable', [summary.id]: 'Summary' },
+    ]);
+    const diagnostic = { code: 'UNRESOLVED_READ_CONTRACT', path, row: 0, oid: 'failed' };
+    const errors = [title, summary].map(field => ({ ...diagnostic, fieldId: field.id, label: 'Title' }));
+    expect(result?.errors).toEqual(errors);
+    expect(result?.rows.map(row => row.errors)).toEqual([errors, []]);
+    expect(JSON.stringify(result?.response)).not.toContain('Private details');
+  }));
+  for (const path of [undefined, ['records'], ['records', 'nodes']]) {
+    it(`rejects a top-level failure with usable data at ${JSON.stringify(path)}`, fakeAsync(() => {
+      let error: GridRequestError | undefined;
+      service.query(request()).catch(value => (error = value));
+      flushMicrotasks();
+      http.expectOne(url).flush({ data: { recordFields: discovery() } });
+      flushMicrotasks();
+      http.expectOne(url).flush({
+        data: {
+          records: {
+            nodes: [{ oid: 'one', metadata: { __typename: 'M_draft', g_title: 'Usable' } }],
+            hasNextPage: false,
+            endCursor: null,
+          },
+        },
+        errors: [{ path, extensions: { code: 'STORAGE_UNAVAILABLE' } }],
+      });
+      flushMicrotasks();
+      expect(error?.key).toBe('query-unavailable');
+    }));
+  }
   it('blocks filter type drift during fresh query discovery before issuing a collection request', fakeAsync(() => {
     const input = request();
     input.definition.filters = [{ fieldId: title.id, expectedScalarType: 'NUMBER', operator: 'eq', values: ['1.0'] }];
@@ -383,6 +639,36 @@ describe('RecordGridService HTTP contract', () => {
     expect(error?.key).toBe('sort-type-changed');
     http.expectNone(url);
   }));
+  it('blocks legacy scalar filters and sorts on a now-list field before any collection request', fakeAsync(() => {
+    const listTitle = { ...title, repeating: true, cardinality: 'LIST' };
+    for (const [change, expected] of [
+      ['filter', 'filter-cardinality-changed'],
+      ['sort', 'sort-cardinality-changed'],
+    ] as const) {
+      const input = request();
+      if (change === 'filter') input.definition.sort = null;
+      else input.definition.filters = [];
+      let error: GridRequestError | undefined;
+      service.query(input).catch(value => (error = value));
+      flushMicrotasks();
+      http.expectOne(url).flush({ data: { recordFields: discovery([listTitle, oid]) } });
+      flushMicrotasks();
+      expect(error?.key).toBe(expected);
+      http.expectNone(url);
+    }
+  }));
+  it('maps persisted cardinality drift codes from the saved-grid service', fakeAsync(() => {
+    for (const code of ['filter-cardinality-changed', 'sort-cardinality-changed']) {
+      let error: GridRequestError | undefined;
+      service.save({ ...request().definition }).catch(value => (error = value));
+      flushMicrotasks();
+      http
+        .expectOne(request => request.url.endsWith('/app/data-grids'))
+        .flush({ errors: [{ code }] }, { status: 400, statusText: 'Bad Request' });
+      flushMicrotasks();
+      expect(error?.key).toBe(code);
+    }
+  }));
   it('stops before collection when the catalogue revision changed', fakeAsync(() => {
     let error: GridRequestError | undefined;
     service.query(request()).catch(value => (error = value));
@@ -394,6 +680,9 @@ describe('RecordGridService HTTP contract', () => {
   }));
   for (const [status, code, expected] of [
     [200, 'INVALID_CURSOR', 'cursor-expired'],
+    [200, 'CATALOGUE_CHANGED', 'schema-changed'],
+    [200, 'FILTER_CARDINALITY_CHANGED', 'filter-cardinality-changed'],
+    [200, 'SORT_CARDINALITY_CHANGED', 'sort-cardinality-changed'],
     [400, 'QUERY_LIMIT', 'query-limit'],
     [200, 'REINDEX_REQUIRED', 'reindex-required'],
     [200, 'COLLECTION_LIMIT', 'collection-limit'],
@@ -559,6 +848,104 @@ describe('Record grid protocol', () => {
     );
     expect<unknown>(page.rows.map(row => row.values[title.id])).toEqual(['Nested', null, null]);
   });
+  it('keeps an indexed error from matching an unrelated field with a similar response path', () => {
+    const list = {
+      ...title,
+      id: 'metadata:/contacts',
+      repeating: true,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact'] }],
+    };
+    const child = {
+      ...title,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact', 'name'] }],
+    };
+    const fields = parseDiscovery(discovery([list, child]), key => key).fields;
+    const path = ['records', 'nodes', 0, 'metadata', 'contact', 1, 'name'];
+    const records = { nodes: [{ oid: 'actual-oid', metadata: { __typename: 'M_draft', contact: [{}, null] } }] };
+    const diagnostic = { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid' };
+    const input = request();
+    expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([diagnostic]);
+    input.definition.columns.push(list.id);
+    expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([
+      { ...diagnostic, fieldId: list.id, label: list.label, nested: true },
+    ]);
+  });
+  it('attributes errors across nested list indices to the field and record', () => {
+    const list = {
+      ...title,
+      repeating: true,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'teams'] }],
+    };
+    const fields = parseDiscovery(discovery([list]), key => key).fields;
+    const path = ['records', 'nodes', 1, 'metadata', 'teams', 0, 0, 'members', 1, 'name'];
+    const metadata = { __typename: 'M_draft', teams: [[{ members: [{ name: 'Ada' }, { name: null }] }]] };
+    const errors = partialFieldErrors(
+      [{ path, message: 'Never expose internal details', extensions: { code: 'HISTORICAL_VALUE_TYPE' } }],
+      { nodes: [{ oid: 'other-oid' }, { oid: 'actual-oid', metadata }] },
+      request(),
+      fields
+    );
+    expect(errors).toEqual([
+      {
+        code: 'HISTORICAL_VALUE_TYPE',
+        path,
+        row: 1,
+        oid: 'actual-oid',
+        fieldId: list.id,
+        label: list.label,
+        nested: true,
+      },
+    ]);
+    expect(
+      fieldErrorLocation(
+        path.slice(3),
+        ['metadata', 'teams', 'members', 'name'],
+        { metadata },
+        {
+          repeatingSubfield: true,
+          repeating: false,
+        }
+      )
+    ).toBe('field');
+  });
+  it('attributes a failed parent object to its own column and selected descendants', () => {
+    const parent = {
+      ...title,
+      id: 'metadata:/contact',
+      scalarType: 'OBJECT',
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact'] }],
+    };
+    const child = {
+      ...title,
+      selections: [{ variant: 'M_draft', selection: 'fragment', responsePath: ['metadata', 'contact', 'name'] }],
+    };
+    const fields = parseDiscovery(discovery([parent, child]), key => key).fields;
+    const path = ['records', 'nodes', 0, 'metadata', 'contact'];
+    const records = { nodes: [{ oid: 'actual-oid', metadata: { __typename: 'M_draft', contact: null } }] };
+    const input = request();
+    input.definition.columns.push(parent.id);
+    expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([
+      { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid', fieldId: parent.id, label: parent.label },
+      { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid', fieldId: child.id, label: child.label },
+    ]);
+  });
+  it('keeps errors on unrelated response paths unmapped', () => {
+    const fields = parseDiscovery(discovery(), key => key).fields;
+    const records = { nodes: [{ oid: 'actual-oid', metadata: null }] };
+    const paths = [
+      ['other', 'nodes', 0, 'metadata'],
+      ['records', 'nodes', 0, 'unselected', 'metadata'],
+      ['records', 'nodes', 0, 'metadata', 'unselected'],
+    ];
+    expect(
+      partialFieldErrors(
+        paths.map(path => ({ path })),
+        records,
+        request(),
+        fields
+      )
+    ).toEqual(paths.map(path => ({ code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid' })));
+  });
   it('rejects malformed pages, missing aliases and non-scalar values', () => {
     const found = parseDiscovery(discovery(), key => key);
     for (const metadata of [
@@ -581,6 +968,156 @@ describe('Record grid protocol', () => {
     expect(found.fields[0].operators).toEqual([]);
     expect(found.fields[0].sortable).toBeFalse();
     expect(found.fields[1].selectable).toBeFalse();
+  });
+});
+
+describe('Declared scalar-list protocol', () => {
+  const keywords = {
+    ...title,
+    id: 'metadata:/keywords',
+    repeating: true,
+    cardinality: 'LIST',
+    operators: ['EQ', 'CONTAINS', 'IPREFIX', 'IN', 'EXISTS'],
+    sortable: true,
+    selections: [
+      { variant: 'M_draft', selection: '... on M_draft { g_kw: keywords }', responsePath: ['metadata', 'g_kw'] },
+    ],
+  };
+  it('requests and parses discovery cardinality, keeping undeclared repeating fields column-only', () => {
+    expect(discoveryQuery(false)).toContain(' cardinality ');
+    const found = parseDiscovery(
+      discovery([keywords, { ...keywords, id: 'metadata:/legacy', cardinality: undefined }, oid]),
+      key => key
+    );
+    const [list, legacy, record] = found.fields;
+    expect(list.cardinality).toBe('LIST');
+    expect(list.operators).toEqual(['eq', 'contains', 'iprefix', 'in', 'exists']);
+    expect(list.sortable).toBeTrue();
+    expect(legacy.cardinality).toBeUndefined();
+    expect(legacy.operators).toEqual([]);
+    expect(legacy.sortable).toBeFalse();
+    expect(record.cardinality).toBe('SCALAR');
+    // Repeating fields claiming SCALAR cardinality, or non-scalar lists, are not queryable.
+    for (const bad of [
+      { ...keywords, cardinality: 'SCALAR' },
+      { ...keywords, scalarType: 'JSON' },
+      { ...keywords, availableInAllVariants: false },
+    ]) {
+      const field = parseDiscovery(discovery([bad]), key => key).fields[0];
+      expect(field.operators).toEqual([]);
+      expect(field.sortable).toBeFalse();
+    }
+    expect(() => parseDiscovery(discovery([{ ...keywords, cardinality: 'MANY' }]), key => key)).toThrow();
+  });
+  it('round-trips saved IPREFIX list filters and encodes a single string operand', () => {
+    const found = parseDiscovery(discovery([keywords, oid]), key => key);
+    const saved = {
+      ...emptyGrid(),
+      id: '123456789012345678901234',
+      revision: 1,
+      name: 'Prefix',
+      recordType: 'plan',
+      columns: [keywords.id],
+      filters: [
+        {
+          fieldId: keywords.id,
+          expectedScalarType: 'STRING' as const,
+          expectedCardinality: 'LIST' as const,
+          operator: 'iprefix' as const,
+          values: ['ALP'],
+        },
+      ],
+    };
+    const reopened = parseSavedDefinition(saved);
+    expect(reopened).toEqual(saved);
+    const query = queryFor(reopened, { ...scope, fields: found.fields, revision: found.revision }, null);
+    const variables: Record<string, unknown> = collectionRequest(query, scope, found).variables;
+    expect(variables['revision']).toBe(found.revision);
+    expect(variables['filters']).toEqual([{ field: keywords.id, iprefix: 'ALP' }]);
+    expect(() => parseSavedDefinition({ ...saved, filters: [{ ...saved.filters[0], values: [''] }] })).toThrow();
+    for (const value of ['\ud800', '\udfff', 'x\ud800y']) {
+      const malformed = { ...saved, filters: [{ ...saved.filters[0], values: [value] }] };
+      expect(() => parseSavedDefinition(malformed)).toThrow();
+      expect(() => collectionRequest({ ...query, definition: malformed }, scope, found)).toThrow();
+    }
+    expect(
+      parseSavedDefinition({ ...saved, filters: [{ ...saved.filters[0], values: ['😀'] }] }).filters[0].values
+    ).toEqual(['😀']);
+  });
+  it('generates list filters and sorts only with explicit LIST cardinality', () => {
+    const found = parseDiscovery(discovery([keywords, oid]), key => key);
+    const definition = {
+      ...emptyGrid(),
+      name: 'Lists',
+      recordType: 'plan',
+      columns: [keywords.id, oid.id],
+      filters: [
+        {
+          fieldId: keywords.id,
+          expectedScalarType: 'STRING' as const,
+          expectedCardinality: 'LIST' as const,
+          operator: 'eq' as const,
+          values: ['alpha'],
+        },
+      ],
+      sort: {
+        fieldId: keywords.id,
+        expectedScalarType: 'STRING' as const,
+        expectedCardinality: 'LIST' as const,
+        direction: 'desc' as const,
+      },
+    };
+    const fields = { ...scope, fields: found.fields, revision: found.revision };
+    const variables: Record<string, unknown> = collectionRequest(
+      queryFor(definition, fields, null),
+      scope,
+      found
+    ).variables;
+    expect(variables['filters']).toEqual([{ field: keywords.id, eq: { text: 'alpha' } }]);
+    expect(variables['sort']).toEqual([{ field: keywords.id, direction: 'DESC' }]);
+    const legacyFilter = { ...definition, filters: [{ ...definition.filters[0], expectedCardinality: undefined }] };
+    expect(() =>
+      collectionRequest({ definition: legacyFilter, filters: [], after: null, revision: found.revision }, scope, found)
+    ).toThrowMatching(error => (error as GridRequestError).key === 'filter-cardinality-changed');
+    const legacySort = { ...definition, sort: { ...definition.sort, expectedCardinality: undefined } };
+    expect(() =>
+      collectionRequest({ definition: legacySort, filters: [], after: null, revision: found.revision }, scope, found)
+    ).toThrowMatching(error => (error as GridRequestError).key === 'sort-cardinality-changed');
+  });
+  it('round-trips persisted expected cardinality and rejects unknown values', () => {
+    const saved = {
+      ...emptyGrid(),
+      id: '123456789012345678901234',
+      revision: 1,
+      name: 'Lists',
+      recordType: 'plan',
+      columns: [keywords.id],
+      filters: [
+        {
+          fieldId: keywords.id,
+          expectedScalarType: 'STRING' as const,
+          expectedCardinality: 'LIST' as const,
+          operator: 'eq' as const,
+          values: ['alpha'],
+        },
+      ],
+      sort: {
+        fieldId: keywords.id,
+        direction: 'asc' as const,
+        expectedScalarType: 'STRING' as const,
+        expectedCardinality: 'LIST' as const,
+      },
+    };
+    expect(parseSavedDefinition(saved)).toEqual(saved);
+    const legacy = { ...saved, filters: [{ ...saved.filters[0] }], sort: { ...saved.sort } };
+    delete (legacy.filters[0] as { expectedCardinality?: string }).expectedCardinality;
+    delete (legacy.sort as { expectedCardinality?: string }).expectedCardinality;
+    expect(parseSavedDefinition(legacy)).toEqual(legacy);
+    for (const bad of [
+      { ...saved, filters: [{ ...saved.filters[0], expectedCardinality: 'MANY' }] },
+      { ...saved, sort: { ...saved.sort, expectedCardinality: null } },
+    ])
+      expect(() => parseSavedDefinition(bad)).toThrow();
   });
 });
 

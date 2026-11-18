@@ -4,15 +4,18 @@ import { GraphQLError } from 'graphql';
 import type { RecordModel } from '../model/storage/RecordModel';
 import type { ReadCaller } from './read-record';
 import { hash, isObject } from './renderer';
-import { buildCatalogue, gridError, indexClass, scopedContracts, type CatalogueSnapshot } from './catalogue';
-import { COLLECTION_ROW, GRID_LIMITS, type GridEnvironment, type GridQuery, type GridOperator } from './grid-types';
+import { buildCatalogue, gridError, scopedContracts, type CatalogueSnapshot } from './catalogue';
+import {
+  COLLECTION_ROW,
+  GRID_LIMITS,
+  type GridEnvironment,
+  type GridQuery,
+  type GridOperator,
+  type GridPosition,
+  type GridKey,
+} from './grid-types';
 import type { RecordContract } from '../record-contract';
-import { foldAsciiCase } from './index-bindings';
 
-interface Position {
-  mark: string;
-  skip: number;
-}
 export interface GridPage {
   nodes: RecordModel[];
   hasNextPage: boolean;
@@ -24,7 +27,7 @@ export interface GridRequestContext {
   consumeUnits: (count: number) => void;
   readRecord: (oid: string) => Promise<RecordModel>;
 }
-const CURSOR_DOMAIN = 'redbox-record-grid-cursor/1';
+const CURSOR_DOMAIN = 'redbox-record-grid-mongo-cursor/1';
 function cursorKey(secret: string | undefined): Buffer {
   if (typeof secret !== 'string' || secret.length < 32)
     gridError(
@@ -33,7 +36,7 @@ function cursorKey(secret: string | undefined): Buffer {
     );
   return createHash('sha256').update(CURSOR_DOMAIN).update('\0').update(secret).digest();
 }
-function encodeCursor(position: Position, scope: string, secret: string | undefined): string {
+function encodeCursor(position: GridPosition, scope: string, secret: string | undefined): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', cursorKey(secret), iv);
   cipher.setAAD(Buffer.from(CURSOR_DOMAIN));
@@ -46,9 +49,9 @@ function encodeCursor(position: Position, scope: string, secret: string | undefi
     gridError('COLLECTION_LIMIT', 'Continuation cursor exceeds its size bound.');
   return result;
 }
-function decodeCursor(value: string | undefined, scope: string, secret: string | undefined): Position {
+function decodeCursor(value: string | undefined, scope: string, secret: string | undefined): GridPosition | undefined {
   const key = cursorKey(secret);
-  if (value === undefined || value === null) return { mark: '*', skip: 0 };
+  if (value === undefined || value === null) return undefined;
   try {
     if (
       typeof value !== 'string' ||
@@ -71,15 +74,19 @@ function decodeCursor(value: string | undefined, scope: string, secret: string |
       token.scope !== scope ||
       typeof token.expires !== 'number' ||
       token.expires < Date.now() ||
-      typeof token.mark !== 'string' ||
-      !token.mark ||
-      token.mark.length > GRID_LIMITS.cursorBytes ||
-      !Number.isSafeInteger(token.skip) ||
-      Number(token.skip) < 0 ||
-      Number(token.skip) >= GRID_LIMITS.batchSize
+      !Array.isArray(token.keys) ||
+      token.keys.length < 1 ||
+      token.keys.length > GRID_LIMITS.sorts + 1 ||
+      token.keys.some(
+        key =>
+          key !== null &&
+          typeof key !== 'string' &&
+          typeof key !== 'boolean' &&
+          (typeof key !== 'number' || !Number.isFinite(key))
+      )
     )
       throw new Error();
-    return { mark: token.mark, skip: Number(token.skip) };
+    return { keys: token.keys as GridKey[] };
   } catch {
     return gridError(
       'INVALID_CURSOR',
@@ -88,17 +95,17 @@ function decodeCursor(value: string | undefined, scope: string, secret: string |
   }
 }
 function checkedString(value: unknown): string {
-  if (typeof value !== 'string' || Buffer.byteLength(value) > GRID_LIMITS.valueBytes)
+  if (typeof value !== 'string' || !value.isWellFormed() || Buffer.byteLength(value) > GRID_LIMITS.valueBytes)
     gridError('INVALID_FILTER_VALUE', 'Text values must be strings of at most 256 bytes.');
   return value;
 }
-function typedValue(value: unknown, type: string, indexKind: string): string {
+function typedValue(value: unknown, type: string): GridKey {
   if (!isObject(value) || Object.keys(value).length !== 1)
     gridError('INVALID_FILTER_VALUE', 'Supply exactly one typed value.');
   if (type === 'STRING') return checkedString(value.text);
   if (type === 'BOOLEAN') {
     if (typeof value.boolean !== 'boolean') gridError('INVALID_FILTER_VALUE', 'A boolean value is required.');
-    return String(value.boolean);
+    return value.boolean;
   }
   if (type === 'DATETIME') {
     const text = checkedString(value.dateTime);
@@ -116,131 +123,82 @@ function typedValue(value: unknown, type: string, indexKind: string): string {
     const date = DateTime.fromISO(text, { setZone: true });
     if (!date.isValid || date.toUTC().year < 1 || date.toUTC().year > 9999)
       gridError('INVALID_FILTER_VALUE', 'Date/time value is invalid.');
-    return date.toUTC().toISO() ?? gridError('INVALID_FILTER_VALUE', 'Date/time value is invalid.');
+    return date.toMillis();
   }
   const number = value.number;
-  if (
-    typeof number !== 'number' ||
-    !Number.isFinite(number) ||
-    (type === 'INTEGER' && !Number.isSafeInteger(number)) ||
-    (['IntPointField', 'LongPointField'].includes(indexKind) && !Number.isSafeInteger(number)) ||
-    (indexKind === 'IntPointField' && (number < -2147483648 || number > 2147483647)) ||
-    (indexKind === 'FloatPointField' && Math.abs(number) > 3.4028234663852886e38)
-  )
-    gridError('INVALID_FILTER_VALUE', 'A finite number in the indexed field range is required.');
-  return String(number);
+  if (typeof number !== 'number' || !Number.isFinite(number) || (type === 'INTEGER' && !Number.isSafeInteger(number)))
+    gridError('INVALID_FILTER_VALUE', 'A finite number (a safe integer for INTEGER fields) is required.');
+  return number;
 }
-export function queryPlan(
-  query: GridQuery,
-  snapshot: CatalogueSnapshot,
-  environment: GridEnvironment,
-  brandId: string
-): URLSearchParams {
+export interface CollectionPlan {
+  filters: Array<{ field: string; operation: string; values: GridKey[] }>;
+  sort: Array<{ field: string; direction: 1 | -1 }>;
+}
+/** Validate the public DSL against the readable catalogue before any storage work. */
+export function queryPlan(query: GridQuery, snapshot: CatalogueSnapshot): CollectionPlan {
   const filters = query.filters ?? [];
   const sorts = query.sort ?? [];
   if (!Array.isArray(filters) || filters.length > GRID_LIMITS.filters)
     gridError('INVALID_FILTER', 'At most 10 AND filters are supported.');
   if (!Array.isArray(sorts) || sorts.length > GRID_LIMITS.sorts)
     gridError('INVALID_SORT', 'At most 3 sort fields are supported.');
-  const params = new URLSearchParams({
-    q: '*:*',
-    defType: 'lucene',
-    wt: 'json',
-    fl: 'redbox_grid_oid',
-    rows: String(GRID_LIMITS.batchSize),
-  });
-  let counter = 0;
-  const literal = (field: string, value: string, parser = 'field'): string => {
-    const parameter = `rbGridValue${counter++}`;
-    params.set(parameter, value);
-    return `{!${parser} f=${field} v=$${parameter}}`;
-  };
-  params.append('fq', literal('redbox_acl2_brand', brandId));
-  params.append('fq', literal('redbox_grid_version', '1'));
-  params.append('fq', literal('redbox_grid_type', query.recordType));
-  const stages = [...new Set(snapshot.catalogue.variants.map(variant => variant.workflowStage))].sort();
-  params.append(
-    'fq',
-    '(' + stages.map(stage => `_query_:${JSON.stringify(literal('redbox_grid_stage', stage))}`).join(' OR ') + ')'
-  );
+  const plan: CollectionPlan = { filters: [], sort: [] };
   const fields = new Map(snapshot.catalogue.fields.map(field => [field.id, field]));
   for (const filter of filters) {
     if (!isObject(filter) || typeof filter.field !== 'string')
       gridError('INVALID_FILTER', 'Each filter must specify a stable field identifier.');
     const field = fields.get(filter.field);
     if (!field) gridError('UNKNOWN_FIELD', `Unknown or stale field identifier: ${filter.field}`);
-    const indexed = snapshot.bindings.get(field.id);
-    const operations = Object.keys(filter).filter(key => key !== 'field');
+    if (filter.expectedCardinality != null && filter.expectedCardinality !== field.cardinality)
+      gridError('FILTER_CARDINALITY_CHANGED', 'Filter field cardinality changed; repair the definition.');
+    const operations = Object.keys(filter).filter(key => !['field', 'expectedCardinality'].includes(key));
     if (operations.length !== 1) gridError('INVALID_FILTER', 'Each filter must specify exactly one operator.');
     const operation = operations[0];
-    const operator = operation === 'between' ? 'BETWEEN' : operation.toUpperCase();
-    if (!indexed || !field.operators.includes(operator as GridOperator))
-      gridError('UNSUPPORTED_FILTER', `Operator ${operator} is not supported for ${field.id}.`);
-    const kind = indexClass(environment, indexed);
-    const value = (input: unknown) => typedValue(input, field.scalarType, kind);
-    if (operation === 'eq') params.append('fq', literal(indexed.name, value(filter.eq)));
-    else if (operation === 'contains') {
-      const text = checkedString(filter.contains);
-      if (!text.length) gridError('INVALID_FILTER_VALUE', 'Contains requires a nonempty literal string.');
-      // Only StrField is advertised. Escape every Lucene metacharacter before
-      // adding the two server-owned wildcards, so input cannot supply syntax.
-      const escaped = text.replace(/([+\-!(){}[\]^"~*?:\\/|&\s])/g, '\\$1');
-      params.append('fq', `${indexed.name}:*${escaped}*`);
-    } else if (operation === 'iprefix') {
-      const prefix = snapshot.prefixBindings.get(field.id);
-      if (!prefix) gridError('UNSUPPORTED_FILTER', `IPREFIX has no verified binding for ${field.id}.`);
-      const text = checkedString(filter.iprefix);
-      if (!text.length || !text.isWellFormed())
-        gridError('INVALID_FILTER_VALUE', 'Supply a nonempty, well-formed string prefix.');
-      // The prefix parser consumes the dereferenced value literally, including * and ?.
-      params.append('fq', literal(prefix.name, foldAsciiCase(text), 'prefix'));
+    if (!snapshot.bindings.has(field.id) || !field.operators.includes(operation.toUpperCase() as GridOperator))
+      gridError('UNSUPPORTED_FILTER', `Operator ${operation.toUpperCase()} is not supported for ${field.id}.`);
+    const value = (input: unknown) => typedValue(input, field.scalarType);
+    let values: GridKey[];
+    if (operation === 'contains' || operation === 'iprefix') {
+      const text = checkedString(filter[operation]);
+      if (!text.length) gridError('INVALID_FILTER_VALUE', 'Supply a nonempty literal string.');
+      values = [text];
     } else if (operation === 'in') {
       if (!Array.isArray(filter.in) || !filter.in.length || filter.in.length > GRID_LIMITS.values)
         gridError('INVALID_FILTER_VALUE', 'IN requires 1 to 20 typed values.');
-      params.append(
-        'fq',
-        '(' + filter.in.map(item => `_query_:${JSON.stringify(literal(indexed.name, value(item)))}`).join(' OR ') + ')'
-      );
+      values = filter.in.map(value);
     } else if (operation === 'exists') {
       if (typeof filter.exists !== 'boolean') gridError('INVALID_FILTER_VALUE', 'EXISTS requires a boolean.');
-      const exists = `${indexed.name}:[* TO *]`;
-      params.append('fq', filter.exists ? exists : `(*:* AND -${exists})`);
-    } else if (operation === 'gt' || operation === 'lt') {
-      const item = value(operation === 'gt' ? filter.gt : filter.lt);
-      params.append(
-        'fq',
-        operation === 'gt'
-          ? `${indexed.name}:{${JSON.stringify(item)} TO *]`
-          : `${indexed.name}:[* TO ${JSON.stringify(item)}}`
-      );
+      values = [filter.exists];
     } else if (operation === 'between') {
       if (!isObject(filter.between) || Object.keys(filter.between).length !== 2)
         gridError('INVALID_FILTER_VALUE', 'BETWEEN requires from and to typed values.');
-      const from = value(filter.between.from);
-      const to = value(filter.between.to);
-      if (field.scalarType === 'DATETIME' ? from > to : Number(from) > Number(to))
+      values = [value(filter.between.from), value(filter.between.to)];
+      if (Number(values[0]) > Number(values[1]))
         gridError('INVALID_FILTER_VALUE', 'Range lower bound exceeds its upper bound.');
-      params.append('fq', `${indexed.name}:[${JSON.stringify(from)} TO ${JSON.stringify(to)}]`);
-    } else gridError('UNSUPPORTED_FILTER', 'Filter operator is unsupported.');
+    } else values = [value(filter[operation])];
+    plan.filters.push({ field: field.id, operation, values });
   }
-  const sort = [];
   const seen = new Set<string>();
   for (const item of sorts) {
-    if (!isObject(item) || typeof item.field !== 'string' || !['ASC', 'DESC'].includes(item.direction))
+    if (
+      !isObject(item) ||
+      Object.keys(item).some(key => !['field', 'direction', 'expectedCardinality'].includes(key)) ||
+      typeof item.field !== 'string' ||
+      !['ASC', 'DESC'].includes(item.direction)
+    )
       gridError('INVALID_SORT', 'Sort fields require ASC or DESC.');
     const field = fields.get(item.field);
     if (!field) gridError('UNKNOWN_FIELD', `Unknown or stale field identifier: ${item.field}`);
-    const indexed = snapshot.bindings.get(field.id);
-    if (!field.sortable || !indexed || seen.has(item.field))
+    if (item.expectedCardinality != null && item.expectedCardinality !== field.cardinality)
+      gridError('SORT_CARDINALITY_CHANGED', 'Sort field cardinality changed; repair the definition.');
+    if (!field.sortable || seen.has(item.field))
       gridError('UNSUPPORTED_SORT', `Sorting is not supported or is repeated for ${item.field}.`);
     seen.add(item.field);
-    sort.push(`${indexed.name} ${item.direction.toLowerCase()}`);
+    plan.sort.push({ field: item.field, direction: item.direction === 'ASC' ? 1 : -1 });
   }
-  if (!sort.length) sort.push('redbox_grid_oid asc');
-  if (!sort.some(value => value.split(' ')[0] === environment.schema.uniqueKey))
-    sort.push(`${environment.schema.uniqueKey} asc`);
-  params.set('sort', sort.join(','));
-  return params;
+  // OID is unique in active storage. Append it ascending unless explicitly ordered.
+  if (!seen.has('record:oid')) plan.sort.push({ field: 'record:oid', direction: 1 });
+  return plan;
 }
 
 export async function readCollection(
@@ -254,9 +212,11 @@ export async function readCollection(
   if (!Number.isInteger(first) || first < 1 || first > GRID_LIMITS.pageSize)
     gridError('INVALID_PAGE_SIZE', 'Page size must be between 1 and 50.');
   const snapshot = buildCatalogue(contracts, query.recordType, query.workflowStages ?? [], environment);
-  const params = queryPlan(query, snapshot, environment, context.caller.brand.id);
-  // A stale index or historical form must not turn an undeclared/private
-  // stored path into a filter or sorting oracle. Indexed ACLs cannot prove this.
+  if (query.revision != null && query.revision !== snapshot.catalogue.revision)
+    gridError('CATALOGUE_CHANGED', 'Field catalogue changed; refresh fields before querying.');
+  const plan = queryPlan(query, snapshot);
+  // Historical forms must not turn undeclared/private stored paths into
+  // filter or sorting oracles. Recheck hydrated scope after candidate selection.
   const usesMetadata = [...(query.filters ?? []), ...(query.sort ?? [])].some(item =>
     item.field.startsWith('metadata:')
   );
@@ -269,12 +229,14 @@ export async function readCollection(
       actor: context.caller.user.id ?? context.caller.user.username,
       username: context.caller.user.username,
       roles: context.caller.roles.map(role => (isObject(role) ? [role.id, role.name] : [])).sort(),
-      brandRoles: context.caller.brand.roles.map(role => [role.id, role.name]).sort(),
+      brandRoles: context.caller.brand.roles.map(role => [role.id, role.name]),
       brand: context.caller.brand.id,
       portal: context.caller.portal,
-      core: environment.coreId,
+      backend: CURSOR_DOMAIN,
       revision: snapshot.catalogue.revision,
-      params: [...params],
+      plan,
+      recordType: query.recordType,
+      stages: [...readableStages].sort(),
       first,
     })
   );
@@ -282,25 +244,35 @@ export async function readCollection(
   const nodes: RecordModel[] = [];
   const seen = new Set<string>();
   let consumed = 0;
-  let end: Position | undefined;
+  let end: GridPosition | undefined;
   for (let batch = 0; batch < GRID_LIMITS.candidates / GRID_LIMITS.batchSize; batch++) {
     context.consumeUnits(1);
     if (Date.now() >= context.deadline) gridError('QUERY_TIMEOUT', 'Collection query timed out.');
-    params.set('cursorMark', position.mark);
     let page;
     try {
-      page = await environment.search(params, context.deadline);
-    } catch {
-      return gridError('SEARCH_UNAVAILABLE', 'The search backend could not complete this bounded page.');
+      page = await environment.execute({
+        caller: context.caller,
+        contracts,
+        query,
+        after: position,
+        deadline: context.deadline,
+      });
+    } catch (error) {
+      if (
+        error instanceof GraphQLError &&
+        ['COLLECTION_LIMIT', 'QUERY_TIMEOUT'].includes(String(error.extensions.code))
+      )
+        throw error;
+      return gridError('STORAGE_UNAVAILABLE', 'Record storage could not complete this bounded page.');
     }
-    if (page.oids.length > GRID_LIMITS.batchSize || page.oids.length < position.skip)
-      gridError('INVALID_CURSOR', 'Index changes invalidated this continuation position; restart the query.');
-    for (let index = position.skip; index < page.oids.length; index++) {
+    if (!Array.isArray(page.candidates) || page.candidates.length > GRID_LIMITS.batchSize)
+      gridError('STORAGE_UNAVAILABLE', 'Record storage returned an invalid page.');
+    for (const candidate of page.candidates) {
       context.consumeUnits(1);
       consumed++;
       if (consumed > GRID_LIMITS.candidates)
         gridError('COLLECTION_LIMIT', 'Collection could not be completed within its work bound; narrow the query.');
-      const oid = page.oids[index];
+      const { oid } = candidate;
       if (seen.has(oid)) continue;
       seen.add(oid);
       let record;
@@ -312,6 +284,7 @@ export async function readCollection(
         throw error;
       }
       if (
+        String(record.metaMetadata.brandId).trim() !== String(context.caller.brand.id).trim() ||
         record.metaMetadata.type !== query.recordType ||
         !readableStages.has(record.workflow?.stage) ||
         (usesMetadata && !readableVariants.has(JSON.stringify([record.workflow?.stage, record.metaMetadata.form])))
@@ -328,13 +301,13 @@ export async function readCollection(
           ),
         };
       nodes.push({ ...record, [COLLECTION_ROW]: true });
-      end =
-        index + 1 === page.oids.length ? { mark: page.nextCursor, skip: 0 } : { mark: position.mark, skip: index + 1 };
+      end = { keys: candidate.keys };
     }
     if (page.exhausted) return { nodes, hasNextPage: false, endCursor: null };
-    if (!page.oids.length || page.nextCursor === position.mark)
-      gridError('SEARCH_UNAVAILABLE', 'Search continuation did not advance.');
-    position = { mark: page.nextCursor, skip: 0 };
+    const last = page.candidates.at(-1);
+    if (!last || JSON.stringify(last.keys) === JSON.stringify(position?.keys))
+      gridError('STORAGE_UNAVAILABLE', 'Storage continuation did not advance.');
+    position = { keys: last.keys };
   }
   return gridError('COLLECTION_LIMIT', 'Collection could not be completed within its work bound; narrow the query.');
 }

@@ -66,6 +66,29 @@ describe('Shared Handlebars Helpers', async function () {
       expect(result).to.equal('not-a-date');
     });
 
+    it('uses the fallback for missing and invalid dates when format and zone are omitted', function () {
+      const render = handlebarsCompile('{{formatDate data fallback="(blank)"}}');
+      expect(render({})).to.equal('(blank)');
+      expect(render({ data: null })).to.equal('(blank)');
+      expect(render({ data: '' })).to.equal('(blank)');
+      expect(render({ data: 'not-a-date' })).to.equal('(blank)');
+      expect(render({ data: new Date(NaN) })).to.equal('(blank)');
+    });
+
+    it('honors an explicitly empty fallback for an invalid date', function () {
+      const render = handlebarsCompile('{{formatDate data "yyyy-MM-dd" fallback=""}}');
+      expect(render({ data: 'not-a-date' })).to.equal('');
+    });
+
+    it('formats valid ISO strings and Date instances in the specified zone with a fallback', function () {
+      const render = handlebarsCompile(
+        '{{formatDate data "dd/MM/yyyy hh:mm a" "Australia/Sydney" fallback="(blank)"}}'
+      );
+      const input = '2028-01-01T13:30:00.000Z';
+      expect(render({ data: input })).to.equal('02/01/2028 12:30 AM');
+      expect(render({ data: new Date(input) })).to.equal('02/01/2028 12:30 AM');
+    });
+
     describe('explicit timezone', function () {
       const template = '{{formatDate when "yyyy-MM-dd HH:mm" "Australia/Sydney"}}';
       const cases = [

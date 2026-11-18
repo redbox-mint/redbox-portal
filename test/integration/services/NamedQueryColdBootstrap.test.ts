@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { MongoClient } from 'mongodb';
-import axios from 'axios';
 import { lifecycleDefinitions, lifecycleOid } from '../helpers/named-query-lifecycle.fixtures';
 
 /** Two fresh application processes, not a re-import into the suite's warm Sails instance. */
@@ -15,8 +14,6 @@ describe('named query cold bootstrap and process restart', function () {
   const database = `named_query_lifecycle_${randomUUID().replace(/-/g, '')}`;
   const storageDatabase = `${database}_storage`;
   const recordOid = `${lifecycleOid}-${database.slice('named_query_lifecycle_'.length)}`;
-  let solrUrl: string;
-  let schemaFields: Array<{ name: string }>;
   let client: MongoClient;
   let root: string;
   let mongoUrl: string;
@@ -37,9 +34,7 @@ describe('named query cold bootstrap and process restart', function () {
     for (const [name, definition] of Object.entries(lifecycleDefinitions(recordOid))) {
       await fs.writeFile(path.join(root, 'namedqueries', `${name}.json`), JSON.stringify(definition));
     }
-    const options = sails.config.solr.cores.default.options;
-    solrUrl = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
-    schemaFields = (await axios.get(`${solrUrl}/schema`)).data.schema.fields;
+
   });
 
   after(async () => {
@@ -57,37 +52,6 @@ describe('named query cold bootstrap and process restart', function () {
           if (errors.length) throw new AggregateError(errors, 'Lifecycle database cleanup failed');
         } finally {
           await client.close();
-        }
-      })(),
-      (async () => {
-        if (!solrUrl) return;
-        // preIndex retains the Mongo ID as Solr's unique key. Target the exact
-        // grid OID instead: generated UUID, no wildcard or sibling deletion.
-        const query = `{!term f=redbox_grid_oid}${recordOid}`;
-        const schema = (await axios.get(`${solrUrl}/schema`)).data.schema;
-        if (schema.fields.some(field => field.name === 'redbox_grid_oid')) {
-          const before = (await axios.get(`${solrUrl}/select`, { params: { q: query, rows: 0 } })).data;
-          await axios.post(`${solrUrl}/update`, { delete: { query } }, { params: { commit: true } });
-          const result = (await axios.get(`${solrUrl}/select`, { params: { q: query, rows: 0 } })).data;
-          assert.equal(
-            result.response.numFound,
-            0,
-            'lifecycle document must be removed, including after worker failure'
-          );
-          if (coldFinished) assert.equal(before.response.numFound, 1, 'cleanup must exercise a real indexed fixture');
-        }
-        // The standalone CI image has no reusable configset for an isolated core.
-        // Workers may add missing canonical SOLR_RECORD_GRID_FIELDS to default;
-        // retain these additive fields for later grid/report suites. Never remove
-        // shared fields, and verify every pre-existing definition is unchanged.
-        if (schemaFields) {
-          const after = (await axios.get(`${solrUrl}/schema`)).data.schema.fields;
-          for (const field of schemaFields) {
-            assert.deepEqual(
-              after.find(found => found.name === field.name),
-              field
-            );
-          }
         }
       })(),
       (async () => {

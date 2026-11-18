@@ -3,7 +3,9 @@ import {
   getNamedType,
   isListType,
   isNonNullType,
+  type ConstValueNode,
   type SelectionSetNode,
+  type ValueNode,
   type GraphQLCompositeType,
   getVariableValues,
   GraphQLSchema,
@@ -20,7 +22,7 @@ import {
 } from 'graphql';
 import { object, parseQueryVariables } from './record-grid.protocol';
 import { GridRequestError } from './data-grid-source';
-import { GridRow, RawDefinition, validCellValue } from './data-grid.model';
+import { GridRow, type GridScope, RawDefinition, validCellValue } from './data-grid.model';
 
 export function editorSchema(sdl: string): GraphQLSchema {
   return buildSchema(sdl);
@@ -106,7 +108,7 @@ export function rawRows(
   data: unknown,
   path: string[],
   identityKey: string | null = null
-): { rows: GridRow[]; columns: string[] } {
+): { rows: GridRow[]; columns: string[]; items: unknown[] } {
   let value: unknown = data;
   for (const key of path) {
     if (!value || typeof value !== 'object' || !Object.hasOwn(value, key))
@@ -160,21 +162,88 @@ export function rawRows(
     };
   });
   if (rows.length && !columns.size) throw new GridRequestError('result-path-invalid');
-  return { rows, columns: [...columns] };
+  return { rows, columns: [...columns], items: value };
 }
 export { rawDefinition } from './raw-definition';
 
 export function queryRecordType(document: string, variables: Record<string, unknown>): string | null {
+  return queryRecordScope(document, variables)?.recordType ?? null;
+}
+
+function staticScopeValue(
+  value: ValueNode | undefined,
+  variables: Record<string, unknown>,
+  defaults: ReadonlyMap<string, ConstValueNode | undefined>
+): unknown {
+  if (value?.kind === Kind.STRING) return value.value;
+  if (value?.kind === Kind.VARIABLE) {
+    const name = value.name.value;
+    return Object.hasOwn(variables, name) ? variables[name] : staticScopeValue(defaults.get(name), variables, defaults);
+  }
+  if (value?.kind === Kind.LIST) return value.values.map(item => staticScopeValue(item, variables, defaults));
+  return undefined;
+}
+
+type RecordSchemaScope = Pick<GridScope, 'recordType' | 'workflowStage'>;
+
+export function queryRecordScope(
+  document: string,
+  variables: Record<string, unknown>,
+  visualScope?: RecordSchemaScope
+): RecordSchemaScope | null {
   try {
     const ast = parse(document, { maxLexicalTokens: 2000 });
-    const op = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION);
-    if (!op || op.kind !== Kind.OPERATION_DEFINITION) return null;
-    const root = op.selectionSet.selections.find(n => n.kind === Kind.FIELD && n.name.value === 'records');
-    if (!root || root.kind !== Kind.FIELD) return null;
-    const value = root.arguments?.find(a => a.name.value === 'recordType')?.value;
-    const type =
-      value?.kind === Kind.STRING ? value.value : value?.kind === Kind.VARIABLE ? variables[value.name.value] : null;
-    return typeof type === 'string' ? type : null;
+    const operations = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
+    if (operations.length !== 1 || operations[0].operation !== 'query') return null;
+    const operation = operations[0];
+    const defaults = new Map(operation.variableDefinitions?.map(def => [def.variable.name.value, def.defaultValue]));
+    const fragments = new Map(
+      ast.definitions.filter(node => node.kind === Kind.FRAGMENT_DEFINITION).map(node => [node.name.value, node])
+    );
+    const pending = [operation.selectionSet];
+    const visited = new Set<SelectionSetNode>();
+    let selectsRecord = false;
+    let recordType: string | undefined;
+    const workflowStages = new Set<string | undefined>();
+    // Expand fragments at the query root only. Fields inside a record cannot change the collection's scope.
+    while (pending.length) {
+      const selectionSet = pending.pop()!;
+      if (visited.has(selectionSet)) continue;
+      visited.add(selectionSet);
+      for (const selection of selectionSet.selections) {
+        if (selection.kind !== Kind.FIELD) {
+          const fragment = selection.kind === Kind.INLINE_FRAGMENT ? selection : fragments.get(selection.name.value);
+          if (fragment && (!fragment.typeCondition || fragment.typeCondition.name.value === 'Query'))
+            pending.push(fragment.selectionSet);
+          continue;
+        }
+        if (selection.name.value === 'record') selectsRecord = true;
+        if (selection.name.value !== 'records') continue;
+        const type = staticScopeValue(
+          selection.arguments?.find(arg => arg.name.value === 'recordType')?.value,
+          variables,
+          defaults
+        );
+        if (typeof type !== 'string' || !type || (recordType && recordType !== type)) return null;
+        recordType = type;
+
+        const stages = staticScopeValue(
+          selection.arguments?.find(arg => arg.name.value === 'workflowStages')?.value,
+          variables,
+          defaults
+        );
+        const stage = Array.isArray(stages) ? (stages.length === 1 ? stages[0] : undefined) : stages;
+        workflowStages.add(typeof stage === 'string' && stage ? stage : undefined);
+      }
+    }
+    if (selectsRecord) {
+      return recordType || !visualScope
+        ? null
+        : { recordType: visualScope.recordType, workflowStage: visualScope.workflowStage };
+    }
+    if (!recordType) return null;
+    const workflowStage = workflowStages.size === 1 ? [...workflowStages][0] : undefined;
+    return workflowStage ? { recordType, workflowStage } : { recordType };
   } catch {
     return null;
   }

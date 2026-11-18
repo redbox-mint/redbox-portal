@@ -1,6 +1,7 @@
 import {FormConfigVisitorOutline} from "./visitor/base.outline";
 import {
     FormComponentDefinitionOutline,
+    MetadataReadShape,
   FormConstraintAuthorizationConfigOutline,
     FormConstraintConfigOutline,
     FormExpressionsConfigOutline,
@@ -39,6 +40,7 @@ export class FormConstraintAuthorizationConfig implements FormConstraintAuthoriz
  */
 export abstract class FormComponentDefinition implements FormComponentDefinitionOutline {
     public name: string = "";
+  declare public readShape?: MetadataReadShape;
     public relatedDisplay?: { relationId: string };
     public abstract component: FieldComponentDefinitionOutline;
     public abstract model?: FieldModelDefinitionOutline<unknown>;

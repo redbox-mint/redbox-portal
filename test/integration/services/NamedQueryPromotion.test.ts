@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
-import axios from 'axios';
 import type { Db } from 'mongodb';
-import { recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
+import { recordGraphql } from '@researchdatabox/redbox-core';
 import type { NamedQueryPromotionDraft, GraphqlNamedQueryDefinition } from '@researchdatabox/sails-ng-common';
 
 /** Real browser session, CSRF, path rules, current discovery and Mongo persistence. */
@@ -59,13 +58,6 @@ describe('Explorer named-query promotion HTTP', function () {
       enabled: true,
       cursorSecret: 't09-promotion-secret-0123456789abcdef',
     };
-    // The committed general harness starts Solr before runtime grid fields exist.
-    // Add only the parent's declared fields inside this disposable test project.
-    const options = sails.config.solr.cores.default.options;
-    const solrUrl = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
-    const live: { fields: Array<{ name: string }> } = (await axios.get(`${solrUrl}/schema`)).data.schema;
-    const missing = SOLR_RECORD_GRID_FIELDS.filter(field => !live.fields.some(found => found.name === field.name));
-    if (missing.length) await axios.post(`${solrUrl}/schema`, { 'add-field': missing });
     originalCsrf = sails.config.security.csrf;
     sails.config.security.csrf = true;
     session = supertest.agent(sails.hooks.http.app);

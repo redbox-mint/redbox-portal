@@ -1,3 +1,4 @@
+import { MongoRecordCollectionProvider, type GridStorageRequest } from '@researchdatabox/redbox-core';
 import { MongoReportingProvider, runtimeReportingRegistry, type ReportingPrincipal, type MongoReportingQuery } from '@researchdatabox/redbox-core';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
@@ -375,6 +376,7 @@ export namespace Services {
       'updateMeta',
       'getCapabilities',
       'executeReporting',
+      'executeRecordCollection',
       'removeActiveRecord',
       'createTombstone',
       'updateTombstone',
@@ -1002,6 +1004,10 @@ export namespace Services {
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
       sails.log.verbose(`${this.logHeader} Ready!`);
+    }
+
+    public async executeRecordCollection(request: GridStorageRequest) {
+      return new MongoRecordCollectionProvider(this.getNativeRecordCollection()).executeRecordCollection(request);
     }
 
     /** Reporting capability: accepts only the public DSL and a mandatory server-side principal. */

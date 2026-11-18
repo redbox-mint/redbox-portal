@@ -1,9 +1,113 @@
-import { filterValue, normalizeTimestamp, GridField, queryFor, validateGrid, validatePage } from './data-grid.model';
+import {
+  defaultColumns,
+  filterValue,
+  normalizeTimestamp,
+  GridField,
+  queryFor,
+  validateGrid,
+  validatePage,
+} from './data-grid.model';
 
 import { scope, validGrid } from './data-grid.testing';
 const byId = (id: string): GridField => scope.fields.find(field => field.id === id)!;
 
 describe('Data grid configuration', () => {
+  for (const identity of ['text_full_name', 'provider-name', 'workspaceTitle']) {
+    it(`uses explicit ${identity} defaults instead of an empty generic title`, () => {
+      const fields: GridField[] = [
+        { id: 'metadata:/title', label: 'Title', type: 'text', selectable: true, operators: [], sortable: false },
+        {
+          id: `metadata:/${identity}`,
+          label: 'Identity',
+          type: 'text',
+          selectable: true,
+          identity: true,
+          defaultColumn: 0,
+          operators: [],
+          sortable: false,
+        },
+        { id: 'record:oid', label: 'OID', type: 'text', selectable: true, operators: [], sortable: false },
+      ];
+      expect(defaultColumns(fields)).toEqual([`metadata:/${identity}`, 'record:oid']);
+      fields[1].selectable = false;
+      expect(defaultColumns(fields)).not.toContain(`metadata:/${identity}`);
+    });
+  }
+  it('validates IPREFIX as one nonempty string, rejecting non-string field types', () => {
+    const field: GridField = {
+      id: 'keywords',
+      label: 'Keywords',
+      type: 'text',
+      selectable: true,
+      repeating: true,
+      cardinality: 'LIST',
+      operators: ['iprefix'],
+      sortable: true,
+    };
+    const filter = {
+      fieldId: field.id,
+      expectedScalarType: 'STRING' as const,
+      expectedCardinality: 'LIST' as const,
+      operator: 'iprefix' as const,
+      values: ['ALP'],
+    };
+    expect(filterValue(filter, field)).toBe('ALP');
+    for (const values of [[], [''], ['a', 'b']]) expect(() => filterValue({ ...filter, values }, field)).toThrow();
+    for (const type of ['number', 'boolean', 'datetime'] as const)
+      expect(() => filterValue(filter, { ...field, type })).toThrow();
+  });
+  it('validates declared scalar-list filters and sorts against explicit LIST cardinality', () => {
+    const grid = validGrid();
+    const keywords = {
+      id: 'keywords',
+      label: 'Keywords',
+      type: 'text' as const,
+      selectable: true,
+      repeating: true,
+      cardinality: 'LIST' as const,
+      operators: ['eq' as const, 'between' as const],
+      sortable: true,
+    };
+    const target = { ...scope, fields: [...scope.fields, keywords] };
+    grid.filters = [
+      {
+        fieldId: 'keywords',
+        expectedScalarType: 'STRING',
+        expectedCardinality: 'LIST',
+        operator: 'eq',
+        values: ['Synthetic keyword'],
+      },
+    ];
+    grid.sort = { fieldId: 'keywords', direction: 'desc', expectedScalarType: 'STRING', expectedCardinality: 'LIST' };
+    expect(validateGrid(grid, target)).toEqual([]);
+    expect(queryFor(grid, target, null).filters[0].value).toBe('Synthetic keyword');
+    // A legacy definition (no cardinality) keeps scalar meaning and needs repair.
+    const legacy = structuredClone(grid);
+    delete legacy.filters[0].expectedCardinality;
+    delete legacy.sort!.expectedCardinality;
+    expect(validateGrid(legacy, target).map(issue => issue.key)).toEqual([
+      'filter-cardinality-changed',
+      'sort-cardinality-changed',
+    ]);
+    expect(() => queryFor(legacy, target, null)).toThrow();
+    // A list that becomes scalar again also blocks the saved LIST semantics.
+    const scalar = {
+      ...target,
+      fields: target.fields.map(field =>
+        field.id === 'keywords' ? { ...keywords, repeating: false, cardinality: 'SCALAR' as const } : field
+      ),
+    };
+    expect(validateGrid(grid, scalar).map(issue => issue.key)).toEqual([
+      'filter-cardinality-changed',
+      'sort-cardinality-changed',
+    ]);
+    // Repeating fields without declared scalar-list cardinality cannot sort.
+    const undeclared = {
+      ...target,
+      fields: target.fields.map(field => (field.id === 'keywords' ? { ...keywords, cardinality: undefined } : field)),
+    };
+    expect(validateGrid(grid, undeclared).some(issue => issue.key === 'unavailable-sort')).toBeTrue();
+  });
   it('blocks NUMBER-to-STRING drift and legacy unbound filters before constructing any query', () => {
     const grid = validGrid();
     grid.filters = [{ fieldId: 'budget', expectedScalarType: 'NUMBER', operator: 'eq', values: ['1.0'] }];

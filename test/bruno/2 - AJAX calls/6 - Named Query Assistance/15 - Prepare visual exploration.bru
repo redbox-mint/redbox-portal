@@ -35,18 +35,6 @@ body:json {
 }
 
 script:pre-request {
-  // The disposable general harness needs the parent's declared runtime grid fields.
-  if (bru.getVar("queryEditorCsrf")) {
-    const axios = require('axios');
-    const schemaUrl = bru.interpolate('{{solrhost}}/solr/redbox/schema');
-    const live = (await axios.get(schemaUrl)).data.schema;
-    const fields = [
-      ...['oid', 'type', 'stage', 'form', 'version'].map(key => ({ name: 'redbox_grid_' + key, type: 'string' })),
-      ...['created', 'modified'].map(key => ({ name: 'redbox_grid_' + key, type: 'pdate' }))
-    ].filter(field => !live.fields.some(existing => existing.name === field.name))
-      .map(field => ({ ...field, indexed: true, stored: true, multiValued: false, docValues: true }));
-    if (fields.length) await axios.post(schemaUrl, { 'add-field': fields });
-  }
   require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
 }
 
@@ -74,7 +62,6 @@ docs {
   Successful preparation requires a CSRF-enabled server and token. The committed
   general harness disables token issuance, so it must refuse the session request.
   Mounted NamedQueryPromotion HTTP tests cover successful preparation with real CSRF.
-  Uses the committed general harness and its real Solr schema API. Adds only the
-  parent-declared grid envelope fields if missing, matching SOLR_RECORD_GRID_FIELDS.
-  Run against disposable test Solr/Mongo volumes; down -v removes these fixtures.
+  Discovery uses readable contracts and the Mongo storage collection capability.
+  Run against disposable test Mongo volumes; down -v removes these fixtures.
 }

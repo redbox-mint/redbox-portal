@@ -2,6 +2,8 @@ import {
   cursorBinding,
   editorErrors,
   editorSchema,
+  queryRecordScope,
+  queryRecordType,
   rawDefinition,
   rawRows,
   recordIdentityKey,
@@ -13,6 +15,87 @@ import { parseSavedQuery } from './record-grid.protocol';
 import { testSdl } from './data-grid.testing';
 describe('GraphQL editor contract', () => {
   const schema = editorSchema(testSdl);
+  for (const field of ['record', 'records']) {
+    it(`infers the root record type when metadata contains a field named ${field}`, () => {
+      expect(
+        queryRecordType(
+          `{ records(recordType: "plan") { nodes { metadata { ...PlanDetails } } } }
+           fragment PlanDetails on PlanMetadata { ${field} { title } }`,
+          {}
+        )
+      ).toBe('plan');
+    });
+  }
+  it('does not infer a record type when root collections select different types', () => {
+    expect(
+      queryRecordType(
+        '{ a: records(recordType:"plan") { nodes { oid } } b: records(recordType:"publication") { nodes { oid } } }',
+        {}
+      )
+    ).toBeNull();
+  });
+  it('includes named and inline fragments spread at the query root', () => {
+    const fragments = `fragment Collections on Query {
+      ... on Query { plans: records(recordType: "plan") { nodes { oid } } }
+      ... { morePlans: records(recordType: "plan") { nodes { oid } } }
+    }`;
+    expect(queryRecordType(`{ ...Collections } ${fragments}`, {})).toBe('plan');
+    expect(
+      queryRecordType(
+        `{ ...Collections publications: records(recordType:"publication") { nodes { oid } } } ${fragments}`,
+        {}
+      )
+    ).toBeNull();
+  });
+  it('scopes schemas only when all root record selections have one known type', () => {
+    expect(
+      queryRecordType(
+        'query($type: String!) { a: records(recordType:$type) { nodes { oid } } b: records(recordType:"plan") { nodes { oid } } }',
+        { type: 'plan' }
+      )
+    ).toBe('plan');
+    expect(
+      queryRecordType('{ a: records(recordType:"plan") { nodes { oid } } b: record(oid:"x") { oid } }', {})
+    ).toBeNull();
+    expect(
+      queryRecordType(
+        'query($type: String!) { a: records(recordType:"plan") { nodes { oid } } b: records(recordType:$type) { nodes { oid } } }',
+        {}
+      )
+    ).toBeNull();
+    expect(queryRecordType('{ __typename }', {})).toBeNull();
+  });
+  it('infers record type from an omitted variable with an operation default', () => {
+    const document = 'query Plans($type: String! = "plan") { records(recordType: $type) { nodes { oid } } }';
+    expect(queryRecordScope(document, {})).toEqual({ recordType: 'plan' });
+  });
+  it('uses explicit record type variables in place of their defaults', () => {
+    const document = 'query Plans($type: String! = "plan") { records(recordType: $type) { nodes { oid } } }';
+    expect(queryRecordScope(document, { type: 'publication' })).toEqual({ recordType: 'publication' });
+    expect(queryRecordScope(document, { type: null })).toBeNull();
+  });
+  it('infers a single workflow stage from a variable list default', () => {
+    const document = `query Plans($stages: [String!] = ["draft"]) {
+      records(recordType: "plan", workflowStages: $stages) { nodes { oid } }
+    }`;
+    expect(queryRecordScope(document, {})).toEqual({ recordType: 'plan', workflowStage: 'draft' });
+  });
+  it('keeps global schema scope when the record type variable has no supplied value or default', () => {
+    const document = 'query Plans($type: String!) { records(recordType: $type) { nodes { oid } } }';
+    expect(queryRecordScope(document, {})).toBeNull();
+  });
+  it('uses the visual scope only for a single-record root without any collection roots', () => {
+    const visualScope = { recordType: 'plan', workflowStage: 'draft' };
+    const fragments = 'fragment Single on Query { selected: record(oid: "one") { oid } }';
+    expect(queryRecordScope(`{ ...Single } ${fragments}`, {}, visualScope)).toEqual(visualScope);
+    for (const document of [
+      `{ ...Single records(recordType: "plan") { nodes { oid } } } ${fragments}`,
+      `query($type: String!) { ...Single records(recordType: $type) { nodes { oid } } } ${fragments}`,
+      '{ __typename }',
+    ]) {
+      expect(queryRecordScope(document, {}, visualScope)).toBeNull();
+    }
+  });
   it('validates real schema selections, variables, syntax and read-only operations', () => {
     const raw = rawDefinition();
     raw.variables['type'] = 'plan';

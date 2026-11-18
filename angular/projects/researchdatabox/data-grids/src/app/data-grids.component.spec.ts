@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -7,11 +8,17 @@ import { getGridApi, ModuleRegistry, RenderApiModule } from 'ag-grid-community';
 import { AdminTabsDirective, I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
 import { DataGridsComponent } from './data-grids.component';
-import { DATA_GRID_SOURCE, DataGridSource, GridRequestError, GridSourceUnavailable } from './data-grid-source';
-import { GridDefinition, GridPage, GridScope } from './data-grid.model';
+import {
+  DATA_GRID_SOURCE,
+  DataGridSource,
+  GridRawResponse,
+  GridRequestError,
+  GridSourceUnavailable,
+} from './data-grid-source';
+import { GridDefinition, GridPage, GridScope, Operator } from './data-grid.model';
 import { editorSchema, rawDefinition } from './graphql-query';
 import { testSdl } from './data-grid.testing';
-import { parseSavedQuery } from './record-grid.protocol';
+import { DiscoveredField, parsePage, parseSavedQuery, partialFieldErrors } from './record-grid.protocol';
 import { scope, validGrid } from './data-grid.testing';
 
 ModuleRegistry.registerModules([RenderApiModule]);
@@ -557,6 +564,130 @@ describe('Data grid editor', () => {
     expect(component.page).toBe(0);
     expect(component.hasNext).toBeFalse();
   });
+  it('shows current partial diagnostics in both views and distinguishes failed cells from genuine null', async () => {
+    component.open(validGrid(), false);
+    const failure = {
+      code: 'HISTORICAL_VALUE_TYPE',
+      path: ['records', 'nodes', 0, 'metadata', 'alias'],
+      row: 0,
+      oid: 'partial-record',
+      fieldId: 'title',
+      label: 'Title',
+    };
+    const errors = [failure, { code: 'FIELD_ERROR', path: ['unverified', 'field'] }];
+    const result: GridPage = {
+      rows: [
+        { oid: 'partial-record', values: { title: null }, errors: [failure] },
+        { oid: 'null-record', values: { title: null } },
+        { oid: 'usable-record', values: { title: 'Usable title' } },
+      ],
+      errors,
+      response: { data: { records: { nodes: ['controlled fixture'] } }, errors },
+      pageInfo: { hasNextPage: false, endCursor: null },
+    };
+    source.query.and.resolveTo(result);
+    await component.preview();
+    expect(component.hasPreview).toBeTrue();
+    expect(component.resultsStale).toBeFalse();
+    expect(component.previewError).toBe('');
+    const render = component.columnDefs[0].cellRenderer;
+    expect(render({ data: result.rows[0], value: null }).textContent).toContain('HISTORICAL_VALUE_TYPE');
+    expect(render({ data: result.rows[1], value: null }).textContent).not.toContain('HISTORICAL_VALUE_TYPE');
+    expect<unknown>(component.rows[2].values['title']).toBe('Usable title');
+    spyOn(component, 'ngOnInit');
+    component.responseView = 'json';
+    fixture.detectChanges();
+    const content = fixture.nativeElement.textContent;
+    expect(content).toContain('HISTORICAL_VALUE_TYPE');
+    expect(content).toContain('Title');
+    const diagnostics: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.alert-warning li');
+    expect(diagnostics.length).toBe(2);
+    expect(diagnostics[0].textContent).toContain('OID: partial-record');
+    expect(diagnostics[1].textContent).toContain('unverified.field');
+    expect(diagnostics[1].textContent).not.toContain('OID:');
+    expect(component.jsonResponse).toEqual(result.response!);
+    component.changed();
+    expect(component.resultsStale).toBeTrue();
+    source.query.and.rejectWith(new GridRequestError('preview-failed'));
+    await component.preview();
+    expect(component.fieldErrors).toEqual([]);
+    expect(component.jsonResponse).toBeNull();
+    expect(component.hasPreview).toBeFalse();
+  });
+  it('keeps a partially readable structured field inspectable and replaces whole-field failures', async () => {
+    const responsePath = ['metadata', 'g_contributor'];
+    const field: DiscoveredField = {
+      id: 'metadata:/contributor',
+      label: 'Contributor',
+      type: 'structured',
+      selectable: true,
+      operators: [],
+      sortable: false,
+      selections: [
+        { variant: 'M_draft', selection: 'g_contributor: contributor { name role identifier }', responsePath },
+      ],
+    };
+    component.catalogue!.scopes[0].fields.push(field);
+    component.open({ ...validGrid(), columns: [field.id] }, false);
+    const contributor = { name: 'Ada', role: 'Researcher', identifier: null };
+    const records = {
+      nodes: [
+        { oid: 'partially-readable', metadata: { __typename: 'M_draft', g_contributor: contributor } },
+        { oid: 'whole-field-error', metadata: { __typename: 'M_draft', g_contributor: contributor } },
+        { oid: 'null-field', metadata: { __typename: 'M_draft', g_contributor: null } },
+        { oid: 'missing-field', metadata: { __typename: 'M_draft' } },
+      ],
+      hasNextPage: false,
+      endCursor: null,
+    };
+    const reportedErrors = records.nodes.map((_, row) => ({
+      path: ['records', 'nodes', row, ...responsePath, ...(row === 1 ? [] : ['identifier'])],
+      extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+    }));
+    source.query.and.callFake(async request => {
+      const errors = partialFieldErrors(reportedErrors, records, request, [field]);
+      const result = parsePage(records, request, [field], errors);
+      result.rows.forEach((row, index) => (row.errors = errors.filter(error => error.row === index)));
+      return { ...result, errors };
+    });
+
+    await component.preview();
+
+    expect(component.previewError).toBe('');
+    const render = component.columnDefs[0].cellRenderer;
+    const [partial, ...failed] = component.rows;
+    expect<unknown>(partial.values[field.id]).toEqual(contributor);
+    const cell: HTMLElement = render({ data: partial, value: partial.values[field.id] });
+    expect(cell.tagName).toBe('BUTTON');
+    expect(cell.querySelector<HTMLElement>('.text-danger')?.title).toContain('HISTORICAL_VALUE_TYPE');
+    expect(cell.getAttribute('aria-label')).toContain('HISTORICAL_VALUE_TYPE');
+    cell.click();
+    const dialog = document.querySelector<HTMLDialogElement>('dialog.grid-cell-detail')!;
+    expect(dialog.textContent).toContain('Ada');
+    expect(dialog.textContent).toContain('Researcher');
+    dialog.close();
+    dialog.remove();
+    expect(failed.length).toBe(3);
+    for (const row of failed) {
+      const cell: HTMLElement = render({ data: row, value: row.values[field.id] });
+      expect(cell.tagName).toBe('SPAN');
+      expect(cell.textContent).toBe('Field could not be read (HISTORICAL_VALUE_TYPE)');
+    }
+  });
+  it('ignores partial rows and diagnostics from an out-of-order visual response', async () => {
+    component.open(validGrid(), false);
+    const pending = deferred<GridPage>();
+    source.query.and.returnValue(pending.promise);
+    const first = component.preview();
+    component.changed();
+    source.query.and.resolveTo(page('current'));
+    await component.preview();
+    pending.resolve({ ...page('late'), errors: [{ code: 'FIELD_ERROR', path: [] }] });
+    await first;
+    expect(component.rows[0].oid).toBe('current');
+    expect(component.fieldErrors).toEqual([]);
+    expect(component.resultsStale).toBeFalse();
+  });
   it('clears stale rows when fetching the next page fails', async () => {
     component.open(validGrid());
     source.query.and.resolveTo(page('a', true));
@@ -710,6 +841,7 @@ describe('Data grid editor', () => {
     await component.chooseScope(narrowed.id);
     expect(component.error).toBe('');
     expect(component.scope?.fields.length).toBeGreaterThan(0);
+    expect(component.draft?.columns.length).toBeGreaterThan(0);
   });
   it('requires explicit filter-type repair on reopen and clears the previous operands', async () => {
     const saved = { ...validGrid(), id: '123456789012345678901234', revision: 1 };
@@ -759,6 +891,215 @@ describe('Data grid editor', () => {
     expect(component.sortTypeChanged).toBeFalse();
     expect(component.dirty).toBeTrue();
     expect(component.canPreview).toBeTrue();
+  });
+  const addLists = () => {
+    component.catalogue!.scopes[0].fields.push(
+      {
+        id: 'keywords',
+        label: 'Keywords',
+        type: 'text',
+        selectable: true,
+        repeating: true,
+        cardinality: 'LIST',
+        operators: ['eq', 'contains', 'iprefix', 'in', 'exists'],
+        sortable: true,
+      },
+      {
+        id: 'scores',
+        label: 'Scores',
+        type: 'number',
+        integer: true,
+        selectable: true,
+        repeating: true,
+        cardinality: 'LIST',
+        operators: ['eq', 'between', 'exists'],
+        sortable: true,
+      }
+    );
+  };
+  // Direct model edits bypass template events; mark the OnPush editor view itself.
+  const render = async () => {
+    fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
+  const texts = (selector: string): string[] =>
+    [...fixture.nativeElement.querySelectorAll(selector)].map((node: HTMLElement) => node.textContent!.trim());
+  it('offers IPREFIX for string lists with a single text input', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    component.open(validGrid());
+    component.addFilter();
+    const filter = component.draft!.filters[0];
+    component.chooseFilterField(filter, 'keywords');
+    component.chooseOperator(filter, 'iprefix');
+    filter.values = ['ALP'];
+    await render();
+    expect(texts('#filter-op-0 option')).toContain('data-grids-op-list-iprefix');
+    const inputs = fixture.nativeElement.querySelectorAll('.grid-values input');
+    expect(inputs.length).toBe(1);
+    expect(inputs[0].type).toBe('text');
+    expect(inputs[0].value).toBe('ALP');
+    expect(component.issues).toEqual([]);
+    await component.preview();
+    expect(source.query.calls.mostRecent().args[0].definition.filters[0]).toEqual(filter);
+  });
+  it('labels list conditions and min/max sorting with element semantics while keeping scalar labels', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    component.open(validGrid());
+    expect(component.sortFields.map(field => field.id)).toContain('keywords');
+    expect(component.sortFields.map(field => field.id)).not.toContain('people');
+    component.addFilter();
+    const filter = component.draft!.filters[0];
+    expect(filter.expectedCardinality).toBe('SCALAR');
+    await render();
+    expect(texts('#filter-op-0 option')).toContain('data-grids-op-eq');
+    expect(fixture.nativeElement.querySelector('.explorer-list-filter-help')).toBeNull();
+    component.chooseFilterField(filter, 'scores');
+    component.chooseOperator(filter, 'between');
+    filter.values = ['2', '4'];
+    expect(filter.expectedCardinality).toBe('LIST');
+    expect(filter.expectedScalarType).toBe('INTEGER');
+    component.chooseSort('keywords');
+    expect(component.draft!.sort).toEqual({
+      fieldId: 'keywords',
+      direction: 'asc',
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+    });
+    await render();
+    expect(texts('#filter-op-0 option')).toEqual([
+      'data-grids-op-list-eq',
+      'data-grids-op-list-between',
+      'data-grids-op-list-exists',
+    ]);
+    expect(fixture.nativeElement.querySelector('.explorer-list-filter-help').textContent).toContain(
+      'data-grids-list-filter-help'
+    );
+    expect(texts('#grid-direction option')).toEqual(['data-grids-ascending-list', 'data-grids-descending-list']);
+    expect(fixture.nativeElement.querySelector('.explorer-list-sort-help')).not.toBeNull();
+    expect(component.conditionLabel(filter)).toContain('data-grids-op-list-between');
+    expect(component.issues).toEqual([]);
+    await component.preview();
+    expect(source.query.calls.mostRecent().args[0].definition.filters[0].expectedCardinality).toBe('LIST');
+    component.saveName = 'Lists';
+    await component.save();
+    const persisted = source.save.calls.mostRecent().args[0] as GridDefinition;
+    expect(persisted.filters[0]).toEqual({
+      fieldId: 'scores',
+      expectedScalarType: 'INTEGER',
+      expectedCardinality: 'LIST',
+      operator: 'between',
+      values: ['2', '4'],
+    });
+    expect(persisted.sort?.expectedCardinality).toBe('LIST');
+    // Scalar sorting keeps its existing labels and no list help.
+    component.chooseSort('title');
+    await render();
+    expect(texts('#grid-direction option')).toEqual(['data-grids-ascending', 'data-grids-descending']);
+    expect(fixture.nativeElement.querySelector('.explorer-list-sort-help')).toBeNull();
+  });
+  it('requires visible cardinality repair for legacy filters and sorts on reopen, then saves LIST semantics', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    const saved: GridDefinition = {
+      ...validGrid(),
+      id: '123456789012345678901234',
+      revision: 1,
+      filters: [{ fieldId: 'keywords', expectedScalarType: 'STRING', operator: 'eq', values: ['alpha'] }],
+      sort: { fieldId: 'keywords', direction: 'desc', expectedScalarType: 'STRING' },
+    };
+    source.read.and.resolveTo(saved);
+    await component.reopen(saved, true);
+    expect(source.query).not.toHaveBeenCalled();
+    expect(component.dirty).toBeFalse();
+    expect(component.canPreview).toBeFalse();
+    expect(component.issues.map(issue => issue.key)).toEqual([
+      'filter-cardinality-changed',
+      'sort-cardinality-changed',
+    ]);
+    const filter = component.draft!.filters[0];
+    expect(component.filterCardinalityChanged(filter)).toBeTrue();
+    expect(component.filterTypeChanged(filter)).toBeFalse();
+    expect(component.sortCardinalityChanged).toBeTrue();
+    await render();
+    expect(fixture.nativeElement.querySelector('.rb-admin-chip.explorer-chip-repair')).not.toBeNull();
+    const sortAlert = fixture.nativeElement.querySelector('.explorer-sort-cardinality');
+    expect(sortAlert.textContent).toContain('data-grids-sort-cardinality-changed');
+    fixture.nativeElement.querySelector('.explorer-chip-label').click();
+    fixture.detectChanges();
+    const filterAlert = fixture.nativeElement.querySelector('.explorer-filter-cardinality');
+    expect(filterAlert.textContent).toContain('data-grids-filter-cardinality-changed');
+    filterAlert.querySelector('button').click();
+    fixture.detectChanges();
+    // Compatible operator and values are kept for the explicitly confirmed meaning.
+    expect(filter).toEqual({
+      fieldId: 'keywords',
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+      operator: 'eq',
+      values: ['alpha'],
+    });
+    expect(fixture.nativeElement.querySelector('.explorer-filter-cardinality')).toBeNull();
+    expect(component.canPreview).toBeFalse();
+    sortAlert.querySelector('button').click();
+    fixture.detectChanges();
+    expect(component.draft!.sort?.expectedCardinality).toBe('LIST');
+    expect(fixture.nativeElement.querySelector('.explorer-sort-cardinality')).toBeNull();
+    expect(component.dirty).toBeTrue();
+    expect(component.canPreview).toBeTrue();
+    await component.save();
+    const persisted = source.save.calls.mostRecent().args[0] as GridDefinition;
+    expect(persisted.filters[0].expectedCardinality).toBe('LIST');
+    expect(persisted.sort?.expectedCardinality).toBe('LIST');
+  });
+  it('preserves unavailable filters instead of offering or applying cardinality repair', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    // A pre-fix repair dirties the draft; never let a reopen block on the native discard prompt.
+    const confirm = spyOn(window, 'confirm').and.returnValue(true);
+    const scores = component.catalogue!.scopes[0].fields.find(field => field.id === 'scores')!;
+    const cases: { partial: boolean; operators: Operator[] }[] = [
+      { partial: true, operators: [] },
+      { partial: false, operators: [] },
+      { partial: true, operators: ['eq', 'between', 'exists'] },
+    ];
+    for (const unavailable of cases) {
+      scores.partial = unavailable.partial;
+      scores.operators = unavailable.operators;
+      const grid = validGrid();
+      grid.filters = [{ fieldId: 'scores', expectedScalarType: 'INTEGER', operator: 'gt', values: ['3'] }];
+      component.open(grid);
+      component.filterEditor = 0;
+      await render();
+      const filter = component.draft!.filters[0];
+      expect(component.filterCardinalityChanged(filter)).toBeFalse();
+      expect(fixture.nativeElement.querySelector('.explorer-filter-cardinality')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.rb-admin-chip.explorer-chip-repair')).toBeNull();
+      expect(fixture.nativeElement.querySelector('#filter-op-0').value).toBe('gt');
+      const before = structuredClone(filter);
+      component.repairFilterCardinality(filter);
+      await render();
+      expect(filter).toEqual(before);
+      expect(fixture.nativeElement.querySelector('#filter-op-0').value).toBe('gt');
+      expect(component.dirty).toBeFalse();
+      expect(component.canPreview).toBeFalse();
+      expect(component.issues.map(issue => issue.key)).toContain('unavailable-filter');
+    }
+    expect(confirm).not.toHaveBeenCalled();
+  });
+  it('resets an operator that the repaired list meaning no longer supports', async () => {
+    addLists();
+    const grid = validGrid();
+    grid.filters = [{ fieldId: 'scores', expectedScalarType: 'INTEGER', operator: 'gt', values: ['3'] }];
+    component.open(grid);
+    const filter = component.draft!.filters[0];
+    component.repairFilterCardinality(filter);
+    expect(filter.expectedCardinality).toBe('LIST');
+    expect(filter.operator).toBe('eq');
+    expect(filter.values).toEqual(['']);
   });
   it('keeps executed rows visibly stale after edits and never treats saving as running', async () => {
     component.open(validGrid());
@@ -812,14 +1153,311 @@ describe('Data grid editor', () => {
     expect(component.rawErrors).toEqual([]);
     expect(component.rawErrors).not.toBe(valid);
   });
+  it('reloads the scoped schema when an unlinked query selects another record type', async () => {
+    component.open(validGrid());
+    const schemaSpy = jasmine
+      .createSpy()
+      .and.callFake((requested?: GridScope) =>
+        Promise.resolve(
+          requested?.recordType === 'organisation'
+            ? testSdl.replace('workflowStep: String,', 'payload: String,')
+            : testSdl
+        )
+      );
+    source.schema = schemaSpy;
+    const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.unlink();
+    await editor.refreshRawSchema();
+    expect((schemaSpy.calls.mostRecent().args[0] as GridScope | undefined)?.recordType).toBe('plan');
+    component.rawDraft.document = '{ records(recordType:"organisation") { nodes { oid payload } } }';
+    component.rawChanged();
+    await editor.refreshRawSchema();
+    const scopeArg = schemaSpy.calls.mostRecent().args[0] as GridScope | undefined;
+    expect(scopeArg?.recordType).toBe('organisation');
+    expect(scopeArg?.workflowStage).toBeUndefined();
+    expect(component.rawErrors).toEqual([]);
+    expect(component.schemaError).toBe('');
+  });
+  const singleRecordSdl = testSdl
+    .replace('type Query {', 'type Query { record(oid: ID!): Record,')
+    .replace('type Record {', 'type Metadata { title: String } type Record { metadata: Metadata,');
+  const singleRecordDocument = 'query { record(oid: "one") { oid metadata { __typename } } }';
+
+  it('refreshes the single-record schema using the selected visual type and stage', async () => {
+    component.open(validGrid(), false);
+    const schema = jasmine.createSpy().and.resolveTo(singleRecordSdl);
+    source.schema = schema;
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType: "organisation") { nodes { oid } } }';
+    component.unlink();
+    const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    schema.calls.reset();
+
+    component.rawDraft.document = singleRecordDocument;
+    component.rawChanged();
+
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ recordType: 'plan', workflowStage: 'draft' }));
+    expect(component.rawErrors).toEqual([]);
+  });
+  it('loads the global schema for a saved single-record query without a visual scope', async () => {
+    const schema = jasmine.createSpy().and.resolveTo(singleRecordSdl);
+    source.schema = schema;
+    const id = '000000000000000000000001';
+    source.read.and.resolveTo({ ...rawDefinition(), id, document: singleRecordDocument, variables: {} });
+
+    await component.reopen({ id });
+
+    expect(schema).toHaveBeenCalledOnceWith(undefined);
+    expect(component.rawErrors).toEqual([]);
+  });
+  describe('raw workflow-stage schema discovery', () => {
+    const stageSdl = testSdl.replace('recordType: String!,', 'recordType: String!, workflowStages: [String!],');
+    const draftCollection = 'records(recordType: "dataPublication", workflowStages: ["draft"]) { nodes { oid } }';
+    const draftQuery = `{ ${draftCollection} }`;
+    const variableQuery =
+      'query($stages: [String!]) { records(recordType: "dataPublication", workflowStages: $stages) { nodes { oid } } }';
+
+    for (const { name, document, variables, workflowStage } of [
+      { name: 'one literal stage', document: draftQuery, variables: {}, workflowStage: 'draft' },
+      {
+        name: 'one stage from variables',
+        document: variableQuery,
+        variables: { stages: ['draft'] },
+        workflowStage: 'draft',
+      },
+      { name: 'multiple stages', document: draftQuery.replace('["draft"]', '["draft", "review"]'), variables: {} },
+      { name: 'a missing stage variable', document: variableQuery, variables: {} },
+      {
+        name: 'a second collection without a stage restriction',
+        document: `{ draft: ${draftCollection} all: records(recordType: "dataPublication") { nodes { oid } } }`,
+        variables: {},
+      },
+      {
+        name: 'collections restricted to different stages',
+        document: `{ draft: ${draftCollection} review: ${draftCollection.replace('"draft"', '"review"')} }`,
+        variables: {},
+      },
+    ]) {
+      it(`loads the expected scope for a raw query with ${name}`, async () => {
+        const schema = jasmine.createSpy().and.resolveTo(stageSdl);
+        source.schema = schema;
+        const id = '000000000000000000000001';
+        source.read.and.resolveTo({ ...rawDefinition(), id, document, variables });
+
+        await component.reopen({ id });
+
+        expect(schema).toHaveBeenCalledTimes(1);
+        const requested = schema.calls.mostRecent().args[0] as GridScope | undefined;
+        expect(requested?.recordType).toBe('dataPublication');
+        expect(requested?.workflowStage).toBe(workflowStage);
+        expect(component.rawErrors).toEqual([]);
+      });
+    }
+
+    it('refreshes the scoped schema when the raw editor changes the stage restriction', async () => {
+      const reviewSdl = stageSdl.replace('workflowStep: String,', 'payload: String,');
+      const schema = jasmine
+        .createSpy()
+        .and.callFake(async (requested?: GridScope) => (requested?.workflowStage === 'review' ? reviewSdl : stageSdl));
+      source.schema = schema;
+      const id = '000000000000000000000001';
+      source.read.and.resolveTo({ ...rawDefinition(), id, document: draftQuery, variables: {} });
+      await component.reopen({ id });
+      expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ workflowStage: 'draft' }));
+
+      component.rawDraft.document = draftQuery
+        .replace('"draft"', '"review"')
+        .replace('nodes { oid }', 'nodes { oid payload }');
+      component.rawChanged();
+      expect(schema).toHaveBeenCalledWith(
+        jasmine.objectContaining({ recordType: 'dataPublication', workflowStage: 'review' })
+      );
+      const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+      expect(await editor.refreshRawSchema()).toBeTrue();
+      expect(schema).toHaveBeenCalledTimes(2);
+      expect(component.schemaSdl).toBe(reviewSdl);
+      expect(component.rawErrors).toEqual([]);
+    });
+  });
+  it('reloads the matching schema after refreshing fields in linked GraphQL mode', async () => {
+    component.open(validGrid(), false);
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    source.fields = jasmine.createSpy().and.resolveTo([structuredClone(scope)]);
+    await component.switchMode('graphql');
+    const previous = component.schema;
+    await component.chooseScope(scope.id);
+    expect(source.schema).toHaveBeenCalledTimes(2);
+    expect(source.schema).toHaveBeenCalledWith(
+      jasmine.objectContaining({ recordType: scope.recordType, workflowStage: scope.workflowStage })
+    );
+    expect(component.schema).not.toBeNull();
+    expect(component.schema).not.toBe(previous);
+    expect(component.schemaSdl).toBe(testSdl);
+    expect(component.rawErrors).toEqual([]);
+    await component.switchMode('visual');
+    await component.chooseScope(scope.id);
+    expect(source.schema).toHaveBeenCalledTimes(2);
+  });
+  it('cancels a save awaiting schema discovery and ignores its late continuation', async () => {
+    component.open(validGrid(), false);
+    const schema = jasmine.createSpy().and.resolveTo(testSdl);
+    source.schema = schema;
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.unlink();
+    const pending = deferred<string>();
+    schema.and.returnValue(pending.promise);
+    component.rawDraft.document = '{ records(recordType:"organisation") { nodes { oid } } }';
+    component.rawChanged();
+    component.beginSave();
+    component.publishAfterSave = true;
+    const saving = component.confirmSave();
+    expect(component.saving).toBeTrue();
+    expect(component.preparingSave).toBeTrue();
+    expect(component.canSave).toBeFalse();
+    component.cancelSave();
+    expect(component.saving).toBeFalse();
+    expect(component.saveOpen).toBeFalse();
+    component.beginSave();
+    pending.resolve(testSdl);
+    await saving;
+    expect(source.save).not.toHaveBeenCalled();
+    expect(component.saveOpen).toBeTrue();
+    expect(component.publishAfterSave).toBeFalse();
+    await component.confirmSave();
+    expect(source.save).toHaveBeenCalledTimes(1);
+  });
+  it('prevents Escape cancellation after persistence starts', async () => {
+    component.open(validGrid(), false);
+    const pending = deferred<GridDefinition>();
+    source.save.and.returnValue(pending.promise);
+    component.beginSave();
+    const saving = component.confirmSave();
+    const event = new Event('cancel', { cancelable: true });
+    component.cancelSave(event);
+    expect(event.defaultPrevented).toBeTrue();
+    expect(component.saveOpen).toBeTrue();
+    expect(component.saving).toBeTrue();
+    pending.resolve({ ...validGrid(), id: 'saved' });
+    await saving;
+    expect(component.saveOpen).toBeFalse();
+  });
+  it('backs off failed scoped schema refreshes for five seconds', async () => {
+    const clock = spyOn(Date, 'now').and.returnValue(1_000);
+    const schema = jasmine.createSpy().and.rejectWith(new Error('Schema discovery failed'));
+    source.schema = schema;
+    component.open(validGrid(), false);
+    await component.switchMode('graphql');
+
+    clock.and.returnValue(5_999);
+    await component.loadSchema();
+    expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ recordType: 'plan' }));
+    expect(component.schemaError).toBe('schema-unavailable');
+    expect(component.schemaLoading).toBeFalse();
+
+    clock.and.returnValue(6_000);
+    schema.and.resolveTo(testSdl);
+    await component.loadSchema();
+    expect(schema).toHaveBeenCalledTimes(2);
+    expect(component.schemaSdl).toBe(testSdl);
+    expect(component.schemaError).toBe('');
+  });
+  it('blocks raw preview and save when scoped schema discovery fails, then allows both after retry', async () => {
+    component.open(validGrid(), false);
+    const schema = jasmine.createSpy().and.resolveTo(testSdl);
+    source.schema = schema;
+    const rawResponse = jasmine.createSpy().and.resolveTo({ data: { records: { nodes: [{ oid: 'one' }] } } });
+    source.rawResponse = rawResponse;
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.unlink();
+    await component.loadSchema();
+
+    const previousSchema = component.schema;
+    const pending = deferred<string>();
+    schema.calls.reset();
+    schema.and.returnValue(pending.promise);
+    component.rawDraft.document = '{ records(recordType:"organisation") { nodes { oid } } }';
+    component.rawChanged();
+    const previewing = component.preview();
+    const saving = component.save();
+    expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ recordType: 'organisation' }));
+    expect(component.schema).toBe(previousSchema);
+    expect(component.rawErrors).toEqual([]);
+    expect(rawResponse).not.toHaveBeenCalled();
+    expect(source.save).not.toHaveBeenCalled();
+
+    pending.reject(new Error('Schema discovery failed'));
+    await Promise.all([previewing, saving]);
+    expect(component.schema).toBe(previousSchema);
+    expect(component.schemaSdl).toBe(testSdl);
+    expect(component.schemaError).toBe('schema-unavailable');
+    expect(component.previewError).toBe('schema-unavailable');
+    expect(component.error).toBe('schema-unavailable');
+    expect(component.saving).toBeFalse();
+    expect(component.preparingSave).toBeFalse();
+    expect(rawResponse).not.toHaveBeenCalled();
+    expect(source.save).not.toHaveBeenCalled();
+
+    schema.and.resolveTo(testSdl);
+    spyOn(component, 'ngOnInit');
+    fixture.detectChanges();
+    const retry: HTMLButtonElement = fixture.nativeElement.querySelector('.alert-danger button');
+    retry.click();
+    await fixture.whenStable();
+    expect(schema).toHaveBeenCalledTimes(2);
+    expect(component.schema).not.toBe(previousSchema);
+    expect(component.schemaError).toBe('');
+    await component.preview();
+    await component.save();
+    expect(rawResponse).toHaveBeenCalledTimes(1);
+    expect(source.save).toHaveBeenCalledTimes(1);
+    expect(component.previewError).toBe('');
+    expect(component.error).toBe('');
+  });
+  it('reuses the loaded global schema when an unlinked edit stops identifying a single record type', async () => {
+    component.open(validGrid(), false);
+    const globalSdl = testSdl.replace('type Query {', 'type Query { record(oid: ID!): Record,');
+    const pending = deferred<string>();
+    const schema = jasmine.createSpy().and.callFake((requested?: GridScope) => {
+      if (!requested) return Promise.resolve(globalSdl);
+      return requested.workflowStage ? Promise.resolve(testSdl) : pending.promise;
+    });
+    source.schema = schema;
+    const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ __typename }';
+    component.unlink();
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    expect(schema).toHaveBeenCalledTimes(2);
+    expect(schema.calls.mostRecent().args[0]).toBeUndefined();
+
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    component.rawChanged();
+    const scopedRefresh = editor.refreshRawSchema();
+    component.rawDraft.document = 'query Global { __typename }';
+    component.rawChanged();
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    expect(schema).toHaveBeenCalledTimes(3);
+
+    pending.resolve(testSdl);
+    await scopedRefresh;
+    expect(component.schemaSdl).toBe(globalSdl);
+    expect(component.rawErrors).toEqual([]);
+    expect(schema).toHaveBeenCalledTimes(3);
+  });
   it('loads the schema while visual generation is still pending', async () => {
     component.open(validGrid());
-    let finish!: (value: {query: string; variables: Record<string, never>}) => void;
-    source.generate = jasmine.createSpy().and.returnValue(new Promise(resolve => finish = resolve));
+    let finish!: (value: { query: string; variables: Record<string, never> }) => void;
+    source.generate = jasmine.createSpy().and.returnValue(new Promise(resolve => (finish = resolve)));
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     const switching = component.switchMode('graphql');
     expect(source.schema).toHaveBeenCalled();
-    finish({query: '{ records(recordType:"plan") { nodes { oid } } }', variables: {}});
+    finish({ query: '{ records(recordType:"plan") { nodes { oid } } }', variables: {} });
     await switching;
     expect(component.rawErrors).toEqual([]);
   });
@@ -835,6 +1473,141 @@ describe('Data grid editor', () => {
     await component.switchMode('graphql');
     component.unlink();
     expect(component.rawDraft.document).toContain('recordType:"plan"');
+  });
+  for (const generated of [false, true])
+    it(
+      'retains raw partial rows, safe JSON and failed cells with ' +
+        (generated ? 'generated field labels' : 'arbitrary response aliases'),
+      async () => {
+        component.open(validGrid(), false);
+        source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+        await component.switchMode('graphql');
+        component.unlink();
+        const alias = generated ? 'g_hash' : 'custom';
+        component.rawDraft.document = component.rawDraft.document.replace(
+          'oid recordType workflowStep',
+          `oid ${alias}: workflowStep`
+        );
+        component.rawDraft.variables['type'] = 'plan';
+        component.variablesText = JSON.stringify(component.rawDraft.variables);
+        if (generated)
+          component.scope!.fields[0].selections = [
+            { variant: '', selection: 'g_hash: workflowStep', responsePath: ['g_hash'] },
+          ];
+        const data = {
+          records: {
+            nodes: [
+              { oid: 'broken', [alias]: null },
+              { oid: 'empty', [alias]: null },
+              { oid: 'usable', [alias]: 'Draft' },
+            ],
+            hasNextPage: false,
+            endCursor: null,
+          },
+        };
+        source.raw = jasmine.createSpy().and.rejectWith(new Error('legacy method must not be called'));
+        source.rawResponse = jasmine
+          .createSpy()
+          .and.resolveTo({ data, errors: [{ code: 'HISTORICAL_VALUE_TYPE', path: ['records', 'nodes', 0, alias] }] });
+        await component.preview();
+        expect(component.previewError).toBe('');
+        expect(component.rows.length).toBe(3);
+        expect<unknown>(component.rows[2].values[alias]).toBe('Draft');
+        expect(component.fieldErrors[0].oid).toBe('broken');
+        expect(component.fieldErrors[0].label).toBe(generated ? 'Title' : undefined);
+        const render = component.columnDefs.find(column => column.colId === alias)!.cellRenderer;
+        expect(render({ data: component.rows[0], value: null }).textContent).toContain('HISTORICAL_VALUE_TYPE');
+        expect(render({ data: component.rows[1], value: null }).textContent).not.toContain('HISTORICAL_VALUE_TYPE');
+        expect(component.jsonResponse).toEqual({ data, errors: component.fieldErrors });
+        spyOn(component, 'ngOnInit');
+        component.responseView = 'json';
+        fixture.detectChanges();
+        expect(fixture.nativeElement.textContent).toContain(generated ? 'Title' : 'records.nodes.0.custom');
+        expect(fixture.nativeElement.textContent).toContain('broken');
+        component.rawDraft.document += '\n# edited';
+        component.rawChanged();
+        expect(component.resultsStale).toBeTrue();
+        source.rawResponse = jasmine.createSpy().and.rejectWith(new GridRequestError('query-unavailable'));
+        await component.preview();
+        expect(component.hasPreview).toBeFalse();
+        expect(component.fieldErrors).toEqual([]);
+        expect(component.jsonResponse).toBeNull();
+      }
+    );
+  it('maps nested generated list errors and nullable parents while retaining unmapped JSON', async () => {
+    component.open(validGrid(), false);
+    source.schema = jasmine
+      .createSpy()
+      .and.resolveTo(
+        testSdl.replace('type Record {', 'type Metadata { g_hash: [String] } type Record { metadata: Metadata,')
+      );
+    await component.switchMode('graphql');
+    component.unlink();
+    component.rawDraft.document = component.rawDraft.document.replace(
+      'oid recordType workflowStep',
+      'oid metadata { g_hash }'
+    );
+    component.rawDraft.variables['type'] = 'plan';
+    component.variablesText = JSON.stringify(component.rawDraft.variables);
+    component.scope!.fields[0].selections = [
+      { variant: '', selection: 'metadata { g_hash }', responsePath: ['metadata', 'g_hash'] },
+    ];
+    component.scope!.fields[0].repeating = true;
+    const data = {
+      records: {
+        nodes: [
+          { oid: 'nested', metadata: { g_hash: ['usable', null] } },
+          { oid: 'parent', metadata: null },
+          { oid: 'empty', metadata: { g_hash: null } },
+        ],
+        hasNextPage: false,
+        endCursor: null,
+      },
+    };
+    source.rawResponse = jasmine.createSpy().and.resolveTo({
+      data,
+      errors: [
+        { code: 'HISTORICAL_VALUE_TYPE', path: ['records', 'nodes', 0, 'metadata', 'g_hash', 1] },
+        { code: 'FIELD_ERROR', path: ['records', 'nodes', 1, 'metadata'] },
+      ],
+    });
+    await component.preview();
+    expect(component.fieldErrors.map(error => error.label)).toEqual(['Title', undefined]);
+    expect(component.fieldErrors.map(error => error.oid)).toEqual(['nested', 'parent']);
+    const render = component.columnDefs.find(column => column.colId === 'metadata.g_hash')!.cellRenderer;
+    const cell: HTMLElement = render({ data: component.rows[0], value: component.rows[0].values['metadata.g_hash'] });
+    expect(cell.tagName).toBe('BUTTON');
+    expect(cell.textContent).toContain('usable');
+    expect(cell.querySelector<HTMLElement>('.text-danger')?.title).toContain('HISTORICAL_VALUE_TYPE');
+    const parent = component.columnDefs.find(column => column.colId === 'metadata')!.cellRenderer;
+    expect(parent({ data: component.rows[1], value: null }).textContent).toContain('FIELD_ERROR');
+    expect(render({ data: component.rows[1], value: null }).textContent).not.toContain('FIELD_ERROR');
+    expect(render({ data: component.rows[2], value: null }).textContent).not.toContain('FIELD_ERROR');
+    component.selectResultPath('missing');
+    expect(component.responseView).toBe('json');
+    expect(component.hasPreview).toBeTrue();
+    expect(component.fieldErrors.length).toBe(2);
+    expect(component.jsonResponse!['data']).toEqual(data);
+  });
+  it('discards an out-of-order raw partial response and its diagnostics', async () => {
+    component.open(validGrid(), false);
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    await component.switchMode('graphql');
+    component.unlink();
+    component.rawDraft.variables['type'] = 'plan';
+    component.variablesText = JSON.stringify(component.rawDraft.variables);
+    const pending = deferred<GridRawResponse>();
+    source.rawResponse = jasmine.createSpy().and.returnValue(pending.promise);
+    const running = component.preview();
+    component.rawDraft.document += '\n# edited';
+    component.rawChanged();
+    pending.resolve({
+      data: { records: { nodes: [{ oid: 'old' }] } },
+      errors: [{ code: 'HISTORICAL_VALUE_TYPE', path: ['records', 'nodes', 0, 'workflowStep'] }],
+    });
+    await running;
+    expect(component.fieldErrors).toEqual([]);
+    expect(component.hasPreview).toBeFalse();
   });
   it('reopens raw queries into results with real variables, mapping and cursor navigation', async () => {
     const saved = { ...rawDefinition('Raw plans'), id: '123456789012345678901234', revision: 1 };

@@ -299,7 +299,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       }
       return;
     }
+    // An unchanged label still represents the selected or loaded model value,
+    // including identifiers and other fields that free text cannot reconstruct.
+    if (text === this.lastConfirmedDisplayValue.trim()) {
+      this.formControl.markAsTouched();
+      return;
+    }
     this.setModelFromFreeText(text);
+    this.lastConfirmedDisplayValue = text;
   }
 
   public override get isDisabled(): boolean {

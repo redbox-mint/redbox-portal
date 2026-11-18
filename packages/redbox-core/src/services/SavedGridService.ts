@@ -1,23 +1,28 @@
+import { InvalidReadSchemaScopeError, type ReadSchemaScope } from '../record-graphql/schema-scope';
 import type { Db, ObjectId as MongoObjectId } from 'mongodb';
 import type { ExplorerQueryAuthor } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
 import { Kind, parse, visit } from 'graphql';
-import { normalizeTimestamp } from '../utilities/SavedGridTimestamp';
 import { Services as services } from '../CoreService';
+import { recordGridFilter, recordGridSort, isWellFormedRecordGridText } from '@researchdatabox/sails-ng-common';
 
 const fieldId = z.string().min(1).max(512);
+// Absent means a legacy definition saved with scalar semantics.
+const expectedCardinality = z.enum(['SCALAR', 'LIST']).optional();
 const operand = z.string().refine(value => Buffer.byteLength(value, 'utf8') <= 256);
 const filter = z
   .strictObject({
     fieldId,
     expectedScalarType: z.enum(['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME']).optional(),
-    operator: z.enum(['eq', 'contains', 'gt', 'lt', 'between', 'in', 'exists']),
+    expectedCardinality,
+    operator: z.enum(['eq', 'contains', 'iprefix', 'gt', 'lt', 'between', 'in', 'exists']),
     values: z.array(operand).min(1).max(20),
   })
   .refine(value => value.operator === 'in' || value.values.length === (value.operator === 'between' ? 2 : 1))
   .refine(value => value.operator !== 'exists' || ['true', 'false'].includes(value.values[0]))
-  .refine(value => value.operator !== 'contains' || value.values[0].length > 0);
+  .refine(value => !['contains', 'iprefix'].includes(value.operator) || !!value.values[0]?.length)
+  .refine(value => value.operator !== 'iprefix' || value.values.every(isWellFormedRecordGridText));
 const visualDefinition = z.strictObject({
   mode: z.literal('visual').optional(),
   version: z.literal(1),
@@ -35,6 +40,7 @@ const visualDefinition = z.strictObject({
       fieldId,
       direction: z.enum(['asc', 'desc']),
       expectedScalarType: z.enum(['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME']).optional(),
+      expectedCardinality,
     })
     .nullable(),
   pageSize: z.union([z.literal(25), z.literal(50)]),
@@ -138,6 +144,8 @@ const discovery = z.object({
           scalarType: z.string(),
           selectable: z.boolean(),
           repeating: z.boolean(),
+          cardinality: z.enum(['SCALAR', 'LIST']),
+          filterable: z.boolean(),
           availableInAllVariants: z.boolean(),
           operators: z.array(z.string()),
           sortable: z.boolean(),
@@ -148,7 +156,7 @@ const discovery = z.object({
 });
 const discoveryQuery = `query SavedGridFields($type: String!, $stages: [String!]) {
   recordFields(recordType: $type, workflowStages: $stages) {
-    fields { id scalarType selectable repeating availableInAllVariants operators sortable }
+    fields { id scalarType selectable repeating cardinality filterable availableInAllVariants operators sortable }
   }
 }`;
 
@@ -231,13 +239,20 @@ export namespace Services {
       return { stages: [...stages] };
     }
     /** Admin-only bridge to the parent's real public SDL tooling; introspection stays forbidden. */
-    public async schema(caller: SavedGridCaller) {
+    public async schema(caller: SavedGridCaller, scope?: ReadSchemaScope) {
       if (typeof RecordGraphqlService === 'undefined') throw new SavedGridError(503, 'query-unavailable');
       try {
-        const sdl = await RecordGraphqlService.describeReadSchema(caller);
-        if (Buffer.byteLength(sdl) > 262144) throw new Error('Schema too large');
+        const sdl = await RecordGraphqlService.describeReadSchema(caller, scope);
+        if (Buffer.byteLength(sdl) > 262144)
+          throw new Error(`Editor schema exceeds 262144-byte bound (${Buffer.byteLength(sdl)} bytes).`);
         return { sdl };
-      } catch {
+      } catch (error) {
+        if (error instanceof InvalidReadSchemaScopeError) throw new SavedGridError(400, 'invalid-definition');
+        this.updateChronicle(
+          { operation: 'saved-grid.schema', recordType: scope?.recordType, workflowStages: scope?.workflowStages },
+          [error],
+          'warn'
+        );
         throw new SavedGridError(503, 'schema-unavailable');
       }
     }
@@ -317,54 +332,37 @@ export namespace Services {
               ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME', 'OBJECT'].includes(field.scalarType))
         );
       if (grid.columns.some(id => !selectable(id))) throw new SavedGridError(400, 'schema-changed');
+      // Shared checks reject capability, type and cardinality drift. A legacy
+      // definition (no expected cardinality) is SCALAR and must be repaired explicitly.
+      const shared = <T>(check: () => T): T => {
+        try {
+          return check();
+        } catch (error) {
+          const code = error instanceof Error ? error.message : '';
+          if (
+            [
+              'schema-changed',
+              'filter-type-changed',
+              'filter-cardinality-changed',
+              'sort-type-changed',
+              'sort-cardinality-changed',
+            ].includes(code)
+          )
+            throw new SavedGridError(400, code);
+          throw new SavedGridError(400, 'invalid-definition');
+        }
+      };
       const sort = grid.sort;
-      if (
-        sort &&
-        !fields.some(
-          field => field.id === sort.fieldId && field.sortable && !field.repeating && field.availableInAllVariants
-        )
-      )
-        throw new SavedGridError(400, 'schema-changed');
-      if (
-        sort &&
-        (!sort.expectedScalarType ||
-          sort.expectedScalarType !== fields.find(field => field.id === sort.fieldId)?.scalarType)
-      )
-        throw new SavedGridError(400, 'sort-type-changed');
+      if (sort) {
+        const field = fields.find(field => field.id === sort.fieldId);
+        if (!field) throw new SavedGridError(400, 'schema-changed');
+        shared(() => recordGridSort(sort, field));
+      }
       for (const filter of grid.filters) {
         const field = fields.find(field => field.id === filter.fieldId);
-        if (
-          !field ||
-          field.repeating ||
-          !field.availableInAllVariants ||
-          !field.operators.includes(filter.operator.toUpperCase())
-        )
+        if (!field || !field.operators.includes(filter.operator.toUpperCase()))
           throw new SavedGridError(400, 'schema-changed');
-        if (!filter.expectedScalarType || filter.expectedScalarType !== field.scalarType)
-          throw new SavedGridError(400, 'filter-type-changed');
-        if (filter.operator === 'exists') continue;
-        const typed = filter.values.map(value => {
-          if (['NUMBER', 'INTEGER', 'FLOAT'].includes(field.scalarType)) {
-            if (
-              !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()) ||
-              !Number.isFinite(Number(value)) ||
-              (field.scalarType === 'INTEGER' && !Number.isSafeInteger(Number(value)))
-            )
-              throw new SavedGridError(400, 'invalid-definition');
-            return Number(value);
-          }
-          if (field.scalarType === 'BOOLEAN' && !['true', 'false'].includes(value))
-            throw new SavedGridError(400, 'invalid-definition');
-          if (field.scalarType === 'DATETIME') {
-            try {
-              return Date.parse(normalizeTimestamp(value));
-            } catch {
-              throw new SavedGridError(400, 'invalid-definition');
-            }
-          }
-          return value;
-        });
-        if (filter.operator === 'between' && typed[0] > typed[1]) throw new SavedGridError(400, 'invalid-definition');
+        shared(() => recordGridFilter(filter, field));
       }
       return grid;
     }

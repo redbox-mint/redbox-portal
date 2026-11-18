@@ -1,6 +1,6 @@
 import { getOperationAST, Kind, parse, type SelectionSetNode } from 'graphql';
 import { z } from 'zod';
-import { recordGridFilter, recordGridRequest } from '@researchdatabox/sails-ng-common';
+import { recordGridFilter, recordGridRequest, recordGridSort } from '@researchdatabox/sails-ng-common';
 import type {
   NamedQueryJson,
   NamedQueryPromotionDraft,
@@ -19,6 +19,7 @@ const discovery = z.object({
           selectable: z.boolean(),
           filterable: z.boolean(),
           repeating: z.boolean(),
+          cardinality: z.enum(['SCALAR', 'LIST']),
           availableInAllVariants: z.boolean(),
           operators: z.array(z.string()),
           sortable: z.boolean(),
@@ -88,7 +89,14 @@ function candidateMappings(document: string, resultPath: string[]): GraphqlNamed
 export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCaller): Promise<NamedQueryPromotionDraft> {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Buffer.byteLength(JSON.stringify(input)) > 65536)
     throw new SavedGridError(400, 'invalid-definition');
-  const { id, revision, updatedAt: _updatedAt, updatedBy: _updatedBy, publishedAs: _publishedAs, ...values } = input as Record<string, unknown>;
+  const {
+    id,
+    revision,
+    updatedAt: _updatedAt,
+    updatedBy: _updatedBy,
+    publishedAs: _publishedAs,
+    ...values
+  } = input as Record<string, unknown>;
   if (
     (id !== undefined && !savedGridId.safeParse(id).success) ||
     (revision !== undefined && !savedGridRevision.safeParse(revision).success)
@@ -116,7 +124,7 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
     const response = await RecordGraphqlService.execute(caller, {
       query: `query PromotionFields($type: String!, $stages: [String!], $ids: [ID!]) {
         recordFields(recordType: $type, workflowStages: $stages, ids: $ids) {
-          fields { id scalarType selectable filterable repeating availableInAllVariants operators sortable selections { selection responsePath } }
+          fields { id scalarType selectable filterable repeating cardinality availableInAllVariants operators sortable selections { selection responsePath } }
         }
       }`,
       variables: { type: grid.recordType, stages: grid.workflowStage ? [grid.workflowStage] : undefined, ids },
@@ -148,33 +156,52 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
     const selected = grid.columns.map(id => fields.find(field => field.id === id));
     if (selected.some(field => !field?.selectable || !field.selections.length))
       throw new SavedGridError(400, 'schema-changed');
-    const sort = grid.sort;
-    if (sort) {
-      const field = fields.find(field => field.id === sort.fieldId);
-      if (!field?.sortable || field.repeating || !field.availableInAllVariants)
-        throw new SavedGridError(400, 'schema-changed');
-      if (!sort.expectedScalarType || sort.expectedScalarType !== field.scalarType)
-        throw new SavedGridError(400, 'sort-type-changed');
-    }
-    const filters = grid.filters.map(filter => {
-      const field = fields.find(field => field.id === filter.fieldId);
-      if (!field) throw new SavedGridError(400, 'schema-changed');
+    // Shared validation rejects capability, type and cardinality drift; legacy
+    // definitions without expected cardinality are SCALAR and need explicit repair.
+    const shared = <T>(check: () => T): T => {
       try {
-        return recordGridFilter(filter, field);
+        return check();
       } catch (error) {
         const code =
-          error instanceof Error && ['schema-changed', 'filter-type-changed'].includes(error.message)
+          error instanceof Error &&
+          [
+            'schema-changed',
+            'filter-type-changed',
+            'filter-cardinality-changed',
+            'sort-type-changed',
+            'sort-cardinality-changed',
+          ].includes(error.message)
             ? error.message
             : 'invalid-definition';
         throw new SavedGridError(400, code);
       }
+    };
+    const sort = grid.sort;
+    const sortField = sort && fields.find(field => field.id === sort.fieldId);
+    if (sort && !sortField) throw new SavedGridError(400, 'schema-changed');
+    const sorts =
+      sort && sortField
+        ? [
+            {
+              ...shared(() => recordGridSort(sort, sortField)),
+              expectedCardinality: sort.expectedCardinality ?? 'SCALAR',
+            },
+          ]
+        : [];
+    const filters = grid.filters.map(filter => {
+      const field = fields.find(field => field.id === filter.fieldId);
+      if (!field) throw new SavedGridError(400, 'schema-changed');
+      return {
+        ...shared(() => recordGridFilter(filter, field)),
+        expectedCardinality: filter.expectedCardinality ?? 'SCALAR',
+      };
     });
     const generated = recordGridRequest({
       recordType: grid.recordType,
       workflowStage: grid.workflowStage,
       selections: selected.flatMap(field => field!.selections),
       filters,
-      sort: sort ? [{ field: sort.fieldId, direction: sort.direction.toUpperCase() }] : [],
+      sort: sorts,
       first: grid.pageSize,
       after: null,
     });
