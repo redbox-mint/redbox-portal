@@ -101,7 +101,11 @@ function fingerprint(value: unknown): { value?: RecordFormFingerprint; bytes: nu
   return { value: isRecordFormFingerprint(fingerprint) ? fingerprint : undefined, bytes, nodes };
 }
 
-/** Compose individually bounded form contracts without treating a catalogue as one form. */
+/** Compose individually bounded form contracts without treating a catalogue as one form.
+ * Even for scoped discovery, hash the full reusable-definition snapshot. Overrides
+ * and hook contributors can introduce reusable references during compilation, so
+ * the pre-compilation fingerprint has no complete dependency list to narrow.
+ */
 export function formatRecordFormCatalogueFingerprint(
   candidates: readonly unknown[],
   reusableFormDefinitions: unknown

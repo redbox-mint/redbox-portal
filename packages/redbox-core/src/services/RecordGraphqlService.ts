@@ -116,13 +116,15 @@ export namespace Services {
       /* Configuration and contributor discovery are read at request time. */
     }
 
-    /** Private service tooling for integration owners; no HTTP schema-discovery route. */
+    /** SDL tooling for integration owners and the admin editor. */
     public async describeReadSchema(caller: ReadCaller, scope?: ReadSchemaScope): Promise<string> {
       return printSchema((await this.resolveReadSchema(caller, false, scope)).schema);
     }
 
-    /** Static named-query validation reuses the deployed schema and scalar contracts.
-     * This never executes resolvers or reads records. Callers supply trusted scope.
+    /** Static named-query validation uses the same global read schema as execution.
+     * Scoped discovery only bounds editor SDL. Invalid forms anywhere in the
+     * global catalogue fail validation closed, even if scoped discovery succeeds.
+     * Validation never executes resolvers or reads records.
      */
     public async getReadSchema(caller: ReadCaller): Promise<GraphQLSchema> {
       if (
@@ -167,6 +169,9 @@ export namespace Services {
       const deadline = Math.min(Date.now() + QUERY_LIMITS.timeoutMs, until ?? Infinity);
       try {
         const work = async (): Promise<RecordGraphqlResponse> => {
+          // Scoped discovery only bounds editor SDL. Execution compiles the global
+          // schema and deliberately fails closed with 503 UNAVAILABLE if an
+          // unrelated form is invalid, even when scoped discovery succeeds.
           const { yoga } = await this.resolveReadSchema(caller);
           if (Date.now() >= deadline) return graphqlFailure(503, 'QUERY_TIMEOUT', 'Read query timed out.');
           // Sails has consumed the HTTP body. Rebuild a bounded fetch request for Yoga.
@@ -225,10 +230,11 @@ export namespace Services {
         this.cache.clear();
         throw new Error('Record contributors are unavailable.');
       }
-      // Reload the scoped configuration on every request, so administrative edits
-      // and hook changes cannot leave a cached schema stale until a TTL expires.
+      // Reload configuration on every request so administrative and hook changes
+      // invalidate cached schemas. Only editor SDL discovery supplies a scope.
+      // An invalid form anywhere in the global catalogue makes execution fail
+      // closed with 503 UNAVAILABLE.
       const allCandidates = await this.dependencies.getCandidates(caller);
-      if (allCandidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
       const candidates = scopeReadCandidates(allCandidates, scope);
       if (candidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
       const reusableFormDefinitions = this.dependencies.getReusableDefinitions();

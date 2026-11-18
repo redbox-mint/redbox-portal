@@ -10,7 +10,10 @@ export interface ReadContractCandidate {
   readonly configuration: RecordContractEffectiveForm;
 }
 
-/** Read configured forms directly: UI edit filtering is not a metadata read ACL. */
+/** Read configured forms directly: UI edit filtering is not a metadata read ACL.
+ * The catalogue scan is bounded by types, forms and steps. The compilation limit
+ * applies after the editor scope selects its variants.
+ */
 export async function configuredReadContracts(brand: BrandingModel): Promise<readonly ReadContractCandidate[]> {
   const [forms, types] = await Promise.all([
     firstValueFrom(FormsService.listForms(brand.id)),
@@ -39,7 +42,6 @@ export async function configuredReadContracts(brand: BrandingModel): Promise<rea
         form: form.name,
         configuration: form.configuration,
       });
-      if (candidates.length > 100) throw new Error('Read variants exceed their bound.');
     }
   }
   return candidates;

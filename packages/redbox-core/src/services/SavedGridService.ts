@@ -1,4 +1,4 @@
-import type { ReadSchemaScope } from '../record-graphql/schema-scope';
+import { InvalidReadSchemaScopeError, type ReadSchemaScope } from '../record-graphql/schema-scope';
 import type { Db, ObjectId as MongoObjectId } from 'mongodb';
 import type { ExplorerQueryAuthor } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
@@ -240,6 +240,7 @@ export namespace Services {
           throw new Error(`Editor schema exceeds 262144-byte bound (${Buffer.byteLength(sdl)} bytes).`);
         return { sdl };
       } catch (error) {
+        if (error instanceof InvalidReadSchemaScopeError) throw new SavedGridError(400, 'invalid-definition');
         this.updateChronicle(
           { operation: 'saved-grid.schema', recordType: scope?.recordType, workflowStages: scope?.workflowStages },
           [error],

@@ -6,6 +6,9 @@ export interface ReadSchemaScope {
   recordType: string;
   workflowStages?: readonly string[];
 }
+
+export class InvalidReadSchemaScopeError extends Error {}
+
 export function scopeReadCandidates(
   candidates: readonly ReadContractCandidate[],
   scope?: ReadSchemaScope
@@ -22,13 +25,13 @@ export function scopeReadCandidates(
         scope.workflowStages.some(stage => !name(stage)) ||
         new Set(scope.workflowStages).size !== scope.workflowStages.length))
   )
-    throw new Error('Invalid editor schema scope.');
+    throw new InvalidReadSchemaScopeError('Invalid editor schema scope.');
   const matching = candidates.filter(candidate => candidate.recordType === scope.recordType);
   if (
     !matching.length ||
     scope.workflowStages?.some(stage => !matching.some(candidate => candidate.workflowStep === stage))
   )
-    throw new Error('Unknown editor schema scope.');
+    throw new InvalidReadSchemaScopeError('Unknown editor schema scope.');
   return matching.filter(
     candidate => !scope.workflowStages?.length || scope.workflowStages.includes(candidate.workflowStep)
   );
