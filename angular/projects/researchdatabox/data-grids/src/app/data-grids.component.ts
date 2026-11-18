@@ -138,6 +138,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   loadingPage = false;
   loadingFields = false;
   saving = false;
+  preparingSave = false;
+  private saveSequence = 0;
   unavailable = false;
   error = '';
   previewError = '';
@@ -387,11 +389,13 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     });
   }
   get canSave(): boolean {
+    return !this.saving && this.saveDefinitionValid;
+  }
+  private get saveDefinitionValid(): boolean {
     return (
       !!this.catalogue?.persistence &&
       !!this.activeDefinition &&
       (this.unlinked ? !this.rawErrors.length : !this.issues.length) &&
-      !this.saving &&
       !this.loadingFields
     );
   }
@@ -665,6 +669,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (this.draft && this.scope && (scopeChanged || !this.draft.columns.length)) {
         this.draft.columns = defaultColumns(this.scope.fields);
       }
+      if (this.mode === 'graphql') await this.loadSchema();
     } catch (error) {
       if (seq === this.fieldSequence && !this.disposed)
         this.error = error instanceof GridRequestError ? error.key : 'fields-failed';
@@ -916,29 +921,33 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     }
   }
   async save(asNew = false, name?: string): Promise<void> {
-    if (this.unlinked) {
-      const draft = this.rawDraft;
-      const schemaReady = await this.refreshRawSchema();
-      if (this.disposed || !this.unlinked || this.rawDraft !== draft) return;
-      if (!schemaReady) {
-        this.error = 'schema-unavailable';
-        return;
-      }
-    }
-    if (!this.canSave || !this.activeDefinition) return;
-    const draft = this.activeDefinition;
-    const original = JSON.stringify(draft);
-    const snapshot = structuredClone(draft);
-    if (name !== undefined) snapshot.name = name;
-    if (asNew) {
-      delete snapshot.id;
-      delete snapshot.revision;
-    }
-    if (snapshot.mode === 'graphql') snapshot.variables = JSON.parse(this.variablesText);
-    const rawState = this.rawState();
+    if (this.saving) return;
+    const seq = ++this.saveSequence;
     this.saving = true;
+    this.preparingSave = this.unlinked;
     this.error = '';
     try {
+      if (this.unlinked) {
+        const draft = this.rawDraft;
+        const schemaReady = await this.refreshRawSchema();
+        if (seq !== this.saveSequence || this.disposed || !this.unlinked || this.rawDraft !== draft) return;
+        if (!schemaReady) {
+          this.error = 'schema-unavailable';
+          return;
+        }
+      }
+      this.preparingSave = false;
+      if (!this.saveDefinitionValid || !this.activeDefinition) return;
+      const draft = this.activeDefinition;
+      const original = JSON.stringify(draft);
+      const snapshot = structuredClone(draft);
+      if (name !== undefined) snapshot.name = name;
+      if (asNew) {
+        delete snapshot.id;
+        delete snapshot.revision;
+      }
+      if (snapshot.mode === 'graphql') snapshot.variables = JSON.parse(this.variablesText);
+      const rawState = this.rawState();
       const saved = await this.source.save(snapshot);
       if (this.disposed) return;
       this.saved = [...this.saved.filter(item => item.id !== saved.id), saved];
@@ -965,7 +974,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     } catch (error) {
       if (!this.disposed) this.error = error instanceof GridRequestError ? error.key : 'save-failed';
     } finally {
-      if (!this.disposed) this.saving = false;
+      if (!this.disposed && seq === this.saveSequence) {
+        this.saving = false;
+        this.preparingSave = false;
+      }
     }
   }
   definitionSummary(query: SavedQuery | null): string {
@@ -1506,12 +1518,16 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (dialog?.isConnected && !dialog.open) dialog.showModal();
   }
   async confirmSave(): Promise<void> {
+    if (this.saving) return;
     if (!this.activeDefinition || !this.saveName.trim() || this.saveName.length > 120) return;
     if (this.unlinked ? this.rawErrors.length : this.issues.length) {
       this.error = 'invalid-definition';
       return;
     }
-    await this.save(this.savingAs, this.saveName.trim());
+    const saving = this.save(this.savingAs, this.saveName.trim());
+    const seq = this.saveSequence;
+    await saving;
+    if (seq !== this.saveSequence || this.disposed) return;
     if (!this.error) {
       this.saveOpen = false;
       this.saveDialog?.nativeElement.close();
@@ -1520,6 +1536,18 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         await this.createNamedQuery();
       }
     }
+  }
+  cancelSave(event?: Event): void {
+    if (this.saving && !this.preparingSave) {
+      event?.preventDefault();
+      return;
+    }
+    this.saveSequence++;
+    this.saving = false;
+    this.preparingSave = false;
+    this.saveOpen = false;
+    this.publishAfterSave = false;
+    this.saveDialog?.nativeElement.close();
   }
   @HostListener('window:beforeunload', ['$event'])
   beforeUnload(event: BeforeUnloadEvent): void {

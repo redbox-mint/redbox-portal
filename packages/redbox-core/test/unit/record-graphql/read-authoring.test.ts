@@ -1,4 +1,4 @@
-import { nothingLogger, type FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { nothingLogger, type FormConfigFrame, type MetadataReadShape } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor } from '../../../src/visitor/construct.visitor';
 import assert from 'node:assert/strict';
 import { GraphQLObjectType, GraphQLSchema, graphql } from 'graphql';
@@ -198,6 +198,92 @@ describe('Explicit persisted metadata read authoring', () => {
     });
     if (nested.kind === 'object') assert.equal(nested.properties.email.annotations?.writeOnly, true);
   });
+  for (const repeating of [false, true]) {
+    for (const omitContact of [false, true]) {
+      it(`keeps omitted private paths across readShape and readMetadata (array=${repeating}, parent=${omitContact})`, async () => {
+        const privateContact = {
+          kind: 'object' as const,
+          nullable: true,
+          unknownProperties: 'declared' as const,
+          properties: {
+            name: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
+            email: {
+              kind: 'scalar' as const,
+              scalarType: 'string' as const,
+              nullable: true,
+              annotations: { writeOnly: true },
+            },
+            omittedPublic: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: true },
+          },
+        };
+        const contact = repeating ? { kind: 'array' as const, nullable: true, items: privateContact } : privateContact;
+        const nameShape = { type: 'object' as const, properties: { name: { type: 'string' as const } } };
+        const readShape: MetadataReadShape = {
+          type: 'object' as const,
+          properties: omitContact
+            ? { label: { type: 'string' as const } }
+            : { contact: repeating ? { type: 'array' as const, items: nameShape } : nameShape },
+        };
+        const component = { class: 'PrivateContactFixture' };
+        const form = {
+          name: 'privacy-replacements',
+          componentDefinitions: [{ name: 'owner', component, readShape }],
+          readMetadata: {
+            publication: {
+              properties: {
+                owner: {
+                  type: 'object' as const,
+                  properties: {
+                    contact: repeating ? { type: 'array' as const, items: contactReadShape } : contactReadShape,
+                  },
+                },
+              },
+            },
+          },
+        };
+        const registrations: RecordContractContributorRegistration[] = [
+          {
+            source: 'hook',
+            packageName: '@test/privacy',
+            contributor: {
+              kind: 'component',
+              componentType: component.class,
+              key: 'hook.private-contact',
+              version: '1',
+              nullability: 'nullable',
+              ownedPointers: [''],
+              compile: () => ({
+                kind: 'node',
+                node: { kind: 'object', nullable: true, unknownProperties: 'declared', properties: { contact } },
+              }),
+            },
+          },
+        ];
+        const narrowed = compiled(
+          await compile({ ...form, readMetadata: undefined }, 'read', 'publication', {}, registrations)
+        );
+        assert.ok(!JSON.stringify(narrowed.root).includes('omittedPublic'));
+        const contract = compiled(await compile(form, 'read', 'publication', {}, registrations));
+        const value = { name: 'Public name', email: 'private@example.edu.au' };
+        const response = await read(
+          contract,
+          { owner: { contact: repeating ? [value] : value } },
+          '{ metadata { owner { contact { name } } } }'
+        );
+        assert.equal(response.errors, undefined);
+        assert.deepEqual(JSON.parse(JSON.stringify(response.data)), {
+          metadata: { owner: { contact: repeating ? [{ name: 'Public name' }] : { name: 'Public name' } } },
+        });
+        const privateRead = await read(contract, {}, '{ metadata { owner { contact { email } } } }');
+        assert.ok(privateRead.errors?.some(error => error.message.includes('email')));
+        assert.ok(
+          !buildCatalogue([contract], 'publication', [], gridEnvironment()).catalogue.fields.some(field =>
+            field.path?.endsWith('/email')
+          )
+        );
+      });
+    }
+  }
   it('authors identity/defaults for exact types sharing a generated view', async () => {
     const form = {
       name: 'generated-view',

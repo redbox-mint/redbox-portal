@@ -732,7 +732,7 @@
     #saveDialog
     class="explorer-save"
     (close)="saveOpen = false"
-    (cancel)="saveOpen = false; publishAfterSave = false"
+    (cancel)="cancelSave($event)"
     aria-labelledby="save-query-heading"
   >
     <h2 id="save-query-heading">{{ text(savingAs ? 'save-as' : 'save') }}</h2>
@@ -747,8 +747,8 @@
         <button
           type="button"
           class="btn btn-outline-secondary"
-          [disabled]="saving"
-          (click)="publishAfterSave = false; saveDialog.close()"
+          [disabled]="saving && !preparingSave"
+          (click)="cancelSave()"
         >
           {{ text('cancel') }}</button
         ><button type="submit" class="btn btn-primary" [disabled]="saving || !saveName.trim()">
