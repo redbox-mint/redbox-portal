@@ -199,6 +199,56 @@ describe('Drafting profile editor', () => {
     expect(location.hash).toContain('profile=profile');
     expect(query('[role="status"]').textContent).toContain('Draft v2 discarded.');
   });
+  it('keeps unsaved draft edits and refreshes lifecycle information when retiring another version', async () => {
+    const p = component.overview!.profiles[0];
+    const live = { ...clone(version), status: 'published' as const };
+    const draft = { ...clone(version), id: 'v2', version: 2 };
+    p.versions = [draft, live]; p.publishedVersionId = live.id; p.hasPublished = true;
+    component.open('profile', 2); component.section('versions');
+    component.name = 'Local profile name'; component.draft!.systemInstructions = 'Unsaved instructions';
+    component.draft!.questions[0].label = 'Unsaved question'; component.draft!.targetFields[0].label = 'Unsaved field';
+    const local = component.draft, saved = component.saved, hash = location.hash;
+    const confirm = spyOn(window, 'confirm').and.returnValue(false);
+    const retired = { ...live, status: 'retired' as const, retiredByName: 'Retiring admin', retiredAt: '2026-11-18T01:00:00Z' };
+    api.retire.and.resolveTo(retired);
+    // A lifecycle refresh must not adopt a concurrent edit's hash for our unsaved content.
+    api.overview.and.resolveTo({ ...clone(overview), profiles: [{ ...clone(p), publishedVersionId: undefined, versions: [{ ...clone(draft), contentHash: 'remote-edit-hash' }, retired] }] });
+    fixture.detectChanges();
+    (query('#profile-versions .profile-item button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (query('.rb-admin-danger-confirm') as HTMLButtonElement).click();
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(api.retire).toHaveBeenCalledOnceWith('v1'); expect(confirm).not.toHaveBeenCalled();
+    expect(location.hash).toBe(hash); expect(component.activeSection).toBe('versions');
+    expect(component.selected?.id).toBe('v2'); expect(component.selected?.contentHash).toBe('original-hash');
+    expect(component.draft).toBe(local); expect(component.name).toBe('Local profile name');
+    expect(component.saved).toBe(saved); expect(component.dirty).toBeTrue();
+    expect(component.profile?.publishedVersionId).toBeUndefined();
+    expect(query('#profile-versions').textContent).toContain('Retiring admin');
+    expect(query('#profile-versions .profile-item button')).toBeNull();
+    expect(query('.rb-admin-save-bar').textContent).toContain('Unsaved changes');
+    expect(query('[role="status"]').textContent).toContain('Research plan v1 retired.');
+    component.open(); expect(confirm).toHaveBeenCalled(); expect(component.draft).toBe(local);
+    await component.saveDraft();
+    expect(api.save.calls.mostRecent().args[1]).toEqual({ name: 'Local profile name', definition: local!, expectedContentHash: 'original-hash' });
+  });
+  it('guards deletion from Versions before removing a profile with unsaved edits', async () => {
+    open(); component.name = 'Unsaved name'; const local = component.draft, hash = location.hash;
+    const confirm = spyOn(window, 'confirm').and.returnValue(false);
+    (query('#profile-versions > .rb-admin-form-section-body > button') as HTMLButtonElement).click();
+    await component.confirmAction();
+    expect(confirm).toHaveBeenCalledOnceWith(t('ai-profiles-discard-confirm'));
+    expect(api.remove).not.toHaveBeenCalled(); expect(location.hash).toBe(hash);
+    expect(component.draft).toBe(local); expect(component.name).toBe('Unsaved name'); expect(component.dirty).toBeTrue();
+    confirm.and.returnValue(true); await component.confirmAction();
+    expect(api.remove).toHaveBeenCalledOnceWith('profile'); expect(component.draft).toBeUndefined();
+  });
+  it('returns to the overview after retiring the version being viewed', async () => {
+    const p = component.overview!.profiles[0]; p.versions[0].status = 'published'; p.publishedVersionId = 'v1'; p.hasPublished = true;
+    open(); component.askRetire(); await component.confirmAction(); fixture.detectChanges();
+    expect(api.retire).toHaveBeenCalledOnceWith('v1'); expect(component.profile).toBeUndefined();
+    expect(query('[role="status"]').textContent).toContain('Research plan v1 retired.');
+  });
   it('keeps model and guidance open and labels add and edit dialogs', () => {
     open(); expect(query('#profile-model').tagName).toBe('SECTION'); expect(query('#profile-guidance').tagName).toBe('SECTION');
     for (const [edit, label] of [[() => component.editQuestion(), 'Add question'], [() => component.editQuestion(0), 'Edit question'], [() => component.editField(), 'Add field'], [() => component.editField(0), 'Edit field'], [() => component.editCase(), 'Add test case'], [() => component.editCase(0), 'Edit test case']] as const) {

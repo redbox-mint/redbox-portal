@@ -276,6 +276,8 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   askRetire(v = this.selected): void { if (v) this.modal = { kind: 'retire', name: this.overview?.profiles.find(p => p.versions.some(version => version.id === v.id))?.name || this.name, key: v.id }; }
   async confirmAction(): Promise<void> {
     const m = this.modal; if (!m || this.busy) return;
+    const keepEditor = m.kind === 'retire' && !!this.selected && m.key !== this.selected.id;
+    if ((m.kind === 'delete' || m.kind === 'retire' && !keepEditor) && !this.guard()) return;
     const version = m.kind === 'retire' ? this.overview?.profiles.flatMap(p => p.versions).find(v => v.id === m.key)?.version : this.selected?.version;
     this.busy = true; this.error = '';
     try {
@@ -285,9 +287,14 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
         if (!result.deleted) { await this.refresh(); this.modal = { ...m, kind: 'delete' }; return; }
       }
       this.modal = undefined; await this.refresh();
-      const remaining = m.kind === 'discard' ? this.overview?.profiles.find(p => p.key === m.key) : undefined;
-      const live = remaining?.versions.find(v => v.id === remaining.publishedVersionId) || remaining?.versions[0];
-      history.replaceState(null, '', this.href(remaining?.key, live?.version)); this.applyHash();
+      if (keepEditor) {
+        // Refresh lifecycle information without replacing local edits or their concurrency hash.
+        this.profile = this.overview?.profiles.find(p => p.key === this.profile?.key) || this.profile;
+      } else {
+        const remaining = m.kind === 'discard' ? this.overview?.profiles.find(p => p.key === m.key) : undefined;
+        const live = remaining?.versions.find(v => v.id === remaining.publishedVersionId) || remaining?.versions[0];
+        history.replaceState(null, '', this.href(remaining?.key, live?.version)); this.applyHash();
+      }
       this.notice = m.kind === 'retire' ? 'ai-profiles-retired-notice-named' : m.kind === 'discard' ? 'ai-profiles-draft-discarded-version' : 'ai-profiles-profile-deleted';
       this.noticeParams = { name: m.name, version };
     } catch (e) { this.handle(e); } finally { this.busy = false; }
