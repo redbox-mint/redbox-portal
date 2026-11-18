@@ -410,7 +410,10 @@ export const handlebarsHelperDefinitions = {
    *
    * An explicit zone changes the display zone while preserving the instant.
    * Without a zone, existing host-zone formatting is retained.
+   * The optional `fallback` hash argument supplies text for missing or invalid dates.
+   * Without it, missing dates render as empty and invalid dates render as the original input.
    * @example {{formatDate lastSaveDate "dd/MM/yyyy hh:mm a" "Australia/Sydney"}}
+   * @example {{formatDate lastSaveDate "dd/MM/yyyy hh:mm a" "Australia/Sydney" fallback="(blank)"}}
    */
   formatDate: function (
     dateValue: string | Date,
@@ -418,8 +421,10 @@ export const handlebarsHelperDefinitions = {
     zoneOrOptions?: string | Record<string, unknown>
   ): string {
     const hbOpts = getHandlebarsOptions(arguments);
+    const { hash } = hbOpts as { hash?: Record<string, unknown> };
+    const fallback = hash && Object.hasOwn(hash, 'fallback') ? (hash.fallback ?? '') : undefined;
     if (!dateValue || dateValue === hbOpts) {
-      return '';
+      return String(fallback ?? '');
     }
     try {
       let dt = dateValue instanceof Date ? DateTime.fromJSDate(dateValue) : DateTime.fromISO(dateValue);
@@ -427,12 +432,12 @@ export const handlebarsHelperDefinitions = {
         dt = dt.setZone(zoneOrOptions);
       }
       if (!dt.isValid) {
-        return String(dateValue);
+        return String(fallback ?? dateValue);
       }
       const format = resolveDateFormatArg(formatOrOptions);
       return dt.toFormat(format || 'dd/MM/yyyy hh:mm a');
     } catch {
-      return String(dateValue);
+      return String(fallback ?? dateValue);
     }
   },
 
