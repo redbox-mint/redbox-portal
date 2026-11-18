@@ -8,6 +8,7 @@ import { AdminAiProfilesComponent } from './admin-ai-profiles.component';
 import { ProfileApiService, ProfileApiError } from './profile-api.service';
 import { clone } from './profile-settings';
 import { overview, version } from './test-fixtures';
+import staticTypeaheadCatalogue from './static-typeahead-catalogue.fixture.json';
 describe('Drafting profile editor', () => {
   let fixture: ComponentFixture<AdminAiProfilesComponent>, component: AdminAiProfilesComponent, api: jasmine.SpyObj<ProfileApiService>, original: string;
   const changes = new Subject<void>();
@@ -25,6 +26,27 @@ describe('Drafting profile editor', () => {
   afterEach(() => { fixture.destroy(); history.replaceState(null, '', original); });
   const query = (s: string): HTMLElement => fixture.nativeElement.querySelector(s);
   const open = () => { component.open('profile'); fixture.detectChanges(); };
+  it('selects and saves the shipped static typeahead catalogue contract', async () => {
+    open();
+    // The backend regression checks this contract against real form extraction.
+    const field = clone(staticTypeaheadCatalogue);
+    expect(field.options).toEqual([
+      { value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Option 2' },
+      { value: 'option3', label: 'Option 3' }, { value: 'another-option', label: 'Another Option' },
+    ]);
+    expect('output' in field).toBeFalse();
+    component.sourceForm!.fields.push(field);
+    component.draft!.questions = [];
+    fixture.detectChanges();
+    const input = Array.from(fixture.nativeElement.querySelectorAll('#profile-source .profile-check input')).find((el: any) => el.parentElement.textContent.includes(field.label)) as HTMLInputElement;
+    input.click(); fixture.detectChanges();
+    await component.saveDraft();
+    const saved = api.save.calls.mostRecent().args[1].definition;
+    expect(saved.sourceSlots[0].allowedPaths).toContain(field.pointer);
+    expect(saved.sourceSlots[0].fields).toEqual([{ metadataPointer: field.pointer, label: field.label, options: field.options }]);
+    expect(saved.sourceSlots[0].fields![0].options).not.toBe(field.options);
+    expect(saved.questions).toEqual([]);
+  });
   it('saves source field labels and choice meanings independently of questions and clears removed selections', async () => {
     open();
     const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Awaiting approval' }];

@@ -15,6 +15,8 @@ import { Services as Context } from '../../src/services/GenerationContextService
 import { Services as Models } from '../../src/services/GenerationModelService';
 import { GenerationError, canonicalHash } from '../../src/model/generation';
 import { profileFormFields } from '../../src/services/generation/profile-admin-fields';
+import developmentForm from '../../../redbox-hook-dev/src/form-config/default-1.0-draft';
+import staticTypeaheadCatalogue from '../../../../angular/projects/researchdatabox/admin-ai-profiles/src/app/static-typeahead-catalogue.fixture.json';
 import type { ProfileOverview, GenerationProfileDefinition } from '@researchdatabox/sails-ng-common';
 import { createMockSails } from './testHelper';
 const definition = (): GenerationProfileDefinition => ({ purpose: 'Draft a plan', systemInstructions: 'Use supplied facts',
@@ -437,6 +439,70 @@ describe('Drafting profile administration', () => {
       assert.ok(!JSON.stringify(untrusted).includes('Approved'));
     });
   }
+
+  for (const path of ['real', 'synthetic'] as const) it(`carries shipped static typeahead choices from catalogue extraction through save and the ${path} prompt`, async () => {
+    const form = structuredClone(developmentForm);
+    const before = structuredClone(form);
+    // This exact catalogue response is consumed by the source-picker Karma test.
+    assert.deepEqual(profileFormFields(form, text => text).find(f => f.pointer.endsWith('/lookahead_1')), staticTypeaheadCatalogue);
+    const field = profileFormFields(form, text => text === 'Option 2' ? 'Second option meaning' : text).find(f => f.pointer.endsWith('/lookahead_1'))!;
+    const options = [
+      { value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Second option meaning' },
+      { value: 'option3', label: 'Option 3' }, { value: 'another-option', label: 'Another Option' },
+    ];
+    assert.deepEqual(field.options, options);
+    assert.equal(field.output, undefined); // Source choices do not make typeahead a new drafting target.
+    assert.deepEqual(form, before);
+    catalog.forms[0].fields = [field];
+    const d = definition();
+    d.sourceSlots[0].allowedPaths = [field.pointer];
+    d.sourceSlots[0].fields = [{ metadataPointer: field.pointer, label: field.label, options: structuredClone(field.options) }];
+    d.fixtureTests = [{ name: 'Static typeahead source', source: { [field.pointer]: 'option2' }, answers: {} }];
+    const saved = await service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin');
+    assert.deepEqual(saved.problems, []);
+    assert.deepEqual(saved.definition.sourceSlots[0].fields![0].options, options);
+    assert.deepEqual(saved.definition.questions, []);
+    field.options![1].label = 'Later catalogue meaning';
+    let request: any;
+    if (path === 'synthetic') {
+      sails.services.generationknowledgeservice = { retrieve: async () => [] };
+      const invoke = sinon.stub().resolves([{ content: JSON.stringify({ answers: { summary: { value: 'Second option selected', evidenceIds: ['E1'], rationale: 'Source choice' } } }) }]);
+      sails.services.generationmodelservice = { testProfileRequests: invoke };
+      const results = await service.runTests('a', 'v', 'admin');
+      assert.equal(results[0].passed, true);
+      assert.deepEqual(results[0].fields[0].evidence, [field.label]);
+      request = invoke.firstCall.args[3][0];
+    } else {
+      await service.publish('a', 'v', { expectedContentHash: saved.contentHash }, 'admin');
+      const published = await sails.services.generationprofileservice.resolvePublished('a', 'p');
+      const metadata: Record<string, any> = {};
+      const tokens = field.pointer.slice(1).split('/');
+      let parent = metadata;
+      for (const token of tokens.slice(0, -1)) parent = parent[token] = {};
+      parent[tokens.at(-1)!] = 'option2';
+      metadata.secret = 'Excluded source';
+      sails.services.recordsservice = { getMeta: async () => ({ metadata, metaMetadata: { brandId: 'a' } }), hasViewAccess: () => true };
+      const frozenInput = await sails.services.generationcontextservice.prepare({
+        actor: { brandId: 'a', branding: 'default', portal: 'rdmp', userId: 'user', username: 'researcher', roles: [] },
+        brand: {}, user: {}, sourceRefs: [{ slotId: 'source', oid: 'activity-1', recordType: 'activity' }], definition: published.definition,
+        answers: [], targetForm: { recordType: 'plan', mode: 'create' }, targetDraft: {},
+      });
+      const fact = frozenInput.sourceEvidence[0];
+      assert.equal(fact.content, 'option2');
+      assert.equal(fact.contentHash, canonicalHash('option2'));
+      assert.equal(fact.id, `source:source:${field.pointer}:${canonicalHash('option2')}`);
+      assert.deepEqual(fact.selectedOptions, [{ value: 'option2', label: 'Second option meaning' }]);
+      request = sails.services.generationpromptservice.build({ brandId: 'a', correlationId: 'static-source', definition: published.definition, frozenInput, knowledge: [],
+        evidenceAliases: [{ alias: 'E1', evidenceId: fact.id }], responseSchema: {}, connection: { endpoint: '', timeoutMs: 1000 }, deployment: { modelId: 'demo' } });
+    }
+    const untrusted = JSON.parse(request.messages.at(-1).content.split('\n')[1]);
+    assert.deepEqual(untrusted.reviewedAnswers, []);
+    assert.deepEqual(untrusted.projectFacts, [{ id: 'E1', label: field.label, content: 'option2', selectedOptions: [{ value: 'option2', label: 'Second option meaning' }] }]);
+    assert.ok(request.messages.filter(m => m.role === 'system').every(m => !m.content.includes('Second option meaning')));
+    assert.ok(!JSON.stringify(request).includes('Excluded source'));
+    assert.ok(!JSON.stringify(untrusted).includes('Option 1'));
+    assert.ok(!JSON.stringify(untrusted).includes('Later catalogue meaning'));
+  });
 
   it('sends selected direct and legacy choice meanings inside untrusted reviewed answers', async () => {
     const d = tables.GenerationProfileVersion[0].definition;

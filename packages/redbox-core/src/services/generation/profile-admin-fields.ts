@@ -21,11 +21,16 @@ export function profileFormFields(form: FormConfigFrame, translate: (text: strin
         : translated).replace(/<[^>]*>/g, '').trim() || translate('ai-profiles-unnamed-field');
       const component = String(item.component?.class ?? '');
       const disabled = blocked || item.model?.config?.disabled === true || config.disabled === true || config.readonly === true || config.editMode === false;
-      const options = Array.isArray(config.options) ? config.options.flatMap((option: unknown) => {
+      const extractOptions = (choices: unknown) => Array.isArray(choices) ? choices.flatMap((option: unknown) => {
         if (!option || typeof option !== 'object') return [];
         const value: unknown = Reflect.get(option, 'value');
         return typeof value === 'string' && value.trim() ? [{ value, label: translate(String(Reflect.get(option, 'label') ?? value)) }] : [];
       }) : [];
+      const options = extractOptions(config.options);
+      // Static typeaheads persist option codes in value mode. These labels are
+      // source metadata only; keep the existing target contract derivation below.
+      const sourceOptions = component === 'TypeaheadInputComponent' && (config.sourceType ?? 'static') === 'static' && config.valueMode !== 'optionObject'
+        ? extractOptions(config.staticOptions) : options;
       let output: GenerationProfileOutput | undefined;
       const limits = [config.maxLength, ...validators.enabledValidators(
         form.validationGroups ?? defaults.validationGroups!, form.enabledValidationGroups ?? defaults.enabledValidationGroups!,
@@ -44,7 +49,7 @@ export function profileFormFields(form: FormConfigFrame, translate: (text: strin
       const children = ['componentDefinitions', 'tabs', 'panels'].flatMap(key => Array.isArray(config[key]) ? config[key] : []);
       if (tokens.length && component && !children.length && !/button|heading|spacer|static|container/i.test(component)) {
         fields.push({ pointer: '/' + tokens.map(t => t.replaceAll('~', '~0').replaceAll('/', '~1')).join('/'), label, group,
-          component, ...(!disabled && output ? { output } : {}), ...(options.length ? { options } : {}),
+          component, ...(!disabled && output ? { output } : {}), ...(sourceOptions.length ? { options: sourceOptions } : {}),
           ...(config.personal === true || config.personalInformation === true ? { personal: true } : {}), ...(config.sensitive === true ? { sensitive: true } : {}) });
       }
       if (children.length) visit(children, tokens, layout.label ? label : group, disabled);
