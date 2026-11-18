@@ -5,6 +5,7 @@ import { firstValueFrom } from "rxjs";
 import {
   FormConfigFrame,
   TypeaheadInputDefaultNoResultsMessageKey,
+  TypeaheadInputModelOptionValue,
   TypeaheadOption
 } from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
@@ -58,6 +59,138 @@ describe("TypeaheadInputComponent", () => {
         const component = fixture.componentInstance;
         expect(component).toBeDefined();
     });
+
+    it("shows validation after an unchanged loaded scalar loses focus without rewriting it", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [{
+                name: "reference",
+                component: {
+                    class: "TypeaheadInputComponent",
+                    config: {
+                        sourceType: "static",
+                        valueMode: "value",
+                        requireSelection: false,
+                        minChars: 100,
+                        staticOptions: [{ label: "123", value: "123" }]
+                    }
+                },
+                model: {
+                    class: "TypeaheadInputModel",
+                    config: {
+                        value: "invalid-reference",
+                        validators: [{
+                            class: "pattern",
+                            message: "Use digits only",
+                            config: { pattern: "^[0-9]+$", description: "digits only" }
+                        }]
+                    }
+                }
+            }]
+        };
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        const writeValue = spyOn(component.model!, "setValue").and.callThrough();
+
+        expect(component.formControl.invalid).toBeTrue();
+        expect(component.formControl.untouched).toBeTrue();
+        expect(component.showValidationErrors).toBeFalse();
+        expect(input.classList.contains("is-invalid")).toBeFalse();
+
+        input.dispatchEvent(new Event("focus"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.displayControl.touched).toBeTrue();
+        expect(component.formControl.touched).toBeTrue();
+        expect(component.formControl.pristine).toBeTrue();
+        expect(component.showValidationErrors).toBeTrue();
+        expect(input.classList.contains("is-invalid")).toBeTrue();
+        expect(component.model!.getValue()).toBe("invalid-reference");
+        expect(writeValue).not.toHaveBeenCalled();
+    });
+
+    for (const configuredFields of [false, true]) {
+        for (const origin of ["selected", "loaded"]) {
+            it(`preserves an unchanged ${origin} ${configuredFields ? "configured" : "default"} option object on blur`, async () => {
+                const storedValue: TypeaheadInputModelOptionValue = configuredFields
+                    ? { dc_title: "Synthetic funder", dc_identifier: "synthetic-funder-123", extra: "retained" }
+                    : { label: "Synthetic funder", value: "synthetic-funder-123", sourceType: "static", extra: "retained" };
+                const option: TypeaheadOption = {
+                    label: "Synthetic funder",
+                    value: "synthetic-funder-123",
+                    sourceType: "static",
+                    raw: storedValue
+                };
+                const formConfig: FormConfigFrame = {
+                    name: "testing",
+                    componentDefinitions: [{
+                        name: "funder",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "static",
+                                valueMode: "optionObject",
+                                requireSelection: false,
+                                minChars: 100,
+                                staticOptions: [option],
+                                ...(configuredFields ? {
+                                    labelField: "dc_title",
+                                    valueField: "dc_identifier",
+                                    optionObjectFields: { dc_title: "dc_title", dc_identifier: "dc_identifier" }
+                                } : {})
+                            }
+                        },
+                        model: { class: "TypeaheadInputModel", config: { value: origin === "loaded" ? storedValue : null } }
+                    }]
+                };
+                const { fixture } = await createFormAndWaitForReady(formConfig);
+                const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+                const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+                if (origin === "selected") {
+                    component.onSelect({ item: option } as TypeaheadMatch);
+                }
+                const confirmedValue = component.model!.getValue();
+                expect(component.allowFreeText).toBeTrue();
+                expect(input.value).toBe("Synthetic funder");
+                if (origin === "loaded") expect(component.formControl.untouched).toBeTrue();
+
+                input.dispatchEvent(new Event("focus"));
+                input.dispatchEvent(new Event("blur"));
+                input.dispatchEvent(new Event("blur"));
+                await fixture.whenStable();
+
+                expect(component.model!.getValue()).toBe(confirmedValue);
+                expect(component.formControl.touched).toBeTrue();
+                expect(component.model!.getValue()).toEqual(origin === "loaded" ? storedValue : configuredFields
+                    ? { dc_title: "Synthetic funder", dc_identifier: "synthetic-funder-123" }
+                    : { label: "Synthetic funder", value: "synthetic-funder-123", sourceType: "static" });
+
+                // A real edit must discard the old identifier, including an edit
+                // back to the original label after another free-text commit.
+                for (const text of ["Edited funder", "Synthetic funder"]) {
+                    input.value = text;
+                    input.dispatchEvent(new Event("input"));
+                    input.dispatchEvent(new Event("blur"));
+                    await fixture.whenStable();
+                    expect(component.model!.getValue()).toEqual(configuredFields
+                        ? { dc_title: text }
+                        : { label: text, value: text, sourceType: "freeText" });
+                    const freeTextValue = component.model!.getValue();
+                    input.dispatchEvent(new Event("blur"));
+                    expect(component.model!.getValue()).toBe(freeTextValue);
+                }
+
+                input.value = "";
+                input.dispatchEvent(new Event("input"));
+                input.dispatchEvent(new Event("blur"));
+                await fixture.whenStable();
+                expect(component.model!.getValue()).toBeNull();
+            });
+        }
+    }
 
     it("renders pre-populated optionObject label", async () => {
         const formConfig: FormConfigFrame = {
