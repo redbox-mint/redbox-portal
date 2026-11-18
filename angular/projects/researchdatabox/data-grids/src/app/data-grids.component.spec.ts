@@ -869,6 +869,32 @@ describe('Data grid editor', () => {
     expect(component.rawErrors).toEqual([]);
     expect(component.rawErrors).not.toBe(valid);
   });
+  it('reloads the scoped schema when an unlinked query selects another record type', async () => {
+    component.open(validGrid());
+    const schemaSpy = jasmine
+      .createSpy()
+      .and.callFake((requested?: GridScope) =>
+        Promise.resolve(
+          requested?.recordType === 'organisation'
+            ? testSdl.replace('workflowStep: String,', 'payload: String,')
+            : testSdl
+        )
+      );
+    source.schema = schemaSpy;
+    const editor = component as unknown as { refreshRawSchema(): Promise<void> };
+    await component.switchMode('graphql');
+    component.unlink();
+    await editor.refreshRawSchema();
+    expect((schemaSpy.calls.mostRecent().args[0] as GridScope | undefined)?.recordType).toBe('plan');
+    component.rawDraft.document = '{ records(recordType:"organisation") { nodes { oid payload } } }';
+    component.rawChanged();
+    await editor.refreshRawSchema();
+    const scopeArg = schemaSpy.calls.mostRecent().args[0] as GridScope | undefined;
+    expect(scopeArg?.recordType).toBe('organisation');
+    expect(scopeArg?.workflowStage).toBeUndefined();
+    expect(component.rawErrors).toEqual([]);
+    expect(component.schemaError).toBe('');
+  });
   it('loads the schema while visual generation is still pending', async () => {
     component.open(validGrid());
     let finish!: (value: { query: string; variables: Record<string, never> }) => void;

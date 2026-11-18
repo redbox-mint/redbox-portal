@@ -120,6 +120,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   private rawBaseline = '';
   private schemaSequence = 0;
   private modeSequence = 0;
+  /** Record type and stage the currently loaded SDL was scoped to; null means the global schema. */
+  private schemaScopeKey: string | null = null;
   private promotionSequence = 0;
   busy = false;
   loadingPage = false;
@@ -453,6 +455,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.modeSequence++;
     this.schemaSequence++;
     this.schema = null;
+    this.schemaScopeKey = null;
     this.schemaSdl = '';
     this.schemaError = '';
     this.schemaLoading = false;
@@ -599,6 +602,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     const seq = ++this.fieldSequence;
     this.schemaSequence++;
     this.schema = null;
+    this.schemaScopeKey = null;
     this.schemaSdl = '';
     this.schemaError = '';
     this.schemaLoading = false;
@@ -845,6 +849,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     }
   }
   async save(asNew = false, name?: string): Promise<void> {
+    if (this.unlinked) await this.refreshRawSchema();
     if (!this.canSave || !this.activeDefinition) return;
     const draft = this.activeDefinition;
     const original = JSON.stringify(draft);
@@ -923,11 +928,14 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       );
     return node;
   }
-  async loadSchema(): Promise<void> {
+  async loadSchema(reset = true): Promise<void> {
     const seq = ++this.schemaSequence;
     this.schemaLoading = true;
     this.schemaError = '';
-    this.schema = null;
+    if (reset) {
+      this.schema = null;
+      this.schemaSdl = '';
+    }
     try {
       if (!this.source.schema) throw new GridRequestError('schema-unavailable');
       const enginePromise = import('./graphql-query');
@@ -945,6 +953,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         this.graphqlEngine = engine;
         this.schemaSdl = sdl;
         this.schema = this.graphqlEngine.editorSchema(sdl);
+        this.schemaScopeKey = this.scopeKeyFor(schemaScope);
         this.schemaType = this.schema.getQueryType()?.name ?? 'Query';
       }
     } catch {
@@ -953,6 +962,29 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (seq === this.schemaSequence && !this.disposed) this.schemaLoading = false;
     }
   }
+  private scopeKeyFor(scope: GridScope | undefined): string | null {
+    return scope ? `${scope.recordType}\u0000${scope.workflowStage ?? ''}` : null;
+  }
+  /**
+   * Reload the schema when the raw query no longer matches the scope its SDL was fetched for,
+   * so a valid query for another record type or stage is never rejected against a stale SDL.
+   * The previously loaded SDL stays in place until the fresh one arrives, so validation and
+   * previews never see a missing schema.
+   */
+  private async refreshRawSchema(): Promise<void> {
+    if (!this.unlinked || this.mode !== 'graphql' || this.saving || !this.source.schema) return;
+    let variables: Record<string, unknown> = {};
+    try {
+      variables = JSON.parse(this.variablesText) as Record<string, unknown>;
+    } catch {
+      return; // Keep the loaded schema until the variables are valid JSON again.
+    }
+    const engine = this.graphqlEngine ?? (await import('./graphql-query'));
+    const type = engine.queryRecordType(this.rawDraft.document, variables);
+    const desired = type ? { id: 'editor-schema', label: type, recordType: type, fields: [] } : this.scope;
+    if (this.scopeKeyFor(desired) === this.schemaScopeKey) return;
+    await this.loadSchema(false);
+  }
   async switchMode(mode: 'visual' | 'graphql'): Promise<void> {
     if (mode === this.mode || this.saving) return;
     this.mode = mode;
@@ -960,7 +992,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (mode === 'graphql') {
       await Promise.all([
         !this.unlinked ? this.syncGraphql() : Promise.resolve(),
-        !this.schema ? this.loadSchema() : Promise.resolve(),
+        this.schema ? this.refreshRawSchema() : this.loadSchema(),
       ]);
     }
   }
@@ -1008,6 +1040,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.rawBaseline = '';
     this.unlinked = true;
     this.changed();
+    void this.refreshRawSchema();
   }
   rawChanged(): void {
     try {
@@ -1017,6 +1050,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     }
     this.changed();
     if (this.rawErrors.length && this.hasPreview) this.resultsStale = true;
+    void this.refreshRawSchema();
   }
   selectResultPath(path: string): void {
     this.rawDraft.resultPath = path ? path.split('.') : [];
@@ -1125,22 +1159,28 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       (page > this.page && !this.hasNext)
     )
       return;
-    const snapshot = structuredClone(this.rawDraft);
-    snapshot.variables = JSON.parse(this.variablesText);
-    const binding = this.graphqlEngine!.cursorBinding(snapshot.document, snapshot.variables, snapshot.resultPath);
-    if (page > 0 && (!binding || this.resultsStale)) return;
-    const after =
-      page === this.page + 1
-        ? this.endCursor
-        : page === 0 && binding
-          ? snapshot.variables[binding.after]
-          : this.cursors[page];
-    const variables = { ...snapshot.variables, ...(binding ? { [binding.after]: after ?? null } : {}) };
     const seq = ++this.sequence;
     this.loadingPage = true;
     this.previewError = '';
-    this.resultsStale = this.hasPreview;
     try {
+      if (this.unlinked) {
+        // Let a pending scoped-schema reload land before the run, unless an edit already superseded it.
+        await this.refreshRawSchema();
+        if (seq !== this.sequence || this.disposed) return;
+        if (this.rawErrors.length) return;
+      }
+      const snapshot = structuredClone(this.rawDraft);
+      snapshot.variables = JSON.parse(this.variablesText);
+      const binding = this.graphqlEngine!.cursorBinding(snapshot.document, snapshot.variables, snapshot.resultPath);
+      if (page > 0 && (!binding || this.resultsStale)) return;
+      const after =
+        page === this.page + 1
+          ? this.endCursor
+          : page === 0 && binding
+            ? snapshot.variables[binding.after]
+            : this.cursors[page];
+      const variables = { ...snapshot.variables, ...(binding ? { [binding.after]: after ?? null } : {}) };
+      this.resultsStale = this.hasPreview;
       const response = this.source.rawResponse
         ? await this.source.rawResponse(snapshot.document, variables)
         : { data: await this.source.raw!(snapshot.document, variables) };
