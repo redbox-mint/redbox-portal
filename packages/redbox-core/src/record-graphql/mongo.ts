@@ -258,13 +258,32 @@ export function compileCollectionPipeline(request: GridStorageRequest): Document
   const plan = queryPlan(query, snapshot);
   if (
     query.first !== undefined &&
+    query.first !== null &&
     (!Number.isInteger(query.first) || query.first < 1 || query.first > GRID_LIMITS.pageSize)
   )
     gridError('INVALID_PAGE_SIZE', 'Page size must be between 1 and 50.');
   const usesMetadata = [...plan.filters, ...plan.sort].some(item => item.field.startsWith('metadata:'));
   const scope: Document[] = [
     auth,
-    { 'metaMetadata.brandId': String(caller.brand.id), 'metaMetadata.type': query.recordType },
+    { 'metaMetadata.type': query.recordType },
+    {
+      $expr: {
+        $eq: [
+          {
+            $trim: {
+              input: {
+                $convert: { input: storedValue(['metaMetadata', 'brandId']), to: 'string', onError: null, onNull: '' },
+              },
+              // Match String.trim() in readAuthorizedRecord, including Unicode
+              // whitespace and excluding NUL (which Mongo trims by default).
+              chars:
+                '\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff',
+            },
+          },
+          literal(String(caller.brand.id).trim()),
+        ],
+      },
+    },
     { 'workflow.stage': { $in: [...new Set(snapshot.catalogue.variants.map(variant => variant.workflowStage))] } },
     { $expr: { $eq: [{ $type: '$redboxOid' }, 'string'] } },
   ];

@@ -251,6 +251,19 @@ describe('GraphQL grid over Sails and Mongo', function () {
     assert.equal(stale.body.errors?.[0].extensions.code, 'CATALOGUE_CHANGED');
     assert.equal(stale.body.data.records, null);
   });
+  it('uses the default Mongo-backed page size when first is explicitly null', async () => {
+    const filters = [{ field: 'metadata:/title', iprefix: `Boundary-` }];
+    const response = await send(page, { first: null, filters });
+    assert.equal(response.status, 200, JSON.stringify(response.body));
+    assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+    const result = response.body.data.records;
+    assert.deepEqual(
+      result.nodes.map(row => row.oid),
+      boundaryRows.slice(0, 25).map(row => row.oid)
+    );
+    assert.equal(result.hasNextPage, true);
+    assert.equal(typeof result.endCursor, 'string');
+  });
   it('requires route read permission for both discovery and collections', async () => {
     await PathRule.updateOne({ id: ruleId }).set({ can_read: false });
     await firstValueFrom(PathRulesService.loadRules());

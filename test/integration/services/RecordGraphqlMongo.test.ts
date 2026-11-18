@@ -141,6 +141,42 @@ describe('Mongo collection index and deadline regressions', function () {
     await collection?.drop();
   });
 
+  it('includes legacy padded brand IDs using the runtime authorization trim rules', async () => {
+    const samples = [
+      ['legacy-brand', ' brand-grid '],
+      ['unicode-brand', '\uFEFF\u00A0brand-grid\u2028'],
+      ['foreign-brand', ' foreign '],
+      ['nul-brand', '\0brand-grid\0'],
+      ['array-brand', ['brand-grid']],
+      ['missing-brand', null],
+    ] as const;
+    await collection.insertMany(
+      samples.map(([redboxOid, brandId]) => ({
+        redboxOid,
+        metaMetadata: { brandId, type: 'grid-fixture', form: 'draft-form' },
+        workflow: { stage: 'draft' },
+        authorization: { view: ['viewer'] },
+      }))
+    );
+    try {
+      for (const brandId of ['brand-grid', ' brand-grid ']) {
+        const input = request({
+          filters: [{ field: 'record:oid', in: samples.map(([text]) => ({ text })) }],
+        });
+        const page = await new MongoRecordCollectionProvider(collection).executeRecordCollection({
+          ...input,
+          caller: { ...gridCaller, brand: { ...gridCaller.brand, id: brandId } },
+        });
+        assert.deepEqual(
+          page.candidates.map(candidate => candidate.oid),
+          ['legacy-brand', 'unicode-brand']
+        );
+      }
+    } finally {
+      await collection.deleteMany({ redboxOid: { $in: samples.map(([oid]) => oid) } });
+    }
+  });
+
   it('uses the OID index for EQ/IN and bounded ordered continuation without a blocking sort', async () => {
     for (const [label, input, expected, maxDocs] of [
       ['eq', request({ filters: [eq(oid(5000))] }), [oid(5000)], 1],

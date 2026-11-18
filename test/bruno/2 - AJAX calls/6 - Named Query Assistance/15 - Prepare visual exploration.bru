@@ -35,18 +35,6 @@ body:json {
 }
 
 script:pre-request {
-  // The disposable general harness needs the parent's declared runtime grid fields.
-  if (bru.getVar("queryEditorCsrf")) {
-    const axios = require('axios');
-    const schemaUrl = bru.interpolate('{{solrhost}}/solr/redbox/schema');
-    const live = (await axios.get(schemaUrl)).data.schema;
-    const fields = [
-      ...['oid', 'type', 'stage', 'form', 'version'].map(key => ({ name: 'redbox_grid_' + key, type: 'string' })),
-      ...['created', 'modified'].map(key => ({ name: 'redbox_grid_' + key, type: 'pdate' }))
-    ].filter(field => !live.fields.some(existing => existing.name === field.name))
-      .map(field => ({ ...field, indexed: true, stored: true, multiValued: false, docValues: true }));
-    if (fields.length) await axios.post(schemaUrl, { 'add-field': fields });
-  }
   require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
 }
 
