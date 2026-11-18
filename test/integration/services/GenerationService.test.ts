@@ -213,20 +213,21 @@ describe('AI-assisted form generation', function () {
     expect(completed.status, completed.errorCode || completed.errorSummary).to.equal('completed');
     const view = await GenerationRunService.getForActor(actor, launch.runId);
     expect(view.result.items).to.have.length(9);
-    for (const [fieldId, sourcePointer] of Object.entries({
-      rdmpTitle: '/title',
-      projectSummary: '/plainLanguageSummary',
-      dataDescription: '/methods',
-      dataTypes: '/expectedDataTypes',
+    // Evidence is labelled with readable source field names, not record paths.
+    for (const [fieldId, sourceLabel] of Object.entries({
+      rdmpTitle: 'Title',
+      projectSummary: 'Plain Language Summary',
+      dataDescription: 'Methods',
+      dataTypes: 'Expected Data Types',
     })) {
       const item = view.result.items.find((candidate: any) => candidate.fieldId === fieldId);
-      expect(item.evidence.map((evidence: any) => evidence.label), fieldId).to.deep.equal([
-        `activity ${sourcePointer}`,
-      ]);
+      expect(item.evidence.map((evidence: any) => evidence.label), fieldId).to.deep.equal([sourceLabel]);
     }
+    // sharingAccess falls back to its reviewed default; "May suggest" fields are always marked for review.
     const flagged = view.result.items.filter((item: any) => item.reviewRequired);
-    expect(flagged).to.have.length(1);
-    expect(flagged[0]).to.include({ fieldId: 'sharingAccess', reviewReasonCode: 'SHARING_CONSENT_REQUIRES_REVIEW' });
+    expect(flagged.map((item: any) => item.fieldId).sort()).to.deep.equal(
+      ['ethicsStatement', 'retentionDisposal', 'sensitivityClassification', 'sharingAccess', 'storageApproach']);
+    expect(flagged.find((item: any) => item.fieldId === 'sharingAccess')).to.include({ reviewReasonCode: 'SHARING_CONSENT_REQUIRES_REVIEW' });
 
     const metadata: Record<string, unknown> = { researchActivity: { oid: sourceOid } };
     for (const item of view.result.items) metadata[item.metadataPointer.slice(1)] = item.value;
