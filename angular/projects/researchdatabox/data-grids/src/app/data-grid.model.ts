@@ -101,6 +101,8 @@ export interface GridFieldError {
   oid?: string;
   fieldId?: string;
   label?: string;
+  /** The error path descends below the matched field's response path. */
+  nested?: boolean;
 }
 export interface GridRow {
   recordOid?: string;

@@ -144,8 +144,8 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     const payload = collectionRequest(request, scope, discovery);
     const response = await this.graphql(payload.query, payload.variables, true);
     const data = object(response['data']);
-    const page = parsePage(data['records'], request, discovery.fields);
     const errors = partialFieldErrors(response['errors'], data['records'], request, discovery.fields);
+    const page = parsePage(data['records'], request, discovery.fields, errors);
     if (errors.length) {
       page.errors = errors;
       page.response = { data, errors };

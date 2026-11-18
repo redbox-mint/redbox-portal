@@ -242,6 +242,16 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
     after: request.after,
   });
 }
+/** An error may affect a field through a failed parent, the field itself or a nested child. */
+export function fieldErrorLocation(path: (string | number)[], responsePath: string[]): 'field' | 'nested' | undefined {
+  if (path.length > responsePath.length && responsePath.every((part, index) => part === path[index])) return 'nested';
+  // List indices are response positions, never part of generated field selections.
+  const fields = path.filter(part => typeof part === 'string');
+  return fields.slice(0, responsePath.length).every((part, index) => part === responsePath[index])
+    ? 'field'
+    : undefined;
+}
+
 /** Match response aliases, including errors in nested children or nullable parents. */
 export function partialFieldErrors(
   value: unknown,
@@ -266,30 +276,37 @@ export function partialFieldErrors(
       row,
       oid: string(node['oid']),
     };
-    // List indices are response positions, never part of generated field selections.
-    const relative = path.slice(3).filter(part => typeof part === 'string');
-    const matches = fields.filter(
-      field =>
-        request.definition.columns.includes(field.id) &&
-        field.selections.some(
-          selection =>
-            (selection.responsePath[0] !== 'metadata' ||
-              !node['metadata'] ||
-              selection.variant === object(node['metadata'])['__typename']) &&
-            relative
-              .slice(0, Math.min(relative.length, selection.responsePath.length))
-              .every((part, index) => part === selection.responsePath[index])
-        )
-    );
-    return matches.length
-      ? matches.map(field => ({ ...diagnostic, fieldId: field.id, label: field.label }))
-      : [diagnostic];
+    const relative = diagnostic.path.slice(3);
+    const matches = fields.flatMap(field => {
+      if (!request.definition.columns.includes(field.id)) return [];
+      for (const { responsePath, variant } of field.selections) {
+        if (responsePath[0] === 'metadata' && node['metadata'] && variant !== object(node['metadata'])['__typename'])
+          continue;
+        const location = fieldErrorLocation(relative, responsePath);
+        if (location)
+          return [
+            {
+              ...diagnostic,
+              fieldId: field.id,
+              label: field.label,
+              ...(location === 'nested' ? { nested: true } : {}),
+            },
+          ];
+      }
+      return [];
+    });
+    return matches.length ? matches : [diagnostic];
   });
 }
 
-export function parsePage(value: unknown, request: GridQuery, fields: DiscoveredField[]): GridPage {
+export function parsePage(
+  value: unknown,
+  request: GridQuery,
+  fields: DiscoveredField[],
+  errors: GridFieldError[] = []
+): GridPage {
   const data = object(value);
-  const rows = array(data['nodes']).map(value => {
+  const rows = array(data['nodes']).map((value, row) => {
     const node = object(value);
     const values: Record<string, JsonValue> = Object.create(null);
     for (const id of request.definition.columns) {
@@ -306,7 +323,11 @@ export function parsePage(value: unknown, request: GridQuery, fields: Discovered
         for (const segment of selection.responsePath) {
           if (result === null) break;
           const parent = object(result);
-          if (!Object.prototype.hasOwnProperty.call(parent, segment)) return invalid();
+          if (!Object.hasOwn(parent, segment)) {
+            if (!errors.some(error => error.row === row && error.fieldId === id)) return invalid();
+            result = null;
+            break;
+          }
           result = parent[segment];
         }
       }

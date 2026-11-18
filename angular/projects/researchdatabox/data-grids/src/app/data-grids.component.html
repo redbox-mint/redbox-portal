@@ -515,7 +515,9 @@
                   @if (schemaError) {
                     <div class="alert alert-danger" role="alert">
                       <p>{{ text(schemaError) }}</p>
-                      <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">{{ text('refresh-schema') }}</button>
+                      <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
+                        {{ text('refresh-schema') }}
+                      </button>
                     </div>
                   }
                   <details #schemaDetails class="mt-2">
@@ -616,9 +618,15 @@
               <p>{{ text('partial-results') }}</p>
               <ul>
                 @for (failure of fieldErrors; track $index) {
-                  <li>{{ failure.code }} · {{ failure.label || failure.fieldId || failure.path.join('.') }}
-                    @if (failure.fieldId) { ({{ failure.fieldId }}) }
-                    · OID: {{ failure.oid }}</li>
+                  <li>
+                    {{ failure.code }} · {{ failure.label || failure.fieldId || failure.path.join('.') }}
+                    @if (failure.fieldId) {
+                      ({{ failure.fieldId }})
+                    }
+                    @if (failure.oid) {
+                      · OID: {{ failure.oid }}
+                    }
+                  </li>
                 }
               </ul>
             </div>
@@ -719,7 +727,8 @@
 </div>
 @defer (when columnsOpen) {
   @if (columnsOpen && draft) {
-    <rb-explorer-columns [defaults]="columnDefaults"
+    <rb-explorer-columns
+      [defaults]="columnDefaults"
       [fields]="scope?.fields || []"
       [selected]="draft.columns"
       [subtitle]="recordTypeLabel(draft.recordType) + ' · ' + (draft.workflowStage || text('all-stages'))"

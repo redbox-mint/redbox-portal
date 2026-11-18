@@ -16,7 +16,7 @@ import {
 import { GridDefinition, GridPage, GridScope } from './data-grid.model';
 import { editorSchema, rawDefinition } from './graphql-query';
 import { testSdl } from './data-grid.testing';
-import { parseSavedQuery } from './record-grid.protocol';
+import { DiscoveredField, parsePage, parseSavedQuery, partialFieldErrors } from './record-grid.protocol';
 import { scope, validGrid } from './data-grid.testing';
 
 function deferred<T>() {
@@ -564,14 +564,15 @@ describe('Data grid editor', () => {
       fieldId: 'title',
       label: 'Title',
     };
+    const errors = [failure, { code: 'FIELD_ERROR', path: ['unverified', 'field'] }];
     const result: GridPage = {
       rows: [
         { oid: 'partial-record', values: { title: null }, errors: [failure] },
         { oid: 'null-record', values: { title: null } },
         { oid: 'usable-record', values: { title: 'Usable title' } },
       ],
-      errors: [failure],
-      response: { data: { records: { nodes: ['controlled fixture'] } }, errors: [failure] },
+      errors,
+      response: { data: { records: { nodes: ['controlled fixture'] } }, errors },
       pageInfo: { hasNextPage: false, endCursor: null },
     };
     source.query.and.resolveTo(result);
@@ -588,8 +589,12 @@ describe('Data grid editor', () => {
     fixture.detectChanges();
     const content = fixture.nativeElement.textContent;
     expect(content).toContain('HISTORICAL_VALUE_TYPE');
-    expect(content).toContain('partial-record');
     expect(content).toContain('Title');
+    const diagnostics: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.alert-warning li');
+    expect(diagnostics.length).toBe(2);
+    expect(diagnostics[0].textContent).toContain('OID: partial-record');
+    expect(diagnostics[1].textContent).toContain('unverified.field');
+    expect(diagnostics[1].textContent).not.toContain('OID:');
     expect(component.jsonResponse).toEqual(result.response!);
     component.changed();
     expect(component.resultsStale).toBeTrue();
@@ -598,6 +603,66 @@ describe('Data grid editor', () => {
     expect(component.fieldErrors).toEqual([]);
     expect(component.jsonResponse).toBeNull();
     expect(component.hasPreview).toBeFalse();
+  });
+  it('keeps a partially readable structured field inspectable and replaces whole-field failures', async () => {
+    const responsePath = ['metadata', 'g_contributor'];
+    const field: DiscoveredField = {
+      id: 'metadata:/contributor',
+      label: 'Contributor',
+      type: 'structured',
+      selectable: true,
+      operators: [],
+      sortable: false,
+      selections: [
+        { variant: 'M_draft', selection: 'g_contributor: contributor { name role identifier }', responsePath },
+      ],
+    };
+    component.catalogue!.scopes[0].fields.push(field);
+    component.open({ ...validGrid(), columns: [field.id] }, false);
+    const contributor = { name: 'Ada', role: 'Researcher', identifier: null };
+    const records = {
+      nodes: [
+        { oid: 'partially-readable', metadata: { __typename: 'M_draft', g_contributor: contributor } },
+        { oid: 'whole-field-error', metadata: { __typename: 'M_draft', g_contributor: contributor } },
+        { oid: 'null-field', metadata: { __typename: 'M_draft', g_contributor: null } },
+        { oid: 'missing-field', metadata: { __typename: 'M_draft' } },
+      ],
+      hasNextPage: false,
+      endCursor: null,
+    };
+    const reportedErrors = records.nodes.map((_, row) => ({
+      path: ['records', 'nodes', row, ...responsePath, ...(row === 1 ? [] : ['identifier'])],
+      extensions: { code: 'HISTORICAL_VALUE_TYPE' },
+    }));
+    source.query.and.callFake(async request => {
+      const errors = partialFieldErrors(reportedErrors, records, request, [field]);
+      const result = parsePage(records, request, [field], errors);
+      result.rows.forEach((row, index) => (row.errors = errors.filter(error => error.row === index)));
+      return { ...result, errors };
+    });
+
+    await component.preview();
+
+    expect(component.previewError).toBe('');
+    const render = component.columnDefs[0].cellRenderer;
+    const [partial, ...failed] = component.rows;
+    expect<unknown>(partial.values[field.id]).toEqual(contributor);
+    const cell: HTMLElement = render({ data: partial, value: partial.values[field.id] });
+    expect(cell.tagName).toBe('BUTTON');
+    expect(cell.querySelector<HTMLElement>('.text-danger')?.title).toContain('HISTORICAL_VALUE_TYPE');
+    expect(cell.getAttribute('aria-label')).toContain('HISTORICAL_VALUE_TYPE');
+    cell.click();
+    const dialog = document.querySelector<HTMLDialogElement>('dialog.grid-cell-detail')!;
+    expect(dialog.textContent).toContain('Ada');
+    expect(dialog.textContent).toContain('Researcher');
+    dialog.close();
+    dialog.remove();
+    expect(failed.length).toBe(3);
+    for (const row of failed) {
+      const cell: HTMLElement = render({ data: row, value: row.values[field.id] });
+      expect(cell.tagName).toBe('SPAN');
+      expect(cell.textContent).toBe('Field could not be read (HISTORICAL_VALUE_TYPE)');
+    }
   });
   it('ignores partial rows and diagnostics from an out-of-order visual response', async () => {
     component.open(validGrid(), false);
@@ -1166,7 +1231,10 @@ describe('Data grid editor', () => {
     expect(component.fieldErrors.map(error => error.label)).toEqual(['Title', 'Title']);
     expect(component.fieldErrors.map(error => error.oid)).toEqual(['nested', 'parent']);
     const render = component.columnDefs.find(column => column.colId === 'metadata.g_hash')!.cellRenderer;
-    expect(render({ data: component.rows[0], value: ['usable', null] }).textContent).toContain('HISTORICAL_VALUE_TYPE');
+    const cell: HTMLElement = render({ data: component.rows[0], value: component.rows[0].values['metadata.g_hash'] });
+    expect(cell.tagName).toBe('BUTTON');
+    expect(cell.textContent).toContain('usable');
+    expect(cell.querySelector<HTMLElement>('.text-danger')?.title).toContain('HISTORICAL_VALUE_TYPE');
     expect(render({ data: component.rows[1], value: null }).textContent).toContain('FIELD_ERROR');
     expect(render({ data: component.rows[2], value: null }).textContent).not.toContain('FIELD_ERROR');
     component.selectResultPath('missing');

@@ -1,7 +1,7 @@
 import type { NamedQueryPromotionDraft } from '@researchdatabox/sails-ng-common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { fieldValue, fieldGroups, columnSize } from './field-presentation';
-import { parseQueryVariables } from './record-grid.protocol';
+import { fieldErrorLocation, parseQueryVariables } from './record-grid.protocol';
 import { inspectCell, detailKeyboard, CellText, displayScalar } from './cell-detail';
 import type { GraphQLSchema } from 'graphql';
 import { rawDefinition } from './raw-definition';
@@ -816,16 +816,11 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
             }
           : {}),
       }));
-      // Wrap every renderer, including record links, so a failed null is never shown as "No value".
       this.columnDefs.forEach(column => {
         const render = column.cellRenderer;
         column.cellRenderer = (params: { value: GridRow['values'][string]; data?: GridRow }) => {
           const failures = params.data?.errors?.filter(error => error.fieldId === column.colId) ?? [];
-          if (!failures.length) return render(params);
-          const node = document.createElement('span');
-          node.className = 'text-danger';
-          node.textContent = `${this.text('field-failed')} (${[...new Set(failures.map(error => error.code))].join(', ')})`;
-          return node;
+          return this.renderCell(params.value, failures, () => render(params));
         };
       });
       this.cursors[page] = request.after;
@@ -936,6 +931,27 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         window.location.pathname.replace(/\/admin\/data-grids\/?$/, '/record/view/') + encodeURIComponent(oid)
       );
     return node;
+  }
+  private renderCell(
+    value: GridRow['values'][string] | undefined,
+    failures: Pick<GridFieldError, 'code' | 'nested'>[],
+    render: () => HTMLElement
+  ): HTMLElement {
+    if (!failures.length) return render();
+    const message = `${this.text('field-failed')} (${[...new Set(failures.map(error => error.code))].join(', ')})`;
+    const marker = document.createElement('span');
+    marker.className = 'text-danger';
+    if (value === null || typeof value !== 'object' || failures.some(error => !error.nested)) {
+      marker.textContent = message;
+      return marker;
+    }
+    const cell = render();
+    marker.textContent = '!';
+    marker.title = message;
+    marker.setAttribute('aria-hidden', 'true');
+    cell.prepend(marker);
+    cell.setAttribute('aria-label', `${cell.getAttribute('aria-label')}. ${message}`);
+    return cell;
   }
   async loadSchema(): Promise<void> {
     const seq = ++this.schemaSequence;
@@ -1097,14 +1113,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         const row = error.path[prefix.length];
         const matches =
           prefix.every((part, index) => error.path[index] === part) && typeof row === 'number' && !!this.rows[row];
-        const relative = matches ? error.path.slice(prefix.length + 1).filter(part => typeof part === 'string') : [];
+        const relative = matches ? error.path.slice(prefix.length + 1) : [];
         const field = this.scope?.fields.find(field =>
           field.selections?.some(
-            selection =>
-              relative.length > 0 &&
-              relative
-                .slice(0, Math.min(relative.length, selection.responsePath.length))
-                .every((part, index) => part === selection.responsePath[index])
+            selection => relative.length > 0 && fieldErrorLocation(relative, selection.responsePath)
           )
         );
         return {
@@ -1145,20 +1157,14 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       }));
       this.columnDefs.forEach(column => {
         const render = column.cellRenderer;
+        const path = String(column.colId).split('.');
         column.cellRenderer = (params: { value: GridRow['values'][string]; data?: GridRow }) => {
-          const key = String(column.colId).split('.');
           const failures =
-            params.data?.errors?.filter(error => {
-              const relative = error.path.slice(prefix.length + 1).filter(part => typeof part === 'string');
-              return relative
-                .slice(0, Math.min(relative.length, key.length))
-                .every((part, index) => part === key[index]);
+            params.data?.errors?.flatMap(error => {
+              const location = fieldErrorLocation(error.path.slice(prefix.length + 1), path);
+              return location ? [{ code: error.code, nested: location === 'nested' }] : [];
             }) ?? [];
-          if (!failures.length) return render(params);
-          const node = document.createElement('span');
-          node.className = 'text-danger';
-          node.textContent = `${this.text('field-failed')} (${[...new Set(failures.map(error => error.code))].join(', ')})`;
-          return node;
+          return this.renderCell(params.value, failures, () => render(params));
         };
       });
       this.previewError = '';
