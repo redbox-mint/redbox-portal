@@ -62,7 +62,7 @@ describe('Generation profile Admin HTTP boundary', () => {
     assert.equal(res.status.lastCall.args[0], 403); assert.equal(service.create.callCount, 1);
   });
   it('exports the Admin controller and policy for pre-lift shim generation', () => {
-    assert.ok(ControllerNames.includes('GenerationProfileAdminController')); 
+    assert.ok(ControllerNames.includes('GenerationProfileAdminController'));
     const exported = ControllerExports.GenerationProfileAdminController as Record<string, unknown>;
     for (const action of actions) assert.equal(typeof exported[action], 'function', action);
     assert.equal(Policies.generationModelAdmin, generationModelAdmin);

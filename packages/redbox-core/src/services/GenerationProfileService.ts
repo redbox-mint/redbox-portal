@@ -54,6 +54,7 @@ export namespace Services {
       assertUnique(definition.sourceSlots.map((slot) => slot.id), 'Source slot');
       assertUnique(definition.questions.map((question) => question.id), 'Question');
       assertUnique(definition.targetFields.map((field) => field.id), 'Target field');
+      assertUnique(definition.targetFields.map((field) => field.metadataPointer ?? ''), 'Field to fill');
       if (poc && definition.questions.length !== 5) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'The POC requires exactly five non-branching questions');
       }
@@ -175,9 +176,10 @@ export namespace Services {
       return updated;
     }
 
-    public async publish(brandId: string, versionId: string, actorId: string): Promise<GenerationProfileVersionAttributes> {
+    public async publish(brandId: string, versionId: string, actorId: string, expectedContentHash?: string): Promise<GenerationProfileVersionAttributes> {
       const version = await GenerationProfileVersion.findOne({ id: versionId, brandId });
       if (!version || version.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft profile versions may be published');
+      if (expectedContentHash && version.contentHash !== expectedContentHash) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile draft changed concurrently');
       this.validateDefinition(version.definition);
       const deployment = await GenerationModelDeployment.findOne({ id: version.definition.modelDeploymentId, brandId, status: 'published' });
       if (!deployment) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Published model deployment was not found');

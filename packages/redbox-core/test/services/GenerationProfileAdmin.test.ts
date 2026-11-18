@@ -16,15 +16,16 @@ const definition = (): GenerationProfileDefinition => ({ purpose: 'Draft a plan'
   sourceSlots: [{ id: 'source', recordType: 'activity', allowedPaths: ['/title'], maxBytes: 1024 }],
   targetForm: { recordType: 'plan', formName: 'plan-form' }, questions: [], targetFields: [{ id: 'summary', label: 'Summary', metadataPointer: '/summary', expectedComponentClasses: ['TextAreaComponent'], output: { kind: 'string', maxLength: 200 }, operation: 'fill', grounding: 'sourceRequired' }],
   modelDeploymentId: 'model', knowledgeCollectionVersionIds: [], contextLimits: { totalBytes: 4096, maxKnowledgeChunks: 5, maxChunkBytes: 1024 }, fixtureTests: [] });
-const names = ['sails', 'GenerationProfile', 'GenerationProfileVersion', 'GenerationBinding', 'GenerationRun', 'GenerationModelDeployment', 'GenerationModelConnection'];
+const names = ['sails', 'GenerationProfile', 'GenerationProfileVersion', 'GenerationBinding', 'GenerationRun', 'GenerationModelDeployment', 'GenerationModelConnection', 'TranslationService'];
 describe('Drafting profile administration', () => {
   let service: Services.GenerationProfileAdminService, tables: Record<string, any[]>, originals: Map<string, unknown>, catalog: Omit<ProfileOverview, 'profiles'>;
   const matches = (r: any, c: any) => Object.entries(c).every(([k, v]: [string, any]) => Array.isArray(v) ? v.includes(r[k]) : v && typeof v === 'object' && v.in ? v.in.includes(r[k]) : r[k] === v);
   beforeEach(() => {
     originals = new Map(names.map(n => [n, Reflect.get(globalThis, n)]));
     const mock = createMockSails(); mock.config.generation = { ...structuredClone(generation), enabled: true }; Reflect.set(globalThis, 'sails', mock);
+    Reflect.set(globalThis, 'TranslationService', { t: (s: string) => s });
     tables = {};
-    for (const n of names.filter(n => n !== 'sails')) {
+    for (const n of names.filter(n => !['sails','TranslationService'].includes(n))) {
       const rows = tables[n] = [];
       Reflect.set(globalThis, n, { find: async (c: any) => structuredClone(rows.filter(r => matches(r, c))), findOne: async (c: any) => structuredClone(rows.find(r => matches(r, c))),
         count: async (c: any) => rows.filter(r => matches(r, c)).length,
@@ -65,6 +66,10 @@ describe('Drafting profile administration', () => {
   it('rejects malformed settings instead of persisting broken containers', async () => {
     await assert.rejects(service.save('a', 'v', { name: 'Plan', definition: { ...definition(), questions: [null] }, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_REQUEST_INVALID');
   });
+  it('refuses two suggestions for the same target field', () => {
+    const d = definition(); d.targetFields.push({ ...d.targetFields[0], id: 'second-answer' });
+    assert.throws(() => new Profiles.GenerationProfileService().validateDefinition(d), GenerationError);
+  });
   it('refuses stale hashes and immutable versions without overwriting content', async () => {
     await assert.rejects(service.save('a', 'v', { name: 'Plan', definition: definition(), expectedContentHash: 'stale' }, 'admin'), (e: GenerationError) => e.status === 409);
     tables.GenerationProfileVersion[0].status = 'published';
@@ -92,6 +97,12 @@ describe('Drafting profile administration', () => {
     await assert.rejects(service.publish('a', 'v', { expectedContentHash: v.contentHash }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_PROFILE_INVALID');
     await assert.rejects(service.publish('a', 'v', { expectedContentHash: 'stale' }, 'admin'), (e: GenerationError) => e.status === 409);
   });
+  it('does not publish a replacement saved while publication validation was running', async () => {
+    const oldHash = tables.GenerationProfileVersion[0].contentHash;
+    sinon.stub(service, 'validate').callsFake(async () => { tables.GenerationProfileVersion[0].contentHash = 'replacement-hash'; return []; });
+    await assert.rejects(service.publish('a', 'v', { expectedContentHash: oldHash }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_TARGET_CONFLICT');
+    assert.equal(tables.GenerationProfileVersion[0].status, 'draft');
+  });
   it('duplicates the newest version into independent draft v1', async () => {
     const p = await service.duplicate('a', 'plan', { name: 'Copy' }, 'admin'); assert.equal(p.versions[0].version, 1); assert.notEqual(p.id, 'p'); assert.equal(p.hasPublished, false);
     p.versions[0].definition.purpose = 'changed'; assert.equal(tables.GenerationProfileVersion[0].definition.purpose, 'Draft a plan');
@@ -114,7 +125,7 @@ describe('Drafting profile administration', () => {
     sails.services.generationknowledgeservice = { retrieve: async () => [] };
     const invoke = sinon.stub().resolves([{ content: JSON.stringify({ answers: { summary: { value: 'Synthetic title', evidenceIds: ['E1'], rationale: 'Source' } } }) }]);
     sails.services.generationmodelservice = { testProfileRequests: invoke };
-    const result = await service.runTests('a', 'v', 'admin'); assert.equal(result[0].passed, true); assert.equal(result[0].fields[0].label, 'Summary'); assert.equal(result[0].fields[0].value, 'Synthetic title'); assert.equal(tables.GenerationRun.length, 0); assert.equal(invoke.firstCall.args[0], 'a');
+    const result = await service.runTests('a', 'v', 'admin'); assert.equal(result[0].passed, true); assert.equal(result[0].fields[0].label, 'Summary'); assert.equal(result[0].fields[0].value, 'Synthetic title'); assert.equal(tables.GenerationRun.length, 0); assert.equal(invoke.firstCall.args[0], 'a'); assert.ok(invoke.firstCall.args[3][0].messages.some((m: any) => m.content.includes('\"label\":\"Summary\"')));
     invoke.resolves([{ content: JSON.stringify({ answers: { summary: { value: 'X', evidenceIds: ['UNKNOWN'], rationale: 'Bad' } } }) }]);
     assert.equal((await service.runTests('a', 'v', 'admin'))[0].passed, false);
   });

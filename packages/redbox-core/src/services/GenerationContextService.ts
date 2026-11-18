@@ -126,7 +126,7 @@ export namespace Services {
           const contentHash = canonicalHash(value);
           sourceEvidence.push({
             id: `source:${slot.id}:${pointer}:${contentHash}`,
-            label: `${slot.id} ${pointer}`.slice(0, 200), kind: 'source', content: value, contentHash,
+            label: pointer.split('/').at(-1)!.replaceAll('~1', '/').replaceAll('~0', '~').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase()).slice(0, 200), kind: 'source', content: value, contentHash,
           });
         }
       }
@@ -134,7 +134,7 @@ export namespace Services {
         const contentHash = canonicalHash(answer.value);
         sourceEvidence.push({
           id: `answer:${answer.id}:${contentHash}`,
-          label: `Reviewed answer: ${answer.id}`.slice(0, 200),
+          label: (input.definition.questions.find(q => q.id === answer.id)?.label || answer.id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase())).slice(0, 200),
           kind: 'source',
           content: answer.value,
           contentHash,

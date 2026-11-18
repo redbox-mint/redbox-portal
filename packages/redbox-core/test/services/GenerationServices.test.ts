@@ -329,7 +329,7 @@ describe('Generation core primitives and services', () => {
     expect(result.sources[0].values).to.deep.equal({ summary: 'Synthetic activity', sensitive: false });
     expect(result.targetDraft).to.deep.equal({ summary: '', sharing: '' });
     expect(result.sourceEvidence.find((item) => item.questionId === 'types')).to.deep.include({
-      label: 'Reviewed answer: types',
+      label: 'Types',
       kind: 'source',
       content: ['survey'],
       questionId: 'types',

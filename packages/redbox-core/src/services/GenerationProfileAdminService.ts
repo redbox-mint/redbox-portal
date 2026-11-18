@@ -1,5 +1,6 @@
 import type { GenerationBindingAttributes } from '../waterline-models/GenerationBinding';
 import type { KnowledgeChunkAttributes } from '../waterline-models/KnowledgeChunk';
+import type { KnowledgeCollectionVersionAttributes } from '../waterline-models/KnowledgeCollectionVersion';
 import type { KnowledgeCollectionAttributes } from '../waterline-models/KnowledgeCollection';
 import type { GenerationModelDeploymentAttributes } from '../waterline-models/GenerationModelDeployment';
 import type { RecordTypeAttributes } from '../waterline-models/RecordType';
@@ -10,7 +11,7 @@ import type { GenerationProfileDefinition, ProfileProblem, ProfileOverview, Prof
 import { Services as services } from '../CoreService';
 import { canonicalHash, GenerationError, type GenerationEvidence, type GenerationFrozenInput } from '../model/generation';
 import { requireService, requireWaterlineRows } from './generation/require-service';
-import { profileDefinitionSchema } from './generation/profile-admin-validation';
+import { profileDefinitionSchema, profileTestCaseSchema } from './generation/profile-admin-validation';
 import { profileFormFields } from './generation/profile-admin-fields';
 import { buildEvidenceAliases } from './GenerationSchemaService';
 import type { Services as Profiles } from './GenerationProfileService';
@@ -69,7 +70,8 @@ export namespace Services {
         const effective = await FormsService.buildClientFormConfig(structuredClone(config), 'edit', ['Admin', 'Researcher', 'Librarians'], null, sails.config.reusableFormDefinitions, brand.name, undefined, configAccess, false, true);
         const type = types.find(t => t.name === config.type)!;
         const stage = Object.values(sails.config.workflow[type.name] ?? {}).find(w => w.config.form === row.name)?.config.workflow.stageLabel;
-        const formLabel = (config as any).label ? translate(String((config as any).label)) : typeLabel(type.name);
+        const configuredLabel: unknown = Reflect.get(config, 'label');
+        const formLabel = typeof configuredLabel === 'string' && configuredLabel ? translate(configuredLabel) : typeLabel(type.name);
         const label = rows.filter(r => r.configuration?.type === type.name).length > 1 && stage ? formLabel + ' · ' + translate(stage) : formLabel;
         forms.push({ name: row.name, recordType: config.type, label, fields: profileFormFields(effective, translate) });
       }
@@ -82,8 +84,8 @@ export namespace Services {
       const collections = requireWaterlineRows<KnowledgeCollectionAttributes>(await KnowledgeCollection.find({ brandId, enabled: true }), 'KnowledgeCollection');
       const guidance: ProfileOverview['guidance'] = [];
       for (const collection of collections) {
-        const version = collection.publishedVersionId && await KnowledgeCollectionVersion.findOne({ brandId, id: collection.publishedVersionId, status: 'published' });
-        if (version) {
+        const versions = requireWaterlineRows<KnowledgeCollectionVersionAttributes>(await KnowledgeCollectionVersion.find({ brandId, collectionId: collection.id, status: 'published' }), 'KnowledgeCollectionVersion');
+        for (const version of versions.sort((a, b) => b.version - a.version)) {
           const chunks = requireWaterlineRows<KnowledgeChunkAttributes>(await KnowledgeChunk.find({ brandId, collectionVersionId: version.id }), 'KnowledgeChunk');
           guidance.push({ id: version.id, name: collection.name, version: version.version, topics: [...new Set(chunks.flatMap(c => c.tags ?? []))].sort() });
         }
@@ -124,7 +126,7 @@ export namespace Services {
           const label = actual?.label || field.label || TranslationService.t('ai-profiles-unnamed-field');
           if (!actual) add('fields', 'target-field', label, field.id, targetForm?.label);
           else if (!actual.output || !field.expectedComponentClasses.includes(actual.component) || actual.output.kind !== field.output?.kind ||
-            ('values' in actual.output && (!('values' in field.output) || canonicalHash(actual.output.values) !== canonicalHash(field.output.values))) ||
+            ('values' in actual.output && (!('values' in field.output) || canonicalHash([...actual.output.values].sort()) !== canonicalHash([...field.output.values].sort()))) ||
             ('maxLength' in actual.output && actual.output.maxLength && (field.maxLength ?? ('maxLength' in field.output ? field.output.maxLength ?? 0 : 0)) > actual.output.maxLength)) add('fields', 'field-changed', label, field.id, targetForm?.label);
         }
       }
@@ -143,6 +145,12 @@ export namespace Services {
       catch { add('about', 'rules'); }
       return problems.filter((p, i, all) => all.findIndex(q => JSON.stringify(q) === JSON.stringify(p)) === i);
     }
+    private async actorLabel(id?: string): Promise<string | undefined> {
+      if (!id) return undefined;
+      if (id === 'bootstrap-data') return TranslationService.t('ai-profiles-actor-bootstrap');
+      const user = /^[a-f0-9]{24}$/i.test(id) ? await User.findOne({ id }) : undefined;
+      return user?.name || TranslationService.t('ai-profiles-actor-admin');
+    }
     private async summary(brandId: string, profile: GenerationProfileAttributes, c: Omit<ProfileOverview, 'profiles'>): Promise<ProfileSummary> {
       const versions = requireWaterlineRows<GenerationProfileVersionAttributes>(await GenerationProfileVersion.find({ brandId, profileId: profile.id }), 'GenerationProfileVersion');
       const bindings = requireWaterlineRows<GenerationBindingAttributes>(await GenerationBinding.find({ brandId, profileId: profile.id }), 'GenerationBinding');
@@ -151,7 +159,7 @@ export namespace Services {
       for (const v of versions.sort((a, b) => b.version - a.version)) {
         const definition = structuredClone(v.definition);
         if (!definition.targetForm && bindings[0]) definition.targetForm = { recordType: bindings[0].targetRecordType, formName: bindings[0].targetFormName || c.recordTypes.find(t => t.name === bindings[0].targetRecordType)?.formName || '' };
-        safeVersions.push({ ...v, definition, problems: await this.validate(brandId, definition, profile.id, c) });
+        safeVersions.push({ ...v, createdByName: await this.actorLabel(v.createdBy), publishedByName: await this.actorLabel(v.publishedBy), retiredByName: await this.actorLabel(v.retiredBy), definition, problems: await this.validate(brandId, definition, profile.id, c) });
       }
       return { id: profile.id, key: profile.key, name: profile.name, publishedVersionId: profile.publishedVersionId,
         hasPublished: versions.some(v => !!v.publishedAt || v.status === 'published' || v.status === 'retired'), runCount, versions: safeVersions,
@@ -197,7 +205,7 @@ export namespace Services {
       const v = await this.version(brandId, id);
       if (v.status !== 'draft' || v.contentHash !== body.expectedContentHash) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Draft changed');
       if ((await this.validate(brandId, v.definition, v.profileId)).length) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Fix problems before publishing');
-      return this.profiles().publish(brandId, id, actor);
+      return this.profiles().publish(brandId, id, actor, v.contentHash);
     }
     public async newVersion(brandId: string, id: string, actor: string) {
       this.enabled(); const v = await this.version(brandId, id);
@@ -235,14 +243,14 @@ export namespace Services {
     public async runTests(brandId: string, id: string, actor: string): Promise<ProfileTestResult[]> {
       this.enabled(); const v = await this.version(brandId, id); const d = v.definition; const c = await this.catalog(brandId);
       if ((await this.validate(brandId, d, v.profileId, c)).length) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Fix problems before testing');
-      const fixtures = d.fixtureTests ?? [];
+      const fixtures = parse(z.array(profileTestCaseSchema).min(1).max(5), d.fixtureTests ?? []);
       if (!fixtures.length || fixtures.length > 5) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Add up to five test cases');
       const schema = requireService<Schemas.GenerationSchemaService>('generationschemaservice', ['buildProviderSchema', 'validateCandidate']);
       const prompt = requireService<Prompts.GenerationPromptService>('generationpromptservice', ['build']);
       const knowledgeService = requireService<Knowledge.GenerationKnowledgeService>('generationknowledgeservice', ['retrieve']);
       const knowledge = await knowledgeService.retrieve(brandId, d.knowledgeCollectionVersionIds, [...new Set(d.targetFields.flatMap(f => f.knowledgeTags ?? []))], { maxChunks: d.contextLimits.maxKnowledgeChunks, maxBytes: d.contextLimits.totalBytes });
       const contexts: Array<{ evidence: GenerationEvidence[]; aliases: ReturnType<typeof buildEvidenceAliases> }> = [];
-      const requests = fixtures.map((fixture: any) => {
+      const requests = fixtures.map((fixture) => {
         const evidence: GenerationEvidence[] = [];
         const slot = d.sourceSlots[0];
         const form = c.forms.find(f => f.name === c.recordTypes.find(t => t.name === slot.recordType)?.formName);
@@ -265,11 +273,16 @@ export namespace Services {
         const result: ProfileTestResult = { name: String(fixtures[index].name || index + 1), ranAt: new Date().toISOString(), passed: true, fields: [] };
         for (const field of d.targetFields) {
           const label = c.forms.find(f => f.name === d.targetForm?.formName)?.fields.find(f => f.pointer === field.metadataPointer)?.label ?? field.label ?? 'Field';
+          let preview: unknown;
           try {
             const parsed = JSON.parse(response.content);
+            const value: unknown = parsed?.answers?.[field.id]?.value;
+            preview = typeof value === 'string' ? value.slice(0, 500) : typeof value === 'boolean' || Array.isArray(value) && value.every(v => typeof v === 'string') ? value : undefined;
+            if (!parsed || Object.keys(parsed).length !== 1 || !parsed.answers || Array.isArray(parsed.answers) ||
+                Object.keys(parsed.answers).length !== d.targetFields.length || Object.keys(parsed.answers).some(key => !d.targetFields.some(f => f.id === key))) throw new GenerationError('GENERATION_OUTPUT_SCHEMA_INVALID', 'Test answer fields do not match');
             const candidate = schema.validateCandidate({ runId: 'synthetic-test', rawContent: JSON.stringify({ answers: { [field.id]: parsed.answers?.[field.id] } }), definition: { ...d, targetFields: [field] }, evidence: contexts[index].evidence, evidenceAliases: contexts[index].aliases, baseTargetDigest: canonicalHash({}) });
             const item = candidate.items[0]; result.fields.push({ label, value: item.value, evidence: item.evidence.map(e => e.label), passed: true, reviewRequired: item.reviewRequired });
-          } catch { result.passed = false; result.fields.push({ label, evidence: [], passed: false, errorKey: 'ai-profiles-test-rule-failed' }); }
+          } catch { result.passed = false; result.fields.push({ label, value: preview, evidence: [], passed: false, errorKey: 'ai-profiles-test-rule-failed' }); }
         }
         return result;
       });

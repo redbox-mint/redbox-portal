@@ -347,6 +347,12 @@ export class GenerationSidePanelComponent implements OnDestroy {
     queueMicrotask(() => this.restoreFocusTo?.focus());
   }
 
+  public candidateFieldLabel(fieldId: string): string {
+    return this.candidate()?.items.find(item => item.fieldId === fieldId)?.label ||
+      fieldId.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase());
+  }
+  public conflictFieldLabels(): string { return this.conflicts().map(id => this.candidateFieldLabel(id)).join(', '); }
+
   public async markReviewed(fieldId: string, pointer: string): Promise<void> {
     const form = this.form();
     if (!form || this.destroyed) return;

@@ -9,6 +9,7 @@ const output: z.ZodType<GenerationProfileOutput> = z.lazy(() => z.union([
   z.object({ kind: z.literal('enumArray'), values: z.array(text).max(500), maxItems: z.number().optional() }),
   z.object({ kind: z.enum(['object', 'objectArray']), properties: z.record(text, output), maxItems: z.number().optional() }),
 ]));
+export const profileTestCaseSchema = z.object({ name: text, source: z.record(text, z.unknown()), answers: z.record(id, z.unknown()) });
 export const profileDefinitionSchema: z.ZodType<GenerationProfileDefinition> = z.object({
   purpose: text, systemInstructions: text,
   targetForm: z.object({ recordType: id, formName: id }).optional(),
@@ -23,5 +24,5 @@ export const profileDefinitionSchema: z.ZodType<GenerationProfileDefinition> = z
     fallback: z.object({ value: z.unknown(), reasonCode: id, reviewRequired: z.boolean() }).optional() })).max(100),
   knowledgeCollectionVersionIds: z.array(id).max(100), modelDeploymentId: id,
   contextLimits: z.object({ totalBytes: z.number(), maxKnowledgeChunks: z.number(), maxChunkBytes: z.number() }),
-  fixtureTests: z.array(z.object({ name: text, source: z.record(text, z.unknown()), answers: z.record(id, z.unknown()) })).max(5).optional(),
+  fixtureTests: z.array(profileTestCaseSchema).max(5).optional(),
 });

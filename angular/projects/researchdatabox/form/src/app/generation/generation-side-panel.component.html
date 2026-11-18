@@ -139,14 +139,14 @@
         }
         @if (conflicts().length > 0) {
           <div class="alert alert-warning" role="alert">
-            {{ 'generation-conflicts' | i18next }}: {{ conflicts().join(', ') }}
+            {{ 'generation-conflicts' | i18next }}: {{ conflictFieldLabels() }}
           </div>
         }
         @for (item of candidate()?.items ?? []; track item.fieldId) {
           @if (item.reviewRequired && provenance.byPointer()[item.metadataPointer]?.reviewRequired) {
             <article class="rb-generation-review">
               <span class="badge text-bg-warning">{{ 'generation-review-required' | i18next }}</span>
-              <h3>{{ item.fieldId }}</h3>
+              <h3>{{ item.label || candidateFieldLabel(item.fieldId) }}</h3>
               <p>{{ item.rationale }}</p>
               <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markReviewed(item.fieldId, item.metadataPointer)">
                 {{ 'generation-mark-reviewed' | i18next }}

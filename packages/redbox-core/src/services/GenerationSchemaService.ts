@@ -241,7 +241,7 @@ export namespace Services {
         : hasSource && hasGuidance ? 'sourceAndGuidance'
           : hasSource ? 'sourceBacked' : hasGuidance ? 'guidanceBacked' : 'inferred';
       return {
-        fieldId: field.id, metadataPointer: field.metadataPointer, value, operation: 'fill', valueHash: canonicalHash(value),
+        fieldId: field.id, label: field.label || field.id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase()), metadataPointer: field.metadataPointer, value, operation: 'fill', valueHash: canonicalHash(value),
         groundingState, reviewRequired, reviewReasonCode, rationale: answer.rationale.slice(0, 500),
         evidence: evidenceIds.map((id) => {
           const item = evidenceById.get(id)!;

@@ -33,7 +33,7 @@ export interface ProfileForm { name: string; label: string; recordType: string; 
 export interface ProfileProblem { section: string; row?: string; messageKey: string; label?: string; form?: string }
 export interface ProfileVersion {
   id: string; version: number; status: string; definition: GenerationProfileDefinition; contentHash: string;
-  createdBy: string; createdAt?: string; publishedBy?: string; publishedAt?: string; retiredBy?: string; retiredAt?: string;
+  createdBy: string; createdByName?: string; publishedByName?: string; retiredByName?: string; createdAt?: string; publishedBy?: string; publishedAt?: string; retiredBy?: string; retiredAt?: string;
   problems: ProfileProblem[];
 }
 export interface ProfileUsage { key: string; name: string; href: string }
