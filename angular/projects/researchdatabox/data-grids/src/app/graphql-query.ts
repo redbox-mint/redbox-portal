@@ -184,10 +184,13 @@ function staticScopeValue(
   return undefined;
 }
 
+type RecordSchemaScope = Pick<GridScope, 'recordType' | 'workflowStage'>;
+
 export function queryRecordScope(
   document: string,
-  variables: Record<string, unknown>
-): Pick<GridScope, 'recordType' | 'workflowStage'> | null {
+  variables: Record<string, unknown>,
+  visualScope?: RecordSchemaScope
+): RecordSchemaScope | null {
   try {
     const ast = parse(document, { maxLexicalTokens: 2000 });
     const operations = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
@@ -199,6 +202,7 @@ export function queryRecordScope(
     );
     const pending = [operation.selectionSet];
     const visited = new Set<SelectionSetNode>();
+    let selectsRecord = false;
     let recordType: string | undefined;
     const workflowStages = new Set<string | undefined>();
     // Expand fragments at the query root only. Fields inside a record cannot change the collection's scope.
@@ -213,7 +217,7 @@ export function queryRecordScope(
             pending.push(fragment.selectionSet);
           continue;
         }
-        if (selection.name.value === 'record') return null;
+        if (selection.name.value === 'record') selectsRecord = true;
         if (selection.name.value !== 'records') continue;
         const type = staticScopeValue(
           selection.arguments?.find(arg => arg.name.value === 'recordType')?.value,
@@ -231,6 +235,11 @@ export function queryRecordScope(
         const stage = Array.isArray(stages) ? (stages.length === 1 ? stages[0] : undefined) : stages;
         workflowStages.add(typeof stage === 'string' && stage ? stage : undefined);
       }
+    }
+    if (selectsRecord) {
+      return recordType || !visualScope
+        ? null
+        : { recordType: visualScope.recordType, workflowStage: visualScope.workflowStage };
     }
     if (!recordType) return null;
     const workflowStage = workflowStages.size === 1 ? [...workflowStages][0] : undefined;

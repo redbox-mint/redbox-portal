@@ -242,12 +242,13 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
     after: request.after,
   });
 }
-/** Match a field's own path or an error below it, respecting list boundaries. */
+/** Match a field's path or a related error path, respecting list boundaries. */
 export function fieldErrorLocation(
   path: (string | number)[],
   responsePath: string[],
   value: unknown,
-  field?: Pick<GridField, 'repeating' | 'repeatingSubfield'>
+  field?: Pick<GridField, 'repeating' | 'repeatingSubfield'>,
+  includeAncestors = false
 ): 'field' | 'nested' | undefined {
   let matched = 0;
   let nested = false;
@@ -270,6 +271,7 @@ export function fieldErrorLocation(
     nested ||= belowField;
   }
   if (matched === responsePath.length) return nested ? 'nested' : 'field';
+  if (includeAncestors) return 'field';
   return undefined;
 }
 
@@ -297,13 +299,14 @@ export function partialFieldErrors(
       row,
       oid: string(node['oid']),
     };
+    if (path[0] !== 'records' || path[1] !== 'nodes') return [diagnostic];
     const relative = diagnostic.path.slice(3);
     const matches = fields.flatMap(field => {
       if (!request.definition.columns.includes(field.id)) return [];
       for (const { responsePath, variant } of field.selections) {
         if (responsePath[0] === 'metadata' && node['metadata'] && variant !== object(node['metadata'])['__typename'])
           continue;
-        const location = fieldErrorLocation(relative, responsePath, node, field);
+        const location = fieldErrorLocation(relative, responsePath, node, field, true);
         if (location)
           return [
             {

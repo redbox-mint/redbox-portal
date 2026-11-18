@@ -16,7 +16,11 @@ function propertyName(name: string): void {
 }
 
 /** Closed, bounded author declarations; never accepts an arbitrary JSON/schema node. */
-export function compileMetadataReadShape(value: unknown, limits: Readonly<RecordSchemaLimitsConfig>): ContractNode {
+export function compileMetadataReadShape(
+  value: unknown,
+  limits: Readonly<RecordSchemaLimitsConfig>,
+  rootNullable = true
+): ContractNode {
   let count = 0;
   function visit(input: unknown, depth: number): ContractNode {
     if (depth > limits.maxDepth || ++count > limits.maxProperties)
@@ -26,7 +30,7 @@ export function compileMetadataReadShape(value: unknown, limits: Readonly<Record
     if (shape.label !== undefined && (typeof shape.label !== 'string' || shape.label.length > 256))
       throw new Error('Invalid metadata read label.');
     const annotations = typeof shape.label === 'string' ? { extensions: { 'x-redbox-label': shape.label } } : undefined;
-    const base = { nullable: true, ...(annotations ? { annotations } : {}) };
+    const base = { nullable: depth === 0 ? rootNullable : true, ...(annotations ? { annotations } : {}) };
     if (shape.type === 'object') {
       if (shape.items !== undefined) throw new Error('Invalid object read shape.');
       const properties = object(shape.properties);

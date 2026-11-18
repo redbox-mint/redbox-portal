@@ -7,6 +7,7 @@ import {
   RecordContractContributorRegistry,
   createCoreRecordContractContributors,
   type RecordContract,
+  type RecordContractContributorRegistration,
   type RecordContractEffectiveForm,
 } from '../../../src/record-contract';
 import { recordSchema } from '../../../src/config/recordSchema.config';
@@ -20,12 +21,14 @@ async function compile(
   form: RecordContractEffectiveForm,
   mode: 'read' | 'edit' = 'read',
   recordType = 'publication',
-  reusableFormDefinitions = {}
+  reusableFormDefinitions = {},
+  registrations: RecordContractContributorRegistration[] = []
 ) {
   return new RecordContractCompiler(
-    new RecordContractContributorRegistry(
-      createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' }))
-    ),
+    new RecordContractContributorRegistry([
+      ...createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' as const })),
+      ...registrations,
+    ]),
     recordSchema.limits
   ).compile({
     form,
@@ -96,6 +99,51 @@ describe('Explicit persisted metadata read authoring', () => {
     assert.equal(contract.root.properties.owner.kind, 'scalar');
     assert.equal(contract.root.properties.lookup, undefined);
   });
+  for (const [policy, nullable] of [
+    ['non-null', false],
+    ['nullable', true],
+    ['non-null', true],
+  ] as const) {
+    it(`applies read shapes with a ${policy} contributor returning nullable=${nullable}`, async () => {
+      const component = { class: 'HookComponent' };
+      const form: RecordContractEffectiveForm = {
+        name: 'hook-read-shapes',
+        componentDefinitions: [
+          { name: 'contact', component, readShape: contactReadShape },
+          { name: 'contacts', component, readShape: { type: 'array', items: contactReadShape } },
+          { name: 'title', component, readShape: { type: 'string' } },
+        ],
+      };
+      const result = await compile(form, 'read', 'publication', {}, [
+        {
+          source: 'hook',
+          packageName: '@test/hook',
+          contributor: {
+            kind: 'component',
+            componentType: component.class,
+            key: 'hook.read-shape',
+            version: '1',
+            nullability: policy,
+            ownedPointers: [''],
+            compile: () => ({ kind: 'node', node: { kind: 'scalar', scalarType: 'string', nullable } }),
+          },
+        },
+      ]);
+      if (policy === 'non-null' && nullable) {
+        assert.equal(result.kind, 'failed');
+        assert.equal(result.failureKind, 'contributor-failed');
+        return;
+      }
+      const { contact, contacts, title } = compiled(result).root.properties;
+      assert.equal(contact.nullable, nullable);
+      assert.equal(contacts.nullable, nullable);
+      assert.equal(title.nullable, nullable);
+      assert.equal(contact.kind, 'object');
+      assert.equal(contact.properties.name.nullable, true);
+      assert.equal(contacts.kind, 'array');
+      assert.equal(contacts.items.nullable, true);
+    });
+  }
   it('rejects malformed, open, empty or excessive read shapes', async () => {
     for (const shape of [
       { type: 'json' },

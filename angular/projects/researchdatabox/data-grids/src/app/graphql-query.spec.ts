@@ -84,6 +84,18 @@ describe('GraphQL editor contract', () => {
     const document = 'query Plans($type: String!) { records(recordType: $type) { nodes { oid } } }';
     expect(queryRecordScope(document, {})).toBeNull();
   });
+  it('uses the visual scope only for a single-record root without any collection roots', () => {
+    const visualScope = { recordType: 'plan', workflowStage: 'draft' };
+    const fragments = 'fragment Single on Query { selected: record(oid: "one") { oid } }';
+    expect(queryRecordScope(`{ ...Single } ${fragments}`, {}, visualScope)).toEqual(visualScope);
+    for (const document of [
+      `{ ...Single records(recordType: "plan") { nodes { oid } } } ${fragments}`,
+      `query($type: String!) { ...Single records(recordType: $type) { nodes { oid } } } ${fragments}`,
+      '{ __typename }',
+    ]) {
+      expect(queryRecordScope(document, {}, visualScope)).toBeNull();
+    }
+  });
   it('validates real schema selections, variables, syntax and read-only operations', () => {
     const raw = rawDefinition();
     raw.variables['type'] = 'plan';

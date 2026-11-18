@@ -1013,7 +1013,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   private resolveSchemaScope(engine: DataGridsComponent['graphqlEngine']): GridScope | undefined {
     if (!this.unlinked) return this.scope;
     const variables = JSON.parse(this.variablesText) as Record<string, unknown>;
-    const scope = engine?.queryRecordScope(this.rawDraft.document, variables);
+    const scope = engine?.queryRecordScope(this.rawDraft.document, variables, this.scope);
     return scope ? { id: 'editor-schema', label: scope.recordType, ...scope, fields: [] } : undefined;
   }
   private scopeKeyFor(scope: GridScope | undefined): string | null {

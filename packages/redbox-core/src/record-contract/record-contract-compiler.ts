@@ -803,9 +803,15 @@ export class RecordContractCompiler {
       };
     }
     if (request.fieldMode === 'read' && component.readShape !== undefined) {
+      // Keep the contributor's root nullability for non-null policies so the
+      // policy check still reports an invalid nullable contribution.
+      const nullable = contributor.nullability === 'non-null' ? contribution.node.nullable : true;
       contribution = {
         ...contribution,
-        node: retainReadPrivacy(compileMetadataReadShape(component.readShape, this.limits), contribution.node),
+        node: retainReadPrivacy(
+          compileMetadataReadShape(component.readShape, this.limits, nullable),
+          contribution.node
+        ),
       };
     }
     try {

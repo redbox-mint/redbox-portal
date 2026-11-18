@@ -961,6 +961,40 @@ describe('Data grid editor', () => {
     expect(component.rawErrors).toEqual([]);
     expect(component.schemaError).toBe('');
   });
+  const singleRecordSdl = testSdl
+    .replace('type Query {', 'type Query { record(oid: ID!): Record,')
+    .replace('type Record {', 'type Metadata { title: String } type Record { metadata: Metadata,');
+  const singleRecordDocument = 'query { record(oid: "one") { oid metadata { __typename } } }';
+
+  it('refreshes the single-record schema using the selected visual type and stage', async () => {
+    component.open(validGrid(), false);
+    const schema = jasmine.createSpy().and.resolveTo(singleRecordSdl);
+    source.schema = schema;
+    await component.switchMode('graphql');
+    component.rawDraft.document = '{ records(recordType: "organisation") { nodes { oid } } }';
+    component.unlink();
+    const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    schema.calls.reset();
+
+    component.rawDraft.document = singleRecordDocument;
+    component.rawChanged();
+
+    expect(await editor.refreshRawSchema()).toBeTrue();
+    expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ recordType: 'plan', workflowStage: 'draft' }));
+    expect(component.rawErrors).toEqual([]);
+  });
+  it('loads the global schema for a saved single-record query without a visual scope', async () => {
+    const schema = jasmine.createSpy().and.resolveTo(singleRecordSdl);
+    source.schema = schema;
+    const id = '000000000000000000000001';
+    source.read.and.resolveTo({ ...rawDefinition(), id, document: singleRecordDocument, variables: {} });
+
+    await component.reopen({ id });
+
+    expect(schema).toHaveBeenCalledOnceWith(undefined);
+    expect(component.rawErrors).toEqual([]);
+  });
   describe('raw workflow-stage schema discovery', () => {
     const stageSdl = testSdl.replace('recordType: String!,', 'recordType: String!, workflowStages: [String!],');
     const draftCollection = 'records(recordType: "dataPublication", workflowStages: ["draft"]) { nodes { oid } }';
@@ -1112,7 +1146,7 @@ describe('Data grid editor', () => {
     source.schema = schema;
     const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
     await component.switchMode('graphql');
-    component.rawDraft.document = '{ record(oid:"one") { oid } }';
+    component.rawDraft.document = '{ __typename }';
     component.unlink();
     expect(await editor.refreshRawSchema()).toBeTrue();
     expect(schema).toHaveBeenCalledTimes(2);
@@ -1121,7 +1155,7 @@ describe('Data grid editor', () => {
     component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
     component.rawChanged();
     const scopedRefresh = editor.refreshRawSchema();
-    component.rawDraft.document = '{ record(oid:"two") { oid } }';
+    component.rawDraft.document = 'query Global { __typename }';
     component.rawChanged();
     expect(await editor.refreshRawSchema()).toBeTrue();
     expect(schema).toHaveBeenCalledTimes(3);

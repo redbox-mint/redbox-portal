@@ -520,6 +520,52 @@ describe('RecordGridService HTTP contract', () => {
     expect(result?.response?.['data']).toBeDefined();
     expect(JSON.stringify(result?.response)).not.toContain('Stored value');
   }));
+  it('marks all selected metadata fields failed when their parent resolver fails', fakeAsync(() => {
+    const summary = {
+      ...title,
+      id: 'metadata:/summary',
+      selections: [
+        {
+          variant: 'M_draft',
+          selection: '... on M_draft { g_summary: summary }',
+          responsePath: ['metadata', 'g_summary'],
+        },
+      ],
+    };
+    const input = request();
+    input.definition.columns.push(summary.id);
+    let result: GridPage | undefined;
+    service.query(input).then(value => (result = value));
+    flushMicrotasks();
+    http.expectOne(url).flush({ data: { recordFields: discovery([title, oid, summary]) } });
+    flushMicrotasks();
+
+    const path = ['records', 'nodes', 0, 'metadata'];
+    http.expectOne(url).flush({
+      data: {
+        records: {
+          nodes: [
+            { oid: 'failed', metadata: null },
+            { oid: 'usable', metadata: { __typename: 'M_draft', g_title: 'Usable title', g_summary: 'Summary' } },
+          ],
+          hasNextPage: false,
+          endCursor: null,
+        },
+      },
+      errors: [{ path, message: 'Private details', extensions: { code: 'UNRESOLVED_READ_CONTRACT' } }],
+    });
+    flushMicrotasks();
+
+    expect<unknown>(result?.rows.map(row => row.values)).toEqual([
+      { [title.id]: null, [oid.id]: 'failed', [summary.id]: null },
+      { [title.id]: 'Usable title', [oid.id]: 'usable', [summary.id]: 'Summary' },
+    ]);
+    const diagnostic = { code: 'UNRESOLVED_READ_CONTRACT', path, row: 0, oid: 'failed' };
+    const errors = [title, summary].map(field => ({ ...diagnostic, fieldId: field.id, label: 'Title' }));
+    expect(result?.errors).toEqual(errors);
+    expect(result?.rows.map(row => row.errors)).toEqual([errors, []]);
+    expect(JSON.stringify(result?.response)).not.toContain('Private details');
+  }));
   for (const path of [undefined, ['records'], ['records', 'nodes']]) {
     it(`rejects a top-level failure with usable data at ${JSON.stringify(path)}`, fakeAsync(() => {
       let error: GridRequestError | undefined;
@@ -828,7 +874,7 @@ describe('Record grid protocol', () => {
       )
     ).toBe('field');
   });
-  it('attributes a failed parent object to its column only', () => {
+  it('attributes a failed parent object to its own column and selected descendants', () => {
     const parent = {
       ...title,
       id: 'metadata:/contact',
@@ -846,7 +892,25 @@ describe('Record grid protocol', () => {
     input.definition.columns.push(parent.id);
     expect(partialFieldErrors([{ path }], records, input, fields)).toEqual([
       { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid', fieldId: parent.id, label: parent.label },
+      { code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid', fieldId: child.id, label: child.label },
     ]);
+  });
+  it('keeps errors on unrelated response paths unmapped', () => {
+    const fields = parseDiscovery(discovery(), key => key).fields;
+    const records = { nodes: [{ oid: 'actual-oid', metadata: null }] };
+    const paths = [
+      ['other', 'nodes', 0, 'metadata'],
+      ['records', 'nodes', 0, 'unselected', 'metadata'],
+      ['records', 'nodes', 0, 'metadata', 'unselected'],
+    ];
+    expect(
+      partialFieldErrors(
+        paths.map(path => ({ path })),
+        records,
+        request(),
+        fields
+      )
+    ).toEqual(paths.map(path => ({ code: 'FIELD_ERROR', path, row: 0, oid: 'actual-oid' })));
   });
   it('rejects malformed pages, missing aliases and non-scalar values', () => {
     const found = parseDiscovery(discovery(), key => key);
