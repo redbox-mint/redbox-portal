@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import * as sinon from 'sinon';
 import { generation } from '../../src/config/generation.config';
 import { Services } from '../../src/services/GenerationModelService';
+import { Services as ProfileServices } from '../../src/services/GenerationProfileService';
 import { Services as SecretServices } from '../../src/services/GenerationSecretResolverService';
 import { FakeGenerationProvider } from '../../src/services/generation/providers/FakeGenerationProvider';
 import { GenerationError, canonicalHash } from '../../src/model/generation';
@@ -316,14 +317,30 @@ describe('Generation model Admin service', () => {
     assert.deepEqual(legacy.parameters, next.parameters);
     assert.equal(legacy.contentHash, row.contentHash);
   });
-  it('guards retirement of a published profile reference, including disabled profiles', async () => {
+  for (const enabled of [true, false]) it(`guards retirement of a published profile reference when the profile is ${enabled ? 'enabled' : 'disabled'}`, async () => {
     const row = await create();
     tables.GenerationModelDeployment[0].status = 'published';
-    tables.GenerationProfile.push({ id: 'p', brandId: 'a', publishedVersionId: 'pv', enabled: false });
-    tables.GenerationProfileVersion.push({ id: 'pv', brandId: 'a', definition: { modelDeploymentId: row.id } });
+    tables.GenerationProfile.push({ id: 'p', brandId: 'a', publishedVersionId: 'pv', enabled });
+    tables.GenerationProfileVersion.push({ id: 'pv', brandId: 'a', status: 'published', definition: { modelDeploymentId: row.id } });
     await rejects(service.retireDeployment('a', row.id), 'GENERATION_INVALID_STATE');
+    assert.equal(tables.GenerationModelDeployment[0].status, 'published');
     tables.GenerationProfile[0].publishedVersionId = undefined;
     assert.equal((await service.retireDeployment('a', row.id))?.status, 'retired');
+  });
+  it('retires a model after its live profile is retired while retaining historical references and deletion safeguards', async () => {
+    const row = await create();
+    await service.publishDeployment('a', row.id, 'publisher', row.contentHash);
+    tables.GenerationProfile.push({ id: 'p', brandId: 'a', key: 'profile', name: 'Profile', publishedVersionId: 'pv', enabled: true });
+    tables.GenerationProfileVersion.push({ id: 'pv', brandId: 'a', profileId: 'p', status: 'published', definition: { modelDeploymentId: row.id } });
+    await rejects(service.retireDeployment('a', row.id), 'GENERATION_INVALID_STATE');
+    const profiles = new ProfileServices.GenerationProfileService();
+    assert.equal((await profiles.retire('a', 'pv', 'actor')).status, 'retired');
+    assert.equal(tables.GenerationProfile[0].publishedVersionId, 'pv');
+    assert.equal((await service.retireDeployment('a', row.id))?.status, 'retired');
+    assert.equal(tables.GenerationProfileVersion[0].definition.modelDeploymentId, row.id);
+    assert.deepEqual(await service.deleteModel('a', row.key), { deleted: false, uses: [{ key: 'profile', name: 'Profile' }] });
+    assert.equal(tables.GenerationModelDeployment.length, 1);
+    assert.equal(tables.GenerationProfileVersion.length, 1);
   });
   it('counts unique profiles using latest or published references across every version of a key, brand scoped', async () => {
     const row = await create(); const next = await service.newDeploymentVersion('a', row.id, 'actor');

@@ -344,7 +344,7 @@ export namespace Services {
       const profiles = requireWaterlineRows<GenerationProfileAttributes>(await GenerationProfile.find({ brandId }), 'GenerationProfile');
       const ids = profiles.map(value => value.publishedVersionId).filter((value): value is string => !!value);
       const published = ids.length ? requireWaterlineRows<GenerationProfileVersionAttributes>(
-        await GenerationProfileVersion.find({ brandId, id: { in: ids } }), 'GenerationProfileVersion') : [];
+        await GenerationProfileVersion.find({ brandId, id: { in: ids }, status: 'published' }), 'GenerationProfileVersion') : [];
       if (published.some(value => value.definition.modelDeploymentId === id)) {
         throw new GenerationError('GENERATION_INVALID_STATE', 'A published profile uses this model version');
       }
