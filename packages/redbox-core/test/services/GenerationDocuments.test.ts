@@ -89,9 +89,12 @@ async function rejects(promise: Promise<unknown>, code: string) {
 describe('Generation document sources', function () {
   this.timeout(30000);
   let previousSails: unknown;
+  let previousTranslation: unknown;
   let getMeta: sinon.SinonStub;
   beforeEach(() => {
     previousSails = Reflect.get(global, 'sails');
+    previousTranslation = Reflect.get(globalThis, 'TranslationService');
+    Reflect.set(globalThis, 'TranslationService', { t: (key: string) => key });
     getMeta = sinon.stub().resolves({
       metadata: { summary: 'Record context', excluded: 'private' },
       metaMetadata: { brandId: actor.brandId, type: 'activity' },
@@ -114,6 +117,8 @@ describe('Generation document sources', function () {
     });
   });
   afterEach(() => {
+    if (previousTranslation === undefined) Reflect.deleteProperty(globalThis, 'TranslationService');
+    else Reflect.set(globalThis, 'TranslationService', previousTranslation);
     Reflect.set(global, 'sails', previousSails);
     sinon.restore();
   });

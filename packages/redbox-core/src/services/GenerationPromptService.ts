@@ -54,7 +54,10 @@ export namespace Services {
           .map((item) => ({ id: aliasByEvidenceId.get(item.id) ?? item.id, label: item.label, content: item.content })),
         reviewedAnswers: input.frozenInput.answers.map((answer) => {
           const evidenceItem = input.frozenInput.sourceEvidence.find((item) => item.questionId === answer.id);
-          return { ...answer, evidenceId: evidenceItem ? aliasByEvidenceId.get(evidenceItem.id) : undefined };
+          const question = input.definition.questions.find(item => item.id === answer.id);
+          const label = question?.label || (question?.labelKey ? TranslationService.t(question.labelKey) : undefined);
+          const helpText = question?.helpText || (question?.helpTextKey ? TranslationService.t(question.helpTextKey) : undefined);
+          return { ...answer, label, helpText, evidenceId: evidenceItem ? aliasByEvidenceId.get(evidenceItem.id) : undefined };
         }),
         approvedKnowledge: input.knowledge.map((item) => ({
           id: aliasByEvidenceId.get(item.id) ?? item.id,

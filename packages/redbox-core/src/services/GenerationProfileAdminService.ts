@@ -1,3 +1,4 @@
+import { requireProfileModel } from './GenerationProfileService';
 import type { GenerationBindingAttributes } from '../waterline-models/GenerationBinding';
 import type { KnowledgeChunkAttributes } from '../waterline-models/KnowledgeChunk';
 import type { KnowledgeCollectionVersionAttributes } from '../waterline-models/KnowledgeCollectionVersion';
@@ -205,9 +206,12 @@ export namespace Services {
     private async createWithDefinition(brandId: string, name: string, definition: GenerationProfileDefinition, actor: string) {
       this.enabled();
       const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) + '-' + randomUUID().slice(0, 8);
+      await requireProfileModel(brandId, definition.modelDeploymentId);
       const profile = await GenerationProfile.create({ brandId, key, name, nameLower: name.toLowerCase(), enabled: true, createdBy: actor, updatedBy: actor }).fetch();
       try {
         const version = await GenerationProfileVersion.create({ brandId, profileId: profile.id, version: 1, status: 'draft', schemaVersion: 1, definition, contentHash: canonicalHash(definition), createdBy: actor }).fetch();
+        try { await requireProfileModel(brandId, definition.modelDeploymentId); }
+        catch (error) { await GenerationProfileVersion.destroyOne({ id: version.id, brandId }); throw error; }
         await GenerationProfile.updateOne({ brandId, id: profile.id }).set({ latestVersionId: version.id });
       } catch (e) { await GenerationProfile.destroyOne({ brandId, id: profile.id }); throw e; }
       return this.summary(brandId, profile, await this.catalog(brandId));
@@ -226,8 +230,16 @@ export namespace Services {
       const definition = body.definition as unknown as GenerationProfileDefinition;
       if (Buffer.byteLength(JSON.stringify(definition)) > Math.min(sails.config.generation.provider.maxRequestBytes, 250000)) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Profile too large');
       const problems = await this.validate(brandId, definition, v.profileId);
+      await requireProfileModel(brandId, definition.modelDeploymentId);
       const updated = await GenerationProfileVersion.updateOne({ brandId, id, status: 'draft', contentHash: body.expectedContentHash }).set({ definition, contentHash: canonicalHash(definition) });
       if (!updated) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Draft changed');
+      try { await requireProfileModel(brandId, definition.modelDeploymentId); }
+      catch (error) {
+        await GenerationProfileVersion.updateOne({ id, brandId, status: 'draft', contentHash: updated.contentHash }).set({
+          definition: v.definition, contentHash: v.contentHash,
+        });
+        throw error;
+      }
       await GenerationProfile.updateOne({ brandId, id: v.profileId }).set({ name: body.name, nameLower: body.name.toLowerCase(), updatedBy: actor });
       return { ...updated, problems };
     }
@@ -281,6 +293,11 @@ export namespace Services {
       if ((await this.validate(brandId, d, v.profileId, c)).length) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Fix problems before testing');
       const fixtures = parse(z.array(profileTestCaseSchema).min(1).max(5), d.fixtureTests ?? []);
       if (!fixtures.length || fixtures.length > 5) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Add up to five test cases');
+      if (!d.sourceSlots.length) {
+        return fixtures.map(fixture => ({ name: fixture.name, ranAt: new Date().toISOString(), passed: false,
+          fields: d.targetFields.map(field => ({ label: c.forms.find(f => f.name === d.targetForm?.formName)?.fields.find(f => f.pointer === field.metadataPointer)?.label || field.label || 'Field',
+            evidence: [], passed: false, errorKey: 'ai-profiles-test-documents-unavailable' })) }));
+      }
       const schema = requireService<Schemas.GenerationSchemaService>('generationschemaservice', ['buildProviderSchema', 'validateCandidate']);
       const prompt = requireService<Prompts.GenerationPromptService>('generationpromptservice', ['build']);
       const knowledgeService = requireService<Knowledge.GenerationKnowledgeService>('generationknowledgeservice', ['retrieve']);

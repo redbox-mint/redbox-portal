@@ -48,6 +48,7 @@ export class GenerationModelConnectionClass {
   @Attr({ type: 'number', defaultsTo: 90000 }) public timeoutMs!: number;
   @Attr({ type: 'string', required: true }) public createdBy!: string;
   @Attr({ type: 'string', required: true }) public updatedBy!: string;
+  @Attr({ type: 'string', allowNull: true }) public deletionClaim?: string;
   @Attr({ type: 'string' }) public lastHealthStatus?: string;
   @Attr({ type: 'string' }) public lastHealthCheckedAt?: string;
 }
@@ -57,7 +58,7 @@ export interface GenerationModelConnectionAttributes extends Sails.WaterlineAttr
   brandId: string; key: string; name: string; nameLower: string; adapterId: string; enabled: boolean;
   endpoint: string; authStrategy: string; secretRef?: string; nonSecretHeaders?: Record<string, string>;
   dataPolicy?: Record<string, unknown>; timeoutMs: number; createdBy: string; updatedBy: string;
-  lastHealthStatus?: string; lastHealthCheckedAt?: string;
+  deletionClaim?: string; lastHealthStatus?: string; lastHealthCheckedAt?: string;
 }
 export interface GenerationModelConnectionWaterlineModel extends Sails.Model<GenerationModelConnectionAttributes> { attributes: GenerationModelConnectionAttributes; }
 declare global { const GenerationModelConnection: GenerationModelConnectionWaterlineModel; }

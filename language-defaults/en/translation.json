@@ -5474,6 +5474,7 @@
   "ai-profiles-passed": "Passed",
   "ai-profiles-failed": "Failed",
   "ai-profiles-evidence": "Evidence",
+  "ai-profiles-test-documents-unavailable": "Tests cannot use uploaded documents yet. You can publish this profile and try it with a document when creating a record.",
   "ai-profiles-test-rule-failed": "The suggestion did not pass the profile’s field or evidence rules.",
   "ai-profiles-no-answer": "No answer",
   "ai-profiles-yes": "Yes",

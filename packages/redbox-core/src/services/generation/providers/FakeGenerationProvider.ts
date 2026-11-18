@@ -54,14 +54,10 @@ export class FakeGenerationProvider implements GenerationProviderAdapter {
     const configuredFixture = input.deployment.parameters?.fixtureResponse;
     let content = this.fixtures.get(input.correlationId) ?? this.fixtures.get('default') ??
       (configuredFixture === undefined ? undefined : typeof configuredFixture === 'string' ? configuredFixture : JSON.stringify(configuredFixture));
-    // New profiles use their own field IDs. Produce deterministic values from
-    // the schema and supplied evidence when the built-in RDMP fixture does not fit.
-    // Explicit registered fixtures keep precedence, including invalid-output tests.
+    // Generate demo output only when no fixture was explicitly supplied.
     const schema = input.responseSchema as DemoSchema | undefined;
     const fields = schema?.properties?.answers?.properties;
-    const configured = typeof configuredFixture === 'object' && configuredFixture ? configuredFixture as { answers?: Record<string, unknown> } : undefined;
-    if (fields && !this.fixtures.has(input.correlationId) && !this.fixtures.has('default') &&
-        Object.keys(fields).some(key => !configured?.answers?.[key])) {
+    if (fields && content === undefined) {
       let facts: DemoFact[] = [];
       try {
         const message = input.messages.find(m => m.content.startsWith('BEGIN UNTRUSTED EVIDENCE'));

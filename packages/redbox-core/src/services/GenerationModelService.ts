@@ -54,9 +54,17 @@ export namespace Services {
       input: Omit<GenerationModelDeploymentAttributes, 'id' | 'brandId' | 'contentHash'>,
     ): Promise<GenerationModelDeploymentAttributes> {
       const connection = await GenerationModelConnection.findOne({ id: input.connectionId, brandId });
-      if (!connection) throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Generation model connection was not found');
+      if (!connection || connection.deletionClaim) throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Generation model connection was not found');
       const contentHash = canonicalHash(generationDeploymentContent(input));
-      return GenerationModelDeployment.create({ ...input, brandId, contentHash }).fetch();
+      const created = await GenerationModelDeployment.create({ ...input, brandId, contentHash }).fetch();
+      try { await this.requireAttachableConnection(brandId, input.connectionId); }
+      catch (error) { await GenerationModelDeployment.destroyOne({ id: created.id, brandId, contentHash }); throw error; }
+      return created;
+    }
+
+    private async requireAttachableConnection(brandId: string, id: string): Promise<void> {
+      const connection = await GenerationModelConnection.findOne({ id, brandId });
+      if (!connection || connection.deletionClaim) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Provider changed concurrently');
     }
 
     public async testDeployment(brandId: string, deploymentId: string): Promise<Record<string, unknown>> {
@@ -320,6 +328,14 @@ export namespace Services {
       const updated = await GenerationModelDeployment.updateOne({ id, brandId, status: 'draft', contentHash: expectedContentHash })
         .set({ ...draft, parameters: draft.parameters ?? {}, routingPolicy: draft.routingPolicy ?? {}, contentHash });
       if (!updated) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Model draft changed');
+      try { await this.requireAttachableConnection(brandId, draft.connectionId); }
+      catch (error) {
+        await GenerationModelDeployment.updateOne({ id, brandId, status: 'draft', contentHash }).set({
+          connectionId: saved.connectionId, name: saved.name, modelId: saved.modelId, parameters: saved.parameters ?? {},
+          routingPolicy: saved.routingPolicy ?? {}, contentHash: saved.contentHash,
+        });
+        throw error;
+      }
       return updated;
     }
     public async retireDeployment(brandId: string, id: string) {
@@ -332,18 +348,26 @@ export namespace Services {
       if (published.some(value => value.definition.modelDeploymentId === id)) {
         throw new GenerationError('GENERATION_INVALID_STATE', 'A published profile uses this model version');
       }
-      return GenerationModelDeployment.updateOne({ id: saved.id, brandId }).set({ status: 'retired' });
+      const updated = await GenerationModelDeployment.updateOne({ id: saved.id, brandId, status: 'published', contentHash: saved.contentHash }).set({ status: 'retired' });
+      if (!updated) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Model changed concurrently');
+      return updated;
     }
     public async deleteConnection(brandId: string, id: string) {
       const saved = await this.connection(brandId, id);
-      const versions = requireWaterlineRows<GenerationModelDeploymentAttributes>(
-        await GenerationModelDeployment.find({ brandId, connectionId: id }), 'GenerationModelDeployment');
-      const uses = [...new Map(versions.map(v => [v.key, { key: v.key, name: v.name }])).values()];
-      if (uses.length) return { deleted: false, uses };
-      // Clear through AppConfig before deleting so a failure leaves a retryable provider.
-      await AppConfigService.setGenerationProviderKey(brandId, saved.key, '');
-      await GenerationModelConnection.destroyOne({ brandId, id });
-      return { deleted: true, uses: [] };
+      const claim = randomUUID();
+      const claimed = await GenerationModelConnection.updateOne({ brandId, id, deletionClaim: null }).set({ deletionClaim: claim });
+      if (!claimed) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Provider changed concurrently');
+      try {
+        const versions = requireWaterlineRows<GenerationModelDeploymentAttributes>(
+          await GenerationModelDeployment.find({ brandId, connectionId: id }), 'GenerationModelDeployment');
+        const uses = [...new Map(versions.map(v => [v.key, { key: v.key, name: v.name }])).values()];
+        if (uses.length) return { deleted: false, uses };
+        await AppConfigService.setGenerationProviderKey(brandId, saved.key, '');
+        await GenerationModelConnection.destroyOne({ brandId, id, deletionClaim: claim });
+        return { deleted: true, uses: [] };
+      } finally {
+        await GenerationModelConnection.updateOne({ brandId, id, deletionClaim: claim }).set({ deletionClaim: null });
+      }
     }
     private async profileUses(brandId: string, ids: string[]) {
       const versions = requireWaterlineRows<GenerationProfileVersionAttributes>(await GenerationProfileVersion.find({ brandId }), 'GenerationProfileVersion');
@@ -354,18 +378,30 @@ export namespace Services {
     public async discardDeployment(brandId: string, id: string) {
       const saved = await this.deployment(brandId, id);
       if (saved.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only drafts can be discarded');
-      const uses = await this.profileUses(brandId, [id]);
-      if (uses.length) return { deleted: false, uses };
-      await GenerationModelDeployment.destroyOne({ brandId, id, status: 'draft', contentHash: saved.contentHash });
-      return { deleted: true, uses: [] };
+      return this.deleteDeployments(brandId, [saved]);
     }
     public async deleteModel(brandId: string, key: string) {
       const versions = requireWaterlineRows<GenerationModelDeploymentAttributes>(await GenerationModelDeployment.find({ brandId, key }), 'GenerationModelDeployment');
       if (!versions.length) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Model not found');
-      const uses = await this.profileUses(brandId, versions.map(v => v.id));
-      if (uses.length) return { deleted: false, uses };
-      await GenerationModelDeployment.destroy({ brandId, key });
-      return { deleted: true, uses: [] };
+      return this.deleteDeployments(brandId, versions);
+    }
+    private async deleteDeployments(brandId: string, versions: GenerationModelDeploymentAttributes[]) {
+      const claimed: GenerationModelDeploymentAttributes[] = [];
+      try {
+        for (const version of versions) {
+          if (version.status === 'deleting' || !await GenerationModelDeployment.updateOne({ brandId, id: version.id,
+            status: version.status, contentHash: version.contentHash }).set({ status: 'deleting' })) {
+            throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Model changed concurrently');
+          }
+          claimed.push(version);
+        }
+        const uses = await this.profileUses(brandId, claimed.map(v => v.id));
+        if (uses.length) return { deleted: false, uses };
+        await GenerationModelDeployment.destroy({ brandId, id: { in: claimed.map(v => v.id) }, status: 'deleting' });
+        return { deleted: true, uses: [] };
+      } finally {
+        for (const version of claimed) await GenerationModelDeployment.updateOne({ brandId, id: version.id, status: 'deleting' }).set({ status: version.status });
+      }
     }
     public async adminOverview(brandId: string) {
       const rows = await Promise.all([

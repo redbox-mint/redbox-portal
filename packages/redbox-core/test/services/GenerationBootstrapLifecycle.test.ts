@@ -107,6 +107,7 @@ describe('Generation bootstrap and deployment lifecycle', () => {
     tables.get('GenerationModelConnection')?.push({ id, brandId: actor.brandId, enabled: true, adapterId: 'fake', endpoint: 'https://provider.example', timeoutMs: 1000 });
   }
   async function seedPublishedProfile() {
+    tables.get('GenerationModelDeployment')!.push({ id: 'deployment-1', brandId: actor.brandId, status: 'published' });
     const created = await profiles.create(actor.brandId, { key: 'Mixed_Profile', name: 'Profile', definition: definition() }, 'test');
     await GenerationProfileVersion.updateOne({ id: created.version.id }).set({ status: 'published' });
     await GenerationProfile.updateOne({ id: created.profile.id }).set({ publishedVersionId: created.version.id });
@@ -156,4 +157,30 @@ describe('Generation bootstrap and deployment lifecycle', () => {
     expect(same.contentHash).to.equal(base.contentHash);
     expect(base.key).to.equal('mixed-deployment');
   });
+  it('preserves admin-published bootstrap profiles and edited providers and models on restart', async () => {
+    const manifests = [
+      { kind: 'connection', key: 'demo', name: 'Provider', adapterId: 'fake', authStrategy: 'none' },
+      { kind: 'deployment', key: 'demo', name: 'Model', connectionKey: 'demo', modelId: 'demo' },
+      { kind: 'profile', key: 'demo', name: 'Profile', modelDeploymentKey: 'demo', definition: definition() },
+    ];
+    for (const [i, manifest] of manifests.entries()) await fs.writeFile(path.join(directory, i+'.json'), JSON.stringify(manifest));
+    const bootstrap = new BootstrapServices.GenerationBootstrapService(); await bootstrap.bootstrap({ id: actor.brandId } as any);
+    const profile = tables.get('GenerationProfile')![0];
+    const draft = await profiles.createDraft(actor.brandId, profile.id, profile.publishedVersionId, 'admin');
+    await profiles.updateDraft(actor.brandId, draft.id, { ...draft.definition, purpose: 'Admin purpose', systemInstructions: 'Admin instructions' });
+    await profiles.publish(actor.brandId, draft.id, 'admin');
+    await GenerationModelConnection.updateOne({ brandId: actor.brandId }).set({ name: 'Admin provider', enabled: false });
+    const publishedConfiguration = structuredClone([...tables.entries()]);
+    await bootstrap.bootstrap({ id: actor.brandId } as any);
+    expect([...tables.entries()]).to.deep.equal(publishedConfiguration);
+    const model = tables.get('GenerationModelDeployment')![0];
+    // A retired seed version and a newer admin version must also survive startup.
+    await GenerationModelDeployment.updateOne({ id: model.id }).set({ status: 'retired' });
+    await models.createDeployment(actor.brandId, deploymentInput({ key: 'demo', connectionId: model.connectionId, version: 2, modelId: 'admin-model' }) as any);
+    const before = structuredClone([...tables.entries()]);
+    await bootstrap.bootstrap({ id: actor.brandId } as any);
+    expect([...tables.entries()]).to.deep.equal(before);
+    expect(logger.warn.getCalls().map(c => c.args)).to.deep.equal([]);
+  });
+
 });

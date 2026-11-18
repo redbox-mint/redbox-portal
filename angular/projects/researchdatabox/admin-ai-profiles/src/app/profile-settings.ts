@@ -14,9 +14,9 @@ export function profileProblems(d: GenerationProfileDefinition, overview: Profil
     !Number.isInteger(d.contextLimits.maxChunkBytes) || d.contextLimits.maxChunkBytes < 1 || d.contextLimits.maxChunkBytes > limits.maxChunkBytes) add('model', 'model-limits');
   const source = d.sourceSlots[0];
   const sourceForm = overview.forms.find(f => f.name === overview.recordTypes.find(t => t.name === source?.recordType)?.formName);
-  if (!sourceForm || !source?.allowedPaths.length) add('source', 'source');
+  if (source ? !sourceForm || !source.allowedPaths.length : !d.documentSources) add('source', 'source');
   for (const path of source?.allowedPaths ?? []) if (!sourceForm?.fields.some(f => f.pointer === path)) add('source', 'source-field', undefined, path);
-  if (!source || !Number.isInteger(source.maxBytes) || source.maxBytes < 1 || source.maxBytes > limits.maxFieldBytes) add('source', 'source-size');
+  if (source && (!Number.isInteger(source.maxBytes) || source.maxBytes < 1 || source.maxBytes > limits.maxFieldBytes)) add('source', 'source-size');
   for (const q of d.questions) {
     if (!(q.label?.trim() || q.labelKey) || !questionTypes.includes(q.type) || ['enum', 'multiEnum'].includes(q.type) && (!q.options?.length || new Set(q.options.map(o => o.value)).size !== q.options.length) ||
       q.maxLength !== undefined && (!Number.isInteger(q.maxLength) || q.maxLength <= 0) || q.sourceDefaultExpression && !source?.allowedPaths.includes(q.sourceDefaultExpression)) add('questions', 'question', q.label, q.id);

@@ -25,7 +25,7 @@ describe('Generation model Admin service', () => {
   function install(name: string, definition?: any) {
     const rows = tables[name] = [];
     const matches = (row: any, criteria: any) => Object.entries(criteria).every(([key, value]: [string, any]) =>
-      value && typeof value === 'object' && 'in' in value ? value.in.includes(row[key]) : row[key] === value);
+      value === null ? row[key] == null : value && typeof value === 'object' && 'in' in value ? value.in.includes(row[key]) : row[key] === value);
     const hook = (name: string, values: any) => new Promise<void>((resolve, reject) => {
       if (!definition?.[name]) return resolve();
       definition[name](values, (error?: Error) => error ? reject(error) : resolve());
@@ -391,4 +391,40 @@ describe('Generation model Admin service', () => {
     await rejects(service.createModel('b', { key: 'foreign', ...modelDraft() }, 'actor'), 'GENERATION_ACTION_NOT_AVAILABLE');
     assert.equal(invoke.callCount, 0);
   });
+  for (const operation of ['create', 'save']) it(`compensates model ${operation} when provider deletion wins before attachment`, async () => {
+    const saved = operation === 'save' ? await create() : undefined;
+    tables.GenerationModelConnection.push({ ...tables.GenerationModelConnection[0], id: 'c2', key: 'second' });
+    const method = operation === 'create' ? 'create' : 'updateOne';
+    const original = (GenerationModelDeployment as any)[method].bind(GenerationModelDeployment);
+    let intercepted = false;
+    sinon.stub(GenerationModelDeployment, method as any).callsFake((...args: any[]) => {
+      const query = original(...args); const terminal = method === 'create' ? 'fetch' : 'set';
+      return { [terminal]: async (...values: any[]) => {
+        if (!intercepted) { intercepted = true; assert.equal((await service.deleteConnection('a', 'c2')).deleted, true); }
+        return query[terminal](...values);
+      } };
+    });
+    const action = saved ? service.updateDeploymentDraft('a', saved.id, { ...modelDraft({ connectionId: 'c2' }), expectedContentHash: saved.contentHash })
+      : service.createModel('a', { key: 'new', ...modelDraft({ connectionId: 'c2' }) }, 'admin');
+    await rejects(action, 'GENERATION_TARGET_CONFLICT');
+    assert.equal(tables.GenerationModelDeployment.some(v => v.connectionId === 'c2'), false);
+    if (saved) assert.deepEqual(tables.GenerationModelDeployment[0], saved);
+  });
+  it('rejects attachments during a provider deletion claim and releases blocked claims without clearing credentials', async () => {
+    await create();
+    assert.equal((await service.deleteConnection('a', 'c1')).deleted, false);
+    assert.equal((AppConfigService.setGenerationProviderKey as any).callCount, 0);
+    assert.ok(!tables.GenerationModelConnection[0].deletionClaim);
+    tables.GenerationModelConnection[0].deletionClaim = 'deleting';
+    await rejects(service.createModel('a', { key: 'another', ...modelDraft() }, 'admin'), 'GENERATION_DEPLOYMENT_INCOMPATIBLE');
+  });
+  for (const fixture of [JSON.stringify({ answers: { summary: { value: 'Configured', evidenceIds: [], rationale: 'Test' } } }), { answers: { summary: { value: 'Configured object', evidenceIds: [], rationale: 'Test' } } }, 'invalid JSON', { answers: {} }, { unrelated: true }]) {
+    it(`preserves explicit generation fixture ${JSON.stringify(fixture)}`, async () => {
+      const request: any = { correlationId: 'normal-generation', connection: {}, deployment: { modelId: 'demo', parameters: { fixtureResponse: fixture } }, messages: [],
+        responseSchema: { type: 'object', properties: { answers: { type: 'object', properties: { summary: { type: 'object' } } } } } };
+      const response = await new FakeGenerationProvider().invoke(request, new AbortController().signal);
+      assert.equal(response.content, typeof fixture === 'string' ? fixture : JSON.stringify(fixture));
+    });
+  }
+
 });

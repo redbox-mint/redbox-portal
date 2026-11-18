@@ -92,4 +92,12 @@ describe('Drafting profile editor', () => {
     component.search = ''; component.showRetired = false; p.versions.unshift({ ...clone(version), id: 'v2', version: 2 });
     expect(component.visibleProfiles.length).toBe(1);
   });
+  it('allows a document-only profile to publish and still requires at least one source', async () => {
+    open(); component.draft!.sourceSlots = [];
+    component.draft!.documentSources = { formats: ['txt'], maxFiles: 1, maxFileBytes: 1024, maxTextBytes: 1024 };
+    expect(component.canPublish).toBeTrue();
+    delete component.draft!.documentSources;
+    expect(component.canPublish).toBeFalse();
+  });
+
 });

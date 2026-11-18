@@ -36,6 +36,7 @@ describe('Drafting profile administration', () => {
         destroyOne: async (c: any) => { const i = rows.findIndex(r => matches(r, c)); return i < 0 ? undefined : rows.splice(i, 1)[0]; },
         destroy: async (c: any) => { const deleted = rows.filter(r => matches(r, c)); for (const r of deleted) rows.splice(rows.indexOf(r), 1); return deleted; } });
     }
+    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
     catalog = { enabled: true, models: [{ id: 'model', key: 'demo', name: 'Demo', version: 1, provider: 'Demo', available: true }], guidance: [],
       recordTypes: [{ name: 'activity', label: 'Activity', formName: 'activity-form' }, { name: 'plan', label: 'Plan', formName: 'plan-form' }],
       forms: [{ name: 'activity-form', label: 'Activity', recordType: 'activity', fields: [{ pointer: '/title', label: 'Project title', group: 'Project', component: 'SimpleInputComponent', output: { kind: 'string' } }] },
@@ -51,7 +52,6 @@ describe('Drafting profile administration', () => {
   });
   afterEach(() => { sinon.restore(); for (const [n, v] of originals) v === undefined ? Reflect.deleteProperty(globalThis, n) : Reflect.set(globalThis, n, v); });
   it('preserves a publication that wins after deletion reads its version snapshot', async () => {
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
     const validate = service.validate.bind(service); let published = false;
     sinon.stub(service, 'validate').callsFake(async (...args) => {
       const problems = await validate(...args);
@@ -64,7 +64,6 @@ describe('Drafting profile administration', () => {
     assert.equal(tables.GenerationProfile[0].publishedVersionId, 'v');
   });
   it('blocks deletion even while a winning publication has reserved the parent but not updated its version', async () => {
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
     const update = GenerationProfileVersion.updateOne.bind(GenerationProfileVersion);
     let deletion: Promise<unknown> | undefined;
     sinon.stub(GenerationProfileVersion, 'updateOne').callsFake((criteria: any) => ({ set: async (values: any) => {
@@ -78,7 +77,6 @@ describe('Drafting profile administration', () => {
     assert.ok(deletion); assert.equal(tables.GenerationProfileVersion[0].status, 'published');
   });
   it('refuses publication when deletion wins the parent claim after the publisher reads its parent', async () => {
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
     const update = GenerationProfile.updateOne.bind(GenerationProfile);
     sinon.stub(GenerationProfile, 'updateOne').callsFake((criteria: any) => ({ set: async (values: any) => {
       assert.equal((await service.remove('a', 'plan')).deleted, true);
@@ -88,7 +86,6 @@ describe('Drafting profile administration', () => {
     assert.equal(tables.GenerationProfile.length, 0); assert.equal(tables.GenerationProfileVersion.length, 0);
   });
   it('releases the parent publication reservation when a draft changes before its version update', async () => {
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
     sinon.stub(GenerationProfileVersion, 'updateOne').returns({ set: async () => undefined } as any);
     await assert.rejects(sails.services.generationprofileservice.publish('a', 'v', 'publisher', tables.GenerationProfileVersion[0].contentHash));
     assert.equal(tables.GenerationProfile[0].publishedVersionId, '');
@@ -129,7 +126,6 @@ describe('Drafting profile administration', () => {
     const d = definition(); d.questions = structuredClone(profileQuestionContract);
     d.sourceSlots[0].required = false; d.documentSources = { ...generation.documents, formats: ['txt'] };
     const saved = await service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin');
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published' });
     await service.publish('a', 'v', { expectedContentHash: saved.contentHash }, 'admin');
     const binding = { id: 'binding', brandId: 'a', key: 'create-plan', profileId: 'p', enabled: true, allowedRoles: ['Researcher'], targetRecordType: 'plan', targetFormName: 'plan-form', targetStartingWorkflowStage: 'draft' };
     tables.GenerationBinding.push(binding);
@@ -251,7 +247,7 @@ describe('Drafting profile administration', () => {
     assert.equal((await service.runTests('a', 'v', 'admin'))[0].passed, false);
   });
   it('shares cooldown with model tests, enforces provider limits and redacts resolved keys', async () => {
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published', connectionId: 'c', modelId: 'demo' });
+    Object.assign(tables.GenerationModelDeployment.find(v => v.id === 'model'), { id: 'model', brandId: 'a', status: 'published', connectionId: 'c', modelId: 'demo' });
     tables.GenerationModelConnection.push({ id: 'c', brandId: 'a', enabled: true, adapterId: 'fake', endpoint: '', timeoutMs: 1000, secretRef: 'env:key' });
     sails.services.generationproviderregistryservice = { list: () => ['fake'], get: () => ({ invoke: async () => ({ content: 'secret value', requestedModel: 'demo' }) }) };
     sails.services.generationsecretresolverservice = { schemes: () => ['env'], status: async () => ({ configured: true }), resolve: async () => 'secret' };
@@ -262,7 +258,7 @@ describe('Drafting profile administration', () => {
   it('uses the demo provider for a new profile’s generated field IDs', async () => {
     const d = definition(); d.fixtureTests = [{ name: 'Synthetic', source: { '/title': 'Synthetic project' }, answers: {} }];
     tables.GenerationProfileVersion[0].definition = d;
-    tables.GenerationModelDeployment.push({ id: 'model', brandId: 'a', status: 'published', connectionId: 'c', modelId: 'demo' });
+    Object.assign(tables.GenerationModelDeployment.find(v => v.id === 'model'), { id: 'model', brandId: 'a', status: 'published', connectionId: 'c', modelId: 'demo' });
     tables.GenerationModelConnection.push({ id: 'c', brandId: 'a', enabled: true, adapterId: 'fake', endpoint: '', timeoutMs: 1000 });
     sails.services.generationproviderregistryservice = { list: () => ['fake'], get: () => new FakeGenerationProvider() };
     sails.services.generationsecretresolverservice = { schemes: () => [], status: async () => ({ configured: false }), resolve: async () => '' };
@@ -275,4 +271,90 @@ describe('Drafting profile administration', () => {
     const form: any = { componentDefinitions: [{ name: 'summary', model: { class: 'TextAreaModel' }, layout: { config: { label: 'Summary' } }, component: { class: 'TextAreaComponent', config: { maxLength: 50 } } }, { name: 'upload', model: { class: 'AttachmentModel' }, layout: { config: { label: 'Document' } }, component: { class: 'AttachmentComponent' } }] };
     const fields = profileFormFields(form, s => s); assert.equal(fields[0].label, 'Summary'); assert.deepEqual(fields[0].output, { kind: 'string', maxLength: 50 }); assert.equal(fields[1].output, undefined);
   });
+  for (const legacy of [false, true]) it(`sends the meaning and answer of a ${legacy ? 'legacy' : 'direct'} boolean question to the provider`, async () => {
+    const d = tables.GenerationProfileVersion[0].definition;
+    d.questions = [{ id: 'question-opaque-123', type: 'boolean', ...(legacy
+      ? { labelKey: 'legacy-question', helpTextKey: 'legacy-help' }
+      : { label: 'Will participant names be retained?', helpText: 'Consider the final dataset.' }) }];
+    Reflect.set(globalThis, 'TranslationService', { t: (key: string) => key === 'legacy-question' ? 'Will participant names be retained?' : 'Consider the final dataset.' });
+    d.fixtureTests = [{ name: 'Boolean', source: { '/title': 'Synthetic' }, answers: { 'question-opaque-123': true } }];
+    sails.services.generationknowledgeservice = { retrieve: async () => [] };
+    Object.assign(tables.GenerationModelDeployment.find(v => v.id === 'model'), { id: 'model', brandId: 'a', status: 'published', connectionId: 'c', modelId: 'demo' });
+    tables.GenerationModelConnection.push({ id: 'c', brandId: 'a', enabled: true, adapterId: 'fake', endpoint: '', timeoutMs: 1000 });
+    const invoke = sinon.stub().resolves({ content: '{}' });
+    sails.services.generationproviderregistryservice = { list: () => ['fake'], get: () => ({ invoke }) };
+    sails.services.generationsecretresolverservice = { schemes: () => [], resolve: async () => '', status: async () => ({ configured: false }) };
+    sails.services.generationmodelservice = new Models.GenerationModelService();
+    await service.runTests('a', 'v', 'admin');
+    const messages = invoke.firstCall.args[0].messages;
+    const user = messages.find((m: any) => m.role === 'user').content;
+    const payload = JSON.parse(user.split('\n').slice(1, -1).join('\n'));
+    assert.deepEqual(payload.reviewedAnswers[0], { id: 'question-opaque-123', value: true,
+      label: 'Will participant names be retained?', helpText: 'Consider the final dataset.', evidenceId: 'E1' });
+    assert.ok(!messages.filter((m: any) => m.role === 'system').some((m: any) => m.content.includes('Will participant')));
+  });
+  it('returns a clear translated limitation for document-only synthetic tests and permits publication', async () => {
+    const d = tables.GenerationProfileVersion[0].definition;
+    d.sourceSlots = []; d.documentSources = { formats: ['txt'], maxFiles: 1, maxFileBytes: 1024, maxTextBytes: 1024 };
+    d.fixtureTests = [{ name: 'Document example', source: {}, answers: {} }];
+    assert.deepEqual(await service.validate('a', d, 'p'), []);
+    const results = await service.runTests('a', 'v', 'admin');
+    assert.equal(results[0].passed, false);
+    assert.equal(results[0].fields[0].errorKey, 'ai-profiles-test-documents-unavailable');
+    assert.equal((await service.publish('a', 'v', { expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin')).status, 'published');
+  });
+  for (const operation of ['create', 'createDraft', 'updateDraft', 'adminCreate', 'adminSave']) {
+    it(`compensates a profile ${operation} when model deletion wins before its reference is stored`, async () => {
+      const model = new Models.GenerationModelService(); const profiles = sails.services.generationprofileservice;
+      tables.GenerationModelDeployment.push({ id: 'new-model', key: 'new-model', brandId: 'a', status: 'published', contentHash: 'model-hash' });
+      const d = { ...definition(), modelDeploymentId: 'new-model' };
+      if (operation === 'createDraft') tables.GenerationProfileVersion[0].definition = d;
+      const method = ['updateDraft', 'adminSave'].includes(operation) ? 'updateOne' : 'create';
+      const original = (GenerationProfileVersion as any)[method].bind(GenerationProfileVersion);
+      let intercepted = false;
+      sinon.stub(GenerationProfileVersion, method as any).callsFake((...args: any[]) => {
+        const query = original(...args); const terminal = method === 'create' ? 'fetch' : 'set';
+        return { [terminal]: async (...values: any[]) => {
+          // Snapshot taken by deletion predates this reference; deletion finishes first.
+          if (!intercepted) {
+            intercepted = true;
+            if (operation === 'createDraft') tables.GenerationProfileVersion[0].definition = definition();
+            assert.equal((await model.deleteModel('a', 'new-model')).deleted, true);
+          }
+          return query[terminal](...values);
+        } };
+      });
+      catalog.models = [{ ...catalog.models[0], id: 'new-model' }];
+      const action = operation === 'adminCreate' ? service.create('a', { name: 'New', sourceRecordType: 'activity', targetFormName: 'plan-form' }, 'admin')
+        : operation === 'adminSave' ? service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin') : operation === 'create' ? profiles.create('a', { key: 'new', name: 'New', definition: d }, 'admin') : operation === 'createDraft'
+        ? profiles.createDraft('a', 'p', 'v', 'admin') : profiles.updateDraft('a', 'v', d);
+      await assert.rejects(action, (e: GenerationError) => e.code === 'GENERATION_TARGET_CONFLICT');
+      assert.equal(tables.GenerationProfileVersion.some(v => v.definition.modelDeploymentId === 'new-model'), false);
+      assert.equal(tables.GenerationProfile.length, 1);
+    });
+  }
+  it('keeps a model when a profile reference wins before the deletion scan', async () => {
+    tables.GenerationModelDeployment.push({ id: 'new-model', key: 'new-model', brandId: 'a', status: 'published', contentHash: 'hash' });
+    await sails.services.generationprofileservice.updateDraft('a', 'v', { ...definition(), modelDeploymentId: 'new-model' });
+    const result = await new Models.GenerationModelService().deleteModel('a', 'new-model');
+    assert.equal(result.deleted, false); assert.equal(tables.GenerationModelDeployment.find(v => v.id === 'new-model').status, 'published');
+  });
+
+  it('rejects an admin save while model deletion holds its claim before scanning references', async () => {
+    tables.GenerationModelDeployment.push({ id: 'new-model', key: 'new-model', brandId: 'a', status: 'published', contentHash: 'hash' });
+    catalog.models.push({ ...catalog.models[0], id: 'new-model' });
+    const find = GenerationProfileVersion.find.bind(GenerationProfileVersion);
+    let attempted = false;
+    sinon.stub(GenerationProfileVersion, 'find').callsFake(async (criteria: any) => {
+      if (!attempted) {
+        attempted = true;
+        await assert.rejects(service.save('a', 'v', { name: 'Plan', expectedContentHash: tables.GenerationProfileVersion[0].contentHash,
+          definition: { ...definition(), modelDeploymentId: 'new-model' } }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_TARGET_CONFLICT');
+      }
+      return find(criteria);
+    });
+    assert.equal((await new Models.GenerationModelService().deleteModel('a', 'new-model')).deleted, true);
+    assert.ok(attempted); assert.equal(tables.GenerationProfileVersion[0].definition.modelDeploymentId, 'model');
+  });
+
 });

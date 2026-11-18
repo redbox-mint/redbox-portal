@@ -74,7 +74,10 @@ function profileDefinition(): GenerationProfileDefinitionV1 {
 }
 
 describe('Generation core primitives and services', () => {
+  let originalTranslation: unknown;
   beforeEach(() => {
+    originalTranslation = Reflect.get(globalThis, 'TranslationService');
+    Reflect.set(globalThis, 'TranslationService', { t: (key: string) => key });
     (global as any).sails = {
       config: {
         generation: cloneGenerationConfig(),
@@ -86,6 +89,8 @@ describe('Generation core primitives and services', () => {
   });
 
   afterEach(() => {
+    if (originalTranslation === undefined) Reflect.deleteProperty(globalThis, 'TranslationService');
+    else Reflect.set(globalThis, 'TranslationService', originalTranslation);
     sinon.restore();
     delete process.env.AWS_BEARER_TOKEN_BEDROCK;
     delete process.env.REDBOX_GENERATION_TEST_KEY;
