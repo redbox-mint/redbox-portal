@@ -90,10 +90,13 @@ describe('Generation document sources', function () {
   this.timeout(30000);
   let previousSails: unknown;
   let previousTranslation: unknown;
+  let previousBranding: unknown;
   let getMeta: sinon.SinonStub;
   beforeEach(() => {
     previousSails = Reflect.get(global, 'sails');
     previousTranslation = Reflect.get(globalThis, 'TranslationService');
+    previousBranding = Reflect.get(globalThis, 'BrandingService');
+    Reflect.set(globalThis, 'BrandingService', { getBrandById: (id: string) => ({ id, name: 'default' }) });
     Reflect.set(globalThis, 'TranslationService', { t: (key: string) => key });
     getMeta = sinon.stub().resolves({
       metadata: { summary: 'Record context', excluded: 'private' },
@@ -117,6 +120,8 @@ describe('Generation document sources', function () {
     });
   });
   afterEach(() => {
+    if (previousBranding === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
+    else Reflect.set(globalThis, 'BrandingService', previousBranding);
     if (previousTranslation === undefined) Reflect.deleteProperty(globalThis, 'TranslationService');
     else Reflect.set(globalThis, 'TranslationService', previousTranslation);
     Reflect.set(global, 'sails', previousSails);
@@ -263,7 +268,7 @@ describe('Generation document sources', function () {
       ...input,
       documentNotes: 'The record is outdated; approval is pending.',
     });
-    const request = new Prompt.GenerationPromptService().build({
+    const request = new Prompt.GenerationPromptService().build({ brandId: 'brand-1',
       correlationId: 'document-run',
       definition: input.definition,
       frozenInput,

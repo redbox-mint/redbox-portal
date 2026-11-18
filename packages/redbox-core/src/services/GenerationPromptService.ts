@@ -21,6 +21,7 @@ export namespace Services {
     protected override _exportedMethods = ['build'];
 
     public build(input: {
+      brandId: string;
       correlationId: string;
       definition: GenerationProfileDefinitionV1;
       frozenInput: GenerationFrozenInput;
@@ -48,6 +49,7 @@ export namespace Services {
         id: field.id, label: field.label || field.id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' '), output: field.output, maxLength: field.maxLength, grounding: field.grounding,
         allowedEvidenceIds: allowedAliases(field),
       }));
+      const translate = (key: string) => TranslationService.t(key, undefined, 'en', BrandingService.getBrandById(input.brandId).name);
       const untrusted = {
         projectFacts: input.frozenInput.sourceEvidence
           .filter((item) => !item.questionId)
@@ -55,9 +57,12 @@ export namespace Services {
         reviewedAnswers: input.frozenInput.answers.map((answer) => {
           const evidenceItem = input.frozenInput.sourceEvidence.find((item) => item.questionId === answer.id);
           const question = input.definition.questions.find(item => item.id === answer.id);
-          const label = question?.label || (question?.labelKey ? TranslationService.t(question.labelKey) : undefined);
-          const helpText = question?.helpText || (question?.helpTextKey ? TranslationService.t(question.helpTextKey) : undefined);
-          return { ...answer, label, helpText, evidenceId: evidenceItem ? aliasByEvidenceId.get(evidenceItem.id) : undefined };
+          const label = question?.label || (question?.labelKey ? translate(question.labelKey) : undefined);
+          const helpText = question?.helpText || (question?.helpTextKey ? translate(question.helpTextKey) : undefined);
+          const selectedValues = Array.isArray(answer.value) ? answer.value : [answer.value];
+          const selectedOptions = question?.options?.filter(option => selectedValues.includes(option.value))
+            .map(option => ({ value: option.value, label: option.label || (option.labelKey ? translate(option.labelKey) : option.value) }));
+          return { ...answer, label, helpText, selectedOptions, evidenceId: evidenceItem ? aliasByEvidenceId.get(evidenceItem.id) : undefined };
         }),
         approvedKnowledge: input.knowledge.map((item) => ({
           id: aliasByEvidenceId.get(item.id) ?? item.id,

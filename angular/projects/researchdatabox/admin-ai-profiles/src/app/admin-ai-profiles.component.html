@@ -129,7 +129,18 @@
           <div><label for="profile-question-text">{{ 'ai-profiles-question-text' | i18next }}</label><input id="profile-question-text" class="form-control" [(ngModel)]="q.label" maxlength="500" cdkFocusInitial></div>
           <div><label for="profile-question-help">{{ 'ai-profiles-question-help' | i18next }}</label><textarea id="profile-question-help" class="form-control" [(ngModel)]="q.helpText" maxlength="2000" rows="2"></textarea></div>
           <div><label for="profile-question-type">{{ 'ai-profiles-answer-type' | i18next }}</label><select id="profile-question-type" class="form-select" [(ngModel)]="q.type" (ngModelChange)="questionTypeChanged()">@for (type of questionTypes; track type) { <option [value]="type">{{ ('ai-profiles-answer-' + type) | i18next }}</option> }</select></div>
-          @if (q.type === 'enum' || q.type === 'multiEnum') { <div><label for="profile-question-options">{{ 'ai-profiles-options' | i18next }}</label><textarea id="profile-question-options" class="form-control" [(ngModel)]="optionsText" rows="4" maxlength="8000"></textarea><p class="rb-admin-hint">{{ 'ai-profiles-options-help' | i18next }}</p></div> }
+          @if (q.type === 'enum' || q.type === 'multiEnum') {
+            <fieldset><legend class="fs-6">{{ 'ai-profiles-options' | i18next }}</legend>
+              <p class="rb-admin-hint">{{ 'ai-profiles-options-edit-help' | i18next }}</p>
+              @for (option of q.options; track option.value; let i = $index) {
+                <div class="mb-2">
+                  <label [for]="'profile-question-option-' + i">{{ 'ai-profiles-option-label' | i18next: { number: i + 1 } }}</label>
+                  <div class="d-flex gap-2"><input [id]="'profile-question-option-' + i" class="form-control" [(ngModel)]="option.label" maxlength="500"><button type="button" class="btn btn-outline-danger" (click)="removeQuestionOption(i)" [attr.aria-label]="'ai-profiles-remove-option' | i18next: { number: i + 1 }">{{ 'ai-profiles-remove' | i18next }}</button></div>
+                </div>
+              }
+              <button type="button" class="btn btn-outline-secondary" (click)="addQuestionOption()">{{ 'ai-profiles-add-option' | i18next }}</button>
+            </fieldset>
+          }
           <label class="profile-check"><input type="checkbox" [(ngModel)]="q.required">{{ 'ai-profiles-required' | i18next }}</label>
           @if (q.type === 'text' || q.type === 'textarea') { <div><label for="profile-question-length">{{ 'ai-profiles-max-length' | i18next }}</label><input id="profile-question-length" class="form-control" type="number" min="1" max="16000" [(ngModel)]="q.maxLength"></div> }
           <div><label for="profile-question-prefill">{{ 'ai-profiles-prefill' | i18next }}</label><select id="profile-question-prefill" class="form-select" [(ngModel)]="q.sourceDefaultExpression"><option value="">{{ 'ai-profiles-no-prefill' | i18next }}</option>@for (f of selectedSourceFields; track f.pointer) { <option [value]="f.pointer">{{ f.label }}</option> }</select></div>

@@ -37,7 +37,37 @@ describe('Drafting profile editor', () => {
     const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
     component.beforeUnload(unload); expect(unload.defaultPrevented).toBeFalse();
   });
-  it('edits direct question text and adds all six answer types', async () => { open(); for (const type of component.questionTypes) { component.editQuestion(); component.question!.label = 'Question ' + type; component.question!.type = type; component.questionTypeChanged(); component.optionsText = 'First\nSecond'; await component.submitModal(); } expect(component.draft!.questions.length).toBe(7); expect(component.draft!.questions.at(-1)!.options![0].label).toBe('First'); expect(component.draft!.questions.at(-1)!.labelKey).toBeUndefined(); });
+  it('edits direct question text and adds all six answer types', async () => { open(); for (const type of component.questionTypes) { component.editQuestion(); component.question!.label = 'Question ' + type; component.question!.type = type; component.questionTypeChanged(); component.addQuestionOption(); component.question!.options!.at(-1)!.label = 'First'; component.addQuestionOption(); component.question!.options!.at(-1)!.label = 'Second'; await component.submitModal(); } expect(component.draft!.questions.length).toBe(7); expect(component.draft!.questions.at(-1)!.options![0].label).toBe('First'); expect(component.draft!.questions.at(-1)!.labelKey).toBeUndefined(); });
+  it('keeps stored choice values and test answers when option labels or help change', async () => {
+    open(); component.draft!.questions[0] = { id: 'methods', label: 'Which methods?', type: 'multiEnum', required: true, sourceDefaultExpression: '/title', options: [{ value: 'one', label: 'Interviews' }, { value: 'two', labelKey: 'ai-profiles-yes' }] };
+    component.draft!.fixtureTests = [{ name: 'Saved example', source: {}, answers: { methods: ['one'] } }];
+    component.editQuestion(0); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const input = query('#profile-question-option-0') as HTMLInputElement;
+    expect(input.value).toBe('Interviews'); expect(query('.modal').textContent).not.toContain('value:');
+    input.value = 'Structured interviews'; input.dispatchEvent(new Event('input')); await fixture.whenStable();
+    component.question!.helpText = 'Include planned work';
+    component.addQuestionOption(); component.question!.options![2].label = 'Observation';
+    const newValue = component.question!.options![2].value;
+    await component.submitModal();
+    expect(component.draft!.questions[0].options).toEqual([{ value: 'one', label: 'Structured interviews' }, { value: 'two', label: 'Yes' }, { value: newValue, label: 'Observation' }]);
+    expect(component.draft!.questions[0].sourceDefaultExpression).toBe('/title');
+    expect(component.tests[0].answers['methods']).toEqual(['one']);
+    component.editQuestion(0); component.question!.helpText = 'Another wording edit'; await component.submitModal();
+    expect(component.draft!.questions[0].options![2].value).toBe(newValue);
+  });
+  it('clears only test answers using a removed choice and tells the administrator', async () => {
+    open(); component.draft!.questions[0] = { id: 'methods', label: 'Which methods?', type: 'multiEnum', required: false, options: [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }] };
+    component.draft!.fixtureTests = [
+      { name: 'Multiple', source: {}, answers: { methods: ['one', 'two'], other: 'Keep' } },
+      { name: 'Single', source: {}, answers: { methods: 'one' } },
+      { name: 'Unchanged', source: {}, answers: { methods: ['two'] } },
+    ];
+    component.editQuestion(0); component.removeQuestionOption(0); await component.submitModal(); fixture.detectChanges();
+    expect(component.tests.map(t => t.answers['methods'])).toEqual([null, null, ['two']]);
+    expect(component.tests[0].answers['other']).toBe('Keep');
+    expect(component.draft!.questions[0].options).toEqual([{ value: 'two', label: 'Surveys' }]);
+    expect(query('[role="status"]').textContent).toContain('Which methods? were cleared in 2 test cases');
+  });
   it('reorders questions with buttons and removes stale answer references', () => { open(); spyOn(window, 'confirm').and.returnValue(true); component.draft!.targetFields[0].reviewedAnswerIds = ['question']; component.remove(component.draft!.questions, 0); expect(component.draft!.targetFields[0].reviewedAnswerIds).toEqual([]); });
   it('derives field output and always marks a fallback for review', () => { open(); component.editField(0); component.pickField('/summary'); component.setFallback('Review this'); expect(component.field!.output).toEqual({ kind: 'string', maxLength: 200 }); expect(component.field!.fallback!.reviewRequired).toBeTrue(); });
   it('prevents duplicate field choices and explains a profile name that is already used', () => {

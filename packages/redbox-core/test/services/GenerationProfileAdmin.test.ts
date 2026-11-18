@@ -26,6 +26,7 @@ describe('Drafting profile administration', () => {
     originals = new Map(names.map(n => [n, Reflect.get(globalThis, n)]));
     const mock = createMockSails(); mock.config.generation = { ...structuredClone(generation), enabled: true }; Reflect.set(globalThis, 'sails', mock);
     Reflect.set(globalThis, 'TranslationService', { t: (s: string) => s });
+    Reflect.set(globalThis, 'BrandingService', { getBrandById: (id: string) => ({ id, name: id === 'a' ? 'research-brand' : 'default' }) });
     tables = {};
     for (const n of names.filter(n => !['sails','TranslationService','User','BrandingService'].includes(n))) {
       const rows = tables[n] = [];
@@ -201,6 +202,19 @@ describe('Drafting profile administration', () => {
     const problems = await service.validate('a', d);
     for (const key of ['model', 'guidance', 'source-field']) assert.ok(problems.some(p => p.messageKey === 'ai-profiles-problem-' + key));
   });
+  for (const copiedPointer of ['/summary', '/summary/detail', '/details']) it('blocks publication when a copied value overlaps a generated field: ' + copiedPointer, async () => {
+    const v = tables.GenerationProfileVersion[0];
+    const pointer = copiedPointer === '/details' ? '/details/summary' : '/summary';
+    v.definition.targetFields[0].metadataPointer = pointer;
+    catalog.forms[1].fields[0].pointer = pointer;
+    tables.GenerationBinding.push({ brandId: 'a', profileId: 'p', name: 'Create research plan', sourceRecordType: 'activity', sourceRelationship: { sourceSlotId: 'source' }, targetRecordType: 'plan', targetFormName: 'plan-form', sourceValueMappings: [{ sourceMetadataPointer: '/title', targetMetadataPointer: copiedPointer }] });
+    const problems = await service.validate('a', v.definition, 'p');
+    assert.deepEqual(problems, [{ section: 'fields', row: 'summary', label: 'Summary', form: 'Create research plan', messageKey: 'ai-profiles-problem-action-copied-field' }]);
+    await assert.rejects(service.publish('a', 'v', { expectedContentHash: v.contentHash }, 'admin'), (e: GenerationError) => e.code === 'GENERATION_PROFILE_INVALID');
+    assert.equal(v.status, 'draft');
+    tables.GenerationBinding[0].sourceValueMappings[0].targetMetadataPointer = pointer + 'Other';
+    assert.deepEqual(await service.validate('a', v.definition, 'p'), []);
+  });
   it('checks target component and vocabulary option drift in every consuming form action', async () => {
     tables.GenerationBinding.push({ brandId: 'a', profileId: 'p', targetRecordType: 'plan', targetFormName: 'other-form' });
     catalog.forms.push({ name: 'other-form', label: 'Other plan', recordType: 'plan', fields: [{ pointer: '/summary', label: 'Summary', group: 'Plan', component: 'DropdownInputComponent', output: { kind: 'enum', values: ['new'] } }] });
@@ -266,6 +280,50 @@ describe('Drafting profile administration', () => {
     sails.services.generationknowledgeservice = { retrieve: async () => [] };
     const result = await service.runTests('a', 'v', 'admin');
     assert.equal(result[0].passed, true); assert.equal(result[0].fields[0].value, 'Synthetic project');
+  });
+  it('sends selected direct and legacy choice meanings inside untrusted reviewed answers', async () => {
+    const d = tables.GenerationProfileVersion[0].definition;
+    d.questions = [
+      { id: 'method', label: 'Main method?', type: 'enum', required: true, options: [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }] },
+      { id: 'methods', label: 'Other methods?', type: 'multiEnum', required: true, options: [{ value: 'one', label: 'Interviews' }, { value: 'two', labelKey: 'legacy-surveys' }, { value: 'three', label: 'Unselected method' }] },
+    ];
+    Reflect.set(globalThis, 'TranslationService', { t: (key: string) => key === 'legacy-surveys' ? 'Surveys' : key });
+    d.fixtureTests = [{ name: 'Choice example', source: {}, answers: { method: 'one', methods: ['one', 'two'] } }];
+    sails.services.generationknowledgeservice = { retrieve: async () => [] };
+    const invoke = sinon.stub().resolves([{ content: '{}' }]); sails.services.generationmodelservice = { testProfileRequests: invoke };
+    await service.runTests('a', 'v', 'admin');
+    const messages = invoke.firstCall.args[3][0].messages;
+    const untrusted = JSON.parse(messages.at(-1).content.split('\n')[1]);
+    assert.deepEqual(untrusted.reviewedAnswers[0].selectedOptions, [{ value: 'one', label: 'Interviews' }]);
+    assert.deepEqual(untrusted.reviewedAnswers[1].selectedOptions, [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }]);
+    assert.deepEqual(untrusted.reviewedAnswers[1].value, ['one', 'two']);
+    assert.match(untrusted.reviewedAnswers[1].evidenceId, /^E/);
+    assert.ok(messages.filter(m => m.role === 'system').every(m => !/Interviews|Surveys|Unselected method/.test(m.content)));
+  });
+  it('resolves legacy question, help and option keys in the synthetic test brand', async () => {
+    const d = tables.GenerationProfileVersion[0].definition;
+    d.questions = [{ id: 'method', labelKey: 'question-key', helpTextKey: 'help-key', type: 'enum', required: true, options: [{ value: 'one', labelKey: 'option-key' }] }];
+    d.fixtureTests = [{ name: 'Brand example', source: {}, answers: { method: 'one' } }];
+    const translate = sinon.stub().callsFake((key, _context, _lang, brand = 'default') => brand + ':' + key);
+    Reflect.set(globalThis, 'TranslationService', { t: translate });
+    sails.services.generationknowledgeservice = { retrieve: async () => [] };
+    const invoke = sinon.stub().resolves([{ content: '{}' }]); sails.services.generationmodelservice = { testProfileRequests: invoke };
+    await service.runTests('a', 'v', 'admin');
+    const messages = invoke.firstCall.args[3][0].messages;
+    const answer = JSON.parse(messages.at(-1).content.split('\n')[1]).reviewedAnswers[0];
+    assert.equal(answer.label, 'research-brand:question-key'); assert.equal(answer.helpText, 'research-brand:help-key');
+    assert.deepEqual(answer.selectedOptions, [{ value: 'one', label: 'research-brand:option-key' }]);
+    assert.ok(messages.filter(m => m.role === 'system').every(m => !m.content.includes('research-brand:')));
+  });
+  it('keeps an explicitly cleared test answer empty instead of restoring a removed prefilled choice', async () => {
+    const d = tables.GenerationProfileVersion[0].definition;
+    d.questions = [{ id: 'method', label: 'Method?', type: 'enum', required: false, sourceDefaultExpression: '/title', options: [{ value: 'two', label: 'Surveys' }] }];
+    d.fixtureTests = [{ name: 'Cleared example', source: { '/title': 'one' }, answers: { method: null } }];
+    sails.services.generationknowledgeservice = { retrieve: async () => [] };
+    const invoke = sinon.stub().resolves([{ content: '{}' }]); sails.services.generationmodelservice = { testProfileRequests: invoke };
+    await service.runTests('a', 'v', 'admin');
+    const answer = JSON.parse(invoke.firstCall.args[3][0].messages.at(-1).content.split('\n')[1]).reviewedAnswers[0];
+    assert.equal(answer.value, null);
   });
   it('derives labels, choices and unsupported target exclusions from the form', () => {
     const form: any = { componentDefinitions: [{ name: 'summary', model: { class: 'TextAreaModel' }, layout: { config: { label: 'Summary' } }, component: { class: 'TextAreaComponent', config: { maxLength: 50 } } }, { name: 'upload', model: { class: 'AttachmentModel' }, layout: { config: { label: 'Document' } }, component: { class: 'AttachmentComponent' } }] };

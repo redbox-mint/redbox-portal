@@ -89,7 +89,7 @@ export namespace Services {
         };
         const promptService = requireService<PromptLike>('generationpromptservice', ['build']);
         const providerRequest = promptService.build({
-          correlationId: runId, definition: profile.definition, frozenInput: payload.frozenInput, knowledge,
+          brandId: run.brandId, correlationId: runId, definition: profile.definition, frozenInput: payload.frozenInput, knowledge,
           evidenceAliases, responseSchema,
           connection: { endpoint: connection.endpoint, timeoutMs: connection.timeoutMs, nonSecretHeaders: connection.nonSecretHeaders },
           deployment: deploymentConfig,

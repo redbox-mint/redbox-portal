@@ -1,3 +1,4 @@
+import { pointersOverlap } from './GenerationBindingService';
 import { requireProfileModel } from './GenerationProfileService';
 import type { GenerationBindingAttributes } from '../waterline-models/GenerationBinding';
 import type { KnowledgeChunkAttributes } from '../waterline-models/KnowledgeChunk';
@@ -129,6 +130,14 @@ export namespace Services {
       const target = definition.targetForm ?? (bindings[0] ? { recordType: bindings[0].targetRecordType, formName: bindings[0].targetFormName! } : undefined);
       const form = c.forms.find(f => f.name === target?.formName && f.recordType === target.recordType);
       if (!form) add('fields', 'form');
+      for (const binding of bindings) {
+        for (const field of definition.targetFields ?? []) {
+          if (binding.sourceValueMappings?.some(mapping => pointersOverlap(field.metadataPointer, mapping.targetMetadataPointer))) {
+            const label = form?.fields.find(f => f.pointer === field.metadataPointer)?.label || field.label || TranslationService.t('ai-profiles-unnamed-field');
+            add('fields', 'action-copied-field', label, field.id, binding.name);
+          }
+        }
+      }
       const targets = [form, ...bindings.map(b => c.forms.find(f => f.name === (b.targetFormName || c.recordTypes.find(t => t.name === b.targetRecordType)?.formName) && f.recordType === b.targetRecordType))];
       for (const field of definition.targetFields ?? []) {
         for (const targetForm of targets) {
@@ -312,13 +321,13 @@ export namespace Services {
           if (Buffer.byteLength(JSON.stringify(value)) > slot.maxBytes) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Test source too large');
           evidence.push({ id: 'test:' + path, label: form?.fields.find(f => f.pointer === path)?.label ?? 'Source record', kind: 'source', content: value, contentHash: canonicalHash(value) });
         }
-        const answers = d.questions.map(q => ({ id: q.id, value: fixture.answers?.[q.id] ?? fixture.source?.[q.sourceDefaultExpression ?? ''] ?? null }));
+        const answers = d.questions.map(q => ({ id: q.id, value: Object.hasOwn(fixture.answers ?? {}, q.id) ? fixture.answers[q.id] : fixture.source?.[q.sourceDefaultExpression ?? ''] ?? null }));
         requireService<Context.GenerationContextService>('generationcontextservice', ['validateAnswers']).validateAnswers(d, answers);
         for (const answer of answers) evidence.push({ id: 'answer:' + answer.id, label: d.questions.find(q => q.id === answer.id)?.label || 'Question', questionId: answer.id, kind: 'source', content: answer.value, contentHash: canonicalHash(answer.value) });
         const all = [...evidence, ...knowledge]; const aliases = buildEvidenceAliases(all); contexts.push({ evidence: all, aliases });
         const frozenInput: GenerationFrozenInput = { sources: [], answers, sourceEvidence: evidence, targetForm: { ...d.targetForm!, mode: 'create' }, targetDraft: {}, baseTargetDigest: canonicalHash({}) };
         if (Buffer.byteLength(JSON.stringify(frozenInput)) + Buffer.byteLength(JSON.stringify(knowledge)) > d.contextLimits.totalBytes) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Test context too large');
-        return prompt.build({ correlationId: randomUUID(), definition: d, frozenInput, knowledge, evidenceAliases: aliases, responseSchema: schema.buildProviderSchema(d, all, aliases), connection: { endpoint: '', timeoutMs: 0 }, deployment: { modelId: '' } });
+        return prompt.build({ brandId, correlationId: randomUUID(), definition: d, frozenInput, knowledge, evidenceAliases: aliases, responseSchema: schema.buildProviderSchema(d, all, aliases), connection: { endpoint: '', timeoutMs: 0 }, deployment: { modelId: '' } });
       });
       const modelService = requireService<Models.GenerationModelService>('generationmodelservice', ['testProfileRequests']);
       const responses = await modelService.testProfileRequests(brandId, actor, d.modelDeploymentId, requests);

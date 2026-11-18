@@ -39,7 +39,6 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   question?: Question;
   field?: Field;
   testCase?: TestCase;
-  optionsText = '';
   topicsText = '';
   sourceType = '';
   formName = '';
@@ -92,7 +91,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   get nameUsed(): boolean { return !!this.modal?.name.trim() && !!this.overview?.profiles.some(p => p.name.toLowerCase() === this.modal?.name.trim().toLowerCase()); }
   get modalValid(): boolean {
     if (!this.modal) return false;
-    if (this.modal.kind === 'question') return !!this.question?.label?.trim() && (!['enum', 'multiEnum'].includes(this.question.type) || !!this.optionsText.trim()) && (!this.question.maxLength || this.question.maxLength > 0);
+    if (this.modal.kind === 'question') return !!this.question?.label?.trim() && (!['enum', 'multiEnum'].includes(this.question.type) || !!this.question.options?.length && this.question.options.every(o => !!o.label?.trim())) && (!this.question.maxLength || this.question.maxLength > 0);
     if (this.modal.kind === 'field') return !!this.field?.metadataPointer && !!this.field.expectedComponentClasses.length;
     if (this.modal.kind === 'case') return !!this.testCase?.name.trim();
     return !!this.modal.name.trim() && !this.nameUsed;
@@ -168,8 +167,11 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   editQuestion(index?: number): void {
     this.question = index === undefined ? { id: this.id('question'), label: '', helpText: '', type: 'text', required: false, maxLength: 2000 } : clone(this.draft!.questions[index]);
     this.question.label = this.text(this.question.label, this.question.labelKey); this.question.helpText = this.text(this.question.helpText, this.question.helpTextKey);
-    this.optionsText = (this.question.options ?? []).map(o => this.text(o.label, o.labelKey)).join('\n'); this.modal = { kind: 'question', name: '', index };
+    this.question.options = this.question.options?.map(o => ({ value: o.value, label: this.text(o.label, o.labelKey) }));
+    this.modal = { kind: 'question', name: '', index };
   }
+  addQuestionOption(): void { if (this.question) (this.question.options ??= []).push({ value: this.id('option'), label: '' }); }
+  removeQuestionOption(index: number): void { this.question?.options?.splice(index, 1); }
   questionTypeChanged(): void { if (this.question && !['text', 'textarea'].includes(this.question.type)) delete this.question.maxLength; else if (this.question) this.question.maxLength ??= 2000; }
   editField(index?: number): void {
     this.field = index === undefined ? { id: this.id('field'), metadataPointer: '', expectedComponentClasses: [], output: { kind: 'string' }, operation: 'fill', grounding: 'sourceRequired', reviewedAnswerIds: this.draft!.questions.map(q => q.id) } : clone(this.draft!.targetFields[index]);
@@ -191,9 +193,21 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   async submitModal(): Promise<void> {
     if (!this.modal || this.busy || !this.modalValid) return;
     const m = this.modal;
+    this.changed();
     if (m.kind === 'question' && this.question) {
       const q = clone(this.question); delete q.labelKey; delete q.helpTextKey;
-      q.options = ['enum', 'multiEnum'].includes(q.type) ? [...new Set(this.optionsText.split('\n').map(s => s.trim()).filter(Boolean))].map(label => ({ value: label, label })) : undefined;
+      q.options = ['enum', 'multiEnum'].includes(q.type) ? q.options?.map(o => ({ value: o.value, label: o.label!.trim() })) : undefined;
+      if (m.index !== undefined && q.options) {
+        const removed = this.draft!.questions[m.index].options?.filter(o => !q.options!.some(option => option.value === o.value)) ?? [];
+        let cleared = 0;
+        for (const test of this.tests) {
+          const answer = test.answers[q.id];
+          if (removed.some(o => Array.isArray(answer) ? answer.includes(o.value) : answer === o.value)) {
+            test.answers[q.id] = null; cleared++;
+          }
+        }
+        if (cleared) { this.notice = 'ai-profiles-option-answers-cleared'; this.noticeParams = { label: q.label, count: cleared }; }
+      }
       if (!q.sourceDefaultExpression) delete q.sourceDefaultExpression;
       this.replace(this.draft!.questions, m.index, q);
       if (m.index === undefined) for (const f of this.draft!.targetFields) f.reviewedAnswerIds = [...(f.reviewedAnswerIds ?? []), q.id];
@@ -208,7 +222,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
         await this.refresh(); this.saved = this.json; this.busy = false; this.open(p.key); this.modal = undefined;
       } catch (e) { this.handle(e); } finally { this.busy = false; } return;
     }
-    this.modal = undefined; this.changed();
+    this.modal = undefined;
   }
   private replace<T>(items: T[], index: number | undefined, value: T): void { if (index === undefined) items.push(value); else items[index] = value; }
   async saveDraft(): Promise<boolean> {
