@@ -102,8 +102,9 @@ export namespace Services {
       const connection = await GenerationModelConnection.findOne({ brandId, key: normalizedSlug(manifest.connectionKey) });
       if (!connection) throw new Error('Referenced generation connection was not found');
       const version = Number(manifest.version ?? 1);
-      const existing = await GenerationModelDeployment.findOne({ brandId, key: manifest.key });
-      if (existing) return;
+      const existing = requireWaterlineRows<GenerationModelDeploymentAttributes>(
+        await GenerationModelDeployment.find({ brandId, key: manifest.key }), 'GenerationModelDeployment');
+      if (existing.length) return;
       const modelService = requireService<ModelServiceLike>('generationmodelservice', ['createConnection', 'createDeployment', 'publishDeployment']);
       const deployment = await modelService.createDeployment(brandId, {
         key: manifest.key, version, name: manifest.name, status: 'draft', connectionId: connection.id,

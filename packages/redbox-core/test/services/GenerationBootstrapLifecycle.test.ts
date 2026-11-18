@@ -65,7 +65,11 @@ describe('Generation bootstrap and deployment lifecycle', () => {
         if (values.key && rows.some(row => row.brandId === values.brandId && row.key === values.key && row.version === values.version)) throw new Error('duplicate canonical key');
         const row = { id: name+'-'+(rows.length+1), ...values }; rows.push(row); return structuredClone(row);
       } }),
-      findOne: async (criteria: Record<string, any>) => structuredClone(rows.find(row => matches(row, criteria))),
+      findOne: async (criteria: Record<string, any>) => {
+        const found = rows.filter(row => matches(row, criteria));
+        if (found.length > 1) throw new Error('More than one matching record found');
+        return structuredClone(found[0]);
+      },
       find: async (criteria: Record<string, any>) => structuredClone(rows.filter(row => matches(row, criteria))),
       updateOne: (criteria: Record<string, any>) => ({ set: async (input: Record<string, any>) => {
         const values = structuredClone(input); await runHook('beforeUpdate', values);
