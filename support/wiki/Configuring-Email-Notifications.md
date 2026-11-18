@@ -153,6 +153,18 @@ Email templates are located in the directory defined in the `settings/templateDi
 <p>Data: {{data}}</p>
 ```
 
+Use `formatDate` with the optional `fallback` hash argument to display text for a
+missing or invalid date. Use `get` for optional nested paths in strict email
+templates, and put any timezone label in the template itself.
+
+```handlebars
+{{formatDate (get record "metadata.reviewDate") "dd/MM/yyyy hh:mm a" "Australia/Sydney" fallback="(blank)"}} (Sydney time)
+```
+
+Use `fallback=""` to render invalid dates as empty text. If you omit `fallback`,
+missing dates render as empty text and invalid dates render as the original input.
+The positional format and time zone arguments are both optional.
+
 ## Sending a template from a hook or service
 
 `EmailService.sendTemplate(to, subject, template, data)` returns a
