@@ -836,6 +836,26 @@ describe('Email template administration', () => {
     assert.equal(error.diagnostics[0].code, 'RENDER_FAILED');
     assert.ok(!JSON.stringify(error).includes('scuEmail.title'));
   });
+  it('validates and previews formatDate with a fallback for optional record dates', async () => {
+    const input = {
+      subject: 'Date',
+      body: '{{formatDate (get record "metadata.reviewDate") "dd/MM/yyyy hh:mm a" "Australia/Sydney" fallback="(blank)"}} (Sydney time)',
+      format: 'text' as const,
+    };
+    assert.deepEqual(admin.validate(input), []);
+
+    for (const [reviewDate, expected] of [
+      [undefined, '(blank)'],
+      ['not-a-date', '(blank)'],
+      ['2028-01-01T13:30:00.000Z', '02/01/2028 12:30 AM'],
+    ]) {
+      const context = JSON.stringify({ record: { metadata: { reviewDate } } });
+      const result = await admin.preview('a', 'notice', input, context);
+      assert.deepEqual(result.diagnostics, []);
+      assert.equal(result.text, `${expected} (Sydney time)`);
+    }
+  });
+
   it('reports a render failure against the field that failed', async () => {
     const context = '{"record":{"metadata":{"title":"Present"}}}';
     const subjectOnly = await admin.preview(

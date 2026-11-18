@@ -48,6 +48,7 @@ export class PublishDataLocationRefreshComponent extends FormFieldBaseComponent<
     this.eventBus.publish(
       createFieldValueChangedEvent({
         fieldId,
+        formScopeId: this.formComponent.eventScopeId,
         sourceId: '*',
         value: Date.now(),
       })

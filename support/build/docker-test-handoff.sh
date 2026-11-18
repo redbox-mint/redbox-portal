@@ -5,14 +5,20 @@ action="${1:?expected publish or receive}"
 directory="${2:-/tmp/docker-images}"
 metadata="$directory/test-image.txt"
 archive="$directory/redbox-portal-test.tar"
-verifier="$(dirname "${BASH_SOURCE[0]}")/docker-test-handoff.py"
+valid_checksum() { [[ "$1" =~ ^sha256:[a-f0-9]{64}$ ]]; }
+# Hash the saved artifact: Docker's .Id changes meaning across storage backends,
+# and imported classic archives do not carry a config.digest annotation.
+archive_checksum() {
+  local checksum
+  checksum="$(sha256sum "$archive")"
+  printf 'sha256:%s\n' "${checksum%% *}"
+}
 
 case "$action" in
   publish)
     mkdir -p "$directory"
     # A failed retry must not leave stale metadata identifying an earlier archive.
-    rm -f "$metadata" "$metadata.tmp" "$archive"
-    trap 'rm -f "$metadata.tmp"' EXIT
+    rm -f "$metadata" "$archive"
     # Runtime layers are already in test; branch test jobs need only this tag.
     images=(redbox-portal:test)
     # Preserve the pristine runtime tag used by the legacy v* deployment job.
@@ -20,18 +26,20 @@ case "$action" in
     start=$SECONDS
     docker save -o "$archive" "${images[@]}"
     echo "Workspace image save seconds: $((SECONDS - start))"
-    # Image IDs mean config digests in the classic store, but manifest/index
-    # digests in the containerd store. Anchor the handoff to the saved bytes.
-    docker image inspect redbox-portal:test | python3 "$verifier" publish "$archive" >"$metadata.tmp"
-    mv "$metadata.tmp" "$metadata"
+    archive_checksum >"$metadata"
+    echo "Build tested archive checksum: $(cat "$metadata")"
     ;;
   receive)
-    # Verify the archive before giving it to Docker, then verify the loaded tag.
-    python3 "$verifier" verify-archive "$archive" "$metadata"
+    # Read data, never source workspace metadata as executable shell code.
+    mapfile -t fields <"$metadata"
+    [[ "${#fields[@]}" == 1 ]] && valid_checksum "${fields[0]}" || { echo 'Invalid expected test archive checksum' >&2; exit 1; }
+    expected_checksum="${fields[0]}"
+    actual="$(archive_checksum)"
+    [[ "$actual" == "$expected_checksum" ]] || { echo "Test archive checksum mismatch: expected $expected_checksum, received $actual" >&2; exit 1; }
+    echo "Verified tested archive checksum: $actual"
     start=$SECONDS
     docker load -i "$archive"
     echo "Test image load seconds: $((SECONDS - start))"
-    docker image inspect redbox-portal:test | python3 "$verifier" verify-image "$archive" "$metadata"
     ;;
   *) echo 'Expected publish or receive' >&2; exit 1 ;;
 esac

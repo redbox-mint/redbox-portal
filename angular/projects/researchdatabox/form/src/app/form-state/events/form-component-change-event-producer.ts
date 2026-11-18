@@ -68,6 +68,7 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		}
 		const baseEvent = createFieldValueChangedEvent({
 			fieldId: this.fieldId,
+			formScopeId: (this.options?.formComponent ?? this.formComponent)?.eventScopeId,
 			value,
 			sourceId: FormComponentEventType.FORM_DEFINITION_READY
 		});
@@ -106,6 +107,7 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
     // The general channel uses sourceId="*" to indicate broadcast
     const baseEvent = createFieldValueChangedEvent({
       fieldId: this.fieldId,
+      formScopeId: (this.options?.formComponent ?? this.formComponent)?.eventScopeId,
       value: valueClone,
       previousValue: previousValueClone,
       sourceId: "*",
@@ -116,6 +118,7 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 
     const scopedEvent = createFieldValueChangedEvent({
       fieldId: this.fieldId,
+      formScopeId: (this.options?.formComponent ?? this.formComponent)?.eventScopeId,
       value: valueClone,
       previousValue: previousValueClone,
       sourceId: this.fieldId,

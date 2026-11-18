@@ -178,6 +178,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     const nextValue = this.cloneEventValue(parentControl.value);
     const scopedEvent = createFieldValueChangedEvent({
       fieldId: parentPointer,
+      formScopeId: this.formComponent?.eventScopeId,
       value: nextValue,
       previousValue: previousValue === undefined ? undefined : this.cloneEventValue(previousValue),
       sourceId: parentPointer,
