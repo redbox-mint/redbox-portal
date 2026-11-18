@@ -1,60 +1,35 @@
 import { GraphQLError } from 'graphql';
 import type { ContractNode, RecordContract } from '../record-contract';
-import type { SolrFieldDefinition } from '../config/solr.config';
-import { SOLR_RECORD_GRID_FIELDS } from '../config/solr.config';
 import { fromTree, fieldName, hash, metadataTypeName, type ReadShape } from './renderer';
 import {
   GRID_LIMITS,
   type GridCatalogue,
+  type GridCardinality,
   type GridField,
   type GridScalar,
   type GridEnvironment,
-  type GridOperator,
   type GridSelection,
 } from './grid-types';
-import { gridIndexBindings, gridPrefixIndexBindings } from './index-bindings';
-import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { applyReadPresentationHints } from './read-contract';
+import { formatRecordGridFingerprint } from '../RecordFormFingerprint';
 
 export function gridError(code: string, message: string): never {
   throw new GraphQLError(message, { extensions: { code } });
 }
-const fieldPattern = /^[A-Za-z_][A-Za-z0-9_.-]{0,199}$/;
-export function safeIndexField(name: string): boolean {
-  return fieldPattern.test(name);
-}
-export function indexField(environment: GridEnvironment, name: string): SolrFieldDefinition | undefined {
-  const explicit = environment.schema.fields.find(field => field.name === name);
-  if (explicit) return explicit;
-  const matches = environment.schema.dynamicFields
-    .filter(field => {
-      if (field.name === '*') return true;
-      if (field.name.startsWith('*')) return name.endsWith(field.name.slice(1));
-      return field.name.endsWith('*') && name.startsWith(field.name.slice(0, -1));
-    })
-    .sort((a, b) => b.name.length - a.name.length);
-  return matches[0] && { ...matches[0], name };
-}
-export function indexClass(environment: GridEnvironment, field: SolrFieldDefinition): string {
-  return (
-    environment.schema.fieldTypes
-      .find(type => type.name === field.type)
-      ?.class.split('.')
-      .at(-1) ?? ''
-  );
-}
 const recordFields = [
-  ['oid', 'OID', 'STRING', 'redbox_grid_oid'],
-  ['recordType', 'Record type', 'STRING', 'redbox_grid_type'],
-  ['workflowStep', 'Workflow stage', 'STRING', 'redbox_grid_stage'],
-  ['form', 'Form', 'STRING', 'redbox_grid_form'],
-  ['createdOn', 'Created on', 'DATETIME', 'redbox_grid_created'],
-  ['lastModified', 'Last modified', 'DATETIME', 'redbox_grid_modified'],
+  ['oid', 'OID', 'STRING', 'redboxOid'],
+  ['recordType', 'Record type', 'STRING', 'metaMetadata.type'],
+  ['workflowStep', 'Workflow stage', 'STRING', 'workflow.stage'],
+  ['form', 'Form', 'STRING', 'metaMetadata.form'],
+  ['createdOn', 'Created on', 'DATETIME', 'createdOn'],
+  ['lastModified', 'Last modified', 'DATETIME', 'lastSaveDate'],
 ] as const;
 export interface CatalogueSnapshot {
   catalogue: GridCatalogue;
-  bindings: Map<string, SolrFieldDefinition>;
-  prefixBindings: Map<string, SolrFieldDefinition>;
+  bindings: Map<string, { tokens: string[]; type: GridScalar; cardinality: GridCardinality }>;
 }
+const scalarShapes = ['string', 'number', 'integer', 'boolean'];
+const queryScalars: readonly GridScalar[] = ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'];
 
 export function scopedContracts(
   contracts: readonly RecordContract[],
@@ -90,13 +65,21 @@ function nodeHints(
   tokens: readonly (string | null)[] = [],
   output = new Map<
     string,
-    { label?: string; shortLabel?: string; groups?: string[]; vocabulary?: string; choices: GridField['choices'] }
+    {
+      label?: string;
+      shortLabel?: string;
+      groups?: string[];
+      vocabulary?: string;
+      scalarTypes: Set<GridScalar | 'DATE'>;
+      choices: GridField['choices'];
+      configuredChoices: GridField['choices'];
+    }
   >(),
   groups: string[] = []
 ) {
   if (node.annotations?.writeOnly || (shape.kind === 'json' && shape.reason === 'restricted-shape')) return output;
   const id = metadataFieldId(tokens);
-  const hint = output.get(id) ?? { choices: [] };
+  const hint = output.get(id) ?? { choices: [], configuredChoices: [], scalarTypes: new Set<GridScalar | 'DATE'>() };
   const configuredGroups = node.annotations?.extensions?.['x-redbox-group-path'];
   const currentGroups = [
     ...groups,
@@ -107,6 +90,18 @@ function nodeHints(
   hint.groups ??= [...new Set(currentGroups)];
   const shortLabel = node.annotations?.extensions?.['x-redbox-short-label'];
   if (typeof shortLabel === 'string') hint.shortLabel ??= shortLabel;
+  if (node.kind === 'scalar') {
+    const format = node.annotations?.extensions?.['x-redbox-format'];
+    hint.scalarTypes.add(
+      node.annotations?.extensions?.['x-redbox-format-conflict'] === true
+        ? 'MIXED'
+        : node.scalarType === 'string' && format === 'date'
+          ? 'DATE'
+          : node.scalarType === 'string' && format === 'date-time'
+            ? 'DATETIME'
+            : scalarType(fromTree(node))
+    );
+  }
   const label = node.annotations?.extensions?.['x-redbox-label'] ?? node.annotations?.description;
   if (typeof label === 'string' && !hint.label) hint.label = label;
   const vocabulary = node.annotations?.extensions?.['x-redbox-vocabulary'];
@@ -124,8 +119,11 @@ function nodeHints(
         !Array.isArray(choice) &&
         typeof choice.label === 'string' &&
         ['string', 'number', 'boolean'].includes(typeof choice.value)
-      )
-        hint.choices.push({ label: choice.label, value: choice.value as string | number | boolean });
+      ) {
+        const configured = { label: choice.label, value: choice.value as string | number | boolean };
+        hint.choices.push(configured);
+        hint.configuredChoices.push(configured);
+      }
   output.set(id, hint);
   if (node.kind === 'object' && shape.kind === 'object')
     for (const [key, child] of Object.entries(node.properties))
@@ -179,6 +177,8 @@ function selection(contract: RecordContract, tokens: readonly (string | null)[],
   };
 }
 function scalarType(shape: ReadShape): GridScalar {
+  if (shape.kind === 'array' && ['string', 'number', 'integer', 'boolean'].includes(shape.items.kind))
+    return scalarType(shape.items);
   switch (shape.kind) {
     case 'string':
       return 'STRING';
@@ -194,67 +194,16 @@ function scalarType(shape: ReadShape): GridScalar {
       return 'JSON';
   }
 }
-function verifiedBinding(environment: GridEnvironment, field: GridField): string | undefined {
-  const record = recordFields.find(entry => `record:${entry[0]}` === field.id);
-  if (record) return record[3];
-  const target = gridIndexBindings(environment.config).get(field.id)?.field;
-  // Solr copy rules run after preIndex and can add unrelated or duplicate values.
-  return target && !environment.schema.copyFields?.some(copy => matchesField(copy.dest, target)) ? target : undefined;
-}
-function matchesField(pattern: string, name: string): boolean {
-  if (pattern === name || pattern === '*') return true;
-  if (pattern.startsWith('*')) return name.endsWith(pattern.slice(1));
-  return pattern.endsWith('*') && name.startsWith(pattern.slice(0, -1));
-}
-export function validateGridIndex(environment: GridEnvironment): void {
-  if (
-    environment.schema.copyFields?.some(copy =>
-      [...SOLR_RECORD_GRID_FIELDS.map(field => field.name), environment.schema.uniqueKey].some(name =>
-        matchesField(copy.dest, name)
-      )
-    )
-  )
-    gridError('UNSUPPORTED_SEARCH_INDEX', 'Search copy rules must not overwrite protected collection identifiers.');
-  const unique = indexField(environment, environment.schema.uniqueKey);
-  if (
-    !safeIndexField(environment.schema.uniqueKey) ||
-    !unique ||
-    !unique.indexed ||
-    !unique.stored ||
-    unique.multiValued === true ||
-    unique.docValues !== true ||
-    indexClass(environment, unique) !== 'StrField'
-  )
-    gridError(
-      'UNSUPPORTED_SEARCH_INDEX',
-      'The search unique key must be a stored, single-valued exact string with DocValues.'
-    );
-  for (const expected of SOLR_RECORD_GRID_FIELDS) {
-    const actual = environment.schema.fields.find(field => field.name === expected.name);
-    const expectedClass = expected.type === 'pdate' ? 'DatePointField' : 'StrField';
-    if (
-      !actual ||
-      !actual.indexed ||
-      !actual.stored ||
-      actual.multiValued === true ||
-      actual.docValues !== true ||
-      indexClass(environment, actual) !== expectedClass
-    )
-      gridError(
-        'REINDEX_REQUIRED',
-        'Record-grid index fields are unavailable. Reconcile the schema and reindex records before collection reads.'
-      );
-  }
-}
 export function buildCatalogue(
   contracts: readonly RecordContract[],
   recordType: string,
   stages: readonly string[],
-  environment: GridEnvironment
+  environment: Pick<GridEnvironment, 'recordTypeLabel' | 'workflowLabels'> = {}
 ): CatalogueSnapshot {
   const scoped = scopedContracts(contracts, recordType, stages);
-  validateGridIndex(environment);
   const fields = new Map<string, GridField>();
+  const configuredChoices = new Map<string, GridField['choices']>();
+  const dateFormats = new Map<string, GridScalar | 'DATE'>();
   for (const [name, label, type] of recordFields)
     fields.set(`record:${name}`, {
       id: `record:${name}`,
@@ -274,6 +223,7 @@ export function buildCatalogue(
       nullable: name !== 'oid',
       nested: false,
       repeating: false,
+      cardinality: 'SCALAR',
       filterable: false,
       operators: [],
       sortable: false,
@@ -314,6 +264,13 @@ export function buildCatalogue(
           short && !short.startsWith('@')
             ? short
             : fallbackLabel.charAt(0).toUpperCase() + fallbackLabel.slice(1).toLowerCase();
+        // A declared homogeneous scalar list outside any repeating ancestor takes
+        // its value semantics (date formats, choices) from its item declaration.
+        const scalarList = shape.kind === 'array' && scalarShapes.includes(shape.items.kind) && !tokens.includes(null);
+        const cardinality: GridCardinality = shape.kind === 'array' ? 'LIST' : 'SCALAR';
+        const itemHint = scalarList ? hints.get(metadataFieldId([...tokens, null])) : undefined;
+        const typeHint = scalarList ? itemHint : hint;
+        const valueShape = shape.kind === 'array' && scalarList ? shape.items : shape;
         const groupPath = hint?.groups?.length ? hint.groups : ['@data-grids-field-group-metadata'];
         const rawGroup = groupPath.at(-1)!;
         const group = rawGroup.startsWith('@')
@@ -321,9 +278,25 @@ export function buildCatalogue(
             ? 'Metadata'
             : rawGroup.slice(1)
           : rawGroup;
-        const type = scalarType(shape);
+        const type =
+          typeHint && (typeHint.scalarTypes.size > 1 || typeHint.scalarTypes.has('MIXED'))
+            ? 'MIXED'
+            : valueShape.kind === 'string' &&
+                (typeHint?.scalarTypes.has('DATE') || typeHint?.scalarTypes.has('DATETIME'))
+              ? 'DATETIME'
+              : scalarType(shape);
+        // Later duplicates win: configured labels on the list override item enum values.
+        const choices = [...(itemHint?.choices ?? []), ...(hint?.choices ?? [])];
+        configuredChoices.set(id, [
+          ...(configuredChoices.get(id) ?? []),
+          ...(itemHint?.configuredChoices ?? []),
+          ...(hint?.configuredChoices ?? []),
+        ]);
+        const vocabulary = hint?.vocabulary ?? itemHint?.vocabulary;
         const existing = fields.get(id);
         if (existing) {
+          if (existing.repeating !== repeating || existing.cardinality !== cardinality) existing.scalarType = 'MIXED';
+          if (cardinality === 'LIST') existing.cardinality = 'LIST';
           existing.repeating ||= repeating;
           existing.selectable &&=
             !tokens.includes(null) &&
@@ -331,9 +304,15 @@ export function buildCatalogue(
               ? declaredSelection(shape) !== null
               : !['OBJECT', 'JSON'].includes(type));
           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
+          // Calendar dates and instants use the same query input, but distinct
+          // persisted meanings must not silently replace one another across forms.
+          if (type === 'DATETIME' && dateFormats.get(id) !== [...typeHint!.scalarTypes][0])
+            existing.scalarType = 'MIXED';
           existing.selections.push(selection(contract, tokens, shape));
-          existing.choices.push(...(hint?.choices ?? []));
-        } else
+          existing.choices.push(...choices);
+          if (vocabulary) existing.vocabulary ??= vocabulary;
+        } else {
+          if (type === 'DATETIME') dateFormats.set(id, [...typeHint!.scalarTypes][0]);
           fields.set(id, {
             id,
             path: pointer(tokens),
@@ -356,14 +335,16 @@ export function buildCatalogue(
             nullable: true,
             nested: tokens.length > 1,
             repeating,
+            cardinality,
             filterable: false,
             operators: [],
             sortable: false,
-            choices: hint?.choices ?? [],
-            ...(hint?.vocabulary ? { vocabulary: hint.vocabulary } : {}),
+            choices,
+            ...(vocabulary ? { vocabulary } : {}),
             selections: [selection(contract, tokens, shape)],
             unavailableReason: null,
           });
+        }
         if (fields.size > GRID_LIMITS.catalogueFields)
           gridError('CATALOGUE_LIMIT', 'Field catalogue exceeds its bound; narrow the workflow scope.');
       }
@@ -373,72 +354,50 @@ export function buildCatalogue(
     };
     visit(readShape, [], false);
   }
-  const bindings = new Map<string, SolrFieldDefinition>();
-  const prefixBindings = new Map<string, SolrFieldDefinition>();
-  const prefixTargets = gridPrefixIndexBindings(environment.config);
+  const bindings: CatalogueSnapshot['bindings'] = new Map();
   for (const field of fields.values()) {
     field.availableInAllVariants =
       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
-    field.choices = [...new Map(field.choices.map(choice => [JSON.stringify(choice.value), choice])).values()];
+    field.choices = [
+      ...new Map(
+        [...field.choices, ...(configuredChoices.get(field.id) ?? [])].map(choice => [
+          JSON.stringify(choice.value),
+          choice,
+        ])
+      ).values(),
+    ];
     if (field.scalarType === 'MIXED') field.selectable = false;
-    if (!field.selectable || field.repeating || field.scalarType === 'OBJECT') {
-      field.unavailableReason = field.repeating ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
+    // Only declared scalar lists that are not themselves inside a list support
+    // element predicates; object lists and their children remain unavailable.
+    const scalarList =
+      field.cardinality === 'LIST' && !field.repeatingSubfield && queryScalars.includes(field.scalarType);
+    if (!field.selectable || (field.repeating && !scalarList) || !queryScalars.includes(field.scalarType)) {
+      field.unavailableReason = field.repeating && !scalarList ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
       continue;
     }
     if (!field.availableInAllVariants) {
       field.unavailableReason = 'VARIANT_SCOPE_REQUIRED';
       continue;
     }
-    const target = verifiedBinding(environment, field);
-    const indexed = target ? indexField(environment, target) : undefined;
-    if (!indexed?.indexed) {
-      field.unavailableReason = 'NO_VERIFIED_INDEX_MAPPING';
-      continue;
-    }
-    const kind = indexClass(environment, indexed);
-    let ops: GridOperator[] = [];
-    if (kind === 'StrField' && field.scalarType === 'STRING') ops = ['EQ', 'CONTAINS', 'IN', 'EXISTS'];
-    if (kind === 'BoolField' && field.scalarType === 'BOOLEAN') ops = ['EQ', 'IN', 'EXISTS'];
-    if (
-      ['IntPointField', 'LongPointField', 'DoublePointField', 'FloatPointField'].includes(kind) &&
-      ['NUMBER', 'INTEGER'].includes(field.scalarType)
-    )
-      ops = ['EQ', 'IN', 'GT', 'LT', 'BETWEEN', 'EXISTS'];
-    if (kind === 'DatePointField' && ['STRING', 'DATETIME'].includes(field.scalarType)) {
-      field.scalarType = 'DATETIME';
-      ops = ['EQ', 'IN', 'GT', 'LT', 'BETWEEN', 'EXISTS'];
-    }
-    if (kind === 'TextField' && field.scalarType === 'STRING') ops = ['EXISTS'];
-    const prefixTarget = prefixTargets.get(field.id)?.field;
-    // Explicit companions only: dynamic fields and analyzers cannot certify this representation.
-    const prefix = prefixTarget ? environment.schema.fields.find(item => item.name === prefixTarget) : undefined;
-    const configuredPrefix = prefixTarget
-      ? environment.config.schema['add-field']?.find(item => item.name === prefixTarget)
-      : undefined;
-    if (
-      kind === 'StrField' &&
-      field.scalarType === 'STRING' &&
-      prefix &&
-      prefix.name !== environment.schema.uniqueKey &&
-      prefix.indexed === true &&
-      prefix.multiValued === false &&
-      // Omitted sources must not make Solr reject this or unrelated record types.
-      prefix.required !== true &&
-      // Defaults manufacture terms for omitted sources, violating the original-value contract.
-      prefix.default === undefined &&
-      prefix.type === configuredPrefix?.type &&
-      indexClass(environment, prefix) === 'StrField' &&
-      !environment.schema.copyFields?.some(copy => matchesField(copy.dest, prefix.name))
-    ) {
-      ops.push('IPREFIX');
-      prefixBindings.set(field.id, prefix);
-    }
-    field.operators = ops;
-    field.filterable = ops.length > 0;
-    field.sortable =
-      ops.length > 0 && kind !== 'TextField' && indexed.multiValued !== true && indexed.docValues === true;
-    field.unavailableReason = ops.length ? null : 'UNSUPPORTED_INDEX_TYPE';
-    if (ops.length) bindings.set(field.id, indexed);
+    const record = recordFields.find(entry => `record:${entry[0]}` === field.id);
+    const tokens = record
+      ? record[3].split('.')
+      : [
+          'metadata',
+          ...field.path
+            .slice(1)
+            .split('/')
+            .map(token => token.replace(/~1/g, '/').replace(/~0/g, '~')),
+        ];
+    field.operators =
+      field.scalarType === 'STRING'
+        ? ['EQ', 'CONTAINS', 'IPREFIX', 'IN', 'EXISTS']
+        : field.scalarType === 'BOOLEAN'
+          ? ['EQ', 'IN', 'EXISTS']
+          : ['EQ', 'IN', 'GT', 'LT', 'BETWEEN', 'EXISTS'];
+    field.filterable = true;
+    field.sortable = true;
+    bindings.set(field.id, { tokens, type: field.scalarType, cardinality: field.cardinality });
   }
   const catalogue: GridCatalogue = {
     recordType,
@@ -454,13 +413,14 @@ export function buildCatalogue(
     })),
     revision: '',
   };
-  const revision = formatRecordFormFingerprint({
-    catalogue,
-    index: environment.schema,
-    config: environment.config,
-    contracts: scoped,
-  });
+  applyReadPresentationHints(catalogue, scoped);
+  const revision = formatRecordGridFingerprint([
+    { ...catalogue, fields: undefined },
+    { semantics: 'mongo-record-collection/2' },
+    ...catalogue.fields,
+    ...scoped,
+  ]);
   if (!revision) gridError('CATALOGUE_LIMIT', 'Field catalogue fingerprint exceeds its bound.');
   catalogue.revision = revision;
-  return { catalogue, bindings, prefixBindings };
+  return { catalogue, bindings };
 }

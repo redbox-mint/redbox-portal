@@ -9,7 +9,7 @@ import {
   TranslationService,
 } from '@researchdatabox/portal-ng-common';
 import { firstValueFrom } from 'rxjs';
-import { DataGridSource, GridRequestError, GridSourceUnavailable } from './data-grid-source';
+import { DataGridSource, GridRawResponse, GridRequestError, GridSourceUnavailable } from './data-grid-source';
 import {
   GridCatalogue,
   GridListPage,
@@ -27,6 +27,7 @@ import {
   object,
   parseDiscovery,
   parsePage,
+  partialFieldErrors,
   parseSavedQuery,
   scopeId,
   string,
@@ -141,8 +142,18 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     ];
     const discovery = await this.discover(scope, ids);
     const payload = collectionRequest(request, scope, discovery);
-    const data = await this.graphql(payload.query, payload.variables);
-    return parsePage(data['records'], request, discovery.fields);
+    const response = await this.graphql(payload.query, payload.variables, true);
+    const data = object(response['data']);
+    const errors = partialFieldErrors(response['errors'], data['records'], request, discovery.fields);
+    const page = parsePage(data['records'], request, discovery.fields, errors);
+    if (errors.length) {
+      page.errors = errors;
+      page.response = { data, errors };
+      page.rows.forEach((row, index) => {
+        row.errors = errors.filter(error => error.row === index);
+      });
+    }
+    return page;
   }
 
   async prepareNamedQuery(definition: SavedQuery): Promise<NamedQueryPromotionDraft> {
@@ -156,13 +167,33 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     );
     return structuredClone(response.data);
   }
-  async schema(): Promise<string> {
-    return string(object(await this.persistence('GET', '/schema'))['sdl']);
+  async schema(scope?: GridScope): Promise<string> {
+    const params = new URLSearchParams();
+    if (scope) {
+      params.set('recordType', scope.recordType);
+      if (scope.workflowStage) params.set('workflowStage', scope.workflowStage);
+    }
+    return string(object(await this.persistence('GET', `/schema${scope ? `?${params}` : ''}`))['sdl']);
   }
   async raw(document: string, variables: object): Promise<Record<string, unknown>> {
     if (new TextEncoder().encode(JSON.stringify({ query: document, variables })).length > 65536)
       throw new GridRequestError('query-limit');
     return this.graphql(document, variables);
+  }
+  async rawResponse(document: string, variables: object): Promise<GridRawResponse> {
+    if (new TextEncoder().encode(JSON.stringify({ query: document, variables })).length > 65536)
+      throw new GridRequestError('query-limit');
+    const response = await this.graphql(document, variables, 'raw');
+    const data = object(response['data']);
+    const errors = array(response['errors'] ?? []).map(value => {
+      const error = object(value);
+      const code = error['extensions'] && object(error['extensions'])['code'];
+      return {
+        code: typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(code) ? code : 'FIELD_ERROR',
+        path: array(error['path']) as (string | number)[],
+      };
+    });
+    return errors.length ? { data, errors } : { data };
   }
   async generate(request: GridQuery) {
     const scope: GridScope = {
@@ -209,7 +240,9 @@ export class RecordGridService extends HttpClientService implements DataGridSour
             'query-limit',
             'schema-changed',
             'filter-type-changed',
+            'filter-cardinality-changed',
             'sort-type-changed',
+            'sort-cardinality-changed',
             'invalid-definition',
             'catalogue-limit',
             'query-unavailable',
@@ -250,7 +283,11 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     if (!definition.id || !definition.revision) throw new GridRequestError('invalid-definition');
     await this.persistence('DELETE', `/${encodeURIComponent(definition.id)}`, { revision: definition.revision });
   }
-  private async graphql(query: string, variables: object): Promise<Record<string, unknown>> {
+  private async graphql(
+    query: string,
+    variables: object,
+    partial: boolean | 'raw' = false
+  ): Promise<Record<string, unknown>> {
     await this.waitForInit();
     try {
       const response = object(
@@ -267,9 +304,35 @@ export class RecordGridService extends HttpClientService implements DataGridSour
       );
       if (response['errors'] !== undefined) {
         const errors = array(response['errors']);
-        if (errors.length) throw this.graphqlError(errors);
+        if (!partial && errors.length) throw this.graphqlError(errors);
+        const fatalErrors = errors.filter(value => {
+          const path = object(value)['path'];
+          if (partial === 'raw') {
+            if (
+              !Array.isArray(path) ||
+              path.length < 2 ||
+              path.length > 32 ||
+              typeof path[0] !== 'string' ||
+              path.some(part => typeof part !== 'string' && (!Number.isSafeInteger(part) || Number(part) < 0))
+            )
+              return true;
+            const data = response['data'];
+            if (!data || typeof data !== 'object' || Array.isArray(data) || !Object.hasOwn(data, path[0])) return true;
+            const root = Reflect.get(data, path[0]);
+            return !root || typeof root !== 'object';
+          }
+          return (
+            !Array.isArray(path) ||
+            path[0] !== 'records' ||
+            path[1] !== 'nodes' ||
+            !Number.isSafeInteger(path[2]) ||
+            Number(path[2]) < 0 ||
+            path.length < 4
+          );
+        });
+        if (fatalErrors.length) throw this.graphqlError(partial === 'raw' ? fatalErrors : errors);
       }
-      return object(response['data']);
+      return partial ? response : object(response['data']);
     } catch (error) {
       throw this.requestError(error);
     }
@@ -287,6 +350,9 @@ export class RecordGridService extends HttpClientService implements DataGridSour
       COLLECTION_LIMIT: 'collection-limit',
       QUERY_LIMIT: 'query-limit',
       UNKNOWN_FIELD: 'schema-changed',
+      CATALOGUE_CHANGED: 'schema-changed',
+      FILTER_CARDINALITY_CHANGED: 'filter-cardinality-changed',
+      SORT_CARDINALITY_CHANGED: 'sort-cardinality-changed',
       UNKNOWN_WORKFLOW_STAGE: 'schema-changed',
       UNKNOWN_RECORD_TYPE: 'schema-changed',
       UNSUPPORTED_FILTER: 'schema-changed',

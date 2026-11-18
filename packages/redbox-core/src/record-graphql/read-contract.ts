@@ -10,7 +10,10 @@ export interface ReadContractCandidate {
   readonly configuration: RecordContractEffectiveForm;
 }
 
-/** Read configured forms directly: UI edit filtering is not a metadata read ACL. */
+/** Read configured forms directly: UI edit filtering is not a metadata read ACL.
+ * The catalogue scan is bounded by types, forms and steps. The compilation limit
+ * applies after the editor scope selects its variants.
+ */
 export async function configuredReadContracts(brand: BrandingModel): Promise<readonly ReadContractCandidate[]> {
   const [forms, types] = await Promise.all([
     firstValueFrom(FormsService.listForms(brand.id)),
@@ -39,8 +42,35 @@ export async function configuredReadContracts(brand: BrandingModel): Promise<rea
         form: form.name,
         configuration: form.configuration,
       });
-      if (candidates.length > 100) throw new Error('Read variants exceed their bound.');
     }
   }
   return candidates;
+}
+
+/** Only unanimous hints from the selected variants may choose a default identity/column. */
+export function applyReadPresentationHints(
+  catalogue: import('./grid-types').GridCatalogue,
+  contracts: readonly import('../record-contract').RecordContract[]
+): void {
+  const variants = contracts.filter(
+    contract =>
+      contract.context.recordType === catalogue.recordType &&
+      catalogue.variants.some(
+        variant => variant.form === contract.context.form && variant.workflowStage === contract.context.workflowStep
+      )
+  );
+  for (const field of catalogue.fields) {
+    if (!field.selectable || !field.availableInAllVariants || !field.id.startsWith('metadata:') || field.nested)
+      continue;
+    const name = field.path.slice(1).replace(/~1/g, '/').replace(/~0/g, '~');
+    const nodes = variants.map(contract => contract.root.properties[name]);
+    if (!nodes.length) continue;
+    field.identity = nodes.every(node => node?.annotations?.extensions?.['x-redbox-identity'] === true);
+    const order = nodes[0]?.annotations?.extensions?.['x-redbox-default-column'];
+    if (
+      typeof order === 'number' &&
+      nodes.every(node => node?.annotations?.extensions?.['x-redbox-default-column'] === order)
+    )
+      field.defaultColumn = order;
+  }
 }

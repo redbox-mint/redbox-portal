@@ -1,6 +1,6 @@
 import { printSchema, GraphQLError, type GraphQLSchema } from 'graphql';
 import { firstValueFrom } from 'rxjs';
-import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
+import type { GridPorts, RecordCollectionStorage } from '../record-graphql/grid-types';
 import { Services as services } from '../CoreService';
 import { recordGraphql, validateRecordGraphqlConfig, type RecordGraphqlConfig } from '../config/recordGraphql.config';
 import { recordSchema } from '../config/recordSchema.config';
@@ -12,6 +12,7 @@ import {
   type RecordContractContributorRegistry,
   type RecordContractRegistrationIssue,
 } from '../record-contract';
+import { scopeReadCandidates, type ReadSchemaScope } from '../record-graphql/schema-scope';
 import { configuredReadContracts, type ReadContractCandidate } from '../record-graphql/read-contract';
 import { createRecordYoga, QUERY_LIMITS } from '../record-graphql/schema';
 import { isObject } from '../record-graphql/renderer';
@@ -26,16 +27,9 @@ export interface RecordGraphqlDependencies extends ReadPorts, GridPorts {
   readonly getContributorRegistrationIssues: () => readonly RecordContractRegistrationIssue[];
 }
 
-interface GridSearchAdapter {
-  getRecordQuerySchema: (coreId: string, deadline: number) => Promise<GridIndexSchema>;
-  searchRecordPage: (coreId: string, params: URLSearchParams, deadline: number) => Promise<GridIndexPage>;
-}
-function hasGridSearch(value: unknown): value is GridSearchAdapter {
+function hasCollectionStorage(value: unknown): value is RecordCollectionStorage {
   return (
-    value !== null &&
-    typeof value === 'object' &&
-    typeof Reflect.get(value, 'getRecordQuerySchema') === 'function' &&
-    typeof Reflect.get(value, 'searchRecordPage') === 'function'
+    value !== null && typeof value === 'object' && typeof Reflect.get(value, 'executeRecordCollection') === 'function'
   );
 }
 
@@ -76,21 +70,17 @@ export namespace Services {
         getReusableDefinitions: () => sails.config.reusableFormDefinitions,
         getContributorRegistry: () => undefined,
         getContributorRegistrationIssues: () => [],
-        getGridEnvironment: async (caller, recordType, deadline) => {
+        getGridEnvironment: async (caller, recordType) => {
           const type = await firstValueFrom(RecordTypesService.get(caller.brand, recordType));
           if (!type)
             throw new GraphQLError('Record type is unavailable.', { extensions: { code: 'UNKNOWN_RECORD_TYPE' } });
-          const coreId = type.searchCore || 'default';
-          const config = sails.config.solr.cores[coreId];
-          const search: unknown = sails.services[sails.config.search.serviceName];
-          if (!config || !hasGridSearch(search))
-            throw new GraphQLError('Configured search backend does not support record grids.', {
+          const storage: unknown = sails.services[sails.config.storage.serviceName];
+          if (!hasCollectionStorage(storage))
+            throw new GraphQLError('Configured storage provider does not support record collections.', {
               extensions: { code: 'COLLECTION_UNAVAILABLE' },
             });
-          const schema = await search.getRecordQuerySchema(coreId, deadline);
           const steps = await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(type));
           return {
-            coreId,
             recordTypeLabel: sails.config.recordtype?.[recordType]?.labels?.name || recordType,
             workflowLabels: steps.flatMap(step => {
               const workflow = isObject(step.config) && isObject(step.config.workflow) ? step.config.workflow : {};
@@ -98,9 +88,7 @@ export namespace Services {
                 ? [{ value: workflow.stage, label: workflow.stageLabel }]
                 : [];
             }),
-            config,
-            schema,
-            search: (params, until) => search.searchRecordPage(coreId, params, until),
+            execute: request => storage.executeRecordCollection(request),
             cursorSecret: this.dependencies.getConfig().cursorSecret,
           };
         },
@@ -128,13 +116,15 @@ export namespace Services {
       /* Configuration and contributor discovery are read at request time. */
     }
 
-    /** Private service tooling for integration owners; no HTTP schema-discovery route. */
-    public async describeReadSchema(caller: ReadCaller): Promise<string> {
-      return printSchema((await this.resolveReadSchema(caller)).schema);
+    /** SDL tooling for integration owners and the admin editor. */
+    public async describeReadSchema(caller: ReadCaller, scope?: ReadSchemaScope): Promise<string> {
+      return printSchema((await this.resolveReadSchema(caller, false, scope)).schema);
     }
 
-    /** Static named-query validation reuses the deployed schema and scalar contracts.
-     * This never executes resolvers or reads records. Callers supply trusted scope.
+    /** Static named-query validation uses the same global read schema as execution.
+     * Scoped discovery only bounds editor SDL. Invalid forms anywhere in the
+     * global catalogue fail validation closed, even if scoped discovery succeeds.
+     * Validation never executes resolvers or reads records.
      */
     public async getReadSchema(caller: ReadCaller): Promise<GraphQLSchema> {
       if (
@@ -179,6 +169,9 @@ export namespace Services {
       const deadline = Math.min(Date.now() + QUERY_LIMITS.timeoutMs, until ?? Infinity);
       try {
         const work = async (): Promise<RecordGraphqlResponse> => {
+          // Scoped discovery only bounds editor SDL. Execution compiles the global
+          // schema and deliberately fails closed with 503 UNAVAILABLE if an
+          // unrelated form is invalid, even when scoped discovery succeeds.
           const { yoga } = await this.resolveReadSchema(caller);
           if (Date.now() >= deadline) return graphqlFailure(503, 'QUERY_TIMEOUT', 'Read query timed out.');
           // Sails has consumed the HTTP body. Rebuild a bounded fetch request for Yoga.
@@ -216,7 +209,11 @@ export namespace Services {
       }
     }
 
-    private async resolveReadSchema(caller: ReadCaller, schemaOnly = false): Promise<ReadSchema> {
+    private async resolveReadSchema(
+      caller: ReadCaller,
+      schemaOnly = false,
+      scope?: ReadSchemaScope
+    ): Promise<ReadSchema> {
       const config = this.dependencies.getConfig();
       validateRecordGraphqlConfig(config);
       if (!config.enabled && !schemaOnly) {
@@ -233,9 +230,12 @@ export namespace Services {
         this.cache.clear();
         throw new Error('Record contributors are unavailable.');
       }
-      // Reload the scoped configuration on every request, so administrative edits
-      // and hook changes cannot leave a cached schema stale until a TTL expires.
-      const candidates = await this.dependencies.getCandidates(caller);
+      // Reload configuration on every request so administrative and hook changes
+      // invalidate cached schemas. Only editor SDL discovery supplies a scope.
+      // An invalid form anywhere in the global catalogue makes execution fail
+      // closed with 503 UNAVAILABLE.
+      const allCandidates = await this.dependencies.getCandidates(caller);
+      const candidates = scopeReadCandidates(allCandidates, scope);
       if (candidates.length > config.maxVariants) throw new Error('Read variants exceed their bound.');
       const reusableFormDefinitions = this.dependencies.getReusableDefinitions();
       const fingerprint = formatRecordFormCatalogueFingerprint(candidates, reusableFormDefinitions);

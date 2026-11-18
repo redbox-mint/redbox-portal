@@ -1,4 +1,4 @@
-import type { SolrCoreConfig, SolrFieldDefinition } from '../config/solr.config';
+import type { RecordContract } from '../record-contract';
 import type { ReadCaller } from './read-record';
 
 export const COLLECTION_ROW = Symbol('record-grid-row');
@@ -16,9 +16,15 @@ export const GRID_LIMITS = Object.freeze({
   candidates: 200,
   batchSize: 50,
   cursorBytes: 8_192,
+  storageTimeoutMs: 5_000,
+  storageBytes: 262_144,
   cursorAgeMs: 3_600_000,
 });
 export type GridScalar = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME' | 'OBJECT' | 'JSON' | 'MIXED';
+/** SCALAR fields hold one value. LIST fields hold a declared array; scalar-list
+ * predicates match any valid element and sorting uses the minimum (ASC) or
+ * maximum (DESC) valid element. */
+export type GridCardinality = 'SCALAR' | 'LIST';
 export type GridOperator = 'EQ' | 'CONTAINS' | 'IPREFIX' | 'IN' | 'GT' | 'LT' | 'BETWEEN' | 'EXISTS';
 export interface GridValue {
   text?: string;
@@ -28,6 +34,7 @@ export interface GridValue {
 }
 export interface GridFilter {
   field: string;
+  expectedCardinality?: GridCardinality;
   eq?: GridValue;
   contains?: string;
   iprefix?: string;
@@ -39,10 +46,12 @@ export interface GridFilter {
 }
 export interface GridSort {
   field: string;
+  expectedCardinality?: GridCardinality;
   direction: 'ASC' | 'DESC';
 }
 export interface GridQuery {
   recordType: string;
+  revision?: string;
   workflowStages?: string[];
   filters?: GridFilter[];
   sort?: GridSort[];
@@ -69,12 +78,16 @@ export interface GridField {
   groupPath?: string[];
   repeatingSubfield?: boolean;
   repeatingGroupId?: string | null;
+  /** Explicit authoring hints; clients must still check selectable and variant availability. */
+  identity?: boolean;
+  defaultColumn?: number;
   scalarType: GridScalar;
   selectable: boolean;
   availableInAllVariants: boolean;
   nullable: boolean;
   nested: boolean;
   repeating: boolean;
+  cardinality: GridCardinality;
   filterable: boolean;
   operators: GridOperator[];
   sortable: boolean;
@@ -97,25 +110,33 @@ export interface GridCatalogue {
   fields: GridField[];
   variants: GridVariant[];
 }
-export interface GridIndexSchema {
-  copyFields?: Array<{ source: string; dest: string }>;
-  uniqueKey: string;
-  fields: SolrFieldDefinition[];
-  fieldTypes: Array<{ name: string; class: string }>;
-  dynamicFields: SolrFieldDefinition[];
+/** Normalized scalar keys in requested sort order, including deterministic OID ordering. */
+export type GridKey = string | number | boolean | null;
+export interface GridPosition {
+  keys: GridKey[];
 }
-export interface GridIndexPage {
-  oids: string[];
-  nextCursor: string;
+export interface GridCandidate extends GridPosition {
+  oid: string;
+}
+export interface GridStoragePage {
+  candidates: GridCandidate[];
   exhausted: boolean;
+}
+/** Trusted server context and contracts only. No Mongo paths, operators or pipelines cross this boundary. */
+export interface GridStorageRequest {
+  caller: ReadCaller;
+  contracts: readonly RecordContract[];
+  query: GridQuery;
+  after?: GridPosition;
+  deadline: number;
+}
+export interface RecordCollectionStorage {
+  executeRecordCollection(request: GridStorageRequest): Promise<GridStoragePage>;
 }
 export interface GridEnvironment {
   recordTypeLabel?: string;
   workflowLabels?: Array<{ value: string; label: string }>;
-  coreId: string;
-  config: SolrCoreConfig;
-  schema: GridIndexSchema;
-  search: (params: URLSearchParams, deadline: number) => Promise<GridIndexPage>;
+  execute: RecordCollectionStorage['executeRecordCollection'];
   cursorSecret?: string;
 }
 export interface GridPorts {

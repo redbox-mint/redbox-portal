@@ -299,3 +299,6 @@ export * from './model/storage/FigshareSyncModel';
 export { EmailTemplateError, EmailTemplateConflictError } from './services/EmailTemplateService';
 export type { EmailTemplateContent, ResolvedEmailTemplate, EmailTemplateErrorCode } from './services/EmailTemplateService';
 export type { EmailRenderContext } from './services/EmailService';
+
+export { MongoRecordCollectionProvider, compileCollectionPipeline } from './record-graphql/mongo';
+export type { GridStorageRequest, GridStoragePage, RecordCollectionStorage } from './record-graphql/grid-types';

@@ -50,12 +50,34 @@ export namespace Controllers {
     public list(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, async () => {
         const { scope } = savedGridContext(req);
-        const page = await SavedGridService.list(scope, req.query.after === undefined ? undefined : this.parse(savedGridId, req.query.after));
+        const page = await SavedGridService.list(
+          scope,
+          req.query.after === undefined ? undefined : this.parse(savedGridId, req.query.after)
+        );
         return { ...page, grids: await publishedExplorations(scope, page.grids) };
       });
     }
     public schema(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () => SavedGridService.schema(savedGridContext(req).caller));
+      return this.run(req, res, () => {
+        const { caller } = savedGridContext(req);
+        const query = this.parse(
+          z.strictObject({
+            recordType: z.string().min(1).max(200).optional(),
+            workflowStage: z.string().min(1).max(200).optional(),
+          }),
+          req.query
+        );
+        if (query.workflowStage && !query.recordType) throw new SavedGridError(400, 'invalid-definition');
+        return SavedGridService.schema(
+          caller,
+          query.recordType
+            ? {
+                recordType: query.recordType,
+                ...(query.workflowStage ? { workflowStages: [query.workflowStage] } : {}),
+              }
+            : undefined
+        );
+      });
     }
     public stages(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, () =>

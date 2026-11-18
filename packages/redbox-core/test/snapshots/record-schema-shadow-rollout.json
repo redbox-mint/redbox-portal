@@ -42,8 +42,8 @@
     },
     "maxDocumentBytes": {
       "limit": 1048576,
-      "observedMaximum": 6307,
-      "remaining": 1042269
+      "observedMaximum": 6367,
+      "remaining": 1042209
     },
     "maxDiagnostics": {
       "limit": 1000,
@@ -255,9 +255,9 @@
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "create",
-      "digest": "7c983e79e0714ab7ee88856da01371611bf89e545d72cc04af5f1b6ca9ac9739",
+      "digest": "432048a22f29680f81a1ee6c04f96a0ced14fc29d636987b7a75f74f47ce095e",
       "completeness": "partial",
-      "byteLength": 4430,
+      "byteLength": 4490,
       "observedNodeDepth": 5,
       "observedProperties": 45,
       "diagnosticCount": 2,
@@ -268,9 +268,9 @@
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "update",
-      "digest": "bbebcd6a74531e2efb5cb19fe0a3022005c1e851f6d2d16f980f8bdc8176d57e",
+      "digest": "f123bce453de272a9713907bf334d70bffb979452fcb96360ee05f4b5346bdae",
       "completeness": "partial",
-      "byteLength": 4430,
+      "byteLength": 4490,
       "observedNodeDepth": 5,
       "observedProperties": 45,
       "diagnosticCount": 2,
@@ -281,9 +281,9 @@
     {
       "form": "dev-hook/default-1.0-draft",
       "kind": "create",
-      "digest": "71e3fb79169bd877f902d473fde8cbe71dc437ed197562f30aa46f4fef05a5e5",
+      "digest": "2a90e5ce5d1469301e3340cfaaf4d3decd9414353035924b5a8a41f06577d1a5",
       "completeness": "partial",
-      "byteLength": 6307,
+      "byteLength": 6367,
       "observedNodeDepth": 5,
       "observedProperties": 54,
       "diagnosticCount": 4,
@@ -294,9 +294,9 @@
     {
       "form": "dev-hook/default-1.0-draft",
       "kind": "update",
-      "digest": "7b63d57b17f525dcbbe0c51c0c3c050a95498c6cc7dae916ae79cb5534dbdb1c",
+      "digest": "65cf7ef989f66fd0e5edd21aac058bf784d40ea049950a6cd5977a6b2438d872",
       "completeness": "partial",
-      "byteLength": 6307,
+      "byteLength": 6367,
       "observedNodeDepth": 5,
       "observedProperties": 54,
       "diagnosticCount": 4,
@@ -359,9 +359,9 @@
     {
       "form": "dev-hook/related-activity-1.0-draft",
       "kind": "create",
-      "digest": "bd514d3301dde30e35251eedc92c0794a9eed55cb8fd8d8860d5f97250f20948",
+      "digest": "33d3518b8c2c169726ce8ea139d1c2601b90a4028b1d6942773abe36b40d18b8",
       "completeness": "complete",
-      "byteLength": 730,
+      "byteLength": 780,
       "observedNodeDepth": 1,
       "observedProperties": 3,
       "diagnosticCount": 0,
@@ -372,9 +372,9 @@
     {
       "form": "dev-hook/related-activity-1.0-draft",
       "kind": "update",
-      "digest": "9267ef9eef6fba525964ba5f1328b8f929eb93ed0789e6f6832b0c2fbeb29469",
+      "digest": "592d3e97ec478683b1a229949d70bec07f6a7b7330ce6d7b92f33b5cc551130e",
       "completeness": "complete",
-      "byteLength": 730,
+      "byteLength": 780,
       "observedNodeDepth": 1,
       "observedProperties": 3,
       "diagnosticCount": 0,

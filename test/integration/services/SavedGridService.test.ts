@@ -3,10 +3,9 @@ import { randomUUID } from 'node:crypto';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
 import type { Db } from 'mongodb';
-import { recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
-import axios from 'axios';
+import { recordGraphql } from '@researchdatabox/redbox-core';
 
-/** Run in the lifted Docker Mocha suite with the GraphQL parent enabled and Solr ready.
+/** Run in the lifted Docker Mocha suite with the GraphQL enabled.
  * Can also be loaded by Mocha inside an existing isolated runtime (no bootstrap/drop).
  * Uses real registered HTTP actions, Passport sessions, CSRF middleware and Mongo. */
 describe('Saved-grid HTTP and Mongo integration', function () {
@@ -75,11 +74,6 @@ describe('Saved-grid HTTP and Mongo integration', function () {
     sails.config.security.csrf = true;
     assert.ok(sails.config.security.csrf, 'Run with RBPORTAL_TEST_CSRF=true / security.csrf=true');
     assert.ok(SavedGrid && SavedGridService, 'Regenerate shims and build core before running');
-    const options = sails.config.solr.cores.default.options;
-    const solrUrl = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
-    const live: { fields: Array<{ name: string }> } = (await axios.get(`${solrUrl}/schema`)).data.schema;
-    const missing = SOLR_RECORD_GRID_FIELDS.filter(field => !live.fields.some(found => found.name === field.name));
-    if (missing.length) await axios.post(`${solrUrl}/schema`, { 'add-field': missing });
     const app = sails.hooks.http.app;
     admin = supertest.agent(app);
     anonymous = supertest.agent(app);

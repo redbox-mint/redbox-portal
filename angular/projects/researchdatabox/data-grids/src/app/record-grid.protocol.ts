@@ -1,4 +1,8 @@
-import { recordGridFilter } from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
+import {
+  recordGridFilter,
+  recordGridSort,
+  isWellFormedRecordGridText,
+} from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
 import { recordGridRequest } from '@researchdatabox/sails-ng-common/dist/src/record-grid-query';
 import {
   GridDefinition,
@@ -7,14 +11,17 @@ import {
   validCellValue,
   GridFilter,
   GridScalarType,
+  GridCardinality,
   GridField,
   GridPage,
+  GridFieldError,
   GridQuery,
   GridScope,
   Operator,
   queryFor,
   validatePage,
   scalarTypeFor,
+  cardinalityFor,
 } from './data-grid.model';
 import { GridRequestError } from './data-grid-source';
 
@@ -32,7 +39,7 @@ export interface Discovery {
   stages: string[];
   fields: DiscoveredField[];
 }
-const operators: Operator[] = ['eq', 'contains', 'in', 'gt', 'lt', 'between', 'exists'];
+const operators: Operator[] = ['eq', 'contains', 'iprefix', 'in', 'gt', 'lt', 'between', 'exists'];
 const invalid = (): never => {
   throw new GridRequestError('invalid-response');
 };
@@ -53,7 +60,7 @@ export function scopeId(type: string, stage?: string): string {
   return JSON.stringify([type, stage ?? null]);
 }
 
-export const FIELD_PROPERTIES = `id path label labelKey displayLabel displayLabelKey group groupKey groupPath repeatingSubfield repeatingGroupId scalarType repeating selectable availableInAllVariants
+export const FIELD_PROPERTIES = `id path label labelKey displayLabel displayLabelKey group groupKey groupPath repeatingSubfield repeatingGroupId identity defaultColumn scalarType repeating cardinality selectable availableInAllVariants
   filterable operators sortable choices { label value }`;
 export function discoveryQuery(selections: boolean): string {
   return `query GridFields($type: String!, $stages: [String!], $ids: [ID!]) {
@@ -118,10 +125,28 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
       typeof field['group'] === 'string' ? field['group'] : ''
     );
     const allVariants = boolean(field['availableInAllVariants']);
+    const repeating = boolean(field['repeating']);
+    const declared = field['cardinality'];
+    if (declared !== undefined && declared !== null && declared !== 'SCALAR' && declared !== 'LIST') return invalid();
+    const cardinality: GridCardinality | undefined =
+      declared === 'LIST' || declared === 'SCALAR' ? declared : repeating ? undefined : 'SCALAR';
+    // Repeating values are queryable only as declared scalar lists; others stay column-only.
+    const queryable =
+      ['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(scalar) &&
+      allVariants &&
+      (repeating ? cardinality === 'LIST' : cardinality === 'SCALAR');
     return {
       id: string(field['id']),
       path: typeof field['path'] === 'string' ? field['path'] : undefined,
       label: shortLabel,
+      identity: field['identity'] === true && allVariants,
+      defaultColumn:
+        Number.isSafeInteger(field['defaultColumn']) &&
+        Number(field['defaultColumn']) >= 0 &&
+        Number(field['defaultColumn']) < 50 &&
+        allVariants
+          ? Number(field['defaultColumn'])
+          : undefined,
       group,
       groupPath: Array.isArray(field['groupPath'])
         ? field['groupPath'].map(g => {
@@ -134,7 +159,8 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
       type,
       integer: scalar === 'INTEGER',
       partial: !allVariants,
-      repeating: boolean(field['repeating']),
+      repeating,
+      ...(cardinality ? { cardinality } : {}),
       selectable:
         boolean(field['selectable']) &&
         (boolean(field['repeating']) ||
@@ -144,13 +170,9 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
         .map(value => string(value).toLowerCase())
         .filter(
           (value): value is Operator =>
-            operators.includes(value as Operator) &&
-            !boolean(field['repeating']) &&
-            scalar !== 'OBJECT' &&
-            allVariants &&
-            boolean(field['filterable'])
+            operators.includes(value as Operator) && queryable && boolean(field['filterable'])
         ),
-      sortable: boolean(field['sortable']) && !boolean(field['repeating']) && scalar !== 'OBJECT' && allVariants,
+      sortable: boolean(field['sortable']) && queryable,
       choices: array(field['choices']).map(value => {
         const choice = object(value);
         const choiceValue = choice['value'];
@@ -200,6 +222,14 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
     )
   )
     throw new GridRequestError('filter-type-changed');
+  if (
+    request.definition.filters.some(filter =>
+      discovery.fields.some(
+        field => field.id === filter.fieldId && (filter.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)
+      )
+    )
+  )
+    throw new GridRequestError('filter-cardinality-changed');
   const sort = request.definition.sort;
   if (
     sort &&
@@ -207,6 +237,13 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
       discovery.fields.some(field => field.id === sort.fieldId && sort.expectedScalarType !== scalarTypeFor(field)))
   )
     throw new GridRequestError('sort-type-changed');
+  if (
+    sort &&
+    discovery.fields.some(
+      field => field.id === sort.fieldId && (sort.expectedCardinality ?? 'SCALAR') !== cardinalityFor(field)
+    )
+  )
+    throw new GridRequestError('sort-cardinality-changed');
   queryFor(request.definition, { ...scope, fields: discovery.fields }, request.after);
   const filters = request.definition.filters.map(filter => {
     const field = discovery.fields.find(field => field.id === filter.fieldId)!;
@@ -215,28 +252,127 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
       // parseDiscovery strips operators when the real filterable flag is false.
       filterable: field.operators.length > 0,
       repeating: !!field.repeating,
+      ...(field.cardinality ? { cardinality: field.cardinality } : {}),
       availableInAllVariants: !field.partial,
       operators: field.operators,
     });
   });
+  const sortField = sort && discovery.fields.find(field => field.id === sort.fieldId);
+  const sorts =
+    sort && sortField
+      ? [
+          recordGridSort(sort, {
+            scalarType: scalarTypeFor(sortField) ?? '',
+            sortable: sortField.sortable,
+            repeating: !!sortField.repeating,
+            ...(sortField.cardinality ? { cardinality: sortField.cardinality } : {}),
+            availableInAllVariants: !sortField.partial,
+          }),
+        ]
+      : [];
   const fields = request.definition.columns.map(id => discovery.fields.find(field => field.id === id)!);
   if (fields.some(field => !field.selections.length)) return invalid();
   const selections = fields.flatMap(field => field.selections);
   return recordGridRequest({
     recordType: scope.recordType,
+    revision: discovery.revision,
     workflowStage: scope.workflowStage,
     selections,
     filters,
-    sort: request.definition.sort
-      ? [{ field: request.definition.sort.fieldId, direction: request.definition.sort.direction.toUpperCase() }]
-      : [],
+    sort: sorts,
     first: request.definition.pageSize,
     after: request.after,
   });
 }
-export function parsePage(value: unknown, request: GridQuery, fields: DiscoveredField[]): GridPage {
+/** Match a field's path or a related error path, respecting list boundaries. */
+export function fieldErrorLocation(
+  path: (string | number)[],
+  responsePath: string[],
+  value: unknown,
+  field?: Pick<GridField, 'repeating' | 'repeatingSubfield'>,
+  includeAncestors = false
+): 'field' | 'nested' | undefined {
+  let matched = 0;
+  let nested = false;
+  for (const segment of path) {
+    const belowField = matched === responsePath.length;
+    if (typeof segment === 'number') {
+      if (!belowField && field?.repeatingSubfield === false) return undefined;
+      if (belowField && !nested && field?.repeating === false) return undefined;
+      // An error can leave the value null, so use the response shape when it is available.
+      if (value != null && !Array.isArray(value)) return undefined;
+      value = Array.isArray(value) ? value[segment] : undefined;
+    } else {
+      if (Array.isArray(value) || (!belowField && segment !== responsePath[matched])) return undefined;
+      if (!belowField) matched++;
+      value =
+        value != null && typeof value === 'object' && Object.hasOwn(value, segment)
+          ? Reflect.get(value, segment)
+          : undefined;
+    }
+    nested ||= belowField;
+  }
+  if (matched === responsePath.length) return nested ? 'nested' : 'field';
+  if (includeAncestors) return 'field';
+  return undefined;
+}
+
+/** Match response aliases and keep diagnostics without a matching field. */
+export function partialFieldErrors(
+  value: unknown,
+  records: unknown,
+  request: GridQuery,
+  fields: DiscoveredField[]
+): GridFieldError[] {
+  if (value === undefined) return [];
+  const nodes = array(object(records)['nodes']);
+  return array(value).flatMap(value => {
+    const error = object(value);
+    const path = array(error['path']);
+    if (path.some(part => typeof part !== 'string' && (!Number.isSafeInteger(part) || Number(part) < 0)))
+      return invalid();
+    const row = Number(path[2]);
+    if (!nodes[row]) return invalid();
+    const node = object(nodes[row]);
+    const code = error['extensions'] && object(error['extensions'])['code'];
+    const diagnostic: GridFieldError = {
+      code: typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(code) ? code : 'FIELD_ERROR',
+      path: path as (string | number)[],
+      row,
+      oid: string(node['oid']),
+    };
+    if (path[0] !== 'records' || path[1] !== 'nodes') return [diagnostic];
+    const relative = diagnostic.path.slice(3);
+    const matches = fields.flatMap(field => {
+      if (!request.definition.columns.includes(field.id)) return [];
+      for (const { responsePath, variant } of field.selections) {
+        if (responsePath[0] === 'metadata' && node['metadata'] && variant !== object(node['metadata'])['__typename'])
+          continue;
+        const location = fieldErrorLocation(relative, responsePath, node, field, true);
+        if (location)
+          return [
+            {
+              ...diagnostic,
+              fieldId: field.id,
+              label: field.label,
+              ...(location === 'nested' ? { nested: true } : {}),
+            },
+          ];
+      }
+      return [];
+    });
+    return matches.length ? matches : [diagnostic];
+  });
+}
+
+export function parsePage(
+  value: unknown,
+  request: GridQuery,
+  fields: DiscoveredField[],
+  errors: GridFieldError[] = []
+): GridPage {
   const data = object(value);
-  const rows = array(data['nodes']).map(value => {
+  const rows = array(data['nodes']).map((value, row) => {
     const node = object(value);
     const values: Record<string, JsonValue> = Object.create(null);
     for (const id of request.definition.columns) {
@@ -253,7 +389,11 @@ export function parsePage(value: unknown, request: GridQuery, fields: Discovered
         for (const segment of selection.responsePath) {
           if (result === null) break;
           const parent = object(result);
-          if (!Object.prototype.hasOwnProperty.call(parent, segment)) return invalid();
+          if (!Object.hasOwn(parent, segment)) {
+            if (!errors.some(error => error.row === row && error.fieldId === id)) return invalid();
+            result = null;
+            break;
+          }
           result = parent[segment];
         }
       }
@@ -334,6 +474,7 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
     switch (value) {
       case 'eq':
       case 'contains':
+      case 'iprefix':
       case 'in':
       case 'gt':
       case 'lt':
@@ -357,9 +498,11 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
         return invalid();
     }
   };
+  const parseCardinality = (value: unknown): { expectedCardinality?: GridCardinality } =>
+    value === undefined ? {} : value === 'SCALAR' || value === 'LIST' ? { expectedCardinality: value } : invalid();
   const filters: GridFilter[] = array(grid['filters']).map(value => {
     const filter = object(value);
-    keys(filter, ['fieldId', 'operator', 'values', 'expectedScalarType']);
+    keys(filter, ['fieldId', 'operator', 'values', 'expectedScalarType', 'expectedCardinality']);
     const operator = parseOperator(filter['operator']);
     const values = array(filter['values']).map(string);
     if (
@@ -368,7 +511,8 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
       values.some(value => new TextEncoder().encode(value).length > 256) ||
       (operator !== 'in' && values.length !== (operator === 'between' ? 2 : 1)) ||
       (operator === 'exists' && !['true', 'false'].includes(values[0])) ||
-      (operator === 'contains' && !values[0])
+      (['contains', 'iprefix'].includes(operator) && !values[0]) ||
+      (operator === 'iprefix' && !isWellFormedRecordGridText(values[0]))
     )
       return invalid();
     return {
@@ -378,13 +522,14 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
       ...(filter['expectedScalarType'] === undefined
         ? {}
         : { expectedScalarType: parseScalar(filter['expectedScalarType']) }),
+      ...parseCardinality(filter['expectedCardinality']),
     };
   });
   if (filters.length > 10) return invalid();
   let sort: GridDefinition['sort'] = null;
   if (grid['sort'] !== null) {
     const value = object(grid['sort']);
-    keys(value, ['fieldId', 'direction', 'expectedScalarType']);
+    keys(value, ['fieldId', 'direction', 'expectedScalarType', 'expectedCardinality']);
     const direction = value['direction'];
     if (direction !== 'asc' && direction !== 'desc') return invalid();
     sort = {
@@ -393,6 +538,7 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
       ...(value['expectedScalarType'] === undefined
         ? {}
         : { expectedScalarType: parseScalar(value['expectedScalarType']) }),
+      ...parseCardinality(value['expectedCardinality']),
     };
   }
   return {

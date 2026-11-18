@@ -1,7 +1,11 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 
-import { formatRecordFormFingerprint, formatRecordFormCatalogueFingerprint } from '../../src/RecordFormFingerprint';
+import {
+  formatRecordFormFingerprint,
+  formatRecordFormCatalogueFingerprint,
+  formatRecordGridFingerprint,
+} from '../../src/RecordFormFingerprint';
 
 describe('RecordFormFingerprint', function () {
   it('is stable across object insertion order and changes with the form contract', function () {
@@ -53,5 +57,26 @@ describe('Record form catalogue fingerprint', function () {
     expect(formatRecordFormCatalogueFingerprint([{ configuration: 'a'.repeat(1_048_577) }], {})).to.equal(undefined);
     expect(formatRecordFormCatalogueFingerprint(forms, { definition: 'a'.repeat(1_048_577) })).to.equal(undefined);
     expect(formatRecordFormCatalogueFingerprint(Array(101).fill({}), {})).to.equal(undefined);
+  });
+});
+
+describe('Record grid fingerprint composition limits', function () {
+  it('retains per-part and aggregate byte/node limits without invoking getters', function () {
+    const part = { text: 'x'.repeat(600_000) };
+    expect(formatRecordGridFingerprint([part, part])).to.match(/^sha256:/);
+    expect(formatRecordGridFingerprint([{ text: 'x'.repeat(1_048_577) }])).to.equal(undefined);
+    expect(formatRecordGridFingerprint(Array(15).fill(part))).to.equal(undefined);
+    expect(formatRecordGridFingerprint(Array(1105).fill({}))).to.equal(undefined);
+    expect(formatRecordGridFingerprint(Array(6).fill(Array(45_000).fill(null)))).to.equal(undefined);
+    let called = false;
+    const accessor = Object.defineProperty({}, 'value', {
+      enumerable: true,
+      get: () => {
+        called = true;
+        throw new Error('secret');
+      },
+    });
+    expect(formatRecordGridFingerprint([accessor])).to.match(/^sha256:/);
+    expect(called).to.equal(false);
   });
 });

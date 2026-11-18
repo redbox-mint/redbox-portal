@@ -10314,6 +10314,11 @@
     "description": "Data grid admin: op contains",
     "contentFormat": "plain"
   },
+  "data-grids-op-iprefix": {
+    "category": "data-grids",
+    "description": "Data grid admin: op iprefix",
+    "contentFormat": "plain"
+  },
   "data-grids-op-gt": {
     "category": "data-grids",
     "description": "Data grid admin: op gt",
@@ -10337,6 +10342,91 @@
   "data-grids-op-exists": {
     "category": "data-grids",
     "description": "Data grid admin: op exists",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-eq": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value equals",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-contains": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value contains",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-iprefix": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value starts with (case-insensitive)",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-gt": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value greater than",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-lt": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value less than",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-between": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, a single value within the range",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-in": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value is one of",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-exists": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, at least one value",
+    "contentFormat": "plain"
+  },
+  "data-grids-ascending-list": {
+    "category": "data-grids",
+    "description": "Data grid admin: list sort direction, ascending by smallest value",
+    "contentFormat": "plain"
+  },
+  "data-grids-descending-list": {
+    "category": "data-grids",
+    "description": "Data grid admin: list sort direction, descending by largest value",
+    "contentFormat": "plain"
+  },
+  "data-grids-list-filter-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: help for list field conditions",
+    "contentFormat": "plain"
+  },
+  "data-grids-list-sort-help": {
+    "category": "data-grids",
+    "description": "Data grid admin: help for list field sorting",
+    "contentFormat": "plain"
+  },
+  "data-grids-filter-cardinality-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: filter list/single-value meaning changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-filter-cardinality": {
+    "category": "data-grids",
+    "description": "Data grid admin: confirm the current list/single-value filter meaning",
+    "contentFormat": "plain"
+  },
+  "data-grids-sort-cardinality-changed": {
+    "category": "data-grids",
+    "description": "Data grid admin: sort list/single-value meaning changed",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-sort-cardinality": {
+    "category": "data-grids",
+    "description": "Data grid admin: confirm the current list/single-value sort meaning",
+    "contentFormat": "plain"
+  },
+  "data-grids-repair-required": {
+    "category": "data-grids",
+    "description": "Data grid admin: condition requires repair",
     "contentFormat": "plain"
   },
   "data-grids-list-values": {

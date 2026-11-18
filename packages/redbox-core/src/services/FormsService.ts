@@ -253,6 +253,7 @@ export namespace Services {
           behaviours: formConfigRaw.behaviours as FormConfigFrame['behaviours'],
           defaultLayoutComponent: formConfigRaw.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
           componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],
+          readMetadata: formConfigRaw.readMetadata as FormConfigFrame['readMetadata'],
           debugValue: formConfigRaw.debugValue as FormConfigFrame['debugValue'],
           attachmentFields: (formConfigRaw.attachmentFields ?? []) as FormConfigFrame['attachmentFields'],
           serverSyncOnSave: formConfigRaw.serverSyncOnSave as FormConfigFrame['serverSyncOnSave'],

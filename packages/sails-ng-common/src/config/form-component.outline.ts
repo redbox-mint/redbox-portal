@@ -383,7 +383,26 @@ export interface FormOverrideConfigOutline extends FormOverrideConfigFrame {
 /**
  * The form component interface that provides typing for the object literal and schema.
  */
+/** Explicit persisted read shape. Objects expose only named properties; no raw JSON escape hatch. */
+export type MetadataReadShape = {
+  label?: string;
+} & (
+  | { type: 'string' | 'number' | 'integer' | 'boolean' }
+  | { type: 'object'; properties: Record<string, MetadataReadShape> }
+  | { type: 'array'; items: MetadataReadShape }
+);
+
+export interface MetadataReadConfiguration {
+  properties: Record<string, MetadataReadShape>;
+  /** Top-level metadata property used as the record's display identity. */
+  identity?: string;
+  /** Ordered top-level metadata properties offered as default columns. */
+  defaultColumns?: string[];
+}
+
 export interface FormComponentDefinitionFrame {
+  /** Explicit persisted read shape; write validation remains unchanged. */
+  readShape?: MetadataReadShape;
     /** Transient display output while this relation has a selected reference. */
     relatedDisplay?: { relationId: string };
     /**

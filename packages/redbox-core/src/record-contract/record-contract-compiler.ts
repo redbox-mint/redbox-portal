@@ -1,3 +1,4 @@
+import { applyMetadataReadConfiguration, compileMetadataReadShape, retainReadPrivacy } from './read-authoring';
 import type {
   AvailableFormComponentDefinitionFrames,
   FormComponentDefinitionFrame,
@@ -493,6 +494,13 @@ export class RecordContractCompiler {
           state
         );
       }
+      if (snapshot.fieldMode === 'read')
+        root = applyMetadataReadConfiguration(
+          root,
+          snapshot.form.readMetadata,
+          snapshot.context.recordType,
+          this.limits
+        );
       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
       if (snapshot.fieldMode === 'read' && containsPermissiveNode(root)) state.partial = true;
       this.validateNodeBounds(root, 0, recordContractPointer(''));
@@ -596,6 +604,8 @@ export class RecordContractCompiler {
     }
     const reusableName = component.overrides?.reusableFormName;
     if (typeof reusableName === 'string' && reusableName !== '') {
+      if (request.fieldMode === 'read' && component.readShape !== undefined)
+        throw new Error('Declare readShape on the effective reusable field, not its usage.');
       return this.compileReusable(component, reusableName, parent, depth, request, state);
     }
 
@@ -623,6 +633,8 @@ export class RecordContractCompiler {
     }
     const registration = this.registry.component(componentType);
     if (!registration || registration.contributor.kind !== 'component') {
+      if (request.fieldMode === 'read' && component.readShape !== undefined)
+        throw new Error('Read shapes require a registered persisting component.');
       if (Object.hasOwn(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY, componentType)) {
         throw this.invalidFailure(
           'record-contract.uncovered-core-component',
@@ -645,6 +657,7 @@ export class RecordContractCompiler {
     let contribution: RecordContractComponentContribution;
     try {
       const compileContext = Object.freeze({
+        fieldMode: request.fieldMode ?? 'edit',
         component,
         pointer,
         publicContext: request.context,
@@ -705,6 +718,8 @@ export class RecordContractCompiler {
     }
 
     if (contribution.kind === 'non-persisting') {
+      if (request.fieldMode === 'read' && component.readShape !== undefined)
+        throw new Error('Read shapes require a persisted field.');
       if (!contribution.children || contribution.children.length === 0) {
         commitCompilerState(state, contributionState);
         return [];
@@ -785,6 +800,18 @@ export class RecordContractCompiler {
             },
           },
         },
+      };
+    }
+    if (request.fieldMode === 'read' && component.readShape !== undefined) {
+      // Keep the contributor's root nullability for non-null policies so the
+      // policy check still reports an invalid nullable contribution.
+      const nullable = contributor.nullability === 'non-null' ? contribution.node.nullable : true;
+      contribution = {
+        ...contribution,
+        node: retainReadPrivacy(
+          compileMetadataReadShape(component.readShape, this.limits, nullable),
+          contribution.node
+        ),
       };
     }
     try {

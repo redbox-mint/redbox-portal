@@ -565,6 +565,7 @@ export class FormOverride {
     // Apply the transform.
     const hasTransform = !!transformComponentClassName && !!transformFunc;
     const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
+    if (original.readShape !== undefined) result.readShape = original.readShape;
     if (original.relatedDisplay !== undefined) {
       result.relatedDisplay = { ...original.relatedDisplay };
     }

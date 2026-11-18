@@ -1,3 +1,4 @@
+import { applyReadPresentationHints } from './read-contract';
 import {
   GraphQLError,
   GraphQLBoolean,
@@ -35,17 +36,24 @@ const RangeInput = new GraphQLInputObjectType({
   name: 'RecordFilterRange',
   fields: { from: { type: new GraphQLNonNull(ValueInput) }, to: { type: new GraphQLNonNull(ValueInput) } },
 });
+const Cardinality = new GraphQLEnumType({
+  name: 'RecordFieldCardinality',
+  description:
+    'SCALAR fields hold one value. LIST fields hold a declared array. For queryable scalar lists, each filter matches any valid element (BETWEEN needs one element within both bounds), separate filters may match different elements, and ASC/DESC sorting uses the minimum/maximum valid element. Object and nested lists cannot filter or sort.',
+  values: { SCALAR: {}, LIST: {} },
+});
 const FilterInput = new GraphQLInputObjectType({
   name: 'RecordFilterInput',
   description: 'Exactly one supported operator. Filters are combined with AND.',
   fields: {
     field: { type: new GraphQLNonNull(GraphQLID) },
+    expectedCardinality: { type: Cardinality },
     eq: { type: ValueInput },
     contains: { type: GraphQLString },
     iprefix: {
       type: GraphQLString,
       description:
-        'Literal prefix ignoring ASCII A-Z case only; all other characters match exactly without Unicode normalization. Requires a verified companion binding. Nonempty, well-formed UTF-16, at most 256 UTF-8 bytes.',
+        'Literal prefix ignoring ASCII A-Z case only; all other characters match exactly without Unicode normalization. Nonempty, well-formed UTF-16, at most 256 UTF-8 bytes.',
     },
     in: { type: new GraphQLList(new GraphQLNonNull(ValueInput)) },
     gt: { type: ValueInput },
@@ -57,7 +65,11 @@ const FilterInput = new GraphQLInputObjectType({
 const Direction = new GraphQLEnumType({ name: 'RecordSortDirection', values: { ASC: {}, DESC: {} } });
 const SortInput = new GraphQLInputObjectType({
   name: 'RecordSortInput',
-  fields: { field: { type: new GraphQLNonNull(GraphQLID) }, direction: { type: new GraphQLNonNull(Direction) } },
+  fields: {
+    field: { type: new GraphQLNonNull(GraphQLID) },
+    direction: { type: new GraphQLNonNull(Direction) },
+    expectedCardinality: { type: Cardinality },
+  },
 });
 const scopeArgs = { recordType: { type: new GraphQLNonNull(GraphQLString) }, workflowStages: { type: stringList } };
 
@@ -99,6 +111,7 @@ const Choice = new GraphQLObjectType({
   name: 'RecordFieldChoice',
   fields: bounded({ label: { type: new GraphQLNonNull(GraphQLString) }, value: { type: JsonScalar } }),
 });
+
 const Field = new GraphQLObjectType({
   name: 'RecordField',
   fields: bounded({
@@ -113,6 +126,8 @@ const Field = new GraphQLObjectType({
     groupPath: { type: stringList },
     repeatingSubfield: { type: GraphQLBoolean },
     repeatingGroupId: { type: GraphQLID },
+    identity: { type: GraphQLBoolean },
+    defaultColumn: { type: GraphQLInt },
     scalarType: { type: new GraphQLNonNull(GraphQLString) },
     selectable: { type: new GraphQLNonNull(GraphQLBoolean) },
     filterable: { type: new GraphQLNonNull(GraphQLBoolean) },
@@ -121,6 +136,7 @@ const Field = new GraphQLObjectType({
     nullable: { type: new GraphQLNonNull(GraphQLBoolean) },
     nested: { type: new GraphQLNonNull(GraphQLBoolean) },
     repeating: { type: new GraphQLNonNull(GraphQLBoolean) },
+    cardinality: { type: new GraphQLNonNull(Cardinality) },
     operators: { type: new GraphQLNonNull(stringList) },
     choices: { type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Choice))) },
     selections: { type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Selection))) },
@@ -171,12 +187,13 @@ export function gridFields(
         if (!pending) {
           pending = ports.getGridEnvironment(context.caller, args.recordType, context.deadline).catch(error => {
             if (error instanceof GraphQLError) throw error;
-            return gridError('SEARCH_UNAVAILABLE', 'Search schema is unavailable; retry the request.');
+            return gridError('STORAGE_UNAVAILABLE', 'Collection storage is unavailable; retry the request.');
           });
           context.gridEnvironments.set(args.recordType, pending);
         }
         const environment = await pending;
         const snapshot = buildCatalogue(contracts, args.recordType, args.workflowStages ?? [], environment);
+        applyReadPresentationHints(snapshot.catalogue, contracts);
         if (args.ids !== undefined && args.ids !== null) {
           if (args.ids.length > GRID_LIMITS.fieldIds || new Set(args.ids).size !== args.ids.length)
             gridError('CATALOGUE_LIMIT', 'Request at most 50 distinct field identifiers.');
@@ -211,6 +228,7 @@ export function gridFields(
       type: Page,
       args: {
         ...scopeArgs,
+        revision: { type: GraphQLString },
         filters: { type: new GraphQLList(new GraphQLNonNull(FilterInput)) },
         sort: { type: new GraphQLList(new GraphQLNonNull(SortInput)) },
         first: { type: GraphQLInt, defaultValue: GRID_LIMITS.defaultPageSize },
@@ -222,7 +240,7 @@ export function gridFields(
         if (!pending) {
           pending = ports.getGridEnvironment(context.caller, args.recordType, context.deadline).catch(error => {
             if (error instanceof GraphQLError) throw error;
-            return gridError('SEARCH_UNAVAILABLE', 'Search schema is unavailable; retry the request.');
+            return gridError('STORAGE_UNAVAILABLE', 'Collection storage is unavailable; retry the request.');
           });
           context.gridEnvironments.set(args.recordType, pending);
         }

@@ -3,8 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import sails from 'sails';
 import supertest from 'supertest';
-import axios from 'axios';
-import { generateAllShims, recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
+import { generateAllShims, recordGraphql } from '@researchdatabox/redbox-core';
 import type { NamedQueryAttributes } from '@researchdatabox/redbox-core/dist/waterline-models/NamedQuery';
 import {
   lifecycleDefinitions,
@@ -97,7 +96,7 @@ async function main() {
     const stateFile = path.join(root, 'persisted.json');
     if (phase === 'cold') {
       assert.equal(await Record.count(), 0, 'cold import must finish before any record fixture exists');
-      const row = await Record.create({
+      await Record.create({
         redboxOid: lifecycleOid,
         metadata: { title: lifecycleTitle },
         metaMetadata: {
@@ -109,14 +108,6 @@ async function main() {
         workflow: { stage: 'draft' },
         authorization: { view: ['admin'], edit: [], viewRoles: [], editRoles: [] },
       }).fetch();
-      const options = sails.config.solr.cores.default.options;
-      const url = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
-      const schema = (await axios.get(`${url}/schema`)).data.schema;
-      const missing = SOLR_RECORD_GRID_FIELDS.filter(field => !schema.fields.some(found => found.name === field.name));
-      if (missing.length) await axios.post(`${url}/schema`, { 'add-field': missing });
-      await axios.post(`${url}/update`, [sails.services.solrsearchservice.preIndex({ ...row, storage_id: row.id })], {
-        params: { commit: true },
-      });
       for (const [name, definition] of Object.entries({ coldGraphql: imported, coldLegacy: legacy })) {
         await session
           .put(`${base}/api/named-query/${name}`)

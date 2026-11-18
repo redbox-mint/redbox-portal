@@ -1,10 +1,8 @@
 import type { ContractNode, RecordContract } from '../../src/record-contract';
-import type { GridCatalogue, GridEnvironment, GridIndexSchema } from '../../src/record-graphql/grid-types';
-import { SOLR_EXACT_ACL_FIELDS, SOLR_RECORD_GRID_FIELDS } from '../../src/config/solr.config';
+import type { GridCatalogue, GridEnvironment, GridStorageRequest } from '../../src/record-graphql/grid-types';
 import { createRecordYoga } from '../../src/record-graphql/schema';
 import type { RecordModel } from '../../src/model/storage/RecordModel';
 import type { ReadCaller } from '../../src/record-graphql/read-record';
-import type { SolrFieldDefinition } from '../../src/config/solr.config';
 
 const scalar = (type: 'string' | 'number' | 'boolean', label?: string): ContractNode => ({
   kind: 'scalar',
@@ -41,7 +39,7 @@ export function gridContracts(): RecordContract[] {
       title: { ...scalar('string', 'Record title'), kind: 'scalar', scalarType: 'string', enum: ['first', 'second'] },
       amount: scalar('number', 'Budget'),
       active: scalar('boolean'),
-      eventDate: scalar('string'),
+      eventDate: { ...scalar('string'), annotations: { extensions: { 'x-redbox-format': 'date-time' } } },
       details: object({ note: scalar('string') }),
       people: { kind: 'array', nullable: true, items: object({ name: scalar('string') }) },
       'dc:title': scalar('string'),
@@ -55,65 +53,10 @@ export function gridContracts(): RecordContract[] {
     completeness: 'complete',
   }));
 }
-export function gridSchema(): GridIndexSchema {
-  const field = (name: string, type: string): SolrFieldDefinition => ({
-    name,
-    type,
-    indexed: true,
-    stored: true,
-    multiValued: false,
-    docValues: true,
-  });
-  return {
-    uniqueKey: 'id',
-    fields: [
-      field('id', 'string'),
-      ...SOLR_RECORD_GRID_FIELDS,
-      ...SOLR_EXACT_ACL_FIELDS,
-      field('grid_title', 'string'),
-      field('grid_amount', 'pdouble'),
-      field('grid_active', 'boolean'),
-      field('grid_date', 'pdate'),
-      field('grid_note', 'text_general'),
-    ],
-    dynamicFields: [{ ...field('*', 'string'), multiValued: true }],
-    fieldTypes: [
-      { name: 'string', class: 'solr.StrField' },
-      { name: 'pdouble', class: 'solr.DoublePointField' },
-      { name: 'pdate', class: 'solr.DatePointField' },
-      { name: 'boolean', class: 'solr.BoolField' },
-      { name: 'text_general', class: 'solr.TextField' },
-    ],
-  };
-}
 export function gridEnvironment(): GridEnvironment {
-  const schema = gridSchema();
   return {
-    coreId: 'default',
-    schema,
-    config: {
-      options: { host: 'solr', port: 8983, core: 'redbox' },
-      schema: { 'add-field': schema.fields, 'add-dynamic-field': schema.dynamicFields, 'add-copy-field': [] },
-      recordGraphqlFields: {
-        'metadata:/title': 'grid_title',
-        'metadata:/amount': 'grid_amount',
-        'metadata:/active': 'grid_active',
-        'metadata:/eventDate': 'grid_date',
-        'metadata:/details/note': 'grid_note',
-        'metadata:/undeclared': 'grid_undeclared',
-      },
-      preIndex: {
-        copy: [
-          { source: 'metadata.title', dest: 'grid_title' },
-          { source: 'metadata.amount', dest: 'grid_amount' },
-          { source: 'metadata.active', dest: 'grid_active' },
-          { source: 'metadata.eventDate', dest: 'grid_date' },
-          { source: 'metadata.details.note', dest: 'grid_note' },
-        ],
-      },
-    },
     cursorSecret: 'grid-fixture-shared-secret-at-least-32-characters',
-    search: async () => ({ oids: [], nextCursor: '*', exhausted: true }),
+    execute: async () => ({ candidates: [], exhausted: true }),
   };
 }
 export function gridRecord(oid: string, stage = 'draft'): RecordModel {
@@ -158,15 +101,14 @@ export function gridHarness(ids = ['a', 'b', 'c'], contracts = gridContracts()) 
   const environment = gridEnvironment();
   const records = new Map(ids.map(oid => [oid, gridRecord(oid)]));
   const denied = new Set<string>();
-  const calls: URLSearchParams[] = [];
+  const calls: GridStorageRequest[] = [];
   const reads: string[] = [];
   let environmentReads = 0;
-  environment.search = async params => {
-    calls.push(new URLSearchParams(params));
-    const mark = params.get('cursorMark') ?? '*';
-    const start = mark === '*' ? 0 : Number(mark.slice(2));
-    const hits = ids.slice(start, start + Number(params.get('rows')));
-    return { oids: hits, nextCursor: `m:${start + hits.length}`, exhausted: start + hits.length >= ids.length };
+  environment.execute = async request => {
+    calls.push(request);
+    const start = request.after ? ids.indexOf(String(request.after.keys[0])) + 1 : 0;
+    const hits = ids.slice(start, start + 50);
+    return { candidates: hits.map(oid => ({ oid, keys: [oid] })), exhausted: start + hits.length >= ids.length };
   };
   const { yoga, schema } = createRecordYoga(
     contracts,

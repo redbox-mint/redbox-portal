@@ -1,4 +1,4 @@
-import type { ContractNode } from './types';
+import type { ContractJsonValue, ContractNode } from './types';
 
 export function hasWriteOnlyFields(node: ContractNode): boolean {
   if (node.annotations?.writeOnly) return true;
@@ -42,13 +42,34 @@ export function mergeReadNodes(left: ContractNode, right: ContractNode): Contrac
     };
   }
   if (left.kind === 'array' && right.kind === 'array')
-    return { kind: 'array', nullable, annotations: left.annotations ?? right.annotations, items: mergeReadNodes(left.items, right.items) };
+    return {
+      kind: 'array',
+      nullable,
+      annotations: left.annotations ?? right.annotations,
+      items: mergeReadNodes(left.items, right.items),
+    };
   if (left.kind === 'scalar' && right.kind === 'scalar' && left.scalarType === right.scalarType) {
+    let annotations = left.annotations ?? right.annotations;
+    const leftFormat = left.annotations?.extensions?.['x-redbox-format'];
+    const rightFormat = right.annotations?.extensions?.['x-redbox-format'];
+    if (
+      left.annotations?.extensions?.['x-redbox-format-conflict'] === true ||
+      right.annotations?.extensions?.['x-redbox-format-conflict'] === true ||
+      (leftFormat !== rightFormat &&
+        [leftFormat, rightFormat].some(format => format === 'date' || format === 'date-time'))
+    ) {
+      const extensions: Record<string, ContractJsonValue> = {
+        ...annotations?.extensions,
+        'x-redbox-format-conflict': true,
+      };
+      delete extensions['x-redbox-format'];
+      annotations = { ...annotations, extensions };
+    }
     return {
       kind: 'scalar',
       nullable,
       scalarType: left.scalarType,
-      annotations: left.annotations ?? right.annotations,
+      annotations,
       ...(left.enum && right.enum ? { enum: [...new Set([...left.enum, ...right.enum])] } : {}),
     };
   }

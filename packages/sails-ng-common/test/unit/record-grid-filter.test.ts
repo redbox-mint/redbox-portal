@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
-import { recordGridFilter, recordGridFilterValue, type RecordGridOperator } from '../../src/record-grid-filter';
+import {
+  recordGridFilter,
+  recordGridFilterValue,
+  recordGridSort,
+  type RecordGridOperator,
+} from '../../src/record-grid-filter';
 
 const field = {
   scalarType: 'STRING',
   filterable: true,
   repeating: false,
   availableInAllVariants: true,
-  operators: ['EQ', 'IN', 'EXISTS', 'CONTAINS'],
+  operators: ['EQ', 'IN', 'EXISTS', 'CONTAINS', 'IPREFIX'],
 };
 const filter = {
   fieldId: 'metadata:/title',
@@ -16,12 +21,21 @@ const filter = {
 };
 
 describe('shared visual grid filter validation', () => {
+  it('rejects malformed UTF-16 prefixes and accepts supplementary characters', () => {
+    for (const value of ['\ud800', '\udfff', 'x\ud800y'])
+      assert.throws(() => recordGridFilterValue('STRING', 'iprefix', [value]));
+    assert.equal(recordGridFilterValue('STRING', 'iprefix', ['😀']), '😀');
+  });
   it('builds typed operands from current raw values without mutating inputs', () => {
     const before = structuredClone(filter);
     assert.deepEqual(recordGridFilter(filter, field), { field: filter.fieldId, eq: { text: 'current' } });
     assert.deepEqual(recordGridFilter({ ...filter, operator: 'contains' }, field), {
       field: filter.fieldId,
       contains: 'current',
+    });
+    assert.deepEqual(recordGridFilter({ ...filter, operator: 'iprefix' }, field), {
+      field: filter.fieldId,
+      iprefix: 'current',
     });
     assert.deepEqual(recordGridFilter({ ...filter, operator: 'exists', values: ['false'] }, field), {
       field: filter.fieldId,
@@ -64,13 +78,84 @@ describe('shared visual grid filter validation', () => {
   });
   for (const unavailable of [
     { filterable: false },
-    { repeating: true },
+    { repeating: true, scalarType: 'JSON' },
     { availableInAllVariants: false },
     { operators: [] },
   ])
     it(`rejects unavailable fresh capabilities ${JSON.stringify(unavailable)}`, () => {
       assert.throws(() => recordGridFilter(filter, { ...field, ...unavailable }), /schema-changed/);
     });
+  it('accepts declared scalar-list element predicates only with matching expected LIST cardinality', () => {
+    const list = { ...field, repeating: true, cardinality: 'LIST' as const };
+    const listFilter = { ...filter, expectedCardinality: 'LIST' as const };
+    // Operands are unchanged; storage applies any-element semantics.
+    assert.deepEqual(recordGridFilter(listFilter, list), recordGridFilter(filter, field));
+    assert.deepEqual(recordGridFilter({ ...listFilter, operator: 'iprefix' }, list), {
+      field: filter.fieldId,
+      iprefix: 'current',
+    });
+    // Legacy (missing) and explicit SCALAR expectations require visible repair.
+    assert.throws(() => recordGridFilter(filter, list), /filter-cardinality-changed/);
+    assert.throws(
+      () => recordGridFilter({ ...filter, expectedCardinality: 'SCALAR' }, list),
+      /filter-cardinality-changed/
+    );
+    assert.throws(() => recordGridFilter(listFilter, field), /filter-cardinality-changed/);
+    assert.throws(
+      () => recordGridFilter(listFilter, { ...field, cardinality: 'SCALAR' }),
+      /filter-cardinality-changed/
+    );
+    // Type drift is reported first so its repair also resets the cardinality.
+    assert.throws(() => recordGridFilter(filter, { ...list, scalarType: 'NUMBER' }), /filter-type-changed/);
+  });
+  for (const unavailable of [
+    { repeating: true },
+    { repeating: true, cardinality: 'SCALAR' as const },
+    { repeating: false, cardinality: 'LIST' as const },
+    { repeating: true, cardinality: 'LIST' as const, scalarType: 'JSON' },
+    { repeating: true, cardinality: 'LIST' as const, scalarType: 'MIXED' },
+  ])
+    it(`rejects repeating fields that are not declared scalar lists ${JSON.stringify(unavailable)}`, () => {
+      assert.throws(
+        () => recordGridFilter({ ...filter, expectedCardinality: 'LIST' }, { ...field, ...unavailable }),
+        /schema-changed/
+      );
+    });
+  it('validates sorts against current capabilities, type and cardinality', () => {
+    const sortField = { scalarType: 'STRING', sortable: true, repeating: false, availableInAllVariants: true };
+    const sort = { fieldId: 'metadata:/title', direction: 'desc' as const, expectedScalarType: 'STRING' };
+    assert.deepEqual(recordGridSort(sort, sortField), { field: 'metadata:/title', direction: 'DESC' });
+    assert.deepEqual(
+      recordGridSort({ ...sort, expectedCardinality: 'SCALAR' }, { ...sortField, cardinality: 'SCALAR' }),
+      {
+        field: 'metadata:/title',
+        direction: 'DESC',
+      }
+    );
+    const list = { ...sortField, repeating: true, cardinality: 'LIST' as const };
+    assert.deepEqual(recordGridSort({ ...sort, direction: 'asc', expectedCardinality: 'LIST' }, list), {
+      field: 'metadata:/title',
+      direction: 'ASC',
+    });
+    assert.throws(() => recordGridSort(sort, list), /sort-cardinality-changed/);
+    assert.throws(
+      () => recordGridSort({ ...sort, expectedCardinality: 'LIST' }, sortField),
+      /sort-cardinality-changed/
+    );
+    assert.throws(() => recordGridSort({ ...sort, expectedScalarType: undefined }, sortField), /sort-type-changed/);
+    assert.throws(() => recordGridSort(sort, { ...sortField, scalarType: 'NUMBER' }), /sort-type-changed/);
+    for (const unavailable of [
+      { sortable: false },
+      { availableInAllVariants: false },
+      { repeating: true },
+      { repeating: true, cardinality: 'LIST' as const, scalarType: 'JSON' },
+    ])
+      assert.throws(
+        () => recordGridSort({ ...sort, expectedCardinality: 'LIST' }, { ...sortField, ...unavailable }),
+        /schema-changed/
+      );
+    assert.throws(() => recordGridSort({ ...sort, direction: 'up' as never }, sortField), /schema-changed/);
+  });
   it('rejects missing or changed type bindings and unsupported scalar discovery', () => {
     assert.throws(() => recordGridFilter({ ...filter, expectedScalarType: undefined }, field), /filter-type-changed/);
     assert.throws(() => recordGridFilter(filter, { ...field, scalarType: 'NUMBER' }), /filter-type-changed/);
@@ -85,6 +170,12 @@ describe('shared visual grid filter validation', () => {
     ['STRING', 'exists', ['yes']],
     ['STRING', 'contains', ['']],
     ['STRING', 'contains', ['a', 'b']],
+    ['STRING', 'iprefix', ['']],
+    ['STRING', 'iprefix', ['a', 'b']],
+    ['NUMBER', 'iprefix', ['1']],
+    ['INTEGER', 'iprefix', ['1']],
+    ['BOOLEAN', 'iprefix', ['true']],
+    ['DATETIME', 'iprefix', ['2026-01-01T00:00:00Z']],
     ['STRING', 'eq', []],
     ['STRING', 'eq', ['a', 'b']],
     ['STRING', 'in', []],

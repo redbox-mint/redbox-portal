@@ -9,6 +9,7 @@ export interface RecordGridSelection {
  * Shared by visual explorer execution and detached named-query preparation. */
 export function recordGridRequest(input: {
   recordType: string;
+  revision?: string;
   workflowStage?: string;
   selections: RecordGridSelection[];
   filters: NamedQueryJson[];
@@ -19,6 +20,7 @@ export function recordGridRequest(input: {
   query: string;
   variables: {
     type: string;
+    revision?: string;
     stages?: string[];
     filters: NamedQueryJson[];
     sort: NamedQueryJson[];
@@ -36,14 +38,15 @@ export function recordGridRequest(input: {
     ]),
   ];
   return {
-    query: `query GridPage($type: String!, $stages: [String!], $filters: [RecordFilterInput!], $sort: [RecordSortInput!], $first: Int, $after: String) {
-      records(recordType: $type, workflowStages: $stages, filters: $filters, sort: $sort, first: $first, after: $after) {
+    query: `query GridPage($type: String!, ${input.revision !== undefined ? '$revision: String, ' : ''}$stages: [String!], $filters: [RecordFilterInput!], $sort: [RecordSortInput!], $first: Int, $after: String) {
+      records(recordType: $type, ${input.revision !== undefined ? 'revision: $revision, ' : ''}workflowStages: $stages, filters: $filters, sort: $sort, first: $first, after: $after) {
         nodes { ${envelope.join('\n')} metadata { __typename ${fragments.join('\n')} } }
         hasNextPage endCursor
       }
     }`,
     variables: {
       type: input.recordType,
+      ...(input.revision !== undefined ? { revision: input.revision } : {}),
       ...(input.workflowStage ? { stages: [input.workflowStage] } : {}),
       filters: input.filters,
       sort: input.sort,

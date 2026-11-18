@@ -32,15 +32,15 @@
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "create",
-      "digest": "068f8328c9bec124091f981b1997cc760d1c4694898fd8ccd3c00d512f72fc96",
-      "byteLength": 4430,
+      "digest": "0008d0c7986036fb68b345331453a04410bf80df50b4f64f7b4d9d6219844fee",
+      "byteLength": 4490,
       "completeness": "partial"
     },
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "update",
-      "digest": "2696598502efcb3d897ff99f10c42fd1f3ea3d51701d76fc0801fa52dc8e5e00",
-      "byteLength": 4430,
+      "digest": "0996c96571d805ed8884c75c678cf1ab9767331e423f54895c693e2211bff4e8",
+      "byteLength": 4490,
       "completeness": "partial"
     }
   ]

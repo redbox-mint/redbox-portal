@@ -235,8 +235,8 @@
                         [(ngModel)]="draft.sort.direction"
                         (ngModelChange)="changed()"
                       >
-                        <option value="asc">{{ text('ascending') }}</option>
-                        <option value="desc">{{ text('descending') }}</option>
+                        <option value="asc">{{ directionLabel(draft.sort.fieldId, 'asc') }}</option>
+                        <option value="desc">{{ directionLabel(draft.sort.fieldId, 'desc') }}</option>
                       </select></label
                     >
                   }
@@ -258,16 +258,34 @@
                   @if (loadingFields) {
                     <p role="status">{{ text('loading-fields') }}</p>
                   }
+                  @if (draft.sort && isList(draft.sort.fieldId)) {
+                    <p class="rb-ws-lede explorer-list-sort-help">{{ text('list-sort-help') }}</p>
+                  }
+                  @if (sortCardinalityChanged) {
+                    <div class="alert alert-warning explorer-sort-cardinality" role="alert">
+                      {{ text('sort-cardinality-changed') }}
+                      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="repairSortCardinality()">
+                        {{ text('repair-sort-cardinality') }}
+                      </button>
+                    </div>
+                  }
                   <div class="explorer-chip-row">
                     <strong>{{ text('conditions') }}</strong>
                     @for (filter of draft.filters; track filter; let index = $index) {
-                      <span class="rb-admin-chip"
+                      <span
+                        class="rb-admin-chip"
+                        [class.explorer-chip-repair]="filterTypeChanged(filter) || filterCardinalityChanged(filter)"
                         ><button
                           type="button"
                           class="btn explorer-chip-label"
                           [attr.aria-expanded]="filterEditor === index"
                           (click)="filterEditor = filterEditor === index ? null : index"
                         >
+                          @if (filterTypeChanged(filter) || filterCardinalityChanged(filter)) {
+                            <span class="text-danger" [attr.title]="text('repair-required')"
+                              >⚠<span class="visually-hidden">{{ text('repair-required') }}</span></span
+                            >
+                          }
                           {{ conditionLabel(filter) }}</button
                         ><button
                           type="button"
@@ -318,17 +336,32 @@
                           >
                             @if (!field(filter.fieldId)?.operators?.includes(filter.operator)) {
                               <option [value]="filter.operator">
-                                {{ text('op-' + filter.operator) }} ({{ text('unavailable-field') }})
+                                {{ operatorLabel(filter.fieldId, filter.operator) }} ({{ text('unavailable-field') }})
                               </option>
                             }
                             @for (op of field(filter.fieldId)?.operators ?? []; track op) {
-                              <option [value]="op">{{ text('op-' + op) }}</option>
+                              <option [value]="op">{{ operatorLabel(filter.fieldId, op) }}</option>
                             }
                           </select>
                         </div>
                         <div class="grid-values">
                           @if (filter.operator !== 'exists' && field(filter.fieldId)?.type === 'datetime') {
                             <p class="rb-ws-lede">{{ text('datetime-help') }}</p>
+                          }
+                          @if (isList(filter.fieldId)) {
+                            <p class="rb-ws-lede explorer-list-filter-help">{{ text('list-filter-help') }}</p>
+                          }
+                          @if (filterCardinalityChanged(filter)) {
+                            <div class="alert alert-warning explorer-filter-cardinality" role="alert">
+                              {{ text('filter-cardinality-changed') }}
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                (click)="repairFilterCardinality(filter)"
+                              >
+                                {{ text('repair-filter-cardinality') }}
+                              </button>
+                            </div>
                           }
                           @if (filterTypeChanged(filter)) {
                             <div class="alert alert-warning" role="alert">
@@ -512,16 +545,21 @@
                       </select>
                     </label>
                   }
+                  @if (schemaError) {
+                    <div class="alert alert-danger" role="alert">
+                      <p>{{ text(schemaError) }}</p>
+                      <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema(true)">
+                        {{ text('refresh-schema') }}
+                      </button>
+                    </div>
+                  }
                   <details #schemaDetails class="mt-2">
                     <summary>{{ text('full-schema') }}</summary>
                     <pre class="explorer-json">{{ schemaSdl }}</pre>
                     <p class="rb-admin-hint">{{ text('graphql-limits') }}</p>
-                    <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
+                    <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema(true)">
                       {{ text('refresh-schema') }}
                     </button>
-                    @if (schemaError) {
-                      <p class="text-danger">{{ text(schemaError) }}</p>
-                    }
                     @if (rawErrors.length) {
                       <p>{{ text('query-check-help') }}</p>
                     }
@@ -608,6 +646,24 @@
           @if (previewError) {
             <p class="alert alert-danger" role="alert">{{ text(previewError) }}</p>
           }
+          @if (hasPreview && fieldErrors.length) {
+            <div class="alert alert-warning" role="status">
+              <p>{{ text('partial-results') }}</p>
+              <ul>
+                @for (failure of fieldErrors; track $index) {
+                  <li>
+                    {{ failure.code }} · {{ failure.label || failure.fieldId || failure.path.join('.') }}
+                    @if (failure.fieldId) {
+                      ({{ failure.fieldId }})
+                    }
+                    @if (failure.oid) {
+                      · OID: {{ failure.oid }}
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
           <div [hidden]="!hasPreview || responseView === 'json'">
             @defer (when hasPreview; prefetch when !!draft?.recordType) {
               <rb-explorer-results-grid
@@ -676,7 +732,7 @@
     #saveDialog
     class="explorer-save"
     (close)="saveOpen = false"
-    (cancel)="saveOpen = false; publishAfterSave = false"
+    (cancel)="cancelSave($event)"
     aria-labelledby="save-query-heading"
   >
     <h2 id="save-query-heading">{{ text(savingAs ? 'save-as' : 'save') }}</h2>
@@ -691,8 +747,8 @@
         <button
           type="button"
           class="btn btn-outline-secondary"
-          [disabled]="saving"
-          (click)="publishAfterSave = false; saveDialog.close()"
+          [disabled]="saving && !preparingSave"
+          (click)="cancelSave()"
         >
           {{ text('cancel') }}</button
         ><button type="submit" class="btn btn-primary" [disabled]="saving || !saveName.trim()">
@@ -704,7 +760,8 @@
 </div>
 @defer (when columnsOpen) {
   @if (columnsOpen && draft) {
-    <rb-explorer-columns [defaults]="columnDefaults"
+    <rb-explorer-columns
+      [defaults]="columnDefaults"
       [fields]="scope?.fields || []"
       [selected]="draft.columns"
       [subtitle]="recordTypeLabel(draft.recordType) + ' · ' + (draft.workflowStage || text('all-stages'))"
