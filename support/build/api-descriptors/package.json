@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "apib2swagger": "1.17.1",
+    "apib2swagger": "1.17.2",
     "ejs": "7.0.2"
   },
   "overrides": {
