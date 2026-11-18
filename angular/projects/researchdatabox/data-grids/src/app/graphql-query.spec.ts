@@ -14,19 +14,39 @@ import { parseSavedQuery } from './record-grid.protocol';
 import { testSdl } from './data-grid.testing';
 describe('GraphQL editor contract', () => {
   const schema = editorSchema(testSdl);
-  it('scopes schemas only when all record selections have one known type', () => {
+  for (const field of ['record', 'records']) {
+    it(`infers the root record type when metadata contains a field named ${field}`, () => {
+      expect(
+        queryRecordType(
+          `{ records(recordType: "plan") { nodes { metadata { ...PlanDetails } } } }
+           fragment PlanDetails on PlanMetadata { ${field} { title } }`,
+          {}
+        )
+      ).toBe('plan');
+    });
+  }
+  it('does not infer a record type when root collections select different types', () => {
     expect(
       queryRecordType(
         '{ a: records(recordType:"plan") { nodes { oid } } b: records(recordType:"publication") { nodes { oid } } }',
         {}
       )
     ).toBeNull();
+  });
+  it('includes named and inline fragments spread at the query root', () => {
+    const fragments = `fragment Collections on Query {
+      ... on Query { plans: records(recordType: "plan") { nodes { oid } } }
+      ... { morePlans: records(recordType: "plan") { nodes { oid } } }
+    }`;
+    expect(queryRecordType(`{ ...Collections } ${fragments}`, {})).toBe('plan');
     expect(
       queryRecordType(
-        '{ a: records(recordType:"plan") { nodes { oid } } ...Other } fragment Other on Query { b: records(recordType:"publication") { nodes { oid } } }',
+        `{ ...Collections publications: records(recordType:"publication") { nodes { oid } } } ${fragments}`,
         {}
       )
     ).toBeNull();
+  });
+  it('scopes schemas only when all root record selections have one known type', () => {
     expect(
       queryRecordType(
         'query($type: String!) { a: records(recordType:$type) { nodes { oid } } b: records(recordType:"plan") { nodes { oid } } }',
@@ -36,7 +56,13 @@ describe('GraphQL editor contract', () => {
     expect(
       queryRecordType('{ a: records(recordType:"plan") { nodes { oid } } b: record(oid:"x") { oid } }', {})
     ).toBeNull();
-    expect(queryRecordType('query($type: String!) { records(recordType:$type) { nodes { oid } } }', {})).toBeNull();
+    expect(
+      queryRecordType(
+        'query($type: String!) { a: records(recordType:"plan") { nodes { oid } } b: records(recordType:$type) { nodes { oid } } }',
+        {}
+      )
+    ).toBeNull();
+    expect(queryRecordType('{ __typename }', {})).toBeNull();
   });
   it('validates real schema selections, variables, syntax and read-only operations', () => {
     const raw = rawDefinition();

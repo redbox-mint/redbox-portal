@@ -4,6 +4,7 @@ import {
   isListType,
   isNonNullType,
   type SelectionSetNode,
+  type ValueNode,
   type GraphQLCompositeType,
   getVariableValues,
   GraphQLSchema,
@@ -20,7 +21,7 @@ import {
 } from 'graphql';
 import { object, parseQueryVariables } from './record-grid.protocol';
 import { GridRequestError } from './data-grid-source';
-import { GridRow, RawDefinition, validCellValue } from './data-grid.model';
+import { GridRow, type GridScope, RawDefinition, validCellValue } from './data-grid.model';
 
 export function editorSchema(sdl: string): GraphQLSchema {
   return buildSchema(sdl);
@@ -165,29 +166,63 @@ export function rawRows(
 export { rawDefinition } from './raw-definition';
 
 export function queryRecordType(document: string, variables: Record<string, unknown>): string | null {
+  return queryRecordScope(document, variables)?.recordType ?? null;
+}
+
+function staticScopeValue(value: ValueNode | undefined, variables: Record<string, unknown>): unknown {
+  if (value?.kind === Kind.STRING) return value.value;
+  if (value?.kind === Kind.VARIABLE && Object.hasOwn(variables, value.name.value)) return variables[value.name.value];
+  if (value?.kind === Kind.LIST) return value.values.map(item => staticScopeValue(item, variables));
+  return undefined;
+}
+
+export function queryRecordScope(
+  document: string,
+  variables: Record<string, unknown>
+): Pick<GridScope, 'recordType' | 'workflowStage'> | null {
   try {
     const ast = parse(document, { maxLexicalTokens: 2000 });
-    if (ast.definitions.filter(n => n.kind === Kind.OPERATION_DEFINITION).length !== 1) return null;
-    const types = new Set<string>();
-    let unknownType = false;
-    // Include fragment definitions conservatively: an incomplete scoped schema
-    // must never reject a valid selection on another record type.
-    visit(ast, {
-      Field(node) {
-        if (node.name.value === 'record') unknownType = true;
-        if (node.name.value !== 'records') return;
-        const value = node.arguments?.find(a => a.name.value === 'recordType')?.value;
-        const type =
-          value?.kind === Kind.STRING
-            ? value.value
-            : value?.kind === Kind.VARIABLE
-              ? variables[value.name.value]
-              : null;
-        if (typeof type === 'string' && type.length) types.add(type);
-        else unknownType = true;
-      },
-    });
-    return !unknownType && types.size === 1 ? [...types][0] : null;
+    const operations = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
+    if (operations.length !== 1 || operations[0].operation !== 'query') return null;
+    const fragments = new Map(
+      ast.definitions.filter(node => node.kind === Kind.FRAGMENT_DEFINITION).map(node => [node.name.value, node])
+    );
+    const pending = [operations[0].selectionSet];
+    const visited = new Set<SelectionSetNode>();
+    let recordType: string | undefined;
+    const workflowStages = new Set<string | undefined>();
+    // Expand fragments at the query root only. Fields inside a record cannot change the collection's scope.
+    while (pending.length) {
+      const selectionSet = pending.pop()!;
+      if (visited.has(selectionSet)) continue;
+      visited.add(selectionSet);
+      for (const selection of selectionSet.selections) {
+        if (selection.kind !== Kind.FIELD) {
+          const fragment = selection.kind === Kind.INLINE_FRAGMENT ? selection : fragments.get(selection.name.value);
+          if (fragment && (!fragment.typeCondition || fragment.typeCondition.name.value === 'Query'))
+            pending.push(fragment.selectionSet);
+          continue;
+        }
+        if (selection.name.value === 'record') return null;
+        if (selection.name.value !== 'records') continue;
+        const type = staticScopeValue(
+          selection.arguments?.find(arg => arg.name.value === 'recordType')?.value,
+          variables
+        );
+        if (typeof type !== 'string' || !type || (recordType && recordType !== type)) return null;
+        recordType = type;
+
+        const stages = staticScopeValue(
+          selection.arguments?.find(arg => arg.name.value === 'workflowStages')?.value,
+          variables
+        );
+        const stage = Array.isArray(stages) ? (stages.length === 1 ? stages[0] : undefined) : stages;
+        workflowStages.add(typeof stage === 'string' && stage ? stage : undefined);
+      }
+    }
+    if (!recordType) return null;
+    const workflowStage = workflowStages.size === 1 ? [...workflowStages][0] : undefined;
+    return workflowStage ? { recordType, workflowStage } : { recordType };
   } catch {
     return null;
   }

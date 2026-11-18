@@ -896,6 +896,75 @@ describe('Data grid editor', () => {
     expect(component.rawErrors).toEqual([]);
     expect(component.schemaError).toBe('');
   });
+  describe('raw workflow-stage schema discovery', () => {
+    const stageSdl = testSdl.replace('recordType: String!,', 'recordType: String!, workflowStages: [String!],');
+    const draftCollection = 'records(recordType: "dataPublication", workflowStages: ["draft"]) { nodes { oid } }';
+    const draftQuery = `{ ${draftCollection} }`;
+    const variableQuery =
+      'query($stages: [String!]) { records(recordType: "dataPublication", workflowStages: $stages) { nodes { oid } } }';
+
+    for (const { name, document, variables, workflowStage } of [
+      { name: 'one literal stage', document: draftQuery, variables: {}, workflowStage: 'draft' },
+      {
+        name: 'one stage from variables',
+        document: variableQuery,
+        variables: { stages: ['draft'] },
+        workflowStage: 'draft',
+      },
+      { name: 'multiple stages', document: draftQuery.replace('["draft"]', '["draft", "review"]'), variables: {} },
+      { name: 'a missing stage variable', document: variableQuery, variables: {} },
+      {
+        name: 'a second collection without a stage restriction',
+        document: `{ draft: ${draftCollection} all: records(recordType: "dataPublication") { nodes { oid } } }`,
+        variables: {},
+      },
+      {
+        name: 'collections restricted to different stages',
+        document: `{ draft: ${draftCollection} review: ${draftCollection.replace('"draft"', '"review"')} }`,
+        variables: {},
+      },
+    ]) {
+      it(`loads the expected scope for a raw query with ${name}`, async () => {
+        const schema = jasmine.createSpy().and.resolveTo(stageSdl);
+        source.schema = schema;
+        const id = '000000000000000000000001';
+        source.read.and.resolveTo({ ...rawDefinition(), id, document, variables });
+
+        await component.reopen({ id });
+
+        expect(schema).toHaveBeenCalledTimes(1);
+        const requested = schema.calls.mostRecent().args[0] as GridScope | undefined;
+        expect(requested?.recordType).toBe('dataPublication');
+        expect(requested?.workflowStage).toBe(workflowStage);
+        expect(component.rawErrors).toEqual([]);
+      });
+    }
+
+    it('refreshes the scoped schema when the raw editor changes the stage restriction', async () => {
+      const reviewSdl = stageSdl.replace('workflowStep: String,', 'payload: String,');
+      const schema = jasmine
+        .createSpy()
+        .and.callFake(async (requested?: GridScope) => (requested?.workflowStage === 'review' ? reviewSdl : stageSdl));
+      source.schema = schema;
+      const id = '000000000000000000000001';
+      source.read.and.resolveTo({ ...rawDefinition(), id, document: draftQuery, variables: {} });
+      await component.reopen({ id });
+      expect(schema).toHaveBeenCalledOnceWith(jasmine.objectContaining({ workflowStage: 'draft' }));
+
+      component.rawDraft.document = draftQuery
+        .replace('"draft"', '"review"')
+        .replace('nodes { oid }', 'nodes { oid payload }');
+      component.rawChanged();
+      expect(schema).toHaveBeenCalledWith(
+        jasmine.objectContaining({ recordType: 'dataPublication', workflowStage: 'review' })
+      );
+      const editor = component as unknown as { refreshRawSchema(): Promise<boolean> };
+      expect(await editor.refreshRawSchema()).toBeTrue();
+      expect(schema).toHaveBeenCalledTimes(2);
+      expect(component.schemaSdl).toBe(reviewSdl);
+      expect(component.rawErrors).toEqual([]);
+    });
+  });
   it('blocks raw preview and save when scoped schema discovery fails, then allows both after retry', async () => {
     component.open(validGrid(), false);
     const schema = jasmine.createSpy().and.resolveTo(testSdl);
