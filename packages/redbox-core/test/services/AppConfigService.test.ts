@@ -58,6 +58,33 @@ describe('AppConfigService', function () {
     sinon.restore(); // Restores ConfigModels stubs
   });
 
+  describe('generation provider keys', () => {
+    beforeEach(() => {
+      (BrandingService as any).getBrandById = () => ({ id: 'brand1', name: 'default' });
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'GenerationProviderSecrets', class: class { keys = {}; }, secretFields: ['keys.*'] });
+    });
+    it('stores, masks, resolves and clears provider keys without losing another provider', async () => {
+      let stored: any;
+      (AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => stored ? [{ configData: stored }] : []);
+      (AppConfig.create as unknown as sinon.SinonStub).callsFake(async data => { stored = data.configData; return data; });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set: async (data: any) => { stored = data.configData; return data; } });
+      await Promise.all([service.setGenerationProviderKey('brand1', 'first', 'FIRST_PRIVATE'), service.setGenerationProviderKey('brand1', 'second', 'SECOND_PRIVATE')]);
+      expect(service.getGenerationProviderKey('brand1', 'first')).to.equal('FIRST_PRIVATE');
+      expect(service.getGenerationProviderKey('brand1', 'second')).to.equal('SECOND_PRIVATE');
+      expect(JSON.stringify(await service.getAppConfigByBrandAndKey('brand1', 'generationProviderSecrets'))).not.to.contain('PRIVATE');
+      await service.setGenerationProviderKey('brand1', 'first', '');
+      expect(service.getGenerationProviderKey('brand1', 'first')).to.equal('');
+      expect(service.getGenerationProviderKey('brand1', 'second')).to.equal('SECOND_PRIVATE');
+    });
+    it('rejects unsafe provider key paths', async () => {
+      for (const key of ['__proto__', 'constructor', 'a.b', 'a[b]']) {
+        let failed = false;
+        try { await service.setGenerationProviderKey('brand1', key, 'PRIVATE'); } catch { failed = true; }
+        expect(failed).to.equal(true);
+      }
+    });
+  });
+
   describe('authorized rules save normalization', () => {
     const input = () => ({ enabled: true,
       domainsAaf: [' Uni.EDU.au. ', 'uni.edu.au', 'STAFF.uni.edu.au'],

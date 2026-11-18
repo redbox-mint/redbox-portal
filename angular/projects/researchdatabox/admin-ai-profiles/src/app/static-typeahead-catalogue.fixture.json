@@ -1,0 +1,12 @@
+{
+  "pointer": "/lookahead_1",
+  "label": "Lookahead example",
+  "group": "ai-profiles-source-other-fields",
+  "component": "TypeaheadInputComponent",
+  "options": [
+    { "value": "option1", "label": "Option 1" },
+    { "value": "option2", "label": "Option 2" },
+    { "value": "option3", "label": "Option 3" },
+    { "value": "another-option", "label": "Another Option" }
+  ]
+}

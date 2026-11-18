@@ -7,14 +7,31 @@ let expect: Chai.ExpectStatic;
 // The logo is shared by all portal pages; protect the non-admin branch explicitly.
 describe('Portal logo heading scope', () => {
   before(async () => { expect = (await import('chai')).expect; });
-  const template = fs.readFileSync(path.resolve(__dirname, '../../../views/default/default/layout/logo.ejs'), 'utf8');
+  const filename = path.resolve(__dirname, '../../../views/default/default/layout/logo.ejs');
+  const template = fs.readFileSync(filename, 'utf8');
   const render = (route: string, heading = '', adminParties = false, portalPath = '/default/rdmp',
-    image: { logo?: object; logoName?: string } = {}) => ejs.render(template, {
-    req: { path: portalPath + route }, adminParties,
+    image: { logo?: object; logoName?: string } = {}, adminInitialStyles = false) => ejs.render(template, {
+    req: { path: portalPath + route }, adminParties, adminInitialStyles,
     sails: { config: { static_assets: { logoName: image.logoName || static_assets.logoName } } },
     BrandingService: { getBrandAndPortalPath: () => portalPath,
       getBrandNameFromReq: () => 'default', getBrand: () => ({ logo: image.logo }) },
     TranslationService: { t: (key: string) => key === 'logo-heading-text' ? heading : 'ReDBox Logo' }
+  }, { filename });
+
+  it('inlines only the stock SVG when explicitly opted in, retaining the accessible name and isolated clip paths', () => {
+    const html = render('/admin/users', '', false, '/default/rdmp', {}, true);
+    expect(html).to.contain('class="rb-inline-logo"').and.contain('role="img" aria-label="ReDBox Logo"');
+    expect(html).to.contain('id="rb-default-logo-a"').and.contain('url(#rb-default-logo-a)');
+    expect(html).not.to.contain('/images/logo');
+    for (const route of ['/admin', '/admin/ai-models', '/researcher/home']) {
+      expect(render(route)).not.to.contain('rb-inline-logo');
+    }
+    for (const image of [{ logo: { storageKey: 'uploaded.svg' } }, { logoName: 'logo.png' }, { logoName: 'institution.svg' }]) {
+      const replacement = render('/admin/ai-models', '', false, '/default/rdmp', image, true);
+      expect(replacement).not.to.contain('rb-inline-logo');
+      expect(replacement).to.contain('src="/default/rdmp/images/logo"');
+    }
+    expect(render('/admin/users', '', false, '/mount/default/rdmp', {}, true)).to.contain('rb-inline-logo');
   });
 
   it('reserves the default artwork ratio without imposing it on uploaded or replacement logos', () => {
@@ -24,7 +41,7 @@ describe('Portal logo heading scope', () => {
         .to.contain('width="171" height="100"');
     }
     for (const image of [{ logo: { storageKey: 'uploaded.svg' } }, { logoName: 'institution.png' }]) {
-      const html = render('/admin', '', false, '/default/rdmp', image);
+      const html = render('/admin', '', false, '/default/rdmp', image, true);
       expect(html).to.contain('src="/default/rdmp/images/logo"');
       expect(html).not.to.contain('width="171"');
     }

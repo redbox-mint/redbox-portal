@@ -407,6 +407,9 @@ describe('Branding public font delivery and layouts', function () {
       const bundled = ejs.render(template, { BrandingService: { getRootContext: () => rootContext } });
       const urls = [...bundled.matchAll(/href="([^"]+)"/g)].map(match => match[1]);
       expect(urls).to.have.lengthOf(2);
+      const optedIn = ejs.render(template, { adminInitialStyles: true, BrandingService: { getRootContext: () => rootContext } });
+      expect(optedIn).to.contain(`${rootContext}/fonts/google/titillium-web-700-latin-`);
+
       expect(urls.every(url => url.startsWith(`${rootContext}/fonts/google/`))).to.equal(true);
       // The standalone reference uses an unbundled stylesheet with brand-relative URLs.
       const standalonePath = `${rootContext}/default/rdmp/fonts/google`;

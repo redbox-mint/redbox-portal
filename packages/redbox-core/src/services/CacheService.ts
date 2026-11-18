@@ -37,11 +37,13 @@ export namespace Services {
       'bootstrap',
       'get',
       'set',
-      'getNgAppFileHash'
+      'getNgAppFileHash',
+      'getAdminInitialStylesheet'
     ];
 
     protected cache!: NodeCache;
     protected ngFileAppHash: Record<string, string> = {};
+    private adminInitialStylesheet = '';
 
     public async bootstrap() {
       const cacheOpts = {stdTTL: sails.config.custom_cache.cacheExpiry, checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600};
@@ -49,6 +51,13 @@ export namespace Services {
       sails.log.verbose(cacheOpts);
       this.cache = new NodeCache(cacheOpts);
       await this.buildNgAppFileHash();
+      // Webpack cleans this directory on each build. Resolve once, never on a page request.
+      try {
+        const styles = await readdir(`${sails.config.appPath}/.tmp/public/default/default/styles`);
+        this.adminInitialStylesheet = styles.find(file => /^admin-initial\.[a-f0-9]{12}\.min\.css$/.test(file)) || '';
+      } catch (_error) {
+        sails.log.verbose('Admin initial stylesheet unavailable; using complete portal styles');
+      }
     }
 
     public get(name: string): Observable<unknown | null> {
@@ -147,6 +156,10 @@ export namespace Services {
         }
       }
       sails.log.verbose(JSON.stringify(this.ngFileAppHash));
+    }
+
+    public getAdminInitialStylesheet(): string {
+      return this.adminInitialStylesheet;
     }
 
     public getNgAppFileHash(appName: string, fileNamePrefix: string, namePrefix: string = '', nameSuffix: string = '', insertEvenOnEmpty:boolean = false): string {

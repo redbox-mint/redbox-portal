@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add provider connection</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><a href="models.html">Models</a><span>/</span><span>Add provider connection</span></nav>
+    <header class="ph">
+      <div><h1>Add provider connection</h1><p>Tell ReDBox where to send drafting requests and how to sign in. You can reuse one connection for several models.</p></div>
+      <div class="ph-actions"><label class="switch on" style="align-self:center"><i></i>Enabled</label></div>
+    </header>
+
+    <div class="split">
+      <div class="split-main">
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Provider</h3><p>Only providers your server operator installed are listed.</p></div></div>
+          <div class="fsec-b">
+            <fieldset style="border:0;margin:0;padding:0"><legend class="sr-only" style="position:absolute;left:-9999px">Provider</legend>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="provider" data-show="openrouter" checked><span><b>OpenRouter</b><span>One API key for many hosted models. Good for comparing models.</span></span></label>
+              <label class="choice"><input type="radio" name="provider" data-show="bedrock"><span><b>Amazon Bedrock</b><span>Models hosted in your AWS account and region.</span></span></label>
+              <label class="choice"><input type="radio" name="provider" data-show="fake"><span><b>Demo (no AI)</b><span>Returns fixed answers. For training and testing forms.</span></span></label>
+            </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Details</h3><p>How this connection appears to other admins.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="c-name">Name <span class="req">*</span></label><input id="c-name" class="inp" value="OpenRouter (research)" data-dirty></div>
+              <div class="field"><label for="c-key">Key</label><input id="c-key" class="inp mono" value="openrouter-research"><span class="hint">Used in API and bootstrap files. Can’t change after saving.</span></div>
+            </div>
+            <div data-panel-group="provider" data-panel="openrouter">
+              <div class="field"><label for="c-ep">Endpoint</label><input id="c-ep" class="inp mono" value="https://openrouter.ai/api/v1"><span class="hint">Must be on the operator’s allowed host list: <span class="mono">openrouter.ai</span>.</span></div>
+            </div>
+            <div data-panel-group="provider" data-panel="bedrock" hidden>
+              <div class="fgrid">
+                <div class="field"><label for="c-reg">AWS region <span class="req">*</span></label><select id="c-reg" class="inp"><option>Asia Pacific (Sydney) · ap-southeast-2</option><option>Asia Pacific (Melbourne) · ap-southeast-4</option><option>US East (N. Virginia) · us-east-1</option></select><span class="hint">Sets the endpoint to <span class="mono">bedrock-runtime.ap-southeast-2.amazonaws.com</span>.</span></div>
+              </div>
+            </div>
+            <div data-panel-group="provider" data-panel="fake" hidden>
+              <div class="alert info" style="margin:0"><div>The demo provider never contacts an external service. Pair it with a model whose sample answers you provide.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Sign-in</h3><p>ReDBox stores a <i>reference</i> to the secret, never the secret itself.</p></div></div>
+          <div class="fsec-b stack">
+            <div data-panel-group="provider" data-panel="openrouter" class="stack">
+              <div class="field">
+                <span class="lbl">Where is the API key kept? <span class="req">*</span></span>
+                <div class="choices" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                  <label class="choice"><input type="radio" name="sec" checked><span><b>Server environment variable</b><span>Your operator sets it on the ReDBox server.</span></span></label>
+                  <label class="choice"><input type="radio" name="sec"><span><b>Secrets manager</b><span>An entry in the configured secret store.</span></span></label>
+                </div>
+              </div>
+              <div class="field"><label for="c-env">Variable name <span class="req">*</span></label><input id="c-env" class="inp mono" value="OPENROUTER_API_KEY" data-dirty><span class="hint">Saved as <span class="mono">env:OPENROUTER_API_KEY</span>. Testing checks the variable exists without showing its value.</span></div>
+              <details class="fsec" style="margin:0">
+                <summary class="fsec-h"><div><h3 style="font-size:14.5px">Extra request headers</h3><p>Optional, non-secret · 2 headers</p></div><span class="chev" aria-hidden="true">›</span></summary>
+                <div class="fsec-b stack-sm">
+                  <div class="maprow"><input class="inp mono" value="HTTP-Referer" aria-label="Header name 1"><span class="arrow">:</span><input class="inp mono" value="https://redbox.example.edu.au" aria-label="Header value 1"><button class="btn btn-ghost btn-sm" type="button" aria-label="Remove header 1">✕</button></div>
+                  <div class="maprow"><input class="inp mono" value="X-Title" aria-label="Header name 2"><span class="arrow">:</span><input class="inp mono" value="ReDBox AI drafting" aria-label="Header value 2"><button class="btn btn-ghost btn-sm" type="button" aria-label="Remove header 2">✕</button></div>
+                  <div><button class="btn btn-ghost btn-sm" type="button">+ Add header</button> <span class="hint">Headers named like Authorization, token or key are rejected. Use the secret above.</span></div>
+                </div>
+              </details>
+            </div>
+            <div data-panel-group="provider" data-panel="bedrock" hidden class="choices" style="grid-template-columns:1fr">
+              <label class="choice"><input type="radio" name="aws" checked><span><b>Server AWS role (recommended)</b><span>Uses the instance or task role. No keys to rotate.</span></span></label>
+              <label class="choice"><input type="radio" name="aws"><span><b>Access key reference</b><span>Environment variables or secret-store entry for an IAM user.</span></span></label>
+            </div>
+            <div data-panel-group="provider" data-panel="fake" hidden><p class="muted small" style="margin:0">No sign-in needed.</p></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Data handling</h3><p>Record what the provider agreed to. Researchers and reviewers can see this summary.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="dh-r">Prompt retention by provider</label><select id="dh-r" class="inp"><option>Not retained (zero data retention)</option><option>Retained for abuse monitoring (≤ 30 days)</option><option>Provider default policy</option><option>Unknown</option></select></div>
+              <div class="field"><label for="dh-t">Used to train models?</label><select id="dh-t" class="inp"><option>No</option><option>Yes</option><option>Unknown</option></select></div>
+              <div class="field"><label for="dh-g">Processing location</label><select id="dh-g" class="inp"><option>Varies by routed model</option><option>Australia</option><option>United States</option><option>European Union</option></select></div>
+              <div class="field"><label for="dh-c">Approved for</label><select id="dh-c" class="inp"><option>Public and internal records</option><option>Synthetic test data only</option><option>Includes sensitive records</option></select><span class="hint">Shown to profile editors when they pick a model.</span></div>
+            </div>
+            <label class="row" style="gap:8px;font-weight:400;font-size:14px"><input type="checkbox" style="accent-color:var(--primary)"> I have checked these terms with the provider’s current agreement</label>
+            <span class="hint" style="margin-top:-8px">Saves your name and today’s date as the verification record.</span>
+            <div class="alert warn" style="margin:0"><div><b>OpenRouter routes to other providers</b>Choose “Not retained” only if you will also require zero data retention on each model. You can enforce this per model.</div></div>
+          </div>
+        </div>
+
+        <details class="fsec">
+          <summary class="fsec-h"><div><h3>Limits</h3><p>Time limit 90 seconds</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b"><div class="fgrid"><div class="field"><label for="c-to">Time limit (seconds)</label><input id="c-to" class="inp" type="number" value="90" min="1" max="90"><span class="hint">Can’t exceed the server limit of 90 seconds.</span></div></div></div>
+        </details>
+
+        <div class="savebar"><span class="state"><span class="dot" style="color:#ffc107"></span>Not saved · test recommended</span><div class="row"><a class="btn btn-ghost" href="models.html">Cancel</a><button class="btn btn-primary" type="button">Save connection</button></div></div>
+      </div>
+
+      <aside class="split-side" style="position:sticky;top:16px">
+        <div class="card">
+          <div class="card-h plain"><h2>Test connection</h2></div>
+          <div class="card-b stack-sm">
+            <p class="small muted" style="margin:0">Checks the secret resolves and the provider answers. Nothing is saved and no record data is sent.</p>
+            <button class="btn btn-secondary" type="button" style="justify-content:center">Test unsaved settings</button>
+          </div>
+          <ul class="versions" aria-label="Test results" style="border-top:1px solid var(--line)">
+            <li><span class="sev ok" aria-hidden="true">✓</span><div><b>Secret found</b><span class="sub">env:OPENROUTER_API_KEY</span></div></li>
+            <li><span class="sev ok" aria-hidden="true">✓</span><div><b>Provider responded</b><span class="sub">412 ms · 09:41</span></div></li>
+            <li><span class="sev warn" aria-hidden="true">!</span><div><b>Structured output varies by model</b><span class="sub">Checked again when you add a model.</span></div></li>
+          </ul>
+        </div>
+        <div class="note">Results clear as soon as a field changes, matching the integration test-connection behaviour.</div>
+      </aside>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Design notes.</b> Choosing a provider re-shapes the form from the adapter’s <span class="inline-code">getConfigurationSchema()</span>, so admins never see an endpoint field for Bedrock (it’s derived from the region) or a secret field for the demo. The secret is a reference picker, not a password box, because <span class="inline-code">secretRef</span> is all the model stores and the design forbids secret-like keys in JSON. Data handling turns <span class="inline-code">dataPolicy</span> into four plain questions and a verification checkbox. Test sits beside the form, follows the existing unsaved-draft test pattern and lists each check separately so a failure says what to fix.</div>
+  </div></main>
+</div>
+</body>
+</html>

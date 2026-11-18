@@ -76,6 +76,7 @@ import * as GenerationCryptoServiceModule from './GenerationCryptoService';
 import * as GenerationKnowledgeServiceModule from './GenerationKnowledgeService';
 import * as GenerationModelServiceModule from './GenerationModelService';
 import * as GenerationPersistenceServiceModule from './GenerationPersistenceService';
+import * as GenerationProfileAdminServiceModule from './GenerationProfileAdminService';
 import * as GenerationProfileServiceModule from './GenerationProfileService';
 import * as GenerationPromptServiceModule from './GenerationPromptService';
 import * as GenerationProvenanceServiceModule from './GenerationProvenanceService';
@@ -496,6 +497,9 @@ export const ServiceExports = {
   },
   get GenerationPersistenceService() {
     return getOrCreateService('GenerationPersistenceService', () => new GenerationPersistenceServiceModule.Services.GenerationPersistenceService().exports());
+  },
+  get GenerationProfileAdminService() {
+    return getOrCreateService('GenerationProfileAdminService', () => new GenerationProfileAdminServiceModule.Services.GenerationProfileAdminService().exports());
   },
   get GenerationProfileService() {
     return getOrCreateService('GenerationProfileService', () => new GenerationProfileServiceModule.Services.GenerationProfileService().exports());

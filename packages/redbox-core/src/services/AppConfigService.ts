@@ -67,7 +67,7 @@ export namespace Services {
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
       'createConfig',
-      'registerConfigModel'
+      'registerConfigModel', 'setGenerationProviderKey', 'getGenerationProviderKey'
     ];
 
 
@@ -551,6 +551,28 @@ export namespace Services {
         release();
         if (this.configWriteGates.get(key) === gate) this.configWriteGates.delete(key);
       }
+    }
+
+    public getGenerationProviderKey(brandId: string, key: string): string {
+      const brand = BrandingService.getBrandById(brandId);
+      return _.get(this.getAppConfigurationForBrand(brand.name), ['generationProviderSecrets', 'keys', key], '') as string;
+    }
+
+    public async setGenerationProviderKey(brandId: string, key: string, value: string): Promise<void> {
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) throw new Error('Invalid provider key');
+      const configKey = 'generationProviderSecrets';
+      const brand = BrandingService.getBrandById(brandId);
+      await this.withConfigWriteLock(brandId, configKey, async (existing, lease) => {
+        const incoming = this.maskSecretFields(configKey, existing?.configData ?? { keys: {} }) as { keys: Record<string, string> };
+        incoming.keys ??= {};
+        incoming.keys[key] = value || APP_CONFIG_SECRET_CLEAR;
+        const stored = await this.storeSecretFields(brandId, configKey, incoming, existing?.configData, lease);
+        const hydrated = await this.hydrateSecretFields(configKey, stored);
+        if (lease) await this.getSecretStore().checkBundleSave(lease);
+        if (existing) await AppConfig.updateOne({ branding: brandId, configKey }).set({ configData: stored });
+        else await AppConfig.create({ branding: brandId, configKey, configData: stored });
+        this.brandingAppConfigMap[brand.name] = this.prepareBrandingCache(brand, configKey, hydrated!);
+      });
     }
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {

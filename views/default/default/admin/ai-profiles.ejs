@@ -1,0 +1,34 @@
+<% let appName = 'admin-ai-profiles'; %>
+<%- include('layout/start.ejs') %>
+<% if (!generationEnabled) { %>
+  <%- include('layout/page-header.ejs', {
+    breadcrumbs: [
+      { labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' },
+      { labelKey: 'admin-nav-integrations' },
+      { labelKey: 'admin-nav-ai-profiles' }
+    ], titleKey: 'ai-profiles-title'
+  }) %>
+  <div class="rb-admin-empty">
+    <h2><%= TranslationService.t('ai-models-disabled-title') %></h2>
+    <p><%= TranslationService.t('ai-models-disabled-description-updated') %></p>
+  </div>
+<% } else { %>
+  <admin-ai-profiles data-base-url="<%= BrandingService.getBrandAndPortalPath(req) %>/app/ai-profiles" data-brand="<%= BrandingService.getBrandNameFromReq(req) %>" data-portal="<%= BrandingService.getPortalFromReq(req) %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <div class="rb-admin-stable-heading">
+    <%- include('layout/page-header.ejs', {
+      breadcrumbs: [
+        { labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' },
+        { labelKey: 'admin-nav-integrations' },
+        { labelKey: 'admin-nav-ai-profiles' }
+      ], titleKey: 'ai-profiles-title', descriptionKey: 'ai-profiles-overview-description'
+    }) %>
+    </div>
+    <p role="status"><%= TranslationService.t('ai-profiles-loading') %></p>
+  </admin-ai-profiles>
+<% } %>
+<%- include('layout/end.ejs') %>
+<% if (generationEnabled) { %>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js" type="module" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">
+<% } %>

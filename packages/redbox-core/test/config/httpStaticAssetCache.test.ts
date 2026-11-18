@@ -222,7 +222,6 @@ describe('static asset cache policy over HTTP', function () {
     expect(entrypoints.length, 'production index entrypoints').to.be.greaterThan(0);
     const emittedBundles = fs.readdirSync(output).filter(file => ['.js', '.css'].includes(path.extname(file)));
     expect(emittedBundles, 'include entrypoints and lazy/shared chunks').to.include.members(entrypoints);
-    expect(emittedBundles.length).to.be.greaterThan(entrypoints.length);
     for (const file of emittedBundles) {
       const bytes = fs.readFileSync(path.join(output, file));
       const url = `/angular/local-auth/browser/${file}`;

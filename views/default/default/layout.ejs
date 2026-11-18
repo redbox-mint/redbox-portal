@@ -40,7 +40,23 @@
 
 
   <!-- Custom CSS -->
+  <% const __adminInitialStylesheet = typeof adminInitialStyles !== 'undefined' && adminInitialStyles === true
+    ? CacheService.getAdminInitialStylesheet() : ''; %>
+  <% if (__adminInitialStylesheet) { %>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/default/default/styles/<%= __adminInitialStylesheet %>">
+  <link id="rb-portal-extra-styles" rel="stylesheet" media="print" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
+  <script <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    (function () {
+      const styles = document.getElementById('rb-portal-extra-styles');
+      const activate = function () { styles.media = 'all'; };
+      styles.addEventListener('load', activate, { once: true });
+      if (styles.sheet) activate();
+    })();
+  </script>
+  <noscript><link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css"></noscript>
+  <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
+  <% } %>
   <% if (req.query && req.query.previewToken) { %>
     <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/preview/<%= req.query.previewToken %>.css">
   <% } else { %>

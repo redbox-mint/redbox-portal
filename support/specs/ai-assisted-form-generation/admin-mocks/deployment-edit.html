@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit model</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><a href="models.html">Models</a><span>/</span><span>Amazon Nova Lite for RDMPs</span></nav>
+    <header class="ph">
+      <div><h1>Amazon Nova Lite for RDMPs <span class="badge warn" style="vertical-align:middle">Draft v2</span></h1><p>Based on published v1. Profiles keep using v1 until you publish this draft and update them.</p></div>
+      <div class="ph-actions"><button class="btn btn-secondary" type="button">Compare with v1</button><button class="btn btn-secondary" type="button">Test model</button><button class="btn btn-primary" type="button">Publish v2</button></div>
+    </header>
+
+    <div class="split">
+      <div class="split-main">
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Model</h3><p>Which model to call, through which connection.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="m-name">Name <span class="req">*</span></label><input id="m-name" class="inp" value="Amazon Nova Lite for RDMPs" data-dirty><span class="hint">Shown when editors choose a model for a profile.</span></div>
+              <div class="field"><label for="m-conn">Connection <span class="req">*</span></label><select id="m-conn" class="inp"><option>Amazon Bedrock (Sydney) · healthy</option><option>Demo provider (no AI) · healthy</option></select></div>
+            </div>
+            <div class="field">
+              <label for="m-id">Model <span class="req">*</span></label>
+              <input id="m-id" class="inp" value="amazon.nova-lite-v1:0" list="m-list" data-dirty>
+              <datalist id="m-list"><option value="amazon.nova-lite-v1:0">Amazon Nova Lite</option><option value="amazon.nova-pro-v1:0">Amazon Nova Pro</option><option value="anthropic.claude-haiku">Claude Haiku</option></datalist>
+              <span class="hint">Start typing to search models this connection can reach in ap-southeast-2.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Response style</h3><p>Lower values give more consistent, conservative drafts.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="field">
+              <label for="m-temp">Temperature</label>
+              <div class="range"><span class="small muted">Consistent</span><input id="m-temp" type="range" min="0" max="1" step="0.1" value="0.2" data-out="m-temp-o" data-dirty><span class="small muted">Varied</span><output id="m-temp-o" for="m-temp">0.2</output></div>
+              <span class="hint">0–0.3 is recommended for record metadata.</span>
+            </div>
+            <div class="fgrid">
+              <div class="field"><label for="m-max">Maximum response length (tokens)</label><input id="m-max" class="inp" type="number" value="4096"><span class="hint">About 3,000 words. Too low cuts off long fields.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Requirements</h3><p>Testing and publishing fail if the model can’t meet these.</p></div></div>
+          <div class="fsec-b">
+            <table class="tbl">
+              <thead><tr><th>Requirement</th><th>Required</th><th>Last test</th></tr></thead>
+              <tbody>
+                <tr><td><b>Structured output</b><span class="sub">Returns answers in the exact shape ReDBox expects. Always required.</span></td><td><input type="checkbox" checked disabled aria-label="Structured output required"></td><td><span class="badge ok">Supported</span></td></tr>
+                <tr><td><b>Complete responses</b><span class="sub">Answers in one response, not streamed. Always required.</span></td><td><input type="checkbox" checked disabled aria-label="Complete responses required"></td><td><span class="badge ok">Supported</span></td></tr>
+                <tr><td><b>Text input</b></td><td><input type="checkbox" checked disabled aria-label="Text input required"></td><td><span class="badge ok">Supported</span></td></tr>
+                <tr><td><b>Zero data retention</b><span class="sub">Refuse to run unless the provider confirms prompts aren’t stored.</span></td><td><input type="checkbox" aria-label="Zero data retention required" style="accent-color:var(--primary)"></td><td><span class="badge">Not reported</span></td></tr>
+                <tr><td><b>Repeatable results (seed)</b></td><td><input type="checkbox" aria-label="Repeatable results required" style="accent-color:var(--primary)"></td><td><span class="badge warn">Not supported</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <details class="fsec">
+          <summary class="fsec-h"><div><h3>Advanced parameters</h3><p>No extra parameters · view or edit as JSON</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b"><textarea class="inp mono" rows="5" aria-label="Advanced parameters JSON">{
+  "maxOutputTokens": 4096,
+  "temperature": 0.2
+}</textarea><span class="hint">Values set above are included. Unknown keys are rejected by the provider adapter on test.</span></div>
+        </details>
+
+        <div class="savebar"><span class="state" style="color:var(--success)"><span class="dot"></span>Draft saved 09:52</span><div class="row"><button class="btn btn-ghost" type="button">Discard draft</button><button class="btn btn-primary" type="button">Save draft</button></div></div>
+      </div>
+
+      <aside class="split-side">
+        <div class="card">
+          <div class="card-h plain"><h2>Test model</h2></div>
+          <div class="card-b stack-sm">
+            <p class="small muted" style="margin:0">Sends a short synthetic prompt and checks every requirement. No record data is sent.</p>
+            <div class="alert ok" style="margin:0"><div><b>Passed · 1.8 s</b>Returned valid structured output · 212 tokens · est. A$0.0003</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h plain"><h2>Versions</h2></div>
+          <ol class="versions">
+            <li><span class="vn">v2</span><div><span class="badge warn">Draft</span> <span class="sub">Edited by Local Admin · today</span></div></li>
+            <li><span class="vn">v1</span><div><span class="badge ok">Published</span> <span class="sub">Bootstrap · 2 Nov 2026 · used by 1 profile</span></div></li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Design notes.</b> Published versions are immutable, so the header makes the version state the first thing you read and keeps “Publish” as the single primary action. Capability flags (<span class="inline-code">requiredCapabilities</span>) become a requirements table with the last test result beside each row, so admins see the effect of ticking a box before publishing. Mandatory capabilities are shown ticked and locked rather than hidden. Free-form <span class="inline-code">parameters</span> remain reachable as JSON for technical users (FR-CFG-008), behind the common ones.</div>
+  </div></main>
+</div>
+</body>
+</html>

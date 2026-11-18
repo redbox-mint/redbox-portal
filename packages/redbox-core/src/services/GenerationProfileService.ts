@@ -15,6 +15,13 @@ function assertUnique(values: string[], label: string): void {
   }
 }
 
+/** Check after storing a reference as well: deletion claims before scanning profiles. */
+export async function requireProfileModel(brandId: string, id: string): Promise<void> {
+  if (!id) return; // An unfinished admin draft may have no model selected yet.
+  const model = await GenerationModelDeployment.findOne({ id, brandId });
+  if (!model || model.status === 'deleting') throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Model changed concurrently');
+}
+
 export namespace Services {
   export class GenerationProfileService extends services.Core.Service {
     protected override _exportedMethods = [
@@ -54,6 +61,7 @@ export namespace Services {
       assertUnique(definition.sourceSlots.map((slot) => slot.id), 'Source slot');
       assertUnique(definition.questions.map((question) => question.id), 'Question');
       assertUnique(definition.targetFields.map((field) => field.id), 'Target field');
+      assertUnique(definition.targetFields.map((field) => field.metadataPointer ?? ''), 'Field to fill');
       if (poc && definition.questions.length !== 5) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'The POC requires exactly five non-branching questions');
       }
@@ -72,7 +80,7 @@ export namespace Services {
         slot.allowedPaths.forEach((pointer) => this.assertPointer(pointer, 'source'));
       }
       for (const question of definition.questions) {
-        if (typeof question.labelKey !== 'string' || !question.labelKey.trim() || !GENERATION_QUESTION_TYPES.includes(question.type) ||
+        if (!(question.label?.trim() || question.labelKey?.trim()) || !GENERATION_QUESTION_TYPES.includes(question.type) ||
           (question.maxLength !== undefined && (!Number.isSafeInteger(question.maxLength) || question.maxLength <= 0)) ||
           (question.options !== undefined && !Array.isArray(question.options))) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' is invalid`);
@@ -80,7 +88,7 @@ export namespace Services {
         const isChoice = question.type === 'enum' || question.type === 'multiEnum';
         const options = question.options ?? [];
         if ((isChoice && (!options.length ||
-          options.some(option => !option || typeof option.value !== 'string' || !option.value.trim() || typeof option.labelKey !== 'string' || !option.labelKey.trim()) ||
+          options.some(option => !option || typeof option.value !== 'string' || !option.value.trim() || !(option.label?.trim() || option.labelKey?.trim())) ||
           new Set(options.map(option => option.value)).size !== options.length)) || (!isChoice && options.length > 0)) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' has invalid options`);
         }
@@ -130,6 +138,7 @@ export namespace Services {
       actorId: string,
     ): Promise<{ profile: GenerationProfileAttributes; version: GenerationProfileVersionAttributes }> {
       const definition = this.validateDefinition(input.definition);
+      await requireProfileModel(brandId, definition.modelDeploymentId);
       const profile = await GenerationProfile.create({
         brandId, key: input.key, name: input.name, nameLower: input.name.trim().toLowerCase(), description: input.description,
         createdBy: actorId, updatedBy: actorId, enabled: true,
@@ -138,6 +147,12 @@ export namespace Services {
         brandId, profileId: profile.id, version: 1, status: 'draft', schemaVersion: 1,
         definition, contentHash: canonicalHash(definition), createdBy: actorId,
       }).fetch();
+      try { await requireProfileModel(brandId, definition.modelDeploymentId); }
+      catch (error) {
+        await GenerationProfileVersion.destroyOne({ id: version.id, brandId });
+        await GenerationProfile.destroyOne({ id: profile.id, brandId });
+        throw error;
+      }
       await GenerationProfile.updateOne({ id: profile.id, brandId }).set({ latestVersionId: version.id });
       return { profile: { ...profile, latestVersionId: version.id }, version };
     }
@@ -145,6 +160,7 @@ export namespace Services {
     public async createDraft(brandId: string, profileId: string, sourceVersionId: string, actorId: string): Promise<GenerationProfileVersionAttributes> {
       const source = await GenerationProfileVersion.findOne({ id: sourceVersionId, profileId, brandId });
       if (!source) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation profile version was not found');
+      await requireProfileModel(brandId, source.definition.modelDeploymentId);
       const existing = requireWaterlineRows<GenerationProfileVersionAttributes>(
         await GenerationProfileVersion.find({ brandId, profileId }),
         'GenerationProfileVersion',
@@ -154,6 +170,8 @@ export namespace Services {
         brandId, profileId, version: next, status: 'draft', schemaVersion: source.schemaVersion,
         definition: source.definition, contentHash: canonicalHash(source.definition), createdBy: actorId,
       }).fetch();
+      try { await requireProfileModel(brandId, source.definition.modelDeploymentId); }
+      catch (error) { await GenerationProfileVersion.destroyOne({ id: draft.id, brandId }); throw error; }
       await GenerationProfile.updateOne({ id: profileId, brandId }).set({ latestVersionId: draft.id, updatedBy: actorId });
       return draft;
     }
@@ -168,16 +186,25 @@ export namespace Services {
       if (!current || current.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft profile versions may be edited');
       if (expectedContentHash && current.contentHash !== expectedContentHash) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
       const validated = this.validateDefinition(definition);
-      const updated = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft' }).set({
+      await requireProfileModel(brandId, validated.modelDeploymentId);
+      const updated = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: current.contentHash }).set({
         definition: validated, contentHash: canonicalHash(validated),
       });
       if (!updated) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
+      try { await requireProfileModel(brandId, validated.modelDeploymentId); }
+      catch (error) {
+        await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: updated.contentHash }).set({
+          definition: current.definition, contentHash: current.contentHash,
+        });
+        throw error;
+      }
       return updated;
     }
 
-    public async publish(brandId: string, versionId: string, actorId: string): Promise<GenerationProfileVersionAttributes> {
+    public async publish(brandId: string, versionId: string, actorId: string, expectedContentHash?: string): Promise<GenerationProfileVersionAttributes> {
       const version = await GenerationProfileVersion.findOne({ id: versionId, brandId });
       if (!version || version.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft profile versions may be published');
+      if (expectedContentHash && version.contentHash !== expectedContentHash) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile draft changed concurrently');
       this.validateDefinition(version.definition);
       const deployment = await GenerationModelDeployment.findOne({ id: version.definition.modelDeploymentId, brandId, status: 'published' });
       if (!deployment) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Published model deployment was not found');
@@ -186,12 +213,24 @@ export namespace Services {
           throw new GenerationError('GENERATION_PROFILE_INVALID', 'Published knowledge version was not found');
         }
       }
+      const profile = await GenerationProfile.findOne({ id: version.profileId, brandId });
+      if (!profile || profile.publishedVersionId === versionId) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile changed concurrently');
+      // Reserve publication on the parent before changing the version. Deletion
+      // claims that same parent only while it has no publication reservation.
+      const claimed = await GenerationProfile.updateOne({ id: version.profileId, brandId,
+        publishedVersionId: profile.publishedVersionId ?? null }).set({ publishedVersionId: versionId, updatedBy: actorId });
+      if (!claimed) throw new GenerationError('GENERATION_TARGET_CONFLICT', 'Profile changed concurrently');
       const publishedAt = new Date().toISOString();
-      const published = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft' }).set({
-        status: 'published', publishedBy: actorId, publishedAt,
-      });
-      if (!published) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
-      await GenerationProfile.updateOne({ id: version.profileId, brandId }).set({ publishedVersionId: versionId, updatedBy: actorId });
+      let published: GenerationProfileVersionAttributes | null;
+      try {
+        published = await GenerationProfileVersion.updateOne({ id: versionId, brandId, status: 'draft', contentHash: version.contentHash }).set({
+          status: 'published', publishedBy: actorId, publishedAt,
+        });
+        if (!published) throw new GenerationError('GENERATION_INVALID_STATE', 'Profile draft changed concurrently');
+      } catch (error) {
+        await GenerationProfile.updateOne({ id: version.profileId, brandId, publishedVersionId: versionId }).set({ publishedVersionId: profile.publishedVersionId || '' });
+        throw error;
+      }
       return published;
     }
 

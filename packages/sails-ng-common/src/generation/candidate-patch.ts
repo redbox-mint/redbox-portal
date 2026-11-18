@@ -16,6 +16,7 @@ export interface GenerationEvidenceSummary {
 
 export interface GenerationCandidatePatchItem {
   fieldId: string;
+  label?: string;
   metadataPointer: string;
   value: unknown;
   operation: 'fill';

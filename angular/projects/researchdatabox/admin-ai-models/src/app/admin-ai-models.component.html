@@ -1,0 +1,303 @@
+<div class="rb-admin-stable-heading">
+<nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+  <li><a [href]="baseUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li><li>{{ 'admin-nav-integrations' | i18next }}</li>
+  @if (editor || providerEditor) {
+    <li><button type="button" class="ai-crumb" (click)="openOverview()">{{ 'ai-models-title' | i18next }}</button></li>
+    <li><span aria-current="page">{{ draft?.name || activeProvider?.draft?.name || ((providerEditor ? 'ai-models-new-provider' : 'ai-models-new-model') | i18next) }}</span></li>
+  } @else { <li><span aria-current="page">{{ 'ai-models-title' | i18next }}</span></li> }
+</ol></nav>
+<header class="rb-admin-page-header"><div>
+  <h1 tabindex="-1">{{ draft?.name || activeProvider?.draft?.name || ((editor ? 'ai-models-new-model' : providerEditor ? 'ai-models-new-provider' : 'ai-models-title') | i18next) }}
+    @if (selected) { <span class="badge" [class.rb-admin-badge-warning]="selected.status === 'draft'" [class.rb-admin-badge-success]="selected.status === 'published'" [class.rb-admin-badge-info]="selected.status === 'retired'">{{ ('ai-models-version-' + selected.status) | i18next: { version: selected.version } }}</span> }
+    @if (isNew) { <span class="badge rb-admin-badge-warning">{{ 'ai-models-new-draft' | i18next }}</span> }
+  </h1>
+  @if (editor) {
+    <p>{{ (modelUses.length ? 'ai-models-used-by-profiles' : 'ai-models-unused-model') | i18next }}
+      @for (use of modelUses; track use.key) { <a [href]="profileHref(use.key)">{{ use.name }}</a>{{ $last ? '' : ', ' }} }
+    </p>
+  } @else { <p>{{ (providerEditor ? (activeProvider?.id ? 'ai-models-provider-edit-description' : 'ai-models-provider-description') : 'ai-models-description-updated') | i18next }}</p> }
+</div><div class="rb-admin-page-actions">
+  @if (!loading && overview?.enabled) {
+    @if (activeProvider; as provider) {
+      <div class="ai-connection-results" aria-live="polite" aria-atomic="true">
+        @if (provider.error) { <span class="ai-field-error">{{ provider.error | i18next }}</span> }
+        @if (provider.health; as health) { <span [class.ai-field-error]="!health.ok">{{ (health.ok ? 'ai-models-connected' : 'ai-models-provider-error-' + health.errorCode?.toLowerCase()?.replaceAll('_', '-')) | i18next }} @if (health.ok) { · {{ 'ai-models-latency' | i18next: { ms: health.latencyMs } }} }</span> }
+      </div>
+      <button type="button" class="btn btn-outline-secondary" (click)="testProvider(provider)" [disabled]="busy || providerInvalid || provider.testing || cooldown > 0">{{ (provider.testing ? 'ai-models-testing-updated' : 'ai-models-test-connection') | i18next }} @if (cooldown) { {{ 'ai-models-cooldown' | i18next: { seconds: cooldown } }} }</button>
+      @if (provider.id) { <button type="button" class="btn btn-outline-danger" (click)="askDeleteProvider(provider.id)" [disabled]="busy">{{ 'ai-models-delete' | i18next }}</button> }
+    } @else if (editor) {
+      @if (readOnly) { <button type="button" class="btn btn-primary" (click)="newVersion()" [disabled]="busy">{{ 'ai-models-new-version' | i18next }}</button> }
+      @else {
+        <button type="button" class="btn btn-outline-danger" (click)="askDiscardDraft()" [disabled]="busy">{{ 'ai-models-discard-draft' | i18next }}</button>
+        <button type="button" class="btn btn-primary" (click)="publish()" [disabled]="busy || !canPublish">{{ 'ai-models-publish-version' | i18next: { version: selected?.version || 1 } }}</button>
+      }
+    } @else {
+      <button type="button" class="btn btn-outline-secondary" (click)="addProvider()" [disabled]="busy || !overview?.adapters?.length">{{ 'ai-models-add-provider' | i18next }}</button>
+      <button type="button" class="btn btn-primary" (click)="newModel()" [disabled]="busy || !enabledConnections.length">{{ 'ai-models-add-model' | i18next }}</button>
+    }
+  }
+</div></header></div>
+@if (error) { <div class="alert alert-danger" role="alert">{{ error | i18next }} @if (!overview && !loading) { <button type="button" class="btn btn-outline-secondary" (click)="retryLoad()">{{ 'ai-models-retry' | i18next }}</button> }</div> }
+<div aria-live="polite">@if (notice) { <p class="alert alert-success">{{ notice | i18next }}</p> }</div>
+@if (loading) { <div class="ai-loading" aria-busy="true"><p>{{ 'ai-models-loading' | i18next }}</p><div class="ai-skeleton"></div></div> }
+@else if (overview && !overview.enabled) { <div class="rb-admin-empty"><h2>{{ 'ai-models-disabled-title' | i18next }}</h2><p>{{ 'ai-models-disabled-description-updated' | i18next }}</p></div> }
+@else if (overview) {
+  @if (conflict) {
+    <section class="alert alert-warning ai-conflict" role="alert" id="ai-conflict">
+      <h2>{{ 'ai-models-conflict-title' | i18next }}</h2><p>{{ 'ai-models-conflict-description' | i18next }}</p>
+      <button type="button" class="btn btn-outline-secondary" (click)="reloadConflict()" [disabled]="busy">{{ 'ai-models-reload-latest' | i18next }}</button>
+      @if (remote) {
+        <div class="rb-admin-form-grid">
+          <div><h3>{{ 'ai-models-your-edits' | i18next }}</h3><pre>{{ json(draft) }}</pre></div>
+          <div><h3>{{ 'ai-models-saved-version' | i18next }}</h3><pre>{{ json(remote) }}</pre></div>
+        </div>
+        <div class="rb-admin-page-actions">
+          <button type="button" class="btn btn-outline-secondary" (click)="resolveConflict(false)">{{ 'ai-models-use-latest' | i18next }}</button>
+          <button type="button" class="btn btn-outline-secondary" (click)="resolveConflict(true)" [disabled]="remote.status !== 'draft'">{{ 'ai-models-keep-edits' | i18next }}</button>
+        </div>
+      }
+    </section>
+  }
+  @if (activeProvider; as provider) {
+    <ai-provider-card [item]="provider" [overview]="overview" [busy]="busy" [keyConflict]="providerKeyUsed(provider)" (changed)="notice = ''" (nameChange)="providerName(provider, $event)"></ai-provider-card>
+  } @else if (!editor) {
+    @if (attentionProviders.length) { <p class="alert alert-warning" role="status">{{ 'ai-models-attention-keys' | i18next: { count: attentionProviders.length } }}:
+      @for (provider of attentionProviders; track provider.id) { <a [href]="hash() + '#provider=' + provider.id" (click)="$event.preventDefault(); openProvider(provider.id)">{{ provider.name }}</a>{{ $last ? '' : ', ' }} }</p> }
+    <section class="rb-admin-form-section" id="ai-providers"><div class="rb-admin-form-section-header"><h2>{{ 'ai-models-editor-section-providers' | i18next }}</h2></div>
+      @if (!overview.connections.length) { <div class="rb-admin-empty"><h3>{{ 'ai-models-providers-empty-updated' | i18next }}</h3><p>{{ 'ai-models-providers-empty-description-updated' | i18next }}</p><button class="btn btn-outline-secondary" type="button" (click)="addProvider()">{{ 'ai-models-add-provider' | i18next }}</button></div> }
+      @for (provider of overview.connections; track provider.id) {
+        <div class="ai-provider-row" [attr.data-provider]="provider.id"><div><h3>{{ provider.name }}</h3><p>{{ providerType(provider) }}</p></div>
+          <div><span class="ai-health" [class.ai-health-ready]="healthKey(provider.id) === 'ai-models-provider-health-healthy'" [class.ai-health-failed]="healthKey(provider.id) === 'ai-models-key-missing' || healthKey(provider.id) === 'ai-models-provider-health-unhealthy'">{{ healthKey(provider.id) | i18next }}</span>
+            @if (provider.lastHealthStatus === 'healthy' && provider.lastHealthCheckedAt && provider.enabled) { <small> · {{ 'ai-models-checked' | i18next }} {{ provider.lastHealthCheckedAt | adminDate }}</small> }
+            <p class="rb-admin-hint">{{ 'ai-models-provider-model-count' | i18next: { count: providerUsage(provider.id).length } }}</p>
+          </div><div class="rb-admin-page-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openProvider(provider.id)">{{ 'ai-models-edit' | i18next }}</button><button type="button" class="btn btn-sm btn-outline-danger" (click)="askDeleteProvider(provider.id)">{{ 'ai-models-delete' | i18next }}</button></div>
+        </div>
+      }
+    </section>
+    <section class="rb-admin-form-section" id="ai-models"><div class="rb-admin-form-section-header"><h2>{{ 'ai-models-editor-section-models' | i18next }}</h2></div>
+      @if (!visibleModels.length) { <div class="rb-admin-empty"><h3>{{ 'ai-models-models-empty-updated' | i18next }}</h3><p>{{ (overview.connections.length ? 'ai-models-models-empty-description-updated' : 'ai-models-providers-empty-updated') | i18next }}</p>@if (overview.connections.length) { <button class="btn btn-primary" type="button" (click)="newModel()" [disabled]="!enabledConnections.length">{{ 'ai-models-add-model' | i18next }}</button> }</div> }
+      @else { <div class="ai-model-table"><table class="table table-hover"><thead><tr>@for (heading of ['name', 'provider', 'model-id', 'version', 'used-by', 'actions']; track heading) { <th scope="col">{{ ('ai-models-list-column-' + heading) | i18next }}</th> }</tr></thead><tbody>
+        @for (group of visibleModels; track group.key) { @if (firstVersion(group.key); as version) {
+          <tr [attr.data-model]="group.key"><th scope="row">{{ group.name }}</th><td [attr.data-label]="'ai-models-list-column-provider' | i18next">{{ connectionName(version.connectionId) }}</td><td [attr.data-label]="'ai-models-list-column-model-id' | i18next">{{ modelLabel(version.modelId) }}</td><td>{{ modelState(group) }}</td><td>{{ 'ai-models-profile-count' | i18next: { count: group.usageCount } }}</td><td><div class="rb-admin-page-actions"><a class="btn btn-sm btn-outline-secondary" [href]="hash(group.key)" (click)="$event.preventDefault(); openModel(group.key)">{{ (version.status === 'draft' ? 'ai-models-edit' : 'ai-models-view') | i18next }}</a><button type="button" class="btn btn-sm btn-outline-danger" (click)="askDeleteModel(group.key)">{{ 'ai-models-delete' | i18next }}</button></div></td></tr>
+        } }
+      </tbody></table></div> }
+    </section>
+  } @else if (draft) {
+    <div class="rb-admin-split ai-model-layout"><nav class="rb-admin-section-rail" [attr.aria-label]="'ai-models-editor-section-navigation' | i18next">
+      @for (section of rail; track section.id) { <a [href]="sectionHref(section.id)" (click)="$event.preventDefault(); goSection(section.id)" [attr.aria-current]="activeSection === section.id ? 'location' : null">{{ section.key | i18next }}</a> }
+    </nav><div class="rb-admin-split-main">
+        <section id="ai-model" class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-editor-section-model' | i18next }}</h2><p>{{ 'ai-models-model-description-updated' | i18next }}</p></div></div>
+          @if (readOnly) {
+            <dl class="ai-metadata rb-admin-form-section-body">
+              <dt>{{ 'ai-models-name' | i18next }}</dt><dd>{{ draft.name }}</dd>
+              <dt>{{ 'ai-models-connection-updated' | i18next }}</dt><dd>{{ connection?.name }}</dd>
+              <dt>{{ 'ai-models-model-id-updated' | i18next }}</dt><dd>{{ modelLabel(draft.modelId) }}</dd>
+              <dt>{{ 'ai-models-key' | i18next }}</dt><dd>{{ modelKey }}</dd>
+            </dl>
+          } @else {
+          <fieldset class="rb-admin-form-section-body" [disabled]="busy">
+            <div class="rb-admin-form-grid">
+              <div><label for="ai-model-name">{{ 'ai-models-name' | i18next }}</label>
+                <input id="ai-model-name" class="form-control" [ngModel]="draft.name" (ngModelChange)="modelName($event)" maxlength="200" required [attr.aria-invalid]="!!modelIssues['name']" aria-describedby="ai-model-name-error">
+                <small id="ai-model-name-error" class="ai-field-error">{{ modelIssues['name'] | i18next }}</small>
+              </div>
+              <div class="ai-full-row"><label for="ai-model-connection">{{ 'ai-models-connection-updated' | i18next }}</label>
+                <select id="ai-model-connection" class="form-select" [(ngModel)]="draft.connectionId" (ngModelChange)="changeConnection()" [attr.aria-invalid]="!!modelIssues['connectionId']" aria-describedby="ai-model-connection-error">
+                  @for (connectionItem of overview.connections; track connectionItem.id) { <option [value]="connectionItem.id" [disabled]="!connectionItem.enabled">{{ connectionItem.name }}</option> }
+                </select>@if (healthKey(draft.connectionId) !== 'ai-models-provider-health-healthy') { <small class="rb-admin-hint">{{ healthKey(draft.connectionId) | i18next }}</small> }<small id="ai-model-connection-error" class="ai-field-error">{{ modelIssues['connectionId'] | i18next }}</small>
+              </div>
+              <div><label for="ai-model-picker">{{ 'ai-models-model-id-updated' | i18next }}</label>
+                <select id="ai-model-picker" class="form-select" [ngModel]="pickerModel" (ngModelChange)="pickModel($event)">
+                  @for (option of modelOptions; track option) { <option [value]="option">{{ modelLabel(option) }}</option> }
+                  <option value="other">{{ 'ai-models-other-model' | i18next }}</option>
+                </select>
+                @if (pickerModel === 'other') {
+                  <label class="mt-3" for="ai-model-id">{{ 'ai-models-custom-model-id' | i18next }}</label>
+                  <input id="ai-model-id" class="form-control" [(ngModel)]="draft.modelId" (ngModelChange)="changed()" maxlength="200" required aria-describedby="ai-model-id-error">
+                }
+                <small id="ai-model-id-error" class="ai-field-error">{{ modelIssues['modelId'] | i18next }}</small>
+              </div>
+            </div>
+            <details class="ai-advanced"><summary>{{ 'ai-models-advanced' | i18next }}</summary>              <div><label for="ai-model-key">{{ 'ai-models-key' | i18next }}</label>
+                <input id="ai-model-key" class="form-control font-monospace" [(ngModel)]="modelKey" (ngModelChange)="keyEdited = true; changed()" [readOnly]="!isNew" maxlength="100" required [attr.aria-invalid]="!!modelIssues['key']" aria-describedby="ai-model-key-error ai-key-hint">
+                <small id="ai-key-hint" class="rb-admin-hint">{{ 'ai-models-key-hint' | i18next }}</small><small id="ai-model-key-error" class="ai-field-error">{{ modelIssues['key'] | i18next }}</small>
+              </div>
+</details>
+          </fieldset>
+          }
+        </section>
+        <section id="ai-response" class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-editor-section-response' | i18next }}</h2><p>{{ 'ai-models-response-description-updated' | i18next }}</p></div></div>
+          @if (adapter === 'fake') {
+            <div class="rb-admin-form-section-body"><div class="alert alert-info" role="status">{{ 'ai-models-demo-settings-updated' | i18next }}</div></div>
+          } @else {
+          @if (readOnly) { <dl class="ai-metadata rb-admin-form-section-body">
+            @for (setting of allSettings; track setting) { @if (accepts(setting)) {
+              <dt>{{ ('ai-models-behaviour-' + setting) | i18next }}</dt><dd>{{ $any(draft.parameters)?.[setting] ?? ('ai-models-provider-default' | i18next) }}</dd>
+            } }
+          </dl> } @else {
+          <fieldset class="rb-admin-form-section-body" [disabled]="readOnly || busy">
+            <div role="group" aria-labelledby="ai-creativity-label">
+            <span id="ai-creativity-label" class="ai-field-label">{{ 'ai-models-behaviour-temperature' | i18next }}</span>
+            <div class="form-check"><input id="ai-temperature-default" class="form-check-input" type="checkbox" [ngModel]="draft.parameters?.temperature === undefined" (ngModelChange)="useDefaultTemperature($event)"><label class="form-check-label" for="ai-temperature-default">{{ 'ai-models-use-default' | i18next }}</label></div>
+            @if (draft.parameters?.temperature !== undefined) {
+            <div class="ai-temperature">
+              <span>{{ 'ai-models-consistent' | i18next }}</span>
+              <input type="range" id="ai-temperature" class="form-range" [ngModel]="draft.parameters?.temperature" (ngModelChange)="setNumber('temperature', $event)" min="0" [max]="adapter === 'bedrock' ? 1 : 2" step="0.05" [disabled]="readOnly || busy || !accepts('temperature')" aria-labelledby="ai-creativity-label" aria-describedby="ai-temperature-hint ai-temperature-error">
+              <span>{{ 'ai-models-varied' | i18next }}</span>
+              <output for="ai-temperature">{{ draft.parameters?.temperature ?? ('ai-models-provider-default' | i18next) }}</output>
+            </div>
+            <p id="ai-temperature-hint" class="rb-admin-hint">{{ 'ai-models-creativity-range' | i18next: { max: adapter === 'bedrock' ? 1 : 2 } }}</p> }
+            <small id="ai-temperature-error" class="ai-field-error">{{ modelIssues['temperature'] | i18next }}</small>
+            </div>
+            <div class="rb-admin-form-grid">
+              @for (setting of ['maxOutputTokens']; track setting) {
+                @if (accepts(setting)) {
+                  <div><label [for]="'ai-setting-' + setting">{{ ('ai-models-behaviour-' + setting) | i18next }}</label>
+                    <input type="number" class="form-control ai-short-input" [id]="'ai-setting-' + setting" [ngModel]="$any(draft.parameters)?.[setting]" (ngModelChange)="setNumber($any(setting), $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'maxOutputTokens' || setting === 'seed' ? 1 : 0.05" [disabled]="!accepts(setting)" [attr.aria-invalid]="!!modelIssues[setting]" [attr.aria-describedby]="'ai-hint-' + setting">
+                    <small class="rb-admin-hint" [id]="'ai-hint-' + setting">{{ ('ai-models-behaviour-hint-' + setting) | i18next }}</small>
+                    <small class="ai-field-error">{{ modelIssues[setting] | i18next }}</small>
+                  </div>
+                }
+              }
+            </div><details class="ai-advanced"><summary>{{ 'ai-models-advanced' | i18next }}</summary><div class="rb-admin-form-grid">
+              @for (setting of numericSettings; track setting) { @if (setting !== 'maxOutputTokens' && accepts(setting)) {
+                <div><label [for]="'ai-setting-' + setting">{{ ('ai-models-behaviour-' + setting) | i18next }}</label>
+                <input type="number" class="form-control ai-short-input" [id]="'ai-setting-' + setting" [ngModel]="$any(draft.parameters)?.[setting]" (ngModelChange)="setNumber(setting, $event)" [min]="parameterMin(setting)" [max]="parameterMax(setting)" [step]="setting === 'seed' ? 1 : 0.05">
+                <small class="rb-admin-hint">{{ ('ai-models-behaviour-hint-' + setting) | i18next }}</small><small class="ai-field-error">{{ modelIssues[setting] | i18next }}</small></div>
+              } }
+              <div><label for="ai-stops">{{ 'ai-models-behaviour-stopSequences' | i18next }}</label>
+                <ai-model-chips inputId="ai-stops" [label]="'ai-models-add-stop' | i18next" [values]="draft.parameters?.stopSequences || []" (valuesChange)="setStops($event)" [max]="4" [disabled]="readOnly || busy || !accepts('stopSequences')"></ai-model-chips>
+                <small class="rb-admin-hint">{{ 'ai-models-stop-hint' | i18next }}</small>
+                <small class="ai-field-error">{{ modelIssues['stopSequences'] | i18next }}</small>
+              </div>
+            </div>
+            </details>
+          </fieldset>
+          }
+          }
+        </section>
+        @if (adapter === 'openrouter') {
+          <section id="ai-routing" class="rb-admin-form-section">
+            <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-editor-section-routing' | i18next }}</h2><p>{{ 'ai-models-privacy-summary' | i18next }}</p></div></div>
+            @if (readOnly) { <dl class="ai-metadata rb-admin-form-section-body">
+              <dt>{{ 'ai-models-privacy-zdr' | i18next }}</dt><dd>{{ (draft.routingPolicy?.zdr ? 'ai-models-yes' : 'ai-models-no') | i18next }}</dd>
+              <dt>{{ 'ai-models-privacy-data-collection' | i18next }}</dt><dd>{{ (draft.routingPolicy?.data_collection === 'deny' ? 'ai-models-deny-updated' : draft.routingPolicy?.data_collection === 'allow' ? 'ai-models-allow-updated' : 'ai-models-provider-default') | i18next }}</dd>
+              <dt>{{ 'ai-models-privacy-allow_fallbacks' | i18next }}</dt><dd>{{ ((draft.routingPolicy?.allow_fallbacks ?? true) ? 'ai-models-yes' : 'ai-models-no') | i18next }}</dd>
+              <dt>{{ 'ai-models-privacy-sort' | i18next }}</dt><dd>{{ draft.routingPolicy?.sort ? (('ai-models-prefer-' + draft.routingPolicy?.sort) | i18next) : ('ai-models-provider-default' | i18next) }}</dd>
+              @for (list of routingLists; track list) { @if (draft.routingPolicy?.[list]?.length) { <dt>{{ ('ai-models-privacy-' + list) | i18next }}</dt><dd>{{ draft.routingPolicy?.[list]?.join(', ') }}</dd> } }
+            </dl> } @else {
+            <fieldset class="rb-admin-form-section-body" [disabled]="readOnly || busy">
+              <div class="rb-admin-form-grid">
+                @for (toggle of ['zdr', 'allow_fallbacks']; track toggle) {
+                  <div class="form-check form-switch"><input class="form-check-input" type="checkbox" [id]="'ai-routing-' + toggle" [ngModel]="toggle === 'zdr' ? draft.routingPolicy?.zdr : (draft.routingPolicy?.allow_fallbacks ?? true)" (ngModelChange)="setRouting($any(toggle), $event)">
+                    <label class="form-check-label" [for]="'ai-routing-' + toggle">{{ ('ai-models-privacy-' + toggle) | i18next }}</label>
+                  </div>
+                }
+                <div><label for="ai-data-collection">{{ 'ai-models-privacy-data-collection' | i18next }}</label>
+                  <select id="ai-data-collection" class="form-select" [ngModel]="draft.routingPolicy?.data_collection || ''" (ngModelChange)="setRouting('data_collection', $event)">
+                    <option value="">{{ 'ai-models-provider-default' | i18next }}</option><option value="deny">{{ 'ai-models-deny-updated' | i18next }}</option><option value="allow">{{ 'ai-models-allow' | i18next }}</option>
+                  </select>
+                </div>
+                <div><label for="ai-routing-sort">{{ 'ai-models-privacy-sort' | i18next }}</label>
+                  <select id="ai-routing-sort" class="form-select" [ngModel]="draft.routingPolicy?.sort || ''" (ngModelChange)="setRouting('sort', $event)">
+                    <option value="">{{ 'ai-models-provider-default' | i18next }}</option>
+                    @for (sort of ['price', 'throughput', 'latency']; track sort) { <option [value]="sort">{{ ('ai-models-prefer-' + sort) | i18next }}</option> }
+                  </select>
+                </div>
+              </div><details class="ai-advanced"><summary>{{ 'ai-models-advanced' | i18next }}</summary><div class="rb-admin-form-grid">
+                @for (list of routingLists; track list) {
+                  <div><label [for]="'ai-routing-list-' + list">{{ ('ai-models-privacy-' + list) | i18next }}</label>
+                    <ai-model-chips [inputId]="'ai-routing-list-' + list" [label]="('ai-models-privacy-' + list) | i18next" [values]="draft.routingPolicy?.[list] || []" (valuesChange)="setRoutingList(list, $event)" [disabled]="readOnly || busy"></ai-model-chips>
+                    <small class="ai-field-error">{{ modelIssues[list] | i18next }}</small>
+                  </div>
+                }
+              </div>
+              </details>
+            </fieldset>
+            }
+          </section>
+        }
+        <section id="ai-try" class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-editor-section-try' | i18next }}</h2><p>{{ 'ai-models-try-description-updated' | i18next }}</p></div></div>
+          <div class="rb-admin-form-section-body">
+            <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="ai-structured" [ngModel]="mode === 'sample'" (ngModelChange)="mode = $event ? 'sample' : 'text'; changed()"><label class="form-check-label" for="ai-structured">{{ 'ai-models-structured-test' | i18next }}</label></div>
+            <label for="ai-prompt">{{ 'ai-models-prompt' | i18next }}</label>
+            <textarea id="ai-prompt" class="form-control" rows="4" [(ngModel)]="prompt" (ngModelChange)="changed()" [maxLength]="overview.limits.maxPromptChars" aria-describedby="ai-prompt-count"></textarea>
+            <p id="ai-prompt-count" class="rb-admin-hint">{{ 'ai-models-character-count' | i18next: { count: prompt.length, max: overview.limits.maxPromptChars } }}</p>
+            <button class="btn btn-outline-secondary" type="button" (click)="runPrompt()" [disabled]="!canRun || running || cooldown > 0 || busy">
+              {{ (running ? 'ai-models-running' : 'ai-models-run-updated') | i18next }} @if (cooldown) { <span>{{ 'ai-models-cooldown' | i18next: { seconds: cooldown } }}</span> }
+            </button>
+            <div aria-live="polite" aria-atomic="true">
+              @if (promptError) { <p class="ai-field-error">{{ promptError | i18next }}</p> }
+              @if (promptResult) {
+                <div class="ai-prompt-result" data-testid="prompt-result"><pre class="ai-prompt-output" tabindex="0" role="region" [attr.aria-label]="'ai-models-result-output' | i18next">{{ promptOutput }}</pre>
+                  <dl class="ai-metadata">
+                    <dt>{{ 'ai-models-result-model' | i18next }}</dt><dd><code>{{ promptResult.actualModel || promptResult.requestedModel }}</code></dd>
+                    <dt>{{ 'ai-models-result-provider' | i18next }}</dt><dd>{{ connection?.name }}</dd>
+                    <dt>{{ 'ai-models-result-finish' | i18next }}</dt><dd>{{ promptResult.finishReason || ('ai-models-not-reported' | i18next) }}</dd>
+                    <dt>{{ 'ai-models-result-tokens' | i18next }}</dt><dd>{{ 'ai-models-token-usage' | i18next: { input: promptResult.usage?.inputTokens ?? '—', output: promptResult.usage?.outputTokens ?? '—', total: promptResult.usage?.totalTokens ?? '—' } }}</dd>
+                    <dt>{{ 'ai-models-result-cost' | i18next }}</dt><dd>{{ promptResult.usage?.cost ?? ('ai-models-not-reported' | i18next) }}</dd>
+                    <dt>{{ 'ai-models-result-time' | i18next }}</dt><dd>{{ (promptResult.latencyMs < 1000 ? 'ai-models-time-under-second' : 'ai-models-time-seconds') | i18next: { value: (promptResult.latencyMs / 1000 | number: '1.0-1') } }}</dd>
+                  </dl>
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+        <section id="ai-versions" class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header"><div><h2>{{ 'ai-models-editor-section-versions' | i18next }}</h2><p>{{ 'ai-models-versions-description-updated' | i18next }}</p></div></div>
+          <div class="rb-admin-form-section-body">
+            @if (isNew) { <p>{{ 'ai-models-versions-empty' | i18next }}</p> }
+            <ul class="ai-version-list">@for (version of versions; track version.id) { <li>
+              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="openModel(modelKey, version.version)" [attr.aria-current]="version.id === selected?.id ? 'true' : null">{{ ('ai-models-version-' + version.status) | i18next: { version: version.version } }}</button>
+              @if (version.id === selected?.id) { <span class="ai-current-version">{{ 'ai-models-current-version' | i18next }}</span> }
+              @if (!version.publishedBy) { <span>{{ 'ai-models-created-by' | i18next: { name: version.createdBy } }}</span> }
+              @if (!version.publishedAt && version.createdAt) { <span>{{ version.createdAt | adminDate }}</span> }
+              @if (version.publishedBy) { <span>{{ 'ai-models-published-by' | i18next: { name: version.publishedBy } }}</span> }
+              @if (version.publishedAt) { <span>{{ version.publishedAt | adminDate }}</span> }
+            </li> }</ul>
+            <div class="rb-admin-page-actions mt-3">
+              @if (selected?.status === 'published') { <button type="button" class="btn btn-outline-danger" (click)="retireConfirmation = true" [disabled]="busy || isDirty">{{ 'ai-models-retire-version' | i18next }}</button> }
+              @if (selected) { <button type="button" class="btn btn-outline-danger" (click)="askDeleteModel(modelKey)" [disabled]="busy">{{ 'ai-models-delete-model' | i18next }}</button> }
+            </div>
+          </div>
+        </section>    </div></div>
+  }
+  @if (providerEditor || editor && !readOnly) {
+    <div class="rb-admin-save-bar"><span class="rb-admin-save-state">{{ (isDirty ? 'ai-models-unsaved' : 'ai-models-no-changes') | i18next }}</span><div class="rb-admin-page-actions">
+      <button type="button" class="btn btn-outline-secondary" (click)="providerEditor ? openOverview() : discard()" [disabled]="busy">{{ (providerEditor ? 'ai-models-cancel' : 'ai-models-discard') | i18next }}</button>
+      <button type="button" class="btn btn-primary" (click)="providerEditor ? saveProvider() : saveDraft()" [disabled]="busy || !isDirty || conflict || (editor && !!(modelIssues | keyvalue).length)">{{ (busy ? 'ai-models-saving' : providerEditor ? 'ai-models-save' : 'ai-models-save-draft') | i18next }}</button>
+    </div></div>
+  }
+}
+@if (deleteConfirmation; as target) {
+  <div class="modal-backdrop show"></div><div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="ai-delete-title" aria-describedby="ai-delete-description" (keydown.escape)="!busy && (deleteConfirmation = undefined); $event.stopPropagation()">
+    <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title" id="ai-delete-title">{{ (target.kind === 'draft' ? 'ai-models-discard-draft' : target.kind === 'model' ? 'ai-models-delete-model' : 'ai-models-delete-provider') | i18next }}</h2></div>
+      <div class="modal-body"><p><strong>{{ target.name }}</strong></p><p id="ai-delete-description">{{ (target.uses.length ? 'ai-models-delete-blocked-' + target.kind : 'ai-models-delete-confirm') | i18next: { count: target.uses.length } }}</p>
+        @if (target.uses.length) { <ul>@for (use of target.uses; track use.key) { <li><a [href]="target.kind === 'provider' ? hash(use.key) : profileHref(use.key)" (click)="deleteConfirmation = undefined">{{ use.name }}</a></li> }</ul> }
+      </div><div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="deleteConfirmation = undefined" [disabled]="busy">{{ (target.uses.length ? 'ai-models-close' : 'ai-models-cancel') | i18next }}</button>
+        @if (target.kind === 'model' && target.uses.length) { <button type="button" class="btn btn-outline-secondary" (click)="offerRetire()" [disabled]="busy">{{ 'ai-models-retire-instead' | i18next }}</button> }
+        @if (!target.uses.length) { <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDelete()" [disabled]="busy">{{ (target.kind === 'draft' ? 'ai-models-discard-draft' : 'ai-models-delete') | i18next }}</button> }
+      </div>
+    </div></div>
+  </div>
+}
+@if (retireConfirmation && selected) {
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="ai-retire-title" aria-describedby="ai-retire-description" (keydown.escape)="retireConfirmation = false; $event.stopPropagation()">
+    <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="ai-retire-title">{{ 'ai-models-retire-version' | i18next }}</h2></div>
+        <div class="modal-body"><p><strong>{{ selected.name }} · v{{ selected.version }}</strong></p><p id="ai-retire-description">{{ 'ai-models-retire-confirm' | i18next }}</p></div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" cdkFocusInitial (click)="retireConfirmation = false">{{ 'ai-models-cancel' | i18next }}</button>
+          <button class="btn rb-admin-danger-confirm" type="button" (click)="retire()">{{ 'ai-models-retire-version' | i18next }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

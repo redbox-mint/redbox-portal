@@ -1,3 +1,5 @@
+import { generationProfileAdminRoutes } from './groups/ai-profiles';
+import { generationModelAdminRoutes } from './groups/ai-models';
 import { reportingApiRoutes } from './groups/reporting';
 import { updateFigshareSourceRoute } from './groups/figshare-source-update';
 import { partyImportApiRoutes } from './groups/party-import';
@@ -42,6 +44,8 @@ const coreApiRouteGroups = [
   reportingApiRoutes,
   recordApiRoutes,
   relatedRecordsApiRoutes,
+  generationModelAdminRoutes,
+  generationProfileAdminRoutes,
   partyImportApiRoutes,
   dashboardRecordsApiRoutes,
   deletedRecordsApiRoutes,

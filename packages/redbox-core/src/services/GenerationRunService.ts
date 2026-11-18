@@ -107,7 +107,8 @@ export namespace Services {
         const contextService = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
         const defaults = contextService.buildQuestionDefaults(authorized.profileVersion.definition, authorized.source?.metadata ?? {});
         const questions: GenerationQuestion[] = authorized.profileVersion.definition.questions.map((question) => ({
-          id: question.id, labelKey: question.labelKey, helpTextKey: question.helpTextKey, type: question.type,
+          id: question.id, label: question.label, helpText: question.helpText,
+          labelKey: question.labelKey, helpTextKey: question.helpTextKey, type: question.type,
           required: question.required, options: question.options, maxLength: question.maxLength,
           defaultValue: defaults.find((item) => item.id === question.id)?.value as GenerationQuestion['defaultValue'],
         }));
@@ -155,7 +156,7 @@ export namespace Services {
       const retryable = run.retryable && run.attemptCount < sails.config.generation.provider.maxRetries + 1;
       return {
         runId: run.id, status: run.status, phase: run.phase, attemptCount: run.attemptCount,
-        retryable, questions: payload?.questions ?? [], result,
+        retryable, purpose: profile?.definition.purpose, questions: payload?.questions ?? [], result,
         ...(result ? { completionValues: payload?.completionValues ?? [] } : {}),
         ...(run.errorCode ? { error: { code: run.errorCode, messageKey: `generation-error-${run.errorCode.toLowerCase().replaceAll('_', '-')}`, retryable } } : {}),
         artifactExpiresAt: run.artifactExpiresAt,

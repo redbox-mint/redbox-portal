@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI drafting activity</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><span>Activity</span></nav>
+    <header class="ph">
+      <div><h1>AI-assisted drafting</h1><p>Let researchers draft record fields from records they can already see and from guidance you approve. Researchers review every suggestion before it is saved.</p></div>
+      <div class="ph-actions"><button class="btn btn-secondary" type="button">Download CSV</button></div>
+    </header>
+    <div id="gen-tabs" data-active="activity"></div>
+
+    <div class="stats">
+      <div class="stat"><b>6</b><span>Drafts · last 7 days</span></div>
+      <div class="stat"><b>5</b><span>Completed</span></div>
+      <div class="stat alert"><b>1</b><span>Failed</span></div>
+      <div class="stat"><b>5.1 s</b><span>Median time to draft</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Drafting runs</h2><span class="meta">Content isn’t stored here, only what happened</span></div>
+      <div class="filters">
+        <div class="field grow"><label for="a-s">Search</label><input id="a-s" class="inp" placeholder="User, record ID or run ID"></div>
+        <div class="field"><label for="a-p">Profile</label><select id="a-p" class="inp"><option>All profiles</option><option>Research Activity → RDMP</option></select></div>
+        <div class="field"><span class="lbl">Status</span><div class="seg" role="group" aria-label="Status"><button type="button" class="on" aria-pressed="true">All</button><button type="button" aria-pressed="false">Completed</button><button type="button" aria-pressed="false">Failed</button><button type="button" aria-pressed="false">Running</button></div></div>
+        <div class="field"><span class="lbl">Started by</span><div class="seg" role="group" aria-label="Started by"><button type="button" class="on" aria-pressed="true">Everyone</button><button type="button" aria-pressed="false">Researchers</button><button type="button" aria-pressed="false">Admin tests</button></div></div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Started</th><th>Who</th><th>Profile</th><th>Source → new record</th><th>Model</th><th>Status</th><th class="num">Fields</th><th class="num">Time</th><th class="act">Actions</th></tr></thead>
+        <tbody>
+          <tr><td class="small">Today 09:31</td><td>Local Admin <span class="badge">Test</span></td><td class="small">Research Activity → RDMP v1 (draft)</td><td class="small">Test case: Minimal record</td><td class="small">Nova Lite v1</td><td><span class="badge ok">Completed</span></td><td class="num">10 <span class="sub">3 fallback</span></td><td class="num">3.9 s</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Details</button></td></tr>
+          <tr><td class="small">Today 09:30</td><td>Local Admin <span class="badge">Test</span></td><td class="small">Research Activity → RDMP v1 (draft)</td><td class="small">Test case: Lab instrument data</td><td class="small">Nova Lite v1</td><td><span class="badge ok">Completed</span></td><td class="num">10</td><td class="num">4.8 s</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Details</button></td></tr>
+          <tr><td class="small">Today 09:30</td><td>Local Admin <span class="badge">Test</span></td><td class="small">Research Activity → RDMP v1 (draft)</td><td class="small">Test case: Coastal wellbeing study</td><td class="small">Nova Lite v1</td><td><span class="badge ok">Completed</span></td><td class="num">10 <span class="sub">1 review</span></td><td class="num">6.2 s</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Details</button></td></tr>
+          <tr><td class="small">Yesterday 16:04</td><td>Local Admin <span class="badge">Test</span></td><td class="small">Research Activity → RDMP v1 (draft)</td><td class="small">Test case: Coastal wellbeing study</td><td class="small">Nova Lite v1</td><td><span class="badge err">Failed</span><span class="sub">Provider timed out (90 s)</span></td><td class="num muted">—</td><td class="num">90.0 s</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Details</button></td></tr>
+        </tbody>
+      </table></div>
+      <div class="card-f"><span>Showing 4 of 6</span><div class="pager"><button type="button" aria-label="Previous page">‹</button><button type="button" class="on" aria-current="page">1</button><button type="button">2</button><button type="button" aria-label="Next page">›</button></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h plain"><h2>Run details · Yesterday 16:04</h2><button class="btn btn-ghost btn-sm" type="button" aria-label="Close run details">✕</button></div>
+      <div class="card-b">
+        <dl class="kv">
+          <dt>Run</dt><dd class="mono">gr_01JC8Q…4F2</dd>
+          <dt>Status</dt><dd><span class="badge err">Failed</span> at <b>calling the model</b> after 2 attempts</dd>
+          <dt>Reason</dt><dd>The provider didn’t answer within 90 seconds. <a href="connection-edit.html">Check the connection</a> or lower the maximum response length.</dd>
+          <dt>Versions used</dt><dd>Profile v1 (draft) · Nova Lite v1 · Guidance v1</dd>
+          <dt>Inputs</dt><dd>1 source record · 5 answers · 0 documents · 12 guidance passages</dd>
+          <dt>Diagnostics</dt><dd><span class="muted">Not kept: the server operator hasn’t enabled admin diagnostics.</span></dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="note"><b>Design notes.</b> Mirrors Harvest runs: stats, filter bar, table, details. The list only shows non-content audit data (status, phase, attempts, versions), as NFR-PERF-003 and the privacy model require. Admin test runs are labelled and can be filtered out, so they don’t inflate usage. Failures use the stable error codes translated into a next step. Encrypted diagnostics, when the operator allows them, would add “View diagnostics” and “Delete now” buttons here with an audit notice.</div>
+  </div></main>
+</div>
+</body>
+</html>

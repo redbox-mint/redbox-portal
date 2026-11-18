@@ -83,7 +83,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   .rb-admin-sidebar-toggle { display: none; }
   .rb-admin-sidebar-search { margin: 0 16px 12px; position: relative; }
-  .rb-admin-sidebar-search i { position: absolute; left: 10px; top: 11px; color: var(--admin-muted); }
+  // Fixed shell icons use the same Font Awesome Free artwork without loading the icon font.
+  .rb-admin-icon { display: inline-block; width: 1em; height: 1em; fill: currentColor; vertical-align: -0.125em; flex-shrink: 0; }
+  .rb-admin-sidebar-search :is(i, .rb-admin-icon) { position: absolute; left: 10px; top: 11px; color: var(--admin-muted); }
   .rb-admin-sidebar-search input { padding: 7px 10px 7px 30px; font-size: 13px; }
   .rb-admin-sidebar-section { margin-top: 10px; }
   .rb-admin-sidebar-list { list-style: none; padding: 0; margin: 0; }
@@ -131,6 +133,34 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     border-bottom: 1px solid var(--admin-line);
     h1 { font-size: 30px; font-weight: 700; line-height: 1.2; margin: 0; text-align: left; }
     p { margin: 4px 0 0; max-width: 720px; color: var(--admin-muted); }
+  }
+  // Keep server loading headers and hydrated editor headers on the same grid.
+  // Minimums allow longer translated/custom names to grow without clipping.
+  .rb-admin-stable-heading {
+    .rb-admin-crumbs { min-height: 22px; }
+    .rb-admin-page-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      h1 { min-height: 36px; }
+      h1 .badge { margin-inline-start: 8px; }
+      p { min-height: 22px; }
+      // Reserves the actions' height before hydration. It shares their grid cell and paints
+      // above them, so it must never take clicks.
+      &::after { content: ''; min-height: 36px; grid-column: 2; grid-row: 1; pointer-events: none; }
+    }
+    .rb-admin-page-header > div:first-child { min-height: 66px; }
+    .rb-admin-page-actions { grid-column: 2; grid-row: 1; min-height: 36px; }
+    @media (max-width: 1199.98px) {
+      .rb-admin-page-header {
+        grid-template-columns: minmax(0, 1fr);
+        &::after { grid-column: 1; grid-row: 2; }
+      }
+      .rb-admin-page-actions { grid-column: 1; grid-row: 2; }
+    }
+    @media (max-width: 575.98px) {
+      .rb-admin-crumbs { min-height: 44px; }
+      .rb-admin-page-header > div:first-child { min-height: 102px; }
+    }
   }
   .rb-admin-page-header > div:first-child { flex: 1 1 400px; min-width: 0; }
   .rb-admin-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -502,7 +532,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
       padding: 12px 20px; border: 0; background: var(--admin-surface); color: var(--admin-heading);
       font: inherit; font-weight: 600; text-align: left;
       small { display: block; font-size: 13px; font-weight: 400; color: var(--admin-muted); }
-      &[aria-expanded='true'] > i { transform: rotate(180deg); }
+      &[aria-expanded='true'] > :is(i, .rb-admin-icon) { transform: rotate(180deg); }
     }
     .rb-admin-sidebar-content { display: none; padding: 12px 0; }
     .rb-admin-sidebar.is-expanded .rb-admin-sidebar-content { display: block; }

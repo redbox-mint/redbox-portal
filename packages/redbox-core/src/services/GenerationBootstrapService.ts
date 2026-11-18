@@ -102,10 +102,11 @@ export namespace Services {
       const connection = await GenerationModelConnection.findOne({ brandId, key: normalizedSlug(manifest.connectionKey) });
       if (!connection) throw new Error('Referenced generation connection was not found');
       const version = Number(manifest.version ?? 1);
-      const existing = await GenerationModelDeployment.findOne({ brandId, key: manifest.key, version });
-      if (existing?.status === 'published') return;
+      const existing = requireWaterlineRows<GenerationModelDeploymentAttributes>(
+        await GenerationModelDeployment.find({ brandId, key: manifest.key }), 'GenerationModelDeployment');
+      if (existing.length) return;
       const modelService = requireService<ModelServiceLike>('generationmodelservice', ['createConnection', 'createDeployment', 'publishDeployment']);
-      const deployment = existing ?? await modelService.createDeployment(brandId, {
+      const deployment = await modelService.createDeployment(brandId, {
         key: manifest.key, version, name: manifest.name, status: 'draft', connectionId: connection.id,
         modelId: manifest.modelId, parameters: manifest.parameters, routingPolicy: manifest.routingPolicy,
         requiredCapabilities: manifest.requiredCapabilities ?? { structuredOutput: true, nonStreaming: true, textInput: true },
@@ -143,6 +144,8 @@ export namespace Services {
 
     private async loadProfile(brandId: string, manifest: Manifest, actor: string): Promise<void> {
       const existing = await GenerationProfile.findOne({ brandId, key: manifest.key });
+      // Startup seeds missing profiles; publication belongs to administrators.
+      if (existing) return;
       const deployment = await GenerationModelDeployment.findOne({ brandId, key: normalizedSlug(manifest.modelDeploymentKey), status: 'published' });
       const knowledgeKeys = Array.isArray(manifest.knowledgeCollectionKeys)
         ? manifest.knowledgeCollectionKeys.filter((key): key is string => typeof key === 'string').map(normalizedSlug)
@@ -161,19 +164,10 @@ export namespace Services {
         knowledgeCollectionVersionIds: knowledgeKeys.map((key) => knowledgeByKey.get(key)!.publishedVersionId!),
       };
       const service = requireService<ProfileServiceLike>('generationprofileservice', ['create', 'createDraft', 'updateDraft', 'publish']);
-      if (existing?.publishedVersionId) {
-        const current = await GenerationProfileVersion.findOne({ id: existing.publishedVersionId, brandId, profileId: existing.id });
-        if (current?.contentHash === canonicalHash(definition)) return;
-        if (!current) throw new Error('Published profile version was not found');
-        const draft = await service.createDraft(brandId, existing.id, current.id, actor);
-        await service.updateDraft(brandId, draft.id, definition);
-        await service.publish(brandId, draft.id, actor);
-      } else {
-        const created = await service.create(brandId, {
-          key: manifest.key, name: manifest.name, description: manifest.description, definition,
-        }, actor);
-        await service.publish(brandId, created.version.id, actor);
-      }
+      const created = await service.create(brandId, {
+        key: manifest.key, name: manifest.name, description: manifest.description, definition,
+      }, actor);
+      await service.publish(brandId, created.version.id, actor);
     }
 
     private async loadBinding(brandId: string, manifest: Manifest, actor: string): Promise<void> {
