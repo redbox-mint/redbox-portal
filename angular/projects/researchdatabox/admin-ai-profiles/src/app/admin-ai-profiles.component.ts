@@ -150,8 +150,18 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     if (!this.guard()) event.preventDefault(); else this.leave = true;
   }
   changed(): void { this.results = []; this.testError = ''; this.notice = ''; }
-  toggleSource(pointer: string, on: boolean): void { if (!this.source) return; this.source.allowedPaths = on ? [...this.source.allowedPaths, pointer] : this.source.allowedPaths.filter(p => p !== pointer); this.changed(); }
-  changeSource(): void { if (this.source) this.source.allowedPaths = []; this.changed(); }
+  toggleSource(pointer: string, on: boolean): void {
+    if (!this.source) return;
+    this.source.allowedPaths = this.source.allowedPaths.filter(p => p !== pointer);
+    this.source.fields = (this.source.fields ?? []).filter(f => f.metadataPointer !== pointer);
+    const field = this.sourceFields.find(f => f.pointer === pointer);
+    if (on) {
+      this.source.allowedPaths.push(pointer);
+      if (field) this.source.fields.push({ metadataPointer: pointer, label: field.label, ...(field.options ? { options: clone(field.options) } : {}) });
+    }
+    this.changed();
+  }
+  changeSource(): void { if (this.source) { this.source.allowedPaths = []; delete this.source.fields; } this.changed(); }
   changeTarget(name: string): void { const form = this.overview?.forms.find(f => f.name === name); if (this.draft && form) this.draft.targetForm = { recordType: form.recordType, formName: form.name }; this.changed(); }
   toggleDocuments(on: boolean): void { if (!this.draft || !this.overview) return; if (on) this.draft.documentSources = { ...clone(this.overview.limits.documents), maxFiles: Math.min(3, this.overview.limits.documents.maxFiles) }; else delete this.draft.documentSources; this.changed(); }
   toggleFormat(format: 'pdf' | 'docx' | 'txt', on: boolean): void { const d = this.draft?.documentSources; if (d) d.formats = on ? [...d.formats, format] : d.formats.filter(f => f !== format); this.changed(); }

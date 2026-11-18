@@ -1,3 +1,4 @@
+import { resolveOptionLabels } from './generation/option-labels';
 import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import { pointersOverlap } from './GenerationBindingService';
 import { requireProfileModel } from './GenerationProfileService';
@@ -322,7 +323,10 @@ export namespace Services {
         for (const path of slot.allowedPaths) {
           const value = fixture.source?.[path]; if (value === undefined || value === '') continue;
           if (Buffer.byteLength(JSON.stringify(value)) > slot.maxBytes) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Test source too large');
-          evidence.push({ id: 'test:' + path, label: form?.fields.find(f => f.pointer === path)?.label ?? 'Source record', kind: 'source', content: value, contentHash: canonicalHash(value) });
+          const field = slot.fields?.find(f => f.metadataPointer === path);
+          evidence.push({ id: 'test:' + path, label: field?.label || form?.fields.find(f => f.pointer === path)?.label || 'Source record',
+            selectedOptions: resolveOptionLabels(field?.options, undefined, Array.isArray(value) ? value : [value]),
+            kind: 'source', content: value, contentHash: canonicalHash(value) });
         }
         const answers = d.questions.map(q => ({ id: q.id, value: Object.hasOwn(fixture.answers ?? {}, q.id) ? fixture.answers[q.id] : fixture.source?.[q.sourceDefaultExpression ?? ''] ?? null }));
         requireService<Context.GenerationContextService>('generationcontextservice', ['validateAnswers']).validateAnswers(d, answers);

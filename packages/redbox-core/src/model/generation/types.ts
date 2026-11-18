@@ -83,6 +83,7 @@ export interface GenerationEvidence {
   authority?: string;
   tags?: string[];
   questionId?: string;
+  selectedOptions?: Array<{ value: string; label: string }>;
 }
 
 export interface GenerationEvidenceAlias {

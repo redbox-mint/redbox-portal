@@ -376,6 +376,68 @@ describe('Drafting profile administration', () => {
     assert.deepEqual(legacy.responseSchema, request.responseSchema);
   });
 
+  for (const path of ['real', 'synthetic'] as const) for (const value of ['2', ['2', 'unknown']]) {
+    it(`sends selected source choice meanings through the ${path} context and prompt without a question (${Array.isArray(value) ? 'multiple' : 'single'})`, async () => {
+      const d = definition();
+      const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Awaiting approval' }];
+      d.sourceSlots[0].allowedPaths = ['/ethicsStatus'];
+      d.sourceSlots[0].fields = [{ metadataPointer: '/ethicsStatus', label: 'Project ethics decision', options }];
+      catalog.forms[0].fields.push({ pointer: '/ethicsStatus', label: 'Current form label', group: 'Project', component: 'DropdownInputComponent', options });
+      d.fixtureTests = [{ name: 'Ethics source only', source: { '/ethicsStatus': value }, answers: {} }];
+      const saved = await service.save('a', 'v', { name: 'Plan', definition: d, expectedContentHash: tables.GenerationProfileVersion[0].contentHash }, 'admin');
+      assert.deepEqual(saved.definition.sourceSlots[0].fields, d.sourceSlots[0].fields);
+      assert.deepEqual(saved.definition.questions, []);
+      // The stored definition, not a later catalogue or questionnaire, supplies the meanings.
+      catalog.forms[0].fields.at(-1)!.options = [{ value: '2', label: 'Changed form meaning' }];
+      const contentHash = canonicalHash(value);
+      let request: any;
+      if (path === 'synthetic') {
+        sails.services.generationknowledgeservice = { retrieve: async () => [] };
+        const invoke = sinon.stub().callsFake(async (_brand, _actor, _model, requests) => requests.map(() => ({ content: JSON.stringify({ answers: { summary: { value: 'Approval is awaited', evidenceIds: ['E1'], rationale: 'Source choice' } } }) })));
+        sails.services.generationmodelservice = { testProfileRequests: invoke };
+        const results = await service.runTests('a', 'v', 'admin');
+        assert.equal(results[0].passed, true);
+        assert.deepEqual(results[0].fields[0].evidence, ['Project ethics decision']);
+        request = invoke.firstCall.args[3][0];
+        delete tables.GenerationProfileVersion[0].definition.sourceSlots[0].fields;
+        await service.runTests('a', 'v', 'admin');
+        const legacy = JSON.parse(invoke.secondCall.args[3][0].messages.at(-1).content.split('\n')[1]);
+        assert.equal(legacy.projectFacts[0].selectedOptions, undefined);
+        assert.deepEqual(legacy.projectFacts[0].content, value);
+        assert.equal(legacy.projectFacts[0].id, 'E1');
+      } else {
+        await service.publish('a', 'v', { expectedContentHash: saved.contentHash }, 'admin');
+        const published = await sails.services.generationprofileservice.resolvePublished('a', 'p');
+        sails.services.recordsservice = { getMeta: async () => ({ metadata: { ethicsStatus: value, secret: 'Excluded source' }, metaMetadata: { brandId: 'a' } }), hasViewAccess: () => true };
+        const prepare = (definition: GenerationProfileDefinition) => sails.services.generationcontextservice.prepare({
+          actor: { brandId: 'a', branding: 'default', portal: 'rdmp', userId: 'user', username: 'researcher', roles: [] },
+          brand: {}, user: {}, sourceRefs: [{ slotId: 'source', oid: 'activity-1', recordType: 'activity' }], definition,
+          answers: [], targetForm: { recordType: 'plan', mode: 'create' }, targetDraft: {},
+        });
+        const frozenInput = await prepare(published.definition);
+        const fact = frozenInput.sourceEvidence[0];
+        assert.equal(fact.id, `source:source:/ethicsStatus:${contentHash}`);
+        assert.equal(fact.contentHash, contentHash);
+        assert.deepEqual(fact.content, value);
+        assert.deepEqual(frozenInput.sources[0].values, { ethicsStatus: value });
+        assert.deepEqual(fact.selectedOptions, [{ value: '2', label: 'Awaiting approval' }]);
+        request = sails.services.generationpromptservice.build({ brandId: 'a', correlationId: 'real-source', definition: published.definition, frozenInput, knowledge: [],
+          evidenceAliases: [{ alias: 'E1', evidenceId: fact.id }], responseSchema: {}, connection: { endpoint: '', timeoutMs: 1000 }, deployment: { modelId: 'demo' } });
+        delete published.definition.sourceSlots[0].fields;
+        const legacy = (await prepare(published.definition)).sourceEvidence[0];
+        assert.equal(legacy.id, fact.id); assert.equal(legacy.contentHash, contentHash);
+        assert.deepEqual(legacy.content, value); assert.equal(legacy.selectedOptions, undefined);
+        assert.equal(legacy.label, 'Ethics Status');
+      }
+      const untrusted = JSON.parse(request.messages.at(-1).content.split('\n')[1]);
+      assert.deepEqual(untrusted.reviewedAnswers, []);
+      assert.deepEqual(untrusted.projectFacts, [{ id: 'E1', label: 'Project ethics decision', content: value, selectedOptions: [{ value: '2', label: 'Awaiting approval' }] }]);
+      assert.ok(request.messages.filter(m => m.role === 'system').every(m => !/Project ethics decision|Awaiting approval|Changed form meaning/.test(m.content)));
+      assert.ok(!JSON.stringify(request).includes('Excluded source'));
+      assert.ok(!JSON.stringify(untrusted).includes('Approved'));
+    });
+  }
+
   it('sends selected direct and legacy choice meanings inside untrusted reviewed answers', async () => {
     const d = tables.GenerationProfileVersion[0].definition;
     d.questions = [

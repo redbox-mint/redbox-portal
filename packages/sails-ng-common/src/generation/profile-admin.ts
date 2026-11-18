@@ -14,7 +14,8 @@ export interface GenerationProfileDefinition {
   purpose: string;
   systemInstructions: string;
   targetForm?: { recordType: string; formName: string };
-  sourceSlots: Array<{ id: string; recordType: string; allowedPaths: string[]; maxBytes: number; required?: boolean }>;
+  sourceSlots: Array<{ id: string; recordType: string; allowedPaths: string[]; maxBytes: number; required?: boolean;
+    fields?: Array<{ metadataPointer: string; label: string; options?: Array<{ value: string; label: string }> }> }>;
   documentSources?: GenerationDocumentPolicy;
   questions: Array<Omit<GenerationQuestion, 'defaultValue'> & { sourceDefaultExpression?: string }>;
   targetFields: Array<{

@@ -25,6 +25,30 @@ describe('Drafting profile editor', () => {
   afterEach(() => { fixture.destroy(); history.replaceState(null, '', original); });
   const query = (s: string): HTMLElement => fixture.nativeElement.querySelector(s);
   const open = () => { component.open('profile'); fixture.detectChanges(); };
+  it('saves source field labels and choice meanings independently of questions and clears removed selections', async () => {
+    open();
+    const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Awaiting approval' }];
+    component.sourceForm!.fields.push({ pointer: '/ethicsStatus', label: 'Project ethics decision', group: 'Activity', component: 'DropdownInputComponent', options });
+    component.draft!.questions = [];
+    fixture.detectChanges();
+    const input = Array.from(fixture.nativeElement.querySelectorAll('#profile-source .profile-check input')).find((el: any) => el.parentElement.textContent.includes('Project ethics decision')) as HTMLInputElement;
+    input.click(); fixture.detectChanges();
+    expect(component.source!.allowedPaths).toContain('/ethicsStatus');
+    expect(component.source!.fields).toEqual([{ metadataPointer: '/ethicsStatus', label: 'Project ethics decision', options }]);
+    expect(component.source!.fields![0].options).not.toBe(options);
+    expect(component.source!.fields![0].options![0]).not.toBe(options[0]);
+    await component.saveDraft();
+    const saved = api.save.calls.mostRecent().args[1].definition;
+    expect(saved.sourceSlots[0].fields![0].options).toEqual(options);
+    expect(saved.questions).toEqual([]);
+    component.toggleSource('/ethicsStatus', false);
+    expect(component.source!.fields).toEqual([]);
+    expect(component.source!.allowedPaths).not.toContain('/ethicsStatus');
+    component.toggleSource('/title', true);
+    expect(component.source!.fields).toEqual([{ metadataPointer: '/title', label: 'Activity title' }]);
+    component.changeSource();
+    expect(component.source!.allowedPaths).toEqual([]); expect(component.source!.fields).toBeUndefined();
+  });
   for (const type of ['enum', 'multiEnum'] as const) it(`blocks oversized source choice prefill and explains the option limit for ${type}`, async () => {
     open();
     const options = Array.from({ length: GENERATION_QUESTION_OPTION_LIMIT + 1 }, (_, i) => ({ value: 'country-' + i, label: 'Country ' + i }));

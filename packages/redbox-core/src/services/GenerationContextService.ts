@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import { canonicalHash, getJsonPointer, setJsonPointer, GenerationActorContext, GenerationError, GenerationEvidence, GenerationFrozenInput, GenerationProfileDefinitionV1 } from '../model/generation';
 import { requireService } from './generation/require-service';
+import { resolveOptionLabels } from './generation/option-labels';
 import type { GenerationDocument } from '@researchdatabox/sails-ng-common';
 
 type RecordLike = { redboxOid?: string; metadata?: Record<string, unknown>; metaMetadata?: Record<string, unknown>; workflow?: Record<string, unknown> };
@@ -124,9 +125,11 @@ export namespace Services {
           const value = getJsonPointer(record.metadata ?? {}, pointer);
           if (value === undefined) continue;
           const contentHash = canonicalHash(value);
+          const field = slot.fields?.find(field => field.metadataPointer === pointer);
           sourceEvidence.push({
             id: `source:${slot.id}:${pointer}:${contentHash}`,
-            label: pointer.split('/').at(-1)!.replaceAll('~1', '/').replaceAll('~0', '~').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase()).slice(0, 200), kind: 'source', content: value, contentHash,
+            selectedOptions: resolveOptionLabels(field?.options, undefined, Array.isArray(value) ? value : [value]),
+            label: (field?.label || pointer.split('/').at(-1)!.replaceAll('~1', '/').replaceAll('~0', '~').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase())).slice(0, 200), kind: 'source', content: value, contentHash,
           });
         }
       }

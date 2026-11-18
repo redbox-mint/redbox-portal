@@ -14,7 +14,9 @@ export const profileTestCaseSchema = z.object({ name: text, source: z.record(tex
 export const profileDefinitionSchema: z.ZodType<GenerationProfileDefinition> = z.object({
   purpose: text, systemInstructions: text,
   targetForm: z.object({ recordType: id, formName: id }).optional(),
-  sourceSlots: z.array(z.object({ id, recordType: id, allowedPaths: z.array(text).max(500), maxBytes: z.number(), required: z.boolean().optional() })).max(1),
+  sourceSlots: z.array(z.object({ id, recordType: id, allowedPaths: z.array(text).max(500), maxBytes: z.number(), required: z.boolean().optional(),
+    fields: z.array(z.object({ metadataPointer: text, label: text,
+      options: z.array(z.object({ value: text, label: text })).max(500).optional() })).max(500).optional() })).max(1),
   documentSources: z.object({ formats: z.array(z.enum(['pdf', 'docx', 'txt'])), maxFiles: z.number(), maxFileBytes: z.number(), maxTextBytes: z.number() }).optional(),
   questions: z.array(z.object({ id, label: text.optional(), labelKey: text.optional(), helpText: text.optional(), helpTextKey: text.optional(),
     type: z.enum(['text', 'textarea', 'boolean', 'date', 'enum', 'multiEnum']), required: z.boolean(), maxLength: z.number().optional(),
