@@ -31,7 +31,7 @@
     "pino": "10.3.1",
     "rc": "1.2.8",
     "rxjs": "7.8.2",
-    "sails": "1.5.17",
+    "sails": "1.5.18",
     "sails-hook-orm": "4.0.3",
     "sails-hook-sockets": "3.0.2",
     "sails-mongo": "2.1.2",
