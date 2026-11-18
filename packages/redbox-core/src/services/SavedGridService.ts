@@ -17,12 +17,12 @@ const filter = z
     fieldId,
     expectedScalarType: z.enum(['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME']).optional(),
     expectedCardinality,
-    operator: z.enum(['eq', 'contains', 'gt', 'lt', 'between', 'in', 'exists']),
+    operator: z.enum(['eq', 'contains', 'iprefix', 'gt', 'lt', 'between', 'in', 'exists']),
     values: z.array(operand).min(1).max(20),
   })
   .refine(value => value.operator === 'in' || value.values.length === (value.operator === 'between' ? 2 : 1))
   .refine(value => value.operator !== 'exists' || ['true', 'false'].includes(value.values[0]))
-  .refine(value => value.operator !== 'contains' || value.values[0].length > 0);
+  .refine(value => !['contains', 'iprefix'].includes(value.operator) || value.values[0].length > 0);
 const visualDefinition = z.strictObject({
   mode: z.literal('visual').optional(),
   version: z.literal(1),

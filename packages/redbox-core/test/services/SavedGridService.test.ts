@@ -131,6 +131,37 @@ describe('Saved grids persistence boundary', () => {
       )
     );
   });
+  for (const cardinality of ['SCALAR', 'LIST'] as const)
+    it(`saves and reopens ${cardinality} IPREFIX filters without changing the operand`, async () => {
+      fields = [
+        {
+          ...fields[0],
+          cardinality,
+          repeating: cardinality === 'LIST',
+          operators: ['IPREFIX'],
+        },
+      ];
+      const filter = {
+        fieldId: 'metadata:/title',
+        expectedScalarType: 'STRING',
+        expectedCardinality: cardinality,
+        operator: 'iprefix',
+        values: ['ALP'],
+      };
+      const saved = await service.create(scope, { ...definition(), filters: [filter] }, {});
+      assert.deepEqual((await service.read(scope, saved.id)).filters, [filter]);
+      await assert.rejects(
+        service.create(
+          scope,
+          {
+            ...definition(),
+            filters: [{ ...filter, values: [''] }],
+          },
+          {}
+        ),
+        (e: SavedGridError) => e.code === 'invalid-definition'
+      );
+    });
   it('persists declared scalar-list filters and min/max sorts with explicit LIST cardinality', async () => {
     fields.push({
       id: 'metadata:/finalKeywords',

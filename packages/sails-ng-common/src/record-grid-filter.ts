@@ -1,7 +1,7 @@
 import type { NamedQueryJson } from './named-query.model';
 
 export type RecordGridScalarType = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME';
-export type RecordGridOperator = 'eq' | 'contains' | 'gt' | 'lt' | 'between' | 'in' | 'exists';
+export type RecordGridOperator = 'eq' | 'contains' | 'iprefix' | 'gt' | 'lt' | 'between' | 'in' | 'exists';
 export type RecordGridScalar = string | number | boolean;
 /** Discovery cardinality. Missing expected cardinality on a saved definition means legacy SCALAR. */
 export type RecordGridCardinality = 'SCALAR' | 'LIST';
@@ -44,7 +44,7 @@ export function recordGridFilterValue(
 ): RecordGridScalar | RecordGridScalar[] {
   if (!['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(scalarType))
     throw new Error('invalid-scalar-type');
-  if (!['eq', 'contains', 'gt', 'lt', 'between', 'in', 'exists'].includes(operator))
+  if (!['eq', 'contains', 'iprefix', 'gt', 'lt', 'between', 'in', 'exists'].includes(operator))
     throw new Error('invalid-operator');
   if (
     values.some(
@@ -63,6 +63,7 @@ export function recordGridFilterValue(
   if (['gt', 'lt', 'between'].includes(operator) && !['NUMBER', 'INTEGER', 'DATETIME'].includes(scalarType))
     throw new Error('invalid-operator-type');
   if (operator === 'contains' && (scalarType !== 'STRING' || !values[0].length)) throw new Error('empty-contains');
+  if (operator === 'iprefix' && (scalarType !== 'STRING' || !values[0].length)) throw new Error('invalid-iprefix');
   const converted = values.map(value => {
     if (scalarType === 'NUMBER' || scalarType === 'INTEGER') {
       if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) throw new Error('invalid-number');
@@ -131,7 +132,7 @@ export function recordGridFilter(
           : 'text']: value,
   });
   let operand: NamedQueryJson;
-  if (filter.operator === 'exists' || filter.operator === 'contains') {
+  if (filter.operator === 'exists' || filter.operator === 'contains' || filter.operator === 'iprefix') {
     if (Array.isArray(value)) throw new Error('invalid-value');
     operand = value;
   } else if (Array.isArray(value)) {

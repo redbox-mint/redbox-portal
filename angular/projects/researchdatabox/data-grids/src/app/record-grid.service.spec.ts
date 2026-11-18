@@ -973,7 +973,7 @@ describe('Declared scalar-list protocol', () => {
     id: 'metadata:/keywords',
     repeating: true,
     cardinality: 'LIST',
-    operators: ['EQ', 'CONTAINS', 'IN', 'EXISTS'],
+    operators: ['EQ', 'CONTAINS', 'IPREFIX', 'IN', 'EXISTS'],
     sortable: true,
     selections: [
       { variant: 'M_draft', selection: '... on M_draft { g_kw: keywords }', responsePath: ['metadata', 'g_kw'] },
@@ -987,7 +987,7 @@ describe('Declared scalar-list protocol', () => {
     );
     const [list, legacy, record] = found.fields;
     expect(list.cardinality).toBe('LIST');
-    expect(list.operators).toEqual(['eq', 'contains', 'in', 'exists']);
+    expect(list.operators).toEqual(['eq', 'contains', 'iprefix', 'in', 'exists']);
     expect(list.sortable).toBeTrue();
     expect(legacy.cardinality).toBeUndefined();
     expect(legacy.operators).toEqual([]);
@@ -1004,6 +1004,32 @@ describe('Declared scalar-list protocol', () => {
       expect(field.sortable).toBeFalse();
     }
     expect(() => parseDiscovery(discovery([{ ...keywords, cardinality: 'MANY' }]), key => key)).toThrow();
+  });
+  it('round-trips saved IPREFIX list filters and encodes a single string operand', () => {
+    const found = parseDiscovery(discovery([keywords, oid]), key => key);
+    const saved = {
+      ...emptyGrid(),
+      id: '123456789012345678901234',
+      revision: 1,
+      name: 'Prefix',
+      recordType: 'plan',
+      columns: [keywords.id],
+      filters: [
+        {
+          fieldId: keywords.id,
+          expectedScalarType: 'STRING' as const,
+          expectedCardinality: 'LIST' as const,
+          operator: 'iprefix' as const,
+          values: ['ALP'],
+        },
+      ],
+    };
+    const reopened = parseSavedDefinition(saved);
+    expect(reopened).toEqual(saved);
+    const query = queryFor(reopened, { ...scope, fields: found.fields, revision: found.revision }, null);
+    const variables: Record<string, unknown> = collectionRequest(query, scope, found).variables;
+    expect(variables['filters']).toEqual([{ field: keywords.id, iprefix: 'ALP' }]);
+    expect(() => parseSavedDefinition({ ...saved, filters: [{ ...saved.filters[0], values: [''] }] })).toThrow();
   });
   it('generates list filters and sorts only with explicit LIST cardinality', () => {
     const found = parseDiscovery(discovery([keywords, oid]), key => key);

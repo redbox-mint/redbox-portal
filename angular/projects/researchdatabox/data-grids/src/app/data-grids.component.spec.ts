@@ -892,7 +892,7 @@ describe('Data grid editor', () => {
         selectable: true,
         repeating: true,
         cardinality: 'LIST',
-        operators: ['eq', 'contains', 'in', 'exists'],
+        operators: ['eq', 'contains', 'iprefix', 'in', 'exists'],
         sortable: true,
       },
       {
@@ -917,6 +917,25 @@ describe('Data grid editor', () => {
   };
   const texts = (selector: string): string[] =>
     [...fixture.nativeElement.querySelectorAll(selector)].map((node: HTMLElement) => node.textContent!.trim());
+  it('offers IPREFIX for string lists with a single text input', async () => {
+    addLists();
+    spyOn(component, 'ngOnInit');
+    component.open(validGrid());
+    component.addFilter();
+    const filter = component.draft!.filters[0];
+    component.chooseFilterField(filter, 'keywords');
+    component.chooseOperator(filter, 'iprefix');
+    filter.values = ['ALP'];
+    await render();
+    expect(texts('#filter-op-0 option')).toContain('data-grids-op-list-iprefix');
+    const inputs = fixture.nativeElement.querySelectorAll('.grid-values input');
+    expect(inputs.length).toBe(1);
+    expect(inputs[0].type).toBe('text');
+    expect(inputs[0].value).toBe('ALP');
+    expect(component.issues).toEqual([]);
+    await component.preview();
+    expect(source.query.calls.mostRecent().args[0].definition.filters[0]).toEqual(filter);
+  });
   it('labels list conditions and min/max sorting with element semantics while keeping scalar labels', async () => {
     addLists();
     spyOn(component, 'ngOnInit');

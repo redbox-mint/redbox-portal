@@ -33,6 +33,29 @@ describe('Data grid configuration', () => {
       expect(defaultColumns(fields)).not.toContain(`metadata:/${identity}`);
     });
   }
+  it('validates IPREFIX as one nonempty string, rejecting non-string field types', () => {
+    const field: GridField = {
+      id: 'keywords',
+      label: 'Keywords',
+      type: 'text',
+      selectable: true,
+      repeating: true,
+      cardinality: 'LIST',
+      operators: ['iprefix'],
+      sortable: true,
+    };
+    const filter = {
+      fieldId: field.id,
+      expectedScalarType: 'STRING' as const,
+      expectedCardinality: 'LIST' as const,
+      operator: 'iprefix' as const,
+      values: ['ALP'],
+    };
+    expect(filterValue(filter, field)).toBe('ALP');
+    for (const values of [[], [''], ['a', 'b']]) expect(() => filterValue({ ...filter, values }, field)).toThrow();
+    for (const type of ['number', 'boolean', 'datetime'] as const)
+      expect(() => filterValue(filter, { ...field, type })).toThrow();
+  });
   it('validates declared scalar-list filters and sorts against explicit LIST cardinality', () => {
     const grid = validGrid();
     const keywords = {

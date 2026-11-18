@@ -93,7 +93,11 @@ describe('Detached explorer named-query promotion', () => {
     assert.deepEqual(result.definition.graphql.variables, {});
     assert.deepEqual(result.definition.graphql.mappings, { oid: ['identity'] });
     assert.deepEqual(result.definition.graphql.resultPath, ['matches', 'items']);
-    assert.deepEqual(result.definition.graphql.provenance, { explorerId: input.id, explorerRevision: 7, explorerPortal: caller.portal });
+    assert.deepEqual(result.definition.graphql.provenance, {
+      explorerId: input.id,
+      explorerRevision: 7,
+      explorerPortal: caller.portal,
+    });
     assert.deepEqual(result.variableValues, input.variables);
     assert.equal(result.definition.name, '');
     const filters = result.variableValues.filters;
@@ -260,6 +264,27 @@ describe('Detached explorer named-query promotion', () => {
       });
       await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status, code: expectedCode });
     });
+  it('promotes a saved IPREFIX list filter using its single string operand', async () => {
+    const list = {
+      ...fields()[1],
+      id: 'metadata:/keywords',
+      repeating: true,
+      cardinality: 'LIST',
+      operators: ['IPREFIX'],
+    };
+    execute.resolves({ status: 200, data: { data: { recordFields: { fields: [...fields(), list] } } } });
+    const filter = {
+      fieldId: list.id,
+      expectedScalarType: 'STRING',
+      expectedCardinality: 'LIST',
+      operator: 'iprefix',
+      values: ['ALP'],
+    };
+    const input = { ...visual(), filters: [filter] };
+    const result = await prepareExplorerNamedQuery(input, caller);
+    assert.deepEqual(result.variableValues.filters, [{ field: list.id, iprefix: 'ALP' }]);
+    assert.deepEqual(input.filters, [filter]);
+  });
   it('promotes declared scalar-list filters and sorts only with explicit LIST cardinality', async () => {
     const list = {
       ...fields()[1],

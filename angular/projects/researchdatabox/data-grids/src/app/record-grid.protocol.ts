@@ -35,7 +35,7 @@ export interface Discovery {
   stages: string[];
   fields: DiscoveredField[];
 }
-const operators: Operator[] = ['eq', 'contains', 'in', 'gt', 'lt', 'between', 'exists'];
+const operators: Operator[] = ['eq', 'contains', 'iprefix', 'in', 'gt', 'lt', 'between', 'exists'];
 const invalid = (): never => {
   throw new GridRequestError('invalid-response');
 };
@@ -469,6 +469,7 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
     switch (value) {
       case 'eq':
       case 'contains':
+      case 'iprefix':
       case 'in':
       case 'gt':
       case 'lt':
@@ -505,7 +506,7 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
       values.some(value => new TextEncoder().encode(value).length > 256) ||
       (operator !== 'in' && values.length !== (operator === 'between' ? 2 : 1)) ||
       (operator === 'exists' && !['true', 'false'].includes(values[0])) ||
-      (operator === 'contains' && !values[0])
+      (['contains', 'iprefix'].includes(operator) && !values[0])
     )
       return invalid();
     return {

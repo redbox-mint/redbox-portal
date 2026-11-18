@@ -10314,6 +10314,11 @@
     "description": "Data grid admin: op contains",
     "contentFormat": "plain"
   },
+  "data-grids-op-iprefix": {
+    "category": "data-grids",
+    "description": "Data grid admin: op iprefix",
+    "contentFormat": "plain"
+  },
   "data-grids-op-gt": {
     "category": "data-grids",
     "description": "Data grid admin: op gt",
@@ -10347,6 +10352,11 @@
   "data-grids-op-list-contains": {
     "category": "data-grids",
     "description": "Data grid admin: list filter operator, any value contains",
+    "contentFormat": "plain"
+  },
+  "data-grids-op-list-iprefix": {
+    "category": "data-grids",
+    "description": "Data grid admin: list filter operator, any value starts with (case-insensitive)",
     "contentFormat": "plain"
   },
   "data-grids-op-list-gt": {

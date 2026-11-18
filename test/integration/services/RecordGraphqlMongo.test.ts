@@ -334,6 +334,7 @@ describe('Mongo declared scalar-list collections', function () {
       root: {
         ...contract.root,
         properties: {
+          amount: scalar('number'),
           tags: list(scalar('string')),
           scores: list(scalar('integer')),
           amounts: list(scalar('number')),
@@ -379,8 +380,10 @@ describe('Mongo declared scalar-list collections', function () {
     return page.candidates.map(candidate => candidate.oid);
   }
   /** Walk every storage page with the real continuation keys. */
-  async function walkPages(query: Partial<GridStorageRequest['query']>): Promise<{ oid: string; keys: unknown[] }[]> {
-    const seen: { oid: string; keys: unknown[] }[] = [];
+  async function walkPages(
+    query: Partial<GridStorageRequest['query']>
+  ): Promise<{ oid: string; keys: NonNullable<GridStorageRequest['after']>['keys'] }[]> {
+    const seen: { oid: string; keys: NonNullable<GridStorageRequest['after']>['keys'] }[] = [];
     let after: GridStorageRequest['after'];
     for (let page = 0; page < 100; page++) {
       const result = await provider().executeRecordCollection(request(query, after));
@@ -595,7 +598,7 @@ describe('Mongo declared scalar-list collections', function () {
       );
       assert.deepEqual(filtered.candidates[0].keys, [direction === 'ASC' ? 2 : 8, id('s10')]);
     });
-  it('continues exact multi-page keysets for list sorts, including null groups and OID ties', async () => {
+  it('continues exact multi-page list and compound keysets, including null groups and OID ties', async () => {
     const tie = `tie-${suffix}`;
     const docs = Array.from({ length: 173 }, (_, index) => {
       const oid = `${tie}-${String(index).padStart(4, '0')}`;
@@ -608,7 +611,11 @@ describe('Mongo declared scalar-list collections', function () {
             : pick === 2
               ? ['x', 7]
               : [`k${index % 5}`, `k${(index * 3) % 5}`, ...(index % 2 ? [null] : [])];
-      return base(oid, value === undefined ? {} : { tags: value });
+      return base(oid, {
+        ...(value === undefined ? {} : { tags: value }),
+        scores: index % 4 === 0 ? [] : [index % 3, 10 + (index % 3)],
+        amount: index % 5 === 0 ? null : index % 4,
+      });
     });
     await collection.insertMany(docs);
     for (const direction of ['ASC', 'DESC'] as const) {
@@ -645,6 +652,62 @@ describe('Mongo declared scalar-list collections', function () {
         if (a === b) assert.ok(left.oid < right.oid, JSON.stringify([left, right]));
         else if (direction === 'ASC') assert.ok(a === null || (b !== null && a < b), JSON.stringify([left, right]));
         else assert.ok(b === null || (a !== null && a > b), JSON.stringify([left, right]));
+      }
+    }
+    for (const sort of [
+      [
+        { field: 'metadata:/tags', direction: 'ASC' },
+        { field: 'metadata:/scores', direction: 'DESC' },
+      ],
+      [
+        { field: 'metadata:/scores', direction: 'DESC' },
+        { field: 'metadata:/amount', direction: 'ASC' },
+      ],
+    ] as const) {
+      const compare = (a: { keys: unknown[] }, b: { keys: unknown[] }): number => {
+        for (let index = 0; index < a.keys.length; index++) {
+          const left = a.keys[index] as string | number | null;
+          const right = b.keys[index] as string | number | null;
+          if (left === right) continue;
+          const order = left === null ? -1 : right === null ? 1 : left < right ? -1 : 1;
+          return order * (sort[index]?.direction === 'DESC' ? -1 : 1);
+        }
+        return 0;
+      };
+      const expected = docs
+        .map((doc, index) => {
+          const tags = (doc.metadata.tags ?? []).filter((value): value is string => typeof value === 'string');
+          const minimumTag = tags.length ? [...tags].sort()[0] : null;
+          const maximumScore = index % 4 === 0 ? null : 10 + (index % 3);
+          return {
+            oid: doc.redboxOid,
+            keys:
+              sort[0].field === 'metadata:/tags'
+                ? [minimumTag, maximumScore, doc.redboxOid]
+                : [maximumScore, doc.metadata.amount, doc.redboxOid],
+          };
+        })
+        .sort(compare);
+      const all = await walkPages({ sort: [...sort] });
+      const mine = all.filter(row => row.oid.startsWith(tie));
+      assert.deepEqual(mine, expected, JSON.stringify(sort));
+      assert.ok(all.length > 50 * 3, 'compound ordering crosses multiple page boundaries');
+      assert.equal(new Set(all.map(row => row.oid)).size, all.length, 'no compound-page duplicates');
+      for (let index = 1; index < all.length; index++)
+        assert.ok(compare(all[index - 1], all[index]) < 0, JSON.stringify([all[index - 1], all[index]]));
+      // Resume explicitly inside both missing-key groups and valid compound ties,
+      // even when the regular page boundary does not fall on that exact group.
+      for (const row of [
+        mine.find(row => row.keys[0] === null)!,
+        mine.find(row => row.keys[0] !== null && row.keys[1] === null)!,
+        mine.find(
+          (row, index) =>
+            index > 0 && row.keys[0] === mine[index - 1].keys[0] && row.keys[1] === mine[index - 1].keys[1]
+        )!,
+      ]) {
+        const resumed = await provider().executeRecordCollection(request({ sort: [...sort] }, { keys: row.keys }));
+        const next = all.findIndex(candidate => candidate.oid === row.oid) + 1;
+        assert.deepEqual(resumed.candidates, all.slice(next, next + 50));
       }
     }
     await collection.deleteMany({ redboxOid: { $regex: `^${tie}` } });

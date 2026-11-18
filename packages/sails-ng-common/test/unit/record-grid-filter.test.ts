@@ -11,7 +11,7 @@ const field = {
   filterable: true,
   repeating: false,
   availableInAllVariants: true,
-  operators: ['EQ', 'IN', 'EXISTS', 'CONTAINS'],
+  operators: ['EQ', 'IN', 'EXISTS', 'CONTAINS', 'IPREFIX'],
 };
 const filter = {
   fieldId: 'metadata:/title',
@@ -27,6 +27,10 @@ describe('shared visual grid filter validation', () => {
     assert.deepEqual(recordGridFilter({ ...filter, operator: 'contains' }, field), {
       field: filter.fieldId,
       contains: 'current',
+    });
+    assert.deepEqual(recordGridFilter({ ...filter, operator: 'iprefix' }, field), {
+      field: filter.fieldId,
+      iprefix: 'current',
     });
     assert.deepEqual(recordGridFilter({ ...filter, operator: 'exists', values: ['false'] }, field), {
       field: filter.fieldId,
@@ -81,6 +85,10 @@ describe('shared visual grid filter validation', () => {
     const listFilter = { ...filter, expectedCardinality: 'LIST' as const };
     // Operands are unchanged; storage applies any-element semantics.
     assert.deepEqual(recordGridFilter(listFilter, list), recordGridFilter(filter, field));
+    assert.deepEqual(recordGridFilter({ ...listFilter, operator: 'iprefix' }, list), {
+      field: filter.fieldId,
+      iprefix: 'current',
+    });
     // Legacy (missing) and explicit SCALAR expectations require visible repair.
     assert.throws(() => recordGridFilter(filter, list), /filter-cardinality-changed/);
     assert.throws(
@@ -157,6 +165,12 @@ describe('shared visual grid filter validation', () => {
     ['STRING', 'exists', ['yes']],
     ['STRING', 'contains', ['']],
     ['STRING', 'contains', ['a', 'b']],
+    ['STRING', 'iprefix', ['']],
+    ['STRING', 'iprefix', ['a', 'b']],
+    ['NUMBER', 'iprefix', ['1']],
+    ['INTEGER', 'iprefix', ['1']],
+    ['BOOLEAN', 'iprefix', ['true']],
+    ['DATETIME', 'iprefix', ['2026-01-01T00:00:00Z']],
     ['STRING', 'eq', []],
     ['STRING', 'eq', ['a', 'b']],
     ['STRING', 'in', []],
