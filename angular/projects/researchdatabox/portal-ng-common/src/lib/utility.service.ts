@@ -22,6 +22,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 import { LoggerService } from './logger.service';
+import { guessType } from "@researchdatabox/sails-ng-common/dist/src/config/helpers";
 /**
  * Utility service...
  *
@@ -434,8 +435,6 @@ export class UtilityService {
     const url = new URL(`${brandingAndPortalUrl}/${path}`);
     url.searchParams.set('apiVersion', "2.0");
 
-    // Configuration helpers are only needed for dynamic assets, not service startup.
-    const { guessType } = await import('@researchdatabox/sails-ng-common/dist/src/config/helpers');
     Object.entries(params ?? {}).forEach(([key, value]) => {
       // Remove any existing url param with matching key, set to the key value pair in params.
       if (guessType(value) === "object") {
