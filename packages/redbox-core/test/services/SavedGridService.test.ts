@@ -127,7 +127,7 @@ describe('Saved grids persistence boundary', () => {
       )
     );
   });
-  it('persists verified scalar-list element filters while rejecting list sorts', async () => {
+  it('persists advertised scalar-list filters for forward compatibility and rejects list sorts', async () => {
     fields.push({
       id: 'metadata:/finalKeywords',
       scalarType: 'STRING',

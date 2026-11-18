@@ -2,6 +2,7 @@ import {
   cursorBinding,
   editorErrors,
   editorSchema,
+  queryRecordScope,
   queryRecordType,
   rawDefinition,
   rawRows,
@@ -63,6 +64,25 @@ describe('GraphQL editor contract', () => {
       )
     ).toBeNull();
     expect(queryRecordType('{ __typename }', {})).toBeNull();
+  });
+  it('infers record type from an omitted variable with an operation default', () => {
+    const document = 'query Plans($type: String! = "plan") { records(recordType: $type) { nodes { oid } } }';
+    expect(queryRecordScope(document, {})).toEqual({ recordType: 'plan' });
+  });
+  it('uses explicit record type variables in place of their defaults', () => {
+    const document = 'query Plans($type: String! = "plan") { records(recordType: $type) { nodes { oid } } }';
+    expect(queryRecordScope(document, { type: 'publication' })).toEqual({ recordType: 'publication' });
+    expect(queryRecordScope(document, { type: null })).toBeNull();
+  });
+  it('infers a single workflow stage from a variable list default', () => {
+    const document = `query Plans($stages: [String!] = ["draft"]) {
+      records(recordType: "plan", workflowStages: $stages) { nodes { oid } }
+    }`;
+    expect(queryRecordScope(document, {})).toEqual({ recordType: 'plan', workflowStage: 'draft' });
+  });
+  it('keeps global schema scope when the record type variable has no supplied value or default', () => {
+    const document = 'query Plans($type: String!) { records(recordType: $type) { nodes { oid } } }';
+    expect(queryRecordScope(document, {})).toBeNull();
   });
   it('validates real schema selections, variables, syntax and read-only operations', () => {
     const raw = rawDefinition();

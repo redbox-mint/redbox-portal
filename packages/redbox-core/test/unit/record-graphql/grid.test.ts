@@ -6,7 +6,7 @@ import { metadataTypeName } from '../../../src/record-graphql/renderer';
 import { GRID_LIMITS } from '../../../src/record-graphql/grid-types';
 import { buildCatalogue } from '../../../src/record-graphql/catalogue';
 import { queryPlan } from '../../../src/record-graphql/collection';
-import { gridHarness, gridCaller, gridEnvironment, gridContracts } from '../../fixtures/record-grid.fixtures';
+import { gridHarness, gridCaller, gridEnvironment, gridContracts, object } from '../../fixtures/record-grid.fixtures';
 
 const pageQuery = `query($after: String, $first: Int = 2, $stages: [String!]) { records(recordType: "grid-fixture", workflowStages: $stages, first: $first, after: $after) { nodes { oid workflowStep } hasNextPage endCursor } }`;
 
@@ -34,6 +34,24 @@ describe('Record grid catalogue and pagination', () => {
     assert.ok(
       catalogue.fields.some(field => field.repeating && !field.selectable && !field.filterable && !field.sortable)
     );
+  });
+  it('withholds filter capabilities and bindings for readable scalar lists', () => {
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: object({
+        keywords: { kind: 'array', nullable: true, items: { kind: 'scalar', scalarType: 'string', nullable: true } },
+      }),
+    }));
+    const { catalogue, bindings } = buildCatalogue(contracts, 'grid-fixture', []);
+    const field = catalogue.fields.find(field => field.id === 'metadata:/keywords');
+    assert.ok(field);
+    assert.equal(field.repeating, true);
+    assert.equal(field.scalarType, 'STRING');
+    assert.equal(field.selectable, true);
+    assert.equal(field.filterable, false);
+    assert.equal(field.unavailableReason, 'REPEATING_FIELD');
+    assert.deepEqual(field.operators, []);
+    assert.equal(bindings.has(field.id), false);
   });
   it('adds short labels, form hierarchy, repeating-child hints and friendly type labels without changing capabilities', async () => {
     const contracts = gridContracts().map(contract => ({

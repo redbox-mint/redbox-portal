@@ -89,6 +89,8 @@ export function recordGridFilter(
     operators: readonly string[];
   }
 ): NamedQueryJson {
+  // Accept advertised scalar-list filters for forward compatibility with saved queries.
+  // The catalogue withholds their operators until Mongo collection execution supports them.
   if (
     !field.filterable ||
     (field.repeating && !['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'DATETIME'].includes(field.scalarType)) ||

@@ -33,7 +33,7 @@ describe('Data grid configuration', () => {
       expect(defaultColumns(fields)).not.toContain(`metadata:/${identity}`);
     });
   }
-  it('allows server-verified scalar-list filters while retaining list sort restrictions', () => {
+  it('accepts advertised scalar-list filters for forward compatibility and rejects list sorts', () => {
     const grid = validGrid();
     const target = {
       ...scope,

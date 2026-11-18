@@ -331,6 +331,9 @@ export function buildCatalogue(
       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
     field.choices = [...new Map(field.choices.map(choice => [JSON.stringify(choice.value), choice])).values()];
     if (field.scalarType === 'MIXED') field.selectable = false;
+    // Withhold scalar-list filter bindings until Mongo collection execution supports them.
+    // The validators already accept advertised scalar-list operators so saved and validated queries
+    // can survive that capability switch without a format change.
     if (!field.selectable || field.repeating || ['OBJECT', 'JSON'].includes(field.scalarType)) {
       field.unavailableReason = field.repeating ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
       continue;

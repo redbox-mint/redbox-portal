@@ -3,6 +3,7 @@ import {
   getNamedType,
   isListType,
   isNonNullType,
+  type ConstValueNode,
   type SelectionSetNode,
   type ValueNode,
   type GraphQLCompositeType,
@@ -169,10 +170,17 @@ export function queryRecordType(document: string, variables: Record<string, unkn
   return queryRecordScope(document, variables)?.recordType ?? null;
 }
 
-function staticScopeValue(value: ValueNode | undefined, variables: Record<string, unknown>): unknown {
+function staticScopeValue(
+  value: ValueNode | undefined,
+  variables: Record<string, unknown>,
+  defaults: ReadonlyMap<string, ConstValueNode | undefined>
+): unknown {
   if (value?.kind === Kind.STRING) return value.value;
-  if (value?.kind === Kind.VARIABLE && Object.hasOwn(variables, value.name.value)) return variables[value.name.value];
-  if (value?.kind === Kind.LIST) return value.values.map(item => staticScopeValue(item, variables));
+  if (value?.kind === Kind.VARIABLE) {
+    const name = value.name.value;
+    return Object.hasOwn(variables, name) ? variables[name] : staticScopeValue(defaults.get(name), variables, defaults);
+  }
+  if (value?.kind === Kind.LIST) return value.values.map(item => staticScopeValue(item, variables, defaults));
   return undefined;
 }
 
@@ -184,10 +192,12 @@ export function queryRecordScope(
     const ast = parse(document, { maxLexicalTokens: 2000 });
     const operations = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
     if (operations.length !== 1 || operations[0].operation !== 'query') return null;
+    const operation = operations[0];
+    const defaults = new Map(operation.variableDefinitions?.map(def => [def.variable.name.value, def.defaultValue]));
     const fragments = new Map(
       ast.definitions.filter(node => node.kind === Kind.FRAGMENT_DEFINITION).map(node => [node.name.value, node])
     );
-    const pending = [operations[0].selectionSet];
+    const pending = [operation.selectionSet];
     const visited = new Set<SelectionSetNode>();
     let recordType: string | undefined;
     const workflowStages = new Set<string | undefined>();
@@ -207,14 +217,16 @@ export function queryRecordScope(
         if (selection.name.value !== 'records') continue;
         const type = staticScopeValue(
           selection.arguments?.find(arg => arg.name.value === 'recordType')?.value,
-          variables
+          variables,
+          defaults
         );
         if (typeof type !== 'string' || !type || (recordType && recordType !== type)) return null;
         recordType = type;
 
         const stages = staticScopeValue(
           selection.arguments?.find(arg => arg.name.value === 'workflowStages')?.value,
-          variables
+          variables,
+          defaults
         );
         const stage = Array.isArray(stages) ? (stages.length === 1 ? stages[0] : undefined) : stages;
         workflowStages.add(typeof stage === 'string' && stage ? stage : undefined);
