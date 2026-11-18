@@ -133,7 +133,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   @HostListener('window:scroll') scroll(): void {
     if (this.frame) return; this.frame = requestAnimationFrame(() => { this.frame = 0; this.activeSection = this.sections.filter(id => (this.host.nativeElement.querySelector('#profile-' + id)?.getBoundingClientRect().top ?? Infinity) < 160).at(-1) || 'about'; });
   }
-  @HostListener('window:beforeunload', ['$event']) beforeUnload(event: BeforeUnloadEvent): void { if (this.dirty || this.busy || this.running) { event.preventDefault(); event.returnValue = ''; } }
+  @HostListener('window:beforeunload', ['$event']) beforeUnload(event: BeforeUnloadEvent): void { if ((this.dirty || this.busy || this.running) && !this.leave) { event.preventDefault(); event.returnValue = ''; } }
   @HostListener('document:click', ['$event']) guardLink(event: MouseEvent): void {
     if (!this.dirty || this.leave || event.defaultPrevented || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const a = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement;

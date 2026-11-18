@@ -824,7 +824,7 @@ describe('Generation paused-status rendering', () => {
     fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('') }));
     fixture.detectChanges();
     component.activeSession.set({ runId: 'paused-render', bindingKey: 'documents', initialValues: [], autoOpen: true });
-    component.run.set({ runId: 'paused-render', status: 'draft', phase: 'provider',
+    component.run.set({ runId: 'paused-render', status: 'draft', phase: 'provider', purpose: 'Draft a plan from synthetic project information.',
       attemptCount: 1, retryable: false, questions: [], result: null });
     const questions: GenerationQuestion[] = [
       { id: 'direct', label: 'What do you plan to collect?', helpText: 'Describe synthetic data only.', labelKey: 'old-key', type: 'enum', required: false, options: [{ value: 'one', label: 'Interview transcripts', labelKey: 'old-option' }] },
@@ -835,6 +835,7 @@ describe('Generation paused-status rendering', () => {
     component.questionForm.addControl('legacy', new FormControl(''));
     fixture.detectChanges();
     const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Draft a plan from synthetic project information.');
     expect(host.textContent).toContain('What do you plan to collect?');
     expect(host.textContent).toContain('Describe synthetic data only.');
     expect(host.textContent).toContain('Interview transcripts');

@@ -27,6 +27,7 @@
 
     <div class="rb-generation-panel__body">
       @if (!completed()) {
+        @if (run()?.purpose) { <p class="rb-generation-panel__purpose">{{ run()?.purpose }}</p> }
         <p class="rb-generation-panel__intro">{{ 'generation-panel-intro' | i18next }}</p>
         <form [formGroup]="questionForm" (ngSubmit)="generate()">
           @if (run()?.documentPolicy; as policy) {

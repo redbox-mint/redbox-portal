@@ -36,6 +36,7 @@ export interface GenerationSafeError {
 }
 
 export interface GenerationRunView {
+  purpose?: string;
   runId: string;
   status: GenerationRunStatus;
   phase: GenerationRunPhase;
