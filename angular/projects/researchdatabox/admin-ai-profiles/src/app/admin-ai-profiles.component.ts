@@ -1,13 +1,13 @@
-import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
-import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common/runtime';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
-import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-date.pipe';
-import { AdminModalDirective } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-modal.directive';
-import type { GenerationProfileDefinition, ProfileOverview, ProfileSummary, ProfileVersion, ProfileProblem, ProfileField, ProfileTestResult } from '@researchdatabox/sails-ng-common';
+import { I18NextPipe } from '../../../portal-ng-common/src/lib/i18next.pipe';
+import { TranslationService } from '../../../portal-ng-common/src/lib/translation.service';
+import { AdminDatePipe } from '../../../portal-ng-common/src/lib/admin-date.pipe';
+import { AdminModalDirective } from '../../../portal-ng-common/src/lib/admin-modal.directive';
+import type { GenerationProfileDefinition, ProfileOverview, ProfileSummary, ProfileVersion, ProfileProblem, ProfileField, ProfileTestResult } from '@researchdatabox/sails-ng-common/runtime';
 import { ProfileApiService, ProfileApiError } from './profile-api.service';
 import { ProfileValueComponent } from './profile-value.component';
 import { clone, questionTypes, origins, profileProblems } from './profile-settings';
@@ -15,7 +15,7 @@ type Question = GenerationProfileDefinition['questions'][number];
 type Field = GenerationProfileDefinition['targetFields'][number];
 type TestCase = { name: string; source: Record<string, any>; answers: Record<string, any> };
 type Modal = { kind: 'create' | 'duplicate' | 'question' | 'field' | 'case' | 'delete' | 'discard' | 'retire'; name: string; key?: string; index?: number };
-@Component({ selector: 'admin-ai-profiles', standalone: true,
+@Component({ changeDetection: ChangeDetectionStrategy.Eager, selector: 'admin-ai-profiles', standalone: true,
   imports: [CommonModule, FormsModule, A11yModule, I18NextPipe, AdminDatePipe, AdminModalDirective, ProfileValueComponent], providers: [ProfileApiService],
   templateUrl: './admin-ai-profiles.component.html', encapsulation: ViewEncapsulation.None })
 export class AdminAiProfilesComponent implements OnInit, OnDestroy {

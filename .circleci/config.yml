@@ -1414,6 +1414,8 @@ workflows:
                 - harvest-runs
                 - mcp-connect
                 - branding
+                - admin-ai-models
+                - admin-ai-profiles
                 - email-templates
                 - translation
                 - record-search
@@ -1593,6 +1595,8 @@ workflows:
                 - harvest-runs
                 - mcp-connect
                 - branding
+                - admin-ai-models
+                - admin-ai-profiles
                 - email-templates
                 - translation
                 - record-search
@@ -1752,6 +1756,8 @@ workflows:
                 - harvest-runs
                 - mcp-connect
                 - branding
+                - admin-ai-models
+                - admin-ai-profiles
                 - email-templates
                 - translation
                 - record-search

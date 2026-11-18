@@ -1,9 +1,9 @@
-import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common/runtime';
 import { profileProblems } from './profile-settings';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import english from '../../../../../../language-defaults/en/translation.json';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
+import { TranslationService } from '../../../portal-ng-common/src/lib/translation.service';
 import { AdminAiProfilesComponent } from './admin-ai-profiles.component';
 import { ProfileApiService, ProfileApiError } from './profile-api.service';
 import { clone } from './profile-settings';

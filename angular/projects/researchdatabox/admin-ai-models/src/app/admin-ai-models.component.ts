@@ -1,22 +1,22 @@
-import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
-import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-date.pipe';
-import { AdminModalDirective } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-modal.directive';
+import { I18NextPipe } from '../../../portal-ng-common/src/lib/i18next.pipe';
+import { TranslationService } from '../../../portal-ng-common/src/lib/translation.service';
+import { AdminDatePipe } from '../../../portal-ng-common/src/lib/admin-date.pipe';
+import { AdminModalDirective } from '../../../portal-ng-common/src/lib/admin-modal.directive';
 import type {
   GenerationAdminOverview, GenerationAdminModelDraft, GenerationAdminModelVersion,
   GenerationAdminConnection, GenerationAdminPromptResult, GenerationAdminUsage, GenerationAdminModelGroup,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/runtime';
 import { ModelApiService, ModelApiError } from './model-api.service';
 import { ProviderCardComponent, ProviderDraft } from './provider-card.component';
 import { ChipsComponent } from './chips.component';
 import { accepts, adapterLabels, clone, connectionDraft, curatedModels, Issues, modelDraft, numericSettings, NumericSetting, modelNames, slug, validateConnection, validateModel, validKey } from './model-settings';
 
 type RailSection = { id: string; key: string };
-@Component({
+@Component({ changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'admin-ai-models', standalone: true,
   imports: [CommonModule, FormsModule, I18NextPipe, AdminDatePipe, AdminModalDirective, A11yModule, ProviderCardComponent, ChipsComponent],
   providers: [ModelApiService], templateUrl: './admin-ai-models.component.html',

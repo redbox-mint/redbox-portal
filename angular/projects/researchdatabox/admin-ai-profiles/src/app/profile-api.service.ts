@@ -2,10 +2,10 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ConfigService } from 'projects/researchdatabox/portal-ng-common/src/lib/config.service';
-import { HttpClientService } from 'projects/researchdatabox/portal-ng-common/src/lib/httpClient.service';
-import { UtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/utility.service';
-import type { ProfileOverview, ProfileSummary, ProfileVersion, ProfileDraft, ProfileDeletion, ProfileTestResult } from '@researchdatabox/sails-ng-common';
+import { ConfigService } from '../../../portal-ng-common/src/lib/config.service';
+import { HttpClientService } from '../../../portal-ng-common/src/lib/httpClient.service';
+import { UtilityService } from '../../../portal-ng-common/src/lib/utility.service';
+import type { ProfileOverview, ProfileSummary, ProfileVersion, ProfileDraft, ProfileDeletion, ProfileTestResult } from '@researchdatabox/sails-ng-common/runtime';
 
 export class ProfileApiError extends Error {
   constructor(public status: number, public messageKey: string) { super(messageKey); }

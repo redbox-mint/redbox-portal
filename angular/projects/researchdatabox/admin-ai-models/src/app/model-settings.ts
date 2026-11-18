@@ -1,7 +1,7 @@
 import type {
   GenerationAdminConnection, GenerationAdminConnectionDraft, GenerationAdminModelDraft,
   GenerationAdminOverview,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/runtime';
 
 export const adapterLabels: Record<string, string> = {
   openrouter: 'ai-models-adapter-openrouter', bedrock: 'ai-models-adapter-bedrock', fake: 'ai-models-adapter-fake',

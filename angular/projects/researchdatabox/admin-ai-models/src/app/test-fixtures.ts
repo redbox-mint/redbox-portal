@@ -1,4 +1,4 @@
-import type { GenerationAdminConnection, GenerationAdminModelVersion, GenerationAdminOverview } from '@researchdatabox/sails-ng-common';
+import type { GenerationAdminConnection, GenerationAdminModelVersion, GenerationAdminOverview } from '@researchdatabox/sails-ng-common/runtime';
 export const openrouter: GenerationAdminConnection = {
   id: 'connection-or', key: 'openrouter', name: 'OpenRouter', adapterId: 'openrouter', enabled: true,
   authStrategy: 'bearer', secretRef: 'env:OPENROUTER_API_KEY', timeoutMs: 90000,

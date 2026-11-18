@@ -1,8 +1,8 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
+import { I18NextPipe } from '../../../portal-ng-common/src/lib/i18next.pipe';
 
-@Component({
+@Component({ changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'ai-model-chips', standalone: true, imports: [FormsModule, I18NextPipe],
   template: `
     <div class="ai-chips" [class.ai-chips-disabled]="disabled">

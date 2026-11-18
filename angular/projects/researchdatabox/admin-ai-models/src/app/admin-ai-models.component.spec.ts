@@ -2,7 +2,7 @@ import { By } from '@angular/platform-browser';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import english from '../../../../../../language-defaults/en/translation.json';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
+import { TranslationService } from '../../../portal-ng-common/src/lib/translation.service';
 import { AdminAiModelsComponent } from './admin-ai-models.component';
 import { ModelApiError, ModelApiService } from './model-api.service';
 import { ProviderCardComponent } from './provider-card.component';

@@ -1,4 +1,4 @@
-import type { GenerationProfileDefinition, ProfileOverview, ProfileVersion } from '@researchdatabox/sails-ng-common';
+import type { GenerationProfileDefinition, ProfileOverview, ProfileVersion } from '@researchdatabox/sails-ng-common/runtime';
 export const definition: GenerationProfileDefinition = { purpose: 'Draft a plan', systemInstructions: 'Use source facts',
   sourceSlots: [{ id: 'source', recordType: 'activity', allowedPaths: ['/title'], maxBytes: 16000 }],
   questions: [{ id: 'question', label: 'What will you collect?', helpText: 'Use synthetic text', type: 'text', required: false }],

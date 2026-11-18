@@ -1,5 +1,5 @@
-import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
-import type { GenerationProfileDefinition, ProfileOverview, ProfileProblem } from '@researchdatabox/sails-ng-common';
+import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common/runtime';
+import type { GenerationProfileDefinition, ProfileOverview, ProfileProblem } from '@researchdatabox/sails-ng-common/runtime';
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const questionTypes = ['text', 'textarea', 'boolean', 'date', 'enum', 'multiEnum'] as const;
 export const origins = ['sourceRequired', 'guidanceRequired', 'sourceOrGuidance', 'inferenceAllowed'] as const;

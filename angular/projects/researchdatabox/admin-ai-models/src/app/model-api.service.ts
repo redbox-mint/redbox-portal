@@ -2,14 +2,14 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ConfigService } from 'projects/researchdatabox/portal-ng-common/src/lib/config.service';
-import { HttpClientService } from 'projects/researchdatabox/portal-ng-common/src/lib/httpClient.service';
-import { UtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/utility.service';
+import { ConfigService } from '../../../portal-ng-common/src/lib/config.service';
+import { HttpClientService } from '../../../portal-ng-common/src/lib/httpClient.service';
+import { UtilityService } from '../../../portal-ng-common/src/lib/utility.service';
 import type {
   GenerationAdminDeletion, GenerationAdminOverview, GenerationAdminConnectionDraft, GenerationAdminConnection,
   GenerationAdminConnectionHealth, GenerationAdminCreateModel, GenerationAdminUpdateDraft,
   GenerationAdminModelVersion, GenerationAdminPublishModel, GenerationAdminTryPrompt, GenerationAdminPromptResult,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/runtime';
 
 export class ModelApiError extends Error {
   constructor(public status: number, public messageKey: string) { super(messageKey); }
