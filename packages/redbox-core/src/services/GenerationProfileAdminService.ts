@@ -106,7 +106,8 @@ export namespace Services {
       for (const slot of definition.sourceSlots ?? []) {
         const type = c.recordTypes.find(t => t.name === slot.recordType);
         const form = c.forms.find(f => f.name === type?.formName);
-        if (!type || !form) add('source', 'source');
+        if (!type || !form || !slot.allowedPaths.length) add('source', 'source');
+        if (!Number.isSafeInteger(slot.maxBytes) || slot.maxBytes <= 0 || slot.maxBytes > c.limits.context.maxFieldBytes) add('source', 'source-size');
         for (const path of slot.allowedPaths ?? []) if (!form?.fields.some(f => f.pointer === path)) add('source', 'source-field', undefined, path);
       }
       for (const q of definition.questions ?? []) {
@@ -141,8 +142,30 @@ export namespace Services {
           } catch { add('fields', 'fallback', label, field.id); }
         }
       }
+      if (!definition.targetFields.length) add('fields', 'fields');
+      // Attribute the core validator's remaining rule to the section or row that can fix it.
+      // Never expose its internal identifiers or append a catch-all warning.
       try { this.profiles().validateDefinition(definition); }
-      catch { add('about', 'rules'); }
+      catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        const question = definition.questions.find(q => message.startsWith(`Question '${q.id}'`));
+        const field = definition.targetFields.find(f => message.startsWith(`Target field '${f.id}'`) || message.startsWith(`Target field '${f.id}.`));
+        if (question) add('questions', 'question', question.label || TranslationService.t(question.labelKey || 'ai-profiles-question-text'), question.id);
+        else if (field) add('fields', 'field-settings', form?.fields.find(f => f.pointer === field.metadataPointer)?.label || field.label || TranslationService.t('ai-profiles-unnamed-field'), field.id);
+        else if (message === 'Context limits are invalid') add('model', 'model-limits');
+        else if (message.startsWith('Document source')) add('source', 'document-settings');
+        else if (message.startsWith('Source') || message.startsWith('Invalid source') || message === 'At least one source slot is required') {
+          if (!problems.some(p => p.section === 'source')) add('source', 'source-settings');
+        }
+        else if (message.startsWith('Question') || message.startsWith('Invalid question')) add('questions', 'question-settings');
+        else if (message.startsWith('Target field') || message.startsWith('Field to fill') || message.startsWith('Invalid target')) add('fields', 'field-list');
+        else if (message === 'At least one target field is required') add('fields', 'fields');
+        else if (message === 'A model deployment is required') add('model', 'model');
+        else if (message === 'Generation profile arrays and context are invalid') add('guidance', 'guidance');
+        else if (message === 'Profile purpose and system instructions are required') {
+          // Already named individually above.
+        } else throw error;
+      }
       return problems.filter((p, i, all) => all.findIndex(q => JSON.stringify(q) === JSON.stringify(p)) === i);
     }
     private async actorLabel(id?: string): Promise<string | undefined> {
@@ -187,7 +210,7 @@ export namespace Services {
       if (!form || !c.recordTypes.some(t => t.name === body.sourceRecordType)) throw new GenerationError('GENERATION_REQUEST_INVALID', 'Select an available record type and form');
       return this.createWithDefinition(brandId, body.name, { purpose: '', systemInstructions: '', targetForm: { recordType: form.recordType, formName: form.name },
         sourceSlots: [{ id: 'source', recordType: body.sourceRecordType, allowedPaths: [], maxBytes: c.limits.context.maxFieldBytes }], questions: [], targetFields: [],
-        knowledgeCollectionVersionIds: [], modelDeploymentId: '', contextLimits: { totalBytes: c.limits.context.maxTotalBytes, maxKnowledgeChunks: c.limits.context.maxKnowledgeChunks, maxChunkBytes: c.limits.context.maxChunkBytes }, fixtureTests: [] }, actor);
+        knowledgeCollectionVersionIds: [], modelDeploymentId: c.models.filter(m => m.available).length === 1 ? c.models.find(m => m.available)!.id : '', contextLimits: { totalBytes: c.limits.context.maxTotalBytes, maxKnowledgeChunks: c.limits.context.maxKnowledgeChunks, maxChunkBytes: c.limits.context.maxChunkBytes }, fixtureTests: [] }, actor);
     }
     public async save(brandId: string, id: string, input: unknown, actor: string) {
       this.enabled(); const body = parse(profileSaveSchema, input); const v = await this.version(brandId, id);

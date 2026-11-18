@@ -26,6 +26,9 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   saved = '';
   error = '';
   notice = '';
+  noticeParams: Record<string, unknown> = {};
+  publishAttempted = false;
+  showRetired = false;
   loading = true;
   busy = false;
   running = false;
@@ -80,7 +83,9 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   get targetChoices(): ProfileField[] { return this.targetForm?.fields.filter(f => !!f.output && (!this.draft?.targetFields.some(target => target.metadataPointer === f.pointer) || f.pointer === this.field?.metadataPointer)) ?? []; }
   get model() { return this.overview?.models.find(m => m.id === this.draft?.modelDeploymentId); }
   get tests(): TestCase[] { return (this.draft?.fixtureTests ?? []) as TestCase[]; }
-  get visibleProfiles(): ProfileSummary[] { return this.overview?.profiles.filter(p => (p.name + ' ' + p.versions[0]?.definition.purpose).toLowerCase().includes(this.search.toLowerCase())) ?? []; }
+  isRetired(p: ProfileSummary): boolean { return p.hasPublished && !p.versions.some(v => v.status === 'draft' || v.status === 'published' && v.id === p.publishedVersionId); }
+  get retiredCount(): number { return this.overview?.profiles.filter(p => this.isRetired(p)).length ?? 0; }
+  get visibleProfiles(): ProfileSummary[] { return this.overview?.profiles.filter(p => (this.showRetired || !this.isRetired(p)) && (p.name + ' ' + p.versions[0]?.definition.purpose).toLowerCase().includes(this.search.toLowerCase())) ?? []; }
   get deletionProfile(): ProfileSummary | undefined { return this.overview?.profiles.find(p => p.key === this.modal?.key); }
   get deleteBlocked(): boolean { const p = this.deletionProfile; return !!p && (p.hasPublished || p.uses.length > 0 || p.runCount > 0); }
   get liveVersion() { return this.deletionProfile?.versions.find(v => v.id === this.deletionProfile?.publishedVersionId && v.status === 'published'); }
@@ -117,7 +122,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     this.profile = this.overview?.profiles.find(p => p.key === state.get('profile'));
     this.selected = this.profile?.versions.find(v => state.has('version') ? String(v.version) === state.get('version') : true);
     this.draft = this.selected ? clone(this.selected.definition) : undefined; this.name = this.profile?.name ?? ''; this.saved = this.json;
-    this.error = state.has('profile') && !this.selected ? 'ai-profiles-error-generation-action-not-available' : ''; this.notice = ''; this.conflict = false; this.remote = undefined; this.modal = undefined; this.results = [];
+    this.error = state.has('profile') && !this.selected ? 'ai-profiles-error-generation-action-not-available' : ''; this.notice = ''; this.noticeParams = {}; this.publishAttempted = false; this.conflict = false; this.remote = undefined; this.modal = undefined; this.results = [];
     this.activeSection = state.get('section') || 'about'; if (state.has('section')) requestAnimationFrame(() => this.section(this.activeSection, false));
   }
   @HostListener('window:hashchange') hashChange(): void {
@@ -174,6 +179,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     const chosen = this.targetChoices.find(f => f.pointer === pointer);
     if (!this.field || !chosen?.output) return;
     this.field.metadataPointer = pointer; this.field.label = chosen.label; this.field.expectedComponentClasses = [chosen.component]; this.field.output = clone(chosen.output);
+    this.field.reviewedAnswerIds = this.draft!.questions.map(q => q.id);
     if ('maxLength' in chosen.output) this.field.maxLength = chosen.output.maxLength; else delete this.field.maxLength;
     delete this.field.fallback;
   }
@@ -211,13 +217,16 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     try {
       const saved = await this.api.save(this.selected.id, { name: this.name.trim(), definition: clone(this.draft), expectedContentHash: this.selected.contentHash });
       this.selected = saved; this.draft = clone(saved.definition); this.name = this.name.trim(); this.saved = this.json;
-      await this.refresh(); this.profile = this.overview!.profiles.find(p => p.key === this.profile?.key); this.notice = 'ai-profiles-saved'; return true;
+      await this.refresh(); this.profile = this.overview!.profiles.find(p => p.key === this.profile?.key); this.notice = this.problems.length ? 'ai-profiles-draft-saved-problems' : 'ai-profiles-draft-saved'; this.noticeParams = { count: this.problems.length }; return true;
     } catch (e) { this.handle(e); return false; } finally { this.busy = false; }
   }
   async publish(): Promise<void> {
-    if (!this.canPublish || this.busy || !await this.saveDraft()) return;
+    if (this.busy || this.running) return;
+    this.publishAttempted = true;
+    if (!this.canPublish) { this.host.nativeElement.querySelector<HTMLElement>('#profile-problems')?.focus(); return; }
+    if (!await this.saveDraft()) return;
     this.busy = true;
-    try { await this.api.publish(this.selected!.id, this.selected!.contentHash); await this.refresh(); this.applyHash(); this.notice = 'ai-profiles-published'; }
+    try { await this.api.publish(this.selected!.id, this.selected!.contentHash); await this.refresh(); this.applyHash(); this.notice = 'ai-profiles-published-notice-named'; this.noticeParams = { name: this.name, version: this.selected?.version }; }
     catch (e) { this.handle(e); await this.refresh(); this.selected = this.overview?.profiles.find(p => p.key === this.profile?.key)?.versions.find(v => v.id === this.selected?.id) || this.selected; }
     finally { this.busy = false; }
   }
@@ -233,6 +242,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   askRetire(v = this.selected): void { if (v) this.modal = { kind: 'retire', name: this.overview?.profiles.find(p => p.versions.some(version => version.id === v.id))?.name || this.name, key: v.id }; }
   async confirmAction(): Promise<void> {
     const m = this.modal; if (!m || this.busy) return;
+    const version = m.kind === 'retire' ? this.overview?.profiles.flatMap(p => p.versions).find(v => v.id === m.key)?.version : this.selected?.version;
     this.busy = true; this.error = '';
     try {
       if (m.kind === 'retire') await this.api.retire(m.key!);
@@ -240,7 +250,12 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
         const result = m.kind === 'discard' ? await this.api.discard(this.selected!.id) : await this.api.remove(m.key!);
         if (!result.deleted) { await this.refresh(); this.modal = { ...m, kind: 'delete' }; return; }
       }
-      this.modal = undefined; await this.refresh(); history.replaceState(null, '', this.href()); this.applyHash(); this.notice = m.kind === 'retire' ? 'ai-profiles-retired-notice' : 'ai-profiles-deleted';
+      this.modal = undefined; await this.refresh();
+      const remaining = m.kind === 'discard' ? this.overview?.profiles.find(p => p.key === m.key) : undefined;
+      const live = remaining?.versions.find(v => v.id === remaining.publishedVersionId) || remaining?.versions[0];
+      history.replaceState(null, '', this.href(remaining?.key, live?.version)); this.applyHash();
+      this.notice = m.kind === 'retire' ? 'ai-profiles-retired-notice-named' : m.kind === 'discard' ? 'ai-profiles-version-discarded' : 'ai-profiles-profile-deleted';
+      this.noticeParams = { name: m.name, version };
     } catch (e) { this.handle(e); } finally { this.busy = false; }
   }
   async reloadConflict(): Promise<void> { this.busy = true; try { await this.refresh(); this.remote = this.overview?.profiles.find(p => p.key === this.profile?.key)?.versions.find(v => v.id === this.selected?.id); } catch (e) { this.handle(e); } finally { this.busy = false; } }

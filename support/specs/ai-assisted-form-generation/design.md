@@ -1244,3 +1244,23 @@ The critical POC sequence is: establish contracts and safe persistence; publish 
 # Task List (With Tests and Skill Usage)
 
 The execution-ready checklist is maintained in [task.md](task.md). It follows the same architecture order as this design, interleaves tests with implementation work, and includes mandatory implementation-review, Mocha, Bruno, browser, and final regression gates. Tasks are marked `[POC]` or `[FULL]` so a POC delivery team can stop at the defined customer-demonstration boundary without silently omitting architectural prerequisites.
+
+
+### Drafting profile editor review refinements
+
+New drafts show a neutral linked publication checklist. A Publish attempt turns outstanding
+problems into an error alert; saving remains allowed and reports the actual problem count.
+Model and Guidance use the standard section headers, with only Advanced settings collapsed.
+A new profile selects the model automatically when exactly one available published model exists.
+Header section actions have a visible border and keyboard focus. Dialog titles distinguish adding
+from editing; case and modal subheadings follow the admin kit sizes. Field summaries label their
+suggestion sources, guidance topics and review-required fallback values.
+
+Published profile descriptions explain researcher usage and link the form actions using the profile.
+Discarding a later draft returns to the live version and names the discarded version. Lifecycle
+notices name the affected profile/version. Retired profiles are hidden by default, with a counted
+Show retired checkbox that combines with search; a remaining draft keeps its profile visible.
+
+Researcher Pick several questions use a labelled checkbox group and retain the array answer
+contract. Programmatically focused panel headings have no outline; interactive controls retain
+visible keyboard focus.

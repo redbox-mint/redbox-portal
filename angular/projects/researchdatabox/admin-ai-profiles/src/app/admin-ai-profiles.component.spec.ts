@@ -50,4 +50,46 @@ describe('Drafting profile editor', () => {
   it('renders published content as a summary, with no disabled editor controls or save bar', () => { component.overview!.profiles[0].versions[0].status = 'published'; open(); expect(query('#profile-about dl')).toBeTruthy(); expect(query('#profile-about input')).toBeNull(); expect(query('.rb-admin-save-bar')).toBeNull(); });
   it('runs real API tests after saving and renders values as text', async () => { open(); await component.runTests(); fixture.detectChanges(); expect(api.tests).toHaveBeenCalledWith('v1'); expect(query('.profile-test-result').textContent).toContain('<script>untrusted</script>'); expect(query('.profile-test-result script')).toBeNull(); });
   it('invalidates test results when the profile changes', async () => { open(); await component.runTests(); component.changed(); expect(component.results).toEqual([]); });
+
+  it('starts with a neutral linked checklist and shows danger only after a publish attempt', async () => {
+    open(); component.draft!.purpose = ''; fixture.detectChanges();
+    expect(query('#profile-problems').classList).toContain('alert-info');
+    expect(query('#profile-problems a').getAttribute('href')).toContain('section=about');
+    (query('.rb-admin-page-actions .btn-primary') as HTMLButtonElement).click();
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(query('#profile-problems').classList).toContain('alert-danger');
+    expect(api.publish).not.toHaveBeenCalled();
+  });
+  it('reports a saved valid draft without claiming problems', async () => {
+    open(); await component.saveDraft(); fixture.detectChanges();
+    expect(query('[role="status"]').textContent).toBe('Draft saved.');
+    component.draft!.targetFields = []; await component.saveDraft(); fixture.detectChanges();
+    expect(query('[role="status"]').textContent).toContain('1 problems to fix before publishing');
+  });
+  it('keeps the live profile open after discarding a later draft and names the version', async () => {
+    const p = component.overview!.profiles[0];
+    const live = { ...clone(version), status: 'published' as const };
+    const draft = { ...clone(version), id: 'v2', version: 2 };
+    p.versions = [draft, live]; p.publishedVersionId = live.id; p.hasPublished = true;
+    component.open('profile', 2); component.askDiscard();
+    api.overview.and.resolveTo({ ...clone(overview), profiles: [{ ...p, versions: [live] }] });
+    await component.confirmAction(); fixture.detectChanges();
+    expect(component.selected?.id).toBe('v1'); expect(component.readOnly).toBeTrue();
+    expect(location.hash).toContain('profile=profile');
+    expect(query('[role="status"]').textContent).toContain('Draft v2 of Research plan discarded.');
+  });
+  it('keeps model and guidance open and labels add and edit dialogs', () => {
+    open(); expect(query('#profile-model').tagName).toBe('SECTION'); expect(query('#profile-guidance').tagName).toBe('SECTION');
+    for (const [edit, label] of [[() => component.editQuestion(), 'Add question'], [() => component.editQuestion(0), 'Edit question'], [() => component.editField(), 'Add field'], [() => component.editField(0), 'Edit field'], [() => component.editCase(), 'Add test case'], [() => component.editCase(0), 'Edit test case']] as const) {
+      edit(); fixture.detectChanges(); expect(query('.modal-title').textContent).toBe(label);
+    }
+  });
+  it('hides retired profiles by default while preserving search and drafts of retired profiles', () => {
+    const p = component.overview!.profiles[0]; p.hasPublished = true; p.versions[0].status = 'retired';
+    expect(component.visibleProfiles).toEqual([]); expect(component.retiredCount).toBe(1);
+    component.showRetired = true; expect(component.visibleProfiles.length).toBe(1);
+    component.search = 'missing'; expect(component.visibleProfiles).toEqual([]);
+    component.search = ''; component.showRetired = false; p.versions.unshift({ ...clone(version), id: 'v2', version: 2 });
+    expect(component.visibleProfiles.length).toBe(1);
+  });
 });

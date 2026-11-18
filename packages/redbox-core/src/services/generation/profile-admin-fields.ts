@@ -43,6 +43,6 @@ export function profileFormFields(form: FormConfigFrame, translate: (text: strin
       if (children.length) visit(children, tokens, layout.label ? label : group, disabled);
     }
   };
-  visit(form.componentDefinitions ?? [], [], translate('ai-profiles-source-fields'));
+  visit(form.componentDefinitions ?? [], [], translate('ai-profiles-source-other-fields'));
   return fields;
 }

@@ -828,11 +828,15 @@ describe('Generation paused-status rendering', () => {
       attemptCount: 1, retryable: false, questions: [], result: null });
     const questions: GenerationQuestion[] = [
       { id: 'direct', label: 'What do you plan to collect?', helpText: 'Describe synthetic data only.', labelKey: 'old-key', type: 'enum', required: false, options: [{ value: 'one', label: 'Interview transcripts', labelKey: 'old-option' }] },
+      { id: 'several', label: 'Which methods?', type: 'multiEnum', required: true, options: [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }] },
+      { id: 'yesno', label: 'Approved?', type: 'boolean', required: false },
       { id: 'legacy', labelKey: 'bootstrap-question', helpTextKey: 'bootstrap-help', type: 'text', required: false },
     ];
     component.questions.set(questions);
     component.questionForm.addControl('direct', new FormControl('one'));
     component.questionForm.addControl('legacy', new FormControl(''));
+    component.questionForm.addControl('several', new FormControl([], { validators: control => control.value?.length ? null : { required: true } }));
+    component.questionForm.addControl('yesno', new FormControl(null));
     fixture.detectChanges();
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Draft a plan from synthetic project information.');
@@ -841,6 +845,19 @@ describe('Generation paused-status rendering', () => {
     expect(host.textContent).toContain('Interview transcripts');
     expect(host.textContent).toContain('bootstrap-question');
     expect(host.textContent).not.toContain('old-key');
+    expect(host.querySelector('select[multiple]')).toBeNull();
+    expect(host.querySelector('fieldset legend')?.textContent).toContain('Which methods?');
+    const checkboxes = host.querySelectorAll<HTMLInputElement>('fieldset input[type="checkbox"]');
+    expect(checkboxes.length).toBe(2); expect(checkboxes[0].checked).toBeFalse();
+    checkboxes[0].click(); checkboxes[1].click(); fixture.detectChanges();
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual(['one', 'two']);
+    expect(component.questionForm.get('several')?.valid).toBeTrue();
+    checkboxes[0].click(); fixture.detectChanges();
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual(['two']);
+    const yesno = host.querySelector<HTMLSelectElement>('#generation-question-yesno')!;
+    yesno.selectedIndex = 2; yesno.dispatchEvent(new Event('change')); fixture.detectChanges();
+    expect(component.questionForm.get('yesno')?.value).toBeFalse();
+    expect(host.querySelector<HTMLSelectElement>('#generation-question-direct')?.value).toBe('one');
     fixture.destroy();
   });
   it('renders paused feedback and a resume button that reads status while generation remains disabled', async () => {

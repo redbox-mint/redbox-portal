@@ -52,6 +52,24 @@ describe('Drafting profile administration', () => {
     const p = await service.create('a', { name: 'New plan', sourceRecordType: 'activity', targetFormName: 'plan-form' }, 'admin');
     assert.equal(p.versions[0].version, 1); assert.equal(p.versions[0].status, 'draft'); assert.ok(p.versions[0].problems.length); assert.equal(p.versions[0].definition.targetForm?.formName, 'plan-form');
   });
+  it('preselects the only available published model but leaves a genuine choice blank', async () => {
+    const create = () => service.create('a', { name: 'Model choice', sourceRecordType: 'activity', targetFormName: 'plan-form' }, 'admin');
+    assert.equal((await create()).versions[0].definition.modelDeploymentId, 'model');
+    catalog.models.push({ ...catalog.models[0], id: 'other' });
+    assert.equal((await create()).versions[0].definition.modelDeploymentId, '');
+    catalog.models[1].available = false;
+    assert.equal((await create()).versions[0].definition.modelDeploymentId, 'model');
+  });
+  it('names incomplete sections without a catch-all drafting-rules problem', async () => {
+    const d = definition(); d.purpose = ''; d.systemInstructions = ''; d.targetFields = []; d.sourceSlots[0].allowedPaths = [];
+    const problems = await service.validate('a', d);
+    assert.deepEqual(problems.map(p => p.messageKey).sort(), ['ai-profiles-problem-fields', 'ai-profiles-problem-instructions', 'ai-profiles-problem-purpose', 'ai-profiles-problem-source']);
+    const badField = definition(); badField.targetFields[0].reviewedAnswerIds = ['gone'];
+    const fieldProblems = await service.validate('a', badField);
+    assert.ok(fieldProblems.some(p => p.row === 'summary' && p.label === 'Summary' && p.section === 'fields'));
+    const badLimits = definition(); badLimits.contextLimits.totalBytes = 0;
+    assert.ok((await service.validate('a', badLimits)).some(p => p.messageKey === 'ai-profiles-problem-model-limits'));
+  });
   it('accepts ordinary question/help/choice text while retaining bootstrap keys', () => {
     const d = definition(); d.questions = [{ id: 'question', label: 'Which kind?', helpText: 'Pick a kind', type: 'enum', required: true, options: [{ value: 'One', label: 'One' }] }];
     assert.equal(new Profiles.GenerationProfileService().validateDefinition(d), d); d.questions[0] = { id: 'old', labelKey: 'old-question', type: 'text', required: false };

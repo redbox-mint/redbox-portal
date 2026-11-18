@@ -72,3 +72,16 @@
 
 // Keep profile links on the same surface as the rest of each row.
 .rb-admin admin-ai-profiles .profile-table tbody th { background: var(--admin-bg); }
+
+.rb-admin admin-ai-profiles {
+  :is(.profile-test-result, .modal-body) h3 { font-size: 16px; }
+  .modal .modal-title { font-size: 18px; margin: 0; }
+  #profile-problems:focus { outline: none; }
+  .rb-admin-form-section-header .profile-header-button {
+    color: var(--admin-panel-text);
+    border: 1px solid currentColor;
+    background: transparent;
+    &:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+    &:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+  }
+}

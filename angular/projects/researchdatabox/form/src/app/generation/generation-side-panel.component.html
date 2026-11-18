@@ -66,10 +66,10 @@
           }
           @for (question of questions(); track question.id; let number = $index) {
             <div class="rb-generation-question">
-              <label [for]="'generation-question-' + question.id">
+              @if (question.type !== 'multiEnum') { <label [for]="'generation-question-' + question.id">
                 <span class="rb-generation-question__number">{{ number + 1 }}</span>
                 {{ question.label || (question.labelKey | i18next) }}
-              </label>
+              </label> }
               @switch (question.type) {
                 @case ('textarea') {
                   <textarea class="form-control" rows="3" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength"></textarea>
@@ -89,11 +89,16 @@
                   </select>
                 }
                 @case ('multiEnum') {
-                  <select class="form-select" multiple [id]="'generation-question-' + question.id" [formControlName]="question.id">
-                    @for (option of question.options ?? []; track option.value) {
-                      <option [value]="option.value">{{ option.label || (option.labelKey | i18next) }}</option>
+                  <fieldset class="rb-generation-question__choices" [disabled]="questionForm.get(question.id)?.disabled">
+                    <legend><span class="rb-generation-question__number">{{ number + 1 }}</span> {{ question.label || (question.labelKey | i18next) }}</legend>
+                    @for (option of question.options ?? []; track option.value; let optionIndex = $index) {
+                      <div class="form-check">
+                        <input #choice class="form-check-input" type="checkbox" [id]="'generation-question-' + question.id + '-' + optionIndex"
+                          [checked]="isChoiceSelected(question.id, option.value)" (change)="toggleChoice(question.id, option.value, choice.checked)">
+                        <label class="form-check-label" [for]="'generation-question-' + question.id + '-' + optionIndex">{{ option.label || (option.labelKey | i18next) }}</label>
+                      </div>
                     }
-                  </select>
+                  </fieldset>
                 }
                 @default {
                   <input class="form-control" [type]="question.type === 'date' ? 'date' : 'text'" [id]="'generation-question-' + question.id" [formControlName]="question.id" [attr.maxlength]="question.maxLength" />

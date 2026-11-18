@@ -11,12 +11,12 @@ export function profileProblems(d: GenerationProfileDefinition, overview: Profil
   const limits = overview.limits.context;
   if (!Number.isInteger(d.contextLimits.totalBytes) || d.contextLimits.totalBytes < 1 || d.contextLimits.totalBytes > limits.maxTotalBytes ||
     !Number.isInteger(d.contextLimits.maxKnowledgeChunks) || d.contextLimits.maxKnowledgeChunks < 0 || d.contextLimits.maxKnowledgeChunks > limits.maxKnowledgeChunks ||
-    !Number.isInteger(d.contextLimits.maxChunkBytes) || d.contextLimits.maxChunkBytes < 1 || d.contextLimits.maxChunkBytes > limits.maxChunkBytes) add('model', 'limits');
+    !Number.isInteger(d.contextLimits.maxChunkBytes) || d.contextLimits.maxChunkBytes < 1 || d.contextLimits.maxChunkBytes > limits.maxChunkBytes) add('model', 'model-limits');
   const source = d.sourceSlots[0];
   const sourceForm = overview.forms.find(f => f.name === overview.recordTypes.find(t => t.name === source?.recordType)?.formName);
   if (!sourceForm || !source?.allowedPaths.length) add('source', 'source');
   for (const path of source?.allowedPaths ?? []) if (!sourceForm?.fields.some(f => f.pointer === path)) add('source', 'source-field', undefined, path);
-  if (!source || !Number.isInteger(source.maxBytes) || source.maxBytes < 1 || source.maxBytes > limits.maxFieldBytes) add('source', 'limits');
+  if (!source || !Number.isInteger(source.maxBytes) || source.maxBytes < 1 || source.maxBytes > limits.maxFieldBytes) add('source', 'source-size');
   for (const q of d.questions) {
     if (!(q.label?.trim() || q.labelKey) || !questionTypes.includes(q.type) || ['enum', 'multiEnum'].includes(q.type) && (!q.options?.length || new Set(q.options.map(o => o.value)).size !== q.options.length) ||
       q.maxLength !== undefined && (!Number.isInteger(q.maxLength) || q.maxLength <= 0) || q.sourceDefaultExpression && !source?.allowedPaths.includes(q.sourceDefaultExpression)) add('questions', 'question', q.label, q.id);
@@ -33,6 +33,6 @@ export function profileProblems(d: GenerationProfileDefinition, overview: Profil
     if (field.maxLength !== undefined && (!Number.isInteger(field.maxLength) || field.maxLength < 1 || actual?.output && 'maxLength' in actual.output && actual.output.maxLength && field.maxLength > actual.output.maxLength)) add('fields', 'length', actual?.label || field.label, field.id);
   }
   const documents = d.documentSources;
-  if (documents && (!documents.formats.length || !Number.isInteger(documents.maxFiles) || documents.maxFiles < 1 || documents.maxFiles > overview.limits.documents.maxFiles)) add('source', 'documents');
+  if (documents && (!documents.formats.length || !Number.isInteger(documents.maxFiles) || documents.maxFiles < 1 || documents.maxFiles > overview.limits.documents.maxFiles)) add('source', 'document-settings');
   return result;
 }

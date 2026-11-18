@@ -401,6 +401,20 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }
   }
 
+  isChoiceSelected(id: string, value: string): boolean {
+    const selected = this.questionForm.get(id)?.value;
+    return Array.isArray(selected) && selected.includes(value);
+  }
+
+  toggleChoice(id: string, value: string, checked: boolean): void {
+    const control = this.questionForm.get(id);
+    if (!control || control.disabled) return;
+    const selected = Array.isArray(control.value) ? control.value as string[] : [];
+    control.setValue(checked ? [...new Set([...selected, value])] : selected.filter(v => v !== value));
+    control.markAsDirty();
+    control.markAsTouched();
+  }
+
   private configureQuestions(
     questions: GenerationQuestion[],
     retainedAnswers: ReadonlyMap<string, GenerationQuestionValue> = new Map(),
