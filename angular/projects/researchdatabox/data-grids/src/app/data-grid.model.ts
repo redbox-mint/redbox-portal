@@ -184,8 +184,6 @@ export function validateGrid(grid: GridDefinition, scope?: GridScope): GridIssue
   if (grid.filters.length > LIMITS.filters) issues.push({ key: 'too-many-filters' });
   for (const filter of grid.filters) {
     const field = scope.fields.find(item => item.id === filter.fieldId);
-    // Accept advertised scalar-list filters for forward compatibility with saved queries.
-    // The catalogue withholds their operators until Mongo collection execution supports them.
     if (!field || !scalarTypeFor(field) || field.partial || !field.operators.includes(filter.operator)) {
       issues.push({ key: 'unavailable-filter', field: field?.label ?? filter.fieldId });
       continue;
