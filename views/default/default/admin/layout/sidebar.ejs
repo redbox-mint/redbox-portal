@@ -5,19 +5,20 @@
   const activeItem = activeSection ? activeSection.items.find(item => item.active) : (sidebar.footerLinks || []).find(item => item.active);
   const overviewActive = req.path.replace(/\/$/, '') === overviewHref;
 %>
+<!-- Icons: Font Awesome Free 6.7.2, Copyright 2024 Fonticons, Inc.; CC BY 4.0 (https://fontawesome.com/license/free). -->
 <aside class="rb-admin-sidebar" aria-label="<%= TranslationService.t('admin-navigation-label') %>">
   <button type="button" class="rb-admin-sidebar-toggle" aria-expanded="false" aria-controls="rb-admin-navigation" data-admin-toggle>
     <span><%= TranslationService.t('admin-menu-disclosure') %><small><%= activeSection ? activeSection.title + ' / ' : '' %><%= activeItem ? activeItem.label : TranslationService.t('admin-overview') %></small></span>
-    <i class="fa fa-chevron-down" aria-hidden="true"></i>
+    <svg class="rb-admin-icon" viewBox="0 0 512 512" width="14" height="14" aria-hidden="true" focusable="false"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"/></svg>
   </button>
   <div id="rb-admin-navigation" class="rb-admin-sidebar-content">
   <div class="rb-admin-sidebar-search">
-    <i class="fa fa-search" aria-hidden="true"></i>
+    <svg class="rb-admin-icon" viewBox="0 0 512 512" width="14" height="14" aria-hidden="true" focusable="false"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
     <input type="search" class="form-control" aria-label="<%= TranslationService.t('admin-setting-filter') %>" placeholder="<%= TranslationService.t('admin-setting-filter') %>" data-admin-filter>
   </div>
   <nav aria-label="<%= TranslationService.t('admin-sidebar-navigation-label') %>">
     <a class="rb-admin-sidebar-item rb-admin-sidebar-home<%= overviewActive ? ' active' : '' %>" href="<%= overviewHref %>" <% if (overviewActive) { %>aria-current="page"<% } %> data-admin-filter-item>
-      <i class="fa fa-home" aria-hidden="true"></i> <%= TranslationService.t('admin-overview') %>
+      <svg class="rb-admin-icon" viewBox="0 0 576 512" width="14" height="14" aria-hidden="true" focusable="false"><path d="M575.8 255.5c0 18-15 32.1-32 32.1l-32 0 .7 160.2c0 2.7-.2 5.4-.5 8.1l0 16.2c0 22.1-17.9 40-40 40l-16 0c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1L416 512l-24 0c-22.1 0-40-17.9-40-40l0-24 0-64c0-17.7-14.3-32-32-32l-64 0c-17.7 0-32 14.3-32 32l0 64 0 24c0 22.1-17.9 40-40 40l-24 0-31.9 0c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2l-16 0c-22.1 0-40-17.9-40-40l0-112c0-.9 0-1.9 .1-2.8l0-69.7-32 0c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/></svg> <%= TranslationService.t('admin-overview') %>
     </a>
     <% (sidebar.sections || []).forEach(function(section, sectionIndex) { %>
       <section class="rb-admin-sidebar-section" data-admin-filter-section>

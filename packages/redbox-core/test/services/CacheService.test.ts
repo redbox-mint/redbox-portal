@@ -4,6 +4,9 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createMockModel } from './testHelper';
 
 describe('CacheService', function() {
@@ -46,6 +49,30 @@ describe('CacheService', function() {
       // Should have called log.verbose with cache options
       expect(mockSails.log.verbose.called).to.be.true;
     });
+  });
+
+  it('resolves the hashed initial stylesheet once and falls back when absent', async function() {
+    const { Services } = require('../../src/services/CacheService');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'admin-initial-'));
+    mockSails.config.appPath = root;
+    mockSails.config.custom_cache.checkPeriod = 0;
+    const cacheService = new Services.Cache();
+    try {
+      await cacheService.bootstrap();
+      expect(cacheService.getAdminInitialStylesheet()).to.equal('');
+      const styles = path.join(root, '.tmp/public/default/default/styles');
+      fs.mkdirSync(styles, { recursive: true });
+      fs.writeFileSync(path.join(styles, 'admin-initial.min.css'), 'stable');
+      const versioned = 'admin-initial.012345abcdef.min.css';
+      fs.writeFileSync(path.join(styles, versioned), 'versioned');
+      await cacheService.bootstrap();
+      expect(cacheService.exports().getAdminInitialStylesheet()).to.equal(versioned);
+      fs.rmSync(styles, { recursive: true });
+      expect(cacheService.getAdminInitialStylesheet()).to.equal(versioned);
+    } finally {
+      cacheService.cache.close();
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   describe('get', function() {

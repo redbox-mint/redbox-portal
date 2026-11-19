@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit form action</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><a href="actions.html">Form actions</a><span>/</span><span>New form action</span></nav>
+    <header class="ph">
+      <div><h1>New form action</h1><p>Put a drafting button on a record and choose what it creates.</p></div>
+      <div class="ph-actions"><label class="switch" style="align-self:center" title="Publish the profile first"><i></i>Off · profile not published</label></div>
+    </header>
+
+    <div class="split">
+      <div class="split-main">
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Profile</h3><p>Decides what is read and which fields are filled.</p></div></div>
+          <div class="fsec-b stack-sm">
+            <select class="inp" aria-label="Profile"><option>Research Activity → RDMP · draft v1</option></select>
+            <span class="hint">Reads a <b>Research Activity</b> and fills a <b>Data management plan</b>. The sections below are pre-set to match.</span>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Button</h3><p>What researchers see.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="b-l">Label <span class="req">*</span></label><input id="b-l" class="inp" value="Create data management plan" data-dirty><span class="hint">Translation key <span class="mono">generation-action-create-rdmp</span> · <a href="#">Edit translations</a></span></div>
+              <div class="field"><label for="b-p">Position</label><select id="b-p" class="inp"><option>Main record actions</option><option>“More” menu</option></select></div>
+            </div>
+            <div class="field"><label for="b-h">Help text</label><input id="b-h" class="inp" value="Start a new plan pre-filled from this activity. You review every field before saving."></div>
+            <div class="field"><span class="lbl">Icon</span><div class="seg" role="group" aria-label="Icon"><button type="button" class="on" aria-pressed="true" aria-label="Magic wand">✦</button><button type="button" aria-pressed="false" aria-label="Document">▤</button><button type="button" aria-pressed="false" aria-label="Plus">＋</button><button type="button" aria-pressed="false">None</button></div></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Where it appears</h3><p>Research Activity records (from the profile)</p></div></div>
+          <div class="fsec-b stack">
+            <div class="field"><span class="lbl">Workflow stages</span><div class="row" style="gap:6px"><button class="chip on" type="button" aria-pressed="true">Draft</button><button class="chip" type="button" aria-pressed="false">Submitted</button><button class="chip" type="button" aria-pressed="false">Approved</button></div><span class="hint">No stages selected means every stage.</span></div>
+            <div class="field"><span class="lbl">When the record is</span><div class="row" style="gap:16px"><label class="row" style="gap:6px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Being viewed</label><label class="row" style="gap:6px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Being edited</label></div></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>What it creates</h3><p>A new Data management plan (from the profile)</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="t-f">Form</label><select id="t-f" class="inp"><option>demoRdmp-1.0-draft (default)</option></select></div>
+              <div class="field"><label for="t-s">Starts at stage <span class="req">*</span></label><select id="t-s" class="inp"><option>Draft</option></select></div>
+            </div>
+            <div class="field"><label for="t-r">Link back to the activity in</label><select id="t-r" class="inp"><option>Research Activity (relationship) · /researchActivity/oid</option><option>Don’t link</option></select><span class="hint">Lets the new plan show which activity it came from.</span></div>
+            <div class="field">
+              <span class="lbl">Copy values without AI</span>
+              <div class="stack-sm">
+                <div class="maprow"><select class="inp" aria-label="Copy from activity field 1"><option>Activity · Chief investigator</option></select><span class="arrow" aria-hidden="true">→</span><select class="inp" aria-label="Copy to plan field 1"><option>Plan · Chief investigator</option></select><button class="btn btn-ghost btn-sm" type="button" aria-label="Remove mapping 1">✕</button></div>
+                <div><button class="btn btn-ghost btn-sm" type="button">+ Copy another value</button></div>
+              </div>
+              <span class="hint">Copied exactly, never sent to the model. Useful for people and identifiers.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-h"><div><h3>Who can use it</h3><p>Researchers also need permission to view the activity.</p></div></div>
+          <div class="fsec-b"><div class="row" style="gap:6px"><button class="chip on" type="button" aria-pressed="true">Researcher</button><button class="chip on" type="button" aria-pressed="true">Librarians</button><button class="chip on" type="button" aria-pressed="true">Admin</button><button class="chip" type="button" aria-pressed="false">Guest</button></div></div>
+        </div>
+
+        <details class="fsec">
+          <summary class="fsec-h"><div><h3>Limits</h3><p>Several plans per activity · 1 completed draft per plan</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b stack">
+            <label class="row" style="gap:8px;font-weight:400;font-size:14px"><input type="checkbox" checked style="accent-color:var(--primary)"> Allow more than one plan from the same activity</label>
+            <div class="fgrid"><div class="field"><label for="l-r">Completed drafts per new plan</label><input id="l-r" class="inp" type="number" value="1" min="1"><span class="hint">Stops repeated regeneration of the same plan.</span></div></div>
+          </div>
+        </details>
+
+        <div class="savebar"><span class="state"><span class="dot" style="color:#ffc107"></span>Not saved</span><div class="row"><a class="btn btn-ghost" href="actions.html">Cancel</a><button class="btn btn-primary" type="button">Save action</button></div></div>
+      </div>
+
+      <aside class="split-side" style="position:sticky;top:16px">
+        <div class="card">
+          <div class="card-h plain"><h2>Preview</h2><span class="meta muted">Research Activity · Draft</span></div>
+          <div class="card-b">
+            <div class="preview-frame">
+              <div class="fake-record">
+                <div class="fake-record-h"><b>Coastal Communities Wellbeing Study</b></div>
+                <div class="fake-lines"><i style="width:80%"></i><i style="width:65%"></i><i style="width:72%"></i></div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 14px"><span class="btn btn-sm btn-secondary">Edit</span><span class="btn btn-sm btn-preview" title="Start a new plan pre-filled from this activity. You review every field before saving.">✦ Create data management plan</span></div>
+              </div>
+            </div>
+            <p class="small muted" style="margin:10px 0 0">Shown to Researcher, Librarians and Admin when they can view the activity.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h plain"><h2>Checks</h2></div>
+          <ul class="versions">
+            <li><span class="sev ok" aria-hidden="true">✓</span><div>Form <span class="mono">demoRdmp-1.0-draft</span> has every field the profile fills</div></li>
+            <li><span class="sev ok" aria-hidden="true">✓</span><div>Link-back field accepts a record reference</div></li>
+            <li><span class="sev warn" aria-hidden="true">!</span><div>Profile isn’t published, so the button stays hidden</div></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Design notes.</b> Picking the profile first pre-sets the source and target record types, removing the most common binding mistake (a mismatch with the profile’s source slot). Each section heading answers one question: what researchers see, where, what it creates, who. The live preview shows the button in place, the hint tooltip and the audience. <span class="inline-code">sourceValueMappings</span> are framed as “copy values without AI” because that’s the distinction admins care about. Server validation results (<span class="inline-code">/bindings/:id/validate</span>) are listed as checks beside the preview.</div>
+  </div></main>
+</div>
+</body>
+</html>

@@ -66,7 +66,7 @@ export class OpenRouterGenerationProvider implements GenerationProviderAdapter {
     deployment?: GenerationDeploymentConfig
   ): Promise<GenerationProviderHealth> {
     return {
-      ok: this.resolveEndpoint(connection.endpoint) !== null && !!deployment?.modelId,
+      ok: this.resolveEndpoint(connection.endpoint) !== null && (!deployment || !!deployment.modelId),
       capabilities: await this.getCapabilities(deployment ?? { modelId: '' }),
       checkedAt: new Date().toISOString(),
     };
@@ -123,10 +123,10 @@ export class OpenRouterGenerationProvider implements GenerationProviderAdapter {
       const result = await generateText({
         model: provider(input.deployment.modelId),
         messages: input.messages,
-        output: Output.object({
+        output: input.responseSchema ? Output.object({
           schema: jsonSchema<unknown>(input.responseSchema),
           name: 'redbox_generation_candidate',
-        }),
+        }) : undefined,
         maxRetries: 0,
         abortSignal: abortController.signal,
         telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
@@ -134,7 +134,7 @@ export class OpenRouterGenerationProvider implements GenerationProviderAdapter {
       });
       const metadata = this.readMetadata(result.providerMetadata?.openrouter);
       return {
-        content: JSON.stringify(result.output),
+        content: input.responseSchema ? JSON.stringify(result.output) : result.text,
         requestedModel: input.deployment.modelId,
         actualModel: result.response.modelId,
         actualProvider: metadata.actualProvider,
@@ -168,6 +168,9 @@ export class OpenRouterGenerationProvider implements GenerationProviderAdapter {
             true,
             input.correlationId
           );
+        }
+        if (error.statusCode === 400 || error.statusCode === 404) {
+          throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Model is not available for this provider');
         }
         if (error.statusCode === 408 || error.statusCode === 504) {
           throw new GenerationError(
@@ -277,7 +280,15 @@ export class OpenRouterGenerationProvider implements GenerationProviderAdapter {
       'temperature',
       'top_p',
     ]);
-    return Object.fromEntries(Object.entries(parameters).filter(([name]) => allowed.has(name)));
+    const result = Object.fromEntries(Object.entries(parameters).filter(([name]) => allowed.has(name)));
+    const sdkNames: Record<string, string> = {
+      maxOutputTokens: 'max_tokens', topP: 'top_p', stopSequences: 'stop',
+      presencePenalty: 'presence_penalty', frequencyPenalty: 'frequency_penalty',
+    };
+    for (const [sdk, body] of Object.entries(sdkNames)) {
+      if (Object.hasOwn(parameters, sdk)) result[body] = parameters[sdk];
+    }
+    return result;
   }
 
   private findGenerationError(error: unknown): GenerationError | undefined {

@@ -47,7 +47,7 @@ test('served ReDoc bundle includes patched DOMPurify and renders untrusted API d
     await module.evaluate();
     const renderer = module.namespace;
     for (const method of ['init', 'destroy', 'hydrate']) assert.equal(typeof renderer[method], 'function');
-    assert.equal(renderer.version, '3.0.1');
+    assert.equal(renderer.version, core('redoc/package.json').version);
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('ReDoc render timed out')), 10000);
       renderer.init({ openapi: '3.0.3', info: { title: 'Security fixture', version: '1', description: '<p>Safe API description</p><img src="x" onerror="alert(1)"><script>alert(1)</script>' }, paths: {} }, { untrustedSpec: true, disableSearch: true, disableTelemetry: true }, window.document.getElementById('redoc'), error => {

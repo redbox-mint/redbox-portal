@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit drafting profile</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../../admin-ui-redesign/mocks/admin.css">
+<link rel="stylesheet" href="generation.css">
+<script src="shell.js"></script>
+</head>
+<body>
+<div id="rb-header"></div>
+<div class="adm-body">
+  <div id="rb-sidebar"></div>
+  <main class="adm-main"><div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Admin</a><span>/</span><span>Integrations</span><span>/</span><a href="index.html">AI-assisted drafting</a><span>/</span><a href="profiles.html">Profiles</a><span>/</span><span>Research Activity → RDMP</span></nav>
+    <header class="ph">
+      <div><h1>Research Activity → RDMP <span class="badge warn" style="vertical-align:middle">Draft v1</span></h1><p>Not published yet. Researchers can’t use this profile until it is published and a form action points to it.</p></div>
+      <div class="ph-actions">
+        <button class="btn btn-secondary" type="button">Preview as researcher</button>
+        <button class="btn btn-secondary" type="button">Run tests</button>
+        <button class="btn btn-primary" type="button" disabled aria-describedby="pub-why">Publish</button>
+      </div>
+    </header>
+
+    <div class="alert err" role="alert" id="pub-why">
+      <div style="flex:1"><b>Fix 1 problem before publishing</b>
+        <ul style="margin:6px 0 0;padding-left:18px">
+          <li><a href="#tf-sens">Sensitivity classification</a>: the RDMP form shows this as a dropdown, but the profile expects radio buttons. Pick the field again or allow dropdowns.</li>
+        </ul>
+        <details style="margin-top:6px"><summary style="cursor:pointer;font-weight:600">2 warnings (won’t block publishing)</summary>
+          <ul style="margin:6px 0 0;padding-left:18px">
+            <li><a href="#src">Source record</a> includes <b>Sensitive data</b>, and the model’s connection is approved for public and internal records only.</li>
+            <li><a href="#tests">Test cases</a> don’t cover a Research Activity with no ethics status.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+
+    <div class="split">
+      <nav class="split-nav" aria-label="Profile sections" style="position:sticky;top:16px">
+        <div class="grp">About</div>
+        <a href="#basics" class="on" aria-current="true"><span>Purpose &amp; instructions</span></a>
+        <a href="#model"><span>Model &amp; limits</span><span class="badge warn">1</span></a>
+        <div class="grp">What it reads</div>
+        <a href="#src"><span>Source record</span><span class="badge warn">1</span></a>
+        <a href="#questions"><span>Questions</span><span class="badge">5</span></a>
+        <a href="#docs"><span>Uploaded documents</span></a>
+        <a href="#guidance"><span>Guidance</span><span class="badge">1</span></a>
+        <div class="grp">What it fills</div>
+        <a href="#fields"><span>Fields to fill</span><span class="badge err">1</span></a>
+        <div class="grp">Quality</div>
+        <a href="#tests"><span>Test cases</span><span class="badge">3</span></a>
+        <a href="#advanced"><span>Advanced (JSON)</span></a>
+      </nav>
+
+      <div class="split-main">
+        <!-- Purpose -->
+        <div class="fsec" id="basics">
+          <div class="fsec-h"><div><h3>Purpose &amp; instructions</h3><p>What this profile is for and how the model should write.</p></div></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="p-n">Name <span class="req">*</span></label><input id="p-n" class="inp" value="Research Activity → RDMP" data-dirty></div>
+              <div class="field"><label for="p-k">Key</label><input id="p-k" class="inp mono" value="research-activity-to-demo-rdmp" readonly><span class="hint">Fixed after the first publish.</span></div>
+            </div>
+            <div class="field"><label for="p-p">Purpose <span class="req">*</span></label><input id="p-p" class="inp" value="Draft an editable RDMP from reviewed Research Activity context." data-dirty><span class="hint">One sentence. Shown to researchers at the top of the drafting panel.</span></div>
+            <div class="field">
+              <label for="p-i">Instructions for the model <span class="req">*</span></label>
+              <textarea id="p-i" class="inp" rows="5" data-dirty>Draft concise research data management plan content. Do not claim ethics approval or invent project facts. Use cautious, actionable language suitable for Australian research institutions.</textarea>
+              <div class="spread"><span class="hint">Write as you would brief a research data librarian. ReDBox adds the source data, guidance and output rules for you.</span><span class="hint">196 / 4,000</span></div>
+            </div>
+            <div><button class="btn btn-ghost btn-sm" type="button">View the full prompt ReDBox will send</button></div>
+          </div>
+        </div>
+
+        <!-- Model -->
+        <details class="fsec" id="model">
+          <summary class="fsec-h"><div><h3>Model &amp; limits</h3><p>Amazon Nova Lite for RDMPs v1 · 256 KB context · up to 40 guidance passages</p></div><span class="row" style="gap:8px"><span class="badge warn">1 warning</span><span class="chev" aria-hidden="true">›</span></span></summary>
+          <div class="fsec-b stack">
+            <div class="field"><label for="p-m">Model <span class="req">*</span></label><select id="p-m" class="inp"><option>Amazon Nova Lite for RDMPs · v1 · Amazon Bedrock (Sydney)</option><option>Deterministic RDMP demo · v1 · Demo provider</option></select><span class="hint">Data handling: stays in Australia · not used for training · approved for public and internal records.</span></div>
+            <div class="fgrid">
+              <div class="field"><label for="p-ct">Total context (KB)</label><input id="p-ct" class="inp" type="number" value="256"><span class="hint">Server maximum 256 KB.</span></div>
+              <div class="field"><label for="p-kc">Guidance passages</label><input id="p-kc" class="inp" type="number" value="40"><span class="hint">Server maximum 40.</span></div>
+              <div class="field"><label for="p-cs">Passage size (KB)</label><input id="p-cs" class="inp" type="number" value="8"><span class="hint">Server maximum 8 KB.</span></div>
+            </div>
+          </div>
+        </details>
+
+        <!-- Source -->
+        <div class="fsec" id="src">
+          <div class="fsec-h"><div><h3>Source record</h3><p>The record the researcher starts from. Only the fields you tick are sent.</p></div><span class="badge warn">1 warning</span></div>
+          <div class="fsec-b stack">
+            <div class="fgrid">
+              <div class="field"><label for="s-rt">Record type <span class="req">*</span></label><select id="s-rt" class="inp"><option>Research Activity (researchActivity)</option></select></div>
+              <div class="field"><label for="s-mx">Maximum size (KB)</label><input id="s-mx" class="inp" type="number" value="16"><span class="hint">Longer values are trimmed and the researcher is told.</span></div>
+            </div>
+            <div class="field">
+              <span class="lbl" id="pick-l">Fields the model may read <span class="req">*</span></span>
+              <div class="picker" role="group" aria-labelledby="pick-l">
+                <div class="picker-h"><input class="inp" placeholder="Filter fields" aria-label="Filter source fields" style="padding:5px 8px"><span class="small muted" style="white-space:nowrap">8 of 23 selected</span></div>
+                <div class="picker-g">Activity</div>
+                <label><input type="checkbox" checked> Title <span class="mono">/title</span></label>
+                <label><input type="checkbox" checked> Plain language summary <span class="mono">/plainLanguageSummary</span></label>
+                <label><input type="checkbox" checked> Objectives <span class="mono">/objectives</span></label>
+                <label><input type="checkbox" checked> Methods <span class="mono">/methods</span></label>
+                <label><input type="checkbox"> Funding body <span class="mono">/funder</span></label>
+                <div class="picker-g">People</div>
+                <label><input type="checkbox"> Chief investigator <span class="sub" style="display:inline;margin-left:4px">· personal information</span><span class="mono">/contributor_ci</span></label>
+                <label><input type="checkbox"> Data manager <span class="sub" style="display:inline;margin-left:4px">· personal information</span><span class="mono">/contributor_data_manager</span></label>
+                <div class="picker-g">Ethics &amp; data</div>
+                <label><input type="checkbox" checked> Involves human participants <span class="mono">/humanParticipants</span></label>
+                <label><input type="checkbox" checked> Sensitive data <span class="badge warn" style="margin-left:4px">sensitive</span><span class="mono">/sensitiveData</span></label>
+                <label><input type="checkbox" checked> Expected data types <span class="mono">/expectedDataTypes</span></label>
+                <label><input type="checkbox" checked> Ethics status <span class="mono">/ethicsStatus</span></label>
+              </div>
+              <span class="hint">Fields come from the Research Activity form. Researchers still need access to the record; a profile never widens it.</span>
+            </div>
+            <div class="row"><button class="btn btn-ghost btn-sm" type="button">+ Add another source record</button><span class="hint">For profiles that combine, for example, an RDMP and its Research Activity.</span></div>
+          </div>
+        </div>
+
+        <!-- Questions -->
+        <div class="fsec" id="questions">
+          <div class="fsec-h"><div><h3>Questions for the researcher</h3><p>Asked in the drafting panel before generating. Answers are evidence the model can cite.</p></div><button class="btn btn-secondary btn-sm" type="button">+ Add question</button></div>
+          <div class="fsec-b" style="padding:0">
+            <div class="qrow head"><span></span><span>Question</span><span class="hide-sm">Answer type</span><span class="hide-sm">Required</span><span class="hide-sm">Pre-filled from</span><span></span></div>
+            <div class="qrow"><span class="drag" aria-hidden="true">⋮⋮</span><span>What is the project trying to achieve?</span><span class="hide-sm">Long text</span><span class="hide-sm">Yes</span><span class="hide-sm small">Plain language summary</span><span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit question 1">Edit</button></span></div>
+            <div class="qrow"><span class="drag" aria-hidden="true">⋮⋮</span><span>Does the project involve human participants?</span><span class="hide-sm">Yes / no</span><span class="hide-sm">Yes</span><span class="hide-sm small">Involves human participants</span><span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit question 2">Edit</button></span></div>
+            <div class="qrow"><span class="drag" aria-hidden="true">⋮⋮</span><span>Will you collect sensitive data?</span><span class="hide-sm">Yes / no</span><span class="hide-sm">Yes</span><span class="hide-sm small">Sensitive data</span><span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit question 3">Edit</button></span></div>
+            <div class="qrow"><span class="drag" aria-hidden="true">⋮⋮</span><span>Which kinds of data will you produce?</span><span class="hide-sm">Pick several (3)</span><span class="hide-sm">Yes</span><span class="hide-sm small">Expected data types</span><span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit question 4">Edit</button></span></div>
+            <div class="qrow" style="border-bottom:0"><span class="drag" aria-hidden="true">⋮⋮</span><span>How long must the data be kept?</span><span class="hide-sm">Pick one (4)</span><span class="hide-sm">Yes</span><span class="hide-sm small muted">—</span><span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit question 5">Edit</button></span></div>
+          </div>
+        </div>
+
+        <!-- Documents -->
+        <details class="fsec" id="docs">
+          <summary class="fsec-h"><div><h3>Uploaded documents</h3><p>On · PDF, Word and text · up to 3 files</p></div><span class="row" style="gap:10px"><label class="switch on" onclick="event.preventDefault()"><i></i>Allow uploads</label><span class="chev" aria-hidden="true">›</span></span></summary>
+          <div class="fsec-b stack">
+            <div class="field"><label for="d-help">Prompt shown to researchers</label><input id="d-help" class="inp" value="Add your funding application or ethics approval letter to improve the draft."></div>
+            <div class="fgrid">
+              <div class="field"><span class="lbl">File types</span><div class="row" style="gap:6px"><span class="chip on">PDF</span><span class="chip on">Word (.docx)</span><span class="chip on">Text / Markdown</span></div></div>
+              <div class="field"><label for="d-max">Maximum files</label><input id="d-max" class="inp" type="number" value="3" max="5"><span class="hint">Server limit 5 files, 5 MB each.</span></div>
+            </div>
+            <span class="hint">Documents are read only for this draft and deleted after 120 minutes.</span>
+          </div>
+        </details>
+
+        <!-- Guidance -->
+        <details class="fsec" id="guidance">
+          <summary class="fsec-h"><div><h3>Guidance</h3><p>Research Data Stewardship Guide v1 · 27 passages</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b stack-sm">
+            <label class="choice"><input type="checkbox" checked><span><b>Research Data Stewardship Guide</b><span>v1 published · 3 documents · v2 draft pending · tags: storage, sharing, retention, ethics</span></span></label>
+            <span class="hint">Fields with guidance tags draw passages only from these collections. <a href="knowledge.html">Manage guidance</a></span>
+          </div>
+        </details>
+
+        <!-- Fields -->
+        <div class="fsec" id="fields">
+          <div class="fsec-h"><div><h3>Fields to fill</h3><p>Data management plan form <span class="mono">demoRdmp-1.0-draft</span> · 10 fields</p></div><span class="row" style="gap:8px"><span class="badge err">1 problem</span><button class="btn btn-secondary btn-sm" type="button">+ Add field</button></span></div>
+          <div class="fsec-b">
+            <p class="small muted" style="margin:0 0 12px">For each field, choose how strictly the suggestion must be backed by evidence. Researchers see the evidence and a “review” marker either way.</p>
+
+            <div class="tf">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Plan title</b><span class="mono small muted">/title</span><span class="grow"></span><span class="badge">Only from source</span><span class="small muted">≤ 250 chars</span><button class="btn btn-ghost btn-sm" type="button" aria-expanded="false" aria-label="Edit Plan title">Edit</button></div>
+            </div>
+            <div class="tf">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Project summary</b><span class="mono small muted">/projectSummary</span><span class="grow"></span><span class="badge">Only from source</span><span class="small muted">≤ 3,000 chars</span><button class="btn btn-ghost btn-sm" type="button" aria-expanded="false" aria-label="Edit Project summary">Edit</button></div>
+            </div>
+            <div class="tf">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Data types</b><span class="mono small muted">/dataTypes</span><span class="grow"></span><span class="badge">Only from source</span><span class="small muted">Pick up to 3</span><button class="btn btn-ghost btn-sm" type="button" aria-expanded="false" aria-label="Edit Data types">Edit</button></div>
+            </div>
+
+            <div class="tf" style="border-color:var(--primary)">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Sharing and access</b><span class="mono small muted">/sharingAccess</span><span class="grow"></span><span class="badge info">Only from guidance</span><button class="btn btn-ghost btn-sm" type="button" aria-expanded="true">Done</button></div>
+              <div class="tf-b">
+                <div class="fgrid">
+                  <div class="field"><label for="tf-f">Form field <span class="req">*</span></label><select id="tf-f" class="inp"><option>Sharing and access (text area) · /sharingAccess</option></select><span class="hint">Only fields the RDMP form can show and save are listed.</span></div>
+                  <div class="field"><label for="tf-l">Maximum length</label><input id="tf-l" class="inp" type="number" value="3000"></div>
+                </div>
+                <div class="field">
+                  <span class="lbl" id="g-l">Where may the suggestion come from?</span>
+                  <div class="scale" role="radiogroup" aria-labelledby="g-l">
+                    <label><input type="radio" name="g"><span>Source only</span><small>Record fields, answers or uploads</small></label>
+                    <label><input type="radio" name="g" checked><span>Guidance only</span><small>Approved policy passages</small></label>
+                    <label><input type="radio" name="g"><span>Source or guidance</span><small>Either, must cite one</small></label>
+                    <label><input type="radio" name="g"><span>May suggest</span><small>Can infer; always flagged for review</small></label>
+                  </div>
+                </div>
+                <div class="field"><label for="tf-t">Guidance topics</label><div class="chipbox" id="tf-t"><span class="chip">sharing <button type="button" aria-label="Remove sharing">✕</button></span><span class="chip">ethics <button type="button" aria-label="Remove ethics">✕</button></span><input aria-label="Add topic" placeholder="Add topic…"></div><span class="hint">12 passages match these topics.</span></div>
+                <div class="field"><label for="tf-fb">If no evidence is found, fill with</label><textarea id="tf-fb" class="inp" rows="2">Confirm participant consent, ethics conditions, disclosure risk, and the intended access controls before sharing participant-level data.</textarea>
+                  <label class="row" style="gap:8px;font-weight:400;font-size:14px;margin-top:4px"><input type="checkbox" checked style="accent-color:var(--primary)"> Mark as needing review</label>
+                  <span class="hint">Leave blank to leave the field empty instead.</span></div>
+              </div>
+            </div>
+
+            <div class="tf" id="tf-sens" style="border-color:#efb7bd">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Sensitivity classification</b><span class="mono small muted">/sensitivityClassification</span><span class="grow"></span><span class="badge err">Field type changed</span><button class="btn btn-secondary btn-sm" type="button">Fix</button></div>
+              <div class="tf-b" style="background:var(--danger-tint)"><span class="small">The form now shows this field as a <b>dropdown</b>. The profile was set up for <b>radio buttons</b>. Re-select the field to confirm its options still match: open, restricted, sensitive.</span></div>
+            </div>
+            <div class="tf">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Storage approach</b><span class="mono small muted">/storageApproach</span><span class="grow"></span><span class="badge warn">May suggest</span><span class="small muted">topic: storage</span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit Storage approach">Edit</button></div>
+            </div>
+            <div class="tf">
+              <div class="tf-h"><span class="drag" aria-hidden="true">⋮⋮</span><b>Retention and disposal</b><span class="mono small muted">/retentionDisposal</span><span class="grow"></span><span class="badge warn">May suggest</span><span class="small muted">topic: retention</span><button class="btn btn-ghost btn-sm" type="button" aria-label="Edit Retention and disposal">Edit</button></div>
+            </div>
+            <p class="small muted" style="margin:10px 0 0">+ 3 more · <a href="#">Show all</a></p>
+          </div>
+        </div>
+
+        <!-- Tests -->
+        <div class="fsec" id="tests">
+          <div class="fsec-h"><div><h3>Test cases</h3><p>Synthetic examples you write. Researcher edits are never used as tests.</p></div><span class="row" style="gap:8px"><button class="btn btn-secondary btn-sm" type="button">+ Add test case</button><button class="btn btn-secondary btn-sm" type="button">Run all</button></span></div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Case</th><th>Checks</th><th>Last result</th><th class="act">Actions</th></tr></thead>
+            <tbody>
+              <tr><td><b>Coastal wellbeing study</b><span class="sub">Human participants · sensitive · 3 data types</span></td><td class="small">Sharing needs review · title matches source</td><td><span class="badge ok">Passed</span><span class="sub">09:30 · 6.2 s</span></td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Run</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Coastal wellbeing study">⋯</button></td></tr>
+              <tr><td><b>Lab instrument data, no participants</b><span class="sub">Not sensitive · 1 data type</span></td><td class="small">Classification is “open”</td><td><span class="badge ok">Passed</span><span class="sub">09:30 · 4.8 s</span></td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Run</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Lab instrument data">⋯</button></td></tr>
+              <tr><td><b>Minimal record</b><span class="sub">Title only</span></td><td class="small">No invented facts · fallbacks used</td><td><span class="badge ok">Passed</span><span class="sub">09:31 · 3.9 s</span></td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Run</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions for Minimal record">⋯</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <details class="fsec" id="advanced">
+          <summary class="fsec-h"><div><h3>Advanced (JSON)</h3><p>Edit the full profile definition. Changes here update the sections above.</p></div><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fsec-b"><textarea class="inp mono" rows="8" aria-label="Profile definition JSON">{
+  "purpose": "Draft an editable RDMP from reviewed Research Activity context.",
+  "sourceSlots": [{ "id": "activity", "recordType": "researchActivity", "allowedPaths": ["/title", "…"], "maxBytes": 16000 }],
+  "targetFields": [ … ]
+}</textarea></div>
+        </details>
+
+        <div class="savebar"><span class="state" style="color:var(--success)"><span class="dot"></span>Draft saved 09:48</span><div class="row"><button class="btn btn-ghost" type="button">Discard changes</button><button class="btn btn-secondary" type="button">Check for problems</button><button class="btn btn-primary" type="button">Save draft</button></div></div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Design notes.</b> This is the long-form app-config pattern (rail, collapsible sections with one-line summaries, sticky save bar) applied to <span class="inline-code">GenerationProfileDefinitionV1</span>, grouped by what the profile <i>reads</i> and what it <i>fills</i>. Nothing requires typing JSON Pointers or JSON Schema: source paths and target fields come from pickers over the effective forms, and the output type is derived from the chosen component. The four <span class="inline-code">grounding</span> values become a labelled scale. Validation problems appear in three places at once: the page alert (with links), rail badges and the affected row, and the disabled Publish button names the reason. Collapsed field rows summarise grounding and limits so the list stays scannable at 10–20 fields. “Preview as researcher” opens the real drafting side panel with test data.</div>
+  </div></main>
+</div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import { canonicalHash, getJsonPointer, setJsonPointer, GenerationActorContext, GenerationError, GenerationEvidence, GenerationFrozenInput, GenerationProfileDefinitionV1 } from '../model/generation';
 import { requireService } from './generation/require-service';
+import { resolveOptionLabels } from './generation/option-labels';
 import type { GenerationDocument } from '@researchdatabox/sails-ng-common';
 
 type RecordLike = { redboxOid?: string; metadata?: Record<string, unknown>; metaMetadata?: Record<string, unknown>; workflow?: Record<string, unknown> };
@@ -11,7 +12,7 @@ interface RecordsLike {
 
 export namespace Services {
   export class GenerationContextService extends services.Core.Service {
-    protected override _exportedMethods = ['projectAllowedPaths', 'buildQuestionDefaults', 'prepare'];
+    protected override _exportedMethods = ['projectAllowedPaths', 'buildQuestionDefaults', 'validateAnswers', 'prepare'];
 
     public projectAllowedPaths(source: Record<string, unknown>, allowedPaths: string[], maxBytes: number): Record<string, unknown> {
       const projected: Record<string, unknown> = {};
@@ -34,6 +35,18 @@ export namespace Services {
       }));
     }
 
+    public validateAnswers(definition: GenerationProfileDefinitionV1, answers: Array<{ id: string; value: unknown }>): void {
+      const allowedQuestionIds = new Set(definition.questions.map((question) => question.id));
+      if (answers.length !== allowedQuestionIds.size || new Set(answers.map((answer) => answer.id)).size !== allowedQuestionIds.size ||
+        answers.some((answer) => !allowedQuestionIds.has(answer.id))) {
+        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Reviewed generation answers do not match the profile');
+      }
+      for (const question of definition.questions) {
+        const answer = answers.find((candidate) => candidate.id === question.id);
+        this.validateAnswer(question, answer?.value);
+      }
+    }
+
     public async prepare(input: {
       actor: GenerationActorContext;
       brand: unknown;
@@ -50,15 +63,7 @@ export namespace Services {
       const userRoles = input.user && typeof input.user === 'object' && Array.isArray(Reflect.get(input.user, 'roles'))
         ? Reflect.get(input.user, 'roles') as unknown[]
         : [];
-      const allowedQuestionIds = new Set(input.definition.questions.map((question) => question.id));
-      if (input.answers.length !== allowedQuestionIds.size || new Set(input.answers.map((answer) => answer.id)).size !== allowedQuestionIds.size ||
-        input.answers.some((answer) => !allowedQuestionIds.has(answer.id))) {
-        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Reviewed generation answers do not match the profile');
-      }
-      for (const question of input.definition.questions) {
-        const answer = input.answers.find((candidate) => candidate.id === question.id);
-        this.validateAnswer(question, answer?.value);
-      }
+      this.validateAnswers(input.definition, input.answers);
       const sourceValues: GenerationFrozenInput['sources'] = [];
       const sourceEvidence: GenerationEvidence[] = [];
       const documents = input.documents ?? [];
@@ -120,9 +125,11 @@ export namespace Services {
           const value = getJsonPointer(record.metadata ?? {}, pointer);
           if (value === undefined) continue;
           const contentHash = canonicalHash(value);
+          const field = slot.fields?.find(field => field.metadataPointer === pointer);
           sourceEvidence.push({
             id: `source:${slot.id}:${pointer}:${contentHash}`,
-            label: `${slot.id} ${pointer}`.slice(0, 200), kind: 'source', content: value, contentHash,
+            selectedOptions: resolveOptionLabels(field?.options, undefined, Array.isArray(value) ? value : [value]),
+            label: (field?.label || pointer.split('/').at(-1)!.replaceAll('~1', '/').replaceAll('~0', '~').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase())).slice(0, 200), kind: 'source', content: value, contentHash,
           });
         }
       }
@@ -130,7 +137,7 @@ export namespace Services {
         const contentHash = canonicalHash(answer.value);
         sourceEvidence.push({
           id: `answer:${answer.id}:${contentHash}`,
-          label: `Reviewed answer: ${answer.id}`.slice(0, 200),
+          label: (input.definition.questions.find(q => q.id === answer.id)?.label || answer.id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase())).slice(0, 200),
           kind: 'source',
           content: answer.value,
           contentHash,

@@ -28,7 +28,9 @@ tests {
     const data = res.getBody().data;
     expect(data.status).to.equal("completed");
     expect(data.result.items).to.have.length(9);
-    expect(data.result.items.filter((item) => item.reviewRequired)).to.have.length(1);
+    // sharingAccess falls back to guidance text; the four "May suggest" fields are always marked for review.
+    expect(data.result.items.filter((item) => item.reviewRequired).map((item) => item.fieldId).sort()).to.deep.equal(
+      ["ethicsStatement", "retentionDisposal", "sensitivityClassification", "sharingAccess", "storageApproach"]);
     bru.setEnvVar("generationCandidateDigest", data.result.candidateDigest);
     bru.setEnvVar("generationAppliedFieldIds", JSON.stringify(data.result.items.map((item) => item.fieldId)));
   });

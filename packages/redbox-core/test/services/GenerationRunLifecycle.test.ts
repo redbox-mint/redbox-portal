@@ -45,7 +45,7 @@ describe('Generation run lifecycle', () => {
     const profile = {
       id: 'profile-1', brandId: actor.brandId,
       definition: {
-        modelDeploymentId: 'deployment-1', knowledgeCollectionVersionIds: [], questions: [], sourceSlots: [],
+        purpose: 'Draft a synthetic project summary.', modelDeploymentId: 'deployment-1', knowledgeCollectionVersionIds: [], questions: [], sourceSlots: [],
         documentSources: { formats: ['txt'], maxFiles: 1, maxFileBytes: 1000, maxTextBytes: 1000 },
       },
     };
@@ -400,6 +400,7 @@ describe('Generation run lifecycle', () => {
       // The stored error remains transient, but this creation intent has no attempts left.
       expect(rows[0].retryable).to.equal(true);
       const polled = await service.getForActor(actor, 'run-1');
+      expect(polled.purpose).to.equal('Draft a synthetic project summary.');
       expect(polled.retryable).to.equal(false);
       expect(polled.error?.retryable).to.equal(false);
       let rejection: unknown;

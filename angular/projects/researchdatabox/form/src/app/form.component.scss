@@ -1101,3 +1101,13 @@ redbox-generation-side-panel {
     display: none !important;
   }
 }
+
+.rb-generation-panel__header h2[tabindex="-1"]:focus { outline: none; }
+.rb-generation-question__choices {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  legend { float: none; font-size: inherit; font-weight: 650; margin-bottom: .4rem; }
+  .form-check-label { font-weight: 400; }
+}

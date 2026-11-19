@@ -4,7 +4,7 @@ networks:
 
 services:
   bruno:
-    image: node:26.13.0-bookworm
+    image: node:26.13.1-bookworm
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
@@ -109,7 +109,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest@sha256:81e75780e0f3a3ea2d38eafdb6ec16b2028af9374f6c0b85485f8f2e5dd97beb
+    image: solr:latest@sha256:f396e075c4a09e1ec5009fa736792b80e5886319804817e7e334d1c8f05e9c58
     pull_policy: 'missing'
     expose:
       - "8983"
@@ -129,7 +129,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.2-2
+    image: quay.io/keycloak/keycloak:26.8.2-3
     pull_policy: 'missing'
     expose:
       - "8080"

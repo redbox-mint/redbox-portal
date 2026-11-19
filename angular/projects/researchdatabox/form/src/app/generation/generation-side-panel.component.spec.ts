@@ -15,6 +15,7 @@ import {
 import { GenerationApiService } from './generation-api.service';
 import { GenerationPatchApplierService } from './generation-patch-applier.service';
 import { GenerationProvenanceStoreService } from './generation-provenance-store.service';
+import { launchedQuestionContract } from './generation-question-contract.fixture';
 import { GenerationSidePanelComponent } from './generation-side-panel.component';
 
 describe('GenerationSidePanelComponent', () => {
@@ -97,6 +98,25 @@ describe('GenerationSidePanelComponent', () => {
     fixture.componentRef.setInput('formName', 'edit');
     fixture.componentRef.setInput('launches', [{ bindingKey: 'rdmp-from-activity', sourcePointer: '/researchActivity' }]);
     fixture.detectChanges();
+  });
+
+  it('drops unmatched prefilled choice values so researchers can clear every answer', async () => {
+    const options = [{ value: 'one', label: 'Interviews' }, { value: 'two', label: 'Surveys' }];
+    api.getRun.and.resolveTo(run('choice-prefill', 'draft', [
+      { id: 'single', type: 'enum', required: true, options, defaultValue: 'removed' },
+      { id: 'several', type: 'multiEnum', required: true, options, defaultValue: ['removed', 'one'] },
+      { id: 'valid', type: 'enum', required: false, options, defaultValue: 'two' },
+    ]));
+    fixture.componentRef.setInput('session', { runId: 'choice-prefill', bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    fixture.detectChanges(); await fixture.whenStable();
+    expect<unknown>(component.questionForm.get('single')?.value).toBeNull();
+    expect(component.questionForm.get('single')?.invalid).toBeTrue();
+    expect<unknown>(component.questionForm.get('valid')?.value).toBe('two');
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual(['one']);
+    expect(component.isChoiceSelected('several', 'one')).toBeTrue();
+    component.toggleChoice('several', 'one', false);
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual([]);
+    expect(component.questionForm.get('several')?.invalid).toBeTrue();
   });
 
   function trackPointers(pointers: string[]): void {
@@ -797,6 +817,62 @@ class StatusTestTranslationPipe implements PipeTransform {
 }
 
 describe('Generation paused-status rendering', () => {
+  it('renders the saved-profile launch contract through the researcher API, including text, help and accessible names', async () => {
+    const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['getRun', 'execute']);
+    api.getRun.and.resolveTo({ runId: 'profile-contract', status: 'draft', phase: 'context', purpose: 'Draft a plan from synthetic project information.',
+      attemptCount: 0, retryable: false, questions: structuredClone(launchedQuestionContract), result: null });
+    const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
+    eventBus.select$.and.returnValue(EMPTY);
+    const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
+    store.selectSignal.and.returnValue(signal(true));
+    const applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
+    const provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>('GenerationProvenanceStoreService', ['clear'], { byPointer: signal({}) });
+    await TestBed.configureTestingModule({
+      declarations: [GenerationSidePanelComponent],
+      imports: [ReactiveFormsModule, StatusTestTranslationPipe],
+      schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        { provide: GenerationApiService, useValue: api },
+        { provide: FormComponentEventBus, useValue: eventBus },
+        { provide: Store, useValue: store },
+        { provide: GenerationPatchApplierService, useValue: applier },
+        { provide: GenerationProvenanceStoreService, useValue: provenance },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(GenerationSidePanelComponent);
+    const component = fixture.componentInstance;
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('') }));
+    fixture.detectChanges();
+    fixture.componentRef.setInput('session', { runId: 'profile-contract', bindingKey: 'documents', initialValues: [], autoOpen: true });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(api.getRun).toHaveBeenCalledWith('profile-contract');
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Draft a plan from synthetic project information.');
+    expect(host.textContent).toContain('What do you plan to collect?');
+    expect(host.textContent).toContain('Describe synthetic data only.');
+    expect(host.querySelector('label[for="generation-question-direct"]')?.textContent).toContain('What do you plan to collect?');
+    expect(host.textContent).toContain('Interview transcripts');
+    expect(host.textContent).toContain('bootstrap-question');
+    expect(host.textContent).not.toContain('old-key');
+    expect(host.querySelector('select[multiple]')).toBeNull();
+    expect(host.querySelector('fieldset legend')?.textContent).toContain('Which methods?');
+    const checkboxes = host.querySelectorAll<HTMLInputElement>('fieldset input[type="checkbox"]');
+    expect(checkboxes.length).toBe(2); expect(checkboxes[0].checked).toBeFalse();
+    checkboxes[0].click(); checkboxes[1].click(); fixture.detectChanges();
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual(['one', 'two']);
+    expect(component.questionForm.get('several')?.valid).toBeTrue();
+    checkboxes[0].click(); fixture.detectChanges();
+    expect<unknown>(component.questionForm.get('several')?.value).toEqual(['two']);
+    const yesno = host.querySelector<HTMLSelectElement>('#generation-question-yesno')!;
+    yesno.selectedIndex = 2; yesno.dispatchEvent(new Event('change')); fixture.detectChanges();
+    expect(component.questionForm.get('yesno')?.value).toBeFalse();
+    const direct = host.querySelector<HTMLSelectElement>('#generation-question-direct')!;
+    direct.value = 'one'; direct.dispatchEvent(new Event('change')); fixture.detectChanges();
+    expect<unknown>(component.questionForm.get('direct')?.value).toBe('one');
+    fixture.destroy();
+  });
   it('renders paused feedback and a resume button that reads status while generation remains disabled', async () => {
     const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['getRun', 'execute']);
     api.getRun.and.resolveTo({ runId: 'paused-render', status: 'completed', phase: 'population',

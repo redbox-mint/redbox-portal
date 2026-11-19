@@ -28,6 +28,8 @@ import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 import * as FormVocabularyControllerModule from './FormVocabularyController';
 import * as GenerationControllerModule from './GenerationController';
+import * as GenerationProfileAdminControllerModule from './GenerationProfileAdminController';
+import * as GenerationModelAdminControllerModule from './GenerationModelAdminController';
 import * as DashboardConfigControllerModule from './DashboardConfigController';
 import * as NamedQueryControllerModule from './NamedQueryController';
 
@@ -87,6 +89,8 @@ export const ControllerExports: Record<string, unknown> = {
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
     get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
     get GenerationController() { return getOrCreate('GenerationController', () => new GenerationControllerModule.Controllers.Generation().exports()); },
+    get GenerationProfileAdminController() { return getOrCreate('GenerationProfileAdminController', () => new GenerationProfileAdminControllerModule.Controllers.GenerationProfileAdmin().exports()); },
+    get GenerationModelAdminController() { return getOrCreate('GenerationModelAdminController', () => new GenerationModelAdminControllerModule.Controllers.GenerationModelAdmin().exports()); },
     get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
     get NamedQueryController() { return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports()); },
 };
@@ -134,6 +138,8 @@ export const ControllerNames = [
     'ExportController',
     'FormVocabularyController',
     'GenerationController',
+    'GenerationModelAdminController',
+    'GenerationProfileAdminController',
     'RecordAuditController',
     'RecordController',
     'RenderViewController',

@@ -1,13 +1,4 @@
-// Font Awesome 6 via npm (@fortawesome/fontawesome-free)
-// Ensure webpack/SASS resolves ~ to node_modules.
-$fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
-$fa-font-display: swap;
-@import "~@fortawesome/fontawesome-free/scss/fontawesome";
-@import "~@fortawesome/fontawesome-free/scss/solid";
-@import "~@fortawesome/fontawesome-free/scss/regular";
-@import "~@fortawesome/fontawesome-free/scss/brands";
-@import "redbox-font";
-
+$include-legacy-components: true !default;
 
 .floatleft { float: left }
 .floatright { float: right }
@@ -374,10 +365,11 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: var(--r
     width: 360px;
 }
 
-div.logo img {
+div.logo img, div.logo .rb-inline-logo {
   height:110px;
   width:auto;
 }
+div.logo .rb-inline-logo { max-width: 100%; }
 
 .search-box {
   position: absolute;
@@ -982,6 +974,8 @@ td,th {
     }
 }
 
+// These optional legacy components are delivered by the complete portal sheet.
+@if $include-legacy-components {
 @font-face {
     font-family: "Glyphicons Halflings";
     src: url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.eot");
@@ -2047,6 +2041,7 @@ td,th {
 
 .glyphicon-menu-up:before {
     content: "\e260"
+}
 }
 
 * {
@@ -5089,6 +5084,7 @@ tbody.collapse.in {
     }
 }
 
+@if $include-legacy-components {
 .navbar-default {
     background-color: #f8f8f8;
     border-color: #e7e7e7
@@ -5452,6 +5448,7 @@ tbody.collapse.in {
     background-color: #fff
 }
 
+}
 .label {
     display: inline;
     padding: .2em .6em .3em;
@@ -5715,6 +5712,7 @@ a.thumbnail.active,a.thumbnail:focus,a.thumbnail:hover {
     }
 }
 
+@if $include-legacy-components {
 .progress {
     height: 20px;
     margin-bottom: 20px;
@@ -6294,6 +6292,7 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
     border-bottom-color: var(--rb-panel-branding-border-color, #{$panel-branding-border-color});
 }
 
+}
 /*
   Expose key SCSS branding variables as CSS custom properties so that
   independently-built Angular micro-apps can reference the active theme

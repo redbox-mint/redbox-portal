@@ -1,3 +1,5 @@
+import { Services as SchemaServices } from '../../src/services/GenerationSchemaService';
+import { Services as PromptServices } from '../../src/services/GenerationPromptService';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { generation } from '../../src/config/generation.config';
@@ -8,7 +10,7 @@ import { Services as PersistenceServices } from '../../src/services/GenerationPe
 // Exercise the real worker, transition graph and artifact crypto against scoped in-memory rows.
 describe('Generation worker lifecycle', () => {
   const names = ['sails', 'GenerationRun', 'GenerationRunArtifact', 'GenerationBinding',
-    'GenerationProfileVersion', 'GenerationModelDeployment', 'GenerationModelConnection', 'User', 'BrandingService'];
+    'GenerationProfileVersion', 'GenerationModelDeployment', 'GenerationModelConnection', 'User', 'BrandingService', 'TranslationService'];
   let originals: Map<string, unknown>;
   let run: Record<string, any>;
   let artifact: Record<string, any>;
@@ -96,6 +98,45 @@ describe('Generation worker lifecycle', () => {
   async function execute(): Promise<void> {
     await new WorkerServices.GenerationWorkerService().executeQueuedRun({ data: { brandId: 'brand-1', runId: 'run-1' } });
   }
+
+  it('sends the run brand question, help and selected choice meanings through the real prompt builder', async () => {
+    Reflect.set(globalThis, 'BrandingService', { getBrandById: (id: string) => ({ id, name: id === run.brandId ? 'research-brand' : 'default' }) });
+    Reflect.set(globalThis, 'TranslationService', { t: (key: string, _context: unknown, _lang: string, brand = 'default') => brand + ':' + key });
+    Reflect.set(globalThis, 'GenerationProfileVersion', { findOne: async () => ({ definition: {
+      systemInstructions: 'Draft from reviewed facts', targetFields: [], sourceSlots: [], documentSources: {}, contextLimits: { maxKnowledgeChunks: 2, totalBytes: 4096 },
+      questions: [{ id: 'methods', labelKey: 'question-key', helpTextKey: 'help-key', type: 'multiEnum', options: [{ value: 'one', labelKey: 'option-key' }, { value: 'two', label: 'Interviews' }] }],
+    } }) });
+    sails.services.generationpromptservice = new PromptServices.GenerationPromptService();
+    Object.assign(artifact, await crypto.encrypt(run.brandId, run.id, { frozenInput: {
+      sourceEvidence: [{ id: 'answer:methods', questionId: 'methods', kind: 'source', content: ['one', 'two'], contentHash: 'hash' }],
+      answers: [{ id: 'methods', value: ['one', 'two'] }], baseTargetDigest: 'base',
+    } }));
+    await execute();
+    expect(run.status, JSON.stringify(run)).to.equal('completed'); expect(invoke.calledOnce).to.equal(true);
+    const messages = invoke.firstCall.args[0].messages;
+    const answer = JSON.parse(messages.at(-1).content.split('\n')[1]).reviewedAnswers[0];
+    expect(answer).to.deep.include({ label: 'research-brand:question-key', helpText: 'research-brand:help-key', value: ['one', 'two'] });
+    expect(answer.selectedOptions).to.deep.equal([{ value: 'one', label: 'research-brand:option-key' }, { value: 'two', label: 'Interviews' }]);
+    expect(answer.evidenceId).to.match(/^E/);
+    expect(messages.filter(m => m.role === 'system').every(m => !/research-brand:|Interviews/.test(m.content))).to.equal(true);
+  });
+
+  it('sends target choice meanings through the real worker prompt without widening its schema', async () => {
+    const options = [{ value: '1', label: 'Approved' }, { value: '2', label: 'Not required' }];
+    const definition = { systemInstructions: 'Use source facts', questions: [], targetFields: [{ id: 'ethics', label: 'Ethics approval', output: { kind: 'enum', values: ['1', '2'] }, options, grounding: 'sourceRequired' }], sourceSlots: [], documentSources: {}, contextLimits: { maxKnowledgeChunks: 2, totalBytes: 4096 } };
+    Reflect.set(globalThis, 'GenerationProfileVersion', { findOne: async () => ({ definition }) });
+    sails.services.generationpromptservice = new PromptServices.GenerationPromptService();
+    const build = new SchemaServices.GenerationSchemaService();
+    sails.services.generationschemaservice.buildProviderSchema = build.buildProviderSchema.bind(build);
+    Object.assign(artifact, await crypto.encrypt(run.brandId, run.id, { frozenInput: { sourceEvidence: [], answers: [], baseTargetDigest: 'base' } }));
+    await execute();
+    expect(run.status, JSON.stringify(run)).to.equal('completed'); expect(invoke.calledOnce).to.equal(true);
+    const request = invoke.firstCall.args[0];
+    const catalogue = JSON.parse(request.messages.find(m => m.content.startsWith('OUTPUT FIELD CATALOGUE')).content.split('\n')[1]);
+    expect(catalogue[0].options).to.deep.equal(options);
+    expect(request.responseSchema.properties.answers.properties.ethics.properties.value.enum).to.deep.equal(['1', '2']);
+    expect(JSON.stringify(request.responseSchema)).not.to.include('Approved');
+  });
 
   it('uses the resolved provider credential for invocation without retaining it in encrypted artifacts', async () => {
     await execute();

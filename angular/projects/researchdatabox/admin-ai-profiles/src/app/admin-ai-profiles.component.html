@@ -1,0 +1,182 @@
+<div class="rb-admin-stable-heading">
+  <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+    <li><a [href]="base + '/admin'">{{ 'menu-admin' | i18next }}</a></li><li>{{ 'admin-nav-integrations' | i18next }}</li>
+    <li>@if (draft) { <a [href]="href()" (click)="$event.preventDefault(); open()">{{ 'ai-profiles-title' | i18next }}</a> } @else { <span aria-current="page">{{ 'ai-profiles-title' | i18next }}</span> }</li>
+    @if (draft) { <li><span aria-current="page">{{ name }}</span></li> }
+  </ol></nav>
+  <header class="rb-admin-page-header"><div><h1 tabindex="-1">{{ draft ? name : ('ai-profiles-title' | i18next) }} @if (selected) { <span class="badge" [class.rb-admin-badge-warning]="!readOnly" [class.rb-admin-badge-success]="selected.status === 'published'">{{ versionKey(selected) | i18next: { version: selected.version } }}</span> }</h1>
+    <p>{{ (draft ? (readOnly ? (selected?.status === 'published' ? 'ai-profiles-live-description' : 'ai-profiles-retired-description') : 'ai-profiles-editor-description') : 'ai-profiles-overview-description') | i18next }} @if (profile) { <span>{{ 'ai-profiles-used-by-summary' | i18next }} @for (use of profile.uses; track use.key) { <a class="text-decoration-underline" [href]="base + use.href">{{ use.name }}</a>{{ $last ? '' : ', ' }} } @empty { {{ 'ai-profiles-unused' | i18next }} }</span> }</p></div>
+    @if (!loading && overview) { <div class="rb-admin-page-actions">
+      @if (!draft) { <button class="btn btn-primary" type="button" (click)="askCreate()" [disabled]="busy || !overview.forms.length">{{ 'ai-profiles-create' | i18next }}</button> }
+      @else if (!readOnly) {
+        <button class="btn btn-outline-secondary" type="button" (click)="runTests()" [disabled]="busy || running || cooldown > 0 || !tests.length || problems.length > 0">{{ (running ? 'ai-profiles-testing' : 'ai-profiles-run-tests') | i18next }}</button>
+        <button class="btn btn-outline-danger" type="button" (click)="askDiscard()" [disabled]="busy || running">{{ 'ai-profiles-discard-draft' | i18next }}</button>
+        <button class="btn btn-primary" type="button" (click)="publish()" [disabled]="busy || running || conflict" [attr.aria-describedby]="problems.length ? 'profile-problems' : null">{{ 'ai-profiles-publish' | i18next: { version: selected?.version } }}</button>
+      } @else { <button class="btn btn-primary" type="button" (click)="newVersion()" [disabled]="busy || running || hasDraft" [attr.title]="hasDraft ? ('ai-profiles-existing-draft' | i18next) : null">{{ 'ai-profiles-new-version' | i18next }}</button> }
+    </div> }
+  </header>
+</div>
+@if (error) { <div class="alert alert-danger" role="alert">{{ error | i18next }} @if (loading || !overview) { <button class="btn btn-outline-secondary" type="button" (click)="retry()">{{ 'ai-profiles-retry' | i18next }}</button> }</div> }
+@if (notice) { <p class="alert alert-success" role="status">{{ notice | i18next: noticeParams }}</p> }
+@if (conflict) { <div class="alert alert-warning" role="alert"><p>{{ 'ai-profiles-conflict' | i18next }}</p>
+  <button class="btn btn-outline-secondary" type="button" (click)="reloadConflict()" [disabled]="busy">{{ 'ai-profiles-load-latest' | i18next }}</button>
+  @if (remote) { <button class="btn btn-outline-secondary" type="button" (click)="resolveConflict(false)">{{ 'ai-profiles-use-latest' | i18next }}</button><button class="btn btn-outline-secondary" type="button" (click)="resolveConflict(true)" [disabled]="remote.status !== 'draft'">{{ 'ai-profiles-keep-edits' | i18next }}</button> }
+</div> }
+@if (loading) { <p role="status">{{ 'ai-profiles-loading' | i18next }}</p> }
+@else if (overview && !draft) {
+  <section class="card"><div class="card-header"><h2>{{ 'ai-profiles-list-title' | i18next }}</h2></div>
+    @if (!overview.profiles.length) { <div class="rb-admin-empty"><h3>{{ 'ai-profiles-empty-title' | i18next }}</h3><p>{{ 'ai-profiles-empty-description' | i18next }}</p><button class="btn btn-primary" type="button" (click)="askCreate()">{{ 'ai-profiles-create' | i18next }}</button></div> }
+    @else {
+      <div class="rb-admin-filter-bar"><div class="rb-admin-field rb-admin-field-grow"><label for="profile-search">{{ 'ai-profiles-search' | i18next }}</label><input id="profile-search" class="form-control" [(ngModel)]="search"></div><label class="profile-check"><input type="checkbox" [(ngModel)]="showRetired">{{ 'ai-profiles-show-retired' | i18next: { count: retiredCount } }}</label></div>
+      <div class="table-responsive profile-table"><table class="table table-hover"><thead><tr>@for (col of ['profile', 'reads', 'fills', 'model', 'status', 'uses', 'actions']; track col) { <th scope="col">{{ ('ai-profiles-col-' + col) | i18next }}</th> }</tr></thead><tbody>
+        @for (p of visibleProfiles; track p.key) { <tr>
+          <th scope="row"><a [href]="href(p.key)" (click)="$event.preventDefault(); open(p.key)">{{ p.name }}</a><span class="rb-admin-hint">{{ p.versions[0].definition.purpose }}</span></th>
+          <td [attr.data-label]="'ai-profiles-col-reads' | i18next">{{ typeLabel(p.versions[0].definition.sourceSlots[0]?.recordType) }}<span class="rb-admin-hint">{{ 'ai-profiles-field-count' | i18next: { count: p.versions[0].definition.sourceSlots[0]?.allowedPaths?.length || 0 } }} @if (p.versions[0].definition.documentSources) { · {{ 'ai-profiles-documents' | i18next }} }</span></td>
+          <td [attr.data-label]="'ai-profiles-col-fills' | i18next">{{ formLabel(p.versions[0].definition.targetForm?.formName) }}<span class="rb-admin-hint">{{ 'ai-profiles-fills-count' | i18next: { fields: p.versions[0].definition.targetFields.length, questions: p.versions[0].definition.questions.length } }}</span></td>
+          <td [attr.data-label]="'ai-profiles-col-model' | i18next">{{ modelLabel(p.versions[0].definition.modelDeploymentId) }}</td>
+          <td [attr.data-label]="'ai-profiles-col-status' | i18next">{{ state(p) }} @if (p.versions[0].status === 'draft' && p.versions[0].problems.length) { <span class="profile-problem-text">{{ 'ai-profiles-problem-count' | i18next: { count: p.versions[0].problems.length } }}</span> }</td>
+          <td [attr.data-label]="'ai-profiles-col-uses' | i18next">@for (use of p.uses; track use.key) { <a class="profile-use" [href]="base + use.href">{{ use.name }}</a> } @empty { {{ 'ai-profiles-unused' | i18next }} }</td>
+          <td><div class="profile-row-actions"><a class="btn btn-sm btn-outline-secondary" [href]="href(p.key)" (click)="$event.preventDefault(); open(p.key)">{{ (p.versions[0].status === 'draft' ? 'ai-profiles-edit' : 'ai-profiles-view') | i18next }}</a><details class="profile-more"><summary class="btn btn-sm btn-outline-secondary" [attr.aria-label]="'ai-profiles-more' | i18next: { name: p.name }">⋯</summary><div><button class="btn btn-sm btn-outline-secondary" type="button" (click)="askDuplicate(p)">{{ 'ai-profiles-duplicate' | i18next }}</button><button class="btn btn-sm btn-outline-danger" type="button" (click)="askDelete(p)">{{ 'ai-profiles-delete' | i18next }}</button></div></details></div></td>
+        </tr> }
+      </tbody></table></div>
+    }
+  </section>
+}
+@else if (draft && overview) {
+  @if (problems.length) { <div class="alert" [class.alert-danger]="publishAttempted" [class.alert-info]="!publishAttempted" [attr.role]="publishAttempted ? 'alert' : 'status'" id="profile-problems" tabindex="-1"><strong>{{ (publishAttempted ? (problems.length === 1 ? 'ai-profiles-fix-problem' : 'ai-profiles-fix-problems') : 'ai-profiles-before-publish') | i18next: { count: problems.length } }}</strong><ul>@for (p of problems; track $index) { <li><a [href]="href(profile?.key, selected?.version, p.section)" (click)="$event.preventDefault(); section(p.section)">{{ p.messageKey | i18next: { label: (p.label || 'ai-profiles-unnamed-field') | i18next, form: p.form || '' } }}</a></li> }</ul></div> }
+  <div class="rb-admin-split profile-layout">
+    <nav class="rb-admin-section-rail" [attr.aria-label]="'ai-profiles-sections' | i18next">@for (s of sections; track s) { <a [href]="href(profile?.key, selected?.version, s)" [attr.aria-current]="activeSection === s ? 'true' : null" (click)="$event.preventDefault(); section(s)">{{ ('ai-profiles-section-' + s) | i18next }}</a> }</nav>
+    <fieldset class="rb-admin-split-main" [disabled]="busy || running">
+      <section id="profile-about" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h2>{{ 'ai-profiles-section-about' | i18next }}</h2></div><div class="rb-admin-form-section-body profile-stack">
+        @if (readOnly) { <dl class="profile-summary"><dt>{{ 'ai-profiles-name' | i18next }}</dt><dd>{{ name }}</dd><dt>{{ 'ai-profiles-purpose' | i18next }}</dt><dd>{{ draft.purpose }}</dd><dt>{{ 'ai-profiles-instructions' | i18next }}</dt><dd class="profile-prose">{{ draft.systemInstructions }}</dd></dl> }
+        @else {
+          <div><label for="profile-name">{{ 'ai-profiles-name' | i18next }}</label><input id="profile-name" class="form-control" [(ngModel)]="name" maxlength="160" required (ngModelChange)="changed()"></div>
+          <div><label for="profile-purpose">{{ 'ai-profiles-purpose' | i18next }}</label><input id="profile-purpose" class="form-control" [(ngModel)]="draft.purpose" maxlength="1000" required (ngModelChange)="changed()"><span class="rb-admin-hint">{{ 'ai-profiles-purpose-help' | i18next }}</span></div>
+          <div><label for="profile-instructions">{{ 'ai-profiles-instructions' | i18next }}</label><textarea id="profile-instructions" class="form-control" [(ngModel)]="draft.systemInstructions" rows="5" maxlength="4000" required (ngModelChange)="changed()"></textarea><span class="rb-admin-hint">{{ 'ai-profiles-instructions-help' | i18next }} · {{ draft.systemInstructions.length }} / 4000</span></div>
+        }
+      </div></section>
+      <section id="profile-model" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h2>{{ 'ai-profiles-section-model' | i18next }}</h2></div><div class="rb-admin-form-section-body profile-stack">
+        @if (readOnly) { <p>{{ modelLabel(draft.modelDeploymentId) }}</p> } @else { <div><label for="profile-model-choice">{{ 'ai-profiles-section-model' | i18next }}</label><select id="profile-model-choice" class="form-select" [(ngModel)]="draft.modelDeploymentId" (ngModelChange)="changed()"><option value="">{{ 'ai-profiles-pick-model' | i18next }}</option>@for (m of overview.models; track m.id) { <option [value]="m.id" [disabled]="!m.available">{{ m.name }} · v{{ m.version }} · {{ m.provider }} · {{ (m.available ? 'ai-profiles-live-model' : 'ai-profiles-off-model') | i18next }}</option> }</select></div> }
+        @if (model) { <a [href]="base + '/admin/ai-models#model=' + model.key + '&version=' + model.version">{{ 'ai-profiles-open-model' | i18next }} · {{ model.provider }}</a> }
+        <details class="profile-advanced"><summary>{{ 'ai-profiles-advanced' | i18next }}</summary>
+          @if (readOnly) { <p>{{ 'ai-profiles-context-summary' | i18next: { bytes: draft.contextLimits.totalBytes, chunks: draft.contextLimits.maxKnowledgeChunks, size: draft.contextLimits.maxChunkBytes } }}</p> }
+          @else { <div class="rb-admin-form-grid">
+            <div><label for="profile-context-size">{{ 'ai-profiles-context-size' | i18next }}</label><input id="profile-context-size" type="number" min="1" [max]="overview.limits.context.maxTotalBytes" class="form-control" [(ngModel)]="draft.contextLimits.totalBytes" (ngModelChange)="changed()"><span class="rb-admin-hint">{{ 'ai-profiles-max-bytes' | i18next: { max: overview.limits.context.maxTotalBytes } }}</span></div>
+            <div><label for="profile-guidance-count">{{ 'ai-profiles-guidance-count' | i18next }}</label><input id="profile-guidance-count" type="number" min="0" [max]="overview.limits.context.maxKnowledgeChunks" class="form-control" [(ngModel)]="draft.contextLimits.maxKnowledgeChunks" (ngModelChange)="changed()"></div>
+            <div><label for="profile-passage-size">{{ 'ai-profiles-passage-size' | i18next }}</label><input id="profile-passage-size" type="number" min="1" [max]="overview.limits.context.maxChunkBytes" class="form-control" [(ngModel)]="draft.contextLimits.maxChunkBytes" (ngModelChange)="changed()"></div>
+          </div> }
+        </details>
+      </div></section>
+      <section id="profile-source" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h2>{{ 'ai-profiles-section-source' | i18next }}</h2><p>{{ 'ai-profiles-source-help' | i18next }}</p></div></div><div class="rb-admin-form-section-body profile-stack">
+        @if (source) {
+          @if (readOnly) { <p><strong>{{ typeLabel(source.recordType) }}</strong></p><ul>@for (f of selectedSourceFields; track f.pointer) { <li>{{ f.label }}</li> }</ul> }
+          @else {
+            <div><label for="profile-source-type">{{ 'ai-profiles-record-type' | i18next }}</label><select id="profile-source-type" class="form-select" [(ngModel)]="source.recordType" (ngModelChange)="changeSource()">@for (t of overview.recordTypes; track t.name) { <option [value]="t.name" [disabled]="!t.formName">{{ t.label }}</option> }</select></div>
+            <fieldset class="profile-picker"><legend>{{ 'ai-profiles-source-fields' | i18next }}</legend><p class="rb-admin-hint">{{ 'ai-profiles-selected-count' | i18next: { selected: source.allowedPaths.length, total: sourceFields.length } }}</p>
+              @for (group of sourceGroups; track group) { <h3>{{ group }}</h3>@for (f of sourceFields; track f.pointer) { @if (f.group === group) { <label class="profile-check"><input type="checkbox" [checked]="source.allowedPaths.includes(f.pointer)" (change)="toggleSource(f.pointer, $any($event.target).checked)"><span>{{ f.label }} @if (f.personal) { <span class="badge rb-admin-badge-warning">{{ 'ai-profiles-personal' | i18next }}</span> } @if (f.sensitive) { <span class="badge rb-admin-badge-warning">{{ 'ai-profiles-sensitive' | i18next }}</span> }</span></label> } } }
+            </fieldset>
+            <details class="profile-advanced"><summary>{{ 'ai-profiles-advanced' | i18next }}</summary><label for="profile-source-size">{{ 'ai-profiles-source-size' | i18next }}</label><input id="profile-source-size" type="number" min="1" [max]="overview.limits.context.maxFieldBytes" class="form-control" [(ngModel)]="source.maxBytes" (ngModelChange)="changed()"><p class="rb-admin-hint">{{ 'ai-profiles-max-bytes' | i18next: { max: overview.limits.context.maxFieldBytes } }}</p></details>
+          }
+        }
+        @if (readOnly) { <p>{{ (draft.documentSources ? 'ai-profiles-documents-on' : 'ai-profiles-documents-off') | i18next }}</p> }
+        @else { <div class="form-check form-switch"><input id="profile-uploads" class="form-check-input" type="checkbox" [checked]="!!draft.documentSources" (change)="toggleDocuments($any($event.target).checked)"><label for="profile-uploads" class="form-check-label">{{ 'ai-profiles-allow-uploads' | i18next }}</label></div> }
+        @if (draft.documentSources; as docs) { @if (readOnly) { <p>{{ docs.formats.join(', ') }} · {{ 'ai-profiles-max-files-summary' | i18next: { count: docs.maxFiles } }}</p> } @else {
+          <fieldset><legend>{{ 'ai-profiles-file-types' | i18next }}</legend>@for (format of ['pdf', 'docx', 'txt']; track format) { <label class="profile-check"><input type="checkbox" [checked]="docs.formats.includes($any(format))" (change)="toggleFormat($any(format), $any($event.target).checked)">{{ ('ai-profiles-format-' + format) | i18next }}</label> }</fieldset>
+          <div><label for="profile-max-files">{{ 'ai-profiles-max-files' | i18next }}</label><input id="profile-max-files" class="form-control" type="number" min="1" [max]="overview.limits.documents.maxFiles" [(ngModel)]="docs.maxFiles" (ngModelChange)="changed()"><span class="rb-admin-hint">{{ 'ai-profiles-file-limit' | i18next: { count: overview.limits.documents.maxFiles, bytes: overview.limits.documents.maxFileBytes } }}</span></div>
+        } }
+      </div></section>
+      <section id="profile-questions" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h2>{{ 'ai-profiles-section-questions' | i18next }}</h2><p>{{ 'ai-profiles-questions-help' | i18next }}</p></div>@if (!readOnly) { <button class="btn btn-sm profile-header-button" type="button" (click)="editQuestion()">{{ 'ai-profiles-add-question' | i18next }}</button> }</div>
+        <div class="rb-admin-form-section-body">@for (q of draft.questions; track q.id; let i = $index) { <div class="profile-item" [class.profile-invalid]="hasProblem(q.id)" [id]="'question-' + q.id"><div><strong>{{ text(q.label, q.labelKey) }}</strong><p>{{ ('ai-profiles-answer-' + q.type) | i18next }} · {{ (q.required ? 'ai-profiles-required' : 'ai-profiles-optional') | i18next }}</p>@if (q.helpText || q.helpTextKey) { <p class="rb-admin-hint">{{ text(q.helpText, q.helpTextKey) }}</p> }@if (q.options?.length) { <p>{{ 'ai-profiles-options' | i18next }}: @for (o of q.options; track o.value) { {{ text(o.label, o.labelKey) }}{{ $last ? '' : ' · ' }} }</p> }@if (q.sourceDefaultExpression) { <p class="rb-admin-hint">{{ 'ai-profiles-prefill' | i18next }}: {{ sourceLabel(q.sourceDefaultExpression) }}</p> }</div>
+          @if (!readOnly) { <div class="profile-row-actions"><button class="btn btn-sm btn-outline-secondary" type="button" (click)="move(draft.questions, i, -1)" [disabled]="i === 0" [attr.aria-label]="'ai-profiles-move-up' | i18next: { name: text(q.label, q.labelKey) }">↑</button><button class="btn btn-sm btn-outline-secondary" type="button" (click)="move(draft.questions, i, 1)" [disabled]="i === draft.questions.length - 1" [attr.aria-label]="'ai-profiles-move-down' | i18next: { name: text(q.label, q.labelKey) }">↓</button><button class="btn btn-sm btn-outline-secondary" type="button" (click)="editQuestion(i)">{{ 'ai-profiles-edit' | i18next }}</button><button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(draft.questions, i)">{{ 'ai-profiles-remove' | i18next }}</button></div> }
+        </div> } @empty { <p>{{ 'ai-profiles-no-questions' | i18next }}</p> }</div>
+      </section>
+      <section id="profile-guidance" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h2>{{ 'ai-profiles-section-guidance' | i18next }}</h2><p>{{ 'ai-profiles-guidance-summary' | i18next: { count: draft.knowledgeCollectionVersionIds.length } }}</p></div></div><div class="rb-admin-form-section-body">
+        @for (g of overview.guidance; track g.id) { @if (!readOnly || draft.knowledgeCollectionVersionIds.includes(g.id)) { <div class="profile-guidance">@if (readOnly) { <p><strong>{{ g.name }}</strong> · v{{ g.version }}</p> } @else { <label class="profile-check"><input type="checkbox" [checked]="draft.knowledgeCollectionVersionIds.includes(g.id)" (change)="toggleGuidance(g.id, $any($event.target).checked)"><span>{{ g.name }} · v{{ g.version }}</span></label> }<p class="rb-admin-hint">{{ g.topics.join(' · ') }}</p></div> } } @empty { <p>{{ 'ai-profiles-no-guidance' | i18next }}</p> }
+      </div></section>
+      <section id="profile-fields" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h2>{{ 'ai-profiles-section-fields' | i18next }}</h2><p>{{ 'ai-profiles-fields-help' | i18next }}</p></div>@if (!readOnly) { <button class="btn btn-sm profile-header-button" type="button" (click)="editField()">{{ 'ai-profiles-add-field' | i18next }}</button> }</div><div class="rb-admin-form-section-body profile-stack">
+        @if (readOnly) { <p><strong>{{ formLabel(draft.targetForm?.formName) }}</strong></p> } @else { <div><label for="profile-target-form">{{ 'ai-profiles-target-form' | i18next }}</label><select id="profile-target-form" class="form-select" [ngModel]="draft.targetForm?.formName" (ngModelChange)="changeTarget($event)">@for (f of overview.forms; track f.name) { <option [value]="f.name">{{ f.label }}</option> }</select></div> }
+        @for (f of draft.targetFields; track f.id; let i = $index) { <div class="profile-item" [class.profile-invalid]="hasProblem(f.id)" [id]="'target-' + f.id"><div><strong>{{ fieldLabel(f) }}</strong><p>{{ 'ai-profiles-suggestions-from' | i18next }}: {{ ('ai-profiles-origin-' + f.grounding) | i18next }} @if (f.maxLength) { · {{ 'ai-profiles-character-limit' | i18next: { count: f.maxLength } }} }</p>@if (f.knowledgeTags?.length) { <p class="rb-admin-hint">{{ 'ai-profiles-guidance-topics' | i18next }}: {{ f.knowledgeTags?.join(' · ') }}</p> }@if (f.fallback) { <p class="rb-admin-hint">{{ 'ai-profiles-fallback-summary' | i18next: { value: display(f.fallback.value) } }}</p> }@if (hasProblem(f.id)) { <span class="profile-problem-text">{{ 'ai-profiles-field-needs-attention' | i18next }}</span> }</div>
+          @if (!readOnly) { <div class="profile-row-actions"><button class="btn btn-sm btn-outline-secondary" type="button" (click)="move(draft.targetFields, i, -1)" [disabled]="i === 0" [attr.aria-label]="'ai-profiles-move-up' | i18next: { name: fieldLabel(f) }">↑</button><button class="btn btn-sm btn-outline-secondary" type="button" (click)="move(draft.targetFields, i, 1)" [disabled]="i === draft.targetFields.length - 1" [attr.aria-label]="'ai-profiles-move-down' | i18next: { name: fieldLabel(f) }">↓</button><button class="btn btn-sm btn-outline-secondary" type="button" (click)="editField(i)">{{ 'ai-profiles-edit' | i18next }}</button><button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(draft.targetFields, i)">{{ 'ai-profiles-remove' | i18next }}</button></div> }
+        </div> } @empty { <p>{{ 'ai-profiles-no-fields' | i18next }}</p> }
+      </div></section>
+      <section id="profile-tests" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h2>{{ 'ai-profiles-section-tests' | i18next }}</h2><p>{{ 'ai-profiles-tests-help' | i18next }}</p></div>@if (!readOnly) { <button class="btn btn-sm profile-header-button" type="button" (click)="editCase()" [disabled]="tests.length >= 5">{{ 'ai-profiles-add-case' | i18next }}</button> }</div><div class="rb-admin-form-section-body">
+        @for (test of tests; track $index; let i = $index) { <div class="profile-item"><strong>{{ test.name }}</strong>@if (!readOnly) { <div class="profile-row-actions"><button class="btn btn-sm btn-outline-secondary" type="button" (click)="editCase(i)">{{ 'ai-profiles-edit' | i18next }}</button><button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(draft.fixtureTests!, i)">{{ 'ai-profiles-remove' | i18next }}</button></div> }</div> } @empty { <p>{{ 'ai-profiles-no-tests' | i18next }}</p> }
+        <button class="btn btn-outline-secondary" type="button" (click)="runTests()" [disabled]="busy || running || cooldown > 0 || !tests.length || problems.length > 0">{{ (running ? 'ai-profiles-testing' : 'ai-profiles-run-tests') | i18next }}</button>@if (cooldown) { <span class="rb-admin-hint">{{ 'ai-profiles-cooldown' | i18next: { count: cooldown } }}</span> }
+        <div aria-live="polite">@if (testError) { <p class="alert alert-danger" role="alert">{{ testError | i18next }}</p> } @for (r of results; track $index) { <article class="profile-test-result"><h3>{{ r.name }} <span class="badge" [class.rb-admin-badge-success]="r.passed" [class.rb-admin-badge-danger]="!r.passed">{{ (r.passed ? 'ai-profiles-passed' : 'ai-profiles-failed') | i18next }}</span></h3><p class="rb-admin-hint">{{ r.ranAt | adminDate }}</p>@for (f of r.fields; track $index) { <div class="profile-item"><div><strong>{{ f.label }}</strong><p>{{ display(f.value) }}</p>@if (f.evidence.length) { <p>{{ 'ai-profiles-evidence' | i18next }}: {{ f.evidence.join(' · ') }}</p> } @else { <p class="rb-admin-hint">{{ 'ai-profiles-no-evidence' | i18next }}</p> }<span class="badge" [class.rb-admin-badge-success]="f.passed" [class.rb-admin-badge-danger]="!f.passed">{{ (f.passed ? 'ai-profiles-passed' : 'ai-profiles-failed') | i18next }}</span>@if (f.errorKey) { <p>{{ f.errorKey | i18next }}</p> }@if (f.reviewRequired) { <span class="badge rb-admin-badge-warning">{{ 'ai-profiles-review-required' | i18next }}</span> }</div></div> }</article> }</div>
+      </div></section>
+      <section id="profile-versions" class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h2>{{ 'ai-profiles-section-versions' | i18next }}</h2></div><div class="rb-admin-form-section-body">
+        @for (v of profile?.versions; track v.id) { <div class="profile-item"><div><a [href]="href(profile?.key, v.version)" (click)="$event.preventDefault(); open(profile?.key, v.version)" [attr.aria-current]="v.id === selected?.id ? 'true' : null">{{ versionKey(v) | i18next: { version: v.version } }}</a><p class="rb-admin-hint">{{ v.retiredByName || v.publishedByName || v.createdByName || ('ai-profiles-actor-admin' | i18next) }} · {{ v.retiredAt || v.publishedAt || v.createdAt | adminDate }}</p></div>@if (v.status === 'published') { <button class="btn btn-sm btn-outline-danger" type="button" (click)="askRetire(v)" [disabled]="busy">{{ 'ai-profiles-retire' | i18next }}</button> }</div> }
+        <button class="btn btn-outline-danger" type="button" (click)="askDelete(profile!)" [disabled]="busy">{{ 'ai-profiles-delete' | i18next }}</button>
+      </div></section>
+    </fieldset>
+  </div>
+  @if (!readOnly) { <div class="rb-admin-save-bar"><span class="rb-admin-save-state">{{ (dirty ? 'ai-profiles-unsaved' : 'ai-profiles-no-changes') | i18next }}</span><div class="rb-admin-page-actions"><button class="btn btn-outline-secondary" type="button" (click)="discardChanges()" [disabled]="busy || running || !dirty">{{ 'ai-profiles-discard-changes' | i18next }}</button><button class="btn btn-primary" type="button" (click)="saveDraft()" [disabled]="busy || running || !dirty || conflict || !name.trim()">{{ (busy ? 'ai-profiles-saving' : 'ai-profiles-save') | i18next }}</button></div></div> }
+}
+@if (modal; as m) {
+  <div class="modal-backdrop show"></div><div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title" (keydown.escape)="!busy && (modal = undefined); $event.stopPropagation()">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" [class.modal-lg]="m.kind === 'case' || m.kind === 'field'" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title" id="profile-dialog-title">{{ ('ai-profiles-dialog-' + m.kind + (m.kind === 'question' || m.kind === 'field' || m.kind === 'case' ? (m.index === undefined ? '-add' : '-edit') : '')) | i18next }}</h2></div>
+      <div class="modal-body profile-stack">
+        @if (error) { <p class="alert alert-danger" role="alert">{{ error | i18next }}</p> }
+        @if (m.kind === 'create' || m.kind === 'duplicate') {
+          <div><label for="profile-create-name">{{ 'ai-profiles-name' | i18next }}</label><input id="profile-create-name" class="form-control" [(ngModel)]="m.name" maxlength="160" required [attr.aria-invalid]="nameUsed" cdkFocusInitial>@if (nameUsed) { <p class="profile-problem-text">{{ 'ai-profiles-name-used' | i18next }}</p> }</div>
+          @if (m.kind === 'create') {
+            <div><label for="profile-create-source">{{ 'ai-profiles-record-type' | i18next }}</label><select id="profile-create-source" class="form-select" [(ngModel)]="sourceType">@for (t of overview?.recordTypes; track t.name) { <option [value]="t.name" [disabled]="!t.formName">{{ t.label }}</option> }</select></div>
+            <div><label for="profile-create-target">{{ 'ai-profiles-target-form' | i18next }}</label><select id="profile-create-target" class="form-select" [(ngModel)]="formName">@for (f of overview?.forms; track f.name) { <option [value]="f.name">{{ f.label }}</option> }</select></div>
+          }
+        }
+        @if (m.kind === 'question' && question; as q) {
+          <div><label for="profile-question-text">{{ 'ai-profiles-question-text' | i18next }}</label><input id="profile-question-text" class="form-control" [(ngModel)]="q.label" maxlength="500" cdkFocusInitial></div>
+          <div><label for="profile-question-help">{{ 'ai-profiles-question-help' | i18next }}</label><textarea id="profile-question-help" class="form-control" [(ngModel)]="q.helpText" maxlength="2000" rows="2"></textarea></div>
+          <div><label for="profile-question-type">{{ 'ai-profiles-answer-type' | i18next }}</label><select id="profile-question-type" class="form-select" [(ngModel)]="q.type" (ngModelChange)="questionTypeChanged()">@for (type of questionTypes; track type) { <option [value]="type">{{ ('ai-profiles-answer-' + type) | i18next }}</option> }</select></div>
+          @if (q.type === 'enum' || q.type === 'multiEnum') {
+            <fieldset><legend class="fs-6">{{ 'ai-profiles-options' | i18next }}</legend>
+              <p class="rb-admin-hint">{{ 'ai-profiles-options-edit-help' | i18next }}</p>
+              @if ((q.options?.length || 0) > questionOptionLimit) { <p role="alert">{{ 'ai-profiles-problem-question-options' | i18next: { label: q.label } }}</p> }
+              @for (option of q.options; track option.value; let i = $index) {
+                <div class="mb-2">
+                  <label [for]="'profile-question-option-' + i">{{ 'ai-profiles-option-label' | i18next: { number: i + 1 } }}</label>
+                  <div class="d-flex gap-2"><input [id]="'profile-question-option-' + i" class="form-control" [(ngModel)]="option.label" maxlength="500"><button type="button" class="btn btn-outline-danger" (click)="removeQuestionOption(i)" [attr.aria-label]="'ai-profiles-remove-option' | i18next: { number: i + 1 }">{{ 'ai-profiles-remove' | i18next }}</button></div>
+                </div>
+              }
+              <button type="button" class="btn btn-outline-secondary" [disabled]="(q.options?.length || 0) >= questionOptionLimit" (click)="addQuestionOption()">{{ 'ai-profiles-add-option' | i18next }}</button>
+            </fieldset>
+          }
+          <label class="profile-check"><input type="checkbox" [(ngModel)]="q.required">{{ 'ai-profiles-required' | i18next }}</label>
+          @if (q.type === 'text' || q.type === 'textarea') { <div><label for="profile-question-length">{{ 'ai-profiles-max-length' | i18next }}</label><input id="profile-question-length" class="form-control" type="number" min="1" max="16000" [(ngModel)]="q.maxLength"></div> }
+          <div><label for="profile-question-prefill">{{ 'ai-profiles-prefill' | i18next }}</label><select id="profile-question-prefill" class="form-select" [ngModel]="q.sourceDefaultExpression || ''" (ngModelChange)="pickQuestionPrefill($event)"><option value="">{{ 'ai-profiles-no-prefill' | i18next }}</option>@for (f of questionPrefillFields; track f.pointer) { <option [value]="f.pointer">{{ f.label }}</option> }</select>@if (questionIsChoice) { <p class="rb-admin-hint">{{ 'ai-profiles-choice-prefill-help' | i18next }}</p>@for (field of oversizedQuestionPrefillFields; track field.pointer) { <p class="rb-admin-hint">{{ 'ai-profiles-prefill-too-many-choices' | i18next: { label: field.label, limit: questionOptionLimit } }}</p> }@if (q.sourceDefaultExpression) { <p role="status">{{ 'ai-profiles-choice-prefill-selected' | i18next: { label: sourceLabel(q.sourceDefaultExpression) } }}</p> } }</div>
+        }
+        @if (m.kind === 'field' && field; as f) {
+          <div><label for="profile-field-choice">{{ 'ai-profiles-form-field' | i18next }}</label><select id="profile-field-choice" class="form-select" [ngModel]="f.metadataPointer" (ngModelChange)="pickField($event)" cdkFocusInitial><option value="">{{ 'ai-profiles-pick-field' | i18next }}</option>@for (choice of targetChoices; track choice.pointer) { <option [value]="choice.pointer">{{ choice.label }}</option> }</select><p class="rb-admin-hint">{{ 'ai-profiles-field-format-help' | i18next }}</p></div>
+          <fieldset class="profile-origins"><legend>{{ 'ai-profiles-origin-question' | i18next }}</legend>@for (origin of origins; track origin) { <label class="profile-origin"><input type="radio" name="profile-origin" [value]="origin" [(ngModel)]="f.grounding"><span><strong>{{ ('ai-profiles-origin-' + origin) | i18next }}</strong><small>{{ ('ai-profiles-origin-help-' + origin) | i18next }}</small></span></label> }</fieldset>
+          @if (f.grounding !== 'sourceRequired') { <div><label for="profile-field-topics">{{ 'ai-profiles-guidance-topics' | i18next }}</label><input id="profile-field-topics" class="form-control" [(ngModel)]="topicsText" maxlength="2000"><p class="rb-admin-hint">{{ 'ai-profiles-topics-help' | i18next }}</p></div> }
+          @if (fieldText) { <div><label for="profile-field-length">{{ 'ai-profiles-max-length' | i18next }}</label><input id="profile-field-length" class="form-control" type="number" min="1" [max]="fieldMaxLength" [(ngModel)]="f.maxLength"></div> }
+          <div><label for="profile-field-fallback">{{ 'ai-profiles-fallback' | i18next }}</label><profile-value inputId="profile-field-fallback" [type]="valueType(f.output)" [options]="fieldChoice?.options || []" [maxLength]="f.maxLength" [value]="f.fallback?.value" (valueChange)="setFallback($event)"></profile-value><p class="rb-admin-hint">{{ 'ai-profiles-fallback-help' | i18next }}</p></div>
+        }
+        @if (m.kind === 'case' && testCase; as test) {
+          <p class="alert alert-info">{{ 'ai-profiles-tests-help' | i18next }}</p>
+          <div><label for="profile-case-name">{{ 'ai-profiles-case-name' | i18next }}</label><input id="profile-case-name" class="form-control" [(ngModel)]="test.name" maxlength="160" cdkFocusInitial></div>
+          <h3>{{ 'ai-profiles-section-source' | i18next }}</h3>
+          @for (f of selectedSourceFields; track f.pointer; let i = $index) { <div><label [for]="'profile-case-source-' + i">{{ f.label }}</label><profile-value [inputId]="'profile-case-source-' + i" [type]="valueType(f.output)" [options]="f.options || []" [value]="test.source[f.pointer]" (valueChange)="test.source[f.pointer] = $event"></profile-value></div> }
+          <h3>{{ 'ai-profiles-section-questions' | i18next }}</h3>
+          @for (q of draft?.questions; track q.id; let i = $index) { <div><label [for]="'profile-case-question-' + i">{{ text(q.label, q.labelKey) }}</label><profile-value [inputId]="'profile-case-question-' + i" [type]="q.type" [options]="q.options || []" [value]="test.answers[q.id]" [maxLength]="q.maxLength" (valueChange)="test.answers[q.id] = $event"></profile-value></div> }
+        }
+        @if (m.kind === 'delete' || m.kind === 'discard' || m.kind === 'retire') {
+          <p><strong>{{ m.name }}</strong></p><p>{{ ('ai-profiles-confirm-' + m.kind) | i18next }}</p>
+          @if (m.kind === 'delete' && deleteBlocked) {
+            <div class="alert alert-warning"><p>{{ 'ai-profiles-delete-blocked' | i18next }}</p>
+              @if (deletionProfile?.hasPublished) { <p>{{ 'ai-profiles-delete-published' | i18next }}</p> }
+              @if (deletionProfile?.runCount) { <p>{{ 'ai-profiles-delete-runs' | i18next: { count: deletionProfile?.runCount } }}</p> }
+              <ul>@for (use of deletionProfile?.uses; track use.key) { <li><a [href]="base + use.href">{{ use.name }}</a></li> }</ul>
+            </div>
+          }
+        }
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" (click)="modal = undefined" [disabled]="busy" cdkFocusInitial>{{ 'ai-profiles-cancel' | i18next }}</button>
+        @if (m.kind === 'delete' && deleteBlocked && liveVersion) { <button class="btn btn-outline-danger" type="button" (click)="askRetire(liveVersion)" [disabled]="busy">{{ 'ai-profiles-retire-instead' | i18next }}</button> }
+        @if (m.kind === 'delete' || m.kind === 'discard' || m.kind === 'retire') { <button class="btn rb-admin-danger-confirm" type="button" (click)="confirmAction()" [disabled]="busy || (m.kind === 'delete' && deleteBlocked)">{{ ('ai-profiles-action-' + m.kind) | i18next }}</button> }
+        @else { <button class="btn btn-primary" type="button" (click)="submitModal()" [disabled]="busy || !modalValid">{{ (m.kind === 'create' ? 'ai-profiles-create' : m.kind === 'duplicate' ? 'ai-profiles-duplicate' : 'ai-profiles-done') | i18next }}</button> }
+      </div>
+    </div></div>
+  </div>
+}

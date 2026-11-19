@@ -72,7 +72,7 @@ export class BedrockGenerationProvider implements GenerationProviderAdapter {
     deployment?: GenerationDeploymentConfig,
   ): Promise<GenerationProviderHealth> {
     return {
-      ok: this.resolveEndpoint(connection.endpoint) !== null && !!deployment?.modelId,
+      ok: this.resolveEndpoint(connection.endpoint) !== null && (!deployment || !!deployment.modelId),
       capabilities: await this.getCapabilities(deployment ?? { modelId: '' }),
       checkedAt: new Date().toISOString(),
     };
@@ -120,17 +120,17 @@ export class BedrockGenerationProvider implements GenerationProviderAdapter {
         model: provider(input.deployment.modelId),
         ...(instructions ? { instructions } : {}),
         messages,
-        output: Output.object({
+        output: input.responseSchema ? Output.object({
           schema: jsonSchema<unknown>(input.responseSchema),
           name: 'redbox_generation_candidate',
-        }),
+        }) : undefined,
         maxRetries: 0,
         abortSignal: abortController.signal,
         telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         ...this.pickCallSettings(parameters),
       });
       return {
-        content: JSON.stringify(result.output),
+        content: input.responseSchema ? JSON.stringify(result.output) : result.text,
         requestedModel: input.deployment.modelId,
         actualModel: result.response.modelId,
         actualProvider: 'amazon-bedrock',
@@ -163,6 +163,9 @@ export class BedrockGenerationProvider implements GenerationProviderAdapter {
             true,
             input.correlationId,
           );
+        }
+        if (error.statusCode === 400 || error.statusCode === 404) {
+          throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Model is not available for this provider');
         }
         if (error.statusCode === 408 || error.statusCode === 504) {
           throw new GenerationError(
