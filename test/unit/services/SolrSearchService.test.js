@@ -120,4 +120,36 @@ describe('The Solr Indexing Service', function () {
 
     done();
   })
+
+  it("Should normalize Solr date fields without changing other values", function () {
+    const coreId = Object.keys(sails.config.solr.cores)[0];
+    const originalPreIndexConfig = _.cloneDeep(sails.config.solr.cores[coreId].preIndex);
+    sails.config.solr.cores[coreId].preIndex = {
+      copy: [
+        { source: 'createdOn', dest: 'date_object_created' },
+        { source: 'lastSaveDate', dest: 'date_object_modified' }
+      ],
+      flatten: { special: [] }
+    };
+
+    try {
+      const result = SolrSearchService.preIndex({
+        metaMetadata: { searchCore: coreId },
+        createdOn: '2025-08-28T13:34:25+00:00',
+        lastSaveDate: '2020-12-22T14:25:30.436+10:00',
+        date_review: '2026-11-19T01:02:03+00:00',
+        date_unknown: 'to be confirmed',
+        title: 'unchanged'
+      });
+
+      expect(result.date_object_created).to.match(/Z$/);
+      expect(Date.parse(result.date_object_created)).to.equal(Date.parse('2025-08-28T13:34:25+00:00'));
+      expect(result.date_object_modified).to.equal('2020-12-22T04:25:30.436Z');
+      expect(result.date_review).to.equal('2026-11-19T01:02:03.000Z');
+      expect(result.date_unknown).to.equal('to be confirmed');
+      expect(result.title).to.equal('unchanged');
+    } finally {
+      sails.config.solr.cores[coreId].preIndex = originalPreIndexConfig;
+    }
+  });
 })
