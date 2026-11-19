@@ -2,9 +2,9 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ConfigService } from 'projects/researchdatabox/portal-ng-common/src/lib/config.service';
-import { HttpClientService } from 'projects/researchdatabox/portal-ng-common/src/lib/httpClient.service';
-import { UtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/utility.service';
+import { ConfigService } from '@researchdatabox/portal-ng-common';
+import { HttpClientService } from '@researchdatabox/portal-ng-common';
+import { UtilityService } from '@researchdatabox/portal-ng-common';
 import type { ProfileOverview, ProfileSummary, ProfileVersion, ProfileDraft, ProfileDeletion, ProfileTestResult } from '@researchdatabox/sails-ng-common';
 
 export class ProfileApiError extends Error {

@@ -1402,6 +1402,8 @@ workflows:
                 - manage-users
                 - record-audit
                 - admin-vocabulary
+                - admin-ai-models
+                - admin-ai-profiles
                 - admin-figshare-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
@@ -1581,6 +1583,8 @@ workflows:
                 - manage-users
                 - record-audit
                 - admin-vocabulary
+                - admin-ai-models
+                - admin-ai-profiles
                 - admin-figshare-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
@@ -1740,6 +1744,8 @@ workflows:
                 - manage-users
                 - record-audit
                 - admin-vocabulary
+                - admin-ai-models
+                - admin-ai-profiles
                 - admin-figshare-vocabulary
                 - dashboard-config-editor
                 - named-query-editor

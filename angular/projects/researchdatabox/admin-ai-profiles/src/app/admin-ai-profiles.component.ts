@@ -1,12 +1,14 @@
+import { BaseComponent } from '@researchdatabox/portal-ng-common';
+import { ChangeDetectionStrategy } from '@angular/core';
 import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
-import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
-import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-date.pipe';
-import { AdminModalDirective } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-modal.directive';
+import { I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDatePipe } from '@researchdatabox/portal-ng-common';
+import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import type { GenerationProfileDefinition, ProfileOverview, ProfileSummary, ProfileVersion, ProfileProblem, ProfileField, ProfileTestResult } from '@researchdatabox/sails-ng-common';
 import { ProfileApiService, ProfileApiError } from './profile-api.service';
 import { ProfileValueComponent } from './profile-value.component';
@@ -15,10 +17,10 @@ type Question = GenerationProfileDefinition['questions'][number];
 type Field = GenerationProfileDefinition['targetFields'][number];
 type TestCase = { name: string; source: Record<string, any>; answers: Record<string, any> };
 type Modal = { kind: 'create' | 'duplicate' | 'question' | 'field' | 'case' | 'delete' | 'discard' | 'retire'; name: string; key?: string; index?: number };
-@Component({ selector: 'admin-ai-profiles', standalone: true,
+@Component({ changeDetection: ChangeDetectionStrategy.Default, selector: 'admin-ai-profiles', standalone: true,
   imports: [CommonModule, FormsModule, A11yModule, I18NextPipe, AdminDatePipe, AdminModalDirective, ProfileValueComponent], providers: [ProfileApiService],
   templateUrl: './admin-ai-profiles.component.html', encapsulation: ViewEncapsulation.None })
-export class AdminAiProfilesComponent implements OnInit, OnDestroy {
+export class AdminAiProfilesComponent extends BaseComponent implements OnDestroy {
   readonly questionOptionLimit = GENERATION_QUESTION_OPTION_LIMIT;
   overview?: ProfileOverview;
   profile?: ProfileSummary;
@@ -56,12 +58,12 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
   readonly questionTypes = questionTypes;
   readonly origins = origins;
   readonly sections = ['about', 'model', 'source', 'questions', 'guidance', 'fields', 'tests', 'versions'];
-  constructor(public api: ProfileApiService, public i18n: TranslationService, private host: ElementRef<HTMLElement>) {}
-  async ngOnInit(): Promise<void> {
+  constructor(public api: ProfileApiService, public i18n: TranslationService, private host: ElementRef<HTMLElement>) { super(); }
+  protected async initComponent(): Promise<void> {
     try { await Promise.all([this.api.waitForInit(), this.i18n.waitForInit()]); await this.refresh(); this.applyHash(); }
     catch (e) { this.handle(e); } finally { this.loading = false; }
   }
-  ngOnDestroy(): void { this.disposed = true; if (this.timer) clearInterval(this.timer); cancelAnimationFrame(this.frame); }
+  override ngOnDestroy(): void { super.ngOnDestroy(); this.disposed = true; if (this.timer) clearInterval(this.timer); cancelAnimationFrame(this.frame); }
   get base(): string { return this.api.brandingAndPortalUrl; }
   versionKey(version: ProfileVersion): string { return version.status === 'published' ? version.id === this.profile?.publishedVersionId ? 'ai-profiles-version-live' : 'ai-profiles-version-history' : 'ai-profiles-version-' + version.status; }
   get hasDraft(): boolean { return !!this.profile?.versions.some(v => v.status === 'draft'); }
@@ -140,7 +142,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     if (update) { history.replaceState(null, '', this.href(this.profile?.key, this.selected?.version, id)); this.acceptedHash = location.hash; }
   }
   @HostListener('window:scroll') scroll(): void {
-    if (this.frame) return; this.frame = requestAnimationFrame(() => { this.frame = 0; this.activeSection = this.sections.filter(id => (this.host.nativeElement.querySelector('#profile-' + id)?.getBoundingClientRect().top ?? Infinity) < 160).at(-1) || 'about'; });
+    if (this.frame) return; this.frame = requestAnimationFrame(() => { this.frame = 0; this.activeSection = this.sections.filter(id => (this.host.nativeElement.querySelector('#profile-' + id)?.getBoundingClientRect().top ?? Infinity) < 160).at(-1) || 'about'; this.requestRender(); });
   }
   @HostListener('window:beforeunload', ['$event']) beforeUnload(event: BeforeUnloadEvent): void { if ((this.dirty || this.busy || this.running) && !this.leave) { event.preventDefault(); event.returnValue = ''; } }
   @HostListener('document:click', ['$event']) guardLink(event: MouseEvent): void {
@@ -315,7 +317,7 @@ export class AdminAiProfilesComponent implements OnInit, OnDestroy {
     if (this.running || this.busy || this.cooldown || !this.tests.length || this.problems.length) { this.section('tests'); return; }
     if (!this.readOnly && !await this.saveDraft()) return;
     this.running = true; this.testError = ''; this.error = ''; this.section('tests');
-    const until = Date.now() + 5000; const tick = () => { this.cooldown = Math.max(0, Math.ceil((until - Date.now()) / 1000)); if (!this.cooldown && this.timer) clearInterval(this.timer); }; tick(); this.timer = setInterval(tick, 250);
+    const until = Date.now() + 5000; const tick = () => { this.cooldown = Math.max(0, Math.ceil((until - Date.now()) / 1000)); if (!this.cooldown && this.timer) clearInterval(this.timer); this.requestRender(); }; tick(); this.timer = setInterval(tick, 250);
     try { const results = await this.api.tests(this.selected!.id); if (!this.disposed) this.results = results; } catch (e) { this.handle(e); this.testError = this.error; } finally { this.running = false; }
   }
   display(value: unknown): string { return value === true ? this.i18n.t('ai-profiles-yes') : value === false ? this.i18n.t('ai-profiles-no') : Array.isArray(value) ? value.join(', ') : String(value ?? ''); }

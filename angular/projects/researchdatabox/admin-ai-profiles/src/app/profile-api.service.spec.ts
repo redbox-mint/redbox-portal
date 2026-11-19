@@ -2,11 +2,11 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HTTP_INTERCEPTORS, HttpContext } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { ConfigService } from 'projects/researchdatabox/portal-ng-common/src/lib/config.service';
-import { CsrfInterceptor, RB_HTTP_INTERCEPTOR_AUTH_CSRF } from 'projects/researchdatabox/portal-ng-common/src/lib/csrf.interceptor';
-import { getStubConfigService } from 'projects/researchdatabox/portal-ng-common/src/lib/helper.spec';
-import { LoggerService } from 'projects/researchdatabox/portal-ng-common/src/lib/logger.service';
-import { UtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/utility.service';
+import { ConfigService } from '@researchdatabox/portal-ng-common';
+import { CsrfInterceptor, RB_HTTP_INTERCEPTOR_AUTH_CSRF } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService } from '@researchdatabox/portal-ng-common';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { UtilityService } from '@researchdatabox/portal-ng-common';
 import { ProfileApiError, ProfileApiService } from './profile-api.service';
 
 import { version, overview } from './test-fixtures';

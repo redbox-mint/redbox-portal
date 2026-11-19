@@ -1,7 +1,8 @@
+import { ChangeDetectionStrategy } from '@angular/core';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
-@Component({ selector: 'profile-value', standalone: true, imports: [FormsModule, I18NextPipe], template: `
+import { I18NextPipe } from '@researchdatabox/portal-ng-common';
+@Component({ changeDetection: ChangeDetectionStrategy.Default, selector: 'profile-value', standalone: true, imports: [FormsModule, I18NextPipe], template: `
   @switch (type) {
     @case ('boolean') { <select class="form-select" [id]="inputId" [ngModel]="value" (ngModelChange)="valueChange.emit($event)"><option [ngValue]="null">{{ 'ai-profiles-no-answer' | i18next }}</option><option [ngValue]="true">{{ 'ai-profiles-yes' | i18next }}</option><option [ngValue]="false">{{ 'ai-profiles-no' | i18next }}</option></select> }
     @case ('enum') { <select class="form-select" [id]="inputId" [ngModel]="value" (ngModelChange)="valueChange.emit($event)"><option [ngValue]="null">{{ 'ai-profiles-no-answer' | i18next }}</option>@for (o of options; track o.value) { <option [ngValue]="o.value">{{ o.label || (o.labelKey | i18next) }}</option> }</select> }

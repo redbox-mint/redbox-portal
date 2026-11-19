@@ -1,6 +1,7 @@
+import { ChangeDetectionStrategy } from '@angular/core';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
+import { I18NextPipe } from '@researchdatabox/portal-ng-common';
 import type { GenerationAdminConnectionDraft, GenerationAdminConnectionHealth, GenerationAdminOverview } from '@researchdatabox/sails-ng-common';
 import { adapterLabels, validateConnection, Issues, slug } from './model-settings';
 
@@ -18,7 +19,7 @@ export interface ProviderDraft {
   submitted?: boolean;
   secretConfigured?: boolean;
 }
-@Component({
+@Component({ changeDetection: ChangeDetectionStrategy.Default,
   selector: 'ai-provider-card', standalone: true, imports: [FormsModule, I18NextPipe],
   templateUrl: './provider-card.component.html',
 })

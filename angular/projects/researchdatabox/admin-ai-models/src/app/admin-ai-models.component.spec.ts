@@ -1,8 +1,9 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import english from '../../../../../../language-defaults/en/translation.json';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { AdminAiModelsComponent } from './admin-ai-models.component';
 import { ModelApiError, ModelApiService } from './model-api.service';
 import { ProviderCardComponent } from './provider-card.component';
@@ -35,7 +36,7 @@ describe('AI models overview and editors', () => {
     await TestBed.configureTestingModule({ imports: [AdminAiModelsComponent], providers: [{ provide: TranslationService, useValue: { t, waitForInit: async () => undefined, isInitializing: () => false, translationChanges$: changes } }] })
       .overrideComponent(AdminAiModelsComponent, { set: { providers: [{ provide: ModelApiService, useValue: api }] } }).compileComponents();
     fixture = TestBed.createComponent(AdminAiModelsComponent); component = fixture.componentInstance;
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
   });
   afterEach(() => { fixture.destroy(); history.replaceState(null, '', originalUrl); });
   const query = <T extends HTMLElement = HTMLElement>(selector: string): T => fixture.nativeElement.querySelector(selector);
@@ -177,5 +178,39 @@ describe('AI models overview and editors', () => {
   });
   it('warns before leaving a dirty editor', () => {
     open(); component.modelName('Changed'); const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent; component.beforeUnload(event); expect(event.defaultPrevented).toBeTrue();
+  });
+});
+
+describe('AdminAiModelsComponent zoneless rendering', () => {
+  it('renders asynchronous completion without manual change detection', async () => {
+    const originalUrl = location.pathname + location.search + location.hash;
+    history.replaceState(null, '', location.pathname);
+    const api = jasmine.createSpyObj<ModelApiService>('api', ['waitForInit', 'overview']);
+    api.waitForInit.and.resolveTo(api);
+    api.overview.and.callFake(async () => clone(overview));
+    const translations = {
+      t: (key: string) => (english as Record<string, string>)[key] || key,
+      waitForInit: async () => undefined, isInitializing: () => false,
+      translationChanges$: new Subject<void>(),
+    };
+    await TestBed.configureTestingModule({
+      imports: [AdminAiModelsComponent],
+      providers: [provideZonelessChangeDetection(), { provide: TranslationService, useValue: translations }],
+    }).overrideComponent(AdminAiModelsComponent, { set: { providers: [{ provide: ModelApiService, useValue: api }] } }).compileComponents();
+    const fixture = TestBed.createComponent(AdminAiModelsComponent);
+    const component = fixture.componentInstance;
+    try {
+      fixture.detectChanges();
+      await component.waitForInit();
+      await fixture.whenStable();
+    api.overview.and.resolveTo({ ...clone(overview), enabled: false });
+    await component.refresh();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('AI-assisted drafting is turned off');
+    expect(fixture.nativeElement.querySelector('#ai-providers')).toBeNull();
+    } finally {
+      fixture.destroy();
+      history.replaceState(null, '', originalUrl);
+    }
   });
 });

@@ -1,11 +1,13 @@
-import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { BaseComponent } from '@researchdatabox/portal-ng-common';
+import { ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
-import { I18NextPipe } from 'projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
-import { AdminDatePipe } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-date.pipe';
-import { AdminModalDirective } from 'projects/researchdatabox/portal-ng-common/src/lib/admin-modal.directive';
+import { I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDatePipe } from '@researchdatabox/portal-ng-common';
+import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import type {
   GenerationAdminOverview, GenerationAdminModelDraft, GenerationAdminModelVersion,
   GenerationAdminConnection, GenerationAdminPromptResult, GenerationAdminUsage, GenerationAdminModelGroup,
@@ -16,14 +18,14 @@ import { ChipsComponent } from './chips.component';
 import { accepts, adapterLabels, clone, connectionDraft, curatedModels, Issues, modelDraft, numericSettings, NumericSetting, modelNames, slug, validateConnection, validateModel, validKey } from './model-settings';
 
 type RailSection = { id: string; key: string };
-@Component({
+@Component({ changeDetection: ChangeDetectionStrategy.Default,
   selector: 'admin-ai-models', standalone: true,
   imports: [CommonModule, FormsModule, I18NextPipe, AdminDatePipe, AdminModalDirective, A11yModule, ProviderCardComponent, ChipsComponent],
   providers: [ModelApiService], templateUrl: './admin-ai-models.component.html',
   // Styles intentionally scope under the existing EJS .rb-admin shell, including child controls.
   encapsulation: ViewEncapsulation.None,
 })
-export class AdminAiModelsComponent implements OnInit, OnDestroy {
+export class AdminAiModelsComponent extends BaseComponent implements OnDestroy {
   overview?: GenerationAdminOverview;
   providers: ProviderDraft[] = [];
   draft?: GenerationAdminModelDraft;
@@ -60,8 +62,8 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
   readonly routingLists = ['only', 'ignore', 'order'] as const;
   readonly allSettings = ['temperature', ...numericSettings, 'stopSequences'];
 
-  constructor(public api: ModelApiService, private i18n: TranslationService, private host: ElementRef<HTMLElement>) {}
-  async ngOnInit(): Promise<void> {
+  constructor(public api: ModelApiService, private i18n: TranslationService, private host: ElementRef<HTMLElement>) { super(); }
+  protected async initComponent(): Promise<void> {
     try {
       await Promise.all([this.api.waitForInit(), this.i18n.waitForInit()]);
       await this.refresh();
@@ -71,7 +73,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     } catch (error) { this.handle(error); }
     finally { this.loading = false; }
   }
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void { super.ngOnDestroy();
     this.disposed = true;
     if (this.timer) clearInterval(this.timer);
     cancelAnimationFrame(this.scrollFrame);
@@ -146,7 +148,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     });
   }
   async refresh(): Promise<void> { this.overview = await this.api.overview(); this.resetProviders(); }
-  async retryLoad(): Promise<void> { this.loading = true; this.error = ''; await this.ngOnInit(); }
+  override async retryLoad(): Promise<void> { this.loading = true; this.error = ''; await this.initComponent(); }
   private handle(error: unknown): void {
     this.error = error instanceof ModelApiError ? error.messageKey : 'ai-models-provider-error-generation-provider-unavailable';
     if (error instanceof ModelApiError && error.status === 409) { this.conflict = true; this.remote = undefined; }
@@ -235,6 +237,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
       this.scrollFrame = 0;
       const sections = this.rail.filter(section => (this.host.nativeElement.querySelector('#ai-' + section.id)?.getBoundingClientRect().top ?? Infinity) <= 160);
       this.activeSection = sections.at(-1)?.id ?? this.rail[0]?.id ?? 'model';
+      this.requestRender();
     });
   }
   @HostListener('window:beforeunload', ['$event'])
@@ -342,6 +345,7 @@ export class AdminAiModelsComponent implements OnInit, OnDestroy {
     this.cooldownUntil = Date.now() + (this.overview?.limits.cooldownMs ?? 5000);
     const tick = (): void => {
       this.cooldown = Math.max(0, Math.ceil((this.cooldownUntil - Date.now()) / 1000));
+      this.requestRender();
       if (!this.cooldown && this.timer) { clearInterval(this.timer); this.timer = undefined; }
     };
     tick(); if (this.timer) clearInterval(this.timer); this.timer = setInterval(tick, 250);

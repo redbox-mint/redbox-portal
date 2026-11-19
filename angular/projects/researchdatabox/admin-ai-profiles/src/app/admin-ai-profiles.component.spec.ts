@@ -1,9 +1,10 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { GENERATION_QUESTION_OPTION_LIMIT } from '@researchdatabox/sails-ng-common';
 import { profileProblems } from './profile-settings';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import english from '../../../../../../language-defaults/en/translation.json';
-import { TranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/translation.service';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { AdminAiProfilesComponent } from './admin-ai-profiles.component';
 import { ProfileApiService, ProfileApiError } from './profile-api.service';
 import { clone } from './profile-settings';
@@ -21,7 +22,7 @@ describe('Drafting profile editor', () => {
     api.version.and.resolveTo({ ...clone(version), id: 'v2', version: 2 }); api.remove.and.resolveTo({ deleted: true, uses: [], hasPublished: false, runCount: 0 }); api.discard.and.resolveTo({ deleted: true, uses: [], hasPublished: false, runCount: 0 });
     api.tests.and.resolveTo([{ name: 'Synthetic example', passed: true, ranAt: '2026-11-18T00:00:00Z', fields: [{ label: 'Summary', value: '<script>untrusted</script>', evidence: ['Activity title'], passed: true }] }]);
     await TestBed.configureTestingModule({ imports: [AdminAiProfilesComponent], providers: [{ provide: TranslationService, useValue: { t, waitForInit: async () => undefined, isInitializing: () => false, translationChanges$: changes } }] }).overrideComponent(AdminAiProfilesComponent, { set: { providers: [{ provide: ProfileApiService, useValue: api }] } }).compileComponents();
-    fixture = TestBed.createComponent(AdminAiProfilesComponent); component = fixture.componentInstance; fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture = TestBed.createComponent(AdminAiProfilesComponent); component = fixture.componentInstance; fixture.detectChanges(); await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
   });
   afterEach(() => { fixture.destroy(); history.replaceState(null, '', original); });
   const query = (s: string): HTMLElement => fixture.nativeElement.querySelector(s);
@@ -77,7 +78,7 @@ describe('Drafting profile editor', () => {
     component.sourceForm!.fields.push({ pointer: '/country', label: 'Country', group: 'Activity', component: 'DropdownInputComponent', options, output: { kind: 'enum', values: options.map(o => o.value) } });
     component.toggleSource('/country', true);
     component.editQuestion(); component.question!.label = 'Which country?'; component.question!.type = type; component.questionTypeChanged();
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
     expect(Array.from((query('#profile-question-prefill') as HTMLSelectElement).options).map(o => o.text)).not.toContain('Country');
     expect(query('.modal').textContent).toContain(`Country has more than ${GENERATION_QUESTION_OPTION_LIMIT} choices`);
     component.pickQuestionPrefill('/country');
@@ -88,7 +89,7 @@ describe('Drafting profile editor', () => {
     expect(profileProblems(component.draft!, component.overview!).some(p => p.messageKey === 'ai-profiles-problem-question-options' && p.label === 'Which country?')).toBeTrue();
     fixture.detectChanges(); expect(query('.modal [role="alert"]').textContent).toContain('Remove choices until there are 100 or fewer');
     component.question!.options!.pop(); options.pop();
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
     expect(Array.from((query('#profile-question-prefill') as HTMLSelectElement).options).map(o => o.text)).toContain('Country');
     component.pickQuestionPrefill('/country');
     expect(component.question!.options).toEqual(options); expect(component.modalValid).toBeTrue();
@@ -128,7 +129,7 @@ describe('Drafting profile editor', () => {
   it('keeps stored choice values and test answers when option labels or help change', async () => {
     open(); component.draft!.questions[0] = { id: 'methods', label: 'Which methods?', type: 'multiEnum', required: true, sourceDefaultExpression: '/title', options: [{ value: 'one', label: 'Interviews' }, { value: 'two', labelKey: 'ai-profiles-yes' }] };
     component.draft!.fixtureTests = [{ name: 'Saved example', source: {}, answers: { methods: ['one'] } }];
-    component.editQuestion(0); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    component.editQuestion(0); fixture.detectChanges(); await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
     const input = query('#profile-question-option-0') as HTMLInputElement;
     expect(input.value).toBe('Interviews'); expect(query('.modal').textContent).not.toContain('value:');
     input.value = 'Structured interviews'; input.dispatchEvent(new Event('input')); await fixture.whenStable();
@@ -317,4 +318,44 @@ describe('Drafting profile editor', () => {
     expect(component.canPublish).toBeFalse();
   });
 
+});
+
+describe('AdminAiProfilesComponent zoneless rendering', () => {
+  it('renders asynchronous completion without manual change detection', async () => {
+    const originalUrl = location.pathname + location.search + location.hash;
+    history.replaceState(null, '', location.pathname);
+    const api = jasmine.createSpyObj<ProfileApiService>('api', ['waitForInit', 'overview', 'save']);
+    api.waitForInit.and.resolveTo(api);
+    api.overview.and.callFake(async () => clone(overview));
+    api.save.and.callFake(async (_id, body) => ({ ...clone(version), definition: body.definition, contentHash: 'saved-hash' }));
+    const translations = {
+      t: (key: string) => (english as Record<string, string>)[key] || key,
+      waitForInit: async () => undefined, isInitializing: () => false,
+      translationChanges$: new Subject<void>(),
+    };
+    await TestBed.configureTestingModule({
+      imports: [AdminAiProfilesComponent],
+      providers: [provideZonelessChangeDetection(), { provide: TranslationService, useValue: translations }],
+    }).overrideComponent(AdminAiProfilesComponent, { set: { providers: [{ provide: ProfileApiService, useValue: api }] } }).compileComponents();
+    const fixture = TestBed.createComponent(AdminAiProfilesComponent);
+    const component = fixture.componentInstance;
+    try {
+      fixture.detectChanges();
+      await component.waitForInit();
+      await fixture.whenStable();
+    fixture.nativeElement.querySelector('a[href*="profile=profile"]').click();
+    await fixture.whenStable();
+    const purpose: HTMLInputElement = fixture.nativeElement.querySelector('#profile-purpose');
+    purpose.value = 'Updated purpose';
+    purpose.dispatchEvent(new Event('input', { bubbles: true }));
+    await fixture.whenStable();
+    await component.saveDraft();
+    await fixture.whenStable();
+    expect(api.save).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Draft saved.');
+    } finally {
+      fixture.destroy();
+      history.replaceState(null, '', originalUrl);
+    }
+  });
 });
