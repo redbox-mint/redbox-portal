@@ -32,9 +32,40 @@ declare var _this;
 declare var RecordsService: RecordsService;
 let flat;
 import * as luceneEscapeQuery from "lucene-escape-query";
+import { DateTime } from 'luxon';
 
+type SolrFieldDefinition = {
+  name: string;
+  type?: string;
+  indexed?: boolean;
+  stored?: boolean;
+  multiValued?: boolean;
+  required?: boolean;
+  docValues?: boolean;
+};
 
+type SolrCopyFieldDefinition = { source: string; dest: string };
 
+type SolrSchemaSnapshot = {
+  fields?: SolrFieldDefinition[];
+  dynamicFields?: SolrFieldDefinition[];
+  copyFields?: SolrCopyFieldDefinition[];
+};
+
+function normalizeSolrDateValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeSolrDateValue);
+  }
+  if (value instanceof Date) {
+    const date = DateTime.fromJSDate(value, { zone: 'utc' });
+    return date.isValid ? date.toUTC().toISO() ?? value : value;
+  }
+  if (typeof value !== 'string' || !/^(?:[+-]\d{6}|\d{4})-?\d{2}-?\d{2}(?:T|$)/.test(value)) {
+    return value;
+  }
+  const date = DateTime.fromISO(value, { zone: 'utc', setZone: true });
+  return date.isValid ? date.toUTC().toISO() ?? value : value;
+}
 class SolrClient {
   options: SolrOptions;
   axios: any = axios;
@@ -152,45 +183,56 @@ export module Services {
           await this.waitForSolr(coreId);
         }
 
-        // check if the schema is built....
         try {
-          const flagName: string = core.initSchemaFlag.name;
-          const schemaInitFlag = await this.getSchemaEntry(coreId, 'fields', flagName);
-          if (!_.isEmpty(schemaInitFlag)) {
-            sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
+          const liveSchema = (await this.getSchema(coreId)).schema as SolrSchemaSnapshot;
+          const configuredFields: SolrFieldDefinition[] = [...(core.schema['add-field'] || [])];
+          if (core.initSchemaFlag && !configuredFields.some(field => field.name === core.initSchemaFlag.name)) {
+            configuredFields.push(core.initSchemaFlag);
+          }
+
+          const missingFields = this.getMissingFields(coreId, configuredFields, liveSchema.fields || []);
+          const missingDynamicFields = this.getMissingFields(coreId, core.schema['add-dynamic-field'] || [], liveSchema.dynamicFields || []);
+          const missingCopyFields = (core.schema['add-copy-field'] || []).filter(configured =>
+            !(liveSchema.copyFields || []).some(existing =>
+              existing.source === configured.source && existing.dest === configured.dest));
+
+          if (!missingFields.length && !missingDynamicFields.length && !missingCopyFields.length) {
+            sails.log.verbose(`${this.logHeader} Schema already reconciled for core: ${coreName}.`);
             continue;
           }
-        } catch (err) {
-          sails.log.verbose(JSON.stringify(err));
-        }
-        sails.log.verbose(`${this.logHeader} Schema not initialised, building schema...`)
-        const schemaUrl = `${this.getBaseUrl(core.options)}${coreName}/schema`;
-        try {
-          const schemaDef = _.get(sails.config.solr.cores, coreId + '.schema');
-          if (_.isEmpty(schemaDef)) {
-            sails.log.verbose(`${this.logHeader} Schema definition empty, skipping build.`);
-            continue;
-          }
-          // append the init flag
-          if (_.isEmpty(schemaDef['add-field'])) {
-            schemaDef['add-field'] = [];
-          }
-          schemaDef['add-field'].push(_.get(sails.config.solr.cores, coreId + '.initSchemaFlag'));
-          sails.log.verbose(`${this.logHeader} sending schema definition:`);
+
+          const schemaDef = {
+            'add-field': missingFields,
+            'add-dynamic-field': missingDynamicFields,
+            'add-copy-field': missingCopyFields
+          };
+          const schemaUrl = `${this.getBaseUrl(core.options)}${coreName}/schema`;
+          sails.log.verbose(`${this.logHeader} sending missing schema definitions:`);
           sails.log.verbose(JSON.stringify(schemaDef));
           const response = await axios.post(schemaUrl, schemaDef).then(response => response.data);
-          sails.log.verbose(`${this.logHeader} Schema build successful, response: `);
+          sails.log.verbose(`${this.logHeader} Schema reconciliation successful, response: `);
           sails.log.verbose(JSON.stringify(response));
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to build SOLR schema:`);
+          sails.log.error(`${this.logHeader} Failed to reconcile SOLR schema for core: ${coreName}.`);
           sails.log.error(JSON.stringify(err));
         }
       }
     }
 
-    private async getSchemaEntry(coreId: string, fieldName: string, name: string) {
-      const schemaResp = await this.getSchema(coreId);
-      return _.find(_.get(schemaResp.schema, fieldName), (schemaDef) => { return schemaDef.name == name });
+    private getMissingFields(coreId: string, configured: SolrFieldDefinition[], live: SolrFieldDefinition[]): SolrFieldDefinition[] {
+      return configured.filter(desired => {
+        const existing = live.find(field => field.name === desired.name);
+        if (!existing) {
+          return true;
+        }
+        const properties: Array<keyof SolrFieldDefinition> = ['type', 'indexed', 'stored', 'multiValued', 'required', 'docValues'];
+        const matches = properties.every(property => desired[property] === undefined ||
+          desired[property] === (existing[property] === undefined && typeof desired[property] === 'boolean' ? false : existing[property]));
+        if (!matches) {
+          sails.log.error(`${this.logHeader} Solr schema conflict for ${coreId}.${desired.name}; existing field was not replaced.`);
+        }
+        return false;
+      });
     }
 
     private async getSchema(coreId: string) {
@@ -427,6 +469,12 @@ export module Services {
         }
         let flattened: any = flat.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
+      });
+
+      _.forOwn(processedData, (value: unknown, fieldName: string) => {
+        if (fieldName.startsWith('date_')) {
+          processedData[fieldName] = normalizeSolrDateValue(value);
+        }
       });
 
       // sanitise any empty keys so SOLR doesn't complain
