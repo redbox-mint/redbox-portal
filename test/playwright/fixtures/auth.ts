@@ -50,6 +50,9 @@ export async function loginWithCsrf(page: Page, persona: Persona = adminPersona)
 export async function assertAuthenticated(page: Page): Promise<void> {
   await page.goto('/default/rdmp/admin', { waitUntil: 'domcontentloaded' });
   await page.locator('.admin-main-content').waitFor({ state: 'visible' });
+  // The next test navigation must not abort a still-loading landing-page font.
+  await page.waitForLoadState('load');
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
 }
 
 export async function createAuthenticatedContext(

@@ -3,7 +3,7 @@ import { expect, test } from '../fixtures/test';
 test('A24 opens an unsaved provider editor and derives its key from the name', async ({ adminPage }) => {
   await adminPage.goto('/default/rdmp/admin/ai-models');
   const app = adminPage.locator('admin-ai-models');
-  await app.getByRole('button', { name: 'Add provider', exact: true }).click();
+  await app.locator('.rb-admin-page-actions').getByRole('button', { name: 'Add provider', exact: true }).click();
   await app.locator('#provider-name').fill('Browser provider');
   await expect(app.locator('#provider-key')).toHaveValue('browser-provider');
   await expect(app.locator('.rb-admin-save-bar')).toBeVisible();
