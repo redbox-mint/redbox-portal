@@ -1,7 +1,8 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
+import { retiredDashboardOperation } from '../../../src/http/actions/metadataReads';
 import assert from 'node:assert/strict';
 import { securityFixture, route, canonical } from './securityFixture';
 import { requestContext } from '../../../src/http';
-
 if (!process.env.HTTP_PILOT_TEST_MONGO_URL)
   throw new Error('FM-016 security Mongo qualification requires HTTP_PILOT_TEST_MONGO_URL (/sr_p4_http).');
 const target = '/default/rdmp/api/probe';
@@ -9,7 +10,9 @@ const credential = (response: Response) => response.headers.get('set-cookie')?.s
 async function token(f: Awaited<ReturnType<typeof securityFixture>>, cookie = '') {
   const response = await fetch(f.url + '/csrfToken', { headers: { Cookie: cookie } });
   assert.equal(response.status, 200);
-  const body = (await response.json()) as { _csrf: string };
+  const body = (await response.json()) as {
+    _csrf: string;
+  };
   assert.match(body._csrf, /^[a-f0-9]{64}$/);
   return { token: body._csrf, cookie: credential(response) || cookie };
 }
@@ -19,7 +22,6 @@ async function authenticated(f: Awaited<ReturnType<typeof securityFixture>>) {
   await response.text();
   return { ...csrf, cookie: credential(response) || csrf.cookie };
 }
-
 describe('FM-016 native/Express real Mongo session-aware CSRF differential', function () {
   this.timeout(30000);
   const tests: {
@@ -140,7 +142,7 @@ describe('FM-016 native/Express real Mongo session-aware CSRF differential', fun
   for (const c of tests)
     it(c.name, async () => {
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const r = route();
         const f = await securityFixture(native, { mongo: true, routes: [{ ...r, effectiveCsrf: c.mode }] });
         try {
@@ -166,11 +168,10 @@ describe('FM-016 native/Express real Mongo session-aware CSRF differential', fun
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security-mongo', results[0]);
     });
-
   it('token acquisition saves once before response, reuses token, and remains unbranded', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await securityFixture(native, { mongo: true });
       try {
         const first = await token(f);
@@ -195,7 +196,6 @@ describe('FM-016 native/Express real Mongo session-aware CSRF differential', fun
       }
     }
   });
-
   it('guards raw hijack first and awaits explicit session persistence before raw bytes', async () => {
     let actions = 0;
     const f = await securityFixture(true, {
@@ -229,20 +229,16 @@ describe('FM-016 native/Express real Mongo session-aware CSRF differential', fun
     }
   });
 });
-
 // Retain the remaining action-local FM-004 ordering probes with genuine browser
 // sessions/tokens. Only the small native preludes below are probes; complete
 // controller migration remains assigned to later tasks.
 import { inventory, inventoryRegistration } from './inventory-fixture';
-import { mountBrandingOperationRoutes } from '../../../src/http/express/brandingOperations';
-import { mountConfigurationWriteRoutes } from '../../../src/http/express/configurationWrites';
-import { mountIdentityAdministrationRoutes } from '../../../src/http/express/identityAdministration';
+
 import type { ApiRouteDefinition } from '../../../src/api-routes/types';
 import { validateApiRouteRequest } from '../../../src/api-routes/validation';
 import { sendApiErrors, sendApiValidationErrors } from '../../../src/http/fastify/responses';
 import { of } from 'rxjs';
 import { Services as Dashboard } from '../../../src/dashboards/DashboardConfig';
-import { retiredDashboardOperation } from '../../../src/http/express/dashboardResponses';
 
 const browserCases = [
   {
@@ -317,7 +313,6 @@ const browserCases = [
     trace: [],
   },
 ] as const;
-
 describe('FM-016 real Mongo browser action-prelude ordering differential', function () {
   this.timeout(30000);
   for (const c of browserCases)
@@ -336,7 +331,7 @@ describe('FM-016 real Mongo browser action-prelude ordering differential', funct
           request: registration.declaration.validation,
         };
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const trace: string[] = [];
         const branding = {
           getAdminState: async () => {
@@ -354,25 +349,6 @@ describe('FM-016 real Mongo browser action-prelude ordering differential', funct
         const f = await securityFixture(native, {
           mongo: true,
           routes: [registration],
-          mount: (router, input) => {
-            const mount =
-              c.kind === 'preview'
-                ? mountBrandingOperationRoutes
-                : c.kind === 'identity'
-                  ? mountIdentityAdministrationRoutes
-                  : mountConfigurationWriteRoutes;
-            mount(router, {
-              ...input,
-              branding,
-              roles,
-              users: {
-                requireUserInBrand: async () => {
-                  trace.push('target');
-                  throw new Error('unexpected target read');
-                },
-              },
-            } as never);
-          },
           action: async (req, reply) => {
             const { actor, brand } = requestContext(req);
             if (c.kind === 'retired') {
@@ -436,10 +412,9 @@ describe('FM-016 real Mongo browser action-prelude ordering differential', funct
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security-mongo', results[0]);
     });
 });
-
 import { authenticationFixture } from './authenticationFixture';
 describe('FM-016 native login observation failure isolation', function () {
   this.timeout(30000);
@@ -465,3 +440,5 @@ describe('FM-016 native login observation failure isolation', function () {
       }
     });
 });
+
+goldenControls('security-mongo');

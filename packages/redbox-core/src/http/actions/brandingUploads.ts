@@ -7,8 +7,8 @@ import { BRANDING_TYPEFACE_FACE_MAX_BYTES } from '../../model/BrandingTypeface';
 import { mapBrandingError } from '../../branding/HttpErrors';
 import { validateApiRouteRequest, validateApiRouteFiles } from '../../api-routes/validation';
 import { administratorRefusal } from '../actors';
-import { StreamingMultipart, MultipartError, type MultipartResult } from '../express/multipart';
-import { actionApiData, actionApiErrors, type ActionRequest, type ActionReply } from './actionReply';
+import { StreamingMultipart, MultipartError, type MultipartResult } from '../integrations/multipart';
+import { actionApiData, actionApiErrors, type ActionRequest, type JsonOutput } from './jsonOutput';
 export interface BrandingUploadInput {
   readonly branding: Pick<Branding.Branding, 'uploadTypefaceFace'>;
   readonly logos: Pick<Logo.BrandingLogo, 'putLogo' | 'putFavicon'>;
@@ -18,7 +18,7 @@ export interface BrandingUploadInput {
   audit(actor: { id: string; username: string }, action: string, context: { brandId: string }): Promise<unknown>;
   readonly log: ILogger;
 }
-export function brandingUploadActorPrelude(req: ActionRequest, res: ActionReply) {
+export function brandingUploadActorPrelude(req: ActionRequest, res: JsonOutput) {
   const { actor, brand, portal } = req.context();
   const refusal = administratorRefusal(actor, brand.id);
   if (refusal) {
@@ -63,7 +63,7 @@ export function validateBrandingUpload(
   if (!validated.valid) throw new MultipartError(400, 'Invalid upload fields');
   return { field, file, body, validated };
 }
-export function rejectBrandingUpload(input: BrandingUploadInput, req: ActionRequest, res: ActionReply, error: unknown) {
+export function rejectBrandingUpload(input: BrandingUploadInput, req: ActionRequest, res: JsonOutput, error: unknown) {
   input.log.error('Branding upload failed');
   const mapped = mapBrandingError(error);
   actionApiErrors(req, res, error instanceof MultipartError ? error.status : mapped.status, [
@@ -81,7 +81,7 @@ export function rejectBrandingUpload(input: BrandingUploadInput, req: ActionRequ
 export async function executeBrandingUpload(
   input: BrandingUploadInput,
   req: ActionRequest,
-  res: ActionReply,
+  res: JsonOutput,
   route: Pick<ApiRouteDefinition, 'action' | 'request'>,
   receive: <T>(consume: (received: MultipartResult) => Promise<T>) => Promise<T>
 ) {

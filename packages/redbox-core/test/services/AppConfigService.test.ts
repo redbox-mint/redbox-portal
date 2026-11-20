@@ -7,7 +7,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { configurationFixtures } from '../helpers/serviceRepositories';
-import { resolveExtensions } from '../../src/extensions/resolution';
+import { resolveExtensionData } from '../../src/extensions/resolution';
 import { ApplicationRuntime } from '../../src/application';
 import { configurationHttp } from '../helpers/configurationHttp';
 import _ from 'lodash';
@@ -549,12 +549,11 @@ describe('AppConfigService', function () {
       const run = sinon.stub().resolves();
       for (const stage of ['bootstrap', 'migrations']) {
         expect(() =>
-          resolveExtensions([
+          resolveExtensionData([
             {
               name: 'test-hook',
               root: '/hook',
               declaration: {
-                apiVersion: 1,
                 [stage]: [
                   { name: 'duplicate', run },
                   { name: 'duplicate', run },
@@ -565,11 +564,11 @@ describe('AppConfigService', function () {
         ).to.throw(/unique bounded names/);
         expect(run.called).to.equal(false);
       }
-      const resolved = resolveExtensions([
+      const resolved = resolveExtensionData([
         {
           name: 'test-hook',
           root: '/hook',
-          declaration: { apiVersion: 1, bootstrap: [{ name: 'shared', run }], migrations: [{ name: 'shared', run }] },
+          declaration: { bootstrap: [{ name: 'shared', run }], migrations: [{ name: 'shared', run }] },
         },
       ]);
       expect(resolved.bootstrap).to.have.length(1);

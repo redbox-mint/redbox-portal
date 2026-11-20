@@ -1,0 +1,1291 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "shared": {},
+  "cases": {
+    "rejects malformed OIDC selection: id[provider]=institution": {
+      "result": {
+        "result": {
+          "status": 400,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "content-length": "42",
+            "content-type": "application/json; charset=utf-8",
+            "expires": "0",
+            "pragma": "no-cache"
+          },
+          "cookies": [],
+          "text": "{\"message\":\"Invalid request\",\"details\":\"\"}"
+        },
+        "provider": {
+          "discovery": 1,
+          "authorization": 0,
+          "token": 0,
+          "userinfo": 0,
+          "pkce": 0,
+          "logout": 0
+        }
+      },
+      "audits": [],
+      "sessions": [],
+      "events": []
+    },
+    "rejects malformed OIDC selection: overlong": {
+      "result": {
+        "result": {
+          "status": 400,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "content-length": "42",
+            "content-type": "application/json; charset=utf-8",
+            "expires": "0",
+            "pragma": "no-cache"
+          },
+          "cookies": [],
+          "text": "{\"message\":\"Invalid request\",\"details\":\"\"}"
+        },
+        "provider": {
+          "discovery": 1,
+          "authorization": 0,
+          "token": 0,
+          "userinfo": 0,
+          "pkce": 0,
+          "logout": 0
+        }
+      },
+      "audits": [],
+      "sessions": [],
+      "events": []
+    },
+    "rejects malformed OIDC selection: id=provider%0Aname": {
+      "result": {
+        "result": {
+          "status": 400,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "content-length": "42",
+            "content-type": "application/json; charset=utf-8",
+            "expires": "0",
+            "pragma": "no-cache"
+          },
+          "cookies": [],
+          "text": "{\"message\":\"Invalid request\",\"details\":\"\"}"
+        },
+        "provider": {
+          "discovery": 1,
+          "authorization": 0,
+          "token": 0,
+          "userinfo": 0,
+          "pkce": 0,
+          "logout": 0
+        }
+      },
+      "audits": [],
+      "sessions": [],
+      "events": []
+    },
+    "named OIDC input acceptance: institution.example.edu": {
+      "result": {
+        "result": [
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "0",
+              "expires": "31536000s after Date",
+              "location": "http://fixture/authorize?login_hint=allowed&portal_provider=institution.example.edu&state=<opaque>&client_id=redbox&response_type=code&code_challenge=<opaque>&code_challenge_method=S256&redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fuser%2Flogin_oidc&scope=openid+profile+email",
+              "pragma": "no-cache"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "location": "http://fixture/portal/user/login_oidc?id=institution.example.edu&state=<opaque>&code=<opaque>",
+              "transfer-encoding": "chunked"
+            },
+            "cookies": [],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "58",
+              "content-type": "text/plain; charset=utf-8",
+              "expires": "31536000s after Date",
+              "location": "/portal/default/rdmp/researcher/home",
+              "pragma": "no-cache",
+              "vary": "Accept"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": "Found. Redirecting to /portal/default/rdmp/researcher/home"
+          },
+          {
+            "status": 200,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "749",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "0",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"user\":{\"id\":\"user:allowed\",\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"additionalAttributes\":{\"department.name\":\"Research\"},\"cn\":\"OIDC Fixture\",\"createdAt\":\"<time>\",\"displayname\":\"OIDC Fixture\",\"email\":\"allowed@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"OIDC Fixture\",\"type\":\"oidc\",\"updatedAt\":\"<time>\",\"username\":\"allowed\",\"hasApiKey\":false,\"roles\":[{\"id\":\"000000000000000000000014\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Researcher\",\"updatedAt\":\"<time>\"}]}}"
+          },
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "157",
+              "content-type": "text/plain; charset=utf-8",
+              "expires": "0",
+              "location": "http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome",
+              "pragma": "no-cache",
+              "vary": "Accept"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; Expires=<time>"
+            ],
+            "text": "Found. Redirecting to http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome"
+          },
+          {
+            "status": 403,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "32",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "31536000s after Date",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"message\":\"error-please-login\"}"
+          }
+        ],
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 1,
+          "userinfo": 1,
+          "pkce": 1,
+          "logout": 0
+        }
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed",
+            "type": "oidc",
+            "name": "OIDC Fixture",
+            "email": "allowed@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000014",
+                "brandId": "brand:default",
+                "name": "Researcher"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        },
+        {
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed",
+            "type": "oidc",
+            "name": "OIDC Fixture",
+            "email": "allowed@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000014",
+                "brandId": "brand:default",
+                "name": "Researcher"
+              }
+            ]
+          },
+          "action": "logout",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [],
+      "events": []
+    },
+    "named OIDC input acceptance: urn:identity:research": {
+      "result": {
+        "result": [
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "0",
+              "expires": "31536000s after Date",
+              "location": "http://fixture/authorize?login_hint=allowed&portal_provider=urn%3Aidentity%3Aresearch&state=<opaque>&client_id=redbox&response_type=code&code_challenge=<opaque>&code_challenge_method=S256&redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fuser%2Flogin_oidc&scope=openid+profile+email",
+              "pragma": "no-cache"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "location": "http://fixture/portal/user/login_oidc?id=urn%3Aidentity%3Aresearch&state=<opaque>&code=<opaque>",
+              "transfer-encoding": "chunked"
+            },
+            "cookies": [],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "58",
+              "content-type": "text/plain; charset=utf-8",
+              "expires": "31536000s after Date",
+              "location": "/portal/default/rdmp/researcher/home",
+              "pragma": "no-cache",
+              "vary": "Accept"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": "Found. Redirecting to /portal/default/rdmp/researcher/home"
+          },
+          {
+            "status": 200,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "749",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "0",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"user\":{\"id\":\"user:allowed\",\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"additionalAttributes\":{\"department.name\":\"Research\"},\"cn\":\"OIDC Fixture\",\"createdAt\":\"<time>\",\"displayname\":\"OIDC Fixture\",\"email\":\"allowed@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"OIDC Fixture\",\"type\":\"oidc\",\"updatedAt\":\"<time>\",\"username\":\"allowed\",\"hasApiKey\":false,\"roles\":[{\"id\":\"000000000000000000000014\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Researcher\",\"updatedAt\":\"<time>\"}]}}"
+          },
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "157",
+              "content-type": "text/plain; charset=utf-8",
+              "expires": "0",
+              "location": "http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome",
+              "pragma": "no-cache",
+              "vary": "Accept"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; Expires=<time>"
+            ],
+            "text": "Found. Redirecting to http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome"
+          },
+          {
+            "status": 403,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "32",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "31536000s after Date",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"message\":\"error-please-login\"}"
+          }
+        ],
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 1,
+          "userinfo": 1,
+          "pkce": 1,
+          "logout": 0
+        }
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed",
+            "type": "oidc",
+            "name": "OIDC Fixture",
+            "email": "allowed@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000014",
+                "brandId": "brand:default",
+                "name": "Researcher"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        },
+        {
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed",
+            "type": "oidc",
+            "name": "OIDC Fixture",
+            "email": "allowed@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000014",
+                "brandId": "brand:default",
+                "name": "Researcher"
+              }
+            ]
+          },
+          "action": "logout",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [],
+      "events": []
+    },
+    "named OIDC input acceptance: institution α": {
+      "result": {
+        "result": [
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "0",
+              "expires": "31536000s after Date",
+              "location": "http://fixture/authorize?login_hint=allowed&portal_provider=institution+%CE%B1&state=<opaque>&client_id=redbox&response_type=code&code_challenge=<opaque>&code_challenge_method=S256&redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fuser%2Flogin_oidc&scope=openid+profile+email",
+              "pragma": "no-cache"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "location": "http://fixture/portal/user/login_oidc?id=institution+%CE%B1&state=<opaque>&code=<opaque>",
+              "transfer-encoding": "chunked"
+            },
+            "cookies": [],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "58",
+              "content-type": "text/plain; charset=utf-8",
+              "expires": "31536000s after Date",
+              "location": "/portal/default/rdmp/researcher/home",
+              "pragma": "no-cache",
+              "vary": "Accept"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": "Found. Redirecting to /portal/default/rdmp/researcher/home"
+          },
+          {
+            "status": 200,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "749",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "0",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"user\":{\"id\":\"user:allowed\",\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"additionalAttributes\":{\"department.name\":\"Research\"},\"cn\":\"OIDC Fixture\",\"createdAt\":\"<time>\",\"displayname\":\"OIDC Fixture\",\"email\":\"allowed@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"OIDC Fixture\",\"type\":\"oidc\",\"updatedAt\":\"<time>\",\"username\":\"allowed\",\"hasApiKey\":false,\"roles\":[{\"id\":\"000000000000000000000014\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Researcher\",\"updatedAt\":\"<time>\"}]}}"
+          },
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "157",
+              "content-type": "text/plain; charset=utf-8",
+              "expires": "0",
+              "location": "http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome",
+              "pragma": "no-cache",
+              "vary": "Accept"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; Expires=<time>"
+            ],
+            "text": "Found. Redirecting to http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome"
+          },
+          {
+            "status": 403,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "32",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "31536000s after Date",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"message\":\"error-please-login\"}"
+          }
+        ],
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 1,
+          "userinfo": 1,
+          "pkce": 1,
+          "logout": 0
+        }
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed",
+            "type": "oidc",
+            "name": "OIDC Fixture",
+            "email": "allowed@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000014",
+                "brandId": "brand:default",
+                "name": "Researcher"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        },
+        {
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed",
+            "type": "oidc",
+            "name": "OIDC Fixture",
+            "email": "allowed@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000014",
+                "brandId": "brand:default",
+                "name": "Researcher"
+              }
+            ]
+          },
+          "action": "logout",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [],
+      "events": []
+    },
+    "local input acceptance: body": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: query without body": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: empty configured fields retain strategy defaults": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: body username and query password": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: query username and body password": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: empty body fields use query fallback": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: body takes precedence": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "54",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [],
+        "text": "{\"message\":\"Incorrect username/password\",\"user\":false}"
+      },
+      "audits": [],
+      "sessions": [
+        {}
+      ],
+      "events": []
+    },
+    "local input acceptance: custom query fields": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: nested body fields": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: nested query fields": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: nested form fields": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: form username and query password": {
+      "result": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "771",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "cookies": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "text": "{\"user\":{\"id\":\"user:pilot-admin\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"<time>\",\"email\":\"pilot-admin@example.invalid\",\"lastLogin\":\"<time>\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"pilot-admin\",\"type\":\"local\",\"updatedAt\":\"<time>\",\"username\":\"pilot-admin\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000013\",\"branding\":\"brand:default\",\"createdAt\":\"<time>\",\"name\":\"Admin\",\"updatedAt\":\"<time>\"}]},\"message\":\"Login OK\",\"url\":\"/portal/default/rdmp/researcher/home\"}"
+      },
+      "audits": [
+        {
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin",
+            "type": "local",
+            "name": "pilot-admin",
+            "email": "pilot-admin@example.invalid",
+            "roles": [
+              {
+                "id": "000000000000000000000013",
+                "brandId": "brand:default",
+                "name": "Admin"
+              }
+            ]
+          },
+          "action": "login",
+          "additionalContext": "{\"brandId\":\"brand:default\"}",
+          "createdAt": "<time>",
+          "updatedAt": "<time>"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "passport": {
+            "user": "user:pilot-admin"
+          },
+          "authenticationVersion": 6
+        }
+      ],
+      "events": []
+    },
+    "local input acceptance: missing credential": {
+      "result": {
+        "status": 400,
+        "headers": {
+          "cache-control": "max-age=31536000, private",
+          "content-length": "38",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "31536000s after Date",
+          "pragma": "no-cache"
+        },
+        "cookies": [],
+        "text": "{\"message\":\"Invalid login parameters\"}"
+      },
+      "audits": [],
+      "sessions": [
+        {}
+      ],
+      "events": []
+    },
+    "local input acceptance: structured credential": {
+      "result": {
+        "status": 400,
+        "headers": {
+          "cache-control": "max-age=31536000, private",
+          "content-length": "38",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "31536000s after Date",
+          "pragma": "no-cache"
+        },
+        "cookies": [],
+        "text": "{\"message\":\"Invalid login parameters\"}"
+      },
+      "audits": [],
+      "sessions": [
+        {}
+      ],
+      "events": []
+    },
+    "local input acceptance: overlong credential": {
+      "result": {
+        "status": 400,
+        "headers": {
+          "cache-control": "max-age=31536000, private",
+          "content-length": "38",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "31536000s after Date",
+          "pragma": "no-cache"
+        },
+        "cookies": [],
+        "text": "{\"message\":\"Invalid login parameters\"}"
+      },
+      "audits": [],
+      "sessions": [
+        {}
+      ],
+      "events": []
+    },
+    "OIDC denial provider denied": {
+      "result": {
+        "result": [
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "0",
+              "expires": "31536000s after Date",
+              "location": "http://fixture/authorize?login_hint=allowed&portal_provider=institution&state=<opaque>&client_id=redbox&response_type=code&code_challenge=<opaque>&code_challenge_method=S256&redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fuser%2Flogin_oidc&scope=openid+profile+email",
+              "pragma": "no-cache"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "location": "http://fixture/portal/user/login_oidc?id=institution&state=<opaque>&error=access_denied",
+              "transfer-encoding": "chunked"
+            },
+            "cookies": [],
+            "text": ""
+          },
+          {
+            "status": 403,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "50",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "0",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"message\":\"Authentication rejected\",\"user\":false}"
+          }
+        ],
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 0,
+          "userinfo": 0,
+          "pkce": 0,
+          "logout": 0
+        },
+        "authenticatedSessionCount": 0,
+        "accountsUnchanged": true
+      },
+      "audits": [],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp"
+        }
+      ],
+      "events": []
+    },
+    "OIDC denial state missing": {
+      "result": {
+        "result": [
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "0",
+              "expires": "31536000s after Date",
+              "location": "http://fixture/authorize?login_hint=allowed&portal_provider=institution&state=<opaque>&client_id=redbox&response_type=code&code_challenge=<opaque>&code_challenge_method=S256&redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fuser%2Flogin_oidc&scope=openid+profile+email",
+              "pragma": "no-cache"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "location": "http://fixture/portal/user/login_oidc?id=institution&state=<opaque>&code=<opaque>",
+              "transfer-encoding": "chunked"
+            },
+            "cookies": [],
+            "text": ""
+          },
+          {
+            "status": 403,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "50",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "0",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"message\":\"Authentication rejected\",\"user\":false}"
+          }
+        ],
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 0,
+          "userinfo": 0,
+          "pkce": 0,
+          "logout": 0
+        },
+        "authenticatedSessionCount": 0,
+        "accountsUnchanged": true
+      },
+      "audits": [],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp"
+        }
+      ],
+      "events": []
+    },
+    "OIDC denial state mismatch": {
+      "result": {
+        "result": [
+          {
+            "status": 302,
+            "headers": {
+              "cache-control": "max-age=31536000, private",
+              "content-length": "0",
+              "expires": "31536000s after Date",
+              "location": "http://fixture/authorize?login_hint=allowed&portal_provider=institution&state=<opaque>&client_id=redbox&response_type=code&code_challenge=<opaque>&code_challenge_method=S256&redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fuser%2Flogin_oidc&scope=openid+profile+email",
+              "pragma": "no-cache"
+            },
+            "cookies": [
+              "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+            ],
+            "text": ""
+          },
+          {
+            "status": 302,
+            "headers": {
+              "location": "http://fixture/portal/user/login_oidc?id=institution&state=<opaque>&code=<opaque>",
+              "transfer-encoding": "chunked"
+            },
+            "cookies": [],
+            "text": ""
+          },
+          {
+            "status": 403,
+            "headers": {
+              "cache-control": "no-cache, private",
+              "content-length": "50",
+              "content-type": "application/json; charset=utf-8",
+              "expires": "0",
+              "pragma": "no-cache"
+            },
+            "cookies": [],
+            "text": "{\"message\":\"Authentication rejected\",\"user\":false}"
+          }
+        ],
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 0,
+          "userinfo": 0,
+          "pkce": 0,
+          "logout": 0
+        },
+        "authenticatedSessionCount": 0,
+        "accountsUnchanged": true
+      },
+      "audits": [],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp"
+        }
+      ],
+      "events": []
+    }
+  }
+}

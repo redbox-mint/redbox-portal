@@ -1,3 +1,4 @@
+import { registerAuthorizationPortal } from './authorizationRequests';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,13 +7,13 @@ import { createHash } from 'node:crypto';
 import { MongoClient } from 'mongodb';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { createPortalFastifyApplication, createPortalFastifyHost } from '../../../src/application/portal';
-import { createPortalHost } from '../../../src/application/portal/host';
+
 import { prepareSelectedPersistenceIndexes } from '../../../src/persistence/maintenance';
 import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
 import { initializeBrandingPersistence, getBrandingRepository } from '../../../src/persistence/branding/runtime';
 import { initializeIdentityPersistence, getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { initializeReferencePersistence, getReferenceRepositories } from '../../../src/persistence/reference/runtime';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
@@ -20,7 +21,6 @@ import type { PoliciesConfig } from '../../../src/config/policies.config';
 import { requestContext } from '../../../src/http/context';
 import { requestPathname } from '../../../src/http/fastify/router';
 import { assertOwnedHttpClosed } from './ownedCleanup';
-
 let counter = 0;
 export const referenceOrigin = 'https://portal.example.invalid';
 /** Real production application, resolved installation and host. Only disposable
@@ -48,9 +48,9 @@ export async function referenceProductionFixture(
     readonly artifacts?: (directory: string, providerDirectory: string) => Promise<void>;
     /** Installed API2 provider hooks; no alternate host/controller composition. */
     readonly hooksModule?: string;
+    readonly bindings?: import('../../../src/application/portal/application').PortalApplicationOptions['bindings'];
     readonly httpBindings?: import('../../../src/application/portal/installation').PortalFastifySelection['bindings'];
     readonly actions?: Readonly<Record<string, import('../../../src/http/actions/configuredActions').ConfiguredAction>>;
-    readonly bindings?: import('../../../src/application/portal/application').LegacyPortalApplicationOptions['bindings'];
   }
 ) {
   assert(
@@ -93,7 +93,7 @@ export async function referenceProductionFixture(
       'const storage=require(' +
         JSON.stringify(storageEntry) +
         ');\nexports.inspectPrismaStagedStorage=storage.inspectPrismaStagedStorage; exports.ensurePrismaStagedStorageIndexes=storage.ensurePrismaStagedStorageIndexes;\nexports.registerRedboxExtension=()=>({...storage.registerRedboxExtension(),apiVersion:' +
-        (nativeHost ? '2' : '1') +
+        '2' +
         (nativeHost && scope?.hooksModule
           ? ',hooks:require(' + JSON.stringify(scope.hooksModule) + ').replacementHooks'
           : '') +
@@ -190,19 +190,17 @@ export async function referenceProductionFixture(
       log: scope?.log ?? nothingLogger,
       localesDirectory: path.join(directory, 'locales'),
     };
-    const portal = nativeHost
-      ? await createPortalFastifyApplication({
-          ...options,
-          http: {
-            declarations: scope?.declarations ?? referenceReadDeclarations,
-            pages: scope?.pages,
-            policyConfiguration,
-            actions: scope?.actions,
-            portals: scope?.portals ?? ['rdmp'],
-            bindings: scope?.httpBindings,
-          },
-        })
-      : await createPortalHost({ ...options, ...scope?.pages, policyConfiguration, portals: ['rdmp'] });
+    const portal = await createPortalFastifyApplication({
+      ...options,
+      http: {
+        declarations: scope?.declarations ?? referenceReadDeclarations,
+        pages: scope?.pages,
+        policyConfiguration,
+        actions: scope?.actions,
+        portals: scope?.portals ?? ['rdmp'],
+        bindings: scope?.httpBindings,
+      },
+    });
     const { owner, data } = portal;
     stop = () => portal.application.stop();
     await prepareSelectedPersistenceIndexes(owner, 'ensure', {
@@ -278,67 +276,70 @@ export async function referenceProductionFixture(
       },
     });
     let host;
-    if (nativeHost) {
+    {
       const identity = new HttpIdentity(identities);
-      const plan = await (scope?.hostFactory ?? createPortalFastifyHost)(portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>, {
-        prepare: undefined,
-        authentication: () => ({
-          identity,
-          accounts: data.accounts.get(),
-          config: scope?.pages
-            ? data.reference.appConfigs.get().getAppConfigurationForBrand('default').auth
-            : { active: ['local'] },
-          brand: () => data.reference.branding.get().getBrand('default'),
-        }),
-        login: {
-          credentialFields: ['username', 'password'],
-          validContext: (b, p) => (b === 'default' || b === 'other') && p === 'rdmp',
-          brandId: name => (name === 'other' ? otherBrand.id : brand.id),
-          postLoginPath: (brand, selectedPortal) =>
-            scope?.pages
-              ? portal.config.server.rootContext +
-                '/' +
-                brand +
-                '/' +
-                selectedPortal +
-                '/' +
-                (
-                  data.reference.appConfigs.get().getAppConfigurationForBrand(brand).auth?.local?.postLoginRedir ??
-                  portal.config.brandingConfigurationDefaults.auth.local?.postLoginRedir ??
-                  'home'
-                ).replace(/^\//, '')
-              : portal.config.server.rootContext + '/default/rdmp/home',
-          audit: async (action, actor) => {
-            await data.users.get().addUserAuditEvent({ ...actor }, action, { brandId: brand.id });
+      const plan = await (scope?.hostFactory ?? createPortalFastifyHost)(
+        portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>,
+        {
+          prepare: undefined,
+          authentication: () => ({
+            identity,
+            accounts: data.accounts.get(),
+            config: scope?.pages
+              ? data.reference.appConfigs.get().getAppConfigurationForBrand('default').auth
+              : { active: ['local'] },
+            brand: () => data.reference.branding.get().getBrand('default'),
+          }),
+          login: {
+            credentialFields: ['username', 'password'],
+            validContext: (b, p) => (b === 'default' || b === 'other') && p === 'rdmp',
+            brandId: name => (name === 'other' ? otherBrand.id : brand.id),
+            postLoginPath: (brand, selectedPortal) =>
+              scope?.pages
+                ? portal.config.server.rootContext +
+                  '/' +
+                  brand +
+                  '/' +
+                  selectedPortal +
+                  '/' +
+                  (
+                    data.reference.appConfigs.get().getAppConfigurationForBrand(brand).auth?.local?.postLoginRedir ??
+                    portal.config.brandingConfigurationDefaults.auth.local?.postLoginRedir ??
+                    'home'
+                  ).replace(/^\//, '')
+                : portal.config.server.rootContext + '/default/rdmp/home',
+            audit: async (action, actor) => {
+              await data.users.get().addUserAuditEvent({ ...actor }, action, { brandId: brand.id });
+            },
+            loginFailure: async () => {},
           },
-          loginFailure: async () => {},
-        },
-        policies: {
-          branding,
-          pathRules: data.reference.pathRules,
-          defaultUnauthenticatedRole: () => undefined,
-          emitRequestFailure: async (request, eventType, source) => {
-            const context = requestContext(request);
-            await portal.providers.security.get().emitSecurityEvent({
-              brandId: context.brand.id,
-              portalId: context.portal,
-              eventType,
-              source,
-              category: 'authorization',
-              requestContext: {
-                method: request.method,
-                path: (requestPathname(request.raw.url ?? '/') ?? '/').slice(portal.config.server.rootContext.length),
-              },
-            });
+          policies: {
+            branding,
+            pathRules: data.reference.pathRules,
+            defaultUnauthenticatedRole: () => undefined,
+            emitRequestFailure: async (request, eventType, source) => {
+              const context = requestContext(request);
+              await portal.providers.security.get().emitSecurityEvent({
+                brandId: context.brand.id,
+                portalId: context.portal,
+                eventType,
+                source,
+                category: 'authorization',
+                requestContext: {
+                  method: request.method,
+                  path: (requestPathname(request.raw.url ?? '/') ?? '/').slice(portal.config.server.rootContext.length),
+                },
+              });
+            },
           },
-        },
-      });
+        }
+      );
       assert.strictEqual(
         plan.resolved,
         (portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>).installation
       );
       host = plan.host;
-    } else host = (portal as Awaited<ReturnType<typeof createPortalHost>>).host;
+    }
     stop = () => host.stop();
     const restore = beforePrepare?.();
     try {
@@ -370,6 +371,11 @@ export async function referenceProductionFixture(
       },
       'dataRecord'
     );
+    const unregister = registerAuthorizationPortal(
+      host.address()!.port,
+      portal.config.server.rootContext,
+      scope?.declarations
+    );
     return {
       applicationOptions: options,
       portal,
@@ -382,7 +388,8 @@ export async function referenceProductionFixture(
       url: 'http://127.0.0.1:' + host.address()!.port + portal.config.server.rootContext,
       close: async () => {
         await host.stop();
-        if (nativeHost) {
+        unregister();
+        {
           await assertOwnedHttpClosed(host, owner);
           const raw = (portal as Awaited<ReturnType<typeof createPortalFastifyApplication>>).installation.raw;
           if (raw?.multipart) {

@@ -7,7 +7,7 @@ import { AgendaQueueUnsupportedFeatureError, AgendaQueue } from '../../src/servi
 import { parseAgendaHistoryRetentionHours, parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
 import { restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 import { createServer } from 'node:http';
-import { runHttpRequestHandler, registerHttpRequestDrain, beginHttpRequest, runHttpRequestContext } from '../../src/middleware/requestLifetime';
+import { registerHttpRequestDrain, beginHttpRequest, runHttpRequestContext } from '../../src/middleware/requestLifetime';
 import { EventEmitter } from 'node:events';
 import { toJobId } from 'agenda';
 
@@ -714,7 +714,7 @@ describe('AgendaQueueService', function () {
     const other = createDomainFixture();
     const request = {};
     const response = Object.assign(new EventEmitter(), { end() {} });
-    beginHttpRequest(request, response as unknown as import('express').Response, () => {}, other);
+    beginHttpRequest(request, response as unknown as import('node:http').ServerResponse, () => {}, other);
     const shutdown = stopOwner(app);
     environment = other;
     try {

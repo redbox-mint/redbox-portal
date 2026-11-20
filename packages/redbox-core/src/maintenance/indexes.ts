@@ -1,7 +1,7 @@
 import { agendaQueueDefaultJobs } from '../config/agendaQueueJobs';
 import { agendaQueueDefaultOptions } from '../config/agendaQueueDefaults';
 import type { StorageIndexPreparation } from '../persistence/maintenance';
-import { resolveExtensions } from '../extensions/resolution';
+import { resolveExtensionData } from '../extensions/resolution';
 import { loadInstalledExtensionProvidersV2 } from '../extensions/v2';
 import {
   loadStartupConfiguration,
@@ -36,10 +36,7 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
     return {
       ...provider,
       declaration: {
-        // The shared data resolver consumes an internal API1-shaped projection.
-        // HTTP declarations never enter it: API2 discovery above validates the
-        // installed contract without constructing a host or controller plan.
-        apiVersion: 1 as const,
+        // Operational data only; API2 discovery validates the installed contract.
         jobs: provider.declaration.jobs,
         // Select storage ownership without composing offline portal factories.
         // Their core prerequisites and named core replacements belong to startup.
@@ -52,7 +49,7 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
       },
     };
   });
-  const resolved = resolveExtensions(providers, installed.hookLoadPriority);
+  const resolved = resolveExtensionData(providers, installed.hookLoadPriority);
   const storage = resolved.modules.find(item => item.declaration.name === 'storage');
   if (storage?.provider !== '@researchdatabox/sails-hook-redbox-storage-mongo')
     throw new Error(

@@ -5,7 +5,7 @@ import type { ResolvedHttpRoute, RouteComposition, RouteGuards, RouteBinding } f
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { requestContext } from '../context';
-import { nativeActionReply } from './actionReply';
+import { nativeJsonOutput } from './jsonOutput';
 import { httpReplySubmitted } from './errorBoundary';
 import { validateRouteRequest, resolvedRequestContract } from './validation';
 import {
@@ -16,7 +16,7 @@ import {
   rejectDatastreamUpload,
   type DatastreamUploadInput,
 } from '../actions/datastreamUpload';
-import type { StreamingMultipart } from '../express/multipart';
+import type { StreamingMultipart } from '../integrations/multipart';
 
 export interface DatastreamUploadBoundaryInput extends DatastreamUploadInput {
   readonly multipart: StreamingMultipart;
@@ -42,7 +42,7 @@ export function createDatastreamUploadBoundary(input: () => DatastreamUploadBoun
     } catch (error) {
       // A submitted response's onSend owns its cleanup failure representation.
       if (!httpReplySubmitted(reply))
-        rejectDatastreamUpload(input(), actionRequest(request), nativeActionReply(reply), error);
+        rejectDatastreamUpload(input(), actionRequest(request), nativeJsonOutput(reply), error);
     }
   }
   return {
@@ -50,7 +50,7 @@ export function createDatastreamUploadBoundary(input: () => DatastreamUploadBoun
     async prelude(request: FastifyRequest, reply: FastifyReply) {
       const ports = input(),
         req = actionRequest(request),
-        res = nativeActionReply(reply);
+        res = nativeJsonOutput(reply);
       try {
         const identity = datastreamUploadActorPrelude(req, res);
         if (!identity) return;
@@ -77,7 +77,7 @@ export function createDatastreamUploadBoundary(input: () => DatastreamUploadBoun
       try {
         await finishMultipart(request);
       } catch (error) {
-        const output = nativeActionReply(reply, bytes => {
+        const output = nativeJsonOutput(reply, bytes => {
           payload = bytes;
         });
         rejectDatastreamUpload(input(), actionRequest(request), output, error);

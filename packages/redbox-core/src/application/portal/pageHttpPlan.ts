@@ -1,3 +1,4 @@
+import { sendAssetFile } from '../../http/fastify/assets';
 import { BrandingDelivery } from '../../pages/brandingDelivery';
 import { Services as Logos } from '../../branding/BrandingLogo';
 import { Services as Templates } from '../../pages/Templates';
@@ -118,11 +119,10 @@ export class PortalPages implements ApplicationModule {
       log,
       staticAssets: config.static_assets,
       apiConfiguration: config,
-      sendAsset: async (response, name) => {
+      sendAsset: async (request, response, name) => {
         const file = this.artifacts.find(this.artifacts.assets, name);
-        if (!file) return response.status(404).end();
-        // Native response carries only the declared file operation, never paths to callers.
-        return response.file!(file);
+        if (!file) return response.code(404).send();
+        return sendAssetFile(request, response, file);
       },
     });
     this.dynamic = {

@@ -1,4 +1,8 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
+import { mutationWitnessCases } from './mutationWitnessSelection';
 import { request } from 'node:http';
 import { writeFile } from 'node:fs/promises';
 import sinon from 'sinon';
@@ -6,13 +10,16 @@ import { of, throwError } from 'rxjs';
 import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
 import { coreRouteName } from '../../../src/http/fastify/routes';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedReferenceExpress } from './retainedReferenceExpress';
+
 import { getConfigurationRepositories } from '../../../src/persistence/configuration/runtime';
 import { Services as Dashboard } from '../../../src/dashboards/DashboardConfig';
-
 type Fixture = Awaited<ReturnType<typeof referenceProductionFixture>>;
 type Route = (typeof referenceReadDeclarations)[number];
-type Wire = { status: number; headers: Record<string, unknown>; text: string };
+type Wire = {
+  status: number;
+  headers: Record<string, unknown>;
+  text: string;
+};
 type Scenario = {
   name: string;
   method?: string;
@@ -150,7 +157,7 @@ const versionScenarios: Scenario[] = [...versionContexts, ...precedenceContexts]
     ];
   })
 );
-const modes = ['retained', 'express', 'fastify'] as const;
+const modes = ['fastify'] as const;
 const serializationCalls = new Map<string, number[]>();
 const snapshots = new Map<string, (Wire | undefined)[]>();
 const failures = new Map<string, string>();
@@ -387,21 +394,19 @@ async function session(f: Fixture) {
   assert.equal(login.status, 302, login.text);
   return String((login.headers['set-cookie'] as string[])[0]).split(';')[0];
 }
+const referenceSuiteTitle = 'FM-023 production reference reads, retained Express / shared Express / Fastify raw HTTP';
+const referenceCaseTitle = (route: Route, scenario: Scenario) =>
+  `${route.controller}.${route.action} ${route.path} ${scenario.name}`;
 
-describe('FM-023 production reference reads, retained Express / shared Express / Fastify raw HTTP', function () {
+describe(referenceSuiteTitle, function () {
   this.timeout(900000);
   before(async () => {
-    const retained = await retainedReferenceExpress();
     try {
       for (const mode of modes) {
-        const f = await referenceProductionFixture(
-          mode === 'fastify',
-          undefined,
-          mode === 'retained' ? retained.install : undefined
-        );
+        const f = await referenceProductionFixture(mode === 'fastify', undefined, undefined);
         try {
           const cookie = await session(f);
-          if (mode === 'fastify') {
+          {
             const installation = (
               f.portal as Awaited<
                 ReturnType<typeof import('../../../src/application/portal').createPortalFastifyApplication>
@@ -416,8 +421,13 @@ describe('FM-023 production reference reads, retained Express / shared Express /
               assert.equal(bindings[0].declaration.action, route.action);
             }
           }
-          for (const route of referenceReadDeclarations)
-            for (const scenario of scenariosFor(route)) {
+          for (const route of referenceReadDeclarations) {
+            const all = scenariosFor(route);
+            const selected = mutationWitnessCases(referenceSuiteTitle, all, scenario =>
+              referenceCaseTitle(route, scenario)
+            );
+            const controls = new Set(selected.map(scenario => scenario.safeControl));
+            for (const scenario of all.filter(scenario => selected.includes(scenario) || controls.has(scenario.name))) {
               const configurations = getConfigurationRepositories(f.owner).appConfigs;
               if (scenario.variant === 'override')
                 await configurations.createConfiguration({
@@ -465,7 +475,9 @@ describe('FM-023 production reference reads, retained Express / shared Express /
                 };
                 const value = await normalized(
                   f,
-                  await wire(f.url + target(route, scenario), scenario.method ?? 'GET', headers, scenario.raw)
+                  await authorizationWitness(`${referenceSuiteTitle} ${referenceCaseTitle(route, scenario)}`, () =>
+                    wire(f.url + target(route, scenario), scenario.method ?? 'GET', headers, scenario.raw)
+                  )
                 );
                 const id = key(route, scenario);
                 if (scenario.variant?.startsWith('serialize-'))
@@ -481,12 +493,12 @@ describe('FM-023 production reference reads, retained Express / shared Express /
                   await configurations.removeForBrandAndKey(f.brand.id, 'systemMessage');
               }
             }
+          }
         } finally {
           await f.close();
         }
       }
     } finally {
-      await retained.close();
     }
   });
   after(async () => {
@@ -507,55 +519,41 @@ describe('FM-023 production reference reads, retained Express / shared Express /
   });
   for (const route of referenceReadDeclarations)
     for (const scenario of scenariosFor(route))
-      it(`${route.controller}.${route.action} ${route.path} ${scenario.name}`, () => {
+      it(referenceCaseTitle(route, scenario), () => {
         const values = snapshots.get(key(route, scenario));
-        assert(values?.[2], JSON.stringify(modes.map(mode => [mode, failures.get(mode + ':' + key(route, scenario))])));
-        if (!values[0]) {
-          // ACCEPTED-NESTED-INPUT-SAFE-RESPONSE: retain the raw abort, then require
-          // the entire intended safe response from an otherwise identical request.
-          assert(scenario.safeControl && scenario.query?.includes('[toString]'));
-          assert.match(failures.get('retained:' + key(route, scenario)) ?? '', /ECONNRESET|socket hang up|aborted/);
+        assert(values?.[0], JSON.stringify(modes.map(mode => [mode, failures.get(mode + ':' + key(route, scenario))])));
+        assertProductionContract('reference', key(route, scenario), values[0]);
+        if (scenario.safeControl && scenario.query?.includes('[toString]')) {
           const control = snapshots.get(key(route, { name: scenario.safeControl }));
-          assert(control?.[0] && control[1] && control[2]);
-          assert.deepEqual(control[1], control[0]);
-          assert.deepEqual(control[2], control[0]);
-          if (values[1])
-            assert.deepEqual(values[1], control[0], 'shared Express must preserve the intended safe response');
-          else {
-            // The preceding Express parser still aborts before any extracted action.
-            assert.equal(scenario.raw, '{');
-            assert.match(failures.get('express:' + key(route, scenario)) ?? '', /ECONNRESET|socket hang up|aborted/);
-          }
-          assert.deepEqual(values[2], control[0], 'Fastify must preserve the intended safe response');
-        } else {
-          assert(values[1]);
-          assert.deepEqual(values[1], values[0], 'shared Express differs from retained production');
-          assert.deepEqual(values[2], values[0], 'Fastify differs from retained production');
+          assert(control?.[0]);
+          assert.deepEqual(values[0], control[0], 'Structured version input keeps the safe default');
         }
         if (scenario.name.startsWith('conditional-GET-') || scenario.name.startsWith('conditional-HEAD-')) {
           const success = route.action !== 'retiredOperation';
-          assert.equal(values[2].status, success && scenario.name.endsWith('etag-match') ? 304 : success ? 200 : 410);
-          if (values[2].status === 304) {
-            assert.equal(values[2].text, '');
+          assert.equal(values[0].status, success && scenario.name.endsWith('etag-match') ? 304 : success ? 200 : 410);
+          if (values[0].status === 304) {
+            assert.equal(values[0].text, '');
             for (const header of ['content-type', 'content-length', 'transfer-encoding'])
-              assert.equal(values[2].headers[header], undefined);
+              assert.equal(values[0].headers[header], undefined);
           }
-          if (scenario.method === 'HEAD') assert.equal(values[2].text, '');
+          if (scenario.method === 'HEAD') assert.equal(values[0].text, '');
         }
-        if (scenario.safeControl) assert(!/Cannot convert|TypeError|secret|stack/.test(values[2].text));
+        if (scenario.safeControl) assert(!/Cannot convert|TypeError|secret|stack/.test(values[0].text));
         if (scenario.name === 'v1')
-          assert.equal(values[2].status, route.action === 'retiredOperation' ? 410 : 200, values[2].text);
-        if (scenario.name.startsWith('domain-failure')) assert(!values[2].text.includes('secret datastore diagnostic'));
+          assert.equal(values[0].status, route.action === 'retiredOperation' ? 410 : 200, values[0].text);
+        if (scenario.name.startsWith('domain-failure')) assert(!values[0].text.includes('secret datastore diagnostic'));
         if (scenario.variant?.startsWith('serialize-'))
-          assert.deepEqual(serializationCalls.get(key(route, scenario)), [1, 1, 1]);
+          assert.deepEqual(serializationCalls.get(key(route, scenario)), [1]);
         if (scenario.variant === 'serialize-failure') {
-          assert.equal(values[2].status, 500);
-          assert(!values[2].text.includes('secret serializer diagnostic'));
+          assert.equal(values[0].status, 500);
+          assert(!values[0].text.includes('secret serializer diagnostic'));
         }
         if (scenario.variant === 'override') {
-          assert.equal(values[2].headers['x-redbox-config-source'], 'override');
-          assert(values[2].text.includes('Persisted override'));
+          assert.equal(values[0].headers['x-redbox-config-source'], 'override');
+          assert(values[0].text.includes('Persisted override'));
         }
-        if (scenario.name === 'malformed-json-before-auth') assert.equal(values[2].status, 400);
+        if (scenario.name === 'malformed-json-before-auth') assert.equal(values[0].status, 400);
       });
 });
+
+goldenControls('reference');

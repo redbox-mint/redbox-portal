@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { HttpFailure, safeHttpErrorStatus } from '../../../src/http/fastify/errorBoundary';
-import { pagePreparationFailure, nativePageRequest } from '../../../src/http/fastify/pages';
+import { pagePreparationFailure, nativePageRenderingFacts } from '../../../src/http/fastify/pages';
 import { resolveRequestBrand } from '../../../src/http/context';
 import type { PageRenderingInput } from '../../../src/pages/rendering';
 import { applyPageHeaders } from '../../../src/pages/headers';
@@ -30,12 +30,12 @@ describe('FM-029 shared page boundaries', () => {
     request.params = { branding: 'default', portal: 'rdmp', recordType: 'hook-type' };
     request.query = { lng: 'fr' };
     request.body = { oid: 'hook-oid' };
-    const facts = nativePageRequest(request, { rootContext: '/portal' } as PageRenderingInput, () => 'csrf');
-    assert.strictEqual(facts.params, request.params);
-    assert.strictEqual(facts.query, request.query);
-    assert.strictEqual(facts.body, request.body);
-    assert.equal(facts.url, '/default/rdmp/home?old=value');
-    assert.equal(facts.originalUrl, '/portal/default/rdmp/home?old=value');
+    const facts = nativePageRenderingFacts(request, { rootContext: '/portal' } as PageRenderingInput, () => 'csrf');
+    assert.strictEqual(facts.routeParameters, request.params);
+    assert.strictEqual(facts.queryValues, request.query);
+    assert.strictEqual(facts.bodyValues, request.body);
+    assert.equal(facts.relativeTarget, '/default/rdmp/home?old=value');
+    assert.equal(facts.requestTarget, '/portal/default/rdmp/home?old=value');
     assert.equal(facts.context.brand.id, 'brand');
     assert(facts.acceptsHtml());
   });

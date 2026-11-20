@@ -14,7 +14,6 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
 | `cd packages/redbox-core && npm test` | Package Unit | Runs core domain, native Fastify HTTP, contract and tooling tests. |
-| `cd packages/redbox-core && npm run test:legacy-express:core` | Retained adapter baseline | Explicit Express/API1 implementation tests, excluded from default core and CI; removed in FM-043. |
 | `cd packages/redbox-core && npm run test:http-notifications:mongo` | Mongo Integration | Verifies released-v5 notification conversion and delivery against a disposable Mongo fixture; requires `HTTP_PILOT_TEST_MONGO_URL` ending in `/sr_p4_http`. |
 
 ## Running Tests
@@ -183,24 +182,15 @@ collection and assertions remain unchanged. PDF integration/development profiles
 load explicit fixture configuration and the locally built `rehearsal` image;
 they prepare disposable indexes before starting the default Fastify executable.
 
-Historical pre-cutover qualification below requires explicit `RBPORTAL_PLAYWRIGHT_HOST=express`.
+The pre-cutover Express qualification below is archived evidence. FM-043 removed
+the legacy selector and commands; current runs use Fastify.
 Current generated/installed qualification uses `npm run test:packed:fastify`.
-A freshly generated hook was also exercised in the retained portal composition
-by `packages/redbox-core/test/qualification/generated-institution.cjs`. Run it
-inside the clean test image with a real disposable
-`SR_GENERATED_APP_MONGO_URL` ending in `/sr_p8_generated_institution` and a running
-Solr selected by `SR_PORTAL_SOLR_PORT`:
-
-```sh
-node --test --test-force-exit packages/redbox-core/test/qualification/generated-institution.cjs
-```
-
-The check compiles/packs the generated hook, binds concrete module/HTTP/repository
-operations, verifies persisted migration/bootstrap writes, serves its public route,
-then restarts and checks drain/zero pools. The force-exit flag matches the other
-production-host qualifiers because the accepted Companion cleanup cron has process
-lifetime; owned stop assertions still run and must pass. It uses a synthetic
-institution application and does not fill the representative-institution gap.
+The packed flow generates a v6 hook and public controller with the installed
+CLI, strictly compiles and packs it, installs it into a second isolated consumer,
+and exercises production composition, persisted writes, restart and owned drain.
+This synthetic consumer does not fill the representative-institution acceptance
+gap. Earlier generated-institution CJS probes belong to the archived retirement
+evidence and were removed with the first-party Express host in FM-043.
 
 The development `test` Docker target reuses the builder's complete toolchain and
 dependency layers and runs the existing mounted CI workflows as root. It is not a

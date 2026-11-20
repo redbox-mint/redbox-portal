@@ -1,15 +1,5 @@
-/** Representation operations borrowed from the selected transport; no framework objects. */
-export interface AssetResponse {
-  set(name: string, value: string): AssetResponse;
-  removeHeader(name: string): unknown;
-  status(code: number): AssetResponse;
-  contentType(type: string): AssetResponse;
-  type(type: string): AssetResponse;
-  send(body: string | Buffer): unknown;
-  json(body: unknown): unknown;
-  end(): unknown;
-  file?(filename: string): Promise<unknown>;
-}
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { sendAssetBytes, assetMediaType } from '../http/fastify/assets';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { BrandingRepository } from '../persistence/branding/BrandingRepository';
 import type { Services as Branding } from '../branding/Branding';
@@ -22,15 +12,11 @@ import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../api-r
 import { BrandingDeliveryCache } from '../http/brandingDeliveryCache';
 const CleanCSS = require('clean-css');
 const yaml = require('js-yaml');
-export interface DeliveryRequest {
-  method?: string;
-  headers: Record<string, unknown>;
-  params?: Record<string, unknown>;
-  query?: Record<string, unknown>;
-  body?: Record<string, unknown>;
-}
-const parameter = (req: DeliveryRequest, name: string): string | undefined => {
-  const value = req.params?.[name] ?? req.body?.[name] ?? req.query?.[name];
+const parameter = (req: FastifyRequest, name: string): string | undefined => {
+  const value =
+    (req.params as Record<string, unknown>)?.[name] ??
+    (req.body as Record<string, unknown>)?.[name] ??
+    (req.query as Record<string, unknown>)?.[name];
   return typeof value === 'string' ? value : undefined;
 };
 export interface BrandingDeliveryInput {
@@ -43,7 +29,7 @@ export interface BrandingDeliveryInput {
   branding: Pick<Branding.Branding, 'fetchPreview'>;
   log: ILogger;
   staticAssets: StaticAssetsConfig;
-  sendAsset(res: AssetResponse, name: string): unknown;
+  sendAsset(req: FastifyRequest, res: FastifyReply, name: string): unknown;
 }
 export class BrandingDelivery {
   constructor(private readonly input: BrandingDeliveryInput) {
@@ -115,7 +101,7 @@ export class BrandingDelivery {
    * Layouts emit this form so a republish (new hash, new URL) applies
    * immediately instead of waiting out the unversioned browser cache.
    */
-  private requestMatchesPublicationHash(req: DeliveryRequest, brand: { hash?: unknown } | null): boolean {
+  private requestMatchesPublicationHash(req: FastifyRequest, brand: { hash?: unknown } | null): boolean {
     const version = parameter(req, 'v');
     return Boolean(version) && version === brand?.hash;
   }
@@ -178,11 +164,11 @@ export class BrandingDelivery {
     }
   }
 
-  public async renderCss(req: DeliveryRequest, res: AssetResponse) {
+  public async renderCss(req: FastifyRequest, res: FastifyReply) {
     try {
       const branding = parameter(req, 'branding');
       const brand = await this.input.repository().getBrand({ name: branding ?? '' });
-      res.set('Content-Type', 'text/css');
+      assetMediaType(res, 'text/css');
       const defaultCss = !brand || !brand.css ? this.input.theme.generate({}) : undefined;
       const sourceCss = defaultCss ? defaultCss.css : brand!.css!;
       const cacheKey = defaultCss
@@ -199,54 +185,57 @@ export class BrandingDelivery {
         cached = { css, etag };
       }
       const { css: minifiedCss, etag } = cached;
-      res.set('ETag', etag);
+      res.header('ETag', etag);
       if (req.headers['if-none-match'] === etag) {
-        return res.status(304).end();
+        return res.code(304).send();
       }
       const immutable = !defaultCss && this.requestMatchesPublicationHash(req, brand);
-      res.set('Cache-Control', immutable ? this.getVersionedCssCacheControlHeader() : this.getCssCacheControlHeader());
+      res.header(
+        'Cache-Control',
+        immutable ? this.getVersionedCssCacheControlHeader() : this.getCssCacheControlHeader()
+      );
       res.removeHeader('Pragma');
-      res.set('Expires', new Date(Date.now() + (immutable ? 31536000 : 300) * 1000).toUTCString());
-      return res.send(minifiedCss);
+      res.header('Expires', new Date(Date.now() + (immutable ? 31536000 : 300) * 1000).toUTCString());
+      return sendAssetBytes(req, res, minifiedCss);
     } catch {
       this.input.log.error('Error serving CSS');
-      return res.status(500).send('/* error serving theme */');
+      return sendAssetBytes(req, res.code(500), '/* error serving theme */');
     }
   }
 
-  public async renderPreviewCss(req: DeliveryRequest, res: AssetResponse) {
+  public async renderPreviewCss(req: FastifyRequest, res: FastifyReply) {
     try {
       const token = parameter(req, 'token');
       if (!token) {
-        return res.status(404).send('/* preview token missing */');
+        return sendAssetBytes(req, res.code(404), '/* preview token missing */');
       }
 
       // Validate token format (e.g., alphanumeric, reasonable length)
       if (!/^[a-zA-Z0-9_-]{1,128}$/.test(token)) {
-        return res.status(400).send('/* invalid preview token */');
+        return sendAssetBytes(req, res.code(400), '/* invalid preview token */');
       }
 
       const data = await this.input.branding.fetchPreview(token);
-      res.set('Content-Type', 'text/css');
-      res.set('Cache-Control', 'no-cache, no-store');
+      assetMediaType(res, 'text/css');
+      res.header('Cache-Control', 'no-cache, no-store');
       // Short weak etag for preview hash
       const hash = data.hash || crypto.createHash('sha256').update(data.css).digest('hex');
       const etag = this.generateETag(hash, 'preview-');
-      res.set('ETag', etag);
-      if (req.headers['if-none-match'] === etag) return res.status(304).end();
-      return res.send(data.css);
+      res.header('ETag', etag);
+      if (req.headers['if-none-match'] === etag) return res.code(304).send();
+      return sendAssetBytes(req, res, data.css);
     } catch (_e) {
-      return res.status(404).send('/* preview not found */');
+      return sendAssetBytes(req, res.code(404), '/* preview not found */');
     }
   }
 
-  public async renderFont(req: DeliveryRequest, res: AssetResponse) {
+  public async renderFont(req: FastifyRequest, res: FastifyReply) {
     const notFound = () => {
-      res.set('Cache-Control', 'no-store');
+      res.header('Cache-Control', 'no-store');
       res.removeHeader('ETag');
       res.removeHeader('Content-Length');
-      res.set('Content-Type', 'text/plain');
-      return res.status(404).send('/* font not found */');
+      res.header('Content-Type', 'text/plain');
+      return sendAssetBytes(req, res.code(404), '/* font not found */');
     };
     try {
       const branding = parameter(req, 'branding');
@@ -279,27 +268,29 @@ export class BrandingDelivery {
         }
         this.setCachedFontResponse(cacheKey, buf);
       }
-      res.set('ETag', etag);
+      res.header('ETag', etag);
       if (req.headers['if-none-match'] === etag) {
-        return res.status(304).end();
+        return res.code(304).send();
       }
-      res.set('Content-Type', 'font/woff2');
-      res.set('Cache-Control', 'public, max-age=31536000, immutable');
-      res.set('X-Content-Type-Options', 'nosniff');
-      res.set('Content-Length', String(buf.length));
+      res.header('Content-Type', 'font/woff2');
+      res.header('Cache-Control', 'public, max-age=31536000, immutable');
+      res.header('X-Content-Type-Options', 'nosniff');
+      res.header('Content-Length', String(buf.length));
       if (req.method === 'HEAD') {
-        return res.status(200).end();
+        return res.code(200).send();
       }
-      return res.send(buf);
+      return sendAssetBytes(req, res, buf);
     } catch {
       this.input.log.error('Error serving font');
       return notFound();
     }
   }
 
-  public renderApiB(req: DeliveryRequest, res: AssetResponse) {
-    res.contentType('text/plain');
-    return res.send(
+  public renderApiB(req: FastifyRequest, res: FastifyReply) {
+    assetMediaType(res, 'text/plain');
+    return sendAssetBytes(
+      req,
+      res,
       buildMergedApiBlueprint(
         {
           branding: parameter(req, 'branding') as string | undefined,
@@ -310,9 +301,11 @@ export class BrandingDelivery {
     );
   }
 
-  public renderSwaggerJSON(req: DeliveryRequest, res: AssetResponse) {
-    res.contentType('application/json');
-    return res.send(
+  public renderSwaggerJSON(req: FastifyRequest, res: FastifyReply) {
+    assetMediaType(res, 'application/json');
+    return sendAssetBytes(
+      req,
+      res,
       JSON.stringify(
         buildMergedApiOpenApiDocument(
           {
@@ -327,9 +320,11 @@ export class BrandingDelivery {
     );
   }
 
-  public renderSwaggerYAML(req: DeliveryRequest, res: AssetResponse) {
-    res.contentType('application/x-yaml');
-    return res.send(
+  public renderSwaggerYAML(req: FastifyRequest, res: FastifyReply) {
+    assetMediaType(res, 'application/x-yaml');
+    return sendAssetBytes(
+      req,
+      res,
       yaml.dump(
         buildMergedApiOpenApiDocument(
           {
@@ -343,7 +338,7 @@ export class BrandingDelivery {
     );
   }
 
-  public async renderImage(req: DeliveryRequest, res: AssetResponse) {
+  public async renderImage(req: FastifyRequest, res: FastifyReply) {
     try {
       const branding = parameter(req, 'branding');
       const brand = await this.input.repository().getBrand({ name: branding ?? '' });
@@ -356,34 +351,34 @@ export class BrandingDelivery {
             : null;
       if (!brand || !logo || !storageId) {
         // fallback to static
-        res.contentType(this.input.staticAssets.imageType);
-        return this.input.sendAsset(res, 'images/' + this.input.staticAssets.logoName);
+        assetMediaType(res, this.input.staticAssets.imageType);
+        return this.input.sendAsset(req, res, 'images/' + this.input.staticAssets.logoName);
       }
       const expectedSha256 = typeof logo.sha256 === 'string' ? logo.sha256 : undefined;
       const buf = await this.input.logos.getBinaryAsync(storageId, expectedSha256);
 
       if (!buf) {
-        res.contentType(this.input.staticAssets.imageType);
-        return this.input.sendAsset(res, 'images/' + this.input.staticAssets.logoName);
+        assetMediaType(res, this.input.staticAssets.imageType);
+        return this.input.sendAsset(req, res, 'images/' + this.input.staticAssets.logoName);
       }
-      res.contentType((logo.contentType as string) || this.input.staticAssets.imageType);
+      assetMediaType(res, (logo.contentType as string) || this.input.staticAssets.imageType);
       const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
       const etag = this.generateETag(etagSeed, 'logo-');
-      res.set('ETag', etag);
-      if (req.headers['if-none-match'] === etag) return res.status(304).end();
-      res.set('Cache-Control', 'public, max-age=3600');
-      return res.send(buf);
+      res.header('ETag', etag);
+      if (req.headers['if-none-match'] === etag) return res.code(304).send();
+      res.header('Cache-Control', 'public, max-age=3600');
+      return sendAssetBytes(req, res, buf);
     } catch (_e) {
-      res.contentType(this.input.staticAssets.imageType);
-      return this.input.sendAsset(res, 'images/' + this.input.staticAssets.logoName);
+      assetMediaType(res, this.input.staticAssets.imageType);
+      return this.input.sendAsset(req, res, 'images/' + this.input.staticAssets.logoName);
     }
   }
 
-  public async renderFavicon(req: DeliveryRequest, res: AssetResponse) {
+  public async renderFavicon(req: FastifyRequest, res: FastifyReply) {
     const sendDefault = () => {
-      res.contentType(this.input.staticAssets.faviconType);
-      res.set('Cache-Control', 'public, no-cache');
-      return this.input.sendAsset(res, this.input.staticAssets.faviconName);
+      assetMediaType(res, this.input.staticAssets.faviconType);
+      res.header('Cache-Control', 'public, no-cache');
+      return this.input.sendAsset(req, res, this.input.staticAssets.faviconName);
     };
     try {
       const branding = parameter(req, 'branding');
@@ -393,13 +388,13 @@ export class BrandingDelivery {
       }
       const { buffer: buf, favicon } = resolved;
       const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
-      res.contentType((favicon.contentType as string) || 'image/png');
+      assetMediaType(res, (favicon.contentType as string) || 'image/png');
       const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
       const etag = this.generateETag(etagSeed, 'favicon-');
-      res.set('ETag', etag);
-      res.set('Cache-Control', 'public, no-cache');
-      if (req.headers['if-none-match'] === etag) return res.status(304).end();
-      return res.send(buf);
+      res.header('ETag', etag);
+      res.header('Cache-Control', 'public, no-cache');
+      if (req.headers['if-none-match'] === etag) return res.code(304).send();
+      return sendAssetBytes(req, res, buf);
     } catch (_e) {
       return sendDefault();
     }

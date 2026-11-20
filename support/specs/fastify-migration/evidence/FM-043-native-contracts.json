@@ -1,0 +1,27 @@
+{
+  "sessionImplementation": {
+    "revision": "d776f9581bec488b211454791794e79eeaee034d",
+    "file": "packages/redbox-core/src/http/fastify/session.ts",
+    "sha256": "54962f1cb2b77c63a57246d5d7c6bd61e3eaab16178cf0f9889a95c028e20e62",
+    "unchangedSinceQualifiedFM042": true,
+    "capturePurpose": "Preserve normalized native wire/cookie/persisted-state comparisons while removing the retained Express oracle; all original per-request assertions still run."
+  },
+  "contracts": [
+    {
+      "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-043/session-capture.json",
+      "sourceSha256": "427b15d50d59143a19be427986c7eacae308cb45826ab45fd8f39fde40ba7d0c",
+      "fixture": "packages/redbox-core/test/http/fastify/fixtures/session-responses.json",
+      "fixtureSha256": "1c92e8b50740bc77272815fe0ab105b43b9ebcfd2caba99ed9b0f15b7712665d",
+      "inputs": 3596,
+      "description": "All normalized transport, header/cookie and body/persisted-state observations; ordinary suite has no contract update mode."
+    },
+    {
+      "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-043/wire-capture.json",
+      "sourceSha256": "5ab394aeb0dd0cc06ce92ca0b42d6ddd7d7389ccc457dc13ba440120af2f0ef5",
+      "fixture": "packages/redbox-core/test/http/fastify/fixtures/integration-responses.json",
+      "fixtureSha256": "7c7aae81e355a2ef851aa9c36121aafb217a2d461761cbe5a4959e29dec41d96",
+      "inputs": 548,
+      "description": "All normalized transport, header/cookie and body/persisted-state observations; ordinary suite has no contract update mode."
+    }
+  ]
+}

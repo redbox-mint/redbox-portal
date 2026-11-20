@@ -129,11 +129,7 @@ describe('FM-037 generated API2 extension on production Fastify', function () {
         );
       }
       const compile = () =>
-        run(
-          path.join(repository, 'packages/redbox-core/node_modules/.bin/tsc'),
-          ['-p', 'tsconfig.json'],
-          hookDirectory
-        );
+        run(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', 'tsconfig.json'], hookDirectory);
       compile();
       for (const extended of [false, true]) {
         if (extended) {

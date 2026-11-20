@@ -66,13 +66,7 @@
   "overrides": {
     "on-headers": "1.1.0",
     "serialize-javascript": "7.0.5",
-    "uuid": "14.0.0",
-    "compression": {
-      "on-headers": "1.1.0"
-    },
-    "express-session": {
-      "on-headers": "1.1.0"
-    }
+    "uuid": "14.0.0"
   },
   "publishConfig": {
     "access": "public"

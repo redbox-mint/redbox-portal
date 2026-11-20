@@ -1,0 +1,20 @@
+[
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-034-implementation/matrix-portal.json",
+    "sha256": "cff1fcc9aec03ad807884ea5be23b5f73588e8e913ebb9075d3bb71b6f682785",
+    "side": "results[2] (qualified native Fastify)",
+    "cases": 176
+  },
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-034-implementation/matrix-root.json",
+    "sha256": "ad262a9d742d16e6ee5a6ff0a1f62aa9301fbd8c426c538c20940450a5638d3d",
+    "side": "results[2] (qualified native Fastify)",
+    "cases": 176
+  },
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-034-implementation/matrix-reduced.json",
+    "sha256": "26052383bccf93bb04ecd9b8c8ac6e3d84aa64043932e4c73d60284b12668bb7",
+    "side": "results[2] (qualified native Fastify)",
+    "cases": 176
+  }
+]

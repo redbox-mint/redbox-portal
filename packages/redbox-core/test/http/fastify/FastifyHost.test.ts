@@ -1,3 +1,4 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -8,7 +9,6 @@ import { connect } from 'node:net';
 import { resolve } from 'node:path';
 import sinon from 'sinon';
 import { ApplicationRuntime, type ApplicationModuleFactory } from '../../../dist/application';
-import { ExpressHost } from '../../../dist/http/express/ExpressHost';
 import { FastifyHost, type FastifyHostOptions } from '../../../dist/http/fastify/FastifyHost';
 
 const deferred = () => Promise.withResolvers<void>();
@@ -373,9 +373,9 @@ describe('internal late-listening Fastify host', function () {
     ],
   };
   for (const [form, targets] of Object.entries(requestTargets)) {
-    it(`matches Express admission and probes for ${form} request-target forms over raw sockets`, async () => {
+    it(`enforces native admission and probes for ${form} request-target forms over raw sockets`, async () => {
       const observations = [];
-      for (const Host of [ExpressHost, FastifyHost]) {
+      for (const Host of [FastifyHost]) {
         const application = new ApplicationRuntime({ config: {}, log: { warn() {} } });
         const host = new Host(application, { hostname: '127.0.0.1', port: 0, prepare: async () => {} });
         try {
@@ -408,12 +408,13 @@ describe('internal late-listening Fastify host', function () {
               if (kind === 'connect') assert.deepEqual(response, { status: '', headers: {}, text: '' });
             }
           }
+          assert.equal(snapshots.length, targets.length * 2);
           observations.push(snapshots);
         } finally {
           await host.stop();
         }
       }
-      assert.deepEqual(observations[1], observations[0]);
+      assertGoldenNext('fastify-host', observations[0]);
     });
   }
 
@@ -588,7 +589,7 @@ describe('internal late-listening Fastify host', function () {
     assert.equal(fallbacks, 1);
   });
 
-  it('matches Express probe, admission and host-miss status/body/header contracts over real sockets', async () => {
+  it('enforces exact GET probe, admission and host-miss status/body/header contracts over real sockets', async () => {
     const targets = [
       ...['/healthz', '/readyz'].flatMap(path => [
         [path, 'GET'],
@@ -605,7 +606,7 @@ describe('internal late-listening Fastify host', function () {
     ];
     const observations = [];
     // Separate disposable runtimes/runs: these hosts share no application state.
-    for (const Host of [ExpressHost, FastifyHost]) {
+    for (const Host of [FastifyHost]) {
       const application = new ApplicationRuntime({ config: {}, log: { warn() {} } });
       const host = new Host(application, { hostname: '127.0.0.1', port: 0, prepare: async () => {} });
       try {
@@ -620,12 +621,29 @@ describe('internal late-listening Fastify host', function () {
             snapshots.push({ ...result, headers });
           }
         }
+        assert.equal(snapshots.length, targets.length * 2);
+        for (const [index, result] of snapshots.entries()) {
+          const [path, method] = targets[index % targets.length];
+          const active = index >= targets.length;
+          const status =
+            method === 'GET' && path.split('?')[0] === '/healthz'
+              ? 200
+              : method === 'GET' && path.split('?')[0] === '/readyz'
+                ? active
+                  ? 200
+                  : 503
+                : active
+                  ? 404
+                  : 503;
+          assert.equal(result.status, status, `${active} ${method} ${path}`);
+          if (method === 'HEAD') assert.equal(result.text, '');
+        }
         observations.push(snapshots);
       } finally {
         await host.stop();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('fastify-host', observations[0]);
   });
 
   for (const phase of ['initialize', 'prepare', 'plugin', 'ready', 'listen', 'activate'] as const) {
@@ -863,6 +881,8 @@ describe('internal late-listening Fastify host', function () {
     ['SIGTERM', 'retry'],
   ] as const) {
     it(`owns opt-in ${signal} handling at the compiled executable boundary (${mode})`, async () => {
+      const started = Date.now();
+      let readyAt: number | undefined;
       const child = spawn(
         process.execPath,
         [
@@ -873,7 +893,9 @@ describe('internal late-listening Fastify host', function () {
           process.on('message', () => {});
           const signals = ['SIGINT', 'SIGTERM'];
           const before = signals.map(signal => process.listenerCount(signal));
-          const { ApplicationRuntime } = require('./dist/application');
+          // Exercise the concrete lifecycle owner. The public barrel additionally
+          // loads the Umzug migration graph, unrelated to signal ownership.
+          const { ApplicationRuntime } = require('./dist/application/Application');
           const { FastifyHost } = require('./dist/http/fastify/FastifyHost');
           let release;
           const pending = new Promise(done => { release = done; });
@@ -928,7 +950,15 @@ describe('internal late-listening Fastify host', function () {
       const exited = once(child, 'exit');
       let timer: ReturnType<typeof setTimeout>;
       const deadline = new Promise<never>((_done, reject) => {
-        timer = setTimeout(() => reject(new Error('Signal child timed out: ' + stderr)), 3500);
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(
+                'Signal child timed out during ' + (readyAt === undefined ? 'cold startup' : 'shutdown') + ': ' + stderr
+              )
+            ),
+          3500
+        );
       });
       const message = () =>
         Promise.race([
@@ -940,6 +970,7 @@ describe('internal late-listening Fastify host', function () {
         ]);
       try {
         assert.equal(await message(), 'ready');
+        readyAt = Date.now();
         const next = mode === 'retry' ? message() : undefined;
         child.kill(signal);
         if (next) {
@@ -951,6 +982,16 @@ describe('internal late-listening Fastify host', function () {
         assert.equal(exitSignal, null, stderr);
         assert.match(stdout, /stopped/);
         assert.equal(stderr, '');
+        console.log(
+          'FM043 signal timing ' +
+            JSON.stringify({
+              signal,
+              mode,
+              startupMs: readyAt - started,
+              shutdownMs: Date.now() - readyAt,
+              totalMs: Date.now() - started,
+            })
+        );
       } finally {
         clearTimeout(timer!);
         if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
@@ -959,3 +1000,5 @@ describe('internal late-listening Fastify host', function () {
     });
   }
 });
+
+goldenControls('fastify-host');

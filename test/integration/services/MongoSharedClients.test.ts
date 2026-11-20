@@ -1,5 +1,5 @@
-const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
-import { mongoDatabase, mongoSessionDatabase } from '@researchdatabox/redbox-core';
+const { portalFixture: fixture } = require('../../helpers/portalFixture.cjs');
+import { mongoDatabase } from '@researchdatabox/redbox-core';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
@@ -16,49 +16,23 @@ describe('Shared MongoDB clients', function () {
     const hello = await db.command({ hello: 1 });
     assert.ok(Number(build.version.split('.')[0]) >= 8);
     assert.equal(hello.setName, undefined);
-    assert.equal(coreRequire(corePath).getCacheEntryRepository(fixture.owner).constructor.name, 'PrismaCacheEntryRepository');
-  });
-
-  it('persists, reopens, touches and destroys connect-mongo sessions', async function () {
-    const { MongoStore } = coreRequire('connect-mongo');
-    const options = {
-      clientPromise: Promise.resolve((await mongoSessionDatabase(fixture.owner, fixture.config.redboxSession)).client),
-      collectionName: 'p4_session_smoke',
-      autoRemove: 'disabled',
-    };
-    const first = MongoStore.create(options);
-    const second = MongoStore.create(options);
-    const id = `p4-${Date.now()}`;
-    try {
-      const data = { cookie: { expires: new Date(Date.now() + 60_000), maxAge: 60_000 }, userId: 'p4-fixture' };
-      await new Promise<void>((resolve, reject) =>
-        first.set(id, data, (error: Error) => (error ? reject(error) : resolve()))
-      );
-      const found = await new Promise<any>((resolve, reject) =>
-        second.get(id, (error: Error, value: unknown) => (error ? reject(error) : resolve(value)))
-      );
-      assert.equal(found.userId, 'p4-fixture');
-      await new Promise<void>((resolve, reject) =>
-        second.touch(id, found, (error: Error) => (error ? reject(error) : resolve()))
-      );
-      await new Promise<void>((resolve, reject) =>
-        second.destroy(id, (error: Error) => (error ? reject(error) : resolve()))
-      );
-      const missing = await new Promise<unknown>((resolve, reject) =>
-        first.get(id, (error: Error, value: unknown) => (error ? reject(error) : resolve(value)))
-      );
-      assert.ok(missing === null || missing === undefined);
-    } finally {
-      // Both stores borrow the application pool; autoRemove is disabled.
-    }
+    assert.equal(
+      coreRequire(corePath).getCacheEntryRepository(fixture.owner).constructor.name,
+      'PrismaCacheEntryRepository'
+    );
   });
 
   it('round trips binary data, metadata, replacement and deletion through the core GridFS driver', async function () {
     const { GridFSDriver } = coreRequire('./storage/GridFSDriver.js');
-    const driver = new GridFSDriver({
-      url: fixture.config.datastores.redboxStorage.url,
-      bucketName: 'p4_gridfs_smoke',
-    }, undefined, undefined, fixture.owner);
+    const driver = new GridFSDriver(
+      {
+        url: fixture.config.datastores.redboxStorage.url,
+        bucketName: 'p4_gridfs_smoke',
+      },
+      undefined,
+      undefined,
+      fixture.owner
+    );
     const key = `p4/${Date.now()}.bin`;
     const bytes = Buffer.from([0, 1, 127, 128, 255]);
     try {

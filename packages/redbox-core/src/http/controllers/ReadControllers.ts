@@ -582,7 +582,7 @@ export class ApiRecordSchemaReadController {
     return readAction(
       request,
       reply,
-      (facts, valid) =>
+      (facts, _valid) =>
         s.create(
           this.input,
           { ...facts, path: requestPathname(request.raw.url ?? request.url)! },
@@ -596,7 +596,7 @@ export class ApiRecordSchemaReadController {
     return readAction(
       request,
       reply,
-      (facts, valid) =>
+      (facts, _valid) =>
         s.update(
           this.input,
           { ...facts, path: requestPathname(request.raw.url ?? request.url)! },
@@ -610,7 +610,7 @@ export class ApiRecordSchemaReadController {
     return readAction(
       request,
       reply,
-      (facts, valid) =>
+      (facts, _valid) =>
         s.immutable(
           this.input,
           { ...facts, path: requestPathname(request.raw.url ?? request.url)! },

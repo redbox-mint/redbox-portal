@@ -3,7 +3,6 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { PageArtifacts } from '../../pages/Artifacts';
-import type { AssetResponse } from '../../pages/brandingDelivery';
 import { applyPageHeaders, isImmutableAssetPath, type PageHeaderInput } from '../../pages/headers';
 import { sendSerializedJson, sendFreshResponse } from './responses';
 import { pagePreparationFailure } from './pages';
@@ -20,46 +19,22 @@ const ranges = require('range-parser') as (
 ) => -1 | -2 | (Array<{ start: number; end: number }> & { type: string });
 import { markImmutableAsset } from './assetCookies';
 import { preserveAssetFailureHeaders, httpReplySubmitted } from './errorBoundary';
-/** Small representation writer shared by the asset operations; serializes inside
- * their guards, then delegates freshness/HEAD to the common FM-029 boundary. */
-export function assetResponse(request: FastifyRequest, reply: FastifyReply): AssetResponse {
-  const writer: AssetResponse = {
-    set: (name, value) => {
-      reply.header(name, name.toLowerCase() === 'content-type' ? mime.contentType(value) || value : value);
-      return writer;
-    },
-    removeHeader: name => reply.removeHeader(name),
-    status: code => {
-      reply.code(code);
-      return writer;
-    },
-    contentType: type => {
-      reply.type(mime.contentType(type) || type);
-      return writer;
-    },
-    type: type => writer.contentType(type),
-    send: body => {
-      let type = String(
-        reply.getHeader('Content-Type') || (typeof body === 'string' ? 'text/html' : 'application/octet-stream')
-      );
-      // Express adds UTF-8 to every string representation, including YAML.
-      if (typeof body === 'string') type = type.replace(/;\s*charset=[^;]+/i, '') + '; charset=utf-8';
-      return sendSerializedJson(request, reply, {
-        status: reply.statusCode,
-        headers: { 'Content-Type': type },
-        json: undefined,
-        bytes: Buffer.isBuffer(body) ? body : Buffer.from(body),
-      });
-    },
-    json: body => {
-      const bytes = JSON.stringify(body);
-      writer.contentType('application/json');
-      return writer.send(bytes);
-    },
-    file: file => sendAssetFile(request, reply, file),
-    end: () => reply.send(),
-  };
-  return writer;
+/** Publish representation bytes through the native freshness and HEAD boundary. */
+export function sendAssetBytes(request: FastifyRequest, reply: FastifyReply, body: string | Buffer) {
+  let type = String(
+    reply.getHeader('Content-Type') || (typeof body === 'string' ? 'text/html' : 'application/octet-stream')
+  );
+  type = mime.contentType(type) || type;
+  if (typeof body === 'string') type = type.replace(/;\s*charset=[^;]+/i, '') + '; charset=utf-8';
+  return sendSerializedJson(request, reply, {
+    status: reply.statusCode,
+    headers: { 'Content-Type': type },
+    json: undefined,
+    bytes: Buffer.isBuffer(body) ? body : Buffer.from(body),
+  });
+}
+export function assetMediaType(reply: FastifyReply, type: string): FastifyReply {
+  return reply.type(mime.contentType(type) || type);
 }
 export function relativeAssetPath(target: string, rootContext: string): string | undefined {
   const pathname = requestPathname(target);

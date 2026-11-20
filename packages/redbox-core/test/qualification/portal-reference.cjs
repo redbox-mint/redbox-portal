@@ -16,7 +16,7 @@ const {
 } = require('../../dist/recordTypes');
 const { loadPortalConfiguration } = require('../../dist/configuration/portal');
 const { ConfigModelRegistry } = require('../../dist/configuration/ConfigModelRegistry');
-const { resolveExtensions } = require('../../dist/extensions');
+const { resolveExtensionData } = require('../../dist/extensions');
 const { prepareSelectedPersistenceIndexes } = require('../../dist/persistence/maintenance');
 const runtime = {
   ...require('../../dist/persistence/runtime'),
@@ -140,7 +140,6 @@ test(
         const queue = new AgendaQueue({ owner, config: config.agendaQueue, log, handler: name => registry.get(name) });
         const original = plan.branding.declaration;
         const core = {
-          apiVersion: 1,
           modules: [
             {
               name: 'storageDisks',
@@ -230,7 +229,6 @@ test(
         };
         let cleanupFailed = false;
         const extension = {
-          apiVersion: 1,
           modules: [
             {
               name: 'branding',
@@ -253,7 +251,7 @@ test(
             },
           ],
         };
-        const resolved = resolveExtensions(
+        const resolved = resolveExtensionData(
           [
             { name: 'core', root: __dirname, declaration: core },
             { name: 'selected', root: __dirname, declaration: extension },

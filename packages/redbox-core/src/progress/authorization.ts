@@ -1,7 +1,7 @@
 import type { RecordsService } from '../RecordsService';
 import type { Services as Progress } from './Asynchs';
 import type { RecordModel } from '../model/storage/RecordModel';
-import type { AuthenticatedActor } from '../http/express/identity';
+import type { AuthenticatedActor } from '../authentication/HttpIdentity';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { firstValueFrom } from 'rxjs';
 

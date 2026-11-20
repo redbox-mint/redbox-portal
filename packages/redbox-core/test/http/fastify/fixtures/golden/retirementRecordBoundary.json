@@ -1,0 +1,2222 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "active/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "42"
+        },
+        "text": "{\"message\":\"Not authorised.\",\"details\":\"\"}"
+      },
+      "state": {
+        "target": "active",
+        "finalizations": 0,
+        "fallbackReads": 1,
+        "staged": []
+      }
+    },
+    "deleted/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "42"
+        },
+        "text": "{\"message\":\"Not authorised.\",\"details\":\"\"}"
+      },
+      "state": {
+        "target": "deleted",
+        "finalizations": 0,
+        "fallbackReads": 1,
+        "staged": []
+      }
+    },
+    "active/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "75"
+        },
+        "text": "{\"errors\":[{\"code\":\"not-authorised\",\"detail\":\"Not authorised.\"}],\"meta\":{}}"
+      },
+      "state": {
+        "target": "active",
+        "finalizations": 0,
+        "fallbackReads": 1,
+        "staged": []
+      }
+    },
+    "deleted/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "75"
+        },
+        "text": "{\"errors\":[{\"code\":\"not-authorised\",\"detail\":\"Not authorised.\"}],\"meta\":{}}"
+      },
+      "state": {
+        "target": "deleted",
+        "finalizations": 0,
+        "fallbackReads": 1,
+        "staged": []
+      }
+    },
+    "legacy-empty": {
+      "wire": {
+        "status": 201,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.0.XVYsQ9CJZRumgy76KWTLbOdDjbVnnj3JH7aZG6vb3RI\"",
+          "link": "</portal/default/rdmp/api/records/schemas/c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436>; rel=\"describedby\"; type=\"application/schema+json\"",
+          "location": "https://portal.example.invalid/default/rdmp/api/records/metadata/created-record:ACL control legacy-empty",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "1443"
+        },
+        "text": "{\"data\":{\"success\":true,\"oid\":\"created-record:ACL control legacy-empty\",\"message\":\"\",\"metadata\":null,\"totalItems\":0,\"items\":[],\"outcome\":\"saved\",\"problems\":[],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"<requestId>\",\"context\":{\"requestId\":\"<requestId>\"},\"concurrency\":{\"mode\":\"last-write-wins\",\"revision\":0,\"currentRevision\":0,\"entityTag\":\"\\\"rb-record-v1.0.XVYsQ9CJZRumgy76KWTLbOdDjbVnnj3JH7aZG6vb3RI\\\"\",\"resolution\":\"direct\"},\"schemaOutcome\":{\"digest\":\"c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"immutableUrl\":\"/default/rdmp/api/records/schemas/c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"completeness\":\"complete\",\"enforcement\":\"shadow\"}},\"meta\":{\"success\":true,\"oid\":\"created-record:ACL control legacy-empty\",\"message\":\"\",\"metadata\":null,\"totalItems\":0,\"items\":[],\"outcome\":\"saved\",\"problems\":[],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"<requestId>\",\"context\":{\"requestId\":\"<requestId>\"},\"concurrency\":{\"mode\":\"last-write-wins\",\"revision\":0,\"currentRevision\":0,\"entityTag\":\"\\\"rb-record-v1.0.XVYsQ9CJZRumgy76KWTLbOdDjbVnnj3JH7aZG6vb3RI\\\"\",\"resolution\":\"direct\"},\"schemaOutcome\":{\"digest\":\"c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"immutableUrl\":\"/default/rdmp/api/records/schemas/c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"completeness\":\"complete\",\"enforcement\":\"shadow\"}}}"
+      },
+      "state": {
+        "record": [
+          {
+            "_id": "record:created-record:ACL control legacy-empty",
+            "metadata": {
+              "title": "ACL control legacy-empty",
+              "authorization": [],
+              "@context": null
+            },
+            "authorization": {
+              "edit": [
+                "pilot-admin"
+              ],
+              "view": [
+                "pilot-admin"
+              ],
+              "editRoles": [
+                "Admin"
+              ],
+              "viewRoles": null,
+              "editPending": null,
+              "viewPending": null
+            },
+            "metaMetadata": {
+              "packageType": "dataRecord",
+              "brandId": "000000000000000000000011",
+              "createdBy": "pilot-admin",
+              "type": "dataRecord",
+              "searchCore": "default",
+              "createdOn": "<time>",
+              "lastSaveDate": "<time>",
+              "form": "dataRecord",
+              "attachmentFields": null
+            },
+            "redboxOid": "created-record:ACL control legacy-empty",
+            "previousWorkflow": null,
+            "workflow": {
+              "stage": "draft"
+            },
+            "revision": 0,
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:foreign-record",
+            "redboxOid": "foreign-record",
+            "revision": 0,
+            "metadata": {},
+            "metaMetadata": {
+              "brandId": "000000000000000000000012",
+              "type": "dataRecord"
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ]
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:private-record",
+            "redboxOid": "private-record",
+            "revision": 0,
+            "metadata": {
+              "title": "private-record"
+            },
+            "metaMetadata": {
+              "brandId": "000000000000000000000011",
+              "type": "dataRecord",
+              "form": "dataRecord",
+              "searchCore": "default",
+              "attachmentFields": [],
+              "createdBy": "pilot-admin",
+              "createdOn": "<time>",
+              "packageType": "dataRecord"
+            },
+            "workflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            },
+            "authorization": {
+              "view": [
+                "elsewhere"
+              ],
+              "edit": [
+                "elsewhere"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:reference-record",
+            "redboxOid": "reference-record",
+            "revision": 0,
+            "metadata": {
+              "title": "Reference"
+            },
+            "metaMetadata": {
+              "brandId": "000000000000000000000011",
+              "type": "dataRecord",
+              "form": "dataRecord",
+              "searchCore": "default",
+              "attachmentFields": [],
+              "createdBy": "pilot-admin",
+              "createdOn": "<time>",
+              "packageType": "dataRecord"
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>",
+            "workflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            }
+          }
+        ],
+        "deletedrecord": [
+          {
+            "_id": "deletedrecord:deleted-record",
+            "redboxOid": "deleted-record",
+            "revision": 2,
+            "brandId": "000000000000000000000011",
+            "lifecycleState": "deleted",
+            "lifecycleOperation": {
+              "operationId": "<operationId>",
+              "kind": "delete",
+              "requestId": "<requestId>",
+              "sourceRevision": 0,
+              "targetRevision": 2,
+              "startedAt": "<time>",
+              "updatedAt": "<time>",
+              "attempts": 2,
+              "resolution": "internal"
+            },
+            "deletedRecordMetadata": {
+              "authorization": {
+                "view": [
+                  "pilot-admin"
+                ],
+                "edit": [
+                  "pilot-admin"
+                ],
+                "viewRoles": [],
+                "editRoles": []
+              },
+              "dateCreated": "<time>",
+              "incarnationId": "<incarnationId>",
+              "lastSaveDate": "<time>",
+              "metaMetadata": {
+                "brandId": "000000000000000000000011",
+                "type": "dataRecord",
+                "form": "dataRecord",
+                "searchCore": "default",
+                "attachmentFields": [],
+                "createdBy": "pilot-admin",
+                "createdOn": "<time>",
+                "packageType": "dataRecord"
+              },
+              "metadata": {
+                "title": "deleted-record"
+              },
+              "recordVersion": 1,
+              "redboxOid": "deleted-record",
+              "workflow": {
+                "stage": "draft",
+                "stageLabel": "Draft"
+              }
+            },
+            "dateDeleted": "<time>",
+            "incarnationId": "<incarnationId>"
+          }
+        ],
+        "recordidentity": [
+          {
+            "_id": "recordidentity:created-record:ACL control legacy-empty",
+            "redboxOid": "created-record:ACL control legacy-empty",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:deleted-record",
+            "redboxOid": "deleted-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:foreign-record",
+            "redboxOid": "foreign-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:private-record",
+            "redboxOid": "private-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:reference-record",
+            "redboxOid": "reference-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          }
+        ],
+        "recordschemareference": [
+          {
+            "_id": "recordschemareference:row",
+            "referenceKey": "grant:create:e6ae2ddb41ca631c40b0ca33bdd97e1b636c8ea2ee8768c7d7b8a209c4d0bcf8",
+            "digest": "c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436",
+            "kind": "grant",
+            "brand": "default",
+            "portal": "rdmp",
+            "schemaKind": "create",
+            "recordType": "dataRecord",
+            "operation": "strict-all",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "recordschemareference:row",
+            "referenceKey": "save:created-record:ACL control legacy-empty:create:c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436",
+            "digest": "c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436",
+            "kind": "save",
+            "brand": "default",
+            "portal": "rdmp",
+            "schemaKind": "create",
+            "recordType": "dataRecord",
+            "operation": "strict-all",
+            "createdAt": "<time>",
+            "updatedAt": "<time>",
+            "oid": "created-record:ACL control legacy-empty"
+          }
+        ],
+        "recordaudit": [
+          {
+            "redboxOid": "created-record:ACL control legacy-empty",
+            "occurredAt": "<time>",
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "lastLogin": "<time>",
+              "additionalAttributes": {},
+              "accountLinkState": "active",
+              "loginDisabled": false,
+              "workspaceApps": [],
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "name": "Admin",
+                  "users": [],
+                  "branding": {
+                    "id": "000000000000000000000011",
+                    "name": "",
+                    "css": "",
+                    "roles": []
+                  }
+                }
+              ]
+            },
+            "record": {
+              "previousWorkflow": null,
+              "authorization": {
+                "edit": [
+                  "pilot-admin"
+                ],
+                "view": [
+                  "pilot-admin"
+                ],
+                "editRoles": [
+                  "Admin"
+                ],
+                "viewRoles": null,
+                "editPending": null,
+                "viewPending": null
+              },
+              "dateCreated": "<time>",
+              "incarnationId": "<incarnationId>",
+              "lastSaveDate": "<time>",
+              "metaMetadata": {
+                "packageType": "dataRecord",
+                "brandId": "000000000000000000000011",
+                "createdBy": "pilot-admin",
+                "type": "dataRecord",
+                "searchCore": "default",
+                "createdOn": "<time>",
+                "lastSaveDate": "<time>",
+                "form": "dataRecord",
+                "attachmentFields": null
+              },
+              "metadata": {
+                "title": "ACL control legacy-empty",
+                "authorization": [],
+                "@context": null
+              },
+              "recordVersion": 1,
+              "redboxOid": "created-record:ACL control legacy-empty",
+              "revision": 0,
+              "workflow": {
+                "stage": "draft"
+              },
+              "id": "created-record:ACL control legacy-empty"
+            },
+            "dateCreated": "<time>",
+            "action": "created",
+            "executionSummary": {
+              "schemaVersion": 1,
+              "executionId": "<executionId>",
+              "trigger": "record-hook",
+              "operation": "create",
+              "partial": false,
+              "durationMs": "<time>",
+              "totalActions": 0,
+              "counts": {},
+              "actions": [],
+              "truncated": false,
+              "requestId": "<requestId>",
+              "completedThrough": "post-dispatch",
+              "detachedFinalization": "complete"
+            },
+            "concurrency": null,
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "redboxOid": "deleted-record",
+            "occurredAt": "<time>",
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "lastLogin": "<time>",
+              "additionalAttributes": {},
+              "accountLinkState": "active",
+              "loginDisabled": false,
+              "workspaceApps": [],
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "name": "Admin",
+                  "users": [],
+                  "branding": {
+                    "id": "000000000000000000000011",
+                    "name": "",
+                    "css": "",
+                    "roles": []
+                  }
+                }
+              ]
+            },
+            "record": {
+              "metaMetadata": {
+                "brandId": "000000000000000000000011"
+              },
+              "revision": 2,
+              "resolution": "internal"
+            },
+            "dateCreated": "<time>",
+            "action": "deleted",
+            "executionSummary": {
+              "schemaVersion": 1,
+              "executionId": "<executionId>",
+              "trigger": "record-hook",
+              "operation": "delete",
+              "partial": true,
+              "durationMs": "<time>",
+              "totalActions": 0,
+              "counts": {},
+              "actions": [],
+              "truncated": false,
+              "requestId": "<requestId>",
+              "completedThrough": "persistence"
+            },
+            "concurrency": null,
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "appconfig": [
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000011",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+              "brand": {
+                "id": "000000000000000000000011",
+                "name": "default"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [
+                {
+                  "recordType": "dataRecord",
+                  "name": "draft",
+                  "hidden": false,
+                  "config": {
+                    "form": "dataRecord",
+                    "authorization": {
+                      "editRoles": [
+                        "Admin"
+                      ],
+                      "transitionRoles": [
+                        "Admin"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000012",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+              "brand": {
+                "id": "000000000000000000000012",
+                "name": "other"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18ntranslation": [
+          {
+            "_id": "i18ntranslation:greeting",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "greeting",
+            "namespace": "translation",
+            "value": "Hello",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:greeting",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:nested.key",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "nested.key",
+            "namespace": "translation",
+            "value": "Nested",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:nested.key",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:owned/key",
+            "branding": "000000000000000000000011",
+            "bundle": null,
+            "locale": "en",
+            "key": "owned/key",
+            "namespace": "translation",
+            "value": "Before",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:owned/key",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:value",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "value",
+            "namespace": "owned",
+            "value": "Before",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:owned:value",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18nbundle": [
+          {
+            "_id": "i18nbundle:row",
+            "branding": "000000000000000000000011",
+            "locale": "en",
+            "displayName": "en",
+            "namespace": "owned",
+            "enabled": true,
+            "data": {
+              "value": "Before"
+            },
+            "uid": "000000000000000000000011:en:owned",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18nbundle:row",
+            "branding": "000000000000000000000011",
+            "locale": "en",
+            "displayName": "en",
+            "namespace": "translation",
+            "enabled": true,
+            "data": {
+              "greeting": "Hello",
+              "nested": {
+                "key": "Nested"
+              },
+              "owned/key": "Before"
+            },
+            "uid": "000000000000000000000011:en:translation",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "namedquery": [
+          {
+            "_id": "namedquery:definition",
+            "key": "000000000000000000000011_definition",
+            "name": "definition",
+            "branding": "000000000000000000000011",
+            "mongoQuery": "{}",
+            "queryParams": "{}",
+            "collectionName": "record",
+            "resultObjectMapping": "{}",
+            "brandIdFieldPath": "metaMetadata.brandId",
+            "sort": "",
+            "expandRelations": false,
+            "relatedRecordFilters": "",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "report": [
+          {
+            "_id": "report:definition",
+            "key": "000000000000000000000011_definition",
+            "name": "definition",
+            "title": "Definition",
+            "branding": "000000000000000000000011",
+            "reportSource": "database",
+            "solrQuery": null,
+            "databaseQuery": {
+              "queryName": "definition"
+            },
+            "filter": [],
+            "columns": [],
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "dashboardconfiguration": [
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000011",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {
+                "dataRecord": {
+                  "draft": {
+                    "searchable": true,
+                    "showStageTitle": true,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {},
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000012",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {},
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "harvestrun": [],
+        "harvestrunchunk": [],
+        "harvestrecordevent": [],
+        "useraudit": [
+          {
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "brandId": "000000000000000000000011",
+                  "name": "Admin"
+                }
+              ]
+            },
+            "action": "login",
+            "additionalContext": "{\"brandId\":\"000000000000000000000011\"}",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "securityevent": [],
+        "jobs": [
+          {
+            "name": "RecordsService-StoreRecordAudit",
+            "data": {
+              "occurredAt": "<time>",
+              "redboxOid": "created-record:ACL control legacy-empty",
+              "action": "created",
+              "user": {
+                "id": "000000000000000000000015",
+                "username": "pilot-admin",
+                "type": "local",
+                "name": "pilot-admin",
+                "email": "pilot-admin@example.invalid",
+                "lastLogin": "<time>",
+                "additionalAttributes": {},
+                "accountLinkState": "active",
+                "loginDisabled": false,
+                "workspaceApps": [],
+                "roles": [
+                  {
+                    "id": "000000000000000000000013",
+                    "name": "Admin",
+                    "users": [],
+                    "branding": {
+                      "id": "000000000000000000000011",
+                      "name": "",
+                      "css": "",
+                      "roles": []
+                    }
+                  }
+                ]
+              },
+              "record": {
+                "previousWorkflow": null,
+                "authorization": {
+                  "edit": [
+                    "pilot-admin"
+                  ],
+                  "view": [
+                    "pilot-admin"
+                  ],
+                  "editRoles": [
+                    "Admin"
+                  ],
+                  "viewRoles": null,
+                  "editPending": null,
+                  "viewPending": null
+                },
+                "dateCreated": "<time>",
+                "incarnationId": "<incarnationId>",
+                "lastSaveDate": "<time>",
+                "metaMetadata": {
+                  "packageType": "dataRecord",
+                  "brandId": "000000000000000000000011",
+                  "createdBy": "pilot-admin",
+                  "type": "dataRecord",
+                  "searchCore": "default",
+                  "createdOn": "<time>",
+                  "lastSaveDate": "<time>",
+                  "form": "dataRecord",
+                  "attachmentFields": null
+                },
+                "metadata": {
+                  "title": "ACL control legacy-empty",
+                  "authorization": [],
+                  "@context": null
+                },
+                "recordVersion": 1,
+                "redboxOid": "created-record:ACL control legacy-empty",
+                "revision": 0,
+                "workflow": {
+                  "stage": "draft"
+                },
+                "id": "created-record:ACL control legacy-empty"
+              },
+              "executionSummary": {
+                "schemaVersion": 1,
+                "executionId": "<executionId>",
+                "trigger": "record-hook",
+                "operation": "create",
+                "partial": false,
+                "durationMs": "<time>",
+                "totalActions": 0,
+                "counts": {},
+                "actions": [],
+                "truncated": false,
+                "requestId": "<requestId>",
+                "completedThrough": "post-dispatch",
+                "detachedFinalization": "complete"
+              },
+              "concurrency": {
+                "revision": 0,
+                "resolution": "direct"
+              }
+            },
+            "failReason": null
+          },
+          {
+            "name": "RecordsService-StoreRecordAudit",
+            "data": {
+              "occurredAt": "<time>",
+              "redboxOid": "deleted-record",
+              "action": "deleted",
+              "user": {
+                "id": "000000000000000000000015",
+                "username": "pilot-admin",
+                "type": "local",
+                "name": "pilot-admin",
+                "email": "pilot-admin@example.invalid",
+                "lastLogin": "<time>",
+                "additionalAttributes": {},
+                "accountLinkState": "active",
+                "loginDisabled": false,
+                "workspaceApps": [],
+                "roles": [
+                  {
+                    "id": "000000000000000000000013",
+                    "name": "Admin",
+                    "users": [],
+                    "branding": {
+                      "id": "000000000000000000000011",
+                      "name": "",
+                      "css": "",
+                      "roles": []
+                    }
+                  }
+                ]
+              },
+              "record": {
+                "metaMetadata": {
+                  "brandId": "000000000000000000000011"
+                },
+                "revision": 2,
+                "resolution": "internal"
+              },
+              "executionSummary": {
+                "schemaVersion": 1,
+                "executionId": "<executionId>",
+                "trigger": "record-hook",
+                "operation": "delete",
+                "partial": true,
+                "durationMs": "<time>",
+                "totalActions": 0,
+                "counts": {},
+                "actions": [],
+                "truncated": false,
+                "requestId": "<requestId>",
+                "completedThrough": "persistence"
+              },
+              "concurrency": {
+                "revision": 2,
+                "resolution": "internal"
+              }
+            },
+            "failReason": null
+          }
+        ]
+      },
+      "acl": {
+        "edit": [
+          "pilot-admin"
+        ],
+        "view": [
+          "pilot-admin"
+        ]
+      }
+    },
+    "explicit": {
+      "wire": {
+        "status": 201,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.0.9QRrEQ1KhRLCw3_SmHlTFI6R19osa8VIVegIhcMar-E\"",
+          "link": "</portal/default/rdmp/api/records/schemas/c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436>; rel=\"describedby\"; type=\"application/schema+json\"",
+          "location": "https://portal.example.invalid/default/rdmp/api/records/metadata/created-record:ACL control explicit",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "1435"
+        },
+        "text": "{\"data\":{\"success\":true,\"oid\":\"created-record:ACL control explicit\",\"message\":\"\",\"metadata\":null,\"totalItems\":0,\"items\":[],\"outcome\":\"saved\",\"problems\":[],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"<requestId>\",\"context\":{\"requestId\":\"<requestId>\"},\"concurrency\":{\"mode\":\"last-write-wins\",\"revision\":0,\"currentRevision\":0,\"entityTag\":\"\\\"rb-record-v1.0.9QRrEQ1KhRLCw3_SmHlTFI6R19osa8VIVegIhcMar-E\\\"\",\"resolution\":\"direct\"},\"schemaOutcome\":{\"digest\":\"c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"immutableUrl\":\"/default/rdmp/api/records/schemas/c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"completeness\":\"complete\",\"enforcement\":\"shadow\"}},\"meta\":{\"success\":true,\"oid\":\"created-record:ACL control explicit\",\"message\":\"\",\"metadata\":null,\"totalItems\":0,\"items\":[],\"outcome\":\"saved\",\"problems\":[],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"<requestId>\",\"context\":{\"requestId\":\"<requestId>\"},\"concurrency\":{\"mode\":\"last-write-wins\",\"revision\":0,\"currentRevision\":0,\"entityTag\":\"\\\"rb-record-v1.0.9QRrEQ1KhRLCw3_SmHlTFI6R19osa8VIVegIhcMar-E\\\"\",\"resolution\":\"direct\"},\"schemaOutcome\":{\"digest\":\"c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"immutableUrl\":\"/default/rdmp/api/records/schemas/c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436\",\"completeness\":\"complete\",\"enforcement\":\"shadow\"}}}"
+      },
+      "state": {
+        "record": [
+          {
+            "_id": "record:created-record:ACL control explicit",
+            "metadata": {
+              "title": "ACL control explicit",
+              "@context": null
+            },
+            "authorization": {
+              "edit": [
+                "fixture-editor"
+              ],
+              "view": [
+                "fixture-reader"
+              ],
+              "editRoles": [
+                "Admin"
+              ],
+              "viewRoles": null,
+              "editPending": null,
+              "viewPending": null
+            },
+            "metaMetadata": {
+              "packageType": "dataRecord",
+              "brandId": "000000000000000000000011",
+              "createdBy": "pilot-admin",
+              "type": "dataRecord",
+              "searchCore": "default",
+              "createdOn": "<time>",
+              "lastSaveDate": "<time>",
+              "form": "dataRecord",
+              "attachmentFields": null
+            },
+            "redboxOid": "created-record:ACL control explicit",
+            "previousWorkflow": null,
+            "workflow": {
+              "stage": "draft"
+            },
+            "revision": 0,
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:foreign-record",
+            "redboxOid": "foreign-record",
+            "revision": 0,
+            "metadata": {},
+            "metaMetadata": {
+              "brandId": "000000000000000000000012",
+              "type": "dataRecord"
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ]
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:private-record",
+            "redboxOid": "private-record",
+            "revision": 0,
+            "metadata": {
+              "title": "private-record"
+            },
+            "metaMetadata": {
+              "brandId": "000000000000000000000011",
+              "type": "dataRecord",
+              "form": "dataRecord",
+              "searchCore": "default",
+              "attachmentFields": [],
+              "createdBy": "pilot-admin",
+              "createdOn": "<time>",
+              "packageType": "dataRecord"
+            },
+            "workflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            },
+            "authorization": {
+              "view": [
+                "elsewhere"
+              ],
+              "edit": [
+                "elsewhere"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:reference-record",
+            "redboxOid": "reference-record",
+            "revision": 0,
+            "metadata": {
+              "title": "Reference"
+            },
+            "metaMetadata": {
+              "brandId": "000000000000000000000011",
+              "type": "dataRecord",
+              "form": "dataRecord",
+              "searchCore": "default",
+              "attachmentFields": [],
+              "createdBy": "pilot-admin",
+              "createdOn": "<time>",
+              "packageType": "dataRecord"
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>",
+            "workflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            }
+          }
+        ],
+        "deletedrecord": [
+          {
+            "_id": "deletedrecord:deleted-record",
+            "redboxOid": "deleted-record",
+            "revision": 2,
+            "brandId": "000000000000000000000011",
+            "lifecycleState": "deleted",
+            "lifecycleOperation": {
+              "operationId": "<operationId>",
+              "kind": "delete",
+              "requestId": "<requestId>",
+              "sourceRevision": 0,
+              "targetRevision": 2,
+              "startedAt": "<time>",
+              "updatedAt": "<time>",
+              "attempts": 2,
+              "resolution": "internal"
+            },
+            "deletedRecordMetadata": {
+              "authorization": {
+                "view": [
+                  "pilot-admin"
+                ],
+                "edit": [
+                  "pilot-admin"
+                ],
+                "viewRoles": [],
+                "editRoles": []
+              },
+              "dateCreated": "<time>",
+              "incarnationId": "<incarnationId>",
+              "lastSaveDate": "<time>",
+              "metaMetadata": {
+                "brandId": "000000000000000000000011",
+                "type": "dataRecord",
+                "form": "dataRecord",
+                "searchCore": "default",
+                "attachmentFields": [],
+                "createdBy": "pilot-admin",
+                "createdOn": "<time>",
+                "packageType": "dataRecord"
+              },
+              "metadata": {
+                "title": "deleted-record"
+              },
+              "recordVersion": 1,
+              "redboxOid": "deleted-record",
+              "workflow": {
+                "stage": "draft",
+                "stageLabel": "Draft"
+              }
+            },
+            "dateDeleted": "<time>",
+            "incarnationId": "<incarnationId>"
+          }
+        ],
+        "recordidentity": [
+          {
+            "_id": "recordidentity:created-record:ACL control explicit",
+            "redboxOid": "created-record:ACL control explicit",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:deleted-record",
+            "redboxOid": "deleted-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:foreign-record",
+            "redboxOid": "foreign-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:private-record",
+            "redboxOid": "private-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:reference-record",
+            "redboxOid": "reference-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          }
+        ],
+        "recordschemareference": [
+          {
+            "_id": "recordschemareference:row",
+            "referenceKey": "grant:create:e6ae2ddb41ca631c40b0ca33bdd97e1b636c8ea2ee8768c7d7b8a209c4d0bcf8",
+            "digest": "c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436",
+            "kind": "grant",
+            "brand": "default",
+            "portal": "rdmp",
+            "schemaKind": "create",
+            "recordType": "dataRecord",
+            "operation": "strict-all",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "recordschemareference:row",
+            "referenceKey": "save:created-record:ACL control explicit:create:c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436",
+            "digest": "c8cf0307d87ca047c9eb16d5aea0bbfe91d943fa06b560b9cec060129ff66436",
+            "kind": "save",
+            "brand": "default",
+            "portal": "rdmp",
+            "schemaKind": "create",
+            "recordType": "dataRecord",
+            "operation": "strict-all",
+            "createdAt": "<time>",
+            "updatedAt": "<time>",
+            "oid": "created-record:ACL control explicit"
+          }
+        ],
+        "recordaudit": [
+          {
+            "redboxOid": "created-record:ACL control explicit",
+            "occurredAt": "<time>",
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "lastLogin": "<time>",
+              "additionalAttributes": {},
+              "accountLinkState": "active",
+              "loginDisabled": false,
+              "workspaceApps": [],
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "name": "Admin",
+                  "users": [],
+                  "branding": {
+                    "id": "000000000000000000000011",
+                    "name": "",
+                    "css": "",
+                    "roles": []
+                  }
+                }
+              ]
+            },
+            "record": {
+              "previousWorkflow": null,
+              "authorization": {
+                "edit": [
+                  "fixture-editor"
+                ],
+                "view": [
+                  "fixture-reader"
+                ],
+                "editRoles": [
+                  "Admin"
+                ],
+                "viewRoles": null,
+                "editPending": null,
+                "viewPending": null
+              },
+              "dateCreated": "<time>",
+              "incarnationId": "<incarnationId>",
+              "lastSaveDate": "<time>",
+              "metaMetadata": {
+                "packageType": "dataRecord",
+                "brandId": "000000000000000000000011",
+                "createdBy": "pilot-admin",
+                "type": "dataRecord",
+                "searchCore": "default",
+                "createdOn": "<time>",
+                "lastSaveDate": "<time>",
+                "form": "dataRecord",
+                "attachmentFields": null
+              },
+              "metadata": {
+                "title": "ACL control explicit",
+                "@context": null
+              },
+              "recordVersion": 1,
+              "redboxOid": "created-record:ACL control explicit",
+              "revision": 0,
+              "workflow": {
+                "stage": "draft"
+              },
+              "id": "created-record:ACL control explicit"
+            },
+            "dateCreated": "<time>",
+            "action": "created",
+            "executionSummary": {
+              "schemaVersion": 1,
+              "executionId": "<executionId>",
+              "trigger": "record-hook",
+              "operation": "create",
+              "partial": false,
+              "durationMs": "<time>",
+              "totalActions": 0,
+              "counts": {},
+              "actions": [],
+              "truncated": false,
+              "requestId": "<requestId>",
+              "completedThrough": "post-dispatch",
+              "detachedFinalization": "complete"
+            },
+            "concurrency": null,
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "redboxOid": "deleted-record",
+            "occurredAt": "<time>",
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "lastLogin": "<time>",
+              "additionalAttributes": {},
+              "accountLinkState": "active",
+              "loginDisabled": false,
+              "workspaceApps": [],
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "name": "Admin",
+                  "users": [],
+                  "branding": {
+                    "id": "000000000000000000000011",
+                    "name": "",
+                    "css": "",
+                    "roles": []
+                  }
+                }
+              ]
+            },
+            "record": {
+              "metaMetadata": {
+                "brandId": "000000000000000000000011"
+              },
+              "revision": 2,
+              "resolution": "internal"
+            },
+            "dateCreated": "<time>",
+            "action": "deleted",
+            "executionSummary": {
+              "schemaVersion": 1,
+              "executionId": "<executionId>",
+              "trigger": "record-hook",
+              "operation": "delete",
+              "partial": true,
+              "durationMs": "<time>",
+              "totalActions": 0,
+              "counts": {},
+              "actions": [],
+              "truncated": false,
+              "requestId": "<requestId>",
+              "completedThrough": "persistence"
+            },
+            "concurrency": null,
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "appconfig": [
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000011",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+              "brand": {
+                "id": "000000000000000000000011",
+                "name": "default"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [
+                {
+                  "recordType": "dataRecord",
+                  "name": "draft",
+                  "hidden": false,
+                  "config": {
+                    "form": "dataRecord",
+                    "authorization": {
+                      "editRoles": [
+                        "Admin"
+                      ],
+                      "transitionRoles": [
+                        "Admin"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000012",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+              "brand": {
+                "id": "000000000000000000000012",
+                "name": "other"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18ntranslation": [
+          {
+            "_id": "i18ntranslation:greeting",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "greeting",
+            "namespace": "translation",
+            "value": "Hello",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:greeting",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:nested.key",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "nested.key",
+            "namespace": "translation",
+            "value": "Nested",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:nested.key",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:owned/key",
+            "branding": "000000000000000000000011",
+            "bundle": null,
+            "locale": "en",
+            "key": "owned/key",
+            "namespace": "translation",
+            "value": "Before",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:owned/key",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:value",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "value",
+            "namespace": "owned",
+            "value": "Before",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:owned:value",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18nbundle": [
+          {
+            "_id": "i18nbundle:row",
+            "branding": "000000000000000000000011",
+            "locale": "en",
+            "displayName": "en",
+            "namespace": "owned",
+            "enabled": true,
+            "data": {
+              "value": "Before"
+            },
+            "uid": "000000000000000000000011:en:owned",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18nbundle:row",
+            "branding": "000000000000000000000011",
+            "locale": "en",
+            "displayName": "en",
+            "namespace": "translation",
+            "enabled": true,
+            "data": {
+              "greeting": "Hello",
+              "nested": {
+                "key": "Nested"
+              },
+              "owned/key": "Before"
+            },
+            "uid": "000000000000000000000011:en:translation",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "namedquery": [
+          {
+            "_id": "namedquery:definition",
+            "key": "000000000000000000000011_definition",
+            "name": "definition",
+            "branding": "000000000000000000000011",
+            "mongoQuery": "{}",
+            "queryParams": "{}",
+            "collectionName": "record",
+            "resultObjectMapping": "{}",
+            "brandIdFieldPath": "metaMetadata.brandId",
+            "sort": "",
+            "expandRelations": false,
+            "relatedRecordFilters": "",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "report": [
+          {
+            "_id": "report:definition",
+            "key": "000000000000000000000011_definition",
+            "name": "definition",
+            "title": "Definition",
+            "branding": "000000000000000000000011",
+            "reportSource": "database",
+            "solrQuery": null,
+            "databaseQuery": {
+              "queryName": "definition"
+            },
+            "filter": [],
+            "columns": [],
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "dashboardconfiguration": [
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000011",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {
+                "dataRecord": {
+                  "draft": {
+                    "searchable": true,
+                    "showStageTitle": true,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {},
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000012",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {},
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "harvestrun": [],
+        "harvestrunchunk": [],
+        "harvestrecordevent": [],
+        "useraudit": [
+          {
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "brandId": "000000000000000000000011",
+                  "name": "Admin"
+                }
+              ]
+            },
+            "action": "login",
+            "additionalContext": "{\"brandId\":\"000000000000000000000011\"}",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "securityevent": [],
+        "jobs": [
+          {
+            "name": "RecordsService-StoreRecordAudit",
+            "data": {
+              "occurredAt": "<time>",
+              "redboxOid": "created-record:ACL control explicit",
+              "action": "created",
+              "user": {
+                "id": "000000000000000000000015",
+                "username": "pilot-admin",
+                "type": "local",
+                "name": "pilot-admin",
+                "email": "pilot-admin@example.invalid",
+                "lastLogin": "<time>",
+                "additionalAttributes": {},
+                "accountLinkState": "active",
+                "loginDisabled": false,
+                "workspaceApps": [],
+                "roles": [
+                  {
+                    "id": "000000000000000000000013",
+                    "name": "Admin",
+                    "users": [],
+                    "branding": {
+                      "id": "000000000000000000000011",
+                      "name": "",
+                      "css": "",
+                      "roles": []
+                    }
+                  }
+                ]
+              },
+              "record": {
+                "previousWorkflow": null,
+                "authorization": {
+                  "edit": [
+                    "fixture-editor"
+                  ],
+                  "view": [
+                    "fixture-reader"
+                  ],
+                  "editRoles": [
+                    "Admin"
+                  ],
+                  "viewRoles": null,
+                  "editPending": null,
+                  "viewPending": null
+                },
+                "dateCreated": "<time>",
+                "incarnationId": "<incarnationId>",
+                "lastSaveDate": "<time>",
+                "metaMetadata": {
+                  "packageType": "dataRecord",
+                  "brandId": "000000000000000000000011",
+                  "createdBy": "pilot-admin",
+                  "type": "dataRecord",
+                  "searchCore": "default",
+                  "createdOn": "<time>",
+                  "lastSaveDate": "<time>",
+                  "form": "dataRecord",
+                  "attachmentFields": null
+                },
+                "metadata": {
+                  "title": "ACL control explicit",
+                  "@context": null
+                },
+                "recordVersion": 1,
+                "redboxOid": "created-record:ACL control explicit",
+                "revision": 0,
+                "workflow": {
+                  "stage": "draft"
+                },
+                "id": "created-record:ACL control explicit"
+              },
+              "executionSummary": {
+                "schemaVersion": 1,
+                "executionId": "<executionId>",
+                "trigger": "record-hook",
+                "operation": "create",
+                "partial": false,
+                "durationMs": "<time>",
+                "totalActions": 0,
+                "counts": {},
+                "actions": [],
+                "truncated": false,
+                "requestId": "<requestId>",
+                "completedThrough": "post-dispatch",
+                "detachedFinalization": "complete"
+              },
+              "concurrency": {
+                "revision": 0,
+                "resolution": "direct"
+              }
+            },
+            "failReason": null
+          },
+          {
+            "name": "RecordsService-StoreRecordAudit",
+            "data": {
+              "occurredAt": "<time>",
+              "redboxOid": "deleted-record",
+              "action": "deleted",
+              "user": {
+                "id": "000000000000000000000015",
+                "username": "pilot-admin",
+                "type": "local",
+                "name": "pilot-admin",
+                "email": "pilot-admin@example.invalid",
+                "lastLogin": "<time>",
+                "additionalAttributes": {},
+                "accountLinkState": "active",
+                "loginDisabled": false,
+                "workspaceApps": [],
+                "roles": [
+                  {
+                    "id": "000000000000000000000013",
+                    "name": "Admin",
+                    "users": [],
+                    "branding": {
+                      "id": "000000000000000000000011",
+                      "name": "",
+                      "css": "",
+                      "roles": []
+                    }
+                  }
+                ]
+              },
+              "record": {
+                "metaMetadata": {
+                  "brandId": "000000000000000000000011"
+                },
+                "revision": 2,
+                "resolution": "internal"
+              },
+              "executionSummary": {
+                "schemaVersion": 1,
+                "executionId": "<executionId>",
+                "trigger": "record-hook",
+                "operation": "delete",
+                "partial": true,
+                "durationMs": "<time>",
+                "totalActions": 0,
+                "counts": {},
+                "actions": [],
+                "truncated": false,
+                "requestId": "<requestId>",
+                "completedThrough": "persistence"
+              },
+              "concurrency": {
+                "revision": 2,
+                "resolution": "internal"
+              }
+            },
+            "failReason": null
+          }
+        ]
+      },
+      "acl": {
+        "edit": [
+          "fixture-editor"
+        ],
+        "view": [
+          "fixture-reader"
+        ]
+      }
+    }
+  },
+  "shared": {}
+}

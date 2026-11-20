@@ -9,7 +9,9 @@ export function prismaModelFilter(
   return (require('../prisma/modelFilter') as typeof import('../prisma/modelFilter')).prismaModelFilter(...args);
 }
 /** Catalog inspection is acquired only after persistence initialization. @internal */
-export function persistenceCollections(...args: Parameters<typeof import('../prisma/catalog').persistenceCollections>) {
+export function persistenceCollections(
+  ...args: Parameters<typeof import('../prisma/catalog').persistenceCollections>
+): ReturnType<typeof import('../prisma/catalog').persistenceCollections> {
   return (require('../prisma/catalog') as typeof import('../prisma/catalog')).persistenceCollections(...args);
 }
 /** Scoped index inspection for concrete hook adapters. @internal */

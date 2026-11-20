@@ -1,7 +1,7 @@
 // This fixture is compiled by registration-types.test.ts, including every expected error.
 // Use the built public entrypoint, as an external controller author does.
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { Request, Response } from 'express';
+
 import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 import {
   ApplicationStatusController,
@@ -148,7 +148,10 @@ const forbiddenName: ControllerMethodName<GreetingController> = 'toString';
 const wrongRequest: ControllerAction<GreetingRoute> = (request: { params: { name: number } }, _reply: FastifyReply) =>
   request.params.name;
 // @ts-expect-error Express request/response handlers do not satisfy the native action contract.
-const expressAction: ControllerAction<GreetingRoute> = (_request: Request, response: Response) => response.json({});
+const expressAction: ControllerAction<GreetingRoute> = (
+  _request: { params: { legacy: string } },
+  response: { json(value: unknown): void }
+) => response.json({});
 void [
   checkedGreeting,
   originalFactory,

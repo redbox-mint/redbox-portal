@@ -1,3 +1,5 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
+import { userFromActor } from '../../../src/http/actors';
 import assert from 'node:assert/strict';
 import { of } from 'rxjs';
 import type { FastifyRequest, FastifyReply } from 'fastify';
@@ -7,21 +9,14 @@ import { requestContext } from '../../../src/http';
 import { httpReplySubmitted } from '../../../src/http/fastify/errorBoundary';
 import { validateRouteRequest } from '../../../src/http/fastify/validation';
 import { sendApiData, sendApiErrors } from '../../../src/http/fastify/responses';
-import { mountQueryReadRoutes } from '../../../src/http/express/queryReads';
-import { mountRecordReadRoutes } from '../../../src/http/express/recordReads';
-import { mountIdentityLinkRoutes } from '../../../src/http/express/identityLinks';
-import { mountProgressOperationRoutes } from '../../../src/http/express/progressOperations';
+
 import { normalizeSearchQuery } from '../../../src/api-routes/groups/search-query';
 import { hasViewAccess } from '../../../src/records/access';
-import { userFromActor } from '../../../src/http/express/actors';
+
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import { authorizeProgressRoom } from '../../../src/progress/authorization';
-import { mountConfigurationReadRoutes } from '../../../src/http/express/configuration';
-import { mountDatastreamReadRoutes } from '../../../src/http/express/datastreamReads';
-import { mountRecordMutationRoutes } from '../../../src/http/express/recordMutations';
-import { mountHarvestMutationRoutes } from '../../../src/http/express/harvestMutations';
-import { RecordAuditViews, AuditReadError } from '../../../src/queries/RecordAuditViews';
 
+import { RecordAuditViews, AuditReadError } from '../../../src/queries/RecordAuditViews';
 class Refusal extends Error {
   constructor(
     readonly status: number,
@@ -62,9 +57,8 @@ interface Case {
   contains?: string;
   trace?: string[];
 }
-
 /** These small native action probes preserve only the reviewed FM-004 preludes.
- * The oracle runs the unchanged complete Express family mounts. This is security
+ * Golden observations come from the qualified complete family mounts. This is security
  * ordering qualification, not a claim that FM-023..FM-036 controllers are ported. */
 const preludes: Record<string, Prelude> = {
   async query(req, reply, p, source) {
@@ -238,7 +232,6 @@ const preludes: Record<string, Prelude> = {
     throw new Refusal(400, 'updateMode is not supported for tracked harvest requests.');
   },
 };
-
 function ports(trace: string[], state: string) {
   const call =
     (name: string, value: unknown, fail = false) =>
@@ -344,17 +337,9 @@ function ports(trace: string[], state: string) {
   });
   return result;
 }
-const mounts = {
-  query: mountQueryReadRoutes,
-  record: mountRecordReadRoutes,
-  identity: mountIdentityLinkRoutes,
-  progress: mountProgressOperationRoutes,
-  configuration: mountConfigurationReadRoutes,
-  datastream: mountDatastreamReadRoutes,
-  mutation: mountRecordMutationRoutes,
-  harvest: mountHarvestMutationRoutes,
-};
-const cases: (Case & { family: keyof typeof mounts })[] = [];
+const cases: (Case & {
+  family: 'query' | 'record' | 'identity' | 'progress' | 'configuration' | 'datastream' | 'mutation' | 'harvest';
+})[] = [];
 for (const field of ['start', 'rows'])
   for (const state of ['missing', 'existing'])
     cases.push({
@@ -504,7 +489,6 @@ for (const action of ['subscribe', 'unsubscribe'])
     contains: 'Use direct Socket.IO',
     trace: [],
   });
-
 for (const action of ['getAuditData', 'getIntegrationAuditData'])
   for (const state of ['missing', 'foreign', 'visible'])
     cases.push({
@@ -644,7 +628,6 @@ cases.push({
   expected: 200,
   trace: ['progress', 'record', 'record'],
 });
-
 for (const state of ['missing', 'foreign', 'visible'])
   cases.push({
     family: 'query',
@@ -709,7 +692,6 @@ for (const action of ['update', 'stop'])
     contains: 'Access Denied',
     trace: ['progress'],
   });
-
 describe('FM-016 FM-004 simultaneous-failure action-prelude differential', function () {
   this.timeout(10000);
   for (const c of cases)
@@ -724,12 +706,11 @@ describe('FM-016 FM-004 simultaneous-failure action-prelude differential', funct
       const r = inventoryRegistration(row);
       const source = r.declaration.api ?? { ...r.declaration, request: r.declaration.validation };
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const trace: string[] = [],
           p = ports(trace, c.portState ?? 'existing');
         const f = await securityFixture(native, {
           routes: [r],
-          mount: (router, input) => mounts[c.family](router, { ...input, ...p } as any),
           action: async (req, reply) => {
             try {
               await preludes[c.family](req, reply, p, source);
@@ -766,6 +747,8 @@ describe('FM-016 FM-004 simultaneous-failure action-prelude differential', funct
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security-ordering', results[0]);
     });
 });
+
+goldenControls('security-ordering');

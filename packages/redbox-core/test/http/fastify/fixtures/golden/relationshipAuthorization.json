@@ -1,0 +1,102 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "shared": {},
+  "cases": {
+    "browser mixed graph": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "933"
+        },
+        "text": "{\"data\":{\"rootOid\":\"reference-record\",\"edges\":[{\"relationId\":\"related\",\"sourceOid\":\"reference-record\",\"targetOid\":\"allowed-node\",\"targetRecordType\":\"dataRecord\"},{\"relationId\":\"related\",\"sourceOid\":\"allowed-node\",\"targetOid\":\"reference-record\",\"targetRecordType\":\"dataRecord\"}],\"relatedObjects\":{\"dataRecord\":[{\"redboxOid\":\"reference-record\",\"metaMetadata\":{\"brandId\":\"000000000000000000000011\",\"type\":\"dataRecord\"},\"metadata\":{\"title\":\"Metadata for reference-record\"},\"authorization\":{\"view\":[\"pilot-admin\"],\"viewRoles\":[]}},{\"redboxOid\":\"allowed-node\",\"metaMetadata\":{\"brandId\":\"000000000000000000000011\",\"type\":\"dataRecord\"},\"metadata\":{\"title\":\"Metadata for allowed-node\"},\"authorization\":{\"view\":[\"pilot-admin\"],\"viewRoles\":[]}}]},\"omittedByAccess\":{\"related\":3},\"processedRelationships\":[\"dataRecord\"]},\"meta\":{\"oid\":\"reference-record\",\"revision\":0,\"entityTag\":\"\\\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\\\"\"}}"
+      },
+      "calls": {
+        "oid": "reference-record",
+        "brandId": "000000000000000000000011",
+        "options": {
+          "depth": 0,
+          "fields": "full"
+        }
+      }
+    },
+    "browser traversal root lost access": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "488"
+        },
+        "text": "{\"data\":{\"rootOid\":\"reference-record\",\"edges\":[],\"relatedObjects\":{\"dataRecord\":[{\"redboxOid\":\"allowed-node\",\"metaMetadata\":{\"brandId\":\"000000000000000000000011\",\"type\":\"dataRecord\"},\"metadata\":{\"title\":\"Metadata for allowed-node\"},\"authorization\":{\"view\":[\"pilot-admin\"],\"viewRoles\":[]}}]},\"omittedByAccess\":{\"related\":5},\"processedRelationships\":[\"dataRecord\"]},\"meta\":{\"oid\":\"reference-record\",\"revision\":0,\"entityTag\":\"\\\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\\\"\"}}"
+      },
+      "calls": {
+        "oid": "reference-record",
+        "brandId": "000000000000000000000011",
+        "options": {
+          "depth": 0,
+          "fields": "full"
+        }
+      }
+    },
+    "API mixed graph": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "944"
+        },
+        "text": "{\"data\":{\"metadata\":{\"title\":\"Reference\"},\"relationships\":{\"rootOid\":\"reference-record\",\"edges\":[{\"relationId\":\"related\",\"sourceOid\":\"reference-record\",\"targetOid\":\"allowed-node\",\"targetRecordType\":\"dataRecord\"},{\"relationId\":\"related\",\"sourceOid\":\"allowed-node\",\"targetOid\":\"reference-record\",\"targetRecordType\":\"dataRecord\"}],\"relatedObjects\":{\"dataRecord\":[{\"redboxOid\":\"reference-record\",\"metaMetadata\":{\"brandId\":\"000000000000000000000011\",\"type\":\"dataRecord\"},\"metadata\":{\"title\":\"Metadata for reference-record\"},\"authorization\":{\"view\":[\"pilot-admin\"],\"viewRoles\":[]}},{\"redboxOid\":\"allowed-node\",\"metaMetadata\":{\"brandId\":\"000000000000000000000011\",\"type\":\"dataRecord\"},\"metadata\":{\"title\":\"Metadata for allowed-node\"},\"authorization\":{\"view\":[\"pilot-admin\"],\"viewRoles\":[]}}]},\"omittedByAccess\":{\"related\":3}}},\"meta\":{\"oid\":\"reference-record\",\"revision\":0,\"entityTag\":\"\\\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\\\"\"}}"
+      },
+      "calls": {
+        "oid": "reference-record",
+        "brandId": "000000000000000000000011",
+        "options": {
+          "depth": 2,
+          "includeRelationIds": [
+            "related",
+            "extra"
+          ],
+          "includeRecordTypes": [
+            "dataRecord",
+            "publication"
+          ],
+          "fields": "summary"
+        }
+      }
+    },
+    "browser root without tenant": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "52"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Record not found\"}],\"meta\":{}}"
+      },
+      "calls": 0
+    }
+  }
+}

@@ -220,7 +220,7 @@ export async function getDashboardView(
   input: Pick<MetadataReadInput, 'dashboardTypes'>,
   req: ReferenceRequest
 ): Promise<ReferenceResult> {
-  const brand = Object.assign(new BrandingModel(), req.context.brand);
+  const _brand = Object.assign(new BrandingModel(), req.context.brand);
   const scalar = (name: string, fallback = '') => referenceScalar(req, name, fallback);
   const view = input.dashboardTypes.getDashboardView(scalar('dashboardView'));
   if (
@@ -358,6 +358,6 @@ export async function migrationPreflight(
   const result = { reports: await input.dashboardConfig.preflightLegacyMigration(brand) };
   return referenceData(req, result);
 }
-export async function retiredOperation(input: object, req: ReferenceRequest): Promise<ReferenceResult> {
+export async function retiredOperation(_input: object, _req: ReferenceRequest): Promise<ReferenceResult> {
   retiredDashboardOperation();
 }

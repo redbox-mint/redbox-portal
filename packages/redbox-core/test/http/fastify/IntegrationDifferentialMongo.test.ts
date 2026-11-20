@@ -1,4 +1,8 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
+import { mutationWitnessCases } from './mutationWitnessSelection';
 import { open } from 'node:fs/promises';
 import { ObjectId, type Document } from 'mongodb';
 import { integrationDeclarations } from '../../../src/http/integrationRoutes';
@@ -8,7 +12,7 @@ import { identityAdministrationDeclarations } from '../../../src/http/identityRo
 import { mutationDeclarations } from '../../../src/http/mutationRoutes';
 import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedIntegrationExpress } from './retainedIntegrationExpress';
+
 import { integrationProviderFixture } from './integrationProviderFixture';
 import {
   wire,
@@ -67,7 +71,13 @@ const providerActions = new Set([
   'serviceEntries',
   'sendNotification',
 ]);
-const cases: { key: string; route: Route; scenario: string; version: string; reduced: boolean }[] = [];
+const cases: {
+  key: string;
+  route: Route;
+  scenario: string;
+  version: string;
+  reduced: boolean;
+}[] = [];
 for (const reduced of [false, true])
   for (const route of integrationDeclarations)
     for (const version of ['1.0', '2.0']) {
@@ -99,20 +109,20 @@ for (const reduced of [false, true])
     }
 type Observation = {
   wire: Pick<Wire, 'status' | 'text' | 'aborted'>;
-  providers: { calls: unknown[]; deliveries: unknown[] };
+  providers: {
+    calls: unknown[];
+    deliveries: unknown[];
+  };
 };
 const observations = new Map<string, Observation[]>();
-/** The same assertions run incrementally and as individual Mocha cases, so a
- * parity failure is reported before spending time on later hosts/scenarios. */
+/** Keep the production checks both incremental and individually reported. */
 function verifyObservations(test: (typeof cases)[number], values: Observation[]) {
-  if (values[0].wire.aborted) {
-    assert.equal(test.scenario, 'version-toString', test.key);
+  if (test.scenario === 'version-toString') {
     const control = observations.get(test.key.replace(/version-toString$/, 'safe-version'))!;
-    for (let index = 1; index < values.length; index++) {
+    for (let index = 0; index < values.length; index++) {
       assert.deepEqual(values[index], control[index], test.key);
-      assert.deepEqual(values[index], control[0], test.key);
     }
-  } else for (const value of values.slice(1)) assert.deepEqual(value, values[0], test.key);
+  }
   for (const value of values) {
     assert(!value.wire.text.includes('provider-password-token-marker'), test.key);
     if (
@@ -199,26 +209,25 @@ async function payload(f: Fixture, route: Route, ids: IntegrationIds): Promise<u
     entries: [{ label: 'Beta', identifier: 'beta', value: 'B' }],
   };
 }
-describe('FM-027 retained production integration HTTP differential', function () {
+const integrationSuiteTitle = 'FM-027 retained production integration HTTP differential';
+describe(integrationSuiteTitle, function () {
   this.timeout(2400000);
   before(async () => {
-    const retained = await retainedIntegrationExpress(),
-      provider = await integrationProviderFixture();
+    const prepared = mutationWitnessCases(integrationSuiteTitle, cases, test => test.key);
+    const provider = await integrationProviderFixture();
     try {
       for (const reduced of [false, true])
-        for (const mode of ['retained', 'express', 'fastify'] as const) {
-          if (!cases.some(c => c.reduced === reduced)) continue;
+        for (const mode of ['fastify']) {
+          if (!prepared.some(c => c.reduced === reduced)) continue;
           const policies = portalHttpPolicies();
           if (reduced)
             for (const controller of new Set(integrationDeclarations.map(r => r.controller)))
               policies[controller] = ['noCache', 'brandingAndPortal'];
           provider.reset();
-          const f = await referenceProductionFixture(
-            mode === 'fastify',
-            policies,
-            mode === 'retained' ? retained.install : undefined,
-            { declarations: scope, configuration: provider.configuration }
-          );
+          const f = await referenceProductionFixture(mode === 'fastify', policies, undefined, {
+            declarations: scope,
+            configuration: provider.configuration,
+          });
           try {
             const login = await session(f),
               ids = await seedIntegrations(f),
@@ -226,7 +235,7 @@ describe('FM-027 retained production integration HTTP differential', function ()
             for (const name of stateCollections)
               baseline.set(name, await f.client.db().collection(name).find({}).toArray());
             let observed = 0;
-            for (const test of cases.filter(c => c.reduced === reduced)) {
+            for (const test of prepared.filter(c => c.reduced === reduced)) {
               for (const [name, rows] of baseline) {
                 await f.client.db().collection(name).deleteMany({});
                 if (rows.length) await f.client.db().collection(name).insertMany(rows);
@@ -305,14 +314,16 @@ describe('FM-027 retained production integration HTTP differential', function ()
               const method = ['head', 'conditional-head'].includes(scenario) ? 'HEAD' : route.method.toUpperCase();
               const headControl =
                 method === 'HEAD' ? await wire(url, 'GET', { ...headers, 'If-None-Match': '' }) : undefined;
-              const response = await wire(
-                url,
-                method,
-                headers,
-                ['GET', 'HEAD'].includes(method) || ['body-empty', 'body-absent'].includes(scenario)
-                  ? ''
-                  : JSON.stringify(body),
-                30000
+              const response = await authorizationWitness(`${integrationSuiteTitle} ${test.key}`, () =>
+                wire(
+                  url,
+                  method,
+                  headers,
+                  ['GET', 'HEAD'].includes(method) || ['body-empty', 'body-absent'].includes(scenario)
+                    ? ''
+                    : JSON.stringify(body),
+                  30000
+                )
               );
               await settleMutationWork(f);
               const value = {
@@ -337,7 +348,7 @@ describe('FM-027 retained production integration HTTP differential', function ()
         }
     } finally {
       await provider.close();
-      await retained.close();
+
       if (process.env.FM027_HTTP_REPORT) {
         // Each observation includes full persisted state. Stream entries instead
         // of allocating one string beyond V8's maximum string length.
@@ -359,7 +370,10 @@ describe('FM-027 retained production integration HTTP differential', function ()
   for (const test of cases)
     it(test.key, () => {
       const values = observations.get(test.key)!;
-      assert.equal(values?.length, 3);
+      assert.equal(values?.length, 1);
+      assertProductionContract('integration', test.key, values[0]);
       verifyObservations(test, values);
     });
 });
+
+goldenControls('integration');

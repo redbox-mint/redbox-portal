@@ -3,7 +3,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import { sendLoginRedirect, sendProviderRedirect, sendSerializedJson, requestAccepts } from './responses';
 import { requestString } from '../requestValues';
-import type { AuthenticatedActor, HttpIdentity } from '../express/identity';
+import type { AuthenticatedActor, HttpIdentity } from '../../authentication/HttpIdentity';
 import { AuthenticationRejected } from '../../authentication/Accounts';
 import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import type { FastifyPreparation } from './preparation';

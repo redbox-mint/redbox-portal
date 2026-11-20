@@ -352,7 +352,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: default source and production runtime image start/restart/stop with
     Fastify; no hidden test/default path still qualifies Express instead.
 
-- [ ] **FM-043 — Remove first-party Express and enforce closure.**
+- [x] **FM-043 — Remove first-party Express and enforce closure.**
   - Dependencies: FM-042.
   - Work: delete obsolete host/routing/middleware/exports/dependencies, update
     lockfiles, and add focused AST/dependency audit using the retirement pattern.
@@ -367,6 +367,8 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     package hashes, image digest, toolchain and provider/configuration inputs.
   - Acceptance: release runtime uses intended production graph/user and includes
     required assets/configuration, rather than depending on mounted build tooling.
+    The FM-043 Express closure audit (including the runtime-image filesystem scan)
+    passes against the exact candidate image digest.
 
 - [ ] **FM-045 — Run final functional and consumer gates.**
   - Dependencies: FM-044.
@@ -374,6 +376,8 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     Companion/generated/packed/WSU gates; reconcile all routes and policies.
   - Acceptance: final-source and artifact identities are explicit; required cases
     pass with pending/skips accounted for; inherited Express results are baseline only.
+    Includes the FM-043 authorization guard-mutation harness (CircleCI
+    `authorization_guard_mutation: true`) with 0 survivors against the final source.
 
 - [ ] **FM-046 — Run final deployment/database/maintenance gates.**
   - Dependencies: FM-044.

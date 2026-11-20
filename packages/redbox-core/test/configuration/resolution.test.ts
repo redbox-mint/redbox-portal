@@ -4,7 +4,7 @@ import { portalSchema, portalDefaults } from '../../src/configuration/portal';
 import { execFileSync } from 'node:child_process';
 import { loadStartupConfiguration } from '../../src/configuration/loading';
 import { ConfigurationError, resolveStartupConfiguration } from '../../src/configuration';
-import { resolveExtensions, type ExtensionProvider } from '../../src/extensions/resolution';
+import { resolveExtensionData, type ExtensionDataProvider } from '../../src/extensions/resolution';
 
 const schema = z
   .object({
@@ -95,10 +95,10 @@ describe('Startup configuration', () => {
     }
   });
   it('resolves every layer in order with typed env and CLI inputs, retaining functions', () => {
-    const extensions = resolveExtensions(
+    const extensions = resolveExtensionData(
       [
-        { name: 'low', root: '.', declaration: { apiVersion: 1, config: { server: { port: 2 } } } },
-        { name: 'high', root: '.', declaration: { apiVersion: 1, config: { server: { port: 3 } } } },
+        { name: 'low', root: '.', declaration: { config: { server: { port: 2 } } } },
+        { name: 'high', root: '.', declaration: { config: { server: { port: 3 } } } },
       ],
       ['high']
     );
@@ -144,27 +144,29 @@ describe('Startup configuration', () => {
       name: 'low',
       root: '.',
       declaration: {
-        apiVersion: 1 as const,
         config: { workflow: { review: { draft: { form: 'config' }, published: { form: 'published' } } } },
         workflows,
       },
     };
     const resolve = (
-      providers: readonly ExtensionProvider[] = [low],
+      providers: readonly ExtensionDataProvider[] = [low],
       application?: { source: string; values: Record<string, unknown> }
     ) =>
       resolveStartupConfiguration({
         schema: workflowSchema,
         core: { ...core, values: { ...core.values, workflow: {} } },
         executablePaths,
-        extensions: resolveExtensions(providers, providers.some(provider => provider.name === 'high') ? ['high'] : []),
+        extensions: resolveExtensionData(
+          providers,
+          providers.some(provider => provider.name === 'high') ? ['high'] : []
+        ),
         application,
       });
     assert.deepEqual(resolve().workflow.review, { draft: { form: 'declared' }, published: { form: 'published' } });
     const higher = {
       ...low,
       name: 'high',
-      declaration: { apiVersion: 1 as const, workflows: { review: { draft: { form: 'high' } } } },
+      declaration: { workflows: { review: { draft: { form: 'high' } } } },
     };
     assert.deepEqual(resolve([low, higher]).workflow.review.draft, { form: 'high' });
     assert.deepEqual(

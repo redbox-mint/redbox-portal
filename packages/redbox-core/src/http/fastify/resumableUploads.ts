@@ -1,7 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { ResumableUploads } from '../actions/resumableUploads';
 import { requestContext } from '../context';
-import { nativeActionReply } from './actionReply';
+import { nativeJsonOutput } from './jsonOutput';
 import { requestPathname } from './router';
 import { commitNativeSessionForRawReply } from './session';
 import { linkHttpRequestLifetime, trackHttpRequestWork } from '../../middleware/requestLifetime';
@@ -78,7 +78,7 @@ export async function resumableUploadAction(
         path: requestPathname(native.request.raw.url ?? '/')!.slice(input.rootContext.length),
         context: () => requestContext(request),
       },
-      nativeActionReply(reply),
+      nativeJsonOutput(reply),
       async handle => {
         await commitNativeSessionForRawReply(native.request);
         if (native.reply.raw.destroyed) return;

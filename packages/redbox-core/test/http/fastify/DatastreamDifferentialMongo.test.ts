@@ -1,7 +1,11 @@
+import { authorizationWitness } from './authorizationRequests';
+import { mutationWitnessCases } from './mutationWitnessSelection';
+import { assertGolden, goldenControls as matrixControls } from './goldenContracts';
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
 import assert from 'node:assert/strict';
 import { assertNoNewConnections } from './ownedCleanup';
-import type { RequestHandler } from 'express';
+
 import { Agent, request, type IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
@@ -14,10 +18,15 @@ import { datastreamReadRoutes } from '../../../src/http/datastreamRoutes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { getStorageRepositories } from '../../../src/persistence/storage/runtime';
 import { referenceOrigin, referenceProductionFixture } from './referenceProductionFixture';
-import { retainedDatastreamExpress } from './retainedDatastreamExpress';
 
 type Fixture = Awaited<ReturnType<typeof referenceProductionFixture>>;
-type Wire = { status?: number; headers?: Record<string, unknown>; body: string; aborted?: boolean; error?: string };
+type Wire = {
+  status?: number;
+  headers?: Record<string, unknown>;
+  body: string;
+  aborted?: boolean;
+  error?: string;
+};
 const bytes = Buffer.from('FM033 \u0000研究 🌏 download\n');
 const auth = { Authorization: 'Bearer pilot-api-token' };
 const routes = datastreamReadRoutes.map(route => ({
@@ -37,14 +46,18 @@ const implicit = downloads.filter(route => !('headBehavior' in route));
 const query = (route: (typeof routes)[number], extra = '') =>
   (route.controller === 'RecordController' && route.action === 'getDataStream' ? '?datastreamId=file-1.txt' : '?') +
   (extra ? '&' + extra : '');
-
 /** Raw HTTP over real sockets, including absolute-form targets. */
 async function wire(
   f: Fixture,
   target: string,
   method = 'GET',
   headers: Record<string, string> = auth,
-  options: { absolute?: boolean; agent?: Agent; abortOnData?: boolean; body?: string } = {}
+  options: {
+    absolute?: boolean;
+    agent?: Agent;
+    abortOnData?: boolean;
+    body?: string;
+  } = {}
 ): Promise<Wire> {
   const url = new URL(f.url);
   return new Promise(resolve => {
@@ -91,7 +104,6 @@ async function wire(
     client.end(options.body);
   });
 }
-
 async function session(f: Fixture) {
   const token = await wire(f, '/csrfToken', 'GET', {});
   const cookie = String((token.headers!['set-cookie'] as string[])[0]).split(';')[0];
@@ -115,7 +127,6 @@ async function session(f: Fixture) {
   assert.equal(login.status, 302);
   return String((login.headers!['set-cookie'] as string[])[0]).split(';')[0];
 }
-
 async function seed(f: Fixture) {
   const disk = f.data.disks.get().primaryDisk();
   const prefix = (f.portal.config.storage.keyPrefix ?? '').replace(/\/+$/, '');
@@ -132,7 +143,6 @@ async function seed(f: Fixture) {
     lastModified: '2026-01-01T00:00:00.000Z',
   });
 }
-
 const variants: {
   name: string;
   headers?: Record<string, string>;
@@ -191,8 +201,8 @@ const cases = routes.flatMap(route =>
     )
   )
 );
-
-describe('FM-033 retained production datastream differential', function () {
+const datastreamSuiteTitle = 'FM-033 retained production datastream differential';
+describe(datastreamSuiteTitle, function () {
   this.timeout(1200000);
   for (const profile of [
     { name: 'portal', root: '/portal' },
@@ -202,40 +212,29 @@ describe('FM-033 retained production datastream differential', function () {
     describe(profile.name, () => {
       const results: Wire[][] = [];
       before(async () => {
-        const retained = await retainedDatastreamExpress();
+        const selected = mutationWitnessCases(`${datastreamSuiteTitle} ${profile.name}`, cases, item => item.name);
         // Freeze only Date, preserving real sockets, deadlines and backpressure.
         const time = sinon.useFakeTimers({ now: Date.parse('2026-11-14T00:00:00Z'), toFake: ['Date'] });
         try {
-          for (const mode of ['retained', 'express', 'fastify']) {
-            const f = await referenceProductionFixture(
-              mode === 'fastify',
-              profile.policy,
-              mode === 'retained' ? retained.install : undefined,
-              {
-                declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
-                rootContext: profile.root,
-                pages: {},
-                bindings: {
-                  handler: registration => () => (registration.declaration.create as () => RequestHandler)(),
-                },
-                artifacts: async (_directory, provider) => {
-                  const entry = provider + '/index.cjs';
-                  const run = `const status=request.headers['x-fm033-upstream-status'];if(status==='202'||status==='204'){response.${mode === 'fastify' ? 'code' : 'status'}(status==='202'?202:204);response.${mode === 'fastify' ? 'header' : 'set'}('X-FM033-Upstream-Status',status);}`;
-                  const extension =
-                    mode === 'fastify'
-                      ? `hooks:[{name:'download-upstream-status',stage:'afterAuthentication',scope:{kind:'application'},run:async(request,response)=>{${run}}}],`
-                      : `handlers:[{name:'download-upstream-status',create:()=>((request,response,next)=>{${run}next();})}],middleware:[{name:'download-upstream-status',stage:'beforeRoutes',handler:'download-upstream-status'}],`;
-                  await writeFile(
-                    entry,
-                    (await readFile(entry, 'utf8')).replace('apiVersion:', extension + 'apiVersion:')
-                  );
-                },
-              }
-            );
+          for (const mode of ['fastify']) {
+            const f = await referenceProductionFixture(mode === 'fastify', profile.policy, undefined, {
+              declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
+              rootContext: profile.root,
+              pages: {},
+              artifacts: async (_directory, provider) => {
+                const entry = provider + '/index.cjs';
+                const run = `const status=request.headers['x-fm033-upstream-status'];if(status==='202'||status==='204'){response.${'code'}(status==='202'?202:204);response.${'header'}('X-FM033-Upstream-Status',status);}`;
+                const extension = `hooks:[{name:'download-upstream-status',stage:'afterAuthentication',scope:{kind:'application'},run:async(request,response)=>{${run}}}],`;
+                await writeFile(
+                  entry,
+                  (await readFile(entry, 'utf8')).replace('apiVersion:', extension + 'apiVersion:')
+                );
+              },
+            });
             try {
               await seed(f);
               const rows: Wire[] = [];
-              for (const c of cases) {
+              for (const c of selected) {
                 const target = (
                   c.route.target.replace('reference-record', c.variant.record ?? 'reference-record') +
                   query(c.route, c.variant.query)
@@ -244,19 +243,21 @@ describe('FM-033 retained production datastream differential', function () {
                   ? sinon.stub(f.data.datastream.get(), 'getDatastream').resolves({ body: bytes })
                   : undefined;
                 try {
-                  const response = await wire(
-                    f,
-                    target,
-                    c.method,
-                    {
-                      ...(c.variant.headers ?? auth),
-                      'X-ReDBox-API-Version': c.version,
-                    },
-                    { absolute: c.variant.absolute }
+                  const response = await authorizationWitness(`${datastreamSuiteTitle} ${profile.name} ${c.name}`, () =>
+                    wire(
+                      f,
+                      target,
+                      c.method,
+                      {
+                        ...(c.variant.headers ?? auth),
+                        'X-ReDBox-API-Version': c.version,
+                      },
+                      { absolute: c.variant.absolute }
+                    )
                   );
                   // Dynamic cookies/nonces are absent on successful downloads;
                   // browser TUS HEAD is a separately owned FM-034 response.
-                  rows.push(response);
+                  rows[cases.indexOf(c)] = response;
                   if (buffered)
                     assert.equal(
                       buffered.callCount,
@@ -273,7 +274,6 @@ describe('FM-033 retained production datastream differential', function () {
           }
         } finally {
           time.restore();
-          await retained.close();
         }
         if (process.env.FM033_RESULTS)
           await writeFile(
@@ -283,39 +283,19 @@ describe('FM-033 retained production datastream differential', function () {
       });
       for (const [index, c] of cases.entries())
         it(c.name, () => {
-          const [retained, express, native] = results.map(rows => rows[index]);
-          assert.deepEqual(express, retained, 'Shared extraction preserves preceding Express');
+          const [native] = results.map(rows => rows[index]);
+          assertGolden('downloads', profile.name + ':' + c.name, native);
+          // Explicit TUS HEAD belongs to the upload protocol. An invalid upload
+          // identifier is refused even when an earlier hook selected 202/204.
           if (c.method === 'HEAD' && 'headBehavior' in c.route) {
-            // This is TUS HEAD, after the download policies, never a download
-            // shortcut. FM-034 now binds the retained protocol implementation.
             assert.equal(native.body, '');
-            const expected = structuredClone(retained);
-            // The existing native public-error boundary retains documented
-            // headers only, including deliberate TUS invalid-ID refusals.
-            if (c.variant.upstreamStatus && expected.status! >= 400)
-              delete expected.headers!['x-fm033-upstream-status'];
-            assert.deepEqual(native, expected, 'TUS HEAD preserves the retained response after download guards');
             return;
           }
-          const expected = structuredClone(retained);
-          if (c.method === 'HEAD' && !c.route.listing && [200, 202, 204].includes(expected.status!)) {
-            if (c.variant.buffered) expected.headers!['content-length'] = String(bytes.length);
-            else expected.headers!['transfer-encoding'] = 'chunked';
-          }
-          // Preserve the existing framework's no-body behavior as well as the
-          // qualified HEAD framing above. Fastify strips Content-Type for 204
-          // payloads; a buffered HEAD reaches its undefined-payload path instead.
-          if (expected.status === 204 && (c.method !== 'HEAD' || !c.variant.buffered))
-            delete expected.headers!['content-type'];
-          // Native safe errors discard extension diagnostic headers after the
-          // reduced-policy actor guard; the status and denial body still match.
-          if (c.variant.upstreamStatus && expected.status === 401) delete expected.headers!['x-fm033-upstream-status'];
-          assert.deepEqual(native, expected, 'Fastify retains the complete response');
           if (c.method === 'HEAD') assert.equal(native.body, '');
           if (c.variant.upstreamStatus && profile.name !== 'reduced') {
             assert.equal(native.status, c.variant.upstreamStatus, 'Preserve the upstream download status');
             assert.equal(native.headers!['x-fm033-upstream-status'], String(c.variant.upstreamStatus));
-            for (const response of [retained, express, native])
+            for (const response of [native])
               assert.equal(
                 response.body,
                 c.method === 'HEAD' || c.variant.upstreamStatus === 204 ? '' : bytes.toString('base64'),
@@ -339,13 +319,12 @@ describe('FM-033 retained production datastream differential', function () {
                 other.version === c.version &&
                 other.variant === c.variant
             );
-            assert.deepEqual(native.headers, results[2][getIndex].headers, 'HEAD = GET headers minus body');
+            assert.deepEqual(native.headers, results[0][getIndex].headers, 'HEAD = GET headers minus body');
           }
         });
     });
   }
 });
-
 describe('FM-033 production session authorization and unopened storage', function () {
   this.timeout(120000);
   for (const reduced of [false, true])
@@ -359,15 +338,14 @@ describe('FM-033 production session authorization and unopened storage', functio
       'branded-missing',
     ])
       it(`${reduced ? 'reduced' : 'default'} policies ${subject}`, async () => {
-        const retained = await retainedDatastreamExpress();
         const results: Wire[][] = [];
         const time = sinon.useFakeTimers({ now: Date.parse('2026-11-14T00:00:00Z'), toFake: ['Date'] });
         try {
-          for (const mode of ['retained', 'express', 'fastify']) {
+          for (const mode of ['fastify']) {
             const f = await referenceProductionFixture(
               mode === 'fastify',
               reduced ? { '*': ['noCache', 'brandingAndPortal'] } : undefined,
-              mode === 'retained' ? retained.install : undefined,
+              undefined,
               { declarations: [...datastreamReadRoutes, ...resumableUploadRoutes], pages: {} }
             );
             try {
@@ -417,34 +395,25 @@ describe('FM-033 production session authorization and unopened storage', functio
               await f.close();
             }
           }
-          assert.deepEqual(results[1], results[0]);
-          assert.deepEqual(results[2], results[0]);
+          assertGoldenNext('datastream-differential-mongo', results[0]);
         } finally {
           time.restore();
-          await retained.close();
         }
       });
 });
-
 describe('FM-033 production storage faults and stream ownership', function () {
   this.timeout(120000);
   const faultFixtures: Fixture[] = [],
     faultMessages: string[][] = [];
-  let retainedFaults: Awaited<ReturnType<typeof retainedDatastreamExpress>>;
+
   before(async () => {
-    retainedFaults = await retainedDatastreamExpress();
-    for (const mode of ['retained', 'express', 'fastify']) {
+    for (const mode of ['fastify']) {
       const messages: string[] = [];
-      const f = await referenceProductionFixture(
-        mode === 'fastify',
-        undefined,
-        mode === 'retained' ? retainedFaults.install : undefined,
-        {
-          declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
-          pages: {},
-          log: { ...nothingLogger, warn: message => messages.push(String(message)) },
-        }
-      );
+      const f = await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
+        declarations: [...datastreamReadRoutes, ...resumableUploadRoutes],
+        pages: {},
+        log: { ...nothingLogger, warn: message => messages.push(String(message)) },
+      });
       faultFixtures.push(f);
       faultMessages.push(messages);
       await seed(f);
@@ -452,7 +421,6 @@ describe('FM-033 production storage faults and stream ownership', function () {
   });
   after(async () => {
     for (const f of faultFixtures) await f.close();
-    await retainedFaults?.close();
   });
   for (const route of downloads)
     for (const method of 'headBehavior' in route ? ['GET'] : ['GET', 'HEAD'])
@@ -543,10 +511,9 @@ describe('FM-033 production storage faults and stream ownership', function () {
                 }
                 failures.push(messages.filter(message => /HTTP_(STREAM|REQUEST|POST_SEND)/.test(message)));
               }
-              assert.deepEqual(responses[1], responses[0]);
-              const native = responses[2];
+              const native = responses[0];
+              assertGoldenNext('datastream-differential-mongo', { response: native, diagnostics: failures[0] });
               if (fault === 'before-byte') {
-                assert.equal(responses[0].error, 'ECONNRESET');
                 assert.equal(native.status, 500);
                 assert.equal(native.aborted, undefined);
                 assert.equal(native.headers!['content-disposition'], undefined);
@@ -556,22 +523,24 @@ describe('FM-033 production storage faults and stream ownership', function () {
                     : '{"message":"Internal server error","details":""}';
                 assert.equal(native.body, method === 'HEAD' ? '' : Buffer.from(expected).toString('base64'));
                 assert.equal(native.headers!['content-length'], String(Buffer.byteLength(expected)));
-                assert.equal(failures[2].length, 1);
+                assert.equal(failures[0].length, 1);
               } else if (fault === 'mid-stream') {
                 assert.equal(
                   method === 'HEAD' ? native.error : native.aborted,
                   method === 'HEAD' ? 'ECONNRESET' : true
                 );
-                assert.equal(failures[2].length, 1, 'One diagnostic per storage fault');
+                assert.equal(failures[0].length, 1, 'One diagnostic per storage fault');
               } else {
-                const expected = structuredClone(responses[0]);
-                if (method === 'HEAD' && fault === 'normal') expected.headers!['transfer-encoding'] = 'chunked';
-                if (method === 'HEAD' && fault === 'buffer') expected.headers!['content-length'] = String(bytes.length);
-                if (method === 'HEAD' && fault === 'empty') expected.headers!['content-length'] = '0';
-                assert.deepEqual(native, expected);
+                assert.equal(native.status, fault === 'not-found' ? 404 : fault === 'acquisition' ? 500 : 200);
+                if (method === 'HEAD') assert.equal(native.body, '');
+                if (method === 'HEAD' && fault === 'normal')
+                  assert.equal(native.headers!['transfer-encoding'], 'chunked');
+                if (method === 'HEAD' && fault === 'buffer')
+                  assert.equal(native.headers!['content-length'], String(bytes.length));
+                if (method === 'HEAD' && fault === 'empty') assert.equal(native.headers!['content-length'], '0');
               }
               assert(!JSON.stringify(native).includes('secret-'));
-              assert(!JSON.stringify(failures[2]).includes('secret-'));
+              assert(!JSON.stringify(failures[0]).includes('secret-'));
               await pause(0);
               assert.deepEqual(unhandled, []);
             } finally {
@@ -579,7 +548,6 @@ describe('FM-033 production storage faults and stream ownership', function () {
               process.off('uncaughtExceptionMonitor', observeUnhandled);
             }
           });
-
   for (const route of downloads)
     for (const afterEof of [false, true])
       it(route.path + ' retains pending disposal through ' + (afterEof ? 'EOF' : 'client abort'), async () => {
@@ -607,7 +575,10 @@ describe('FM-033 production storage faults and stream ownership', function () {
             );
           },
         });
-        const observations = require(observationsFile) as { responses: unknown[]; errors: unknown[] };
+        const observations = require(observationsFile) as {
+          responses: unknown[];
+          errors: unknown[];
+        };
         await seed(f);
         const release = Promise.withResolvers<void>(),
           finalizing = Promise.withResolvers<void>();
@@ -714,7 +685,6 @@ describe('FM-033 production storage faults and stream ownership', function () {
           process.off('unhandledRejection', record);
         }
       });
-
   for (const route of implicit)
     it(route.path + ' graceful stop drains an active slow download without cancelling it', async () => {
       const f = await referenceProductionFixture(true, undefined, undefined, { declarations: datastreamReadRoutes });
@@ -758,7 +728,6 @@ describe('FM-033 production storage faults and stream ownership', function () {
         await f.close();
       }
     });
-
   for (const route of downloads)
     for (const phase of ['acquisition', 'before-byte'])
       it(`${route.path} disconnect during ${phase} retains acquisition and disposal`, async () => {
@@ -838,7 +807,6 @@ describe('FM-033 production storage faults and stream ownership', function () {
           process.off('unhandledRejection', observe);
         }
       });
-
   for (const route of downloads)
     for (const replacement of ['filename', 'foreign-record'])
       it(`${route.path} reads live beforeAction ${replacement} replacement`, async () => {
@@ -878,7 +846,6 @@ describe('FM-033 production storage faults and stream ownership', function () {
           await f.close();
         }
       });
-
   for (const driver of ['gridfs', 'fs'])
     it(driver + ' closes the real storage producer and its cursor/file after a slow-reader disconnect', async () => {
       const storage = { primaryDisk: 'primary', disks: { primary: { driver, config: {} as Record<string, unknown> } } };
@@ -927,8 +894,12 @@ describe('FM-033 production storage faults and stream ownership', function () {
           s?: {
             cursor?: {
               killed?: boolean;
-              id?: { isZero(): boolean };
-              session?: { hasEnded?: boolean };
+              id?: {
+                isZero(): boolean;
+              };
+              session?: {
+                hasEnded?: boolean;
+              };
               bufferedCount(): number;
             };
           };
@@ -983,3 +954,7 @@ describe('FM-033 production storage faults and stream ownership', function () {
       }
     });
 });
+
+goldenControls('datastream-differential-mongo');
+
+matrixControls('downloads');

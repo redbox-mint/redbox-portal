@@ -5,7 +5,6 @@ interface RequestLifetime {
   app?: object;
   transportDone: boolean;
   responseEnded: boolean;
-  responsePending: boolean;
   callbackPending: boolean;
   dispatching: number;
   active: Set<Promise<unknown>>;
@@ -80,7 +79,6 @@ export function beginHttpRequest(request: object, response: ServerResponse, comp
     app,
     transportDone: false,
     responseEnded: false,
-    responsePending: false,
     callbackPending: false,
     dispatching: 0,
     active: new Set(),
@@ -91,11 +89,7 @@ export function beginHttpRequest(request: object, response: ServerResponse, comp
   };
   Object.defineProperty(request, key, { value: state });
   const canComplete = () =>
-    state.transportDone &&
-    !state.responsePending &&
-    !state.callbackPending &&
-    state.dispatching === 0 &&
-    state.active.size === 0;
+    state.transportDone && !state.callbackPending && state.dispatching === 0 && state.active.size === 0;
   const transportDone = () => {
     state.transportDone = true;
     state.check();
@@ -117,37 +111,17 @@ export function beginHttpRequest(request: object, response: ServerResponse, comp
   response.once('finish', transportDone);
   response.once('close', transportDone);
   const originalEnd = response.end;
-  // Install before express-session. Its saved-session callback reaches this end
-  // only after the session write, including when no finish event follows an abort.
+  // Companion retains callback dispatch until its provider reaches the native
+  // response end, including when no finish event follows an abort.
   response.end = function (this: ServerResponse, ...args: unknown[]) {
     try {
       return Reflect.apply(originalEnd, this, args);
     } finally {
       state.responseEnded = true;
-      state.responsePending = false;
       state.callbackPending = false;
       state.check();
     }
   } as ServerResponse['end'];
-}
-
-/** Response middleware retains its own callback independently of action errors. */
-export function retainHttpResponse(request: unknown): void {
-  const state = lifetime(request);
-  if (state && !state.completed && !state.responseEnded) state.responsePending = true;
-}
-
-/** A failed end attempt has no response handoff; dispatched store callbacks own their work separately. */
-export function failHttpResponse(request: unknown): void {
-  const state = lifetime(request);
-  if (state) {
-    // express-session makes its end wrapper terminal before serialization or
-    // dispatch. An error response retry cannot acquire a second handoff.
-    state.responseEnded = true;
-    state.responsePending = false;
-    state.callbackPending = false;
-    state.check();
-  }
 }
 
 /** An async action that hands its response to a callback must declare that handoff. */
@@ -186,36 +160,7 @@ export function retainHttpRequestFollowup(app: object, work: Promise<void>): Pro
   return Promise.resolve();
 }
 
-/** Called by exported core controllers; non-HTTP direct calls retain their ordinary behavior. */
-export function runHttpRequestHandler<T>(request: unknown, invoke: () => T): T | undefined {
-  const state = lifetime(request);
-  if (!state) return invoke();
-  // Static/policy responses may finish or disconnect before controller dispatch.
-  // Do not start a controller after its accepted request has already been released.
-  if (state.completed) return undefined;
-  state.dispatching++;
-  try {
-    const result = runHttpRequestContext(request, invoke);
-    if (promiseLike(result)) {
-      ownWork(state, result, () => {
-        state.callbackPending = false;
-      });
-    } else if (!state.responseEnded) {
-      // This includes returned RxJS subscriptions. An outer subscription can
-      // complete while a nested subscription or async next callback still runs.
-      state.callbackPending = true;
-    }
-    return result;
-  } catch (error) {
-    state.callbackPending = false;
-    throw error;
-  } finally {
-    state.dispatching--;
-    state.check();
-  }
-}
-
-/** Native request entry points own returned work without Express callback handoff rules. @internal */
+/** Native request entry points retain returned asynchronous work. @internal */
 export function runHttpRequestWork<T>(request: unknown, invoke: () => T): T {
   const state = lifetime(request);
   if (!state || state.completed) return invoke();

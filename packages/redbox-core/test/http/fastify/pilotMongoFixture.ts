@@ -1,27 +1,17 @@
-import { portalHttpSettings } from '../../../src/application/portal/httpPlan';
-import { mountAuthenticationRoutes } from '../../../src/http/express/login';
-import { installLocalAuthentication } from '../../../src/http/express/identityProviders';
-import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
-import { retainedMetadataExpress } from './retainedMetadataExpress';
 import { ApplicationRuntime } from '../../../src/application';
 import { FastifyHost } from '../../../src/http/fastify/FastifyHost';
 import { prepareNativeSessions } from '../../../src/http/fastify/session';
 import { prepareNativeAuthentication } from '../../../src/http/fastify/authentication';
 import assert from 'node:assert/strict';
-import type { Document } from 'mongodb';
-import { createRequire } from 'node:module';
-import { recordWriteFixture } from '../recordWriteFixture';
+
 import { installedPilot } from './installedPilot';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { initializeIdentityPersistence, getIdentityRepositories } from '../../../src/persistence/identity/runtime';
-import { getReferenceRepositories } from '../../../src/persistence/reference/runtime';
+
 import { persistenceStatus } from '../../../src/persistence/runtime';
-import { ExpressHost } from '../../../src/http/express/ExpressHost';
-import { prepareHttpMiddleware } from '../../../src/http/express/middleware';
-import type { createPortalFastifyHost } from '../../../src/application/portal/host';
+
 import type { ProductionPilotOptions } from './productionPilotFixture';
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
 
 if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT)
   throw new Error('FM-019 needs disposable real Mongo (/sr_p4_http) and Solr');
@@ -31,129 +21,11 @@ export const rootSecret = 'fm019-native-root-secret-000000000000000001';
 export const rollbackSecret = 'fm019-rollback-root-secret-0000000000000002';
 export const cookie = (response: Response, previous = '') =>
   response.headers.get('set-cookie')?.split(';')[0] || previous;
-type Domains = Parameters<NonNullable<Parameters<typeof recordWriteFixture>[0]>>[2];
-type Mongo = Parameters<NonNullable<Parameters<typeof recordWriteFixture>[0]>>[1];
 export let packed: Awaited<ReturnType<typeof installedPilot>>;
-
-export async function fixture(
-  native: boolean,
-  options: ProductionPilotOptions & { readonly retainedExpress?: boolean } = {}
-) {
-  if (native) return packed.nativeProductionFixture(packed.application, packed.module, options);
-  const rootContext = options.server?.rootContext ?? '/portal';
-  const configuration = (f: Mongo | undefined, mongoUrl?: string) => ({
-    server: {
-      rootContext,
-      hostname: '127.0.0.1',
-      port: 0,
-      trustProxy: false,
-      stopDeadlineMs: 30000,
-      publicUrl: canonical,
-      ...options.server,
-    },
-    auth: {
-      defaultBrand: 'default',
-      defaultPortal: 'rdmp',
-      loginPath: 'user/login',
-      postLogoutRedir: '',
-      ...options.auth,
-    },
-    redboxSession: {
-      adapter: 'mongo' as const,
-      name: 'redbox.v6.sid',
-      collection: 'pilotSessions',
-      secret: native ? rootSecret : 'synthetic-secret-at-least-32-characters-long',
-      cookie: { secure: false, httpOnly: true, sameSite: 'lax' as const },
-      ...options.session,
-      mongoUrl:
-        mongoUrl ?? process.env.HTTP_PILOT_TEST_MONGO_URL!.replace('/sr_p4_http', '/' + f!.native.db().databaseName),
-    },
-  });
-  let domains!: Domains;
-  let nativePlan: Awaited<ReturnType<typeof createPortalFastifyHost>> | undefined;
-  const baseline = !native && options.retainedExpress ? await retainedMetadataExpress() : undefined;
-  const makeFixture = recordWriteFixture;
-  const f = await makeFixture(
-    async (_router, f, input) => {
-      domains = input;
-      if (!native) {
-        const settings = portalHttpSettings(configuration(f), options);
-        const providerConfig = options.providerConfiguration ?? { active: ['local'] };
-        installLocalAuthentication({
-          passport: input.realtime.auth.passport,
-          accounts: input.accounts,
-          config: providerConfig,
-          brand: () => Object.assign(new BrandingModel(), f.brand),
-        });
-        mountAuthenticationRoutes(_router, {
-          ...settings.login,
-          passport: input.realtime.auth.passport,
-          identity: f.identity,
-          validContext: (b, p) => b === settings.login.defaultBrand && settings.portals.includes(p),
-          brandId: name => (name === 'other' ? f.otherBrand.id : f.brand.id),
-          postLoginPath: () =>
-            rootContext + '/' + settings.login.defaultBrand + '/' + settings.login.defaultPortal + '/home',
-          csrf: input.csrf.protect,
-          audit: async () => {},
-          loginFailure: async () => {},
-          credentialFields: [
-            providerConfig.local?.usernameField ?? 'username',
-            providerConfig.local?.passwordField ?? 'password',
-          ],
-          sessionCookie: { name: settings.session.name, ...settings.session.cookie },
-        });
-      }
-      const refs = getReferenceRepositories(f.owner);
-      const type = await refs.recordTypes.findByName(f.brand.id, 'dataRecord');
-      await refs.recordTypes.reviseDefinition(type!.id!, { concurrentModification: { mode: 'strict' } });
-      await input.storage.create(
-        Object.assign(new BrandingModel(), f.brand),
-        {
-          redboxOid: 'fm019-record',
-          revision: 1,
-          metadata: { title: 'Original', retained: true },
-          metaMetadata: { brandId: f.brand.id, type: 'dataRecord', form: 'dataRecord' },
-          authorization: { edit: ['pilot-admin'], view: ['pilot-admin'], editRoles: [], viewRoles: [] },
-        },
-        'dataRecord'
-      );
-    },
-    {
-      metadataRootContext: rootContext,
-      rootContext,
-      transportConfiguration: configuration,
-      portals: options.portals,
-      origins: [new URL(options.server?.publicUrl ?? canonical).origin],
-      metadataAdapters: baseline,
-      identityIds: {
-        brand: '000000000000000000000011',
-        otherBrand: '000000000000000000000012',
-        role: '000000000000000000000013',
-        reader: '000000000000000000000014',
-        user: '000000000000000000000015',
-      },
-      policyConfiguration: options.policyConfiguration,
-    }
-  ).catch(async error => {
-    await baseline?.close();
-    throw error;
-  });
-  const version = (await f.native.db().admin().command({ buildInfo: 1 })).version;
-  assert.match(version, /^(9\.(?:[1-9]\d*\.\d+|0\.(?:[4-9]|[1-9]\d+))|[1-9]\d\.)/);
-  return {
-    ...f,
-    accounts: domains.accounts,
-    nativePlan,
-    baselineHashes: baseline?.hashes,
-    close: async () => {
-      try {
-        await f.close();
-      } finally {
-        await baseline?.close();
-      }
-    },
-  };
+export async function fixture(native: boolean, options: ProductionPilotOptions = {}) {
+  return packed.nativeProductionFixture(packed.application, packed.module, options);
 }
+
 export async function token(url: string, credential = '') {
   const response = await fetch(url + '/csrfToken', { headers: { Cookie: credential } });
   assert.equal(response.status, 200);
@@ -161,7 +33,7 @@ export async function token(url: string, credential = '') {
 }
 export async function login(f: Awaited<ReturnType<typeof fixture>>, native: boolean) {
   const csrf = await token(f.url);
-  const response = await fetch(f.url + (native ? '/user/login_local' : '/__test/login'), {
+  const response = await fetch(f.url + '/user/login_local', {
     method: 'POST',
     headers: {
       Cookie: csrf.cookie,
@@ -228,12 +100,10 @@ export function normalize(value: unknown, f: Awaited<ReturnType<typeof fixture>>
     })
   );
 }
-
 export async function preparePilot() {
   packed = await installedPilot();
   console.log('FM019 package SHA256 ' + JSON.stringify(packed.hashes));
 }
-
 /** Positive control against the destination DB with the preceding host's verifier.
  * The assertion covers signature, stored session, user and role hydration together. */
 export async function verifyCookies(
@@ -251,49 +121,41 @@ export async function verifyCookies(
   ]);
   const session = {
     adapter: 'mongo' as const,
-    mongoUrl: String((owner.config as { datastores: { mongodb: { url: string } } }).datastores.mongodb.url),
+    mongoUrl: String(
+      (
+        owner.config as {
+          datastores: {
+            mongodb: {
+              url: string;
+            };
+          };
+        }
+      ).datastores.mongodb.url
+    ),
     name: 'redbox.v6.sid',
     collection: 'pilotSessions',
     secret,
     cookie: { secure: false },
   };
   const identity = () => new HttpIdentity(getIdentityRepositories(owner));
-  const host = native
-    ? new FastifyHost(application, {
-        owner,
-        hostname: '127.0.0.1',
-        port: 0,
-        prepare: async app => {
-          await prepareNativeSessions(app, owner, session);
-          const auth = await prepareNativeAuthentication(app, {
-            identity: identity(),
-            accounts: f.accounts,
-            config: { active: [] },
-            brand: () => Object.assign(new BrandingModel(), f.brand),
-          });
-          app.get('/actor', async (request, reply) => {
-            const actor = await auth.authenticate(request);
-            return reply.code(actor ? 200 : 401).send(actor || {});
-          });
-        },
-      })
-    : new ExpressHost(application, {
-        owner,
-        hostname: '127.0.0.1',
-        port: 0,
-        prepare: async router => {
-          const auth = await prepareHttpMiddleware(router, {
-            owner,
-            identity: identity(),
-            session,
-            log: nothingLogger,
-          });
-          router.get('/actor', async (request, reply) => {
-            const actor = await auth.authenticate(request);
-            reply.status(actor ? 200 : 401).json(actor || {});
-          });
-        },
+  const host = new FastifyHost(application, {
+    owner,
+    hostname: '127.0.0.1',
+    port: 0,
+    prepare: async app => {
+      await prepareNativeSessions(app, owner, session);
+      const auth = await prepareNativeAuthentication(app, {
+        identity: identity(),
+        accounts: f.accounts,
+        config: { active: [] },
+        brand: () => Object.assign(new BrandingModel(), f.brand),
       });
+      app.get('/actor', async (request, reply) => {
+        const actor = await auth.authenticate(request);
+        return reply.code(actor ? 200 : 401).send(actor || {});
+      });
+    },
+  });
   try {
     await host.initialize();
     await host.activate();

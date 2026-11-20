@@ -1,7 +1,7 @@
 import { match } from 'path-to-regexp';
 import type { FastifyRequest } from 'fastify';
 import type { PoliciesConfig } from '../../config/policies.config';
-import type { HttpOwnerDeclaration } from '../express/ownedRoutes';
+import type { HttpOwnerDeclaration } from '../ownedRoutes';
 import { resolveEffectivePolicies } from '../policyConfiguration';
 import {
   coreRouteName,

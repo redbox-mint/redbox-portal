@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ObjectId, type Document } from 'mongodb';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import {

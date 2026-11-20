@@ -1,0 +1,3929 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "portalpost/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000002"
+    },
+    "portalpost/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "portalpost/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000002"
+    },
+    "portalpost/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000005"
+    },
+    "portalpost/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000005"
+    },
+    "portalpost/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000006"
+    },
+    "portalpost/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "portalpost/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000006"
+    },
+    "portalpost/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000008"
+    },
+    "portalpost/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000008"
+    },
+    "portalput/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000005"
+    },
+    "portalput/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalput/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalput/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalput/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalput/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "portalput/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalput/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000005"
+    },
+    "portalput/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000009"
+    },
+    "portalput/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000009"
+    },
+    "portalput/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000008"
+    },
+    "portalput/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalput/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalput/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalput/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalput/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "portalput/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalput/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000008"
+    },
+    "portalput/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000010"
+    },
+    "portalput/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000010"
+    },
+    "portaldelete/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000005"
+    },
+    "portaldelete/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "portaldelete/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000005"
+    },
+    "portaldelete/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000009"
+    },
+    "portaldelete/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000009"
+    },
+    "portaldelete/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000008"
+    },
+    "portaldelete/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "portaldelete/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000008"
+    },
+    "portaldelete/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000010"
+    },
+    "portaldelete/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000010"
+    },
+    "portalget/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000012"
+    },
+    "portalget/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000012"
+    },
+    "portalget/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000012"
+    },
+    "portalget/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000012"
+    },
+    "portalget/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000012"
+    },
+    "portalget/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000013"
+    },
+    "portalget/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000013"
+    },
+    "portalget/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000013"
+    },
+    "portalget/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000013"
+    },
+    "portalget/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000013"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0admin": {
+      "$ref": "v000014"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0origin": {
+      "$ref": "v000014"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0absolute-host": {
+      "$ref": "v000014"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0bodyless": {
+      "$ref": "v000014"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId1.0empty": {
+      "$ref": "v000014"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0admin": {
+      "$ref": "v000015"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0origin": {
+      "$ref": "v000015"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0absolute-host": {
+      "$ref": "v000015"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0bodyless": {
+      "$ref": "v000015"
+    },
+    "portalget/:branding/:portal/asynch/subscribe/:roomId2.0empty": {
+      "$ref": "v000015"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0admin": {
+      "$ref": "v000014"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0origin": {
+      "$ref": "v000004"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0absolute-host": {
+      "$ref": "v000014"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0bodyless": {
+      "$ref": "v000014"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId1.0empty": {
+      "$ref": "v000014"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0admin": {
+      "$ref": "v000015"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0origin": {
+      "$ref": "v000007"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0absolute-host": {
+      "$ref": "v000015"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0bodyless": {
+      "$ref": "v000015"
+    },
+    "portaldelete/:branding/:portal/asynch/subscribe/:roomId2.0empty": {
+      "$ref": "v000015"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0admin": {
+      "$ref": "v000016"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0origin": {
+      "$ref": "v000004"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0absolute-host": {
+      "$ref": "v000016"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0bodyless": {
+      "$ref": "v000016"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token1.0empty": {
+      "$ref": "v000016"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0admin": {
+      "$ref": "v000017"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0origin": {
+      "$ref": "v000007"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0absolute-host": {
+      "$ref": "v000017"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0bodyless": {
+      "$ref": "v000017"
+    },
+    "portalpost/:branding/:portal/asynch/socket-token2.0empty": {
+      "$ref": "v000017"
+    },
+    "portalconditional-progress-GET-fresh": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 304
+    },
+    "portalconditional-progress-GET-no-cache": {
+      "$ref": "v000018"
+    },
+    "portalconditional-progress-GET-invalid": {
+      "$ref": "v000019"
+    },
+    "portalconditional-progress-GET-anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portalconditional-progress-HEAD-fresh": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 304
+    },
+    "portalconditional-progress-HEAD-no-cache": {
+      "$ref": "v000020"
+    },
+    "portalconditional-progress-HEAD-invalid": {
+      "$ref": "v000021"
+    },
+    "portalconditional-progress-HEAD-anonymous": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000002"
+    },
+    "rootpost/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "rootpost/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000002"
+    },
+    "rootpost/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000005"
+    },
+    "rootpost/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000005"
+    },
+    "rootpost/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000006"
+    },
+    "rootpost/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "rootpost/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000006"
+    },
+    "rootpost/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000008"
+    },
+    "rootpost/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000008"
+    },
+    "rootput/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000005"
+    },
+    "rootput/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootput/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootput/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootput/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootput/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "rootput/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootput/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000005"
+    },
+    "rootput/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000009"
+    },
+    "rootput/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000009"
+    },
+    "rootput/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000008"
+    },
+    "rootput/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootput/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootput/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootput/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootput/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "rootput/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootput/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000008"
+    },
+    "rootput/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000010"
+    },
+    "rootput/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000010"
+    },
+    "rootdelete/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000005"
+    },
+    "rootdelete/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "rootdelete/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000005"
+    },
+    "rootdelete/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000009"
+    },
+    "rootdelete/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000009"
+    },
+    "rootdelete/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000008"
+    },
+    "rootdelete/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "rootdelete/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000008"
+    },
+    "rootdelete/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000010"
+    },
+    "rootdelete/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000010"
+    },
+    "rootget/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000012"
+    },
+    "rootget/:branding/:portal/asynch1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000012"
+    },
+    "rootget/:branding/:portal/asynch1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000012"
+    },
+    "rootget/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000012"
+    },
+    "rootget/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000012"
+    },
+    "rootget/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000013"
+    },
+    "rootget/:branding/:portal/asynch2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000013"
+    },
+    "rootget/:branding/:portal/asynch2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000013"
+    },
+    "rootget/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000013"
+    },
+    "rootget/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000013"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0admin": {
+      "$ref": "v000014"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0origin": {
+      "$ref": "v000014"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0absolute-host": {
+      "$ref": "v000014"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0bodyless": {
+      "$ref": "v000014"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId1.0empty": {
+      "$ref": "v000014"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0admin": {
+      "$ref": "v000015"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0origin": {
+      "$ref": "v000015"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0absolute-host": {
+      "$ref": "v000015"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0bodyless": {
+      "$ref": "v000015"
+    },
+    "rootget/:branding/:portal/asynch/subscribe/:roomId2.0empty": {
+      "$ref": "v000015"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0admin": {
+      "$ref": "v000014"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0origin": {
+      "$ref": "v000004"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0absolute-host": {
+      "$ref": "v000014"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0bodyless": {
+      "$ref": "v000014"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId1.0empty": {
+      "$ref": "v000014"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0admin": {
+      "$ref": "v000015"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0origin": {
+      "$ref": "v000007"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0absolute-host": {
+      "$ref": "v000015"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0bodyless": {
+      "$ref": "v000015"
+    },
+    "rootdelete/:branding/:portal/asynch/subscribe/:roomId2.0empty": {
+      "$ref": "v000015"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0admin": {
+      "$ref": "v000016"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0origin": {
+      "$ref": "v000004"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0absolute-host": {
+      "$ref": "v000016"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0bodyless": {
+      "$ref": "v000016"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token1.0empty": {
+      "$ref": "v000016"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0admin": {
+      "$ref": "v000017"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0foreign": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0invalid": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0origin": {
+      "$ref": "v000007"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0cross-brand": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0absolute-host": {
+      "$ref": "v000017"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0bodyless": {
+      "$ref": "v000017"
+    },
+    "rootpost/:branding/:portal/asynch/socket-token2.0empty": {
+      "$ref": "v000017"
+    },
+    "rootconditional-progress-GET-fresh": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 304
+    },
+    "rootconditional-progress-GET-no-cache": {
+      "$ref": "v000018"
+    },
+    "rootconditional-progress-GET-invalid": {
+      "$ref": "v000019"
+    },
+    "rootconditional-progress-GET-anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "rootconditional-progress-HEAD-fresh": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 304
+    },
+    "rootconditional-progress-HEAD-no-cache": {
+      "$ref": "v000020"
+    },
+    "rootconditional-progress-HEAD-invalid": {
+      "$ref": "v000021"
+    },
+    "rootconditional-progress-HEAD-anonymous": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 401
+    },
+    "reducedpost/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch1.0anonymous": {
+      "$ref": "v000024"
+    },
+    "reducedpost/:branding/:portal/asynch1.0reader": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch1.0invalid": {
+      "$ref": "v000024"
+    },
+    "reducedpost/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "reducedpost/:branding/:portal/asynch1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch2.0anonymous": {
+      "$ref": "v000026"
+    },
+    "reducedpost/:branding/:portal/asynch2.0reader": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch2.0invalid": {
+      "$ref": "v000026"
+    },
+    "reducedpost/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "reducedpost/:branding/:portal/asynch2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch1.0anonymous": {
+      "$ref": "v000024"
+    },
+    "reducedput/:branding/:portal/asynch1.0reader": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch1.0invalid": {
+      "$ref": "v000024"
+    },
+    "reducedput/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "reducedput/:branding/:portal/asynch1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000023"
+    },
+    "reducedput/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch2.0anonymous": {
+      "$ref": "v000026"
+    },
+    "reducedput/:branding/:portal/asynch2.0reader": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch2.0invalid": {
+      "$ref": "v000026"
+    },
+    "reducedput/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "reducedput/:branding/:portal/asynch2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reducedput/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0anonymous": {
+      "$ref": "v000024"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0reader": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0invalid": {
+      "$ref": "v000024"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000004"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0anonymous": {
+      "$ref": "v000026"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0reader": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0invalid": {
+      "$ref": "v000026"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000007"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch1.0admin": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0anonymous": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0reader": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0invalid": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0origin": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch1.0empty": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch2.0admin": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0anonymous": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0reader": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0invalid": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0origin": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch2.0empty": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0admin": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0anonymous": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0reader": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0invalid": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0origin": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId1.0empty": {
+      "$ref": "v000023"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0admin": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0anonymous": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0reader": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0invalid": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0origin": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reducedget/:branding/:portal/asynch/subscribe/:roomId2.0empty": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0admin": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0anonymous": {
+      "$ref": "v000024"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0reader": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0invalid": {
+      "$ref": "v000024"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0origin": {
+      "$ref": "v000004"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId1.0empty": {
+      "$ref": "v000023"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0admin": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0anonymous": {
+      "$ref": "v000026"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0reader": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0invalid": {
+      "$ref": "v000026"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0origin": {
+      "$ref": "v000007"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reduceddelete/:branding/:portal/asynch/subscribe/:roomId2.0empty": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0admin": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0anonymous": {
+      "$ref": "v000024"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0reader": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0foreign": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0invalid": {
+      "$ref": "v000024"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0origin": {
+      "$ref": "v000004"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0cross-brand": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0absolute-host": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0bodyless": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token1.0empty": {
+      "$ref": "v000023"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0admin": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0anonymous": {
+      "$ref": "v000026"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0reader": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0foreign": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0invalid": {
+      "$ref": "v000026"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0origin": {
+      "$ref": "v000007"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0cross-brand": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0absolute-host": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0bodyless": {
+      "$ref": "v000025"
+    },
+    "reducedpost/:branding/:portal/asynch/socket-token2.0empty": {
+      "$ref": "v000025"
+    },
+    "reducedconditional-progress-GET-fresh": {
+      "$ref": "v000023"
+    },
+    "reducedconditional-progress-GET-no-cache": {
+      "$ref": "v000023"
+    },
+    "reducedconditional-progress-GET-invalid": {
+      "$ref": "v000023"
+    },
+    "reducedconditional-progress-GET-anonymous": {
+      "$ref": "v000023"
+    },
+    "reducedconditional-progress-HEAD-fresh": {
+      "$ref": "v000027"
+    },
+    "reducedconditional-progress-HEAD-no-cache": {
+      "$ref": "v000027"
+    },
+    "reducedconditional-progress-HEAD-invalid": {
+      "$ref": "v000027"
+    },
+    "reducedconditional-progress-HEAD-anonymous": {
+      "$ref": "v000027"
+    }
+  },
+  "shared": {
+    "v000001": [
+      [
+        "id",
+        "<id>"
+      ],
+      [
+        "name",
+        "FM035"
+      ],
+      [
+        "branding",
+        "<id>"
+      ],
+      [
+        "date_started",
+        "<time>"
+      ],
+      [
+        "date_completed",
+        ""
+      ],
+      [
+        "started_by",
+        "pilot-admin"
+      ],
+      [
+        "currentIdx",
+        0
+      ],
+      [
+        "targetIdx",
+        0
+      ],
+      [
+        "status",
+        ""
+      ],
+      [
+        "message",
+        "progress"
+      ],
+      [
+        "metadata",
+        null
+      ],
+      [
+        "relatedRecordId",
+        "reference-record"
+      ],
+      [
+        "taskType",
+        ""
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ]
+    ],
+    "v000002": {
+      "body": {
+        "$json": {
+          "$object": {
+            "$ref": "v000001"
+          }
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "288",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000003": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "50",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000004": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Cross-origin request denied"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "54",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000005": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Access Denied"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "40",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000006": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": {
+                  "$ref": "v000001"
+                }
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "307",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000007": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Cross-origin request denied"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "63",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000008": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Access Denied"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "49",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000009": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Progress identifier is required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "58",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000010": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Progress identifier is required"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "67",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000011": [
+      [
+        "id",
+        "<id>"
+      ],
+      [
+        "metadata",
+        null
+      ],
+      [
+        "branding",
+        "<id>"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "currentIdx",
+        0
+      ],
+      [
+        "date_completed",
+        ""
+      ],
+      [
+        "date_started",
+        "<time>"
+      ],
+      [
+        "message",
+        "progress"
+      ],
+      [
+        "name",
+        "FM035"
+      ],
+      [
+        "relatedRecordId",
+        "reference-record"
+      ],
+      [
+        "started_by",
+        "pilot-admin"
+      ],
+      [
+        "status",
+        ""
+      ],
+      [
+        "targetIdx",
+        0
+      ],
+      [
+        "taskType",
+        ""
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ]
+    ],
+    "v000012": {
+      "body": {
+        "$json": [
+          {
+            "$object": {
+              "$ref": "v000011"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000011"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000011"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000011"
+            }
+          }
+        ]
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "1157",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000013": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              [
+                {
+                  "$object": {
+                    "$ref": "v000011"
+                  }
+                },
+                {
+                  "$object": {
+                    "$ref": "v000011"
+                  }
+                },
+                {
+                  "$object": {
+                    "$ref": "v000011"
+                  }
+                },
+                {
+                  "$object": {
+                    "$ref": "v000011"
+                  }
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "1176",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000014": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Use direct Socket.IO subscribe/unsubscribe events with an owned socket grant."
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "104",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 410
+    },
+    "v000015": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Use direct Socket.IO subscribe/unsubscribe events with an owned socket grant."
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "113",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 410
+    },
+    "v000016": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "token",
+              "<token>"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "19",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000017": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "token",
+                    "<token>"
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "38",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000018": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "status",
+              false
+            ],
+            [
+              "message",
+              "Empty queries are not allowed."
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "59",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000019": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid progress query"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "49",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000020": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "0",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000021": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "0",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000022": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "0",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000023": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "50",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 401
+    },
+    "v000024": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid CSRF token"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "45",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000025": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Authentication required"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "59",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 401
+    },
+    "v000026": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Invalid CSRF token"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "54",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000027": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "0",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 401
+    }
+  },
+  "sequences": {}
+}

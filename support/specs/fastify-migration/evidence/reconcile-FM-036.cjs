@@ -15,7 +15,6 @@ const socketTests = [test('fastify/rawSocketMongo.test.ts'), test('fastify/RawSh
 const companionTests = [
   test('fastify/companionMongo.test.ts'),
   test('CompanionLifecycleProbe.test.ts'),
-  test('CompanionUploadsMongo.test.ts'),
 ];
 // These are concern restorations, not an inventory of call sites. Every site
 // below is discovered by the AST walk, including aliases and computed writes.
@@ -151,15 +150,16 @@ const assignments = {
   'http/fastify/readActions.ts': 'stream',
   'http/fastify/pages.ts': 'stream',
   'http/fastify/assets.ts': 'stream',
+  'http/fastify/jsonOutput.ts': 'multipart',
   'http/fastify/datastreamReads.ts': 'stream',
   'http/actions/datastreamReads.ts': 'stream',
   'http/fastify/resumableUploads.ts': 'tus',
   'http/actions/resumableUploads.ts': 'tus',
   'http/fastify/rawMultipart.ts': 'multipart',
-  'http/express/multipart.ts': 'multipart',
+  'http/integrations/multipart.ts': 'multipart',
   'http/integrations/companion/fastify.ts': 'companion',
   'http/integrations/companion/uploads.ts': 'companion',
-  'http/express/progressSockets.ts': 'engine',
+  'http/integrations/progressSockets.ts': 'engine',
   'http/fastify/errorBoundary.ts': 'error',
   'http/fastify/FastifyHost.ts': 'host',
   'http/fastify/requestOwnership.ts': 'host',
@@ -833,56 +833,6 @@ for (const file of [
   'services/siem/SiemAdapters.ts',
 ])
   assignments[file] = 'service';
-const retainedFiles = new Set([
-  'application/portal/http.ts',
-  'http/controllers/PageController.ts',
-  'http/controllers/ReadControllers.ts',
-  'http/controllers/webservice/DatastreamController.ts',
-  'http/express/ExpressHost.ts',
-  'http/express/actors.ts',
-  'http/express/adminOperations.ts',
-  'http/express/authentication.ts',
-  'http/express/brandingOperations.ts',
-  'http/express/brandingUploads.ts',
-  'http/express/companion.ts',
-  'http/express/configuration.ts',
-  'http/express/configurationWrites.ts',
-  'http/express/configuredActions.ts',
-  'http/express/csrf.ts',
-  'http/express/dashboardResponses.ts',
-  'http/express/datastreamReads.ts',
-  'http/express/datastreamWrites.ts',
-  'http/express/figshareAdministration.ts',
-  'http/express/formDelivery.ts',
-  'http/express/formVocabulary.ts',
-  'http/express/harvestMutations.ts',
-  'http/express/identityAdministration.ts',
-  'http/express/identityLinks.ts',
-  'http/express/identityProviders.ts',
-  'http/express/integrationOperations.ts',
-  'http/express/login.ts',
-  'http/express/metadata.ts',
-  'http/express/middleware.ts',
-  'http/express/pageAssets.ts',
-  'http/express/pageHeaders.ts',
-  'http/express/pages.ts',
-  'http/express/policies.ts',
-  'http/express/progressOperations.ts',
-  'http/express/queryReads.ts',
-  'http/express/queryWrites.ts',
-  'http/express/readActions.ts',
-  'http/express/recordMutations.ts',
-  'http/express/recordReads.ts',
-  'http/express/recordSchemaReads.ts',
-  'http/express/recordTypes.ts',
-  'http/express/referenceReads.ts',
-  'http/express/responses.ts',
-  'http/express/resumableUploads.ts',
-  'http/express/session.ts',
-  'http/express/siemWrites.ts',
-  'http/express/vocabularyAdministration.ts',
-  'http/express/vocabularyIntegrations.ts',
-]);
 const serviceProofs = {
   'branding/BrandingLogo.ts': [
     'packages/redbox-core/test/services/BrandingLogoService.test.ts',
@@ -898,7 +848,6 @@ const serviceProofs = {
   'integrations/raid/http.ts': ['packages/redbox-core/test/services/raid-v2/http.test.ts'],
   'queues/AgendaQueue.ts': [
     'packages/redbox-core/test/services/AgendaQueueService.test.ts',
-    'packages/redbox-core/test/services/AgendaQueueService.legacy.ts',
   ],
   'record-contract/record-contract-compiler.ts': ['packages/redbox-core/test/unit/record-contract/compiler.test.ts'],
   'services/BrandingWoff2Inspector.ts': ['packages/redbox-core/test/services/BrandingWoff2Inspector.test.ts'],
@@ -955,7 +904,7 @@ for (const file of [
   'branding/typefaceMigration.ts',
   'config/log.config.ts',
   'configmodels/DashboardSettings.ts',
-  'http/express/ownedRoutes.ts',
+  'http/ownedRoutes.ts',
   'http/fastify/targetNames.ts',
   'http/integrations/companion/companionLogging.ts',
   'identity/Users.ts',
@@ -997,19 +946,6 @@ profiles.socketError = {
     upgrade:
       'Socket does not imply upgrade. HTTP parser/admission failures and rejected upgrades use this common terminal writer; only ownUpgrade dispatch selects a protocol owner.',
   },
-};
-profiles.retained = {
-  ...profiles.native,
-  owner: 'Retained Express HTTP composition; never selected by the Fastify host',
-  restoration: {
-    ...profiles.native.restoration,
-    hooks:
-      'Fastify hooks do not apply to the unselected Express host. Existing Express middleware/action and request-lifetime ownership remain the retained comparison.',
-    session: 'Retained Express session middleware/store owns commits; no Fastify raw session bridge is involved.',
-    observation:
-      'Retained Express response/error middleware observes its own responses; no native Fastify observation is claimed.',
-  },
-  tests: [...streamTests, ...uploadTests, ...socketTests, ...companionTests],
 };
 function profileFor(relative, site) {
   if (relative === 'http/integrations/companion/uploads.ts') {
@@ -1090,7 +1026,7 @@ function inventory(options = {}) {
     const relative = path.relative(sourceRoot, file);
     sources[base + 'src/' + relative] = sha(inputs.get(file));
     for (const site of project.sites(file)) {
-      const profile = profileFor(relative, site) ?? (retainedFiles.has(relative) ? 'retained' : undefined);
+      const profile = profileFor(relative, site);
       if (!profile) {
         unmapped.push(relative + ':' + site.line + ' [' + site.kind + '|' + site.operation + '] ' + site.call);
         continue;
@@ -1108,7 +1044,7 @@ function inventory(options = {}) {
             }
           : {}),
       };
-      (profile === 'retained' ? retainedExpress : boundaries).push(row);
+      boundaries.push(row);
     }
   }
   if (unmapped.length) throw new Error('Unclassified raw boundary:\n' + unmapped.join('\n'));

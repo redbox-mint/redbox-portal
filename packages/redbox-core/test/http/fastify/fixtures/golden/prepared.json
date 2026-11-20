@@ -1,0 +1,566 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "webservice/BrandingController.preview /:branding/:portal/api/branding/preview body v1.0": {
+      "$ref": "v000001"
+    },
+    "webservice/BrandingController.preview /:branding/:portal/api/branding/preview query v1.0": {
+      "$ref": "v000003"
+    },
+    "webservice/BrandingController.preview /:branding/:portal/api/branding/preview params v1.0": {
+      "$ref": "v000003"
+    },
+    "webservice/BrandingController.preview /:branding/:portal/api/branding/preview body v2.0": {
+      "$ref": "v000004"
+    },
+    "webservice/BrandingController.preview /:branding/:portal/api/branding/preview query v2.0": {
+      "$ref": "v000005"
+    },
+    "webservice/BrandingController.preview /:branding/:portal/api/branding/preview params v2.0": {
+      "$ref": "v000005"
+    },
+    "BrandingAppController.preview /:branding/:portal/app/branding/preview body v1.0": {
+      "$ref": "v000001"
+    },
+    "BrandingAppController.preview /:branding/:portal/app/branding/preview query v1.0": {
+      "$ref": "v000003"
+    },
+    "BrandingAppController.preview /:branding/:portal/app/branding/preview params v1.0": {
+      "$ref": "v000003"
+    },
+    "BrandingAppController.preview /:branding/:portal/app/branding/preview body v2.0": {
+      "$ref": "v000004"
+    },
+    "BrandingAppController.preview /:branding/:portal/app/branding/preview query v2.0": {
+      "$ref": "v000005"
+    },
+    "BrandingAppController.preview /:branding/:portal/app/branding/preview params v2.0": {
+      "$ref": "v000005"
+    },
+    "BrandingController.createPreview /:branding/:portal/preview body v1.0": {
+      "$ref": "v000001"
+    },
+    "BrandingController.createPreview /:branding/:portal/preview query v1.0": {
+      "$ref": "v000006"
+    },
+    "BrandingController.createPreview /:branding/:portal/preview params v1.0": {
+      "$ref": "v000006"
+    },
+    "BrandingController.createPreview /:branding/:portal/preview body v2.0": {
+      "$ref": "v000004"
+    },
+    "BrandingController.createPreview /:branding/:portal/preview query v2.0": {
+      "$ref": "v000007"
+    },
+    "BrandingController.createPreview /:branding/:portal/preview params v2.0": {
+      "$ref": "v000007"
+    },
+    "webservice/VocabularyController.sync /:branding/:portal/api/vocabulary/:id/sync body v1.0": {
+      "$ref": "v000008"
+    },
+    "webservice/VocabularyController.sync /:branding/:portal/api/vocabulary/:id/sync query v1.0": {
+      "$ref": "v000009"
+    },
+    "webservice/VocabularyController.sync /:branding/:portal/api/vocabulary/:id/sync params v1.0": {
+      "$ref": "v000010"
+    },
+    "webservice/VocabularyController.sync /:branding/:portal/api/vocabulary/:id/sync body v2.0": {
+      "$ref": "v000011"
+    },
+    "webservice/VocabularyController.sync /:branding/:portal/api/vocabulary/:id/sync query v2.0": {
+      "$ref": "v000012"
+    },
+    "webservice/VocabularyController.sync /:branding/:portal/api/vocabulary/:id/sync params v2.0": {
+      "$ref": "v000013"
+    },
+    "VocabularyController.sync /:branding/:portal/admin/vocabulary/:id/sync body v1.0": {
+      "$ref": "v000008"
+    },
+    "VocabularyController.sync /:branding/:portal/admin/vocabulary/:id/sync query v1.0": {
+      "$ref": "v000009"
+    },
+    "VocabularyController.sync /:branding/:portal/admin/vocabulary/:id/sync params v1.0": {
+      "$ref": "v000010"
+    },
+    "VocabularyController.sync /:branding/:portal/admin/vocabulary/:id/sync body v2.0": {
+      "$ref": "v000011"
+    },
+    "VocabularyController.sync /:branding/:portal/admin/vocabulary/:id/sync query v2.0": {
+      "$ref": "v000012"
+    },
+    "VocabularyController.sync /:branding/:portal/admin/vocabulary/:id/sync params v2.0": {
+      "$ref": "v000013"
+    }
+  },
+  "shared": {
+    "v000001": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "144",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 409,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "branding-conflict"
+            ],
+            [
+              "details",
+              "branding-conflict: expected version 1 and draft revision 2"
+            ],
+            [
+              "current",
+              {
+                "$object": [
+                  [
+                    "version",
+                    1
+                  ],
+                  [
+                    "draftRevision",
+                    2
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000002": {
+      "$object": [
+        [
+          "token",
+          "<preview-token>"
+        ],
+        [
+          "url",
+          "/portal/default/rdmp/preview/<preview-token>.css"
+        ],
+        [
+          "hash",
+          "e262132a6e04b80a5004e600cd5b33f8"
+        ],
+        [
+          "revision",
+          2
+        ],
+        [
+          "previewToken",
+          "<preview-token>"
+        ],
+        [
+          "previewUrl",
+          "/portal/default/rdmp/preview/<preview-token>.css"
+        ]
+      ]
+    },
+    "v000003": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "236",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$ref": "v000002"
+        }
+      }
+    },
+    "v000004": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "172",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 409,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "code",
+                      "branding-conflict"
+                    ],
+                    [
+                      "detail",
+                      "branding-conflict: expected version 1 and draft revision 2"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "current",
+                    {
+                      "$object": [
+                        [
+                          "version",
+                          1
+                        ],
+                        [
+                          "draftRevision",
+                          2
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000005": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "255",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$ref": "v000002"
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000006": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "139",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "token",
+              "<preview-token>"
+            ],
+            [
+              "url",
+              "/portal/default/rdmp/preview/<preview-token>.css"
+            ],
+            [
+              "hash",
+              "e262132a6e04b80a5004e600cd5b33f8"
+            ],
+            [
+              "revision",
+              2
+            ]
+          ]
+        }
+      }
+    },
+    "v000007": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "158",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "token",
+                    "<preview-token>"
+                  ],
+                  [
+                    "url",
+                    "/portal/default/rdmp/preview/<preview-token>.css"
+                  ],
+                  [
+                    "hash",
+                    "e262132a6e04b80a5004e600cd5b33f8"
+                  ],
+                  [
+                    "revision",
+                    2
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000008": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "63",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid RVA vocabulary or version id"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000009": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "61",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "created",
+              0
+            ],
+            [
+              "updated",
+              1
+            ],
+            [
+              "skipped",
+              0
+            ],
+            [
+              "lastSyncedAt",
+              "<time>"
+            ]
+          ]
+        }
+      }
+    },
+    "v000010": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "47",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Vocabulary not found"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000011": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "72",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Invalid RVA vocabulary or version id"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000012": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "80",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "created",
+                    0
+                  ],
+                  [
+                    "updated",
+                    1
+                  ],
+                  [
+                    "skipped",
+                    0
+                  ],
+                  [
+                    "lastSyncedAt",
+                    "<time>"
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000013": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "56",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Vocabulary not found"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "sequences": {}
+}

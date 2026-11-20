@@ -20,7 +20,12 @@ import * as Effect from 'effect/Effect';
 import { FastifyHost } from '../../src/http/fastify/FastifyHost';
 import { AgendaQueue } from '../../src/queues/AgendaQueue';
 import * as persistenceRuntime from '../../src/persistence/runtime';
-import { drainHttpRequests, hasActiveHttpRequest, retainHttpRequestFollowup, runHttpRequestHandler } from '../../src/middleware/requestLifetime';
+import {
+  drainHttpRequests,
+  hasActiveHttpRequest,
+  retainHttpRequestFollowup,
+  runHttpRequestWork,
+} from '../../src/middleware/requestLifetime';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -66,11 +71,7 @@ import {
   serializeRedboxCanonicalJsonV1,
 } from '../../src/record-contract';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
-import {
-  createDomainFixture,
-  createQueryObject,
-  configureModelMethod,
-} from './testHelper';
+import { createDomainFixture, createQueryObject, configureModelMethod } from './testHelper';
 
 import { RecordValidation } from '../../src/services/RecordValidationService';
 const { Services: RecordSchemaServices } =
@@ -100,7 +101,10 @@ describe('RecordsService', function () {
   let fixture: any;
   let collaborators: any;
   let hookFunctions: Map<string, unknown>;
-  const defineHook = (name: string, implementation: unknown) => { hookFunctions.set(name, implementation); return name; };
+  const defineHook = (name: string, implementation: unknown) => {
+    hookFunctions.set(name, implementation);
+    return name;
+  };
   let RecordsService: any;
   let mockRecord: any;
   let mockStorageService: any;
@@ -114,19 +118,26 @@ describe('RecordsService', function () {
 
   function htmlInput() {
     return {
-      sanitizeWithProfile: (value: string, profile: 'html') => collaborators.DomSanitizerService.sanitizeWithProfile(value, profile),
+      sanitizeWithProfile: (value: string, profile: 'html') =>
+        collaborators.DomSanitizerService.sanitizeWithProfile(value, profile),
       htmlSanitizationMode: () => fixture.config.record?.form?.htmlSanitizationMode ?? 'sanitize',
     };
   }
   function createValidation(dependencies: Partial<RecordValidationServiceDependencies>) {
-    return new RecordValidation({ log: fixture.log, config: fixture.config, readers: dependencies as any, html: htmlInput() }, dependencies);
+    return new RecordValidation(
+      { log: fixture.log, config: fixture.config, readers: dependencies as any, html: htmlInput() },
+      dependencies
+    );
   }
   function securityInput() {
-    return { repository: {} as any, log: fixture.log,
+    return {
+      repository: {} as any,
+      log: fixture.log,
       brand: (id: string) => collaborators.BrandingService.getBrandById(id),
       configuration: () => ({ enabled: true }),
       enqueue: (name: string, data: any) => collaborators.AgendaQueueService.now(name, data),
-      record: (oid: string) => mockStorageService.getMeta(oid) };
+      record: (oid: string) => mockStorageService.getMeta(oid),
+    };
   }
 
   beforeEach(function () {
@@ -345,30 +356,64 @@ describe('RecordsService', function () {
       t: sinon.stub().callsFake((key: string) => key),
     };
     collaborators.SecurityEventService = {
-      emitFromRecordAudit: sinon.stub().resolves(undefined)
+      emitFromRecordAudit: sinon.stub().resolves(undefined),
     };
     collaborators.RedboxJavaStorageService = mockStorageService;
     collaborators.SolrSearchService = mockSearchService;
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/RecordsService');
-    const intents = new FigshareSourceIntents({ log: fixture.log,
-      config: record => fixture.config.brandingAware?.(collaborators.BrandingService.getBrandById(record.metaMetadata?.brandId)?.name ?? 'default')?.figsharePublishing ?? null });
+    const intents = new FigshareSourceIntents({
+      log: fixture.log,
+      config: record =>
+        fixture.config.brandingAware?.(
+          collaborators.BrandingService.getBrandById(record.metaMetadata?.brandId)?.name ?? 'default'
+        )?.figsharePublishing ?? null,
+    });
     RecordsService = new Services.Records({
-      get config() { return fixture.config; }, get log() { return fixture.log; },
-      get repository() { return getStorageRepositories(); },
-      storageService: mockStorageService, datastreamService: mockDatastreamService,
-      searchService: mockSearchService, queueService: mockQueueService,
-      get branding() { return collaborators.BrandingService; },
-      get recordTypes() { return collaborators.RecordTypesService; },
-      get workflows() { return collaborators.WorkflowStepsService; },
-      get forms() { return collaborators.FormsService; },
-      get users() { return collaborators.UsersService; },
-      get roles() { return collaborators.RolesService; },
-      get schema() { return fixture.collaborators.recordschemaservice; },
-      get validation() { return fixture.collaborators.recordvalidationservice ?? collaborators.RecordValidationService; },
-      get attachments() { return fixture.collaborators.attachmentmetadataservice; },
-      get translation() { return collaborators.TranslationService; },
+      get config() {
+        return fixture.config;
+      },
+      get log() {
+        return fixture.log;
+      },
+      get repository() {
+        return getStorageRepositories();
+      },
+      storageService: mockStorageService,
+      datastreamService: mockDatastreamService,
+      searchService: mockSearchService,
+      queueService: mockQueueService,
+      get branding() {
+        return collaborators.BrandingService;
+      },
+      get recordTypes() {
+        return collaborators.RecordTypesService;
+      },
+      get workflows() {
+        return collaborators.WorkflowStepsService;
+      },
+      get forms() {
+        return collaborators.FormsService;
+      },
+      get users() {
+        return collaborators.UsersService;
+      },
+      get roles() {
+        return collaborators.RolesService;
+      },
+      get schema() {
+        return fixture.collaborators.recordschemaservice;
+      },
+      get validation() {
+        return fixture.collaborators.recordvalidationservice ?? collaborators.RecordValidationService;
+      },
+      get attachments() {
+        return fixture.collaborators.attachmentmetadataservice;
+      },
+      get translation() {
+        return collaborators.TranslationService;
+      },
       stagingDisk: () => collaborators.StorageManagerService.stagingDisk(),
       resolveHook: name => hookFunctions.get(name),
       prepareSourceIntent: (...args) => intents.prepareSourceIntent(...args),
@@ -557,10 +602,10 @@ describe('RecordsService', function () {
                   post: [{ function: 'test.slow', ...(timeoutMs === undefined ? {} : { execution: { timeoutMs } }) }],
                 },
               },
-            },
+            }
           );
           await entered.promise;
-          await new Promise((done) => setTimeout(done, 20));
+          await new Promise(done => setTimeout(done, 20));
           await rejects(application.stop({ deadlineMs: 20 }), /deadline|drain/i);
           expect(completed).to.equal(false);
           expect(closeStorage.called).to.equal(false);
@@ -621,7 +666,6 @@ describe('RecordsService', function () {
 
   describe('getStorageService', function () {
     it('should use configured storage service', function () {
-
       expect(RecordsService.storageService).to.exist;
     });
 
@@ -634,7 +678,6 @@ describe('RecordsService', function () {
 
   describe('getDatastreamService', function () {
     it('should use configured datastream service', function () {
-
       expect(RecordsService.datastreamService).to.exist;
     });
   });
@@ -718,6 +761,7 @@ describe('RecordsService', function () {
       const result = await RecordsService.getRecords('draft', 'rdmp', 0, 10, 'user1', [], {});
 
       expect(mockStorageService.getRecords.called).to.be.true;
+      expect(result).to.deep.equal({ items: [] });
     });
   });
 
@@ -1164,7 +1208,7 @@ describe('RecordsService', function () {
       const failedResponse = {
         success: false,
         message: 'storage failed',
-        isSuccessful: () => false
+        isSuccessful: () => false,
       };
       mockStorageService.createRecordAudit.resolves(failedResponse);
       const recordAudit = { id: 'record-123', action: 'updated' };
@@ -1453,7 +1497,12 @@ describe('RecordsService', function () {
       ];
 
       await (RecordsService as any).prepareAttachmentJournal('record-1', plan, { id: 'brand-1' }, { id: 'actor-1' });
-      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan, { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
+      const result = await (RecordsService as any).executeAttachmentPlan(
+        'record-1',
+        plan,
+        { id: 'brand-1' },
+        { id: 'user-1', username: 'user-1' }
+      );
 
       expect(journal.prepareMutations.calledOnce).to.equal(true);
       expect(result.map((item: any) => item.status)).to.deep.equal(['completed', 'completed']);
@@ -1465,7 +1514,8 @@ describe('RecordsService', function () {
     it('bounds nested attachment-journal failures in the production logger', async function () {
       const secret = 'private-nested-journal-provider-credential';
       const providerError = Object.assign(new Error(secret), {
-        cause: new Error(secret), config: { headers: { Authorization: secret } },
+        cause: new Error(secret),
+        config: { headers: { Authorization: secret } },
       });
       const journal = {
         prepareMutations: sinon.stub().resolves(),
@@ -1476,15 +1526,32 @@ describe('RecordsService', function () {
       fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
       const lines: string[] = [];
-      const logger = log.createPinoLogger('error', new Writable({
-        write(chunk, _encoding, callback) { lines.push(String(chunk)); callback(); },
-      }));
+      const logger = log.createPinoLogger(
+        'error',
+        new Writable({
+          write(chunk, _encoding, callback) {
+            lines.push(String(chunk));
+            callback();
+          },
+        })
+      );
       fixture.log.error.callsFake((...args: unknown[]) => logger.error(...args));
 
-      const result = await (RecordsService as any).executeAttachmentPlan('record-1', [{
-        field: 'attachments', attachmentId: 'a', fileId: 'file-1', operation: 'add',
-        generation: 'g', entry: { fileId: 'file-1' },
-      }], { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
+      const result = await (RecordsService as any).executeAttachmentPlan(
+        'record-1',
+        [
+          {
+            field: 'attachments',
+            attachmentId: 'a',
+            fileId: 'file-1',
+            operation: 'add',
+            generation: 'g',
+            entry: { fileId: 'file-1' },
+          },
+        ],
+        { id: 'brand-1' },
+        { id: 'user-1', username: 'user-1' }
+      );
 
       expect(result[0]).to.include({ status: 'unknown', code: 'attachment-operation-unknown' });
       expect(journal.markMutation.secondCall.args[3]).to.equal('unknown');
@@ -1511,7 +1578,12 @@ describe('RecordsService', function () {
         },
       ];
 
-      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan, { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
+      const result = await (RecordsService as any).executeAttachmentPlan(
+        'record-1',
+        plan,
+        { id: 'brand-1' },
+        { id: 'user-1', username: 'user-1' }
+      );
 
       expect(result[0].status).to.equal('incomplete');
       expect(result[0].code).to.equal('attachment-generation-not-current');
@@ -1580,9 +1652,7 @@ describe('RecordsService', function () {
     it('seeds in shadow and enforce schema modes through a direct durable internal bypass audit', async function () {
       fixture.config.recordSchema = { enabled: true };
       fixture.config.record.auditing.enabled = false;
-      collaborators.RecordTypesService.get = sinon
-        .stub()
-        .returns(of({ name: 'party', hooks: {}, searchable: false }));
+      collaborators.RecordTypesService.get = sinon.stub().returns(of({ name: 'party', hooks: {}, searchable: false }));
       collaborators.RecordValidationService.resolve.resolves({
         status: 'unresolved',
         shouldBlock: true,
@@ -1689,7 +1759,7 @@ describe('RecordsService', function () {
         'record-123',
         false,
         { metadata: {} },
-        { hooks: { onDelete: { post: [{ function: defineHook('fixture-hook-1', (({ invalid: true }))) }] } } },
+        { hooks: { onDelete: { post: [{ function: defineHook('fixture-hook-1', { invalid: true }) }] } } },
         { username: 'admin' }
       );
 
@@ -1702,7 +1772,7 @@ describe('RecordsService', function () {
         RecordsService.triggerPostSaveTriggers(
           'record-123',
           { metadata: {} },
-          { hooks: { onDelete: { post: [{ function: defineHook('fixture-hook-2', (({ invalid: true }))) }] } } },
+          { hooks: { onDelete: { post: [{ function: defineHook('fixture-hook-2', { invalid: true }) }] } } },
           'onDelete',
           { username: 'admin' }
         )
@@ -1756,12 +1826,21 @@ describe('RecordsService', function () {
         const active = lifecycleRecord(7);
         mockStorageService.getMeta.resolves(active);
         mockStorageService.getTombstone.resolves({
-          redboxOid: 'record-123', revision: 9, brandId: 'brand-1',
-          lifecycleState: 'deleted', deletedRecordMetadata: active,
+          redboxOid: 'record-123',
+          revision: 9,
+          brandId: 'brand-1',
+          lifecycleState: 'deleted',
+          deletedRecordMetadata: active,
         });
         mockStorageService.removeActiveRecord.callsFake(async () => {
           mockStorageService.getMeta.resolves(null);
-          return { success: true, oid: 'record-123', applicationState: 'applied', committedRevision: 8, removedRecord: active };
+          return {
+            success: true,
+            oid: 'record-123',
+            applicationState: 'applied',
+            committedRevision: 8,
+            removedRecord: active,
+          };
         });
         mockStorageService.removeTombstone.callsFake(async () => {
           mockStorageService.getTombstone.resolves(null);
@@ -1772,32 +1851,74 @@ describe('RecordsService', function () {
         const deleteFile = sinon.stub().callsFake(async () => {
           expect(await mockStorageService.getMeta('record-123')).to.equal(null);
         });
-        (Object.assign(repositoryFixtures, {AttachmentMetadata: { findOne: async () => null, destroy: async () => [] },AttachmentAccessAudit: {
+        (Object.assign(repositoryFixtures, {
+          AttachmentMetadata: { findOne: async () => null, destroy: async () => [] },
+          AttachmentAccessAudit: {
             create: (data: Record<string, unknown>) => ({
               fetch: async () => {
                 attachmentAudits.push(data);
                 return data;
               },
             }),
-          }}), Object.assign(collaborators, {SecurityEventService: new SecurityServices.SecurityEventService(securityInput()),AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },StorageManagerService: {
-            primaryDisk: () => ({ delete: deleteFile }),
-            getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
-          }}));
+          },
+        }),
+          Object.assign(collaborators, {
+            SecurityEventService: new SecurityServices.SecurityEventService(securityInput()),
+            AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
+            AgendaQueueService: {
+              now: async (_name: string, data: { event: Record<string, unknown> }) => {
+                emitted.push(data);
+              },
+            },
+            StorageManagerService: {
+              primaryDisk: () => ({ delete: deleteFile }),
+              getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
+            },
+          }));
         if (operation !== 'soft-delete') {
           if (operation === 'destroy-deleted') mockStorageService.getMeta.resolves(null);
           mockRecord.findOne.returns(createQueryObject(null));
-          fixture.collaborators.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(attachmentFixture({ log: fixture.log, emitAccessEvent: event => collaborators.SecurityEventService.emitSecurityEvent({ ...event, eventType: `attachment.${event.action}`, category: 'attachment', source: 'AttachmentMetadataService' }) }));
-          const datastreams = new DatastreamServices.StandardDatastream({ disks: collaborators.StorageManagerService, forms: collaborators.FormsService, attachments: fixture.collaborators.attachmentmetadataservice, log: fixture.log });
+          fixture.collaborators.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(
+            attachmentFixture({
+              log: fixture.log,
+              emitAccessEvent: event =>
+                collaborators.SecurityEventService.emitSecurityEvent({
+                  ...event,
+                  eventType: `attachment.${event.action}`,
+                  category: 'attachment',
+                  source: 'AttachmentMetadataService',
+                }),
+            })
+          );
+          const datastreams = new DatastreamServices.StandardDatastream({
+            disks: collaborators.StorageManagerService,
+            forms: collaborators.FormsService,
+            attachments: fixture.collaborators.attachmentmetadataservice,
+            log: fixture.log,
+          });
           mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'file-1' }]);
           mockDatastreamService.listDatastreams.onSecondCall().resolves([]);
-          mockDatastreamService.removeDatastream.callsFake(
-            (oid: string, stream: Datastream, brandId?: string) => datastreams.removeDatastream(oid, stream, brandId)
+          mockDatastreamService.removeDatastream.callsFake((oid: string, stream: Datastream, brandId?: string) =>
+            datastreams.removeDatastream(oid, stream, brandId)
           );
         }
         try {
-          const result = operation === 'destroy-deleted'
-            ? await RecordsService.destroyDeletedRecord('record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('purge', 9))
-            : await RecordsService.delete('record-123', operation === 'permanent-delete', active, undefined, { username: 'user-1' }, publicContext(operation === 'permanent-delete' ? 'purge' : 'delete', 7));
+          const result =
+            operation === 'destroy-deleted'
+              ? await RecordsService.destroyDeletedRecord(
+                  'record-123',
+                  { username: 'user-1' },
+                  { id: 'brand-1' },
+                  publicContext('purge', 9)
+                )
+              : await RecordsService.delete(
+                  'record-123',
+                  operation === 'permanent-delete',
+                  active,
+                  undefined,
+                  { username: 'user-1' },
+                  publicContext(operation === 'permanent-delete' ? 'purge' : 'delete', 7)
+                );
           expect(result.outcome).to.equal('saved');
           mockStorageService.getMeta.resolves(null);
           mockRecord.findOne.returns(createQueryObject(null));
@@ -1842,12 +1963,17 @@ describe('RecordsService', function () {
         SecurityEventService: new SecurityServices.SecurityEventService(securityInput()),
         AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
         AgendaQueueService: {
-          now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); },
+          now: async (_name: string, data: { event: Record<string, unknown> }) => {
+            emitted.push(data);
+          },
         },
       });
       try {
         const result = await RecordsService.restoreRecord(
-          'record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('restore', 9)
+          'record-123',
+          { username: 'user-1' },
+          { id: 'brand-1' },
+          publicContext('restore', 9)
         );
         expect(result.outcome).to.equal('saved');
         expect(mockStorageService.createActiveRecordFromTombstone.calledOnce).to.equal(true);
@@ -1855,7 +1981,9 @@ describe('RecordsService', function () {
         expect(mockQueueService.now.calledOnce).to.equal(true);
         const audit = mockQueueService.now.firstCall.args[1];
         expect(audit.record).to.deep.equal({
-          metaMetadata: { brandId: 'brand-1' }, revision: 10, resolution: result.concurrency.resolution,
+          metaMetadata: { brandId: 'brand-1' },
+          revision: 10,
+          resolution: result.concurrency.resolution,
         });
 
         // A subsequent delete removes the active record before the queued restore audit runs.
@@ -2598,12 +2726,12 @@ describe('RecordsService', function () {
           onCreate: {
             postSync: [
               {
-                function: defineHook('fixture-hook-4', ((_oid, hookRecord, _options, _user, response) => {
-                response.workspaceOid = 'workspace-1';
-                response.workspaceData = { linked: true };
-                response.oid = 'tampered';
-                return { ...hookRecord, hookOnly: true };
-              })),
+                function: defineHook('fixture-hook-4', (_oid, hookRecord, _options, _user, response) => {
+                  response.workspaceOid = 'workspace-1';
+                  response.workspaceData = { linked: true };
+                  response.oid = 'tampered';
+                  return { ...hookRecord, hookOnly: true };
+                }),
               },
             ],
           },
@@ -2632,14 +2760,28 @@ describe('RecordsService', function () {
         hooks: {
           onTransitionWorkflow: {
             pre: [
-              { function: defineHook('fixture-hook-5', ((_oid, record) => { collaborators.__effectTransitionEvents.push("pre"); return record; })) },
+              {
+                function: defineHook('fixture-hook-5', (_oid, record) => {
+                  collaborators.__effectTransitionEvents.push('pre');
+                  return record;
+                }),
+              },
             ],
             postSync: [
               {
-                function: defineHook('fixture-hook-6', ((_oid, record) => { collaborators.__effectTransitionEvents.push("postSync"); return record; })),
+                function: defineHook('fixture-hook-6', (_oid, record) => {
+                  collaborators.__effectTransitionEvents.push('postSync');
+                  return record;
+                }),
               },
             ],
-            post: [{ function: defineHook('fixture-hook-7', (() => { collaborators.__effectTransitionEvents.push("post"); })) }],
+            post: [
+              {
+                function: defineHook('fixture-hook-7', () => {
+                  collaborators.__effectTransitionEvents.push('post');
+                }),
+              },
+            ],
           },
         },
       };
@@ -2678,11 +2820,19 @@ describe('RecordsService', function () {
             postSync: [
               {
                 options: { returnType: 'response' },
-                function:
-                  defineHook('fixture-hook-8', (() => { collaborators.__softTransitionEvents.push("postSync"); return { success: false, message: "soft failure" }; })),
+                function: defineHook('fixture-hook-8', () => {
+                  collaborators.__softTransitionEvents.push('postSync');
+                  return { success: false, message: 'soft failure' };
+                }),
               },
             ],
-            post: [{ function: defineHook('fixture-hook-9', (() => { collaborators.__softTransitionEvents.push("post"); })) }],
+            post: [
+              {
+                function: defineHook('fixture-hook-9', () => {
+                  collaborators.__softTransitionEvents.push('post');
+                }),
+              },
+            ],
           },
         },
       };
@@ -2756,7 +2906,8 @@ describe('RecordsService', function () {
       expect(result.wasPersisted()).to.equal(true);
       expect(journal.prepareMutations.calledOnce).to.equal(true);
       expect(journal.prepareMutations.firstCall.args[0][0]).to.include({
-        stagingActorId: 'saved-actor', stagingBrandId: 'brand-1',
+        stagingActorId: 'saved-actor',
+        stagingBrandId: 'brand-1',
       });
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(mockStorageService.updateMeta.callCount).to.equal(2);
@@ -3117,9 +3268,7 @@ describe('RecordsService', function () {
       const current = await RecordsService.getRecordFormFingerprint(stored, recordType);
 
       expect(current).to.match(/^sha256:[0-9a-f]{64}$/);
-      expect(collaborators.FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
-        true
-      );
+      expect(collaborators.FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(true);
 
       collaborators.WorkflowStepsService.getAllForRecordType.returns(
         of([
@@ -3252,7 +3401,14 @@ describe('RecordsService', function () {
       collaborators.__concurrencyPostSyncRan = false;
       installMode('strict', {
         onUpdate: {
-          postSync: [{ function: defineHook('fixture-hook-10', (() => { collaborators.__concurrencyPostSyncRan = true; return {}; })) }],
+          postSync: [
+            {
+              function: defineHook('fixture-hook-10', () => {
+                collaborators.__concurrencyPostSyncRan = true;
+                return {};
+              }),
+            },
+          ],
         },
       });
       const stored = {
@@ -3390,12 +3546,17 @@ describe('RecordsService', function () {
         onUpdate: {
           postSync: [
             {
-              function: defineHook('fixture-hook-11', ((_oid, value) => ({ ...value, metadata: { title: "post-sync" } }))),
+              function: defineHook('fixture-hook-11', (_oid, value) => ({
+                ...value,
+                metadata: { title: 'post-sync' },
+              })),
             },
           ],
           post: [
             {
-              function: defineHook('fixture-hook-12', (() => { collaborators.__concurrencyDetachedPostRan = true; })),
+              function: defineHook('fixture-hook-12', () => {
+                collaborators.__concurrencyDetachedPostRan = true;
+              }),
             },
           ],
         },
@@ -3655,7 +3816,8 @@ describe('RecordsService', function () {
           attachmentId: 'active-attachment',
           fileId: 'active-file',
           generation: 'old-1',
-          actorId: 'actor', brandId: 'brand',
+          actorId: 'actor',
+          brandId: 'brand',
           token: 'cleanup-1',
         },
         {
@@ -3663,7 +3825,8 @@ describe('RecordsService', function () {
           attachmentId: 'retry-attachment',
           fileId: 'retry-file',
           generation: 'old-2',
-          actorId: 'actor', brandId: 'brand',
+          actorId: 'actor',
+          brandId: 'brand',
           token: 'cleanup-2',
         },
         {
@@ -3671,7 +3834,8 @@ describe('RecordsService', function () {
           attachmentId: 'abandoned-attachment',
           fileId: 'abandoned-file',
           generation: 'old-3',
-          actorId: 'actor', brandId: 'brand',
+          actorId: 'actor',
+          brandId: 'brand',
           token: 'cleanup-3',
         },
         {
@@ -3679,7 +3843,8 @@ describe('RecordsService', function () {
           attachmentId: 'failed-attachment',
           fileId: 'private-provider-token',
           generation: 'old-4',
-          actorId: 'actor', brandId: 'brand',
+          actorId: 'actor',
+          brandId: 'brand',
           token: 'cleanup-4',
         },
       ];
@@ -3751,10 +3916,14 @@ describe('RecordsService', function () {
     it('retains cancelled staging whose journal predates persisted ownership', async function () {
       const claim = { oid: 'record', attachmentId: 'attachment', fileId: 'file', generation: 'old', token: 'claim' };
       const journal = {
-        prepareMutations: sinon.stub().resolves(), findUnresolvedByOid: sinon.stub().resolves([]),
-        claimExpiredStagingCleanup: sinon.stub().resolves([claim]), beginStagingCleanup: sinon.stub().resolves(true),
-        authorizeStagingCleanup: sinon.stub().resolves(true), releaseStagingCleanup: sinon.stub().resolves(true),
-        completeStagingCleanup: sinon.stub().resolves(true), recoverStagingCleanup: sinon.stub().resolves('retained'),
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        claimExpiredStagingCleanup: sinon.stub().resolves([claim]),
+        beginStagingCleanup: sinon.stub().resolves(true),
+        authorizeStagingCleanup: sinon.stub().resolves(true),
+        releaseStagingCleanup: sinon.stub().resolves(true),
+        completeStagingCleanup: sinon.stub().resolves(true),
+        recoverStagingCleanup: sinon.stub().resolves('retained'),
         findUnresolvedByStagingFileId: sinon.stub().resolves([]),
       };
       fixture.collaborators.attachmentmetadataservice = journal;
@@ -3762,7 +3931,9 @@ describe('RecordsService', function () {
       mockDatastreamService.removeStagedDatastream = sinon.stub().resolves();
       const result = await RecordsService.cleanupAbandonedAttachmentStaging();
       expect(result).to.deep.equal({ claimed: 1, removed: 0, retained: 1, failed: 0 });
-      expect(journal.releaseStagingCleanup.calledOnceWithExactly(claim, 'attachment-cleanup-ownership-unknown')).to.equal(true);
+      expect(
+        journal.releaseStagingCleanup.calledOnceWithExactly(claim, 'attachment-cleanup-ownership-unknown')
+      ).to.equal(true);
       expect(journal.authorizeStagingCleanup.called).to.equal(false);
       expect(mockDatastreamService.removeStagedDatastream.called).to.equal(false);
     });
@@ -3803,7 +3974,8 @@ describe('RecordsService', function () {
 
   describe('queued Figshare with typed save outcomes', function () {
     const recordType = {
-      name: 'rdmp', searchable: false,
+      name: 'rdmp',
+      searchable: false,
       hooks: { onCreate: { pre: [{ function: 'figshare.validateFigshareRecord' }] } },
     };
     beforeEach(function () {
@@ -4269,7 +4441,11 @@ describe('RecordsService', function () {
       const result = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: {} },
-        { name: 'rdmp', hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-13', (({ invalid: true }))) }] } }, searchable: false },
+        {
+          name: 'rdmp',
+          hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-13', { invalid: true }) }] } },
+          searchable: false,
+        },
         { username: 'user-1' },
         false,
         false
@@ -4942,7 +5118,10 @@ describe('RecordsService', function () {
       };
       fixture.config.validators = { definitions: formValidatorsSharedDefinitions };
       fixture.config.reusableFormDefinitions = {};
-      collaborators.DomSanitizerService = new DomSanitizerServices.DomSanitizer({ config: fixture.config, log: fixture.log });
+      collaborators.DomSanitizerService = new DomSanitizerServices.DomSanitizer({
+        config: fixture.config,
+        log: fixture.log,
+      });
       const dependencies: Partial<RecordValidationServiceDependencies> = {
         loadRecordType: async () => ({ id: 'record-type-1', name: 'rdmp', recordValidation: { mode } }),
         loadStartingWorkflowStep: async () => ({
@@ -5098,8 +5277,10 @@ describe('RecordsService', function () {
             onCreate: {
               pre: [
                 {
-                  function:
-                    defineHook('fixture-hook-14', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Mutated by pre-hook" } }))),
+                  function: defineHook('fixture-hook-14', (_oid, record) => ({
+                    ...record,
+                    metadata: { ...record.metadata, title: 'Mutated by pre-hook' },
+                  })),
                 },
               ],
             },
@@ -5489,8 +5670,13 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function:
-                  defineHook('fixture-hook-15', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } }))),
+                function: defineHook('fixture-hook-15', (_oid, record) => ({
+                  ...record,
+                  metadata: {
+                    ...record.metadata,
+                    runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1,
+                  },
+                })),
               },
             ],
           },
@@ -5624,16 +5810,26 @@ describe('RecordsService', function () {
           onUpdate: {
             pre: [
               {
-                function:
-                  defineHook('fixture-hook-16', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } }))),
+                function: defineHook('fixture-hook-16', (_oid, record) => ({
+                  ...record,
+                  metadata: {
+                    ...record.metadata,
+                    updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1,
+                  },
+                })),
               },
             ],
           },
           onTransitionWorkflow: {
             pre: [
               {
-                function:
-                  defineHook('fixture-hook-17', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } }))),
+                function: defineHook('fixture-hook-17', (_oid, record) => ({
+                  ...record,
+                  metadata: {
+                    ...record.metadata,
+                    transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1,
+                  },
+                })),
               },
             ],
           },
@@ -6562,7 +6758,7 @@ describe('RecordsService', function () {
         { metadata: { title: 'Baseline precedence' } },
         {
           name: 'rdmp',
-          hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-18', (({ invalid: true }))) }] } },
+          hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-18', { invalid: true }) }] } },
           searchable: false,
         },
         { username: 'user-1', roles: [{ name: 'Researcher' }] },
@@ -6608,8 +6804,10 @@ describe('RecordsService', function () {
               onCreate: {
                 pre: [
                   {
-                    function:
-                      defineHook('fixture-hook-19', ((_oid, record) => { collaborators.__createHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-hook-form" } }; })),
+                    function: defineHook('fixture-hook-19', (_oid, record) => {
+                      collaborators.__createHookAttachmentFields = [...record.metaMetadata.attachmentFields];
+                      return { ...record, metaMetadata: { ...record.metaMetadata, form: 'after-hook-form' } };
+                    }),
                   },
                 ],
               },
@@ -6662,8 +6860,11 @@ describe('RecordsService', function () {
             onTransitionWorkflow: {
               pre: [
                 {
-                  function:
-                    defineHook('fixture-hook-20', ((_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "create-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } }))),
+                  function: defineHook('fixture-hook-20', (_oid, record) => ({
+                    ...record,
+                    workflow: { ...record.workflow, hookMarker: 'create-preserved' },
+                    metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage },
+                  })),
                 },
               ],
             },
@@ -6711,8 +6912,8 @@ describe('RecordsService', function () {
       const recordType = {
         name: 'rdmp',
         hooks: {
-          onCreate: { pre: [{ function: defineHook('fixture-hook-21', ((_oid, record) => record)) }] },
-          onTransitionWorkflow: { pre: [{ function: defineHook('fixture-hook-22', ((_oid, record) => record)) }] },
+          onCreate: { pre: [{ function: defineHook('fixture-hook-21', (_oid, record) => record) }] },
+          onTransitionWorkflow: { pre: [{ function: defineHook('fixture-hook-22', (_oid, record) => record) }] },
         },
         recordValidation: { mode: 'enforce' },
         searchable: false,
@@ -6763,9 +6964,18 @@ describe('RecordsService', function () {
 
     it('normalizes deleted, blank, and malformed pre-create form references before validation and persistence', async function () {
       const mutations = [
-        (_oid, record) => { delete record.metaMetadata.form; return record; },
-        (_oid, record) => { record.metaMetadata.form = ""; return record; },
-        (_oid, record) => { record.metaMetadata.form = "../malformed-form"; return record; },
+        (_oid, record) => {
+          delete record.metaMetadata.form;
+          return record;
+        },
+        (_oid, record) => {
+          record.metaMetadata.form = '';
+          return record;
+        },
+        (_oid, record) => {
+          record.metaMetadata.form = '../malformed-form';
+          return record;
+        },
       ];
       for (const mutation of mutations) {
         mockStorageService.create.resetHistory();
@@ -6920,18 +7130,18 @@ describe('RecordsService', function () {
           onCreate: {
             postSync: [
               {
-                function: defineHook('fixture-hook-23', ((_oid, record, _options, _user, response) => {
-                collaborators.__createIdentityFacts = {
-                  oid: _oid,
-                  recordOid: record.redboxOid,
-                  recordId: record.id,
-                  recordMongoId: record._id,
-                  responseOid: response.oid,
-                  responseId: response.id,
-                  responseMongoId: response._id,
-                };
-                return record;
-              })),
+                function: defineHook('fixture-hook-23', (_oid, record, _options, _user, response) => {
+                  collaborators.__createIdentityFacts = {
+                    oid: _oid,
+                    recordOid: record.redboxOid,
+                    recordId: record.id,
+                    recordMongoId: record._id,
+                    responseOid: response.oid,
+                    responseId: response.id,
+                    responseMongoId: response._id,
+                  };
+                  return record;
+                }),
               },
             ],
           },
@@ -6997,26 +7207,26 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function: defineHook('fixture-hook-24', ((_oid, record) => {
-                collaborators.__configuredCreateOids.push(['pre', _oid, record.redboxOid]);
-                const { redboxOid: _discarded, ...replacement } = record;
-                return replacement;
-              })),
+                function: defineHook('fixture-hook-24', (_oid, record) => {
+                  collaborators.__configuredCreateOids.push(['pre', _oid, record.redboxOid]);
+                  const { redboxOid: _discarded, ...replacement } = record;
+                  return replacement;
+                }),
               },
             ],
             postSync: [
               {
-                function: defineHook('fixture-hook-25', ((_oid, record, _options, _user, response) => {
-                collaborators.__configuredCreateOids.push(['postSync', _oid, record.redboxOid, response.oid]);
-                return record;
-              })),
+                function: defineHook('fixture-hook-25', (_oid, record, _options, _user, response) => {
+                  collaborators.__configuredCreateOids.push(['postSync', _oid, record.redboxOid, response.oid]);
+                  return record;
+                }),
               },
             ],
             post: [
               {
-                function: defineHook('fixture-hook-26', ((_oid, record) => {
-                collaborators.__configuredCreateOids.push(['post', _oid, record.redboxOid]);
-              })),
+                function: defineHook('fixture-hook-26', (_oid, record) => {
+                  collaborators.__configuredCreateOids.push(['post', _oid, record.redboxOid]);
+                }),
               },
             ],
           },
@@ -7063,10 +7273,10 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function: defineHook('fixture-hook-27', ((_oid, record) => {
-                collaborators.__configuredCreatePreOid = _oid;
-                return { ...record, redboxOid: 'hook-redirect-oid' };
-              })),
+                function: defineHook('fixture-hook-27', (_oid, record) => {
+                  collaborators.__configuredCreatePreOid = _oid;
+                  return { ...record, redboxOid: 'hook-redirect-oid' };
+                }),
               },
             ],
           },
@@ -7117,14 +7327,22 @@ describe('RecordsService', function () {
             onUpdate: {
               postSync: [
                 {
-                  function:
-                    defineHook('fixture-hook-28', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, postSyncOid: record.redboxOid } }))),
+                  function: defineHook('fixture-hook-28', (_oid, record) => ({
+                    ...record,
+                    metadata: { ...record.metadata, postSyncOid: record.redboxOid },
+                  })),
                 },
               ],
               post: [
                 {
-                  function:
-                    defineHook('fixture-hook-29', ((_oid, record) => { collaborators.__identitySeenAfterStorage = { redboxOid: record.redboxOid, id: record.id, _id: record._id, postSyncOid: record.metadata.postSyncOid }; })),
+                  function: defineHook('fixture-hook-29', (_oid, record) => {
+                    collaborators.__identitySeenAfterStorage = {
+                      redboxOid: record.redboxOid,
+                      id: record.id,
+                      _id: record._id,
+                      postSyncOid: record.metadata.postSyncOid,
+                    };
+                  }),
                 },
               ],
             },
@@ -7174,7 +7392,14 @@ describe('RecordsService', function () {
           searchable: false,
           hooks: {
             onUpdate: {
-              postSync: [{ function: defineHook('fixture-hook-30', ((_oid, record) => ({ ...record, redboxOid: "different-record" }))) }],
+              postSync: [
+                {
+                  function: defineHook('fixture-hook-30', (_oid, record) => ({
+                    ...record,
+                    redboxOid: 'different-record',
+                  })),
+                },
+              ],
             },
           },
         })
@@ -7217,17 +7442,17 @@ describe('RecordsService', function () {
             onUpdate: {
               postSync: [
                 {
-                  function: defineHook('fixture-hook-31', ((_oid, record, _options, _user, response) => {
-                collaborators.__routeOidEffects.push({ phase: 'postSync', oid: _oid, responseOid: response.oid });
-                return { ...record, metadata: { ...record.metadata, postSyncApplied: true } };
-              })),
+                  function: defineHook('fixture-hook-31', (_oid, record, _options, _user, response) => {
+                    collaborators.__routeOidEffects.push({ phase: 'postSync', oid: _oid, responseOid: response.oid });
+                    return { ...record, metadata: { ...record.metadata, postSyncApplied: true } };
+                  }),
                 },
               ],
               post: [
                 {
-                  function: defineHook('fixture-hook-32', ((_oid) => {
-                collaborators.__routeOidEffects.push({ phase: 'post', oid: _oid });
-              })),
+                  function: defineHook('fixture-hook-32', _oid => {
+                    collaborators.__routeOidEffects.push({ phase: 'post', oid: _oid });
+                  }),
                 },
               ],
             },
@@ -7277,10 +7502,10 @@ describe('RecordsService', function () {
             onUpdate: {
               pre: [
                 {
-                  function: defineHook('fixture-hook-33', ((_oid, record) => {
-                record.metadata.nested.title = 'Mutated by hook';
-                throw new Error('pre-hook failure');
-              })),
+                  function: defineHook('fixture-hook-33', (_oid, record) => {
+                    record.metadata.nested.title = 'Mutated by hook';
+                    throw new Error('pre-hook failure');
+                  }),
                 },
               ],
             },
@@ -7375,7 +7600,10 @@ describe('RecordsService', function () {
             onTransitionWorkflow: {
               pre: [
                 {
-                  function: defineHook('fixture-hook-34', ((_oid, record) => ({ ...record, workflow: { stage: "rogue-stage" } }))),
+                  function: defineHook('fixture-hook-34', (_oid, record) => ({
+                    ...record,
+                    workflow: { stage: 'rogue-stage' },
+                  })),
                 },
               ],
             },
@@ -7806,13 +8034,17 @@ describe('RecordsService', function () {
           onCreate: {
             postSync: [
               {
-                function:
-                  defineHook('fixture-hook-35', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, description: "<p>Hook</p><script>alert(1)</script>" } }))),
+                function: defineHook('fixture-hook-35', (_oid, record) => ({
+                  ...record,
+                  metadata: { ...record.metadata, description: '<p>Hook</p><script>alert(1)</script>' },
+                })),
               },
             ],
             post: [
               {
-                function: defineHook('fixture-hook-36', ((_oid, record) => { collaborators.__sanitizedPostSyncRecord = structuredClone(record); })),
+                function: defineHook('fixture-hook-36', (_oid, record) => {
+                  collaborators.__sanitizedPostSyncRecord = structuredClone(record);
+                }),
               },
             ],
           },
@@ -7960,7 +8192,12 @@ describe('RecordsService', function () {
           hooks: {
             onUpdate: {
               pre: [
-                { function: defineHook('fixture-hook-37', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, hookValue: true } }))) },
+                {
+                  function: defineHook('fixture-hook-37', (_oid, record) => ({
+                    ...record,
+                    metadata: { ...record.metadata, hookValue: true },
+                  })),
+                },
               ],
             },
           },
@@ -7997,10 +8234,12 @@ describe('RecordsService', function () {
         hooks: {
           onCreate: {
             pre: [
-              { function: defineHook('fixture-hook-38', (() => ({ metadata: { title: "First replacement" } }))) },
+              { function: defineHook('fixture-hook-38', () => ({ metadata: { title: 'First replacement' } })) },
               {
-                function:
-                  defineHook('fixture-hook-39', ((_oid, record) => { collaborators.__createSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; })),
+                function: defineHook('fixture-hook-39', (_oid, record) => {
+                  collaborators.__createSecondHookOid = record.redboxOid;
+                  return { ...record, secondHook: true };
+                }),
               },
             ],
           },
@@ -8037,9 +8276,17 @@ describe('RecordsService', function () {
         hooks: {
           onCreate: {
             pre: [
-              { function: defineHook('fixture-hook-40', ((_oid, record) => ({ ...record, redboxOid: "redirected-record" }))) },
               {
-                function: defineHook('fixture-hook-41', ((_oid, record) => { collaborators.__conflictingCreateSecondHookRan = true; return record; })),
+                function: defineHook('fixture-hook-40', (_oid, record) => ({
+                  ...record,
+                  redboxOid: 'redirected-record',
+                })),
+              },
+              {
+                function: defineHook('fixture-hook-41', (_oid, record) => {
+                  collaborators.__conflictingCreateSecondHookRan = true;
+                  return record;
+                }),
               },
             ],
           },
@@ -8079,10 +8326,14 @@ describe('RecordsService', function () {
           hooks: {
             onUpdate: {
               pre: [
-                { function: defineHook('fixture-hook-42', (() => ({ metadata: { title: "First update replacement" } }))) },
                 {
-                  function:
-                    defineHook('fixture-hook-43', ((_oid, record) => { collaborators.__updateSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; })),
+                  function: defineHook('fixture-hook-42', () => ({ metadata: { title: 'First update replacement' } })),
+                },
+                {
+                  function: defineHook('fixture-hook-43', (_oid, record) => {
+                    collaborators.__updateSecondHookOid = record.redboxOid;
+                    return { ...record, secondHook: true };
+                  }),
                 },
               ],
             },
@@ -8122,9 +8373,17 @@ describe('RecordsService', function () {
           hooks: {
             onUpdate: {
               pre: [
-                { function: defineHook('fixture-hook-44', ((_oid, record) => ({ ...record, redboxOid: "redirected-record" }))) },
                 {
-                  function: defineHook('fixture-hook-45', ((_oid, record) => { collaborators.__conflictingUpdateSecondHookRan = true; return record; })),
+                  function: defineHook('fixture-hook-44', (_oid, record) => ({
+                    ...record,
+                    redboxOid: 'redirected-record',
+                  })),
+                },
+                {
+                  function: defineHook('fixture-hook-45', (_oid, record) => {
+                    collaborators.__conflictingUpdateSecondHookRan = true;
+                    return record;
+                  }),
                 },
               ],
             },
@@ -8244,9 +8503,7 @@ describe('RecordsService', function () {
         });
         expect(validateResolvedArtifact.firstCall.args[0].document).to.equal(resolution.document);
         expect(authorize.calledBefore(resolveUpdate), testCase.saveOperation).to.equal(true);
-        expect(collaborators.RecordTypesService.get.calledBefore(resolveUpdate), testCase.saveOperation).to.equal(
-          true
-        );
+        expect(collaborators.RecordTypesService.get.calledBefore(resolveUpdate), testCase.saveOperation).to.equal(true);
         expect(resolveUpdate.calledBefore(validateResolvedArtifact), testCase.saveOperation).to.equal(true);
         expect(validateResolvedArtifact.calledBefore(applySubmission), testCase.saveOperation).to.equal(true);
         if (testCase.saveOperation === 'transition') {
@@ -9082,8 +9339,10 @@ describe('RecordsService', function () {
             onUpdate: {
               pre: [
                 {
-                  function:
-                    defineHook('fixture-hook-46', ((_oid, record) => { collaborators.__recordContractMergeHookInput = structuredClone(record.metadata); return record; })),
+                  function: defineHook('fixture-hook-46', (_oid, record) => {
+                    collaborators.__recordContractMergeHookInput = structuredClone(record.metadata);
+                    return record;
+                  }),
                 },
               ],
             },
@@ -9107,9 +9366,7 @@ describe('RecordsService', function () {
         );
 
         expect(result.wasPersisted()).to.equal(true);
-        expect(collaborators.__recordContractMergeHookInput).to.deep.equal(
-          expectedMergedMetadata
-        );
+        expect(collaborators.__recordContractMergeHookInput).to.deep.equal(expectedMergedMetadata);
         expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(expectedMergedMetadata);
         expect(rawDelta).to.deep.equal({
           title: 'Merged',
@@ -9300,8 +9557,10 @@ describe('RecordsService', function () {
           onUpdate: {
             pre: [
               {
-                function:
-                  defineHook('fixture-hook-47', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, authoritativeHookRan: true } }))),
+                function: defineHook('fixture-hook-47', (_oid, record) => ({
+                  ...record,
+                  metadata: { ...record.metadata, authoritativeHookRan: true },
+                })),
               },
             ],
           },
@@ -9312,7 +9571,13 @@ describe('RecordsService', function () {
         name: 'other-type',
         hooks: {
           onUpdate: {
-            pre: [{ function: defineHook('fixture-hook-48', (() => { throw new Error("wrong-type hook ran"); })) }],
+            pre: [
+              {
+                function: defineHook('fixture-hook-48', () => {
+                  throw new Error('wrong-type hook ran');
+                }),
+              },
+            ],
           },
         },
         searchable: false,
@@ -9477,8 +9742,10 @@ describe('RecordsService', function () {
             onUpdate: {
               pre: [
                 {
-                  function:
-                    defineHook('fixture-hook-49', ((_oid, record) => { collaborators.__partialUpdateHookInput = structuredClone(record); return { ...record, hookOwned: true }; })),
+                  function: defineHook('fixture-hook-49', (_oid, record) => {
+                    collaborators.__partialUpdateHookInput = structuredClone(record);
+                    return { ...record, hookOwned: true };
+                  }),
                 },
               ],
             },
@@ -9533,8 +9800,10 @@ describe('RecordsService', function () {
             onUpdate: {
               pre: [
                 {
-                  function:
-                    defineHook('fixture-hook-50', ((_oid, record) => { collaborators.__updateHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-update-hook-form" } }; })),
+                  function: defineHook('fixture-hook-50', (_oid, record) => {
+                    collaborators.__updateHookAttachmentFields = [...record.metaMetadata.attachmentFields];
+                    return { ...record, metaMetadata: { ...record.metaMetadata, form: 'after-update-hook-form' } };
+                  }),
                 },
               ],
             },
@@ -9759,8 +10028,11 @@ describe('RecordsService', function () {
             onTransitionWorkflow: {
               pre: [
                 {
-                  function:
-                    defineHook('fixture-hook-51', ((_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "update-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } }))),
+                  function: defineHook('fixture-hook-51', (_oid, record) => ({
+                    ...record,
+                    workflow: { ...record.workflow, hookMarker: 'update-preserved' },
+                    metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage },
+                  })),
                 },
               ],
             },
@@ -9909,7 +10181,14 @@ describe('RecordsService', function () {
           name: 'rdmp',
           hooks: {
             onTransitionWorkflow: {
-              pre: [{ function: defineHook('fixture-hook-52', ((_oid, record) => { delete record.metaMetadata.form; return record; })) }],
+              pre: [
+                {
+                  function: defineHook('fixture-hook-52', (_oid, record) => {
+                    delete record.metaMetadata.form;
+                    return record;
+                  }),
+                },
+              ],
             },
           },
           searchable: false,
@@ -9971,10 +10250,14 @@ describe('RecordsService', function () {
         name: 'rdmp',
         hooks: {
           onCreate: {
-            postSync: [{ function: defineHook('fixture-hook-53', (() => ({ metadata: { title: "Partial create postSync" } }))) }],
+            postSync: [
+              { function: defineHook('fixture-hook-53', () => ({ metadata: { title: 'Partial create postSync' } })) },
+            ],
             post: [
               {
-                function: defineHook('fixture-hook-54', ((_oid, record) => { collaborators.__createPartialPostRecord = structuredClone(record); })),
+                function: defineHook('fixture-hook-54', (_oid, record) => {
+                  collaborators.__createPartialPostRecord = structuredClone(record);
+                }),
               },
             ],
           },
@@ -10032,11 +10315,16 @@ describe('RecordsService', function () {
         name: 'rdmp',
         hooks: {
           onTransitionWorkflow: {
-            postSync: [{ function: defineHook('fixture-hook-55', (() => ({ metadata: { title: "Partial transition postSync" } }))) }],
+            postSync: [
+              {
+                function: defineHook('fixture-hook-55', () => ({ metadata: { title: 'Partial transition postSync' } })),
+              },
+            ],
             post: [
               {
-                function:
-                  defineHook('fixture-hook-56', ((_oid, record) => { collaborators.__createTransitionPartialPostRecord = structuredClone(record); })),
+                function: defineHook('fixture-hook-56', (_oid, record) => {
+                  collaborators.__createTransitionPartialPostRecord = structuredClone(record);
+                }),
               },
             ],
           },
@@ -10097,8 +10385,10 @@ describe('RecordsService', function () {
             onUpdate: {
               postSync: [
                 {
-                  function:
-                    defineHook('fixture-hook-57', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Invalid secondary" } }))),
+                  function: defineHook('fixture-hook-57', (_oid, record) => ({
+                    ...record,
+                    metadata: { ...record.metadata, title: 'Invalid secondary' },
+                  })),
                 },
               ],
             },
@@ -10136,10 +10426,14 @@ describe('RecordsService', function () {
           name: 'rdmp',
           hooks: {
             onUpdate: {
-              postSync: [{ function: defineHook('fixture-hook-58', (() => ({ metadata: { title: "Partial postSync" } }))) }],
+              postSync: [
+                { function: defineHook('fixture-hook-58', () => ({ metadata: { title: 'Partial postSync' } })) },
+              ],
               post: [
                 {
-                  function: defineHook('fixture-hook-59', ((_oid, record) => { collaborators.__updatePartialPostRecord = structuredClone(record); })),
+                  function: defineHook('fixture-hook-59', (_oid, record) => {
+                    collaborators.__updatePartialPostRecord = structuredClone(record);
+                  }),
                 },
               ],
             },
@@ -10192,15 +10486,23 @@ describe('RecordsService', function () {
           hooks: {
             onUpdate: {
               postSync: [
-                { function: defineHook('fixture-hook-60', (() => ({ metadata: { title: "First postSync replacement" } }))) },
                 {
-                  function:
-                    defineHook('fixture-hook-61', ((_oid, record) => { collaborators.__postSyncSecondHookOid = record.redboxOid; return { ...record, secondPostSync: true }; })),
+                  function: defineHook('fixture-hook-60', () => ({
+                    metadata: { title: 'First postSync replacement' },
+                  })),
+                },
+                {
+                  function: defineHook('fixture-hook-61', (_oid, record) => {
+                    collaborators.__postSyncSecondHookOid = record.redboxOid;
+                    return { ...record, secondPostSync: true };
+                  }),
                 },
               ],
               post: [
                 {
-                  function: defineHook('fixture-hook-62', ((_oid, record) => { collaborators.__postSyncDetachedHookOid = record.redboxOid; })),
+                  function: defineHook('fixture-hook-62', (_oid, record) => {
+                    collaborators.__postSyncDetachedHookOid = record.redboxOid;
+                  }),
                 },
               ],
             },
@@ -10252,15 +10554,24 @@ describe('RecordsService', function () {
           hooks: {
             onUpdate: {
               postSync: [
-                { function: defineHook('fixture-hook-63', ((_oid, record) => ({ ...record, redboxOid: "redirected-record" }))) },
                 {
-                  function:
-                    defineHook('fixture-hook-64', ((_oid, record) => { collaborators.__conflictingPostSyncSecondHookRan = true; return record; })),
+                  function: defineHook('fixture-hook-63', (_oid, record) => ({
+                    ...record,
+                    redboxOid: 'redirected-record',
+                  })),
+                },
+                {
+                  function: defineHook('fixture-hook-64', (_oid, record) => {
+                    collaborators.__conflictingPostSyncSecondHookRan = true;
+                    return record;
+                  }),
                 },
               ],
               post: [
                 {
-                  function: defineHook('fixture-hook-65', (() => { collaborators.__conflictingPostSyncDetachedHookRan = true; })),
+                  function: defineHook('fixture-hook-65', () => {
+                    collaborators.__conflictingPostSyncDetachedHookRan = true;
+                  }),
                 },
               ],
             },
@@ -10303,8 +10614,10 @@ describe('RecordsService', function () {
             onUpdate: {
               postSync: [
                 {
-                  function:
-                    defineHook('fixture-hook-66', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Timed out secondary" } }))),
+                  function: defineHook('fixture-hook-66', (_oid, record) => ({
+                    ...record,
+                    metadata: { ...record.metadata, title: 'Timed out secondary' },
+                  })),
                 },
               ],
             },
@@ -10358,13 +10671,17 @@ describe('RecordsService', function () {
             onTransitionWorkflow: {
               postSync: [
                 {
-                  function:
-                    defineHook('fixture-hook-67', ((_oid, record) => { collaborators.__transitionPersistenceOrder.push("postSync"); return { ...record, metadata: { ...record.metadata, transitioned: true } }; })),
+                  function: defineHook('fixture-hook-67', (_oid, record) => {
+                    collaborators.__transitionPersistenceOrder.push('postSync');
+                    return { ...record, metadata: { ...record.metadata, transitioned: true } };
+                  }),
                 },
               ],
               post: [
                 {
-                  function: defineHook('fixture-hook-68', (() => { collaborators.__transitionPersistenceOrder.push("post"); })),
+                  function: defineHook('fixture-hook-68', () => {
+                    collaborators.__transitionPersistenceOrder.push('post');
+                  }),
                 },
               ],
             },
@@ -10416,8 +10733,10 @@ describe('RecordsService', function () {
             onTransitionWorkflow: {
               postSync: [
                 {
-                  function:
-                    defineHook('fixture-hook-69', ((_oid, record) => ({ ...record, metaMetadata: { ...record.metaMetadata, form: "../malformed" } }))),
+                  function: defineHook('fixture-hook-69', (_oid, record) => ({
+                    ...record,
+                    metaMetadata: { ...record.metaMetadata, form: '../malformed' },
+                  })),
                 },
               ],
             },
@@ -10473,7 +10792,11 @@ describe('RecordsService', function () {
           { metadata: { title: 'Created' } },
           {
             name: 'rdmp',
-            hooks: { onCreate: { post: [{ function: defineHook('fixture-hook-70', ((oid) => collaborators.__detachedValidatedWrite(oid))) }] } },
+            hooks: {
+              onCreate: {
+                post: [{ function: defineHook('fixture-hook-70', oid => collaborators.__detachedValidatedWrite(oid)) }],
+              },
+            },
             searchable: false,
           },
           { username: 'user-1' }
@@ -10706,7 +11029,10 @@ describe('RecordsService', function () {
           RecordsService.create(
             { id: 'brand-1' },
             { metadata: { title: 'Rejected create' } },
-            { name: 'rdmp', hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-71', ((_oid, record) => record)) }] } } },
+            {
+              name: 'rdmp',
+              hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-71', (_oid, record) => record) }] } },
+            },
             { username: 'user-1' },
             true,
             true,
@@ -10966,8 +11292,7 @@ describe('RecordsService', function () {
           collaborators.RecordValidationService.resolve.callsFake(() =>
             Promise.reject(new Error('secret rejected validation failure'))
           ),
-        () =>
-          collaborators.RecordValidationService.resolve.callsFake(() => Promise.reject('secret string rejection')),
+        () => collaborators.RecordValidationService.resolve.callsFake(() => Promise.reject('secret string rejection')),
         () =>
           collaborators.RecordValidationService.resolve.callsFake(() =>
             Promise.reject({ secret: 'secret object rejection' })
@@ -11373,11 +11698,29 @@ describe('RecordsService', function () {
       });
       const recordType = recordTypeWithHooks({
         onCreate: {
-          pre: [{ function: defineHook('fixture-hook-72', ((_oid, record) => { collaborators.__effectHookOrder.push("pre"); return record; })) }],
-          postSync: [
-            { function: defineHook('fixture-hook-73', ((_oid, record) => { collaborators.__effectHookOrder.push("postSync"); return record; })) },
+          pre: [
+            {
+              function: defineHook('fixture-hook-72', (_oid, record) => {
+                collaborators.__effectHookOrder.push('pre');
+                return record;
+              }),
+            },
           ],
-          post: [{ function: defineHook('fixture-hook-74', (() => { collaborators.__effectHookOrder.push("post"); })) }],
+          postSync: [
+            {
+              function: defineHook('fixture-hook-73', (_oid, record) => {
+                collaborators.__effectHookOrder.push('postSync');
+                return record;
+              }),
+            },
+          ],
+          post: [
+            {
+              function: defineHook('fixture-hook-74', () => {
+                collaborators.__effectHookOrder.push('post');
+              }),
+            },
+          ],
         },
       });
 
@@ -11415,7 +11758,15 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Rejected' } },
         recordTypeWithHooks({
-          onCreate: { pre: [{ function: defineHook('fixture-hook-75', (() => { throw new Error("secret pre failure"); })) }] },
+          onCreate: {
+            pre: [
+              {
+                function: defineHook('fixture-hook-75', () => {
+                  throw new Error('secret pre failure');
+                }),
+              },
+            ],
+          },
         }),
         { username: 'user-1' }
       );
@@ -11433,7 +11784,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Warning' } },
         recordTypeWithHooks({
-          onCreate: { postSync: [{ function: defineHook('fixture-hook-76', (() => null)) }] },
+          onCreate: { postSync: [{ function: defineHook('fixture-hook-76', () => null) }] },
         }),
         { username: 'user-1' }
       );
@@ -11459,16 +11810,22 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function: defineHook('fixture-hook-77', ((() => {
-                collaborators.__effectRetryAttempts = 0;
-                return (_oid, record) => {
-                  collaborators.__effectRetryAttempts += 1;
-                  if (collaborators.__effectRetryAttempts === 1) {
-                    throw Object.assign(new Error('transient secret'), { _tag: 'ActionTransientFailure', code: 'temporary' });
-                  }
-                  return record;
-                };
-              })())),
+                function: defineHook(
+                  'fixture-hook-77',
+                  (() => {
+                    collaborators.__effectRetryAttempts = 0;
+                    return (_oid, record) => {
+                      collaborators.__effectRetryAttempts += 1;
+                      if (collaborators.__effectRetryAttempts === 1) {
+                        throw Object.assign(new Error('transient secret'), {
+                          _tag: 'ActionTransientFailure',
+                          code: 'temporary',
+                        });
+                      }
+                      return record;
+                    };
+                  })()
+                ),
                 execution: {
                   retry: { maxAttempts: 2, retryOn: ['transient'], idempotent: true },
                 },
@@ -11495,7 +11852,14 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Pre timeout' } },
         recordTypeWithHooks({
-          onCreate: { pre: [{ function: defineHook('fixture-hook-78', (() => new Promise(() => undefined))), execution: { timeoutMs: 10 } }] },
+          onCreate: {
+            pre: [
+              {
+                function: defineHook('fixture-hook-78', () => new Promise(() => undefined)),
+                execution: { timeoutMs: 10 },
+              },
+            ],
+          },
         }),
         { username: 'user-1' }
       );
@@ -11506,7 +11870,14 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Post timeout' } },
         recordTypeWithHooks({
-          onCreate: { postSync: [{ function: defineHook('fixture-hook-79', (() => new Promise(() => undefined))), execution: { timeoutMs: 10 } }] },
+          onCreate: {
+            postSync: [
+              {
+                function: defineHook('fixture-hook-79', () => new Promise(() => undefined)),
+                execution: { timeoutMs: 10 },
+              },
+            ],
+          },
         }),
         { username: 'user-1' }
       );
@@ -11520,7 +11891,15 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Detached' } },
         recordTypeWithHooks({
-          onCreate: { post: [{ function: defineHook('fixture-hook-80', (() => { throw new Error("detached secret"); })) }] },
+          onCreate: {
+            post: [
+              {
+                function: defineHook('fixture-hook-80', () => {
+                  throw new Error('detached secret');
+                }),
+              },
+            ],
+          },
         }),
         { username: 'user-1' }
       );
@@ -11534,52 +11913,99 @@ describe('RecordsService', function () {
 
     for (const kind of ['Promise', 'Observable', 'Effect'] as const)
       it(`preserves worker-origin ${kind} hooks, timeout ownership and the save audit during drain`, async () => {
-        const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
-        let attempts = 0, writes = 0;
-        const backend = { define() {}, on() {}, start: async () => {}, stop: async () => {}, now: sinon.stub().resolves({}) };
+        const entered = Promise.withResolvers<void>(),
+          release = Promise.withResolvers<void>();
+        let attempts = 0,
+          writes = 0;
+        const backend = {
+          define() {},
+          on() {},
+          start: async () => {},
+          stop: async () => {},
+          now: sinon.stub().resolves({}),
+        };
         const queue = new AgendaQueue({
-          owner: fixture, log: fixture.log, config: { options: { backend: 'mongodb' }, jobs: {} }, handler: () => undefined,
+          owner: fixture,
+          log: fixture.log,
+          config: { options: { backend: 'mongodb' }, jobs: {} },
+          handler: () => undefined,
         });
         sinon.stub(persistenceRuntime, 'mongoDatabase').resolves({} as any);
         sinon.stub(queue as any, 'createAgendaForBackend').resolves(backend);
         sinon.stub(queue as any, 'prepareBackends').resolves();
         const app = new ApplicationRuntime(fixture, [
           { name: 'queue', create: () => queue },
-          { name: 'records', create: () => ({ initialize: async () => {}, drain: () => RecordsService.drain(), close: () => RecordsService.close() }) },
+          {
+            name: 'records',
+            create: () => ({
+              initialize: async () => {},
+              drain: () => RecordsService.drain(),
+              close: () => RecordsService.close(),
+            }),
+          },
         ]);
-        RecordsService.input.runAcceptedWork = (operation: () => Promise<unknown>) => persistenceRuntime.runAcceptedPersistenceWork(fixture, operation);
+        RecordsService.input.runAcceptedWork = (operation: () => Promise<unknown>) =>
+          persistenceRuntime.runAcceptedPersistenceWork(fixture, operation);
         RecordsService.input.retainFollowup = (work: Promise<void>) => retainHttpRequestFollowup(fixture, work);
-        sinon.stub(RecordsService, 'auditRecord').callsFake(async () => { await queue.now('completion'); });
+        sinon.stub(RecordsService, 'auditRecord').callsFake(async () => {
+          await queue.now('completion');
+        });
         const body = async () => {
-          attempts++; entered.resolve(); await release.promise;
-          await persistenceRuntime.persistenceOperation(fixture, async () => { writes++; });
+          attempts++;
+          entered.resolve();
+          await release.promise;
+          await persistenceRuntime.persistenceOperation(fixture, async () => {
+            writes++;
+          });
         };
-        const hook = defineHook(`review-r3-worker-${kind}`, () => kind === 'Effect'
-          ? Effect.tryPromise({ try: body, catch: error => error })
-          : kind === 'Observable' ? from(body()) : body());
+        const hook = defineHook(`review-r3-worker-${kind}`, () =>
+          kind === 'Effect'
+            ? Effect.tryPromise({ try: body, catch: error => error })
+            : kind === 'Observable'
+              ? from(body())
+              : body()
+        );
         try {
-          await app.initialize(); await app.activate();
+          await app.initialize();
+          await app.activate();
           queue.defineJob('completion', {}, async () => {});
           const job = (queue as any).acceptedJob(async () => {
             const result = await RecordsService.create(
-              { id: 'brand-1' }, { metadata: { title: 'Worker save' } },
-              recordTypeWithHooks({ onCreate: { post: [{ function: hook, execution: {
-                timeoutMs: 5, retry: { maxAttempts: 2, retryOn: ['timeout'], idempotent: true },
-              } }] } }), { id: 'user', username: 'user-1' }
+              { id: 'brand-1' },
+              { metadata: { title: 'Worker save' } },
+              recordTypeWithHooks({
+                onCreate: {
+                  post: [
+                    {
+                      function: hook,
+                      execution: {
+                        timeoutMs: 5,
+                        retry: { maxAttempts: 2, retryOn: ['timeout'], idempotent: true },
+                      },
+                    },
+                  ],
+                },
+              }),
+              { id: 'user', username: 'user-1' }
             );
             expect(result.outcome).to.equal('saved');
           });
-          await job({ attrs: {} }); await entered.promise;
+          await job({ attrs: {} });
+          await entered.promise;
           await new Promise(done => setTimeout(done, 20));
           await rejects(app.stop({ deadlineMs: 20 }), /deadline|drain/);
           expect(app.status().cleanupPending).to.equal(true);
           expect(attempts).to.equal(1);
           await rejects(queue.now('completion'), /draining/);
-          release.resolve(); await app.stop({ deadlineMs: 1000 });
+          release.resolve();
+          await app.stop({ deadlineMs: 1000 });
           expect(writes).to.equal(1);
           expect(backend.now.calledOnce).to.equal(true);
           expect(persistenceRuntime.persistenceStatus(fixture).operations).to.equal(0);
-        } finally { release.resolve(); await app.stop(); }
+        } finally {
+          release.resolve();
+          await app.stop();
+        }
       });
 
     for (const kind of ['Observable', 'Effect', 'grace-expired'] as const)
@@ -11587,9 +12013,17 @@ describe('RecordsService', function () {
         const release = Promise.withResolvers<void>();
         const entered = Promise.withResolvers<void>();
         const observable = new Subject<void>();
-        const backend = { define() {}, on() {}, start: async () => {}, stop: async () => {}, now: sinon.stub().resolves({}) };
+        const backend = {
+          define() {},
+          on() {},
+          start: async () => {},
+          stop: async () => {},
+          now: sinon.stub().resolves({}),
+        };
         const queue = new AgendaQueue({
-          owner: fixture, log: fixture.log, config: { options: { backend: 'mongodb' }, jobs: {} },
+          owner: fixture,
+          log: fixture.log,
+          config: { options: { backend: 'mongodb' }, jobs: {} },
           handler: () => undefined,
           drainRequests: () => drainHttpRequests(fixture),
           hasAcceptedRequest: () => hasActiveHttpRequest(fixture),
@@ -11599,22 +12033,43 @@ describe('RecordsService', function () {
         sinon.stub(queue as any, 'prepareBackends').resolves();
         const application = new ApplicationRuntime(fixture, [
           { name: 'queue', create: () => queue },
-          { name: 'records', create: () => ({ initialize: async () => {}, drain: () => RecordsService.drain(), close: () => RecordsService.close() }) },
+          {
+            name: 'records',
+            create: () => ({
+              initialize: async () => {},
+              drain: () => RecordsService.drain(),
+              close: () => RecordsService.close(),
+            }),
+          },
         ]);
         RecordsService.input.retainFollowup = (work: Promise<void>) => retainHttpRequestFollowup(fixture, work);
-        sinon.stub(RecordsService, 'auditRecord').callsFake(async () => { await queue.now('completion'); });
+        sinon.stub(RecordsService, 'auditRecord').callsFake(async () => {
+          await queue.now('completion');
+        });
         const hook = defineHook('review-r2-drain', () => {
           entered.resolve();
           return kind === 'Effect' ? Effect.promise(() => release.promise) : observable;
         });
-        const host = new FastifyHost(application, { owner: fixture, hostname: '127.0.0.1', port: 0,
+        const host = new FastifyHost(application, {
+          owner: fixture,
+          hostname: '127.0.0.1',
+          port: 0,
           prepare: async router => {
             router.post('/save', async (req, res) => {
-              const result = await runHttpRequestHandler(req, () => RecordsService.create(
-                { id: 'brand-1' }, { metadata: { title: 'Owned hook' } },
-                recordTypeWithHooks({ onCreate: { post: [{ function: hook, ...(kind === 'grace-expired' ? { execution: { timeoutMs: 1500 } } : {}) }] } }),
-                { id: 'user', username: 'user-1' }
-              ));
+              const result = await runHttpRequestWork(req, () =>
+                RecordsService.create(
+                  { id: 'brand-1' },
+                  { metadata: { title: 'Owned hook' } },
+                  recordTypeWithHooks({
+                    onCreate: {
+                      post: [
+                        { function: hook, ...(kind === 'grace-expired' ? { execution: { timeoutMs: 1500 } } : {}) },
+                      ],
+                    },
+                  }),
+                  { id: 'user', username: 'user-1' }
+                )
+              );
               return res.send({ outcome: result.outcome });
             });
           },
@@ -11622,23 +12077,32 @@ describe('RecordsService', function () {
         let shutdown: Promise<void> | undefined;
         try {
           expect(host.constructor.name).to.equal('FastifyHost');
-          await host.initialize(); await host.activate();
+          await host.initialize();
+          await host.activate();
           queue.defineJob('completion', {}, async () => {});
           const response = await fetch(`http://127.0.0.1:${host.address()!.port}/save`, { method: 'POST' });
-          expect((await response.json() as any).outcome).to.equal('saved');
+          expect(((await response.json()) as any).outcome).to.equal('saved');
           await entered.promise;
           let stopped = false;
-          shutdown = host.stop().then(() => { stopped = true; });
+          shutdown = host.stop().then(() => {
+            stopped = true;
+          });
           await new Promise(done => setTimeout(done, 25));
           expect(stopped).to.equal(false);
           if (kind === 'grace-expired') await new Promise(done => setTimeout(done, 1050));
-          release.resolve(); observable.next();
+          release.resolve();
+          observable.next();
           await shutdown;
           expect(backend.now.calledOnce).to.equal(true);
-          expect(fixture.log.error.args.some((args: unknown[]) => String(args[0]).includes('audit submission failed'))).to.equal(false);
+          expect(
+            fixture.log.error.args.some((args: unknown[]) => String(args[0]).includes('audit submission failed'))
+          ).to.equal(false);
         } finally {
-          release.resolve(); observable.next(); observable.complete();
-          await shutdown?.catch(() => {}); await host.stop();
+          release.resolve();
+          observable.next();
+          observable.complete();
+          await shutdown?.catch(() => {});
+          await host.stop();
         }
       });
 
@@ -11648,7 +12112,15 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Detached audit' } },
         recordTypeWithHooks({
-          onCreate: { post: [{ function: defineHook('fixture-hook-81', (() => { throw new Error("detached audit secret"); })) }] },
+          onCreate: {
+            post: [
+              {
+                function: defineHook('fixture-hook-81', () => {
+                  throw new Error('detached audit secret');
+                }),
+              },
+            ],
+          },
         }),
         { username: 'user-1' }
       );
@@ -11676,9 +12148,15 @@ describe('RecordsService', function () {
           recordTypeWithHooks({
             onCreate: {
               post: [
-                { function: defineHook('fixture-hook-82', (() => undefined)) },
+                { function: defineHook('fixture-hook-82', () => undefined) },
                 {
-                  function: defineHook('fixture-hook-83', (() => new Promise(resolve => { collaborators.__resolvePendingDetached = resolve; }))),
+                  function: defineHook(
+                    'fixture-hook-83',
+                    () =>
+                      new Promise(resolve => {
+                        collaborators.__resolvePendingDetached = resolve;
+                      })
+                  ),
                 },
               ],
             },
@@ -11738,8 +12216,12 @@ describe('RecordsService', function () {
           recordTypeWithHooks({
             onCreate: {
               post: [
-                { function: defineHook('fixture-hook-84', (({ invalid: true }))) },
-                { function: defineHook('fixture-hook-85', (() => { collaborators.__effectDetachedCompatibility.push("valid"); })) },
+                { function: defineHook('fixture-hook-84', { invalid: true }) },
+                {
+                  function: defineHook('fixture-hook-85', () => {
+                    collaborators.__effectDetachedCompatibility.push('valid');
+                  }),
+                },
               ],
             },
           }),
@@ -11760,8 +12242,21 @@ describe('RecordsService', function () {
       collaborators.__effectFlagCalls = calls;
       const recordType = recordTypeWithHooks({
         onUpdate: {
-          pre: [{ function: defineHook('fixture-hook-86', ((_oid, record) => { collaborators.__effectFlagCalls.push("pre"); return record; })) }],
-          post: [{ function: defineHook('fixture-hook-87', (() => { collaborators.__effectFlagCalls.push("post"); })) }],
+          pre: [
+            {
+              function: defineHook('fixture-hook-86', (_oid, record) => {
+                collaborators.__effectFlagCalls.push('pre');
+                return record;
+              }),
+            },
+          ],
+          post: [
+            {
+              function: defineHook('fixture-hook-87', () => {
+                collaborators.__effectFlagCalls.push('post');
+              }),
+            },
+          ],
         },
       });
       collaborators.RecordTypesService.get.returns(of(recordType));
@@ -11815,7 +12310,9 @@ describe('RecordsService', function () {
       }
       const extended = new ExtendedRecords(RecordsService.input);
       const recordType = recordTypeWithHooks({
-        onCreate: { pre: [{ function: defineHook('fixture-hook-88', ((_oid, record) => ({ ...record, extended: true }))) }] },
+        onCreate: {
+          pre: [{ function: defineHook('fixture-hook-88', (_oid, record) => ({ ...record, extended: true })) }],
+        },
       });
       const result = await extended.triggerPreSaveTriggers('record-123', {}, recordType, 'onCreate', {});
 
@@ -11838,11 +12335,15 @@ describe('RecordsService', function () {
         searchable: false,
         hooks: {
           onDelete: {
-            postSync: [{ function: defineHook('fixture-hook-89', ((_oid, record) => ({ ...record, hookReplacement: true }))) }],
+            postSync: [
+              { function: defineHook('fixture-hook-89', (_oid, record) => ({ ...record, hookReplacement: true })) },
+            ],
             post: [
               {
-                function:
-                  defineHook('fixture-hook-90', ((_oid, record) => { collaborators.__deletePostRecord = structuredClone(record); return undefined; })),
+                function: defineHook('fixture-hook-90', (_oid, record) => {
+                  collaborators.__deletePostRecord = structuredClone(record);
+                  return undefined;
+                }),
               },
             ],
           },
@@ -11871,8 +12372,8 @@ describe('RecordsService', function () {
         searchable: false,
         hooks: {
           onDelete: {
-            pre: [{ function: defineHook('fixture-hook-91', ((_oid, record) => record)) }],
-            post: [{ function: defineHook('fixture-hook-92', (() => undefined)) }],
+            pre: [{ function: defineHook('fixture-hook-91', (_oid, record) => record) }],
+            post: [{ function: defineHook('fixture-hook-92', () => undefined) }],
           },
         },
       };
@@ -12325,7 +12826,11 @@ describe('RecordsService', function () {
         current.metadata.workspaces = null;
         const { Services } =
           require('../../src/services/WorkspaceService') as typeof import('../../src/services/WorkspaceService');
-        const workspaceService = new Services.WorkspaceService({ records: RecordsService, identities: {} as any, log: fixture.log });
+        const workspaceService = new Services.WorkspaceService({
+          records: RecordsService,
+          identities: {} as any,
+          log: fixture.log,
+        });
         Object.assign(collaborators, { RecordsService });
         try {
           const first = await workspaceService.addWorkspaceToRecord(current.redboxOid, firstWorkspace.id, {

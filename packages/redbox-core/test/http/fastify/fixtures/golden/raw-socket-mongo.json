@@ -1,0 +1,1957 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 3,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 3
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm020-record",
+      "outcome": "saved-with-warnings",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-schema.not-resolvable",
+              "message": "@record-schema.not-resolvable"
+            }
+          ],
+          "kind": "system",
+          "phase": "schema",
+          "source": "schema"
+        }
+      ],
+      "success": true,
+      "totalItems": 0
+    },
+    "v000002": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 4,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 4
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm020-record",
+      "outcome": "saved-with-warnings",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-schema.not-resolvable",
+              "message": "@record-schema.not-resolvable"
+            }
+          ],
+          "kind": "system",
+          "phase": "schema",
+          "source": "schema"
+        }
+      ],
+      "success": true,
+      "totalItems": 0
+    },
+    "v000003": [
+      {
+        "etag": true,
+        "status": 200,
+        "text": {
+          "message": {
+            "serialized": "once 日本 🧪"
+          }
+        }
+      },
+      {
+        "etag": false,
+        "status": 200,
+        "text": {
+          "token": {
+            "serialized": "once 日本 🧪"
+          }
+        }
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": {
+          "serialized": "once 日本 🧪"
+        }
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": null
+      },
+      {
+        "etag": true,
+        "status": 304,
+        "text": null
+      },
+      {
+        "etag": true,
+        "status": 304,
+        "text": null
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": {
+          "details": {
+            "serialized": "once 日本 🧪"
+          },
+          "items": [],
+          "message": "",
+          "metadata": null,
+          "oid": "fm020-record",
+          "success": true,
+          "totalItems": 0
+        }
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": {
+          "data": {
+            "message": {
+              "serialized": "once 日本 🧪"
+            }
+          },
+          "meta": {
+            "$ref": "v000001"
+          }
+        }
+      },
+      {
+        "etag": false,
+        "status": 200,
+        "text": {
+          "data": {
+            "token": {
+              "serialized": "once 日本 🧪"
+            }
+          },
+          "meta": {}
+        }
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": {
+          "data": {
+            "serialized": "once 日本 🧪"
+          },
+          "meta": {
+            "oid": "fm020-record",
+            "revision": 3
+          }
+        }
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": null
+      },
+      {
+        "etag": true,
+        "status": 304,
+        "text": null
+      },
+      {
+        "etag": true,
+        "status": 304,
+        "text": null
+      },
+      {
+        "etag": true,
+        "status": 200,
+        "text": {
+          "data": {
+            "serialized": "once 日本 🧪"
+          },
+          "meta": {
+            "$ref": "v000002"
+          }
+        }
+      }
+    ],
+    "v000004": {
+      "fileIds": [
+        {
+          "metadata": {
+            "mimeType": "application/octet-stream",
+            "name": "payload.bin",
+            "size": 9,
+            "uploadedBy": "pilot-admin"
+          }
+        }
+      ],
+      "message": "Successfully uploaded: {\"fileId\":\"<generated-id>\",\"metadata\":{\"fileId\":\"<generated-id>\",\"name\":\"payload.bin\",\"mimeType\":\"application/octet-stream\",\"size\":9,\"uploadedBy\":\"pilot-admin\"}}",
+      "success": true
+    },
+    "v000005": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 1,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 1
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm020-record",
+      "outcome": "saved-with-warnings",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-schema.not-resolvable",
+              "message": "@record-schema.not-resolvable"
+            }
+          ],
+          "kind": "system",
+          "phase": "schema",
+          "source": "schema"
+        }
+      ],
+      "success": true,
+      "totalItems": 0
+    },
+    "v000006": [
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid request"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid request"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid request"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 413
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid request"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 413
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid request"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 413
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid request"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 413
+      }
+    ],
+    "v000007": {
+      "fileIds": [
+        {
+          "metadata": {
+            "mimeType": "application/octet-stream",
+            "name": "payload.bin",
+            "size": 7,
+            "uploadedBy": "pilot-admin"
+          }
+        }
+      ],
+      "message": "Successfully uploaded: {\"fileId\":\"<generated-id>\",\"metadata\":{\"fileId\":\"<generated-id>\",\"name\":\"payload.bin\",\"mimeType\":\"application/octet-stream\",\"size\":7,\"uploadedBy\":\"pilot-admin\"}}",
+      "success": true
+    },
+    "v000008": {
+      "authorization": {
+        "edit": [
+          "pilot-admin"
+        ],
+        "editPending": null,
+        "editRoles": [],
+        "view": [
+          "pilot-admin"
+        ],
+        "viewPending": null,
+        "viewRoles": []
+      },
+      "id": "<generated-document-id>",
+      "incarnationId": "<generated-id>",
+      "metaMetadata": {
+        "attachmentFields": null,
+        "brandId": "000000000000000000000011",
+        "form": "dataRecord",
+        "lastSavedBy": "pilot-admin",
+        "type": "dataRecord"
+      },
+      "metadata": {
+        "retained": true,
+        "title": "Original"
+      },
+      "recordVersion": 5,
+      "redboxOid": "fm020-record",
+      "revision": 4
+    },
+    "v000009": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 5,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 5
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm020-record",
+      "outcome": "saved-with-warnings",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-schema.not-resolvable",
+              "message": "@record-schema.not-resolvable"
+            }
+          ],
+          "kind": "system",
+          "phase": "schema",
+          "source": "schema"
+        }
+      ],
+      "success": true,
+      "totalItems": 0
+    },
+    "v000010": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 6,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 6
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm020-record",
+      "outcome": "saved-with-warnings",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-schema.not-resolvable",
+              "message": "@record-schema.not-resolvable"
+            }
+          ],
+          "kind": "system",
+          "phase": "schema",
+          "source": "schema"
+        }
+      ],
+      "success": true,
+      "totalItems": 0
+    },
+    "v000011": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 6,
+        "mode": "strict",
+        "resolution": "direct",
+        "revision": 6
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": {
+        "retained": true,
+        "title": "Original"
+      },
+      "oid": "fm020-record",
+      "outcome": "not-saved",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-precondition-required",
+              "message": "@record-save-record-precondition-required"
+            }
+          ],
+          "kind": "conflict",
+          "phase": "pre-save"
+        }
+      ],
+      "success": false,
+      "totalItems": 0
+    },
+    "v000012": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 6,
+        "expectedRevision": 999,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 6
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": {
+        "retained": true,
+        "title": "Original"
+      },
+      "oid": "fm020-record",
+      "outcome": "not-saved",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-revision-stale",
+              "message": "@record-save-record-revision-stale"
+            }
+          ],
+          "kind": "conflict",
+          "phase": "pre-save"
+        }
+      ],
+      "success": false,
+      "totalItems": 0
+    },
+    "v000013": [
+      {
+        "issues": [
+          {
+            "code": "record-schema.not-resolvable",
+            "message": "@record-schema.not-resolvable"
+          }
+        ],
+        "kind": "system",
+        "phase": "schema",
+        "source": "schema"
+      },
+      {
+        "issues": [
+          {
+            "code": "datastream-finalization-failed",
+            "message": "@datastream-finalization-failed"
+          }
+        ],
+        "kind": "processing",
+        "phase": "attachments"
+      }
+    ],
+    "v000014": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 7,
+        "mode": "observe",
+        "resolution": "direct",
+        "revision": 7
+      },
+      "context": {},
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm020-record",
+      "outcome": "saved-with-warnings",
+      "problems": {
+        "$ref": "v000013"
+      },
+      "success": true,
+      "totalItems": 0
+    },
+    "v000015": {
+      "authorization": {
+        "edit": [
+          "pilot-admin"
+        ],
+        "editPending": null,
+        "editRoles": [],
+        "view": [
+          "pilot-admin"
+        ],
+        "viewPending": null,
+        "viewRoles": []
+      },
+      "id": "<generated-document-id>",
+      "incarnationId": "<generated-id>",
+      "metaMetadata": {
+        "attachmentFields": null,
+        "brandId": "000000000000000000000011",
+        "form": "dataRecord",
+        "lastSavedBy": "pilot-admin",
+        "type": "dataRecord"
+      },
+      "metadata": {
+        "retained": true,
+        "title": "Original"
+      },
+      "recordVersion": 9,
+      "redboxOid": "fm020-record",
+      "revision": 8
+    },
+    "v000016": [
+      {
+        "body": {
+          "message": {
+            "$ref": "v000007"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 200
+      },
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 200
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Cross-origin request denied"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Cross-origin request denied"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Cross-origin request denied"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Cross-origin request denied"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Record not found"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "record-if-match-invalid"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "record-if-match-invalid"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "message": {
+            "$ref": "v000007"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 200
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Invalid datastream files"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Unexpected file field"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Invalid multipart request"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "message": "Error sending datastreams upstream."
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 428
+      },
+      {
+        "body": {
+          "message": "Error sending datastreams upstream."
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 412
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Not authorised."
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Record not found"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "File size limit exceeded"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 413
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Invalid or repeated multipart field"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Access Denied"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Datastream upload failed. Review record and attachments before retrying."
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Datastream upload failed. Review record and attachments before retrying."
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Failed to stage upload"
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Attachment finalization failed. Review current attachments before retrying."
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 500
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Datastream upload failed. Review record and attachments before retrying."
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 500
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Progress operation failed. Review current state before retrying."
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "$ref": "v000008"
+      },
+      {
+        "body": {
+          "data": {
+            "message": {
+              "$ref": "v000007"
+            }
+          },
+          "meta": {
+            "$ref": "v000009"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 200
+      },
+      {
+        "body": {
+          "data": {
+            "token": "<grant>"
+          },
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 200
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 401
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Record not found"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "record-if-match-invalid"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "record-if-match-invalid"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "data": {
+            "message": {
+              "$ref": "v000007"
+            }
+          },
+          "meta": {
+            "$ref": "v000010"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 200
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid datastream files"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Unexpected file field"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid multipart request"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "code": "record-precondition-required",
+              "title": "@record-save-record-precondition-required"
+            }
+          ],
+          "meta": {
+            "$ref": "v000011"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 428
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "code": "record-revision-stale",
+              "title": "@record-save-record-revision-stale"
+            }
+          ],
+          "meta": {
+            "$ref": "v000012"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 412
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "code": "not-authorised",
+              "detail": "Not authorised."
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Record not found"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 404
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "File size limit exceeded"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 413
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid or repeated multipart field"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Access Denied"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 403
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Datastream upload failed. Review record and attachments before retrying."
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Datastream upload failed. Review record and attachments before retrying."
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Failed to stage upload"
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Attachment finalization failed. Review current attachments before retrying."
+            }
+          ],
+          "meta": {
+            "$ref": "v000014"
+          }
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 500
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Datastream upload failed. Review record and attachments before retrying."
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": true,
+        "status": 500
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Progress operation failed. Review current state before retrying."
+            }
+          ],
+          "meta": {}
+        },
+        "cache": "no-cache, private",
+        "etag": false,
+        "status": 500
+      },
+      {
+        "$ref": "v000015"
+      }
+    ],
+    "v000017": {
+      "fileIds": [
+        {
+          "metadata": {
+            "mimeType": "application/octet-stream",
+            "name": "payload.bin",
+            "size": 14,
+            "uploadedBy": "pilot-admin"
+          }
+        }
+      ],
+      "message": "Successfully uploaded: {\"fileId\":\"<generated-id>\",\"metadata\":{\"fileId\":\"<generated-id>\",\"name\":\"payload.bin\",\"mimeType\":\"application/octet-stream\",\"size\":14,\"uploadedBy\":\"pilot-admin\"}}",
+      "success": true
+    },
+    "v000018": [
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid CSRF token"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 403
+      },
+      {
+        "body": {
+          "data": {
+            "message": {
+              "$ref": "v000017"
+            }
+          },
+          "meta": {
+            "$ref": "v000005"
+          }
+        },
+        "status": 200
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid CSRF token"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 403
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "meta": {}
+        },
+        "status": 403
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "status": 401
+      },
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      {
+        "status": true
+      },
+      "socket denied",
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      {
+        "status": true
+      },
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied",
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied",
+      {
+        "status": false
+      },
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied",
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied",
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied",
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied",
+      {
+        "body": {
+          "token": "<grant>"
+        },
+        "status": 200
+      },
+      "socket denied"
+    ],
+    "v000019": [
+      {
+        "events": [],
+        "name": "auth",
+        "response": {
+          "cache": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": false,
+          "status": 401
+        }
+      },
+      {
+        "events": [],
+        "name": "origin",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "etag": false,
+          "status": 403
+        }
+      },
+      {
+        "events": [],
+        "name": "missing-file",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid datastream files"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "stage",
+          "staged",
+          "cleanup"
+        ],
+        "name": "unexpected-file",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Unexpected file field"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "stage",
+          "staged",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "fields-before",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "stage",
+          "staged",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "fields-after",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      }
+    ],
+    "v000020": {
+      "events": [
+        "params",
+        "query",
+        "headers",
+        "stage",
+        "staged",
+        "extract",
+        "cleanup"
+      ],
+      "name": "extractor-fault",
+      "response": {
+        "cache": "no-cache, private",
+        "errors": [
+          {
+            "detail": "Datastream upload failed. Review record and attachments before retrying."
+          }
+        ],
+        "etag": false,
+        "status": 500
+      }
+    },
+    "v000021": [
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "permit-suffix-file",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "suffix-permit-file",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "file-permit-suffix",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "file-suffix-permit",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "permit-file-suffix",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "persist",
+          "finalize",
+          "cleanup"
+        ],
+        "name": "suffix-file-permit",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": {
+            "$undefined": true
+          },
+          "etag": true,
+          "status": 200
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers"
+        ],
+        "name": "invalid-query",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid input: expected \"yes\"",
+              "title": "query.approval"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers"
+        ],
+        "name": "invalid-header",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid input: expected \"yes\"",
+              "title": "headers.x-approval"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "cleanup"
+        ],
+        "name": "invalid-fields-before",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid multipart fields"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "cleanup"
+        ],
+        "name": "invalid-fields-after",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid multipart fields"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "cleanup"
+        ],
+        "name": "missing-suffix",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid multipart fields"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "cleanup"
+        ],
+        "name": "oversize-file",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid datastream files"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "events": [
+          "params",
+          "query",
+          "headers",
+          "stage",
+          "staged",
+          "extract",
+          "files",
+          "body",
+          "cleanup"
+        ],
+        "name": "required-body",
+        "response": {
+          "cache": "no-cache, private",
+          "errors": [
+            {
+              "detail": "Invalid multipart fields"
+            }
+          ],
+          "etag": false,
+          "status": 400
+        }
+      },
+      {
+        "$ref": "v000020"
+      }
+    ]
+  },
+  "sequences": {
+    "FM-020 scoped raw upload and progress upgrade on the owned server serializes upload, grant and metadata JSON once inside their guards, matching retained and current Express": [
+      {
+        "$ref": "v000003"
+      },
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-020 scoped raw upload and progress upgrade on the owned server matches retained Express upload/denial observations and socket behavior": [
+      {
+        "denied": {
+          "body": {
+            "errors": [
+              {
+                "detail": "Cross-origin request denied"
+              }
+            ],
+            "meta": {}
+          },
+          "cache": "no-cache, private",
+          "status": 403
+        },
+        "good": {
+          "body": {
+            "data": {
+              "message": {
+                "$ref": "v000004"
+              }
+            },
+            "meta": {
+              "$ref": "v000005"
+            }
+          },
+          "cache": "no-cache, private",
+          "status": 200
+        }
+      }
+    ],
+    "FM-020 scoped raw upload and progress upgrade on the owned server matches retained JSON/form parser failures before upload authentication": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-020 scoped raw upload and progress upgrade on the owned server matches retained upload and grant validation, security, fault and capacity responses in API1/API2": [
+      {
+        "$ref": "v000016"
+      }
+    ],
+    "FM-020 scoped raw upload and progress upgrade on the owned server matches retained session grants, reconnect, CSRF and fresh session/identity revocation": [
+      {
+        "$ref": "v000018"
+      }
+    ],
+    "FM-020 complete multipart validation stages matches retained/current Express timing and staging outcomes for the current upload declaration": [
+      {
+        "$ref": "v000019"
+      },
+      {
+        "$ref": "v000019"
+      }
+    ],
+    "FM-020 complete multipart validation stages matches current Express for one validation pass per stage, complete extraction, rejection cleanup and finalisation": [
+      {
+        "$ref": "v000021"
+      }
+    ]
+  }
+}

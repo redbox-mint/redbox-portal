@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import type { ResolvedPortalInstallation } from '../../../src/application/portal/installation';
 import { deliverDynamicAsset, type DynamicPageAssetsInput } from '../../../src/pages/dynamicAssets';
-import type { AssetResponse } from '../../../src/pages/brandingDelivery';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { resolveRequestBrand, resolveRequestActor } from '../../../src/http/context';
 import { HttpFailure } from '../../../src/http/fastify/errorBoundary';
 const audit = require('../../../../../support/specs/fastify-migration/evidence/reconcile-FM-031.cjs') as {
   offlineApplication(): Promise<{ portal: { installation: ResolvedPortalInstallation }; close(): Promise<void> }>;
@@ -50,20 +51,14 @@ describe('FM-031 shared generated asset failures', () => {
   for (const status of [400, 403, 404])
     it('preserves typed ' + status + ' from form selection', async () => {
       const error = new HttpFailure(status);
+      const request = { params: { oid: 'record' }, query: {}, session: {} } as unknown as FastifyRequest;
+      resolveRequestBrand(request, { id: 'brand', name: 'default' }, 'rdmp');
+      resolveRequestActor(request, { id: 'actor', username: 'actor', roles: [] });
       await assert.rejects(
         () =>
           deliverDynamicAsset(
-            {
-              context: {
-                brand: { id: 'brand', name: 'default' },
-                portal: 'rdmp',
-                actor: { id: 'actor', username: 'actor', roles: [] },
-              },
-              params: { oid: 'record' },
-              query: {},
-              session: {},
-            },
-            {} as AssetResponse,
+            request,
+            {} as FastifyReply,
             {
               loadRecord: async () => {
                 throw error;

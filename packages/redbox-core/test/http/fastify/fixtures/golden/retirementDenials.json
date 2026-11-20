@@ -1,0 +1,655 @@
+{
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "format": "redbox-golden-v1",
+  "cases": {
+    "multipart-edit-1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "written": 1,
+        "saves": 0,
+        "finalizations": 0,
+        "staged": []
+      }
+    },
+    "multipart-view-1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "42"
+        },
+        "text": "{\"message\":\"Not authorised.\",\"details\":\"\"}"
+      },
+      "state": {
+        "claims": 1,
+        "finalizations": 0,
+        "staged": [],
+        "metadata": {
+          "title": "private concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "different-user"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        }
+      }
+    },
+    "multipart-edit-2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "written": 1,
+        "saves": 0,
+        "finalizations": 0,
+        "staged": []
+      }
+    },
+    "multipart-view-2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "75"
+        },
+        "text": "{\"errors\":[{\"code\":\"not-authorised\",\"detail\":\"Not authorised.\"}],\"meta\":{}}"
+      },
+      "state": {
+        "claims": 1,
+        "finalizations": 0,
+        "staged": [],
+        "metadata": {
+          "title": "private concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "different-user"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        }
+      }
+    },
+    "updateMeta-1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "29"
+        },
+        "text": "{\"message\":\"Not authorised.\"}"
+      },
+      "state": {
+        "claims": 1,
+        "metadata": {
+          "title": "private concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "different-user"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revisionIncrement": 1
+      }
+    },
+    "restoreRecord-1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "29"
+        },
+        "text": "{\"message\":\"Not authorised.\"}"
+      },
+      "state": {
+        "claims": 1,
+        "metadata": {
+          "title": "private concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "different-user"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revisionIncrement": 1
+      }
+    },
+    "updateMeta-2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "48"
+        },
+        "text": "{\"errors\":[{\"code\":\"not-authorised\"}],\"meta\":{}}"
+      },
+      "state": {
+        "claims": 1,
+        "metadata": {
+          "title": "private concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "different-user"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revisionIncrement": 1
+      }
+    },
+    "restoreRecord-2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "48"
+        },
+        "text": "{\"errors\":[{\"code\":\"not-authorised\"}],\"meta\":{}}"
+      },
+      "state": {
+        "claims": 1,
+        "metadata": {
+          "title": "private concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "different-user"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revisionIncrement": 1
+      }
+    },
+    "siem-1.0-unknown ID": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "106"
+        },
+        "text": "{\"message\":\"SIEM operation failed. Review configuration and delivery state before retrying.\",\"details\":\"\"}"
+      },
+      "calls": 0
+    },
+    "siem-1.0-changed URL": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "156"
+        },
+        "text": "{\"message\":\"Destination endpoint or adapter changed. Save this destination with replacement or explicitly cleared credentials before testing.\",\"details\":\"\"}"
+      },
+      "calls": 0
+    },
+    "siem-1.0-changed query": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "156"
+        },
+        "text": "{\"message\":\"Destination endpoint or adapter changed. Save this destination with replacement or explicitly cleared credentials before testing.\",\"details\":\"\"}"
+      },
+      "calls": 0
+    },
+    "siem-1.0-changed adapter": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "156"
+        },
+        "text": "{\"message\":\"Destination endpoint or adapter changed. Save this destination with replacement or explicitly cleared credentials before testing.\",\"details\":\"\"}"
+      },
+      "calls": 0
+    },
+    "siem-1.0-same target": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "41"
+        },
+        "text": "{\"status\":\"success\",\"httpStatusCode\":200}"
+      },
+      "calls": [
+        {
+          "destination": {
+            "id": "fixture",
+            "name": "fixture",
+            "enabled": false,
+            "adapterType": "splunk-hec-json",
+            "endpointUrl": "https://collector.example.invalid/ingest",
+            "token": "fixture-private-token",
+            "password": "fixture-private-password",
+            "timeoutMs": 10000,
+            "headers": {
+              "x-api-key": "fixture-private-key",
+              "X-Trace": "retirement-denial"
+            }
+          },
+          "redaction": {
+            "denylistedPaths": [
+              "password",
+              "token",
+              "secret",
+              "authorization",
+              "headers.Authorization",
+              "connection.token",
+              "connection.password"
+            ],
+            "maxPayloadBytes": 65536,
+            "includeActorEmail": false,
+            "includeIpAddress": false,
+            "includeUserAgent": false
+          }
+        }
+      ]
+    },
+    "siem-1.0-echoed diagnostic": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "81"
+        },
+        "text": "{\"status\":\"failed\",\"errorSummary\":{\"message\":\"[REDACTED] [REDACTED] [REDACTED]\"}}"
+      },
+      "calls": [
+        {
+          "destination": {
+            "id": "fixture",
+            "name": "fixture",
+            "enabled": false,
+            "adapterType": "splunk-hec-json",
+            "endpointUrl": "https://collector.example.invalid/ingest",
+            "token": "fixture-private-token",
+            "password": "fixture-private-password",
+            "timeoutMs": 10000,
+            "headers": {
+              "x-api-key": "fixture-private-key",
+              "X-Trace": "retirement-denial"
+            }
+          },
+          "redaction": {
+            "denylistedPaths": [
+              "password",
+              "token",
+              "secret",
+              "authorization",
+              "headers.Authorization",
+              "connection.token",
+              "connection.password"
+            ],
+            "maxPayloadBytes": 65536,
+            "includeActorEmail": false,
+            "includeIpAddress": false,
+            "includeUserAgent": false
+          }
+        }
+      ]
+    },
+    "siem-1.0-thrown diagnostic": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "106"
+        },
+        "text": "{\"message\":\"SIEM operation failed. Review configuration and delivery state before retrying.\",\"details\":\"\"}"
+      },
+      "calls": [
+        {
+          "destination": {
+            "id": "fixture",
+            "name": "fixture",
+            "enabled": false,
+            "adapterType": "splunk-hec-json",
+            "endpointUrl": "https://collector.example.invalid/ingest",
+            "token": "fixture-private-token",
+            "password": "fixture-private-password",
+            "timeoutMs": 10000,
+            "headers": {
+              "x-api-key": "fixture-private-key",
+              "X-Trace": "retirement-denial"
+            }
+          },
+          "redaction": {
+            "denylistedPaths": [
+              "password",
+              "token",
+              "secret",
+              "authorization",
+              "headers.Authorization",
+              "connection.token",
+              "connection.password"
+            ],
+            "maxPayloadBytes": 65536,
+            "includeActorEmail": false,
+            "includeIpAddress": false,
+            "includeUserAgent": false
+          }
+        }
+      ]
+    },
+    "siem-2.0-unknown ID": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "115"
+        },
+        "text": "{\"errors\":[{\"detail\":\"SIEM operation failed. Review configuration and delivery state before retrying.\"}],\"meta\":{}}"
+      },
+      "calls": 0
+    },
+    "siem-2.0-changed URL": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "165"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Destination endpoint or adapter changed. Save this destination with replacement or explicitly cleared credentials before testing.\"}],\"meta\":{}}"
+      },
+      "calls": 0
+    },
+    "siem-2.0-changed query": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "165"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Destination endpoint or adapter changed. Save this destination with replacement or explicitly cleared credentials before testing.\"}],\"meta\":{}}"
+      },
+      "calls": 0
+    },
+    "siem-2.0-changed adapter": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "165"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Destination endpoint or adapter changed. Save this destination with replacement or explicitly cleared credentials before testing.\"}],\"meta\":{}}"
+      },
+      "calls": 0
+    },
+    "siem-2.0-same target": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "60"
+        },
+        "text": "{\"data\":{\"status\":\"success\",\"httpStatusCode\":200},\"meta\":{}}"
+      },
+      "calls": [
+        {
+          "destination": {
+            "id": "fixture",
+            "name": "fixture",
+            "enabled": false,
+            "adapterType": "splunk-hec-json",
+            "endpointUrl": "https://collector.example.invalid/ingest",
+            "token": "fixture-private-token",
+            "password": "fixture-private-password",
+            "timeoutMs": 10000,
+            "headers": {
+              "x-api-key": "fixture-private-key",
+              "X-Trace": "retirement-denial"
+            }
+          },
+          "redaction": {
+            "denylistedPaths": [
+              "password",
+              "token",
+              "secret",
+              "authorization",
+              "headers.Authorization",
+              "connection.token",
+              "connection.password"
+            ],
+            "maxPayloadBytes": 65536,
+            "includeActorEmail": false,
+            "includeIpAddress": false,
+            "includeUserAgent": false
+          }
+        }
+      ]
+    },
+    "siem-2.0-echoed diagnostic": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "100"
+        },
+        "text": "{\"data\":{\"status\":\"failed\",\"errorSummary\":{\"message\":\"[REDACTED] [REDACTED] [REDACTED]\"}},\"meta\":{}}"
+      },
+      "calls": [
+        {
+          "destination": {
+            "id": "fixture",
+            "name": "fixture",
+            "enabled": false,
+            "adapterType": "splunk-hec-json",
+            "endpointUrl": "https://collector.example.invalid/ingest",
+            "token": "fixture-private-token",
+            "password": "fixture-private-password",
+            "timeoutMs": 10000,
+            "headers": {
+              "x-api-key": "fixture-private-key",
+              "X-Trace": "retirement-denial"
+            }
+          },
+          "redaction": {
+            "denylistedPaths": [
+              "password",
+              "token",
+              "secret",
+              "authorization",
+              "headers.Authorization",
+              "connection.token",
+              "connection.password"
+            ],
+            "maxPayloadBytes": 65536,
+            "includeActorEmail": false,
+            "includeIpAddress": false,
+            "includeUserAgent": false
+          }
+        }
+      ]
+    },
+    "siem-2.0-thrown diagnostic": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "115"
+        },
+        "text": "{\"errors\":[{\"detail\":\"SIEM operation failed. Review configuration and delivery state before retrying.\"}],\"meta\":{}}"
+      },
+      "calls": [
+        {
+          "destination": {
+            "id": "fixture",
+            "name": "fixture",
+            "enabled": false,
+            "adapterType": "splunk-hec-json",
+            "endpointUrl": "https://collector.example.invalid/ingest",
+            "token": "fixture-private-token",
+            "password": "fixture-private-password",
+            "timeoutMs": 10000,
+            "headers": {
+              "x-api-key": "fixture-private-key",
+              "X-Trace": "retirement-denial"
+            }
+          },
+          "redaction": {
+            "denylistedPaths": [
+              "password",
+              "token",
+              "secret",
+              "authorization",
+              "headers.Authorization",
+              "connection.token",
+              "connection.password"
+            ],
+            "maxPayloadBytes": 65536,
+            "includeActorEmail": false,
+            "includeIpAddress": false,
+            "includeUserAgent": false
+          }
+        }
+      ]
+    }
+  },
+  "shared": {}
+}

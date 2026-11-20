@@ -1,4 +1,4 @@
-import type { AuthenticatedActor } from './express/identity';
+import type { AuthenticatedActor } from '../authentication/HttpIdentity';
 import { UserModel } from '../model/storage/UserModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
 

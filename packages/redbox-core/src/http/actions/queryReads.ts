@@ -240,8 +240,8 @@ export async function downloadCSV(
   request: ReferenceRequest,
   valid: ValidatedApiRouteRequest
 ): Promise<ReferenceResult> {
-  const { body, scalar, parameters, brand } = prepare(request, valid, false, false);
-  let result: unknown;
+  const { body: _body, scalar, parameters, brand } = prepare(request, valid, false, false);
+  let _result: unknown;
 
   request.observe?.({ reportName: scalar('name') });
   const csv = await input.reports.getCSVResult(brand, scalar('name'), parameters);
@@ -305,7 +305,7 @@ export async function getQuery(
   request: ReferenceRequest,
   valid: ValidatedApiRouteRequest
 ): Promise<ReferenceResult> {
-  const { query, scalar, brand } = prepare(request, valid, false, false);
+  const { query: _query, scalar, brand } = prepare(request, valid, false, false);
   let result: unknown;
   result = await input.queries.getNamedQueryConfig(brand, scalar('name'));
   if (!result) {

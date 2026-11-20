@@ -1,5 +1,5 @@
 import type { PersistenceOwner } from '../owner';
-import type { IndexDescriptionInfo } from 'mongodb';
+import type { Document, IndexDescriptionInfo } from 'mongodb';
 import { MongoInspectionExecutor } from '@prisma/orm-mongo/adapter/control';
 import { ListCollectionsCommand, ListIndexesCommand } from '@prisma/orm-mongo/query-ast/control';
 import { mongoDatabase } from '../runtime';
@@ -8,7 +8,7 @@ import { mongoDatabase } from '../runtime';
 export async function persistenceCollections(
   app: PersistenceOwner,
   datastore: 'mongodb' | 'redboxStorage' = 'mongodb'
-) {
+): Promise<Document[]> {
   return new MongoInspectionExecutor(await mongoDatabase(app, datastore)).listCollections(new ListCollectionsCommand());
 }
 

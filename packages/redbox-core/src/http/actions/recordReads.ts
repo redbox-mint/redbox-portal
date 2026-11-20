@@ -80,7 +80,12 @@ export function recordReadFailure(input: RecordReadInput, request: ReferenceRequ
     { detail: error instanceof RecordReadError ? error.message : 'Record read failed.' },
   ]);
 }
-function prepare(input: RecordReadInput, request: ReferenceRequest, valid: ValidatedApiRouteRequest, browser: boolean) {
+function prepare(
+  input: RecordReadInput,
+  request: ReferenceRequest,
+  valid: ValidatedApiRouteRequest,
+  _browser: boolean
+) {
   const query = valid.query;
   const projection = new FormProjection(input.log);
   const lists = new RecordLists({
@@ -221,7 +226,7 @@ export async function getMetaDefault(
   valid: ValidatedApiRouteRequest,
   browser = false
 ): Promise<ReferenceResult> {
-  const { projection, scalar, brand, view, send } = prepare(input, request, valid, browser);
+  const { projection, scalar, brand, view: _view, send } = prepare(input, request, valid, browser);
 
   const edit = scalar('edit') === 'true';
   const type = scalar('name');
@@ -243,7 +248,7 @@ export async function search(
   valid: ValidatedApiRouteRequest,
   browser = false
 ): Promise<ReferenceResult> {
-  const { query, scalar, brand, user, roles, send } = prepare(input, request, valid, browser);
+  const { query, scalar, brand, user, roles: _roles, send } = prepare(input, request, valid, browser);
 
   const type = scalar('type');
   const recordType = await singleHttpResult(input.recordTypes.get(brand, type));

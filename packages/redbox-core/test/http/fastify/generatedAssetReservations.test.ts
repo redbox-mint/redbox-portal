@@ -1,9 +1,10 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { request as httpRequest, type Server } from 'node:http';
-import express from 'express';
+
 import ts from 'typescript';
 import webpack from 'webpack';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
@@ -30,12 +31,14 @@ function patterns(configs: string) {
   };
 }
 function exchange(port: number, target: string, method = 'GET') {
-  return new Promise<{ status: number; body: Buffer }>((resolve, reject) => {
+  return new Promise<{ status: number; body: Buffer; headers: Record<string, unknown> }>((resolve, reject) => {
     const req = httpRequest({ hostname: '127.0.0.1', port, path: target, method, agent: false }, response => {
       const chunks: Buffer[] = [];
       response.on('data', chunk => chunks.push(chunk));
       response.on('error', reject);
-      response.on('end', () => resolve({ status: response.statusCode!, body: Buffer.concat(chunks) }));
+      response.on('end', () =>
+        resolve({ status: response.statusCode!, body: Buffer.concat(chunks), headers: response.headers })
+      );
     });
     req.on('error', reject);
     req.setTimeout(3000, () => req.destroy(new Error('Asset request deadline')));
@@ -196,15 +199,8 @@ describe('FM-018 generated static output reservations', function () {
       for (const name of files) {
         fs.mkdirSync(path.dirname(path.join(directory, name)), { recursive: true });
         fs.writeFileSync(path.join(directory, name), 'static ' + name);
+        fs.utimesSync(path.join(directory, name), new Date('2026-01-01T00:00:00Z'), new Date('2026-01-01T00:00:00Z'));
       }
-      const app = express();
-      app.use(root || '/', express.static(directory));
-      app.use((_request, response) => response.status(404).send('not-found'));
-      const server = await new Promise<Server>(resolve => {
-        const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
-      });
-      servers.push(server);
-      const expressPort = (server.address() as { port: number }).port;
       let fallbacks = 0;
       const factory = defineController({
         name: 'Assets',
@@ -267,10 +263,25 @@ describe('FM-018 generated static output reservations', function () {
               '/' +
               (existing ? name : name.replace(/be810be3a3e14c682a25|ABC12345|f{20}/, 'c'.repeat(20))) +
               '?v=1';
-            const legacy = await exchange(expressPort, target, method),
-              current = await exchange(port, target, method);
-            assert.equal(current.status, legacy.status, method + ' ' + target);
-            if (existing && ['GET', 'HEAD'].includes(method)) assert.deepEqual(current.body, legacy.body, target);
+            const current = await exchange(port, target, method);
+            const {
+              date,
+              connection,
+              'keep-alive': keepAlive,
+              'x-request-id': requestId,
+              ...headers
+            } = current.headers;
+            assertGoldenNext('generated-assets', {
+              response: { status: current.status, headers, body: current.body.toString('base64') },
+              state: { fallbacks },
+            });
+            assert.equal(
+              current.status,
+              existing && ['GET', 'HEAD'].includes(method) ? 200 : 404,
+              method + ' ' + target
+            );
+            if (existing && method === 'GET') assert.equal(current.body.toString(), 'static ' + name, target);
+            if (method === 'HEAD') assert.equal(current.body.length, 0, target);
             assert.notEqual(current.body.toString(), 'FALLBACK', method + ' ' + target);
           }
       assert.equal(fallbacks, 0);
@@ -282,3 +293,5 @@ describe('FM-018 generated static output reservations', function () {
       assert(!registry.protects('/outside/be810be3a3e14c682a25.woff2'));
     });
 });
+
+goldenControls('generated-assets');

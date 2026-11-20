@@ -1,4 +1,3 @@
-import type { RedboxExtension } from './legacyContract';
 import type { PoliciesConfig } from '../config/policies.config';
 import type { BoundControllerFactory } from '../http/controllers';
 import type { ControllerRegistration, PortalHttpMethod, RouteAccess } from '../http/contracts';
@@ -9,7 +8,7 @@ import { composeControllers } from '../http/fastify/registration';
 import { apiRouteRegistrations, composeRoutes, coreRouteName, type RouteRegistration } from '../http/fastify/routes';
 import type { RedboxExtensionV2 } from './contract';
 import { ExtensionError, inspectInstalledExtensionProviders } from './loading';
-import { orderExtensionProviders, resolveExtensions, type ExtensionProvider } from './resolution';
+import { orderExtensionDataProviders, resolveExtensionData, type ExtensionDataProvider } from './resolution';
 
 export interface ExtensionProviderV2 {
   readonly name: string;
@@ -31,7 +30,7 @@ function accessIdentity(access: RouteAccess | undefined): string {
 }
 
 /** Shared data validation/ordering stays in the existing resolver. Never translate HTTP declarations. */
-function contributions(provider: { name: string; root: string; declaration: unknown }): ExtensionProvider {
+function contributions(provider: { name: string; root: string; declaration: unknown }): ExtensionDataProvider {
   const value = provider.declaration;
   if (!object(value)) fail(provider.name, `expected apiVersion 2 declaration; convert using ${migration}`);
   const legacy: string[] = [];
@@ -88,7 +87,8 @@ function contributions(provider: { name: string; root: string; declaration: unkn
   for (const field of ['hooks', 'fallbacks'])
     if (value[field] !== undefined && !Array.isArray(value[field])) fail(provider.name, `${field} must be an array`);
   const { controllers: _controllers, routes: _routes, hooks: _hooks, fallbacks: _fallbacks, ...data } = value;
-  return { ...provider, declaration: { ...data, apiVersion: 1 } as RedboxExtension };
+  const { apiVersion: _version, ...nonHttp } = data;
+  return { ...provider, declaration: nonHttp };
 }
 
 /** Version-checked CommonJS/ESM import and async registration, without running factories/work.
@@ -103,7 +103,7 @@ export async function loadInstalledExtensionProvidersV2(
     ...(options.core ? [{ name: 'core', root: appPath, declaration: options.core }] : []),
     ...installed.providers,
   ];
-  const ordered = orderExtensionProviders(providers.map(contributions), installed.hookLoadPriority);
+  const ordered = orderExtensionDataProviders(providers.map(contributions), installed.hookLoadPriority);
   const byName = new Map(providers.map(provider => [provider.name, provider]));
   // The version/shape check above is the only unknown-declaration narrowing boundary.
   return {
@@ -246,7 +246,7 @@ export async function resolveExtensionsV2(
   providers: readonly ExtensionProviderV2[],
   options: ExtensionResolutionV2Options
 ) {
-  const data = resolveExtensions(providers.map(contributions), options.hookLoadPriority);
+  const data = resolveExtensionData(providers.map(contributions), options.hookLoadPriority);
   const byName = new Map(providers.map(provider => [provider.name, provider]));
   const ordered = data.providers.map(provider => byName.get(provider.name)!);
   const controllerRegistrations = ordered.flatMap(provider =>
@@ -281,15 +281,8 @@ export async function resolveExtensionsV2(
     [...routePlan.routes, ...fallbackPlan.routes].map(route => route.declaration),
     moduleNames
   );
-  const {
-    handlers: _handlers,
-    integrations: _integrations,
-    middleware: _middleware,
-    routes: _routes,
-    ...nonHttp
-  } = data;
   return {
-    ...nonHttp,
+    ...data,
     providers: ordered,
     controllerRegistrations,
     routeRegistrations,

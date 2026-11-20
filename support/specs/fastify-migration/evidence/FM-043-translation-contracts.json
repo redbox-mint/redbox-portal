@@ -1,0 +1,27 @@
+{
+  "sourceReceipts": [
+    {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/wildcard-translations-empty-normal.json",
+      "sha256": "0cd39f28f07dfdc4c93a64dd071011b0ffc7831186cb945d3d466c8ca3752f1c",
+      "inputs": 230
+    },
+    {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/wildcard-translations-empty-reduced.json",
+      "sha256": "425c1a42c8fc68a0c470765c445feb0a759e8a88be4b66735a7c86b9abf91a8d",
+      "inputs": 60
+    },
+    {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/wildcard-translations-portal-normal.json",
+      "sha256": "0cd39f28f07dfdc4c93a64dd071011b0ffc7831186cb945d3d466c8ca3752f1c",
+      "inputs": 230
+    },
+    {
+      "path": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/wildcard-translations-portal-reduced.json",
+      "sha256": "425c1a42c8fc68a0c470765c445feb0a759e8a88be4b66735a7c86b9abf91a8d",
+      "inputs": 60
+    }
+  ],
+  "fixture": "packages/redbox-core/test/http/fastify/fixtures/translation-responses.json",
+  "fixtureSha256": "663c4a5c01969c04307d26ca81ab436e0c7c378ff4e23f96e05362e58fc4a489",
+  "description": "Complete response status/headers/body and persisted-key state; all three archived qualified hosts agreed. Ordinary tests cannot update this contract."
+}

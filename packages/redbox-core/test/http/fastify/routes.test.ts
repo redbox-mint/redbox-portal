@@ -20,18 +20,18 @@ import {
 import { registerCoreApiRoutes } from '../../../dist/api-routes/route-registry';
 import { composeControllers } from '../../../dist/http/fastify/registration';
 import { defineController, bindControllerFactory } from '@researchdatabox/redbox-core/http';
+import { inventoryRegistration, type InventoryRoute } from './inventory-fixture';
 
 const packageRoot = path.resolve(__dirname, '../../..');
 const repositoryRoot = path.resolve(packageRoot, '../..');
 const evidenceRoot = path.join(repositoryRoot, 'support/specs/fastify-migration/evidence');
-interface InventoryRow {
+interface InventoryRow extends InventoryRoute {
   name: string;
   kind: string;
   method: RouteDeclaration['method'];
   path: string;
-  original: { method: string; path: string; controller?: string; action?: string; csrf?: boolean };
+  original: InventoryRoute['original'] & { method: string; controller?: string; action?: string };
   source: { file: string; export: string; index?: number };
-  access: { effectivePolicies: (string | false)[] };
   head: { behavior: string };
 }
 const inventory: { routes: InventoryRow[] } = JSON.parse(
@@ -78,15 +78,15 @@ async function withRoutes(
 
 describe('Fastify source-derived route inventory', function () {
   this.timeout(180_000);
-  it('checks the full retained FM-002 inventory against its actual generator and executable source hashes', () => {
+  it('reconciles the frozen FM-002 route baseline against current native composition', () => {
     const result = spawnSync(
       process.execPath,
-      ['--no-experimental-strip-types', path.join(evidenceRoot, 'generate-FM-002.cjs'), '--check'],
+      ['--no-experimental-strip-types', path.join(evidenceRoot, 'reconcile-FM-030.cjs'), '--check'],
       { cwd: repositoryRoot, timeout: 180_000, encoding: 'utf8' }
     );
     assert.ifError(result.error);
     assert.equal(result.status, 0, result.stdout + result.stderr);
-    assert.match(result.stdout, /Inventory matches source/);
+    assert.match(result.stdout, /migrated/);
   });
   it('derives all 152 API identities, actions, access and schema references from the registry', async () => {
     const source = registerCoreApiRoutes();
@@ -193,9 +193,7 @@ describe('Fastify concrete Express pattern translation', () => {
   // not a claim that browser/controller families or integrations are converted.
   for (const row of inventory.routes) {
     it(`matches ${row.name}: ${row.original.method} ${row.original.path}`, async () => {
-      const sourceFile = path.join(repositoryRoot, row.source.file.replace('/src/', '/dist/').replace(/\.ts$/, '.js'));
-      const exported = require(sourceFile)[row.source.export];
-      const source = row.source.index === undefined ? exported : exported[row.source.index];
+      const source = inventoryRegistration(row).declaration;
       assert.equal(source.path, row.original.path);
       assert.equal(source.method, row.original.method);
       assert.equal(expressRuntimePath(source.path), row.path);

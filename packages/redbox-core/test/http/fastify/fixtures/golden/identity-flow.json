@@ -1,0 +1,4618 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "token freshness": {
+      "$ref": "v000052"
+    },
+    "linked disabled-account lifecycle": {
+      "$ref": "v000098"
+    }
+  },
+  "shared": {
+    "v000001": {
+      "appConfigDashboardTableConfigRows": [],
+      "brand": {
+        "id": "000000000000000000000011",
+        "name": "default"
+      },
+      "capturedAt": "<time>",
+      "configuredDashboardTypes": [],
+      "dashboardTypeRows": [],
+      "dashboardViews": {
+        "referenceView": {
+          "dashboardType": "dataRecord",
+          "name": "referenceView",
+          "sourceRecordType": "dataRecord",
+          "steps": [
+            {
+              "fetchMode": "workflowStage",
+              "name": "draft",
+              "sourceRecordType": "dataRecord",
+              "workflowStage": "draft"
+            }
+          ],
+          "titleLabelKey": "Reference"
+        }
+      },
+      "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+      "overrideSource": "none",
+      "snapshotVersion": 1,
+      "workflowSteps": [
+        {
+          "config": {
+            "authorization": {
+              "editRoles": [
+                "Admin"
+              ],
+              "transitionRoles": [
+                "Admin"
+              ]
+            },
+            "form": "dataRecord"
+          },
+          "hidden": false,
+          "name": "draft",
+          "recordType": "dataRecord"
+        }
+      ]
+    },
+    "v000002": {
+      "appConfigDashboardTableConfigRows": [],
+      "brand": {
+        "id": "000000000000000000000012",
+        "name": "other"
+      },
+      "capturedAt": "<time>",
+      "configuredDashboardTypes": [],
+      "dashboardTypeRows": [],
+      "dashboardViews": {
+        "referenceView": {
+          "dashboardType": "dataRecord",
+          "name": "referenceView",
+          "sourceRecordType": "dataRecord",
+          "steps": [
+            {
+              "fetchMode": "workflowStage",
+              "name": "draft",
+              "sourceRecordType": "dataRecord",
+              "workflowStage": "draft"
+            }
+          ],
+          "titleLabelKey": "Reference"
+        }
+      },
+      "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+      "overrideSource": "none",
+      "snapshotVersion": 1,
+      "workflowSteps": []
+    },
+    "v000003": [
+      {
+        "_id": "appconfig:dashboardConfigLegacySnapshot",
+        "branding": "000000000000000000000011",
+        "configData": {
+          "$ref": "v000001"
+        },
+        "configKey": "dashboardConfigLegacySnapshot",
+        "createdAt": "<time>",
+        "updatedAt": "<time>"
+      },
+      {
+        "_id": "appconfig:dashboardConfigLegacySnapshot",
+        "branding": "000000000000000000000012",
+        "configData": {
+          "$ref": "v000002"
+        },
+        "configKey": "dashboardConfigLegacySnapshot",
+        "createdAt": "<time>",
+        "updatedAt": "<time>"
+      }
+    ],
+    "v000004": {
+      "_id": "record:foreign-record",
+      "authorization": {
+        "edit": [
+          "pilot-admin"
+        ],
+        "view": [
+          "pilot-admin"
+        ]
+      },
+      "dateCreated": "<time>",
+      "incarnationId": "<incarnation>",
+      "lastSaveDate": "<time>",
+      "metaMetadata": {
+        "brandId": "000000000000000000000012",
+        "type": "dataRecord"
+      },
+      "metadata": {},
+      "recordVersion": 1,
+      "redboxOid": "foreign-record",
+      "revision": 0
+    },
+    "v000005": {
+      "_id": "record:reference-record",
+      "authorization": {
+        "edit": [
+          "secondary"
+        ],
+        "editPending": [
+          "secondary@example.invalid"
+        ],
+        "editRoles": [],
+        "view": [
+          "pilot-admin",
+          "secondary"
+        ],
+        "viewPending": [
+          "secondary@example.invalid"
+        ],
+        "viewRoles": []
+      },
+      "dateCreated": "<time>",
+      "incarnationId": "<incarnation>",
+      "lastSaveDate": "<time>",
+      "metaMetadata": {
+        "brandId": "000000000000000000000011",
+        "form": "dataRecord",
+        "type": "dataRecord",
+        "workflow": {
+          "stage": "draft"
+        }
+      },
+      "metadata": {
+        "title": "Reference"
+      },
+      "recordVersion": 1,
+      "redboxOid": "reference-record",
+      "revision": 0
+    },
+    "v000006": [
+      {
+        "_id": "000000000000000000000013",
+        "branding": "000000000000000000000011",
+        "createdAt": "<time>",
+        "name": "Admin",
+        "updatedAt": "<time>"
+      },
+      {
+        "_id": "000000000000000000000014",
+        "branding": "000000000000000000000011",
+        "createdAt": "<time>",
+        "name": "Researcher",
+        "updatedAt": "<time>"
+      },
+      {
+        "_id": "000000000000000000000016",
+        "branding": "000000000000000000000012",
+        "createdAt": "<time>",
+        "name": "Admin",
+        "updatedAt": "<time>"
+      }
+    ],
+    "v000007": [
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000015"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000017"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000018"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000051"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000052"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000053"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000054"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000055"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000055"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000056"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000057"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000058"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000059"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000060"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000061"
+      }
+    ],
+    "v000008": {
+      "actor": {
+        "id": "000000000000000000000015",
+        "username": "pilot-admin"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "userManagement",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "user.generate-api-token",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": null,
+      "portalId": "",
+      "requestContext": {
+        "brandId": "000000000000000000000011",
+        "userId": "000000000000000000000015"
+      },
+      "resource": null,
+      "severity": "info",
+      "source": "UsersService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000009": {
+      "_id": "000000000000000000000015",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "pilot-admin@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "pilot-admin",
+      "password": "<bcrypt>",
+      "token": "<token-hash>",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "pilot-admin"
+    },
+    "v000010": {
+      "_id": "000000000000000000000017",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "reader@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "reader",
+      "password": "<bcrypt>",
+      "token": "ulAFpAz1IS5KwBkBBMwSftqwEylLtxJ5qXWyeoCYLUU=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "reader"
+    },
+    "v000011": {
+      "_id": "000000000000000000000018",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "foreign@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "foreign",
+      "password": "<bcrypt>",
+      "token": "I1+SVw78l1Ycdm4DiqaevcIe3Xuht2L0+yMgJYBhjNQ=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "foreign"
+    },
+    "v000012": {
+      "_id": "000000000000000000000051",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "primary@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "primary",
+      "password": "<bcrypt>",
+      "token": "Ewr/PF4n2yCc/BDSf3S23K4Algj6krgIm0qoQ82Zn/Y=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "primary"
+    },
+    "v000013": {
+      "_id": "000000000000000000000052",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "secondary@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "secondary",
+      "password": "<bcrypt>",
+      "token": "kfD7LRra/+c0UpWGl98AxjKJpIaUHjO9OhFOjQ9e2LA=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "secondary"
+    },
+    "v000014": {
+      "_id": "000000000000000000000053",
+      "accountLinkState": "linked-alias",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "linked-alias@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "000000000000000000000051",
+      "loginDisabled": false,
+      "name": "linked-alias",
+      "password": "<bcrypt>",
+      "token": "<token-hash>",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "linked-alias"
+    },
+    "v000015": {
+      "_id": "000000000000000000000054",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "disabled@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": true,
+      "name": "disabled",
+      "password": "<bcrypt>",
+      "token": "S5QQXvoq5SKAVGMTvz2Ht7zNdMJ6SrLHmb2c/mcump8=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "disabled"
+    },
+    "v000016": {
+      "_id": "000000000000000000000055",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "shared@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "shared",
+      "password": "<bcrypt>",
+      "token": "+tNKbzAmDlqNs7U+9q92zvgmnIm1xamQiuzOB6M+Ht0=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "shared"
+    },
+    "v000017": {
+      "_id": "000000000000000000000056",
+      "accountLinkState": "linked-alias",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "alias-admin@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "000000000000000000000015",
+      "loginDisabled": false,
+      "name": "alias-admin",
+      "password": "<bcrypt>",
+      "token": "AXe1BUxP2tV/nKoCSD1Aqie1XLwbbpKoNq1STDDpb6c=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "alias-admin"
+    },
+    "v000018": {
+      "_id": "000000000000000000000057",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "disabled-admin@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": true,
+      "name": "disabled-admin",
+      "password": "<bcrypt>",
+      "token": "x6jrzl7qVeO+HMzqlhSFLhc/ERcy6DAoeb5xJhLS+3Q=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "disabled-admin"
+    },
+    "v000019": {
+      "_id": "000000000000000000000058",
+      "accountLinkState": "linked-alias",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "orphan@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "000000000000000000000099",
+      "loginDisabled": false,
+      "name": "orphan",
+      "password": "<bcrypt>",
+      "token": "OcvmdqXRyuSJnqionw1GQLnqYB48tjIbJT0ecuWPbEk=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "orphan"
+    },
+    "v000020": {
+      "_id": "000000000000000000000059",
+      "accountLinkState": "linked-alias",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "cyclic@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "000000000000000000000059",
+      "loginDisabled": false,
+      "name": "cyclic",
+      "password": "<bcrypt>",
+      "token": "dqNchkbkQ+PSnNM4kX67/Hk0HDJqkolVzqoqqDbGZ8k=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "cyclic"
+    },
+    "v000021": {
+      "_id": "000000000000000000000060",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "other-target@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "other-target",
+      "password": "<bcrypt>",
+      "token": "fSAE02RGqgGj3a1+UzioXA5D2Se80XH1a+5lVoUlvUY=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "other-target"
+    },
+    "v000022": {
+      "_id": "000000000000000000000061",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "other-secondary@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "other-secondary",
+      "password": "<bcrypt>",
+      "token": "TAkRjfZaqD2MESmVYmIikE02xKvzIBAlCruA0N2CHmg=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "other-secondary"
+    },
+    "v000023": [
+      {
+        "$ref": "v000009"
+      },
+      {
+        "$ref": "v000010"
+      },
+      {
+        "$ref": "v000011"
+      },
+      {
+        "$ref": "v000012"
+      },
+      {
+        "$ref": "v000013"
+      },
+      {
+        "$ref": "v000014"
+      },
+      {
+        "$ref": "v000015"
+      },
+      {
+        "$ref": "v000016"
+      },
+      {
+        "$ref": "v000017"
+      },
+      {
+        "$ref": "v000018"
+      },
+      {
+        "$ref": "v000019"
+      },
+      {
+        "$ref": "v000020"
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "v000024": {
+      "action": "generate-api-token",
+      "additionalContext": {
+        "$json": {
+          "$object": [
+            [
+              "brandId",
+              "000000000000000000000011"
+            ],
+            [
+              "userId",
+              "000000000000000000000015"
+            ]
+          ]
+        }
+      },
+      "createdAt": "<time>",
+      "updatedAt": "<time>",
+      "user": {
+        "email": "pilot-admin@example.invalid",
+        "id": "000000000000000000000015",
+        "name": "pilot-admin",
+        "roles": [
+          {
+            "brandId": "000000000000000000000011",
+            "id": "000000000000000000000013",
+            "name": "Admin"
+          }
+        ],
+        "type": "local",
+        "username": "pilot-admin"
+      }
+    },
+    "v000025": {
+      "appconfig": {
+        "$ref": "v000003"
+      },
+      "record": [
+        {
+          "$ref": "v000004"
+        },
+        {
+          "$ref": "v000005"
+        }
+      ],
+      "recordaudit": [],
+      "role": {
+        "$ref": "v000006"
+      },
+      "role_users__user_roles": {
+        "$ref": "v000007"
+      },
+      "securityevent": [
+        {
+          "$ref": "v000008"
+        }
+      ],
+      "user": {
+        "$ref": "v000023"
+      },
+      "useraudit": [
+        {
+          "$ref": "v000024"
+        }
+      ],
+      "userlink": []
+    },
+    "v000026": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "64",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "status",
+              true
+            ],
+            [
+              "message",
+              "<generated-token>"
+            ]
+          ]
+        }
+      }
+    },
+    "v000027": {
+      "_id": "000000000000000000000053",
+      "accountLinkState": "linked-alias",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "linked-alias@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "000000000000000000000051",
+      "loginDisabled": false,
+      "name": "linked-alias",
+      "password": "<bcrypt>",
+      "token": "QEOcWzjFHHI6zwd1k3rfA1BU+nNPJgMG/UjVoDhodGM=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "linked-alias"
+    },
+    "v000028": [
+      {
+        "$ref": "v000009"
+      },
+      {
+        "$ref": "v000010"
+      },
+      {
+        "$ref": "v000011"
+      },
+      {
+        "$ref": "v000012"
+      },
+      {
+        "$ref": "v000013"
+      },
+      {
+        "$ref": "v000027"
+      },
+      {
+        "$ref": "v000015"
+      },
+      {
+        "$ref": "v000016"
+      },
+      {
+        "$ref": "v000017"
+      },
+      {
+        "$ref": "v000018"
+      },
+      {
+        "$ref": "v000019"
+      },
+      {
+        "$ref": "v000020"
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "v000029": {
+      "appconfig": {
+        "$ref": "v000003"
+      },
+      "record": [
+        {
+          "$ref": "v000004"
+        },
+        {
+          "$ref": "v000005"
+        }
+      ],
+      "recordaudit": [],
+      "role": {
+        "$ref": "v000006"
+      },
+      "role_users__user_roles": {
+        "$ref": "v000007"
+      },
+      "securityevent": [
+        {
+          "$ref": "v000008"
+        }
+      ],
+      "user": {
+        "$ref": "v000028"
+      },
+      "useraudit": [
+        {
+          "$ref": "v000024"
+        }
+      ],
+      "userlink": []
+    },
+    "v000030": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "50",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000031": [
+      [
+        "id",
+        "000000000000000000000015"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "pilot-admin@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "pilot-admin"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "pilot-admin"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000032": [
+      [
+        "id",
+        "000000000000000000000056"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "alias-admin@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000015"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "alias-admin"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "alias-admin"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000033": [
+      [
+        "id",
+        "000000000000000000000057"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "disabled-admin@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        true
+      ],
+      [
+        "name",
+        "disabled-admin"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "disabled-admin"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000034": [
+      [
+        "id",
+        "000000000000000000000058"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "orphan@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000099"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "orphan"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "orphan"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000035": [
+      [
+        "id",
+        "000000000000000000000059"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "cyclic@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000059"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "cyclic"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "cyclic"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000036": [
+      [
+        "id",
+        "000000000000000000000013"
+      ],
+      [
+        "branding",
+        "000000000000000000000011"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "name",
+        "Admin"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "users",
+        [
+          {
+            "$object": {
+              "$ref": "v000031"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000032"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000033"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000034"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000035"
+            }
+          }
+        ]
+      ]
+    ],
+    "v000037": [
+      [
+        "id",
+        "000000000000000000000017"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "reader@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "reader"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "reader"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000038": [
+      [
+        "id",
+        "000000000000000000000051"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "primary@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "primary"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "primary"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000039": [
+      [
+        "id",
+        "000000000000000000000052"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "secondary@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "secondary"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "secondary"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000040": [
+      [
+        "id",
+        "000000000000000000000053"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "linked-alias@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000051"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "linked-alias"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "linked-alias"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000041": [
+      [
+        "id",
+        "000000000000000000000054"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "disabled@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        true
+      ],
+      [
+        "name",
+        "disabled"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "disabled"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000042": [
+      [
+        "id",
+        "000000000000000000000055"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "shared@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "shared"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "shared"
+      ],
+      [
+        "hasApiKey",
+        true
+      ]
+    ],
+    "v000043": [
+      [
+        "id",
+        "000000000000000000000014"
+      ],
+      [
+        "branding",
+        "000000000000000000000011"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "name",
+        "Researcher"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "users",
+        [
+          {
+            "$object": {
+              "$ref": "v000037"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000038"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000039"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000040"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000041"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000042"
+            }
+          }
+        ]
+      ]
+    ],
+    "v000044": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "6000",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "summary",
+                    {
+                      "$object": [
+                        [
+                          "numFound",
+                          2
+                        ],
+                        [
+                          "page",
+                          1
+                        ],
+                        [
+                          "start",
+                          0
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    "records",
+                    [
+                      {
+                        "$object": {
+                          "$ref": "v000036"
+                        }
+                      },
+                      {
+                        "$object": {
+                          "$ref": "v000043"
+                        }
+                      }
+                    ]
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000045": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "2782",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": [
+          {
+            "$object": {
+              "$ref": "v000036"
+            }
+          }
+        ]
+      }
+    },
+    "v000046": {
+      "actor": {
+        "id": "000000000000000000000015",
+        "username": "pilot-admin"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "userManagement",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "user.revoke-api-token",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": null,
+      "portalId": "",
+      "requestContext": {
+        "brandId": "000000000000000000000011",
+        "userId": "000000000000000000000015"
+      },
+      "resource": null,
+      "severity": "info",
+      "source": "UsersService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000047": {
+      "_id": "000000000000000000000015",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "pilot-admin@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "pilot-admin",
+      "password": "<bcrypt>",
+      "token": null,
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "pilot-admin"
+    },
+    "v000048": [
+      {
+        "$ref": "v000047"
+      },
+      {
+        "$ref": "v000010"
+      },
+      {
+        "$ref": "v000011"
+      },
+      {
+        "$ref": "v000012"
+      },
+      {
+        "$ref": "v000013"
+      },
+      {
+        "$ref": "v000027"
+      },
+      {
+        "$ref": "v000015"
+      },
+      {
+        "$ref": "v000016"
+      },
+      {
+        "$ref": "v000017"
+      },
+      {
+        "$ref": "v000018"
+      },
+      {
+        "$ref": "v000019"
+      },
+      {
+        "$ref": "v000020"
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "v000049": {
+      "action": "revoke-api-token",
+      "additionalContext": {
+        "$json": {
+          "$object": [
+            [
+              "brandId",
+              "000000000000000000000011"
+            ],
+            [
+              "userId",
+              "000000000000000000000015"
+            ]
+          ]
+        }
+      },
+      "createdAt": "<time>",
+      "updatedAt": "<time>",
+      "user": {
+        "email": "pilot-admin@example.invalid",
+        "id": "000000000000000000000015",
+        "name": "pilot-admin",
+        "roles": [
+          {
+            "brandId": "000000000000000000000011",
+            "id": "000000000000000000000013",
+            "name": "Admin"
+          }
+        ],
+        "type": "local",
+        "username": "pilot-admin"
+      }
+    },
+    "v000050": {
+      "appconfig": {
+        "$ref": "v000003"
+      },
+      "record": [
+        {
+          "$ref": "v000004"
+        },
+        {
+          "$ref": "v000005"
+        }
+      ],
+      "recordaudit": [],
+      "role": {
+        "$ref": "v000006"
+      },
+      "role_users__user_roles": {
+        "$ref": "v000007"
+      },
+      "securityevent": [
+        {
+          "$ref": "v000008"
+        },
+        {
+          "$ref": "v000046"
+        }
+      ],
+      "user": {
+        "$ref": "v000048"
+      },
+      "useraudit": [
+        {
+          "$ref": "v000024"
+        },
+        {
+          "$ref": "v000049"
+        }
+      ],
+      "userlink": []
+    },
+    "v000051": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "53",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "status",
+              true
+            ],
+            [
+              "message",
+              "UUID revoked successfully"
+            ]
+          ]
+        }
+      }
+    },
+    "v000052": [
+      {
+        "state": {
+          "$ref": "v000025"
+        },
+        "wire": {
+          "$ref": "v000026"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000029"
+        },
+        "wire": {
+          "headers": {
+            "$ref": "v000030"
+          },
+          "status": 401,
+          "text": {
+            "$json": {
+              "$object": [
+                [
+                  "message",
+                  "Authentication required"
+                ],
+                [
+                  "details",
+                  ""
+                ]
+              ]
+            }
+          }
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000029"
+        },
+        "wire": {
+          "$ref": "v000044"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000029"
+        },
+        "wire": {
+          "$ref": "v000045"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000050"
+        },
+        "wire": {
+          "$ref": "v000051"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000050"
+        },
+        "wire": {
+          "headers": {
+            "$ref": "v000030"
+          },
+          "status": 401,
+          "text": {
+            "$json": {
+              "$object": [
+                [
+                  "message",
+                  "Authentication required"
+                ],
+                [
+                  "details",
+                  ""
+                ]
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "v000053": {
+      "_id": "record:reference-record",
+      "authorization": {
+        "edit": [
+          "primary"
+        ],
+        "editPending": [],
+        "editRoles": [],
+        "view": [
+          "pilot-admin",
+          "primary"
+        ],
+        "viewPending": [],
+        "viewRoles": []
+      },
+      "dateCreated": "<time>",
+      "incarnationId": "<incarnation>",
+      "lastSaveDate": "<time>",
+      "metaMetadata": {
+        "attachmentFields": null,
+        "brandId": "000000000000000000000011",
+        "form": "dataRecord",
+        "lastSaveDate": "<time>",
+        "lastSavedBy": "pilot-admin",
+        "type": "dataRecord",
+        "workflow": {
+          "stage": "draft"
+        }
+      },
+      "metadata": {
+        "title": "Reference"
+      },
+      "recordVersion": 3,
+      "redboxOid": "reference-record",
+      "revision": 2
+    },
+    "v000054": {
+      "actions": [],
+      "completedThrough": "persistence",
+      "counts": {},
+      "detachedFinalization": "complete",
+      "durationMs": "<duration>",
+      "executionId": "<execution>",
+      "operation": "update",
+      "partial": false,
+      "requestId": "<request>",
+      "schemaVersion": 1,
+      "totalActions": 0,
+      "trigger": "record-hook",
+      "truncated": false
+    },
+    "v000055": {
+      "authorization": {
+        "edit": [
+          "secondary",
+          "primary"
+        ],
+        "editPending": [],
+        "editRoles": [],
+        "view": [
+          "pilot-admin",
+          "secondary",
+          "primary"
+        ],
+        "viewPending": [],
+        "viewRoles": []
+      },
+      "dateCreated": "<time>",
+      "id": "reference-record",
+      "incarnationId": "<incarnation>",
+      "lastSaveDate": "<time>",
+      "metaMetadata": {
+        "attachmentFields": null,
+        "brandId": "000000000000000000000011",
+        "form": "dataRecord",
+        "lastSaveDate": "<time>",
+        "lastSavedBy": "service:UsersService.assignPendingRecordAccess",
+        "type": "dataRecord",
+        "workflow": {
+          "stage": "draft"
+        }
+      },
+      "metadata": {
+        "title": "Reference"
+      },
+      "recordVersion": 2,
+      "redboxOid": "reference-record",
+      "revision": 1
+    },
+    "v000056": {
+      "_id": "recordaudit:reference-record",
+      "action": "updated",
+      "concurrency": null,
+      "createdAt": "<time>",
+      "dateCreated": "<time>",
+      "executionSummary": {
+        "$ref": "v000054"
+      },
+      "occurredAt": "<time>",
+      "record": {
+        "$ref": "v000055"
+      },
+      "redboxOid": "reference-record",
+      "updatedAt": "<time>",
+      "user": {
+        "serviceIdentity": "UsersService.assignPendingRecordAccess",
+        "username": "service:UsersService.assignPendingRecordAccess"
+      }
+    },
+    "v000057": {
+      "authorization": {
+        "edit": [
+          "primary"
+        ],
+        "editPending": [],
+        "editRoles": [],
+        "view": [
+          "pilot-admin",
+          "primary"
+        ],
+        "viewPending": [],
+        "viewRoles": []
+      },
+      "dateCreated": "<time>",
+      "id": "reference-record",
+      "incarnationId": "<incarnation>",
+      "lastSaveDate": "<time>",
+      "metaMetadata": {
+        "attachmentFields": null,
+        "brandId": "000000000000000000000011",
+        "form": "dataRecord",
+        "lastSaveDate": "<time>",
+        "lastSavedBy": "pilot-admin",
+        "type": "dataRecord",
+        "workflow": {
+          "stage": "draft"
+        }
+      },
+      "metadata": {
+        "title": "Reference"
+      },
+      "recordVersion": 3,
+      "redboxOid": "reference-record",
+      "revision": 2
+    },
+    "v000058": {
+      "_id": "recordaudit:reference-record",
+      "action": "updated",
+      "concurrency": null,
+      "createdAt": "<time>",
+      "dateCreated": "<time>",
+      "executionSummary": {
+        "$ref": "v000054"
+      },
+      "occurredAt": "<time>",
+      "record": {
+        "$ref": "v000057"
+      },
+      "redboxOid": "reference-record",
+      "updatedAt": "<time>",
+      "user": {
+        "serviceIdentity": "UsersService.rewriteLinkedRecordAuthorizations",
+        "username": "pilot-admin"
+      }
+    },
+    "v000059": [
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000015"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000017"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000018"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000051"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000053"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000054"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000014",
+        "user_roles": "000000000000000000000055"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000055"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000056"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000057"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000058"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000013",
+        "user_roles": "000000000000000000000059"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000060"
+      },
+      {
+        "_id": "role_users__user_roles:row",
+        "role_users": "000000000000000000000016",
+        "user_roles": "000000000000000000000061"
+      }
+    ],
+    "v000060": {
+      "actor": {
+        "username": "pilot-admin"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "recordLifecycle",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "record.updated",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": {
+        "concurrency": {
+          "resolution": "internal",
+          "revision": 2
+        }
+      },
+      "portalId": "",
+      "requestContext": null,
+      "resource": {
+        "action": "updated",
+        "brandId": "000000000000000000000011",
+        "redboxOid": "reference-record",
+        "type": "dataRecord"
+      },
+      "severity": "info",
+      "source": "RecordsService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000061": {
+      "actor": {
+        "username": "service:UsersService.assignPendingRecordAccess"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "recordLifecycle",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "record.updated",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": {
+        "concurrency": {
+          "resolution": "internal",
+          "revision": 1
+        }
+      },
+      "portalId": "",
+      "requestContext": null,
+      "resource": {
+        "action": "updated",
+        "brandId": "000000000000000000000011",
+        "redboxOid": "reference-record",
+        "type": "dataRecord"
+      },
+      "severity": "info",
+      "source": "RecordsService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000062": {
+      "actor": {
+        "username": "pilot-admin"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "userManagement",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "user.link-accounts",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": null,
+      "portalId": "",
+      "requestContext": {
+        "brandId": "000000000000000000000011",
+        "primaryUserId": "000000000000000000000051",
+        "primaryUsername": "primary",
+        "recordsRewritten": 1,
+        "rolesMerged": 0,
+        "secondaryUserId": "000000000000000000000052",
+        "secondaryUsername": "secondary"
+      },
+      "resource": null,
+      "severity": "info",
+      "source": "UsersService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000063": {
+      "_id": "000000000000000000000015",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "pilot-admin@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "pilot-admin",
+      "password": "<bcrypt>",
+      "token": "MmOGAwqbs2wYmcWzef+yeguq+TnVMpOOvK+IldvfSIY=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "pilot-admin"
+    },
+    "v000064": {
+      "_id": "000000000000000000000052",
+      "accountLinkState": "linked-alias",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "secondary@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "000000000000000000000051",
+      "loginDisabled": false,
+      "name": "secondary",
+      "password": "<bcrypt>",
+      "token": "",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "secondary"
+    },
+    "v000065": [
+      {
+        "$ref": "v000063"
+      },
+      {
+        "$ref": "v000010"
+      },
+      {
+        "$ref": "v000011"
+      },
+      {
+        "$ref": "v000012"
+      },
+      {
+        "$ref": "v000064"
+      },
+      {
+        "$ref": "v000027"
+      },
+      {
+        "$ref": "v000015"
+      },
+      {
+        "$ref": "v000016"
+      },
+      {
+        "$ref": "v000017"
+      },
+      {
+        "$ref": "v000018"
+      },
+      {
+        "$ref": "v000019"
+      },
+      {
+        "$ref": "v000020"
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "v000066": {
+      "action": "link-accounts",
+      "additionalContext": {
+        "$json": {
+          "$object": [
+            [
+              "primaryUserId",
+              "000000000000000000000051"
+            ],
+            [
+              "primaryUsername",
+              "primary"
+            ],
+            [
+              "secondaryUserId",
+              "000000000000000000000052"
+            ],
+            [
+              "secondaryUsername",
+              "secondary"
+            ],
+            [
+              "brandId",
+              "000000000000000000000011"
+            ],
+            [
+              "rolesMerged",
+              0
+            ],
+            [
+              "recordsRewritten",
+              1
+            ]
+          ]
+        }
+      },
+      "createdAt": "<time>",
+      "updatedAt": "<time>",
+      "user": {
+        "username": "pilot-admin"
+      }
+    },
+    "v000067": {
+      "_id": "userlink:row",
+      "brandId": "000000000000000000000011",
+      "createdAt": "<time>",
+      "createdBy": "pilot-admin",
+      "notes": "",
+      "primaryUserId": "000000000000000000000051",
+      "primaryUsername": "primary",
+      "secondaryUserId": "000000000000000000000052",
+      "secondaryUsername": "secondary",
+      "status": "active",
+      "updatedAt": "<time>"
+    },
+    "v000068": {
+      "appconfig": {
+        "$ref": "v000003"
+      },
+      "record": [
+        {
+          "$ref": "v000004"
+        },
+        {
+          "$ref": "v000053"
+        }
+      ],
+      "recordaudit": [
+        {
+          "$ref": "v000056"
+        },
+        {
+          "$ref": "v000058"
+        }
+      ],
+      "role": {
+        "$ref": "v000006"
+      },
+      "role_users__user_roles": {
+        "$ref": "v000059"
+      },
+      "securityevent": [
+        {
+          "$ref": "v000060"
+        },
+        {
+          "$ref": "v000061"
+        },
+        {
+          "$ref": "v000062"
+        }
+      ],
+      "user": {
+        "$ref": "v000065"
+      },
+      "useraudit": [
+        {
+          "$ref": "v000066"
+        }
+      ],
+      "userlink": [
+        {
+          "$ref": "v000067"
+        }
+      ]
+    },
+    "v000069": [
+      [
+        "primary",
+        {
+          "$object": [
+            [
+              "id",
+              "000000000000000000000051"
+            ],
+            [
+              "username",
+              "primary"
+            ],
+            [
+              "name",
+              "primary"
+            ],
+            [
+              "email",
+              "primary@example.invalid"
+            ],
+            [
+              "type",
+              "local"
+            ],
+            [
+              "accountLinkState",
+              "active"
+            ]
+          ]
+        }
+      ],
+      [
+        "linkedAccounts",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000052"
+              ],
+              [
+                "username",
+                "secondary"
+              ],
+              [
+                "name",
+                "secondary"
+              ],
+              [
+                "email",
+                "secondary@example.invalid"
+              ],
+              [
+                "type",
+                "local"
+              ],
+              [
+                "accountLinkState",
+                "linked-alias"
+              ],
+              [
+                "linkedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "impact",
+        {
+          "$object": [
+            [
+              "recordsRewritten",
+              1
+            ],
+            [
+              "rolesMerged",
+              0
+            ]
+          ]
+        }
+      ]
+    ],
+    "v000070": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "445",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": {
+                  "$ref": "v000069"
+                }
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000071": [
+      [
+        "primary",
+        {
+          "$object": [
+            [
+              "id",
+              "000000000000000000000051"
+            ],
+            [
+              "username",
+              "primary"
+            ],
+            [
+              "name",
+              "primary"
+            ],
+            [
+              "email",
+              "primary@example.invalid"
+            ],
+            [
+              "type",
+              "local"
+            ],
+            [
+              "accountLinkState",
+              "active"
+            ]
+          ]
+        }
+      ],
+      [
+        "linkedAccounts",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000052"
+              ],
+              [
+                "username",
+                "secondary"
+              ],
+              [
+                "name",
+                "secondary"
+              ],
+              [
+                "email",
+                "secondary@example.invalid"
+              ],
+              [
+                "type",
+                "local"
+              ],
+              [
+                "accountLinkState",
+                "linked-alias"
+              ],
+              [
+                "linkedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ]
+    ],
+    "v000072": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "397",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": {
+                  "$ref": "v000071"
+                }
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000073": [
+      [
+        "id",
+        "000000000000000000000051"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "primary@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "primary"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "primary"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000014"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Researcher"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ]
+    ],
+    "v000074": [
+      "parsedAdditionalContext",
+      {
+        "$object": [
+          [
+            "primaryUserId",
+            "000000000000000000000051"
+          ],
+          [
+            "primaryUsername",
+            "primary"
+          ],
+          [
+            "secondaryUserId",
+            "000000000000000000000052"
+          ],
+          [
+            "secondaryUsername",
+            "secondary"
+          ],
+          [
+            "brandId",
+            "000000000000000000000011"
+          ],
+          [
+            "rolesMerged",
+            0
+          ],
+          [
+            "recordsRewritten",
+            1
+          ]
+        ]
+      }
+    ],
+    "v000075": [
+      "rawAdditionalContext",
+      {
+        "$json": {
+          "$object": [
+            [
+              "primaryUserId",
+              "000000000000000000000051"
+            ],
+            [
+              "primaryUsername",
+              "primary"
+            ],
+            [
+              "secondaryUserId",
+              "000000000000000000000052"
+            ],
+            [
+              "secondaryUsername",
+              "secondary"
+            ],
+            [
+              "brandId",
+              "000000000000000000000011"
+            ],
+            [
+              "rolesMerged",
+              0
+            ],
+            [
+              "recordsRewritten",
+              1
+            ]
+          ]
+        }
+      }
+    ],
+    "v000076": [
+      [
+        "id",
+        "useraudit:link-accounts"
+      ],
+      [
+        "timestamp",
+        "<time>"
+      ],
+      [
+        "action",
+        "link-accounts"
+      ],
+      [
+        "actor",
+        {
+          "$object": [
+            [
+              "username",
+              "pilot-admin"
+            ]
+          ]
+        }
+      ],
+      [
+        "details",
+        "This account was chosen as the primary account during account linking"
+      ],
+      {
+        "$ref": "v000074"
+      },
+      {
+        "$ref": "v000075"
+      },
+      [
+        "parseError",
+        false
+      ]
+    ],
+    "v000077": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "1510",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "user",
+                    {
+                      "$object": {
+                        "$ref": "v000073"
+                      }
+                    }
+                  ],
+                  [
+                    "records",
+                    [
+                      {
+                        "$object": {
+                          "$ref": "v000076"
+                        }
+                      }
+                    ]
+                  ],
+                  [
+                    "summary",
+                    {
+                      "$object": [
+                        [
+                          "returnedCount",
+                          1
+                        ],
+                        [
+                          "truncated",
+                          false
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000078": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "70",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Manage the primary account instead"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000079": {
+      "actor": {
+        "username": "pilot-admin"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "userManagement",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "user.disable-user",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": null,
+      "portalId": "",
+      "requestContext": {
+        "brandId": "000000000000000000000011",
+        "userId": "000000000000000000000051"
+      },
+      "resource": null,
+      "severity": "info",
+      "source": "UsersService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000080": {
+      "_id": "000000000000000000000051",
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "createdAt": "<time>",
+      "email": "primary@example.invalid",
+      "lastLogin": "<time>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": true,
+      "name": "primary",
+      "password": "<bcrypt>",
+      "token": "Ewr/PF4n2yCc/BDSf3S23K4Algj6krgIm0qoQ82Zn/Y=",
+      "type": "local",
+      "updatedAt": "<time>",
+      "username": "primary"
+    },
+    "v000081": [
+      {
+        "$ref": "v000063"
+      },
+      {
+        "$ref": "v000010"
+      },
+      {
+        "$ref": "v000011"
+      },
+      {
+        "$ref": "v000080"
+      },
+      {
+        "$ref": "v000064"
+      },
+      {
+        "$ref": "v000027"
+      },
+      {
+        "$ref": "v000015"
+      },
+      {
+        "$ref": "v000016"
+      },
+      {
+        "$ref": "v000017"
+      },
+      {
+        "$ref": "v000018"
+      },
+      {
+        "$ref": "v000019"
+      },
+      {
+        "$ref": "v000020"
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "v000082": {
+      "appconfig": {
+        "$ref": "v000003"
+      },
+      "record": [
+        {
+          "$ref": "v000004"
+        },
+        {
+          "$ref": "v000053"
+        }
+      ],
+      "recordaudit": [
+        {
+          "$ref": "v000056"
+        },
+        {
+          "$ref": "v000058"
+        }
+      ],
+      "role": {
+        "$ref": "v000006"
+      },
+      "role_users__user_roles": {
+        "$ref": "v000059"
+      },
+      "securityevent": [
+        {
+          "$ref": "v000060"
+        },
+        {
+          "$ref": "v000061"
+        },
+        {
+          "$ref": "v000079"
+        },
+        {
+          "$ref": "v000062"
+        }
+      ],
+      "user": {
+        "$ref": "v000081"
+      },
+      "useraudit": [
+        {
+          "action": "disable-user",
+          "additionalContext": {
+            "$json": {
+              "$object": [
+                [
+                  "userId",
+                  "000000000000000000000051"
+                ],
+                [
+                  "brandId",
+                  "000000000000000000000011"
+                ]
+              ]
+            }
+          },
+          "createdAt": "<time>",
+          "updatedAt": "<time>",
+          "user": {
+            "username": "pilot-admin"
+          }
+        },
+        {
+          "$ref": "v000066"
+        }
+      ],
+      "userlink": [
+        {
+          "$ref": "v000067"
+        }
+      ]
+    },
+    "v000083": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "73",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "status",
+                    true
+                  ],
+                  [
+                    "message",
+                    "User disabled successfully"
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000084": [
+      [
+        "id",
+        "000000000000000000000015"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "pilot-admin@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "pilot-admin"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "pilot-admin"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000013"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Admin"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "pilot-admin"
+      ],
+      [
+        "effectiveLoginDisabled",
+        false
+      ]
+    ],
+    "v000085": [
+      [
+        "id",
+        "000000000000000000000017"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "reader@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "reader"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "reader"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000014"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Researcher"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "reader"
+      ],
+      [
+        "effectiveLoginDisabled",
+        false
+      ]
+    ],
+    "v000086": [
+      [
+        "id",
+        "000000000000000000000055"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "active"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "shared@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        ""
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "shared"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "shared"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000014"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Researcher"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "shared"
+      ],
+      [
+        "effectiveLoginDisabled",
+        false
+      ]
+    ],
+    "v000087": [
+      [
+        "id",
+        "000000000000000000000056"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "alias-admin@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000015"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "alias-admin"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "alias-admin"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000013"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Admin"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "alias-admin"
+      ],
+      [
+        "effectiveLoginDisabled",
+        false
+      ]
+    ],
+    "v000088": [
+      [
+        "id",
+        "000000000000000000000058"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "orphan@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000099"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "orphan"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "orphan"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000013"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Admin"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "orphan"
+      ],
+      [
+        "effectiveLoginDisabled",
+        false
+      ]
+    ],
+    "v000089": [
+      [
+        "id",
+        "000000000000000000000059"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "cyclic@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000059"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "cyclic"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "cyclic"
+      ],
+      [
+        "hasApiKey",
+        true
+      ],
+      [
+        "roles",
+        [
+          {
+            "$object": [
+              [
+                "id",
+                "000000000000000000000013"
+              ],
+              [
+                "branding",
+                "000000000000000000000011"
+              ],
+              [
+                "createdAt",
+                "<time>"
+              ],
+              [
+                "name",
+                "Admin"
+              ],
+              [
+                "updatedAt",
+                "<time>"
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "cyclic"
+      ],
+      [
+        "effectiveLoginDisabled",
+        false
+      ]
+    ],
+    "v000090": [
+      [
+        "summary",
+        {
+          "$object": [
+            [
+              "numFound",
+              6
+            ],
+            [
+              "page",
+              1
+            ],
+            [
+              "start",
+              0
+            ]
+          ]
+        }
+      ],
+      [
+        "records",
+        [
+          {
+            "$object": {
+              "$ref": "v000084"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000085"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000086"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000087"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000088"
+            }
+          },
+          {
+            "$object": {
+              "$ref": "v000089"
+            }
+          }
+        ]
+      ]
+    ],
+    "v000091": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "4752",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": {
+                  "$ref": "v000090"
+                }
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000092": [
+      [
+        "id",
+        "000000000000000000000052"
+      ],
+      [
+        "additionalAttributes",
+        null
+      ],
+      [
+        "cn",
+        null
+      ],
+      [
+        "displayname",
+        null
+      ],
+      [
+        "edupersonprincipalname",
+        null
+      ],
+      [
+        "edupersonscopedaffiliation",
+        null
+      ],
+      [
+        "edupersontargetedid",
+        null
+      ],
+      [
+        "givenname",
+        null
+      ],
+      [
+        "surname",
+        null
+      ],
+      [
+        "accountLinkState",
+        "linked-alias"
+      ],
+      [
+        "createdAt",
+        "<time>"
+      ],
+      [
+        "email",
+        "secondary@example.invalid"
+      ],
+      [
+        "lastLogin",
+        "<time>"
+      ],
+      [
+        "linkedPrimaryUserId",
+        "000000000000000000000051"
+      ],
+      [
+        "loginDisabled",
+        false
+      ],
+      [
+        "name",
+        "secondary"
+      ],
+      [
+        "type",
+        "local"
+      ],
+      [
+        "updatedAt",
+        "<time>"
+      ],
+      [
+        "username",
+        "secondary"
+      ],
+      [
+        "hasApiKey",
+        false
+      ],
+      [
+        "roles",
+        []
+      ],
+      [
+        "linkedAccountCount",
+        0
+      ],
+      [
+        "effectivePrimaryUsername",
+        "primary"
+      ],
+      [
+        "effectiveLoginDisabled",
+        true
+      ],
+      [
+        "disabledByPrimaryUserId",
+        "000000000000000000000051"
+      ],
+      [
+        "disabledByPrimaryUsername",
+        "primary"
+      ]
+    ],
+    "v000093": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "733",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": {
+                  "$ref": "v000092"
+                }
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000094": {
+      "actor": {
+        "username": "pilot-admin"
+      },
+      "brandId": "000000000000000000000011",
+      "category": "userManagement",
+      "correlationId": "",
+      "createdAt": "<time>",
+      "deliveryState": "ignored",
+      "destinationStates": {},
+      "eventId": "<event>",
+      "eventType": "user.enable-user",
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "nextEligibleAt": null,
+      "occurredAt": "<time>",
+      "payload": null,
+      "portalId": "",
+      "requestContext": {
+        "brandId": "000000000000000000000011",
+        "userId": "000000000000000000000051"
+      },
+      "resource": null,
+      "severity": "info",
+      "source": "UsersService",
+      "subject": null,
+      "terminalAt": null,
+      "traceId": "",
+      "updatedAt": "<time>"
+    },
+    "v000095": [
+      {
+        "action": "disable-user",
+        "additionalContext": {
+          "$json": {
+            "$object": [
+              [
+                "userId",
+                "000000000000000000000051"
+              ],
+              [
+                "brandId",
+                "000000000000000000000011"
+              ]
+            ]
+          }
+        },
+        "createdAt": "<time>",
+        "updatedAt": "<time>",
+        "user": {
+          "username": "pilot-admin"
+        }
+      },
+      {
+        "action": "enable-user",
+        "additionalContext": {
+          "$json": {
+            "$object": [
+              [
+                "userId",
+                "000000000000000000000051"
+              ],
+              [
+                "brandId",
+                "000000000000000000000011"
+              ]
+            ]
+          }
+        },
+        "createdAt": "<time>",
+        "updatedAt": "<time>",
+        "user": {
+          "username": "pilot-admin"
+        }
+      },
+      {
+        "$ref": "v000066"
+      }
+    ],
+    "v000096": {
+      "appconfig": {
+        "$ref": "v000003"
+      },
+      "record": [
+        {
+          "$ref": "v000004"
+        },
+        {
+          "$ref": "v000053"
+        }
+      ],
+      "recordaudit": [
+        {
+          "$ref": "v000056"
+        },
+        {
+          "$ref": "v000058"
+        }
+      ],
+      "role": {
+        "$ref": "v000006"
+      },
+      "role_users__user_roles": {
+        "$ref": "v000059"
+      },
+      "securityevent": [
+        {
+          "$ref": "v000060"
+        },
+        {
+          "$ref": "v000061"
+        },
+        {
+          "$ref": "v000079"
+        },
+        {
+          "$ref": "v000094"
+        },
+        {
+          "$ref": "v000062"
+        }
+      ],
+      "user": {
+        "$ref": "v000065"
+      },
+      "useraudit": {
+        "$ref": "v000095"
+      },
+      "userlink": [
+        {
+          "$ref": "v000067"
+        }
+      ]
+    },
+    "v000097": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "72",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "status",
+                    true
+                  ],
+                  [
+                    "message",
+                    "User enabled successfully"
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000098": [
+      {
+        "state": {
+          "$ref": "v000068"
+        },
+        "wire": {
+          "$ref": "v000070"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000068"
+        },
+        "wire": {
+          "$ref": "v000072"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000068"
+        },
+        "wire": {
+          "$ref": "v000077"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000068"
+        },
+        "wire": {
+          "$ref": "v000078"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000082"
+        },
+        "wire": {
+          "$ref": "v000083"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000082"
+        },
+        "wire": {
+          "$ref": "v000091"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000082"
+        },
+        "wire": {
+          "$ref": "v000093"
+        }
+      },
+      {
+        "state": {
+          "$ref": "v000096"
+        },
+        "wire": {
+          "$ref": "v000097"
+        }
+      }
+    ]
+  },
+  "sequences": {}
+}

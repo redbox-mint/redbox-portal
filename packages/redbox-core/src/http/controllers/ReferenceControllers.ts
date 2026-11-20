@@ -15,7 +15,7 @@ export class RecordTypeController {
     return referenceRead(request, reply, (facts, valid) => t.getRecordType(this.input, facts, valid));
   }
   async listRecordTypes(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => t.listRecordTypes(this.input, facts));
+    return referenceRead(request, reply, (facts, _valid) => t.listRecordTypes(this.input, facts));
   }
 }
 export const recordTypeController = defineController({
@@ -41,7 +41,7 @@ export interface AppConfigFormControllerInput extends Pick<c.ConfigurationReadIn
 export class AppConfigFormController {
   constructor(protected readonly input: AppConfigFormControllerInput) {}
   async getAppConfigForm(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => c.getAppConfigForm(this.input, facts));
+    return referenceRead(request, reply, (facts, _valid) => c.getAppConfigForm(this.input, facts));
   }
 }
 export const appConfigFormController = defineController({
@@ -89,10 +89,10 @@ export interface WorkspaceTypesControllerInput extends Pick<m.MetadataReadInput,
 export class WorkspaceTypesController {
   constructor(protected readonly input: WorkspaceTypesControllerInput) {}
   async get(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.get(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.get(this.input, facts), dashboardReadError);
   }
   async getOne(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getOne(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getOne(this.input, facts), dashboardReadError);
   }
 }
 export const workspaceTypesController = defineController({
@@ -105,16 +105,16 @@ export interface BrowserTranslationControllerInput extends Pick<m.MetadataReadIn
 export class BrowserTranslationController {
   constructor(protected readonly input: BrowserTranslationControllerInput) {}
   async getLanguages(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getLanguages(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getLanguages(this.input, facts), dashboardReadError);
   }
   async getNamespace(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getNamespace(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getNamespace(this.input, facts), dashboardReadError);
   }
   async listEntriesApp(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.listEntriesApp(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.listEntriesApp(this.input, facts), dashboardReadError);
   }
   async getBundleApp(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getBundleApp(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getBundleApp(this.input, facts), dashboardReadError);
   }
 }
 export const browserTranslationController = defineController({
@@ -127,25 +127,30 @@ export interface DashboardConfigControllerInput extends Pick<m.MetadataReadInput
 export class DashboardConfigController {
   constructor(protected readonly input: DashboardConfigControllerInput) {}
   async listTargets(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.listTargets(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.listTargets(this.input, facts), dashboardReadError);
   }
   async getWorkflowTarget(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getWorkflowTarget(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getWorkflowTarget(this.input, facts), dashboardReadError);
   }
   async getViewTarget(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getViewTarget(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getViewTarget(this.input, facts), dashboardReadError);
   }
   async getWorkflowFields(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getWorkflowFields(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getWorkflowFields(this.input, facts), dashboardReadError);
   }
   async getViewFields(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getViewFields(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getViewFields(this.input, facts), dashboardReadError);
   }
   async migrationPreflight(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.migrationPreflight(this.input, facts), dashboardReadError);
+    return referenceRead(
+      request,
+      reply,
+      (facts, _valid) => m.migrationPreflight(this.input, facts),
+      dashboardReadError
+    );
   }
   async retiredOperation(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.retiredOperation(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.retiredOperation(this.input, facts), dashboardReadError);
   }
 }
 export const dashboardConfigController = defineController({
@@ -175,33 +180,33 @@ export interface RecordReferenceControllerInput
 export class RecordReferenceController {
   constructor(protected readonly input: RecordReferenceControllerInput) {}
   async getAllTypes(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getAllTypes(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getAllTypes(this.input, facts), dashboardReadError);
   }
   async getType(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getType(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getType(this.input, facts), dashboardReadError);
   }
   async getWorkflowSteps(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getWorkflowSteps(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getWorkflowSteps(this.input, facts), dashboardReadError);
   }
   async getAllDashboardTypes(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
     return referenceRead(
       request,
       reply,
-      (facts, valid) => m.getAllDashboardTypes(this.input, facts),
+      (facts, _valid) => m.getAllDashboardTypes(this.input, facts),
       dashboardReadError
     );
   }
   async getDashboardType(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getDashboardType(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getDashboardType(this.input, facts), dashboardReadError);
   }
   async getDashboardView(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
-    return referenceRead(request, reply, (facts, valid) => m.getDashboardView(this.input, facts), dashboardReadError);
+    return referenceRead(request, reply, (facts, _valid) => m.getDashboardView(this.input, facts), dashboardReadError);
   }
   async getDashboardWorkflowSettings(request: FastifyRequest, reply: FastifyReply): Promise<unknown> {
     return referenceRead(
       request,
       reply,
-      (facts, valid) => m.getDashboardWorkflowSettings(this.input, facts),
+      (facts, _valid) => m.getDashboardWorkflowSettings(this.input, facts),
       dashboardReadError
     );
   }
@@ -209,7 +214,7 @@ export class RecordReferenceController {
     return referenceRead(
       request,
       reply,
-      (facts, valid) => m.getDashboardViewSettings(this.input, facts),
+      (facts, _valid) => m.getDashboardViewSettings(this.input, facts),
       dashboardReadError
     );
   }

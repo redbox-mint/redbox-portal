@@ -1,0 +1,2511 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "PUT/visible/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "66"
+        },
+        "text": "{\"message\":\"Progress record ownership cannot change\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/visible/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "66"
+        },
+        "text": "{\"message\":\"Progress record ownership cannot change\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/other-owner/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/other-owner/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/missing/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/missing/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/foreign-row/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/denied/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/denied/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "POST/denied/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "POST/foreign-record/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "foreign tenant override/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"message\":\"Invalid progress query\",\"details\":\"\"}"
+      },
+      "state": {
+        "reads": 0
+      }
+    },
+    "selector object/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"message\":\"Invalid progress query\",\"details\":\"\"}"
+      },
+      "state": {
+        "reads": 0
+      }
+    },
+    "list/1.0": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "799"
+        },
+        "text": "[{\"id\":\"000000000000000000000090\",\"metadata\":null,\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-11-14T08:00:00.000Z\",\"currentIdx\":0,\"date_completed\":\"\",\"date_started\":\"2001-01-01T00:00:00\",\"message\":\"payload:visible\",\"name\":\"visible\",\"relatedRecordId\":\"reference-record\",\"started_by\":\"pilot-admin\",\"status\":\"pending\",\"targetIdx\":0,\"taskType\":\"\",\"updatedAt\":\"2026-11-14T08:00:00.000Z\"},{\"id\":\"000000000000000000000093\",\"metadata\":null,\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-11-14T08:00:00.000Z\",\"currentIdx\":0,\"date_completed\":\"\",\"date_started\":\"2001-01-01T00:00:00\",\"message\":\"payload:other-owner\",\"name\":\"other-owner\",\"relatedRecordId\":\"reference-record\",\"started_by\":\"another-actor\",\"status\":\"pending\",\"targetIdx\":0,\"taskType\":\"\",\"updatedAt\":\"2026-11-14T08:00:00.000Z\"}]"
+      },
+      "state": {
+        "firstRead": {
+          "where": {
+            "branding": "000000000000000000000011",
+            "status": "pending"
+          },
+          "limit": 1000
+        }
+      }
+    },
+    "PUT/visible/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "75"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Progress record ownership cannot change\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/visible/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "75"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Progress record ownership cannot change\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/other-owner/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/other-owner/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/missing/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/missing/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/foreign-row/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "PUT/denied/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "DELETE/denied/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "POST/denied/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "POST/foreign-record/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "start": 0,
+        "revise": 0,
+        "progress": [
+          {
+            "id": "000000000000000000000091",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:denied",
+            "name": "denied",
+            "relatedRecordId": "denied-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000092",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-record",
+            "name": "foreign-record",
+            "relatedRecordId": "foreign-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000094",
+            "metadata": null,
+            "branding": "000000000000000000000012",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:foreign-row",
+            "name": "foreign-row",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000093",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:other-owner",
+            "name": "other-owner",
+            "relatedRecordId": "reference-record",
+            "started_by": "another-actor",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          },
+          {
+            "id": "000000000000000000000090",
+            "metadata": null,
+            "branding": "000000000000000000000011",
+            "createdAt": "2026-11-14T08:00:00.000Z",
+            "currentIdx": 0,
+            "date_completed": "",
+            "date_started": "2001-01-01T00:00:00",
+            "message": "payload:visible",
+            "name": "visible",
+            "relatedRecordId": "reference-record",
+            "started_by": "pilot-admin",
+            "status": "pending",
+            "targetIdx": 0,
+            "taskType": "",
+            "updatedAt": "2026-11-14T08:00:00.000Z"
+          }
+        ]
+      }
+    },
+    "foreign tenant override/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "58"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid progress query\"}],\"meta\":{}}"
+      },
+      "state": {
+        "reads": 0
+      }
+    },
+    "selector object/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "58"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid progress query\"}],\"meta\":{}}"
+      },
+      "state": {
+        "reads": 0
+      }
+    },
+    "list/2.0": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "818"
+        },
+        "text": "{\"data\":[{\"id\":\"000000000000000000000090\",\"metadata\":null,\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-11-14T08:00:00.000Z\",\"currentIdx\":0,\"date_completed\":\"\",\"date_started\":\"2001-01-01T00:00:00\",\"message\":\"payload:visible\",\"name\":\"visible\",\"relatedRecordId\":\"reference-record\",\"started_by\":\"pilot-admin\",\"status\":\"pending\",\"targetIdx\":0,\"taskType\":\"\",\"updatedAt\":\"2026-11-14T08:00:00.000Z\"},{\"id\":\"000000000000000000000093\",\"metadata\":null,\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-11-14T08:00:00.000Z\",\"currentIdx\":0,\"date_completed\":\"\",\"date_started\":\"2001-01-01T00:00:00\",\"message\":\"payload:other-owner\",\"name\":\"other-owner\",\"relatedRecordId\":\"reference-record\",\"started_by\":\"another-actor\",\"status\":\"pending\",\"targetIdx\":0,\"taskType\":\"\",\"updatedAt\":\"2026-11-14T08:00:00.000Z\"}],\"meta\":{}}"
+      },
+      "state": {
+        "firstRead": {
+          "where": {
+            "branding": "000000000000000000000011",
+            "status": "pending"
+          },
+          "limit": 1000
+        }
+      }
+    },
+    "foreign-actor/GET/1.0": {
+      "status": 403,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-cache, private",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "40"
+      },
+      "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+    },
+    "foreign-actor/POST/1.0": {
+      "status": 403,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-cache, private",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "40"
+      },
+      "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+    },
+    "foreign-actor/GET/2.0": {
+      "status": 403,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-cache, private",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "49"
+      },
+      "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+    },
+    "foreign-actor/POST/2.0": {
+      "status": 403,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-cache, private",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "49"
+      },
+      "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+    }
+  },
+  "shared": {}
+}

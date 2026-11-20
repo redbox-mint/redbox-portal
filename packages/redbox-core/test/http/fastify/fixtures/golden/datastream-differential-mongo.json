@@ -1,0 +1,1890 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"?? ??.txt\"; filename*=UTF-8''%E7%A0%94%E7%A9%B6%20%F0%9F%8C%8F.txt",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked"
+    },
+    "v000002": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=file-1.txt",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked"
+    },
+    "v000003": [
+      {
+        "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      },
+      {
+        "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      },
+      {
+        "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      },
+      {
+        "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+        "headers": {
+          "$ref": "v000002"
+        },
+        "status": 200
+      }
+    ],
+    "v000004": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "50",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000005": [
+      {
+        "body": "eyJtZXNzYWdlIjoiQXV0aGVudGljYXRpb24gcmVxdWlyZWQiLCJkZXRhaWxzIjoiIn0=",
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 401
+      },
+      {
+        "body": "eyJtZXNzYWdlIjoiQXV0aGVudGljYXRpb24gcmVxdWlyZWQiLCJkZXRhaWxzIjoiIn0=",
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 401
+      },
+      {
+        "body": "eyJtZXNzYWdlIjoiQXV0aGVudGljYXRpb24gcmVxdWlyZWQiLCJkZXRhaWxzIjoiIn0=",
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 401
+      },
+      {
+        "body": "eyJtZXNzYWdlIjoiQXV0aGVudGljYXRpb24gcmVxdWlyZWQiLCJkZXRhaWxzIjoiIn0=",
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 401
+      }
+    ],
+    "v000006": [
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-length": "0",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 403
+      },
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-length": "0",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 403
+      },
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-length": "0",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 403
+      },
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-length": "0",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 403
+      }
+    ],
+    "v000007": {
+      "body": "eyJtZXNzYWdlIjoiUmVjb3JkIG5vdCBmb3VuZCIsImRldGFpbHMiOiIifQ==",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "43",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000008": {
+      "body": "eyJtZXNzYWdlIjoiQXR0YWNobWVudCBub3QgZm91bmQiLCJkZXRhaWxzIjoiIn0=",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "47",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000009": "default-src 'self'; script-src 'nonce-<nonce>' 'self'; worker-src 'self'; object-src 'none'; manifest-src 'self'; style-src 'nonce-<nonce>' 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; media-src 'self'; frame-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='; upgrade-insecure-requests;",
+    "v000010": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-security-policy": {
+        "$ref": "v000009"
+      },
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked"
+    },
+    "v000011": {
+      "body": "eyJtZXNzYWdlIjoiQXV0aGVudGljYXRpb24gcmVxdWlyZWQiLCJkZXRhaWxzIjoiIn0=",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "50",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 401
+    },
+    "v000012": {
+      "body": "eyJtZXNzYWdlIjoiSW50ZXJuYWwgc2VydmVyIGVycm9yIiwiZGV0YWlscyI6IiJ9",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "48",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 500
+    },
+    "v000013": {
+      "body": "eyJlcnJvcnMiOlt7ImRldGFpbCI6IkludGVybmFsIHNlcnZlciBlcnJvciJ9XSwibWV0YSI6e319",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "57",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 500
+    },
+    "v000014": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/api/records/datastreams/reference-record/file-1.txt"
+              ],
+              [
+                "requestId",
+                "req-3"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      }
+    },
+    "v000015": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/api/records/datastreams/reference-record/file-1.txt"
+              ],
+              [
+                "requestId",
+                "req-4"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      }
+    },
+    "v000016": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"?? ??.txt\"; filename*=UTF-8''%E7%A0%94%E7%A9%B6%20%F0%9F%8C%8F.txt",
+      "content-length": "0",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000017": {
+      "body": "eyJtZXNzYWdlIjoiRmFpbGVkIHRvIGxvYWQgYXR0YWNobWVudHMiLCJkZXRhaWxzIjoiIn0=",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "53",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 500
+    },
+    "v000018": {
+      "body": "eyJlcnJvcnMiOlt7ImRldGFpbCI6IkZhaWxlZCB0byBsb2FkIGF0dGFjaG1lbnRzIn1dLCJtZXRhIjp7fX0=",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "62",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 500
+    },
+    "v000019": {
+      "body": "eyJlcnJvcnMiOlt7ImRldGFpbCI6IkF0dGFjaG1lbnQgbm90IGZvdW5kIn1dLCJtZXRhIjp7fX0=",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "56",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000020": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"?? ??.txt\"; filename*=UTF-8''%E7%A0%94%E7%A9%B6%20%F0%9F%8C%8F.txt",
+      "content-length": "28",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000021": {
+      "diagnostics": [
+        "HTTP_REQUEST_FAILED"
+      ],
+      "response": {
+        "body": "",
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "48",
+          "content-type": "application/json; charset=utf-8",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 500
+      }
+    },
+    "v000022": {
+      "diagnostics": [
+        "HTTP_REQUEST_FAILED"
+      ],
+      "response": {
+        "body": "",
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "57",
+          "content-type": "application/json; charset=utf-8",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 500
+      }
+    },
+    "v000023": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "53",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 500
+    },
+    "v000024": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "62",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 500
+    },
+    "v000025": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "47",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000026": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "56",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000027": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/record/reference-record/attach/file-1.txt"
+              ],
+              [
+                "requestId",
+                "req-z"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      }
+    },
+    "v000028": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/record/reference-record/attach/file-1.txt"
+              ],
+              [
+                "requestId",
+                "req-10"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      }
+    },
+    "v000029": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/companion/record/reference-record/attach/file-1.txt"
+              ],
+              [
+                "requestId",
+                "req-1f"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      }
+    },
+    "v000030": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/companion/record/reference-record/attach/file-1.txt"
+              ],
+              [
+                "requestId",
+                "req-1g"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      }
+    },
+    "v000031": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/record/reference-record/datastream"
+              ],
+              [
+                "requestId",
+                "req-1v"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000002"
+        },
+        "status": 200
+      }
+    },
+    "v000032": {
+      "diagnostics": [
+        {
+          "$json": {
+            "$object": [
+              [
+                "code",
+                "HTTP_STREAM_FAILED"
+              ],
+              [
+                "level",
+                "error"
+              ],
+              [
+                "path",
+                "/portal/default/rdmp/record/reference-record/datastream"
+              ],
+              [
+                "requestId",
+                "req-1w"
+              ]
+            ]
+          }
+        }
+      ],
+      "response": {
+        "aborted": true,
+        "body": "Zmlyc3Q=",
+        "headers": {
+          "$ref": "v000002"
+        },
+        "status": 200
+      }
+    },
+    "v000033": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=file-1.txt",
+      "content-length": "0",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000034": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=file-1.txt",
+      "content-length": "28",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    }
+  },
+  "sequences": {
+    "FM-033 production session authorization and unopened storage default policies session": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-033 production session authorization and unopened storage default policies deleted-actor": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-033 production session authorization and unopened storage default policies anonymous": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-033 production session authorization and unopened storage default policies denied": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-033 production session authorization and unopened storage default policies missing-record": [
+      [
+        {
+          "$ref": "v000007"
+        },
+        {
+          "$ref": "v000007"
+        },
+        {
+          "$ref": "v000007"
+        },
+        {
+          "$ref": "v000007"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage default policies missing-file": [
+      [
+        {
+          "$ref": "v000008"
+        },
+        {
+          "$ref": "v000008"
+        },
+        {
+          "$ref": "v000008"
+        },
+        {
+          "$ref": "v000008"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage default policies branded-missing": [
+      [
+        {
+          "$ref": "v000008"
+        },
+        {
+          "body": "",
+          "headers": {
+            "$ref": "v000010"
+          },
+          "status": 404
+        },
+        {
+          "body": "",
+          "headers": {
+            "$ref": "v000010"
+          },
+          "status": 404
+        },
+        {
+          "body": "",
+          "headers": {
+            "$ref": "v000010"
+          },
+          "status": 404
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies session": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies deleted-actor": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies anonymous": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies denied": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies missing-record": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies missing-file": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production session authorization and unopened storage reduced policies branded-missing": [
+      [
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        },
+        {
+          "$ref": "v000011"
+        }
+      ]
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET before-byte v1.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000012"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET before-byte v2.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000013"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET mid-stream v1.0": [
+      {
+        "$ref": "v000014"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET mid-stream v2.0": [
+      {
+        "$ref": "v000015"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET empty v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET empty v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET normal v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET normal v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET acquisition v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000017"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET acquisition v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000018"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET not-found v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000008"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET not-found v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000019"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET buffer v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET buffer v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET length v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId GET length v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD before-byte v1.0": [
+      {
+        "$ref": "v000021"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD before-byte v2.0": [
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD mid-stream v1.0": [
+      {
+        "diagnostics": [
+          {
+            "$json": {
+              "$object": [
+                [
+                  "code",
+                  "HTTP_STREAM_FAILED"
+                ],
+                [
+                  "level",
+                  "error"
+                ],
+                [
+                  "path",
+                  "/portal/default/rdmp/api/records/datastreams/reference-record/file-1.txt"
+                ],
+                [
+                  "requestId",
+                  "req-j"
+                ]
+              ]
+            }
+          }
+        ],
+        "response": {
+          "body": "",
+          "error": "ECONNRESET"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD mid-stream v2.0": [
+      {
+        "diagnostics": [
+          {
+            "$json": {
+              "$object": [
+                [
+                  "code",
+                  "HTTP_STREAM_FAILED"
+                ],
+                [
+                  "level",
+                  "error"
+                ],
+                [
+                  "path",
+                  "/portal/default/rdmp/api/records/datastreams/reference-record/file-1.txt"
+                ],
+                [
+                  "requestId",
+                  "req-k"
+                ]
+              ]
+            }
+          }
+        ],
+        "response": {
+          "body": "",
+          "error": "ECONNRESET"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD empty v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD empty v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD normal v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD normal v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD acquisition v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000023"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD acquisition v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000024"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD not-found v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000025"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD not-found v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000026"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD buffer v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD buffer v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD length v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/api/records/datastreams/:oid/:datastreamId HEAD length v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET before-byte v1.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000012"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET before-byte v2.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000013"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET mid-stream v1.0": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET mid-stream v2.0": [
+      {
+        "$ref": "v000028"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET empty v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET empty v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET normal v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET normal v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET acquisition v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000017"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET acquisition v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000018"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET not-found v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000008"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET not-found v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000019"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET buffer v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET buffer v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET length v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/attach/:attachId GET length v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET before-byte v1.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000012"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET before-byte v2.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000013"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET mid-stream v1.0": [
+      {
+        "$ref": "v000029"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET mid-stream v2.0": [
+      {
+        "$ref": "v000030"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET empty v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET empty v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000016"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET normal v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET normal v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000001"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET acquisition v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000017"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET acquisition v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000018"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET not-found v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000008"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET not-found v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000019"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET buffer v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET buffer v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET length v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/companion/record/:oid/attach/:attachId GET length v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000020"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET before-byte v1.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000012"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET before-byte v2.0": [
+      {
+        "diagnostics": [
+          "HTTP_REQUEST_FAILED"
+        ],
+        "response": {
+          "$ref": "v000013"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET mid-stream v1.0": [
+      {
+        "$ref": "v000031"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET mid-stream v2.0": [
+      {
+        "$ref": "v000032"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET empty v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000033"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET empty v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000033"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET normal v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000002"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET normal v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000002"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET acquisition v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000017"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET acquisition v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000018"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET not-found v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000008"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET not-found v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000019"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET buffer v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET buffer v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET length v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* GET length v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "Rk0wMzMgAOeglOeptiDwn4yPIGRvd25sb2FkCg==",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD before-byte v1.0": [
+      {
+        "$ref": "v000021"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD before-byte v2.0": [
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD mid-stream v1.0": [
+      {
+        "diagnostics": [
+          {
+            "$json": {
+              "$object": [
+                [
+                  "code",
+                  "HTTP_STREAM_FAILED"
+                ],
+                [
+                  "level",
+                  "error"
+                ],
+                [
+                  "path",
+                  "/portal/default/rdmp/record/reference-record/datastream"
+                ],
+                [
+                  "requestId",
+                  "req-2b"
+                ]
+              ]
+            }
+          }
+        ],
+        "response": {
+          "body": "",
+          "error": "ECONNRESET"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD mid-stream v2.0": [
+      {
+        "diagnostics": [
+          {
+            "$json": {
+              "$object": [
+                [
+                  "code",
+                  "HTTP_STREAM_FAILED"
+                ],
+                [
+                  "level",
+                  "error"
+                ],
+                [
+                  "path",
+                  "/portal/default/rdmp/record/reference-record/datastream"
+                ],
+                [
+                  "requestId",
+                  "req-2c"
+                ]
+              ]
+            }
+          }
+        ],
+        "response": {
+          "body": "",
+          "error": "ECONNRESET"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD empty v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000033"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD empty v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000033"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD normal v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000002"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD normal v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000002"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD acquisition v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000023"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD acquisition v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000024"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD not-found v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000025"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD not-found v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "$ref": "v000026"
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD buffer v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD buffer v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD length v1.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ],
+    "FM-033 production storage faults and stream ownership /:branding/:portal/record/:oid/datastream* HEAD length v2.0": [
+      {
+        "diagnostics": [],
+        "response": {
+          "body": "",
+          "headers": {
+            "$ref": "v000034"
+          },
+          "status": 200
+        }
+      }
+    ]
+  }
+}

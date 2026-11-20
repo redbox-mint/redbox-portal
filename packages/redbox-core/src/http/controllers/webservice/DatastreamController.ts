@@ -12,9 +12,9 @@ import {
 } from '../../actions/datastreamUpload';
 import { getRequestValue } from '../../../api-routes/request-extraction';
 import { validatedDatastreamUpload } from '../../fastify/datastreamUploads';
-import { nativeActionReply } from '../../fastify/actionReply';
+import { nativeJsonOutput } from '../../fastify/jsonOutput';
 import { httpReplySubmitted } from '../../fastify/errorBoundary';
-import type { StreamingMultipart } from '../../express/multipart';
+import type { StreamingMultipart } from '../../integrations/multipart';
 export interface DatastreamControllerInput extends RecordControllerInput {
   readonly datastream: DatastreamUploadInput['datastream'];
   readonly multipart: StreamingMultipart;
@@ -32,7 +32,7 @@ export class DatastreamController extends RecordController {
         headers: request.headers,
         context: () => requestContext(request),
       },
-      res = nativeActionReply(reply);
+      res = nativeJsonOutput(reply);
     try {
       const identity = datastreamUploadActorPrelude(req, res);
       if (!identity) return;

@@ -1,12 +1,16 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
+import { mutationWitnessCases } from './mutationWitnessSelection';
 import { request } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import type { RequestHandler } from 'express';
+
 import { mkdir, writeFile, readFile, utimes, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { referenceProductionFixture } from './referenceProductionFixture';
-import { retainedAssetExpress } from './retainedAssetExpress';
+
 import { brandingDeliveryRoutes, dynamicAssetRoutes, fontDeliveryRoute } from '../../../src/http/assetRoutes';
 import { getBrandingRepository } from '../../../src/persistence/branding/runtime';
 import { declareAssetRouteCollisions } from './assetRouteCollisions';
@@ -38,10 +42,9 @@ export async function assetWire(
             const bytes = Buffer.concat(chunks);
             assert(!bytes.includes(Buffer.from('PRIVATE')), 'private bytes are never served');
             assert(!bytes.includes(Buffer.from('/tmp/fm023-production-')), 'server paths are never public');
-            let body = bytes.toString('base64');
+            const body = bytes.toString('base64');
             if (bytes.length > 65536) {
               const hash = createHash('sha256').update(bytes).digest('hex');
-              body = `sha256:${bytes.length}:${hash}`;
               if (process.env.FM031_RESULTS && !retainedBodies.has(hash)) {
                 const directory = path.join(process.env.FM031_RESULTS, 'bodies');
                 mkdirSync(directory, { recursive: true });
@@ -591,7 +594,7 @@ export async function assetArtifacts(directory: string, providerDirectory: strin
   // Real installed API1/API2 hooks test ordinary dispatch and retained session writes.
   const providerFile = path.join(providerDirectory, 'index.cjs');
   let provider = await readFile(providerFile, 'utf8');
-  const native = provider.includes('apiVersion:2');
+  const native = true;
   const mutate = `if(request.headers['x-fm031-etag']==='yes'){response.HEADER('ETag',response.getHeader('ETag')?'"duplicate-hook"':'"fm031-upstream"');}if(request.headers['x-fm031-cookie']==='yes'){request.session.fm031Cookie='persisted';response.HEADER('Set-Cookie','upstream=private');}
 if(request.headers['x-fm031-status'])response.STATUS(Number(request.headers['x-fm031-status']));
 const mode=request.headers['x-fm031-headers'];
@@ -600,9 +603,7 @@ if(mode==='validators'){response.HEADER('ETag','"hook-validator"');response.HEAD
 if(mode==='empty')for(const name of ['Last-Modified','Accept-Ranges','Cache-Control','Content-Type','ETag'])response.HEADER(name,'');
 if(mode==='length')response.HEADER('Content-Length','24');
 if(mode==='entities'||mode==='length')for(const [name,value] of Object.entries({'Content-Language':'en','Content-Encoding':'identity','Content-Range':'bytes 0-2/12','Content-Location':'/public-location','Content-Disposition':'inline','Content-MD5':'fixture-digest'}))response.HEADER(name,value);`;
-  const live = native
-    ? `,hooks:[{name:'fm031-cookie',stage:'afterAuthentication',scope:{kind:'application'},run:async(request,response)=>{${mutate.replaceAll('HEADER', 'header').replaceAll('STATUS', 'code')}}},{name:'fm031-live',stage:'beforeAction',scope:{kind:'application'},run:async request=>{if(request.headers['x-fm031-live']==='yes'){request.params={...request.params,oid:'reference-record'};request.query={edit:'true'};request.body={};}}}]`
-    : `,handlers:[{name:'fm031-live',create:()=>((request,response,next)=>{${mutate.replaceAll('HEADER', 'set').replaceAll('STATUS', 'status')}if(request.headers['x-fm031-live']==='yes'){request.url=request.url.replace('/absent','/reference-record');Object.defineProperty(request,'query',{configurable:true,value:{edit:'true'}});request.body={};}next();})}],middleware:[{name:'fm031-live',stage:'beforeRoutes',handler:'fm031-live'}]`;
+  const live = `,hooks:[{name:'fm031-cookie',stage:'afterAuthentication',scope:{kind:'application'},run:async(request,response)=>{${mutate.replaceAll('HEADER', 'header').replaceAll('STATUS', 'code')}}},{name:'fm031-live',stage:'beforeAction',scope:{kind:'application'},run:async request=>{if(request.headers['x-fm031-live']==='yes'){request.params={...request.params,oid:'reference-record'};request.query={edit:'true'};request.body={};}}}]`;
   provider = provider.replace('apiVersion:', live.slice(1) + ',apiVersion:');
   // The installed API1 after-routes handler and API2 fallback deliberately
   // collide with a real public artifact. A miss must still reach the fallback.
@@ -614,15 +615,6 @@ if(mode==='entities'||mode==='length')for(const [name,value] of Object.entries({
     provider = provider.replace(
       'hooks:[',
       "hooks:[{name:'fm031-fallback-observer',stage:'afterAuthentication',scope:{kind:'routes',names:['fm031-fallback']},run:async(request,response)=>{response.header('Link','</fm031-fallback>; rel=\"fallback\"');}},"
-    );
-  } else {
-    provider = provider.replace(
-      'handlers:[',
-      "handlers:[{name:'fm031-fallback',create:()=>((request,response,next)=>{if(request.method!=='GET'||!(request.path==='/custom'||request.path.startsWith('/custom/'))){next();return;}response.set('Link','</fm031-fallback>; rel=\"fallback\"').status(404).send('/* preview token missing */');})},"
-    );
-    provider = provider.replace(
-      "stage:'beforeRoutes',handler:'fm031-live'}]",
-      "stage:'beforeRoutes',handler:'fm031-live'},{name:'fm031-fallback',stage:'afterRoutes',handler:'fm031-fallback'}]"
     );
   }
   await writeFile(providerFile, provider);
@@ -673,44 +665,39 @@ if(mode==='entities'||mode==='length')for(const [name,value] of Object.entries({
     await writeFile(pkg, JSON.stringify(manifest));
   }
 }
-describe('FM-031 retained Express / shared Express / production Fastify assets', function () {
+const assetSuiteTitle = 'FM-031 retained Express / shared Express / production Fastify assets';
+describe(assetSuiteTitle, function () {
   this.timeout(600000);
   for (const profile of profiles.filter(
     value => !process.env.FM031_PROFILE || process.env.FM031_PROFILE === value.name
   )) {
     describe(profile.name, function () {
-      let retained: Awaited<ReturnType<typeof retainedAssetExpress>>;
-      const results: Wire[][] = [[], [], []];
+      const results: Wire[][] = [[]];
+      const cookiePersistence = new Map<string, boolean>();
       before(async () => {
-        retained = await retainedAssetExpress();
-        for (let host = 0; host < 3; host++) {
+        const selected = mutationWitnessCases(`${assetSuiteTitle} ${profile.name}`, cases, test => test.name);
+        for (let host = 0; host < 1; host++) {
           const pageOptions: { assetRoots?: string[] } = {};
-          const f = await referenceProductionFixture(
-            host === 2,
-            profile.policy,
-            host === 0 ? () => retained.install() : undefined,
-            {
-              declarations: audit.migratedDeclarations,
-              pages: pageOptions,
-              rootContext: profile.rootContext,
-              configuration: profile.configuration,
-              bindings: { handler: registration => () => (registration.declaration.create as () => RequestHandler)() },
-              artifacts: async (directory, provider) => {
-                await assetArtifacts(directory, provider, profile.overrides);
-                if (profile.explicit) {
-                  const root = path.join(directory, 'deployment-assets');
-                  pageOptions.assetRoots = [root];
-                  await mkdir(path.join(root, 'js'), { recursive: true });
-                  await writeFile(path.join(root, 'js/plain.js'), 'explicit-deployment');
-                  await utimes(
-                    path.join(root, 'js/plain.js'),
-                    new Date('2026-01-01T00:00:00.123Z'),
-                    new Date('2026-01-01T00:00:00.123Z')
-                  );
-                }
-              },
-            }
-          );
+          const f = await referenceProductionFixture(true, profile.policy, undefined, {
+            declarations: audit.migratedDeclarations,
+            pages: pageOptions,
+            rootContext: profile.rootContext,
+            configuration: profile.configuration,
+            artifacts: async (directory, provider) => {
+              await assetArtifacts(directory, provider, profile.overrides);
+              if (profile.explicit) {
+                const root = path.join(directory, 'deployment-assets');
+                pageOptions.assetRoots = [root];
+                await mkdir(path.join(root, 'js'), { recursive: true });
+                await writeFile(path.join(root, 'js/plain.js'), 'explicit-deployment');
+                await utimes(
+                  path.join(root, 'js/plain.js'),
+                  new Date('2026-01-01T00:00:00.123Z'),
+                  new Date('2026-01-01T00:00:00.123Z')
+                );
+              }
+            },
+          });
           try {
             const repository = getBrandingRepository(f.owner);
             await f.data.disks
@@ -718,7 +705,7 @@ describe('FM-031 retained Express / shared Express / production Fastify assets',
               .primaryDisk()
               .put(f.data.reference.typeface.get().storageKey(f.brand.id, params.sha256), Buffer.from('font-fixture'));
             await repository.reviseBrand(f.brand.id, { css: 'body { color: red; }', hash: 'publication-hash' });
-            for (const c of cases) {
+            for (const c of selected) {
               if (process.env.FM031_RESULTS)
                 await writeFile(
                   path.join(process.env.FM031_RESULTS, 'progress.json'),
@@ -742,18 +729,9 @@ describe('FM-031 retained Express / shared Express / production Fastify assets',
                   headers['If-None-Match'] = '"other", ' + String(prior.headers.etag ?? '"missing"');
                 if (c.conditional === 'stale') headers['If-Modified-Since'] = 'Thu, 01 Jan 1970 00:00:00 GMT';
               }
-              const value = await assetWire(
-                f.url,
-                c.absolute ? 'http://hostile.invalid' + target : target,
-                c.method,
-                headers
+              const value = await authorizationWitness(`${assetSuiteTitle} ${profile.name} ${c.name}`, () =>
+                assetWire(f.url, c.absolute ? 'http://hostile.invalid' + target : target, c.method, headers)
               );
-              if (c.target.startsWith('/custom/')) {
-                assert.equal(
-                  value.headers.link,
-                  c.target.endsWith('/missing.js') ? '</fm031-fallback>; rel="fallback"' : undefined
-                );
-              }
               if (c.headers?.['X-FM031-Headers'] === 'length') {
                 const bytes =
                   c.status === 500 ? '{"message":"Internal server error","details":""}' : 'PUBLIC-FRAMING-012345678';
@@ -817,13 +795,7 @@ describe('FM-031 retained Express / shared Express / production Fastify assets',
                     ),
                     JSON.stringify({ profile: profile.name, host, case: c.name, attempt, persisted })
                   );
-                assert(persisted, `static session changes are persisted (${profile.name}/${host}/${c.name})`);
-                if (c.target.includes('ABCDEF12'))
-                  assert.equal(
-                    value.headers['set-cookie'],
-                    undefined,
-                    'immutable artifacts suppress upstream and deferred cookies'
-                  );
+                cookiePersistence.set(c.name, persisted);
               }
               if (c.target === '/js/hook.js' && c.name === 'GET /js/hook.js')
                 assert.equal(
@@ -837,7 +809,7 @@ describe('FM-031 retained Express / shared Express / production Fastify assets',
                 );
               if (c.name === 'GET /default/rdmp/js/specific.js' || c.name === 'GET /other/rdmp/js/specific.js')
                 assert.equal(Buffer.from(value.body, 'base64').toString(), 'core-brand-specific');
-              results[host].push(normalized(value));
+              results[host][cases.indexOf(c)] = normalized(value);
             }
           } finally {
             await f.close();
@@ -846,15 +818,27 @@ describe('FM-031 retained Express / shared Express / production Fastify assets',
         if (process.env.FM031_RESULTS)
           await writeFile(
             path.join(process.env.FM031_RESULTS, profile.name + '-wire.json'),
-            JSON.stringify({ cases, results, hashes: retained.hashes }, null, 2)
+            JSON.stringify({ cases, results }, null, 2)
           );
       });
-      after(async () => retained?.close());
       cases.forEach((c, index) =>
         it(c.name, () => {
-          const [retained, shared, native] = results.map(values => values[index]);
-          assert.deepEqual(shared, retained, 'shared Express vs retained');
-          assert.deepEqual(native, retained, 'production Fastify vs retained');
+          const [native] = results.map(values => values[index]);
+          if (c.target.startsWith('/custom/'))
+            assert.equal(
+              native.headers.link,
+              c.target.endsWith('/missing.js') ? '</fm031-fallback>; rel="fallback"' : undefined
+            );
+          if (c.name.startsWith('persist cookie')) {
+            assert.equal(cookiePersistence.get(c.name), true, 'Static session changes are persisted');
+            if (c.target.includes('ABCDEF12'))
+              assert.equal(
+                native.headers['set-cookie'],
+                undefined,
+                'Immutable artifacts suppress upstream and deferred cookies'
+              );
+          }
+          assertProductionContract('asset-' + profile.name, c.name, native);
           if (c.status) assert.equal(native.status, c.status);
           assert(
             !Buffer.from(native.body, 'base64').includes(Buffer.from('PRIVATE')),
@@ -874,3 +858,10 @@ describe('FM-031 retained Express / shared Express / production Fastify assets',
 
 declareAssetRouteCollisions(assetWire, normalized);
 declareTranslationWildcardTargets(assetWire, normalized);
+
+goldenControls('asset-default');
+goldenControls('asset-explicit');
+goldenControls('asset-overrides');
+goldenControls('asset-reduced');
+goldenControls('asset-report-only-http');
+goldenControls('asset-root');

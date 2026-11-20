@@ -1,7 +1,6 @@
 // Real executable fixture: deliberately no uncaughtException/unhandledRejection
 // handlers. The parent runs this with --unhandled-rejections=strict.
 const { ApplicationRuntime } = require('../../../../dist/application');
-const { ExpressHost } = require('../../../../dist/http/express/ExpressHost');
 const { FastifyHost } = require('../../../../dist/http/fastify/FastifyHost');
 
 const native = process.argv[2] === 'native';
@@ -70,7 +69,7 @@ const host = native
         stop: () => app.close(),
       };
     })()
-  : new (fastify ? FastifyHost : ExpressHost)(application, {
+  : new FastifyHost(application, {
       hostname: '127.0.0.1',
       port: 0,
       ...(diagnostics && !defaultLogger
@@ -94,18 +93,13 @@ const host = native
           });
         });
         if (security) {
-          if (fastify) {
+          {
             require('../../../../dist/http/fastify/responses').installSafeHttpErrors(app);
             require('../../../../dist/http/fastify/parsers').prepareNativeParsers(app);
             app.post('/body', async () => ({ ok: true }));
-          } else {
-            const { httpBodyParser, httpErrorHandler } = require('../../../../dist/http/express/middleware');
-            app.use(httpBodyParser());
-            app.post('/body', (_req, res) => res.json({ ok: true }));
-            app.use(httpErrorHandler({ error() {}, warn() {} }));
           }
         }
-        if (fastify) {
+        {
           if (diagnostics) {
             app.addHook('preSerialization', (req, _reply, payload, done) => {
               if (req.url.includes('pending') || req.url.startsWith('/serializer-failure'))
@@ -178,7 +172,7 @@ const host = native
             if (req.url === '/async-hook-error') throw new Error('injected asynchronous hook failure');
           });
           app.get('/probe', async () => ({ ok: true }));
-        } else app.get('/probe', (_req, res) => res.json({ ok: true }));
+        }
       },
     });
 

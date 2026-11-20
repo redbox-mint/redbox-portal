@@ -1,0 +1,133 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {},
+  "sequences": {
+    "FM-018 scoped hooks and named unmatched fallback orders dependencies first with provider/declaration ties and explicit named replacement, without running losing hooks": [
+      {
+        "response": {
+          "headers": {
+            "content-length": "5",
+            "content-type": "text/plain; charset=utf-8"
+          },
+          "status": 200,
+          "text": "route"
+        },
+        "state": {
+          "calls": [
+            "core",
+            "eligible",
+            "a",
+            "z",
+            "dependent"
+          ]
+        }
+      }
+    ],
+    "FM-018 scoped hooks and named unmatched fallback applies route scope only to named targets and explicit application scope to unmatched requests": [
+      {
+        "response": {
+          "headers": {
+            "content-length": "5",
+            "content-type": "text/plain; charset=utf-8"
+          },
+          "status": 200,
+          "text": "route"
+        },
+        "state": {
+          "seen": [
+            "route",
+            "application"
+          ]
+        }
+      },
+      {
+        "response": {
+          "headers": {
+            "content-length": "21",
+            "content-type": "application/json; charset=utf-8"
+          },
+          "status": 404,
+          "text": {
+            "$json": {
+              "$object": [
+                [
+                  "error",
+                  "not-found"
+                ]
+              ]
+            }
+          }
+        },
+        "state": {
+          "seen": [
+            "application"
+          ]
+        }
+      },
+      {
+        "response": {
+          "headers": {
+            "content-length": "16",
+            "content-type": "application/json; charset=utf-8"
+          },
+          "status": 200,
+          "text": {
+            "$json": {
+              "$object": [
+                [
+                  "healthy",
+                  true
+                ]
+              ]
+            }
+          }
+        },
+        "state": {
+          "seen": []
+        }
+      }
+    ],
+    "FM-018 scoped hooks and named unmatched fallback preserves before-hook and unmatched fallback dispatch for /known": [
+      {
+        "response": {
+          "headers": {
+            "content-length": "2",
+            "content-type": "text/plain; charset=utf-8"
+          },
+          "status": 200,
+          "text": "ok"
+        },
+        "state": {
+          "trace": [
+            "before",
+            "route"
+          ]
+        }
+      }
+    ],
+    "FM-018 scoped hooks and named unmatched fallback preserves before-hook and unmatched fallback dispatch for /missing": [
+      {
+        "response": {
+          "headers": {
+            "content-length": "2",
+            "content-type": "text/plain; charset=utf-8"
+          },
+          "status": 200,
+          "text": "ok"
+        },
+        "state": {
+          "trace": [
+            "before",
+            "after"
+          ]
+        }
+      }
+    ]
+  },
+  "sourceTitles": {
+    "FM-018 scoped hooks and named unmatched fallback preserves before-hook and unmatched fallback dispatch for /known": "FM-018 scoped hooks and named unmatched fallback retains Express beforeRoutes/afterRoutes dispatch differential for /known",
+    "FM-018 scoped hooks and named unmatched fallback preserves before-hook and unmatched fallback dispatch for /missing": "FM-018 scoped hooks and named unmatched fallback retains Express beforeRoutes/afterRoutes dispatch differential for /missing"
+  }
+}

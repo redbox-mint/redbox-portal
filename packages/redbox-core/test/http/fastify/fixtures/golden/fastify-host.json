@@ -1,0 +1,1782 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "15",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                false
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "15",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                false
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "14",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "14",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000002": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000003": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000004": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "15",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                false
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "14",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000005": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000006": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000007": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "15",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                false
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "14",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK",
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                true
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "v000008": [
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "15",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                false
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "15",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                false
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 503,
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "14",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "14",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ready",
+                true
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": ""
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": 404,
+        "text": ""
+      }
+    ]
+  },
+  "sourceTitles": {
+    "internal late-listening Fastify host enforces native admission and probes for absolute request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for absolute request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for asterisk request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for asterisk request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for authority request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for authority request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for slashes request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for slashes request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for query request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for query request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for encoded request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for encoded request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for exact request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for exact request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces native admission and probes for fragment request-target forms over raw sockets": "internal late-listening Fastify host matches Express admission and probes for fragment request-target forms over raw sockets",
+    "internal late-listening Fastify host enforces exact GET probe, admission and host-miss status/body/header contracts over real sockets": "internal late-listening Fastify host matches Express probe, admission and host-miss status/body/header contracts over real sockets"
+  },
+  "sequences": {
+    "internal late-listening Fastify host enforces native admission and probes for absolute request-target forms over raw sockets": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for asterisk request-target forms over raw sockets": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for authority request-target forms over raw sockets": [
+      [
+        {
+          "headers": {},
+          "status": "",
+          "text": ""
+        },
+        {
+          "headers": {},
+          "status": "",
+          "text": ""
+        }
+      ]
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for slashes request-target forms over raw sockets": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for query request-target forms over raw sockets": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for encoded request-target forms over raw sockets": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for exact request-target forms over raw sockets": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "internal late-listening Fastify host enforces native admission and probes for fragment request-target forms over raw sockets": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "internal late-listening Fastify host enforces exact GET probe, admission and host-miss status/body/header contracts over real sockets": [
+      {
+        "$ref": "v000008"
+      }
+    ]
+  }
+}

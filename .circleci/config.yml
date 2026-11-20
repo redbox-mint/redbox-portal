@@ -28,6 +28,9 @@ jobs:
           name: Test Docker tag handling
           command: bash support/build/docker-build-vars.test.sh
       - run:
+          name: Verify release image audits block publication
+          command: bash support/build/docker-publish-closure.test.sh
+      - run:
           name: Test Angular bundle stats accounting
           command: node --test support/build/angular-bundle-stats.test.cjs
       - save_cache:
@@ -45,6 +48,17 @@ jobs:
               --tag redbox-portal:test \
               .
       - run:
+          name: Audit every built server tarball for Express closure
+          command: |
+            timeout 600s docker run --rm --network none --entrypoint node redbox-portal:test \
+              support/tooling/fastify-retirement/express-closure.cjs --pack
+      - run:
+          name: Audit the actual production runtime filesystem for Express closure
+          no_output_timeout: 30m
+          command: |
+            timeout 1800s docker build --progress plain --target runtime --tag redbox-portal:runtime .
+            timeout 1200s node support/tooling/fastify-retirement/runtime-image-audit.cjs redbox-portal:runtime --negative-control
+      - run:
           name: Verify PDF hook unit tests in the built test image
           command: |
             docker run --rm --entrypoint bash redbox-portal:test -lc \
@@ -54,10 +68,12 @@ jobs:
           command: |
             mkdir -p /tmp/docker-images
             docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test
+            docker save -o /tmp/docker-images/redbox-portal-runtime.tar redbox-portal:runtime
       - persist_to_workspace:
           root: /tmp
           paths:
             - docker-images/redbox-portal-test.tar
+            - docker-images/redbox-portal-runtime.tar
   generate-api-docs:
     docker:
       - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
@@ -83,6 +99,13 @@ jobs:
             npm run compile:sails-ng-common
             npm run compile:agenda-sqs
             npm run compile:core
+      - run:
+          name: Enforce first-party Express retirement
+          command: |
+            # Standalone builds install package-local development trees. Restore
+            # the application lock layout before auditing its installed graph.
+            timeout 600s npm ci --ignore-scripts --strict-peer-deps --no-audit
+            timeout 300s npm run test:express-closure
       - run:
           name: Validate API route contracts
           command: npm run validate:api-routes
@@ -616,6 +639,8 @@ jobs:
     environment:
       FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
       SIEM_TEST_MONGO_URL: mongodb://127.0.0.1:27028
+      HTTP_PILOT_TEST_MONGO_URL: mongodb://127.0.0.1:27028/sr_p4_http
+      HTTP_READ_SOLR_PORT: "28983"
     steps:
       - checkout
       - run:
@@ -633,6 +658,12 @@ jobs:
               sleep 2
             done
             exit 1
+      - run:
+          name: Start Solr for the production Fastify contract suites
+          command: |
+            docker run -d --name core-test-solr -p 127.0.0.1:28983:8983 -e SOLR_HEAP=512m \
+              solr@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb solr-precreate redbox
+            timeout 90s bash -c 'until curl -fsS http://127.0.0.1:28983/solr/redbox/admin/ping; do sleep 1; done'
       - run:
           <<: *installCodecov
       - run:
@@ -661,9 +692,75 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd ./packages/redbox-core
-            mkdir -p support/junit
-            nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \
-              npx mocha --config .mocharc.js --exit test/**/*.test.ts
+            mkdir -p support/junit .tmp
+            export FM043_AUTHORIZATION_REPORT="$PWD/.tmp/authorization-passes.json"
+            nvm install && timeout 5400s npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \
+              npx mocha --config .mocharc.js --reporter ../../support/tooling/fastify-retirement/authorization-reporter.cjs \
+                --exit test/**/*.test.ts
+      - run:
+          name: Check production HTTP authorization decision coverage
+          no_output_timeout: 30m
+          command: |
+            nvm use
+            audit=support/tooling/fastify-retirement/authorization-coverage.cjs
+            core_report="$PWD/packages/redbox-core/.tmp/authorization-passes.json"
+            witnesses="$(timeout 300s node "$audit" --missing-test-files --mocha-report="$core_report")"
+            reports=("--mocha-report=$core_report")
+            run_witnesses() {
+              local label="$1"
+              shift
+              # This is the disposable Solr container created by this job.
+              # Each batch starts with an empty index; the search contract
+              # asserts the exact records in its own fixture.
+              curl -fsS --max-time 15 -H 'Content-Type: application/json' \
+                --data '{"delete":{"query":"*:*"}}' 'http://127.0.0.1:28983/solr/redbox/update?commit=true'
+              (
+                cd packages/redbox-core
+                export TS_NODE_PROJECT=test/tsconfig.json
+                export FM043_AUTHORIZATION_REPORT="$PWD/.tmp/authorization-$label.json"
+                timeout 5400s node --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js \
+                  --no-config --require ts-node/register/transpile-only --require chai --require test/setup.ts \
+                  --reporter ../../support/tooling/fastify-retirement/authorization-reporter.cjs \
+                  --reporter-option "mochaFile=support/junit/authorization-$label.xml" --exit --timeout 120000 "$@"
+              )
+              reports+=("--mocha-report=$PWD/packages/redbox-core/.tmp/authorization-$label.json")
+            }
+            if [[ -n "$witnesses" ]]; then
+              search_file=test/http/fastify/ReadDifferentialMongo.test.ts
+              raw_file=test/http/fastify/rawSocketMongo.test.ts
+              companion_file=test/http/fastify/CompanionRetirementPolicyMongo.test.ts
+              mapfile -t files < <(printf '%s\n' "$witnesses")
+              remaining=()
+              for file in "${files[@]}"; do
+                if [[ "$file" == "$search_file" ]]; then
+                  run_witnesses read "$file"
+                elif [[ "$file" == "$raw_file" ]]; then
+                  run_witnesses raw "$file"
+                elif [[ "$file" == "$companion_file" ]]; then
+                  run_witnesses companion-policy "$file"
+                else
+                  remaining+=("$file")
+                fi
+              done
+              if (( ${#remaining[@]} )); then
+                run_witnesses affected "${remaining[@]}"
+              fi
+            fi
+            timeout 300s node "$audit" "${reports[@]}"
+      - when:
+          condition: << pipeline.parameters.authorization_guard_mutation >>
+          steps:
+            - run:
+                name: Run the authorization guard mutation gate
+                no_output_timeout: 20m
+                command: |
+                  nvm use
+                  mkdir -p artifacts/authorization-mutation
+                  FM043_DISPOSABLE_TEST_SERVICES=1 timeout --kill-after=30s 18000s \
+                    node support/tooling/fastify-retirement/authorization-mutation.cjs \
+                      --output artifacts/authorization-mutation/results.json
+            - store_artifacts:
+                path: artifacts/authorization-mutation
       - run:
           name: Verify Prisma persistence on isolated MongoDB
           no_output_timeout: 10m
@@ -1029,11 +1126,16 @@ jobs:
       - run:
           name: Publish amd64 runtime image
           command: |
-            docker load -i /tmp/docker-images/redbox-portal-test.tar
+            docker load -i /tmp/docker-images/redbox-portal-runtime.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
             source support/build/docker-build-vars.sh
-            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-amd64"
+            docker tag redbox-portal:runtime "${REPO}:${DEPLOY_TAG}-amd64"
+            bash support/build/docker-audit-runtime.sh "${REPO}:${DEPLOY_TAG}-amd64"
+            bash support/build/docker-push-digest.sh "${REPO}:${DEPLOY_TAG}-amd64" /tmp/release-digests/runtime-amd64
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-amd64
   publish-runtime-amd64:
     docker:
       - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
@@ -1045,6 +1147,10 @@ jobs:
           name: Publish amd64 runtime image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime ""
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-amd64
   publish-runtime-arm64:
     machine:
       image: ubuntu-2404:current
@@ -1057,6 +1163,10 @@ jobs:
           name: Publish arm64 runtime image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-arm64
   publish-runtime-pdfgen-amd64:
     docker:
       - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
@@ -1068,6 +1178,10 @@ jobs:
           name: Publish amd64 runtime pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime_pdfgen "-pdfgen"
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-pdfgen-amd64
   publish-runtime-pdfgen-arm64:
     machine:
       image: ubuntu-2404:current
@@ -1080,6 +1194,10 @@ jobs:
           name: Publish arm64 runtime pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-pdfgen-arm64
   deploy-runtime-pdfgen:
     docker:
       - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
@@ -1096,7 +1214,12 @@ jobs:
             source support/build/docker-build-vars.sh
 
             docker tag redbox-portal:runtime-pdfgen-test "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
+            bash support/build/docker-audit-runtime.sh "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
+            bash support/build/docker-push-digest.sh "${REPO}:${DEPLOY_TAG}-pdfgen-amd64" /tmp/release-digests/runtime-pdfgen-amd64
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-pdfgen-amd64
   deploy-arm64:
     machine:
       image: ubuntu-2404:current
@@ -1109,6 +1232,10 @@ jobs:
           name: Build and push arm64 runtime image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-arm64
   deploy-runtime-pdfgen-arm64:
     machine:
       image: ubuntu-2404:current
@@ -1121,12 +1248,18 @@ jobs:
           name: Build and push arm64 pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - release-digests/runtime-pdfgen-arm64
   publish-manifest:
     docker:
       - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - checkout
       - setup_remote_docker
+      - attach_workspace:
+          at: /tmp
       - run:
           name: Create and push multi-arch manifest
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh
@@ -1136,6 +1269,8 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      - attach_workspace:
+          at: /tmp
       - run:
           name: Create and push multi-arch pdfgen manifest
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-pdfgen"
@@ -1220,6 +1355,9 @@ orbs:
   docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
+  authorization_guard_mutation:
+    type: boolean
+    default: false
   npm_publish_mode:
     type: enum
     enum:

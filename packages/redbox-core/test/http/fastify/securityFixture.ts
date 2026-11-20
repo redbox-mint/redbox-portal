@@ -1,18 +1,11 @@
 import { createHash } from 'node:crypto';
 import { request } from 'node:http';
-import express, { type Router, type Request, type Response as ExpressResponse, type NextFunction } from 'express';
+
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime } from '../../../src/application';
-import { HttpIdentity } from '../../../src/http/express/identity';
-import { ExpressHost } from '../../../src/http/express/ExpressHost';
-import { prepareHttpMiddleware, httpAction, httpErrorHandler } from '../../../src/http/express/middleware';
-import {
-  createHttpPolicies,
-  bindHttpPolicies,
-  requestContext as expressContext,
-} from '../../../src/http/express/policies';
-import { createHttpCsrf } from '../../../src/http/express/csrf';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
+
 import type { FastifyPreparation } from '../../../src/http/fastify/preparation';
 import { FastifyHost } from '../../../src/http/fastify/FastifyHost';
 import { prepareNativeParsers } from '../../../src/http/fastify/parsers';
@@ -20,13 +13,12 @@ import { installSafeHttpErrors, type SafeHttpObservers } from '../../../src/http
 import { prepareNativeAuthentication } from '../../../src/http/fastify/authentication';
 import { createNativePolicies, bindNativeRouteSecurity } from '../../../src/http/fastify/policies';
 import { createNativeCsrf } from '../../../src/http/fastify/csrf';
-import { composeRoutes, expressRuntimePath, type RouteRegistration } from '../../../src/http/fastify/routes';
+import { composeRoutes, type RouteRegistration } from '../../../src/http/fastify/routes';
 import { requestContext } from '../../../src/http';
 import { prepareNativeSessions } from '../../../src/http/fastify/session';
 import { prepareSessionIndexes } from '../../../src/persistence/sessions/indexes';
 import { mongoFixture } from '../mongoFixture';
-import { productionActors } from './securityProductionFixture';
-
+import { productionActors } from './productionActors';
 export const canonical = 'https://portal.example.invalid';
 export function rawRequest(
   url: string,
@@ -36,37 +28,40 @@ export function rawRequest(
   extra: Record<string, string> = {},
   framed = true
 ) {
-  return new Promise<{ status: number; statusMessage: string; text: string; headers: Record<string, any> }>(
-    (resolve, reject) => {
-      const req = request(
-        url,
-        {
-          method,
-          headers: {
-            ...extra,
-            ...(type === undefined ? {} : { 'Content-Type': type }),
-            ...(framed ? { 'Content-Length': Buffer.byteLength(body) } : {}),
-          },
+  return new Promise<{
+    status: number;
+    statusMessage: string;
+    text: string;
+    headers: Record<string, any>;
+  }>((resolve, reject) => {
+    const req = request(
+      url,
+      {
+        method,
+        headers: {
+          ...extra,
+          ...(type === undefined ? {} : { 'Content-Type': type }),
+          ...(framed ? { 'Content-Length': Buffer.byteLength(body) } : {}),
         },
-        res => {
-          const chunks: Buffer[] = [];
-          res.on('data', chunk => chunks.push(chunk));
-          res.on('end', () =>
-            resolve({
-              status: res.statusCode!,
-              statusMessage: res.statusMessage!,
-              text: Buffer.concat(chunks).toString(),
-              headers: res.headers,
-            })
-          );
-        }
-      );
-      req.setTimeout(15000, () => req.destroy(new Error('Raw request timeout')));
-      req.on('error', reject);
-      if (framed) req.end(body);
-      else req.end();
-    }
-  );
+      },
+      res => {
+        const chunks: Buffer[] = [];
+        res.on('data', chunk => chunks.push(chunk));
+        res.on('end', () =>
+          resolve({
+            status: res.statusCode!,
+            statusMessage: res.statusMessage!,
+            text: Buffer.concat(chunks).toString(),
+            headers: res.headers,
+          })
+        );
+      }
+    );
+    req.setTimeout(15000, () => req.destroy(new Error('Raw request timeout')));
+    req.on('error', reject);
+    if (framed) req.end(body);
+    else req.end();
+  });
 }
 export const policyChain = ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'];
 export function route(path = '/:branding/:portal/api/probe', method: 'get' | 'post' = 'post'): RouteRegistration {
@@ -93,7 +88,6 @@ export interface SecurityOptions {
   observers?: SafeHttpObservers;
   /** Test-only native actions; the production family conversion is a later task. */
   action?(req: FastifyRequest, reply: FastifyReply): unknown;
-  mount?(router: Router, input: Record<string, any>): void;
   rawPrefixes?: string[];
   defaults?: boolean;
   /** Inject invalid collaborator-produced values; wire headers remain strings. */
@@ -101,15 +95,11 @@ export interface SecurityOptions {
 }
 export async function securityFixture(native: boolean, options: SecurityOptions = {}) {
   let prepare!: (app: FastifyPreparation) => Promise<void>;
-  let host: FastifyHost | ExpressHost;
+  let host: FastifyHost;
   const mongo = options.mongo
-    ? await mongoFixture(
-        native
-          ? (app, owner) => {
-              host = new FastifyHost(app, { owner, hostname: '127.0.0.1', port: 0, prepare: app => prepare(app) });
-            }
-          : undefined
-      )
+    ? await mongoFixture((app, owner) => {
+        host = new FastifyHost(app, { owner, hostname: '127.0.0.1', port: 0, prepare: app => prepare(app) });
+      })
     : undefined;
   const owner = mongo?.owner ?? { config: {}, log: { warn() {} } };
   const application = mongo?.application ?? new ApplicationRuntime(owner, []);
@@ -215,7 +205,7 @@ export async function securityFixture(native: boolean, options: SecurityOptions 
   const contextBody = (req: any, native: boolean) => {
     let context;
     try {
-      context = native ? requestContext(req) : expressContext(req);
+      context = requestContext(req);
     } catch {
       /* unbranded */
     }
@@ -285,73 +275,7 @@ export async function securityFixture(native: boolean, options: SecurityOptions 
       }
     );
   };
-  if (!host!)
-    host = native
-      ? new FastifyHost(application, { owner, hostname: '127.0.0.1', port: 0, prepare })
-      : new ExpressHost(application, {
-          owner,
-          hostname: '127.0.0.1',
-          port: 0,
-          rootContext: '/portal',
-          prepare: async router => {
-            const auth = await prepareHttpMiddleware(router, {
-              owner,
-              identity,
-              session: session as any,
-              log,
-              parserExclusions: options.rawPrefixes?.map(value => value.replace(/^\/portal/, '')),
-            });
-            const policies = createHttpPolicies({ ...input, authenticate: auth.authenticate } as any);
-            const csrf = createHttpCsrf({ origins: [canonical], authenticateBearer: token => identity.bearer(token) });
-            if (options.mongo) {
-              router.get('/csrfToken', csrf.token);
-              router.get('/__session', (req, res) => {
-                Reflect.set(req.session, 'passport', { user: mongo!.user.id });
-                Reflect.set(req.session, 'authenticationVersion', 6);
-                res.json({ saved: true });
-              });
-            }
-            if (options.mount)
-              options.mount(router, { policies, csrf, policyConfiguration: { '*': policyChain }, log });
-            else
-              for (const r of plan.routes) {
-                const mode =
-                  r.effectiveCsrf ?? (r.declaration.csrf ? (r.declaration.api ? 'apiProtect' : 'protect') : 'none');
-                const guard = mode.startsWith('apiProtect')
-                  ? csrf.apiProtect
-                  : mode === 'protect'
-                    ? csrf.protect
-                    : mode.startsWith('protect except')
-                      ? (req: Request, res: ExpressResponse, next: NextFunction) =>
-                          ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? next() : csrf.protect(req, res, next)
-                      : undefined;
-                const method = r.declaration.method === 'all' ? 'all' : r.declaration.method;
-                router[method](
-                  expressRuntimePath(r.declaration.path),
-                  (req: Request, _res: ExpressResponse, next: NextFunction) => {
-                    if (options.defaults)
-                      Object.assign(req.params as Record<string, unknown>, {
-                        branding: req.params.branding ?? 'default',
-                        portal: req.params.portal ?? 'rdmp',
-                      });
-                    next();
-                  },
-                  ...bindHttpPolicies(r.effectivePolicies, policies),
-                  ...(guard ? [guard] : []),
-                  httpAction(async (req, res) => {
-                    state.trace.push('action');
-                    if (r.declaration.head?.kind === 'deny' && req.method === 'HEAD') {
-                      res.setHeader('Allow', 'GET');
-                      res.status(405).end();
-                      return;
-                    }
-                    res.json(contextBody(req, false));
-                  })
-                );
-              }
-            router.use(httpErrorHandler(log));
-          },
-        });
+  if (!host!) host = new FastifyHost(application, { owner, hostname: '127.0.0.1', port: 0, prepare });
   try {
     if (options.mongo) await prepareSessionIndexes(owner, session, 'ensure');
     await host.initialize();

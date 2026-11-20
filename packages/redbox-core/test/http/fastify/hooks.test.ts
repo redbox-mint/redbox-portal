@@ -1,5 +1,7 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import type {} from './fixtures/hooks.types';
+
 import { request as httpRequest, Server } from 'node:http';
 import sinon from 'sinon';
 import { z } from 'zod';
@@ -12,10 +14,8 @@ import {
   type HttpHookContribution,
   type HttpFallbackContribution,
 } from '../../../dist/http';
-import { resolveExtensionsV2, bindExtensionFactory, type ExtensionProviderV2 } from '../../../dist/extensions';
-import { resolveExtensions } from '../../../dist/extensions/resolution';
-import { composeExtensionApplication } from '../../../dist/extensions/composition';
-import { ExpressHost } from '../../../dist/http/express';
+import { resolveExtensionsV2, type ExtensionProviderV2 } from '../../../dist/extensions';
+
 import { createControllerHost, type ControllerHostOptions } from '../../../dist/http/fastify/composition';
 import { createNativePolicies } from '../../../dist/http/fastify/policies';
 import type { FastifyHost } from '../../../dist/http/fastify/FastifyHost';
@@ -24,7 +24,6 @@ import { coreFallbackReservedPrefixes } from '../../../dist/http/fastify/registr
 import { resolveRequestBrand, resolveRequestActor } from '../../../dist/http/context';
 import { hasActiveHttpRequest, trackHttpRequestWork } from '../../../dist/middleware/requestLifetime';
 import { hasActivePersistenceWork, persistenceOperation } from '../../../dist/persistence/runtime';
-
 const noop = async () => undefined;
 const unusedToken = async (): Promise<never> => {
   throw new Error('Unexpected token adapter');
@@ -53,7 +52,11 @@ const fallback = (options: Partial<HttpFallbackContribution> = {}): HttpFallback
   ...options,
 });
 function exchange(port: number, path: string, method = 'GET', body?: string, type = 'application/json') {
-  return new Promise<{ status: number; text: string; headers: Record<string, unknown> }>((resolve, reject) => {
+  return new Promise<{
+    status: number;
+    text: string;
+    headers: Record<string, unknown>;
+  }>((resolve, reject) => {
     const client = httpRequest(
       {
         hostname: '127.0.0.1',
@@ -77,9 +80,13 @@ function exchange(port: number, path: string, method = 'GET', body?: string, typ
   });
 }
 
+function assertHookObservation(response: Awaited<ReturnType<typeof exchange>>, state: unknown) {
+  const { date, connection, 'keep-alive': keepAlive, 'x-request-id': requestId, ...headers } = response.headers;
+  assertGoldenNext('hooks', { response: { ...response, headers }, state });
+}
 describe('FM-018 scoped hooks and named unmatched fallback', function () {
   this.timeout(10000);
-  const hosts: (FastifyHost | ExpressHost)[] = [];
+  const hosts: FastifyHost[] = [];
   const releases: (() => void)[] = [];
   function barrier() {
     const result = Promise.withResolvers<void>();
@@ -143,7 +150,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       },
     };
   }
-
   for (const method of ['GET', 'HEAD'])
     it(`does not redispatch matched ${method} callNotFound to static assets or fallback`, async () => {
       let staticCalls = 0;
@@ -165,7 +171,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       assert(!f.trace.includes('fallback'));
       assert(!response.text.includes('public asset'));
     });
-
   it('prepares aliases once after hooks and validates their prepared live values', async () => {
     const trace: string[] = [];
     const f = await fixture(
@@ -220,7 +225,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.equal((await exchange(f.host.address()!.port, '/known', 'OPTIONS')).status, 200);
     assert.deepEqual(trace, ['hook'], 'Automatic OPTIONS never prepares action inputs');
   });
-
   const invalid: [string, HttpHookContribution[], RegExp][] = [
     [
       'unknown application scope fields',
@@ -259,7 +263,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       assert.equal(acquired, 0);
       assert.equal(listen.callCount, 0);
     });
-
   it('orders dependencies first with provider/declaration ties and explicit named replacement, without running losing hooks', async () => {
     const calls: string[] = [];
     const h = (name: string, requires?: string[], replaces?: true) =>
@@ -290,10 +293,9 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     const f = await fixture({
       hooks: [reg(h('core')), reg(h('dependent', ['z'])), reg(h('eligible')), reg(h('a'), 'a'), reg(h('z'), 'z')],
     });
-    await exchange(await f.start(), '/known');
+    assertHookObservation(await exchange(await f.start(), '/known'), { calls });
     assert.deepEqual(calls, ['core', 'eligible', 'a', 'z', 'dependent']);
   });
-
   it('runs parsed/authenticated/context hooks before access and beforeAction after CSRF, core prelude and validation', async () => {
     const trace: string[] = [];
     const f = await fixture(
@@ -333,7 +335,14 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
           },
           prepare: async app => {
             app.addHook('preValidation', async request => {
-              assert.equal((request.body as { title: string }).title, 'valid');
+              assert.equal(
+                (
+                  request.body as {
+                    title: string;
+                  }
+                ).title,
+                'valid'
+              );
               trace.push('authentication');
             });
           },
@@ -382,7 +391,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       'action',
     ]);
   });
-
   for (const denied of ['policy', 'csrf', 'validation'])
     it(`never runs beforeAction or action after ${denied} denies`, async () => {
       const trace: string[] = [];
@@ -435,7 +443,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       assert.deepEqual(trace, []);
       assert.deepEqual(f.trace, []);
     });
-
   for (const stage of ['afterAuthentication', 'beforeAction'] as const)
     for (const target of ['route', 'fallback'] as const)
       it(`terminates ${target} at ${stage} while slow asynchronous onSend owns the response`, async () => {
@@ -497,7 +504,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
         assert.deepEqual(calls, ['early']);
         assert.deepEqual(f.trace, []);
       });
-
   it('applies route scope only to named targets and explicit application scope to unmatched requests', async () => {
     const seen: string[] = [];
     const f = await fixture({
@@ -522,16 +528,15 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       ],
     });
     const port = await f.start();
-    await exchange(port, '/known');
+    assertHookObservation(await exchange(port, '/known'), { seen });
     assert.deepEqual(seen, ['route', 'application']);
     seen.length = 0;
-    await exchange(port, '/missing');
+    assertHookObservation(await exchange(port, '/missing'), { seen });
     assert.deepEqual(seen, ['application']);
     seen.length = 0;
-    await exchange(port, '/healthz');
+    assertHookObservation(await exchange(port, '/healthz'), { seen });
     assert.equal(seen.length, 0);
   });
-
   for (const stage of ['onResponse', 'onError'] as const)
     it(`isolates ${stage} mutation, throws/rejections and return values using detached snapshots and redacting logs`, async () => {
       const seen: unknown[] = [];
@@ -588,13 +593,19 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       assert.equal(result.status, stage === 'onError' ? 500 : 200);
       if (stage === 'onResponse') assert.equal(result.text, 'original');
       assert.equal(seen.at(-1), 'last');
-      assert.equal((seen[0] as { url: string }).url, '/known');
+      assert.equal(
+        (
+          seen[0] as {
+            url: string;
+          }
+        ).url,
+        '/known'
+      );
       assert.equal(f.logs.filter((record: any) => record.code === 'HTTP_OBSERVATION_FAILED').length, 2);
       assert(!JSON.stringify({ seen, logs: f.logs, result }).includes('secret'));
       assert.deepEqual(f.trace, ['action']);
       void caught;
     });
-
   const badFallbacks: [string, HttpFallbackContribution[], RegExp][] = [
     ['missing target', [fallback({ replaces: true })], /no target/],
     ['equal prefix', [fallback(), fallback({ name: 'other', prefix: '/' })], /equal fallback/],
@@ -632,7 +643,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       /native security/
     );
   });
-
   it('chooses longest segment prefix and resolves a named replacement independently of declaration order', async () => {
     const f = await fixture({
       fallbacks: [
@@ -648,7 +658,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     // Replaced longest match runs just once; no fallback chain or fallthrough to less specific access.
     assert.deepEqual(f.trace, ['fallback', 'fallback', 'fallback']);
   });
-
   it('cannot intercept probes, closed admission, existing routes, HEAD/405, OPTIONS/method misses, malformed paths or reserved asset roots', async () => {
     const f = await fixture({
       fallbacks: [reg(fallback())],
@@ -695,7 +704,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.deepEqual(f.trace, ['action']);
     assert.equal((await exchange(port, '/images-other')).text, 'fallback');
   });
-
   for (const root of ['', '/research/v6'])
     it(`preserves fallback prefix boundaries and reserved roots under ${root || 'global root'}`, async () => {
       const f = await fixture({
@@ -710,7 +718,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       assert.equal((await exchange(port, root + '/known', 'POST')).status, 404);
       if (root) assert.equal((await exchange(port, '/unmatched')).status, 404);
     });
-
   it('does not fall through from a denied specific fallback to a public broad fallback', async () => {
     const f = await fixture({
       fallbacks: [reg(fallback()), reg(fallback({ name: 'specific', prefix: '/private', access: { kind: 'deny' } }))],
@@ -720,7 +727,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.equal((await exchange(await f.start(), '/private/missing')).status, 403);
     assert.deepEqual(f.trace, []);
   });
-
   it('resolves only declared fallback branding through native policies and fails closed when required context is absent', async () => {
     const policies = createNativePolicies({
       branding: {
@@ -762,7 +768,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.equal((await exchange(port, '/attacker/trusted/research')).status, 404);
     assert.deepEqual(f.trace, ['fallback']);
   });
-
   for (const stage of ['afterAuthentication', 'beforeAction'] as const)
     it(`owns a disconnected pending ${stage} hook until it settles`, async () => {
       const entered = barrier(),
@@ -813,7 +818,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       await f.host.stop();
       assert.equal(closed, 1);
     });
-
   it('scopes error observation to the selected route even when parsing fails before the request pipeline', async () => {
     const seen: string[] = [];
     const f = await fixture({
@@ -849,7 +853,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.equal((await exchange(await second.start(), '/known', 'POST', '{')).status, 400);
     assert.deepEqual(seen, ['read']);
   });
-
   it('retains existing-handler callNotFound and parser failure without dispatching fallback', async () => {
     const f = await fixture(
       { fallbacks: [reg(fallback())], fallbackReservedPrefixes: coreFallbackReservedPrefixes() },
@@ -861,7 +864,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.equal((await exchange(port, '/missing', 'POST', '{')).status, 400);
     assert.deepEqual(f.trace, ['action', 'fallback']);
   });
-
   it('enforces fallback access and CSRF with a declared context, never inferring it from arbitrary unmatched paths', async () => {
     let permitted = false,
       csrf = false;
@@ -908,7 +910,6 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     assert.deepEqual(seen, Array(3).fill({ branding: 'trusted', portal: 'research' }));
     assert.deepEqual(f.trace, ['fallback']);
   });
-
   for (const stage of ['afterAuthentication', 'beforeAction', 'onResponse', 'onError'] as const)
     it(`retains asynchronous ${stage} work after response/disconnect through stop deadline and retry`, async () => {
       const entered = barrier(),
@@ -970,15 +971,14 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
       assert.equal(completed, 1);
       assert.equal(closed, 1);
     });
-
   for (const target of ['/known', '/missing'])
-    it(`retains Express beforeRoutes/afterRoutes dispatch differential for ${target}`, async () => {
+    it(`preserves before-hook and unmatched fallback dispatch for ${target}`, async () => {
       const traces: string[][] = [];
       const statuses: number[] = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const trace: string[] = [];
         traces.push(trace);
-        if (native) {
+        {
           const f = await fixture(
             {
               hooks: [
@@ -999,66 +999,15 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
               return reply.send('ok');
             }
           );
-          statuses.push((await exchange(await f.start(), target)).status);
+          const response = await exchange(await f.start(), target);
+          statuses.push(response.status);
+          assertHookObservation(response, { trace });
           await f.host.stop();
-        } else {
-          const resolved = resolveExtensions([
-            {
-              name: 'core',
-              root: '.',
-              declaration: {
-                apiVersion: 1,
-                handlers: [
-                  {
-                    name: 'before',
-                    create: () => (_req, _res, next) => {
-                      trace.push('before');
-                      next();
-                    },
-                  },
-                  {
-                    name: 'route',
-                    create: () => (_req, res) => {
-                      trace.push('route');
-                      res.send('ok');
-                    },
-                  },
-                  {
-                    name: 'after',
-                    create: () => (_req, res) => {
-                      trace.push('after');
-                      res.send('ok');
-                    },
-                  },
-                ],
-                routes: [{ name: 'read', method: 'get', path: '/known', handler: 'route', access: 'public' }],
-                middleware: [
-                  { name: 'before', stage: 'beforeRoutes', handler: 'before' },
-                  { name: 'after', stage: 'afterRoutes', handler: 'after' },
-                ],
-              },
-            },
-          ]);
-          const composition = composeExtensionApplication({ config: {}, log: { warn() {} } }, resolved, {
-            module: () => () => {
-              throw new Error('unused');
-            },
-            handler: item => bindExtensionFactory(item.declaration, undefined as never),
-          });
-          const host = new ExpressHost(composition.application, {
-            hostname: '127.0.0.1',
-            port: 0,
-            prepare: composition.prepare,
-          });
-          hosts.push(host);
-          await host.initialize();
-          await host.activate();
-          statuses.push((await exchange(host.address()!.port, target)).status);
-          await host.stop();
         }
       }
-      assert.deepEqual(statuses, [200, 200]);
-      assert.deepEqual(traces[0], traces[1]);
+      assert.deepEqual(statuses, [200]);
       assert.deepEqual(traces[0], target === '/known' ? ['before', 'route'] : ['before', 'after']);
     });
 });
+
+goldenControls('hooks');

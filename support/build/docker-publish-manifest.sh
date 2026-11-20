@@ -2,13 +2,29 @@
 set -euo pipefail
 
 SUFFIX="${1:-}"
+receipt_dir="${2:-/tmp/release-digests}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/docker-build-vars.sh"
 
 target_image="${REPO}:${DEPLOY_TAG}${SUFFIX}"
-amd64_image="${target_image}-amd64"
-arm64_image="${target_image}-arm64"
+read_platform_image() {
+  local arch="$1" tag="${target_image}-$1" receipt record digest
+  receipt="${receipt_dir}/runtime${SUFFIX}-${arch}"
+  if [[ ! -f "$receipt" ]]; then
+    printf 'Missing audited push receipt for %s\n' "$tag" >&2
+    return 1
+  fi
+  record="$(cat "$receipt")"
+  digest="${record#"$tag "}"
+  if [[ "$record" != "$tag $digest" || ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+    printf 'Invalid audited push receipt for %s\n' "$tag" >&2
+    return 1
+  fi
+  printf '%s@%s\n' "$REPO" "$digest"
+}
+amd64_image="$(read_platform_image amd64)"
+arm64_image="$(read_platform_image arm64)"
 max_attempts="${DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS:-5}"
 base_delay_seconds="${DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS:-60}"
 

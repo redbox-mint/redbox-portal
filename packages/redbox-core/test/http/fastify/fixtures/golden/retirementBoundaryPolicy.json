@@ -1,0 +1,108 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "aaf-key": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication rejected\",\"user\":false}"
+      },
+      "state": {
+        "keyRequests": [
+          "unverified-provider-assertion"
+        ],
+        "audits": 0,
+        "authenticated": false
+      }
+    },
+    "immutable-tenant": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 500,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "48"
+          },
+          "text": "{\"message\":\"Internal server error\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "lookups": 2
+      }
+    },
+    "private-server-headers": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "x-private-record": "never-send-marker",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "location": "/internal/sensitive",
+            "set-cookie": [
+              "test-credential=<session>; Path=/"
+            ],
+            "www-authenticate": "Private abc",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 500,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "48"
+          },
+          "text": "{\"message\":\"Internal server error\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "unchanged": true
+      }
+    }
+  },
+  "shared": {}
+}

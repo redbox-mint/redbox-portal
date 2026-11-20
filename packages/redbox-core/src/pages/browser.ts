@@ -1,4 +1,4 @@
-import { preparePageRendering, renderPageShell, type PageRenderingInput, type PageRequest } from './rendering';
+import { preparePageRendering, renderPageShell, type PageRenderingInput, type PageRenderingFacts } from './rendering';
 import type { Forms } from '../forms/Forms';
 import type { Services as Dashboards } from '../dashboards/DashboardTypes';
 import type { Services as Reports } from '../queries/Reports';
@@ -15,13 +15,13 @@ export interface BrowserPageInput extends PageRenderingInput {
   dashboards: Pick<Dashboards.DashboardTypes, 'getDashboardView' | 'getRecordTypeDashboardConfig'>;
   reports: Pick<Reports.Reports, 'findAllReportsForBrand'>;
   loadRecord(oid: string): Promise<RecordModel | null>;
-  canCreate(context: PageRequest['context'], recordType: string): Promise<boolean>;
+  canCreate(context: PageRenderingFacts['context'], recordType: string): Promise<boolean>;
   configModel(key: string): Promise<{ title: string } | undefined>;
 }
 type Page = Awaited<ReturnType<typeof preparePageRendering>>;
 type Route = (typeof pageRoutes)[number];
 type State = {
-  request: PageRequest;
+  request: PageRenderingFacts;
   input: BrowserPageInput;
   page: Page;
   route: Route;
@@ -58,7 +58,7 @@ export const editPage: BrowserPageOperation = async state => {
   }
 };
 export const dashboardViewPage: BrowserPageOperation = async ({ input, request, page }) => {
-  const definition = input.dashboards.getDashboardView(String(request.params.dashboardView));
+  const definition = input.dashboards.getDashboardView(String(request.routeParameters.dashboardView));
   if (
     !definition?.name ||
     !definition.titleLabelKey ||
@@ -85,19 +85,20 @@ export const dashboardPage: BrowserPageOperation = async ({ input, request, page
     page.locals.recordType
   );
   Object.assign(page.locals, {
-    packageType: request.query.packageType ?? (page.locals.recordType === 'workspace' ? 'workspace' : ''),
-    dashboardType: page.locals.recordType === 'workspace' ? 'workspace' : (request.query.dashboardType ?? 'standard'),
+    packageType: request.queryValues.packageType ?? (page.locals.recordType === 'workspace' ? 'workspace' : ''),
+    dashboardType:
+      page.locals.recordType === 'workspace' ? 'workspace' : (request.queryValues.dashboardType ?? 'standard'),
     dashboardView: '',
     showAdminSideBar: config?.showAdminSideBar === true,
-    titleLabel: request.query.titleLabel
-      ? page.t(String(request.query.titleLabel))
+    titleLabel: request.queryValues.titleLabel
+      ? page.t(String(request.queryValues.titleLabel))
       : page.t('edit-dashboard') + ' ' + page.t(page.locals.recordType + '-title-label'),
   });
 };
 export const appConfigPage: BrowserPageOperation = async ({ input, request, page }) => {
-  const model = await input.configModel(String(request.params.appConfigId));
+  const model = await input.configModel(String(request.routeParameters.appConfigId));
   if (!model) return page.error(404);
-  Object.assign(page.locals, { configKey: request.params.appConfigId, formTitle: model.title });
+  Object.assign(page.locals, { configKey: request.routeParameters.appConfigId, formTitle: model.title });
 };
 export const reportsPage: BrowserPageOperation = async ({ input, request, page }) => {
   page.locals.reports = await singleHttpResult(
@@ -105,10 +106,10 @@ export const reportsPage: BrowserPageOperation = async ({ input, request, page }
   );
 };
 
-/** The same guarded action runs on both transports. Request facts are supplied
+/** The guarded browser action uses rendering facts. Request facts are supplied
  * after hooks; domain guards precede the legacy rendering failure mapping. */
 export async function browserPage(
-  request: PageRequest,
+  request: PageRenderingFacts,
   input: BrowserPageInput,
   route: Route,
   operation: BrowserPageOperation,
@@ -117,10 +118,10 @@ export async function browserPage(
 ) {
   const { brand, actor } = request.context;
   if (actor && !actor.roles.some(role => role.brandId === brand.id)) return { status: 403, headers: {} };
-  if (Object.values(request.query).some(value => typeof value !== 'string')) return { status: 400, headers: {} };
-  const selected = request.params.oid ?? (mode === 'edit' ? request.query.oid : undefined);
+  if (Object.values(request.queryValues).some(value => typeof value !== 'string')) return { status: 400, headers: {} };
+  const selected = request.routeParameters.oid ?? (mode === 'edit' ? request.queryValues.oid : undefined);
   const oid = typeof selected === 'string' ? selected.trim() : undefined;
-  if (request.params.oid !== undefined && !oid) return { status: 400, headers: {} };
+  if (request.routeParameters.oid !== undefined && !oid) return { status: 400, headers: {} };
   // Reduced policies must never turn a missing actor into a caught TypeError/500.
   if (oid && !actor) return { status: 403, headers: {} };
   const page = await preparePageRendering(request, input, applyHeaders);

@@ -1,20 +1,21 @@
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import sinon from 'sinon';
 import { Session } from 'node:inspector/promises';
-import type { RequestHandler } from 'express';
+
 import {
   integrationDeclarations,
   brandingOperationRoutes,
   vocabularyIntegrationRoutes,
 } from '../../../src/http/integrationRoutes';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedIntegrationExpress, integrationExpressActionHook } from './retainedIntegrationExpress';
+
 import { integrationProviderFixture } from './integrationProviderFixture';
 import { seedIntegrations, normalizeIntegrations } from './integrationDifferentialSupport';
 import { wire, session, settleMutationWork } from './mutationDifferentialSupport';
-import { replaceRequest, onReplacement } from './requestReplacementHook';
-
+import { onReplacement } from './requestReplacementHook';
 const routes = [
   ...brandingOperationRoutes.filter(route => ['createPreview', 'preview'].includes(route.action)),
   ...vocabularyIntegrationRoutes.filter(route => route.action === 'sync'),
@@ -26,27 +27,14 @@ const observations = new Map<string, unknown[]>();
 describe('FM-027 production beforeAction replacement differential', function () {
   this.timeout(300000);
   before(async () => {
-    const hook: RequestHandler = (req, _res, next) => {
-      void replaceRequest(req, true).then(() => next(), next);
-    };
-    const retained = await retainedIntegrationExpress(hook),
-      provider = await integrationProviderFixture();
+    const provider = await integrationProviderFixture();
     try {
-      for (const mode of ['retained', 'express', 'fastify'] as const) {
-        const f = await referenceProductionFixture(
-          mode === 'fastify',
-          undefined,
-          mode === 'retained'
-            ? retained.install
-            : mode === 'express'
-              ? () => integrationExpressActionHook(hook)
-              : undefined,
-          {
-            declarations: integrationDeclarations,
-            configuration: provider.configuration,
-            hooksModule: require.resolve('./requestReplacementHook'),
-          }
-        );
+      for (const mode of ['fastify']) {
+        const f = await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
+          declarations: integrationDeclarations,
+          configuration: provider.configuration,
+          hooksModule: require.resolve('./requestReplacementHook'),
+        });
         try {
           const login = await session(f),
             ids = await seedIntegrations(f);
@@ -118,8 +106,8 @@ describe('FM-027 production beforeAction replacement differential', function () 
               // This preparer has exactly one await; the domain lookup below
               // independently asserts one actual preparation, with no spy on
               // the frozen declaration. Optional-body preparation is synchronous.
-              assert.equal(runCount('brandingOperations'), mode === 'retained' ? 0 : 2 * Number(preparedPreview));
-              assert.equal(runCount('vocabularyIntegrations'), mode === 'retained' ? 0 : Number(preparedSync));
+              assert.equal(runCount('brandingOperations'), 2 * Number(preparedPreview));
+              assert.equal(runCount('vocabularyIntegrations'), Number(preparedSync));
               assert.equal(
                 lookup.callCount,
                 Number(preparedPreview),
@@ -148,7 +136,6 @@ describe('FM-027 production beforeAction replacement differential', function () 
         }
       }
     } finally {
-      await retained.close();
       await provider.close();
     }
     if (process.env.FM027_HOOK_REPORT)
@@ -158,9 +145,10 @@ describe('FM-027 production beforeAction replacement differential', function () 
     const key = `${route.controller}.${route.action} ${route.path} ${field} v${version}`;
     it(key, () => {
       const entries = observations.get(key)!;
-      assert.equal(entries.length, 3);
-      assert.deepEqual(entries[1], entries[0]);
-      assert.deepEqual(entries[2], entries[0]);
+      assert.equal(entries.length, 1);
+      assertProductionContract('prepared', key, entries[0]);
     });
   }
 });
+
+goldenControls('prepared');

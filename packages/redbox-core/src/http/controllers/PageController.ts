@@ -2,7 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { defineController } from '../controllers';
 import { browserPage, shellPage, type BrowserPageInput, type BrowserPageOperation } from '../../pages/browser';
 import type { RouteBinding } from '../fastify/routes';
-import { nativePageRequest, sendPageResponse, pagePreparationFailure } from '../fastify/pages';
+import { nativePageRenderingFacts, sendPageResponse, pagePreparationFailure } from '../fastify/pages';
 import { sendLoginRedirect } from '../fastify/responses';
 import { pageRoutes } from '../pageRoutes';
 import { coreRouteName } from '../fastify/routes';
@@ -30,7 +30,7 @@ export async function runNativePage(
   let result;
   try {
     result = await browserPage(
-      nativePageRequest(request, input.rendering, () => input.csrfToken(request)),
+      nativePageRenderingFacts(request, input.rendering, () => input.csrfToken(request)),
       input.rendering,
       route,
       operation,

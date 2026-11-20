@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { MongoClient, ObjectId } from 'mongodb';
 import { ApplicationRuntime } from '../../src/application';
 import { bindExtensionFactory, bindExtensionWork } from '../../src/extensions';
-import { composeExtensionApplication } from '../../src/extensions/composition';
-import { resolveExtensions } from '../../src/extensions/resolution';
+import { extensionDataFixture } from '../helpers/extensionDataFixture';
+import { resolveExtensionData } from '../../src/extensions/resolution';
 import { initializePersistence, persistenceStatus } from '../../src/persistence/runtime';
 import { ensureMigrationPersistenceIndex } from '../../src/persistence/migration/preflight';
 import { getMigrationLedgerRepository } from '../../src/persistence/migration/runtime';
@@ -57,13 +57,12 @@ describe('ordered startup with the real migration ledger', function () {
       });
       events.push(name);
     };
-    const resolved = resolveExtensions(
+    const resolved = resolveExtensionData(
       [
         {
           name: 'core',
           root: '.',
           declaration: {
-            apiVersion: 1,
             modules: [
               {
                 name: 'reference',
@@ -80,7 +79,6 @@ describe('ordered startup with the real migration ledger', function () {
           name: 'high',
           root: '.',
           declaration: {
-            apiVersion: 1,
             migrations: [
               {
                 name: '002-second',
@@ -98,7 +96,6 @@ describe('ordered startup with the real migration ledger', function () {
           name: 'low',
           root: '.',
           declaration: {
-            apiVersion: 1,
             migrations: [{ name: '001-first', requires: ['reference'], run: async () => write('first') }],
             bootstrap: [{ name: 'low-bootstrap', requires: ['reference'], run: async () => write('low') }],
           },
@@ -106,7 +103,7 @@ describe('ordered startup with the real migration ledger', function () {
       ],
       ['high']
     );
-    const { application } = composeExtensionApplication(
+    const { application } = extensionDataFixture(
       selectedOwner,
       resolved,
       {

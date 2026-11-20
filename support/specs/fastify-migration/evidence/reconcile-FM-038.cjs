@@ -79,14 +79,19 @@ function inventory() {
       after: afterContributions,
     };
   });
-  const tracked = execFileSync('git', ['ls-files', '*.ts', '*.js', '*.cjs', '*.mjs'], {
-    cwd: root,
-    encoding: 'utf8',
-    timeout: 10000,
-  })
+  const tracked = execFileSync(
+    'git',
+    ['ls-files', '--cached', '--others', '--exclude-standard', '*.ts', '*.js', '*.cjs', '*.mjs'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 10000,
+    }
+  )
     .trim()
     .split('\n');
   const registrations = tracked
+    .filter(file => fs.existsSync(path.join(root, file)))
     .filter(file => !/(?:^|\/)(?:test|templates|evidence|documentation)\//.test(file))
     .filter(file =>
       /(?:export\s+function\s+registerRedboxExtension\s*\(|exports\.registerRedboxExtension\s*=)/.test(

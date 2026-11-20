@@ -1,0 +1,203 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "multipart-view-1.0": {
+      "wire": {
+        "status": 500,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"message\":\"Error sending datastreams upstream.\"}"
+      },
+      "state": {
+        "claims": 1,
+        "finalizations": 0,
+        "staged": [],
+        "metadata": {
+          "title": "visible concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        }
+      }
+    },
+    "multipart-view-2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "740"
+        },
+        "text": "{\"errors\":[{\"code\":\"record-validation-edit-unauthorized\",\"title\":\"@record-save-record-validation-edit-unauthorized\"}],\"meta\":{\"success\":false,\"oid\":\"reference-record\",\"message\":\"\",\"metadata\":{\"title\":\"visible concurrent winner\"},\"totalItems\":0,\"items\":[],\"outcome\":\"not-saved\",\"problems\":[{\"kind\":\"authorization\",\"phase\":\"response\",\"issues\":[{\"message\":\"@record-save-record-validation-edit-unauthorized\",\"code\":\"record-validation-edit-unauthorized\"}]}],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"00000000-0000-0000-0000-000000000000\",\"context\":{\"requestId\":\"00000000-0000-0000-0000-000000000000\"},\"concurrency\":{\"revision\":1,\"entityTag\":\"\\\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\\\"\"}}}"
+      },
+      "state": {
+        "claims": 1,
+        "finalizations": 0,
+        "staged": [],
+        "metadata": {
+          "title": "visible concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        }
+      }
+    },
+    "restoreRecord-1.0": {
+      "wire": {
+        "status": 500,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.3._jqfziDXe0fuHUor3HnSsTvBi9yKAe6zZcILsCmOtm4\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "32"
+        },
+        "text": "{\"message\":\"Record save failed\"}"
+      },
+      "state": {
+        "claims": 1,
+        "metadata": {
+          "title": "visible concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revisionIncrement": 1
+      }
+    },
+    "restoreRecord-2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.3._jqfziDXe0fuHUor3HnSsTvBi9yKAe6zZcILsCmOtm4\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "738"
+        },
+        "text": "{\"errors\":[{\"code\":\"record-validation-edit-unauthorized\",\"title\":\"@record-save-record-validation-edit-unauthorized\"}],\"meta\":{\"success\":false,\"oid\":\"deleted-record\",\"message\":\"\",\"metadata\":{\"title\":\"visible concurrent winner\"},\"totalItems\":0,\"items\":[],\"outcome\":\"not-saved\",\"problems\":[{\"kind\":\"authorization\",\"phase\":\"response\",\"issues\":[{\"message\":\"@record-save-record-validation-edit-unauthorized\",\"code\":\"record-validation-edit-unauthorized\"}]}],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"00000000-0000-0000-0000-000000000000\",\"context\":{\"requestId\":\"00000000-0000-0000-0000-000000000000\"},\"concurrency\":{\"revision\":3,\"entityTag\":\"\\\"rb-record-v1.3._jqfziDXe0fuHUor3HnSsTvBi9yKAe6zZcILsCmOtm4\\\"\"}}}"
+      },
+      "state": {
+        "claims": 1,
+        "metadata": {
+          "title": "visible concurrent winner"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "different-user"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revisionIncrement": 1
+      }
+    },
+    "permission-redaction/1.0": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "4"
+        },
+        "text": "null"
+      },
+      "state": {
+        "revision": 1,
+        "metadata": {
+          "title": "Reference"
+        },
+        "authorization": {
+          "view": [
+            "private-user"
+          ],
+          "edit": [],
+          "viewRoles": [],
+          "editRoles": [],
+          "editPending": null,
+          "viewPending": null
+        }
+      }
+    },
+    "permission-redaction/2.0": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "502"
+        },
+        "text": "{\"data\":null,\"meta\":{\"success\":true,\"oid\":\"reference-record\",\"message\":\"\",\"metadata\":null,\"totalItems\":0,\"items\":[],\"outcome\":\"saved\",\"problems\":[],\"completion\":{\"attachments\":{\"status\":\"not-required\",\"items\":[]}},\"requestId\":\"00000000-0000-0000-0000-000000000000\",\"context\":{\"requestId\":\"00000000-0000-0000-0000-000000000000\"},\"concurrency\":{\"mode\":\"last-write-wins\",\"revision\":1,\"currentRevision\":1,\"entityTag\":\"\\\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\\\"\",\"resolution\":\"direct\"}}}"
+      },
+      "state": {
+        "revision": 1,
+        "metadata": {
+          "title": "Reference"
+        },
+        "authorization": {
+          "view": [
+            "private-user"
+          ],
+          "edit": [],
+          "viewRoles": [],
+          "editRoles": [],
+          "editPending": null,
+          "viewPending": null
+        }
+      }
+    }
+  },
+  "shared": {}
+}

@@ -7,10 +7,10 @@ import * as sinon from 'sinon';
 import { Services as SecurityServices } from '../../src/services/SecurityEventService';
 import { Services as RecordServices } from '../../src/services/RecordsService';
 import { Services as UserServices } from '../../src/services/UsersService';
-import type { Request, Response } from 'express';
-import { authenticationFailureEvent } from '../../src/http/express/login';
+
+import { authenticationFailureEvent } from '../../src/authentication/events';
 import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
-import { RequestDetails } from '../../src/model/RequestDetails';
+
 import { DEFAULT_SIEM_REDACTION } from '../../src/configmodels/SiemConfiguration';
 import { limitPayloadSize, redactForSiem } from '../../src/services/siem/SiemPayloadRedactor';
 import { createDomainFixture, createQueryObject } from './testHelper';
@@ -95,33 +95,19 @@ describe('SIEM capture and privacy regression boundaries', () => {
     sinon.restore();
   });
   const tick = () => new Promise<void>(resolve => setImmediate(resolve));
-  // The fixtures provide the Express fields exercised here; socket and
-  // transport internals are intentionally absent. Check supplied fields before
-  // completing the transport type, so public calls keep their real signatures.
-  const request = (brand: string): Request => {
-    const fixture: Partial<Request> = {
+  // Sensitive request details must never escape the neutral security-event input.
+  const request = (brand: string) => {
+    const fixture = {
       params: { branding: brand, portal: 'rdmp' },
-      session: { branding: brand } as Request['session'],
+      session: { branding: brand },
       method: 'POST',
       path: '/login',
       headers: { 'user-agent': 'PRIVATE-AGENT', authorization: 'PRIVATE-TOKEN' },
       ip: 'PRIVATE-IP',
       body: { username: 'alice', password: 'PRIVATE-PASSWORD' },
       cookies: { session: 'PRIVATE-COOKIE' },
-      get: name => fixture.headers?.[name.toLowerCase()],
     };
-    return fixture as Request;
-  };
-  const responseFixture = () => {
-    const fixture = {
-      send: sinon.stub(),
-      end: sinon.stub(),
-      status: sinon.stub().returnsThis(),
-      json: sinon.stub(),
-      redirect: sinon.stub<[urlOrStatus: string | number, url?: string], void>(),
-      serverError: sinon.stub(),
-    };
-    return fixture as typeof fixture & Response;
+    return fixture;
   };
 
   it('emits exactly once after the actual production record worker persists successfully', async () => {
@@ -240,7 +226,7 @@ describe('SIEM capture and privacy regression boundaries', () => {
       ['other', 'login'],
       ['default', 'logout'],
     ]) {
-      const details = new RequestDetails(request(brand), { brandId: `${brand}-id`, portalId: 'rdmp' });
+      const details = { ...request(brand), brandId: `${brand}-id`, portalId: 'rdmp' };
       await users.addUserAuditEvent(
         { id: 'u1', email: 'PRIVATE-EMAIL', additionalAttributes: { nested: { token: 'PRIVATE-TOKEN', safe: true } } },
         action,

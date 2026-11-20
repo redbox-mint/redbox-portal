@@ -10,14 +10,9 @@ import type { Forms } from '../forms/Forms';
 import type { Services as Dashboards } from '../dashboards/DashboardTypes';
 import type { Services as Reports } from '../queries/Reports';
 import type { BrowserPageInput } from './browser';
-import type { HttpRequestContext } from '../http/context';
-import type { AssetResponse } from './brandingDelivery';
-export interface DynamicAssetRequest {
-  readonly context: HttpRequestContext;
-  readonly params: Record<string, unknown>;
-  readonly query: Record<string, unknown>;
-  readonly session: Record<string, unknown>;
-}
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { requestContext } from '../http/context';
+import { sendAssetBytes, assetMediaType } from '../http/fastify/assets';
 export interface DynamicPageAssetsInput extends Pick<BrowserPageInput, 'loadRecord' | 'canCreate'> {
   artifacts: PageArtifacts;
   config: ClientConfigurationInput & { reusableFormDefinitions?: Parameters<Forms['extractRawTemplates']>[4] };
@@ -29,31 +24,37 @@ export interface DynamicPageAssetsInput extends Pick<BrowserPageInput, 'loadReco
   templates: Templates.Template;
 }
 export async function deliverDynamicAsset(
-  req: DynamicAssetRequest,
-  res: AssetResponse,
+  req: FastifyRequest,
+  res: FastifyReply,
   input: DynamicPageAssetsInput,
   action: string
 ) {
-  const context = req.context,
+  const context = requestContext(req),
     { brand, portal, actor } = context;
+  const params = req.params as Record<string, unknown>;
+  const query = req.query as Record<string, unknown>;
   req.session.branding = brand.name;
   req.session.portal = portal;
   if (action === 'get') {
-    if (req.params.asset !== 'apiClientConfig' && req.params.asset !== 'apiClientConfig.json') {
-      res.status(404).end();
+    if (params.asset !== 'apiClientConfig' && params.asset !== 'apiClientConfig.json') {
+      res.code(404).send();
       return;
     }
-    res.json(
-      clientConfiguration(input.config, brand.name!, portal, String(Reflect.get(req.session, 'langCode') ?? 'en'))
+    sendAssetBytes(
+      req,
+      res.type('application/json'),
+      JSON.stringify(
+        clientConfiguration(input.config, brand.name!, portal, String(Reflect.get(req.session, 'langCode') ?? 'en'))
+      )
     );
     return;
   }
   const modelBrand = Object.assign(new BrandingModel(), brand);
-  if (Object.values(req.query).some(value => typeof value !== 'string')) {
-    res.status(400).end();
+  if (Object.values(query).some(value => typeof value !== 'string')) {
+    res.code(400).send();
     return;
   }
-  const p = (name: string) => String(req.params[name] ?? req.query[name] ?? '');
+  const p = (name: string) => String(params[name] ?? query[name] ?? '');
   let entries: TemplateCompileInput[] = [];
   if (action === 'getFormCompiledItems') {
     const oid = p('oid'),
@@ -61,7 +62,7 @@ export async function deliverDynamicAsset(
     const record = oid ? await input.loadRecord(oid) : null;
     const roles = actor!.roles.map(role => ({ ...role, branding: { id: role.brandId } }));
     if (oid && (!record || record.metaMetadata.brandId !== brand.id)) {
-      res.status(404).end();
+      res.code(404).send();
       return;
     }
     if (
@@ -69,14 +70,14 @@ export async function deliverDynamicAsset(
         ? !(edit ? hasEditAccess : hasViewAccess)(modelBrand, { ...actor, roles }, roles, record)
         : !(await input.canCreate(context, p('recordType')))
     ) {
-      res.status(403).end();
+      res.code(403).send();
       return;
     }
     const form = record
       ? await input.forms.getForm(modelBrand, '', edit, '', record)
       : await singleHttpResult(input.forms.getFormByStartingWorkflowStep(modelBrand, p('recordType'), edit));
     if (!form?.configuration) {
-      res.status(404).end();
+      res.code(404).send();
       return;
     }
     entries = await input.forms.extractRawTemplates(
@@ -107,7 +108,7 @@ export async function deliverDynamicAsset(
     } catch (error) {
       const status = (error as { status?: number }).status;
       if (status === 409 || status === 503) {
-        res.status(status).send((error as Error).message);
+        sendAssetBytes(req, res.code(status), (error as Error).message);
         return;
       }
       throw error;
@@ -115,7 +116,9 @@ export async function deliverDynamicAsset(
   }
   const file = input.artifacts.view('dynamicScriptAsset', brand.name!, portal);
   if (!file) throw new Error('Required script artifact missing.');
-  res.type('text/javascript').send(
+  sendAssetBytes(
+    req,
+    assetMediaType(res, 'text/javascript'),
     input.artifacts.render(file, {
       entries: input.templates
         .buildClientMapping(entries)

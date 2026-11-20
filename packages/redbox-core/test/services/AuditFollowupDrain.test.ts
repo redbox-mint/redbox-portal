@@ -14,7 +14,6 @@ import { StorageServiceResponse } from '../../src/StorageServiceResponse';
 import * as runtime from '../../src/persistence/runtime';
 import { createDomainFixture } from './testHelper';
 import { createServer, get } from 'node:http';
-import { runHttpRequestHandler } from '../../src/middleware/requestLifetime';
 
 describe('Audit security follow-ups during drain', () => {
   afterEach(() => sinon.restore());

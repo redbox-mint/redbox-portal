@@ -1,10 +1,11 @@
-# Companion and progress sockets (FM-035)
+# Companion and progress sockets
 
-The production Fastify composition now selects all seven progress HTTP routes,
+The production Fastify composition owns all seven progress HTTP routes,
 Socket.IO client scripts/maps and Engine.IO transports, and optional Companion
-HTTP and WebSocket paths. FM-035 qualification uses the retained Express host
-at `5cc027e11d95994e1dc9d549427a883d65b3269d` and the production Fastify bootstrap.
-The executable cutover and broader raw-boundary/G5 audit remain separate work.
+HTTP and WebSocket paths. FM-043 removes the first-party Express executable,
+host, middleware and adapters. The FM-035 differential results remain historical
+qualification at their recorded revisions; current gate results are in
+[evidence/FM-043.md](evidence/FM-043.md).
 
 ## Boundary and ownership
 
@@ -18,8 +19,7 @@ namespace reserved against extension fallbacks.
 
 `http/integrations/companion` contains the provider loader, bounded logger,
 transfer/socket owner, canonical popup action and native-to-Express handoff.
-`http/express/companion*` retains compatibility re-exports and the existing Express
-mount. Pure policy selection lives in `http/policyConfiguration`; native security
+There are no Express compatibility re-exports or alternate host. Pure policy selection lives in `http/policyConfiguration`; native security
 never executes Express authentication, session or policy middleware.
 
 | Resource                                    | Acquire / admission                                                                                                                                       | Drain / close owner                                                                                                                            |
@@ -43,9 +43,8 @@ checks, canonical send-token generation and audit ordering for both transports.
 
 All HTTP entry points pass host admission, native parsing, session/authentication,
 trusted brand/portal selection, the retained configured policy chain and CSRF
-before provider dispatch. The committed Express adapter is retained in a separate
-process as the raw-HTTP oracle. Canonical popup/CORS/COOP, body, status, framing and
-representation headers are compared. Paths outside the selected integration only
+before provider dispatch. Native tests preserve canonical popup/CORS/COOP, body,
+status, framing, representation headers, provider work and transfer ownership. Paths outside the selected integration only
 assert namespace exclusion. Unhandled provider paths reach the outer portal
 page fallback through normal host routing.
 
@@ -56,11 +55,37 @@ page fallback through normal host routing.
 | express 5.3.0 and its Request/Response types                             | Companion 7.1.1 returns an Express app and requires real Express request/response prototypes, routing, query parsing and response helpers. One private boundary app establishes these prototypes; it has no portal routes or security middleware. |
 | Companion's express-interceptor, cookie-parser and Grant Express adapter | Provider OAuth callback responses, provider token cookies and OAuth session state. Replacing these internals is outside the public app/socket/emitter API.                                                                                        |
 | express-session / connect-redis in Companion's package graph             | Companion's published standalone/package dependencies; the Fastify adapter starts neither. The portal native Mongo session store remains the only selected store. Redis and periodic-ping options are explicitly refused.                         |
-| Existing first-party Express host and unrelated adapters                 | Retained development oracle/executable until cutover; they are outside FM-021. They are not mounted into Fastify by this integration.                                                                                                             |
 
-No dependency version or lockfile changes. Provider defaults remain those of the
-pinned release. Optional URL-import configuration is explicitly forwarded by both
-hosts (`enableUrlEndpoint`, `allowLocalUrls`, `streamingUpload`, `chunkSize`,
+
+FM-043 keeps exactly two direct Express requirements in core: `express@5.3.0`
+and `@types/express@5.0.6`. Only `http/integrations/companion/fastify.ts` imports
+Express at runtime: its unlistened boundary app establishes real provider
+prototypes and performs the namespace handoff. Only that file and `uploads.ts`
+import provider Request/Response/NextFunction types. They are private implementation
+files; no public declaration or export exposes Express. All generated JavaScript
+and internal declarations obey the same exact-file audit exception.
+
+The dependency audit permits Express packages only below `@uppy/companion`, or
+below core's two exact direct requirements. Companion's Express router, body-parser,
+Express session/Redis standalone modules, cookie-parser, express-interceptor and
+Grant adapter belong to its published graph. Core does not invoke its standalone
+session/Redis modules. There is one native session store, listener and signal owner.
+The adapter exposes no Express-shaped portal request/reply facade.
+
+The separate Angular build lock has narrowly enumerated build-only exceptions:
+`@angular-devkit/build-angular` → (optional `@angular-devkit/build-webpack`) →
+`webpack-dev-server` → `express`, Express types and `compression`; Express's
+`body-parser` and the dev server's `@types/serve-index` /
+`@types/connect-history-api-fallback` type edges are included explicitly.
+The unchanged Karma tool (directly or through the builder / `@angular/build`)
+requires only `body-parser`. That parser exception permits no Express/session
+package beneath Karma. No source/type import or direct Angular manifest dependency
+is exempt. No Angular exception applies to server npm graphs, packed packages or
+production images; FM-043 must prove those graphs exclude the Angular builder,
+webpack dev server and Karma. `@angular-devkit/build-angular` stays unchanged.
+
+Provider defaults remain those of the pinned release. Optional URL-import
+configuration is explicitly forwarded by the native integration (`enableUrlEndpoint`, `allowLocalUrls`, `streamingUpload`, `chunkSize`,
 `clientSocketConnectTimeout`); normal defaults disable URL imports/local URLs.
 The test deployment enables only disposable local source/destination services.
 Metrics is selected explicitly by hydrated configuration (default false).
@@ -118,3 +143,58 @@ using their parsed paths and forwarded with the normalized configured namespace.
 Unsigned provider deauthorization callbacks retain the provider's 500 response;
 the native shared opaque-error boundary retains its existing restricted headers.
 See FM-035 evidence for exact checks and deferred issues.
+
+The unchanged Karma Jasmine, HTML and JUnit reporters also reach Karma through
+peer dependencies. Only their exact `reporter → karma → body-parser` paths in
+`angular/package-lock.json` are allowlisted; they cannot justify Express beneath
+Karma or a first-party parser dependency.
+
+FM-043 also fixes the allowed provider closure by package name and existing
+locked version: Express **5.3.0**, `@types/express` **5.0.6**,
+`@types/express-serve-static-core` **5.1.1 / 5.1.3**, `@types/body-parser`
+**1.19.6**, `body-parser` **2.4.0**, `cookie-parser` **1.4.7**,
+`connect-redis` **7.1.1**, `express-interceptor` **1.2.0**,
+`express-prom-bundle` **8.0.0**, and `express-session` **1.18.2 / 1.19.0**.
+The two session/type versions reflect existing application and package lock
+layouts. The provider's metrics dependency (`express-prom-bundle`) is only
+activated by explicit metrics configuration. A new name/version, middleware
+bridge or uncontained ancestry fails the audit. This inventory grants no
+first-party import exception beyond the two private files above.
+
+The runtime closure gate inventories the actual built image independently of
+`npm ls`: it walks the complete physical filesystem (including every nested or
+standalone `node_modules`, package links and linked JavaScript files), inventories
+package identities and parses Express import/require/type sites. Only the
+physically resolved dependency closure of pinned Companion 7.1.1 and the two
+private first-party boundary files above may contain those references. Angular
+builder, webpack-dev-server and Karma packages are forbidden anywhere in that
+runtime inventory. The Angular lockfile exception applies only to build tooling;
+it never applies to the runtime filesystem, even if a copied Angular installation
+is invisible to the root dependency graph.
+
+CI builds the production `runtime` target and runs
+`support/tooling/fastify-retirement/runtime-image-audit.cjs` against that image.
+Its normal scan has no source/tooling mounts, no network and a read-only
+filesystem. A second disposable container copies an independent Angular builder
+→ webpack-dev-server → Express tree into the image and proves that the package
+inventory and physical require-site scan reject it. The container overlay is
+removed afterward; the qualified image is unchanged.
+
+The production dependency stage also removes unused vendor artifacts rather than
+exempting their Express sites from that scan. `prune-runtime.cjs` limits removal
+to the following existing package versions and paths; another version requires
+review. Native package implementations and the native OIDC entrypoint remain.
+
+| Package | Version | Removed runtime-image artifacts |
+| --- | --- | --- |
+| `@fastify/session` | 11.1.6 | `benchmark/`, `examples/`, `types/index.tst.ts` |
+| `@fastify/view` | 12.0.1 | `benchmark/` |
+| `express-interceptor` | 1.2.0 | `examples/`, `test/` |
+| `light-my-request` | 6.8.0 | `test/` |
+| `openid-client` | 6.8.8 | `build/passport.js`, its map and declaration; the unused `./passport` export |
+
+This is runtime packaging, not an import/dependency exception. The scanner still
+parses every remaining source. Companion declaration imports may resolve to their
+physically installed, pinned `@types` packages in the same provider closure;
+JavaScript requires cannot use that declaration fallback. Unrelated consumers,
+including ones importing those same types, remain forbidden.

@@ -1,20 +1,16 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { createServer, request as httpRequest } from 'node:http';
-import { once } from 'node:events';
-import express from 'express';
+
 import {
   apiRouteRegistrations,
   composeRoutes,
   coreRouteName,
   createPortalRouter,
-  expressRuntimePath,
   type RouteDeclaration,
   type RouteRegistration,
 } from '../../../dist/http/fastify/routes';
-import { resolveExtensions, type OwnedHttpRoute } from '../../../dist/extensions/resolution';
-import { portalOwnedHttpRoutes } from '../../../dist/http/express/ownedRoutes';
 
 const repository = path.resolve(__dirname, '../../../../..');
 interface InventoryRow {
@@ -31,10 +27,6 @@ interface InventoryRow {
 const inventory: { routes: InventoryRow[] } = JSON.parse(
   readFileSync(path.join(repository, 'support/specs/fastify-migration/evidence/FM-002.inventory.json'), 'utf8')
 );
-const owned = portalOwnedHttpRoutes({
-  server: { rootContext: '' },
-  companion: { enabled: false, route: '/companion' },
-});
 const api = new Map(apiRouteRegistrations().map(route => [route.declaration.name, route]));
 const fixture = (
   name: string,
@@ -80,49 +72,7 @@ function source(row: InventoryRow): RouteRegistration {
   };
 }
 
-function expressReplacement(declaration: RouteDeclaration, reservations: readonly OwnedHttpRoute[] = owned) {
-  return resolveExtensions(
-    [
-      {
-        name: 'hook',
-        root: '/installed/hook',
-        declaration: {
-          apiVersion: 1,
-          handlers: [
-            {
-              name: 'probe',
-              create: () => {
-                throw new Error('offline resolver ran a factory');
-              },
-            },
-          ],
-          routes: [
-            {
-              name: declaration.name,
-              method: declaration.method as Exclude<RouteDeclaration['method'], 'all'>,
-              path: expressRuntimePath(declaration.path),
-              access: 'public',
-              handler: 'probe',
-              replaces: true,
-            },
-          ],
-        },
-      },
-    ],
-    [],
-    reservations
-  );
-}
-function errorOf(run: () => unknown): string | undefined {
-  try {
-    run();
-    return undefined;
-  } catch (error) {
-    return String(error);
-  }
-}
-
-describe('FM-010 every frozen replacement identity against Express resolution', () => {
+describe('FM-010 frozen replacement identities and native ownership', () => {
   const targets = new Map(
     inventory.routes.flatMap(row => row.replacementTargets.map(target => [target.name, { row, target }] as const))
   );
@@ -135,7 +85,6 @@ describe('FM-010 every frozen replacement identity against Express resolution', 
       new Set([...targets.keys(), ...collections.map(row => row.name)]),
       new Set(inventory.routes.flatMap(row => [row.name, ...row.replacementTargets.map(target => target.name)]))
     );
-    assert([...targets.keys()].every(name => owned.some(route => route.name === name)));
   });
   for (const { row, target } of targets.values())
     it(`resolves ${target.method} ${target.name} with its source ownership and metadata intact`, async () => {
@@ -150,13 +99,12 @@ describe('FM-010 every frozen replacement identity against Express resolution', 
           replaces: true,
         },
       };
-      const old = expressReplacement(replacement.declaration);
-      assert.equal(old.routes[0].declaration.name, target.name);
+
       const composition = await composeRoutes([original, replacement], {
         policyNames: [...policies([original]), 'replacement'],
       });
       const selected = composition.routes.find(route => route.declaration.name === target.name)!;
-      assert.equal(selected.provider, old.routes[0].provider);
+
       assert.equal(selected.declaration, replacement.declaration);
       assert.equal(selected.replaced!.provider, original.provider);
       assert.equal(selected.replaced!.declaration.method, target.method);
@@ -226,7 +174,7 @@ describe('FM-010 every frozen replacement identity against Express resolution', 
             replaces: true,
           },
         };
-        assert.equal(expressReplacement(headReplacement.declaration).routes[0].provider, 'hook');
+
         for (const replacements of [
           [replacement, headReplacement],
           [headReplacement, replacement],
@@ -248,14 +196,7 @@ describe('FM-010 every frozen replacement identity against Express resolution', 
         { path: '/different-target' },
       ]) {
         const changed = { ...replacement, declaration: { ...replacement.declaration, ...change } };
-        assert(
-          errorOf(() =>
-            expressReplacement(
-              changed.declaration,
-              owned.filter(route => route.name === target.name)
-            )
-          )
-        );
+
         await assert.rejects(
           composeRoutes([original, changed], { policyNames: [...policies([original]), 'replacement'] }),
           /retain its method and path/
@@ -273,10 +214,7 @@ describe('FM-010 every frozen replacement identity against Express resolution', 
           replaces: true as const,
         },
       };
-      assert.match(
-        errorOf(() => expressReplacement(replacement.declaration))!,
-        /replacement has no target/
-      );
+
       await assert.rejects(
         composeRoutes([original, replacement], { policyNames: policies([original]) }),
         /retain its method and path/
@@ -310,7 +248,7 @@ describe('FM-010 every frozen replacement identity against Express resolution', 
         access: { kind: 'policies', names: ['replacement'] as const },
       },
     };
-    assert.equal(expressReplacement(replacement.declaration).routes[0].declaration.path, replacement.declaration.path);
+
     const composition = await composeRoutes([original, replacement], {
       policyNames: [...policies([original]), 'replacement'],
     });
@@ -371,64 +309,6 @@ function headRoutes(kind: HeadKind, routePath: string, side: string): RouteRegis
   ];
 }
 
-/** Real Express router, applying the resolver's explicit-HEAD-first order. No
- * catch-all fixture handler can silently mask the selected route's guard.
- */
-async function expressHead(routes: readonly RouteRegistration[], prefix: string, target: string) {
-  const app = express();
-  const router = express.Router();
-  const guards: string[] = [];
-  for (const route of [...routes].sort(
-    (a, b) => Number(b.declaration.method === 'head') - Number(a.declaration.method === 'head')
-  ))
-    router[route.declaration.method](expressRuntimePath(route.declaration.path), (_request, reply) => {
-      guards.push(route.declaration.action);
-      reply.set('x-guard', route.declaration.action);
-      if (
-        route.declaration.access.kind !== 'policies' &&
-        route.declaration.head?.kind === 'deny' &&
-        route.declaration.head.allow
-      )
-        reply.set('Allow', route.declaration.head.allow);
-      reply
-        .status(
-          route.declaration.access.kind === 'policies' ? 403 : route.declaration.head?.kind === 'deny' ? 405 : 200
-        )
-        .end();
-    });
-  app.use(prefix || '/', router);
-  const server = createServer(app);
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  try {
-    const address = server.address();
-    assert(address && typeof address === 'object');
-    const response = await new Promise<{ status: number; guard: string | undefined; allow: string | undefined }>(
-      (resolve, reject) => {
-        const client = httpRequest(
-          { host: '127.0.0.1', port: address.port, path: prefix + target, method: 'HEAD', agent: false },
-          reply => {
-            reply.resume();
-            reply.on('end', () =>
-              resolve({
-                status: reply.statusCode!,
-                guard: reply.headers['x-guard'] as string | undefined,
-                allow: reply.headers.allow,
-              })
-            );
-          }
-        );
-        client.on('error', reject);
-        client.setTimeout(5000, () => client.destroy(new Error('HEAD audit request timed out')));
-        client.end();
-      }
-    );
-    return { ...response, guards };
-  } finally {
-    await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
-  }
-}
-
 describe('FM-010 HEAD kind x overlap x order guard audit', () => {
   const outcomes = { rejected: 0, matchedExpress: 0 };
   const overlaps = [
@@ -458,10 +338,10 @@ describe('FM-010 HEAD kind x overlap x order guard audit', () => {
                   });
                 } catch (error) {
                   assert.match(String(error), /route collision|route overlap|requires replaces/);
+                  assertGoldenNext('head-overlaps', { rejected: true, error: String(error) });
                   outcomes.rejected++;
                   return;
                 }
-                const old = await expressHead(routes, prefix, '/x/fixed');
                 const current = createPortalRouter();
                 const guards: string[] = [];
                 try {
@@ -472,10 +352,7 @@ describe('FM-010 HEAD kind x overlap x order guard audit', () => {
                     if (route.access.kind === 'policies') reply.code(403).send();
                   });
                   const result = await current.inject({ method: 'HEAD', url: prefix + '/x/fixed' });
-                  assert.equal(result.statusCode, old.status);
-                  assert.equal(result.headers['x-guard'], old.guard);
-                  assert.equal(result.headers.allow, old.allow);
-                  assert.deepEqual(guards, old.guards);
+                  assertGoldenNext('head-overlaps', headObservation(result, guards));
                   outcomes.matchedExpress++;
                 } finally {
                   await current.close();
@@ -511,3 +388,12 @@ describe('FM-010 HEAD kind x overlap x order guard audit', () => {
     );
   });
 });
+
+function headObservation(
+  result: { statusCode: number; headers: Record<string, unknown>; body: string },
+  guards: string[]
+) {
+  const { date, connection, 'keep-alive': keepAlive, ...headers } = result.headers;
+  return { statusCode: result.statusCode, headers, body: result.body, guards };
+}
+goldenControls('head-overlaps');

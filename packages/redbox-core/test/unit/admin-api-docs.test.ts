@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import * as sinon from 'sinon';
+import fastify from 'fastify';
 
-import { BrandingDelivery } from '../../src/http/express/brandingDelivery';
+import { BrandingDelivery } from '../../src/pages/brandingDelivery';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { auth } from '../../src/config/auth.config';
-import { pageRoutes } from '../../src/http/express/pages';
-import { brandingDeliveryRoutes } from '../../src/http/express/pageAssets';
+import { pageRoutes } from '../../src/http/pageRoutes';
+import { brandingDeliveryRoutes } from '../../src/http/assetRoutes';
 import { createSinonStubLogger } from '../logger.test';
 
 describe('admin API docs', function () {
@@ -56,18 +57,20 @@ describe('admin API docs', function () {
 
   it('renders the branded OpenAPI document as JSON', async function () {
     this.timeout(20_000);
-    const req = { params: { branding: 'default', portal: 'rdmp' }, headers: {} };
-    const res = {
-      contentType: sinon.stub(),
-      send: sinon.stub().returnsThis(),
-    } as any;
-
-    await controller.renderSwaggerJSON(req, res);
-
-    expect((res as any).contentType.calledOnceWithExactly('application/json')).to.equal(true);
-    const doc = JSON.parse(String((res as any).send.firstCall.args[0]));
-    expect(doc.paths).to.have.property('/default/rdmp/api/users');
-    expect(doc.paths).to.not.have.property('/{branding}/{portal}/api/users');
+    const router = fastify();
+    router.get('/:branding/:portal/admin/api-docs/openapi.json', async (request, reply) =>
+      controller.renderSwaggerJSON(request, reply)
+    );
+    try {
+      const response = await router.inject('/default/rdmp/admin/api-docs/openapi.json');
+      expect(response.statusCode).to.equal(200);
+      expect(response.headers['content-type']).to.equal('application/json; charset=utf-8');
+      const doc = response.json();
+      expect(doc.paths).to.have.property('/default/rdmp/api/users');
+      expect(doc.paths).to.not.have.property('/{branding}/{portal}/api/users');
+    } finally {
+      await router.close();
+    }
   });
 
   it('keeps the EJS view self-contained and local to the portal', function () {
@@ -82,20 +85,19 @@ describe('admin API docs', function () {
     expect(contents).to.not.include('cdn.redoc.ly');
   });
 
-    it('loads the Redoc 3 ES module bundle through a module bootstrap', function () {
-        const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs.ejs');
-        const view = fs.readFileSync(viewPath, 'utf8');
-        expect(view).to.match(/js\/redoc\.standalone\.js" type="module"/);
-        expect(view).to.match(/js\/admin-api-docs-bootstrap\.js" type="module"/);
+  it('loads the Redoc 3 ES module bundle through a module bootstrap', function () {
+    const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs.ejs');
+    const view = fs.readFileSync(viewPath, 'utf8');
+    expect(view).to.match(/js\/redoc\.standalone\.js" type="module"/);
+    expect(view).to.match(/js\/admin-api-docs-bootstrap\.js" type="module"/);
 
-        const bootstrapPath = path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js');
-        const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
-        expect(bootstrap).to.include("import { init } from './redoc.standalone.js';");
-        expect(bootstrap).to.include('disableTelemetry: true');
-        expect(bootstrap).to.include('hideDownloadButtons: true');
-        expect(bootstrap).to.not.include('Redoc.init');
-    });
-
+    const bootstrapPath = path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js');
+    const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
+    expect(bootstrap).to.include("import { init } from './redoc.standalone.js';");
+    expect(bootstrap).to.include('disableTelemetry: true');
+    expect(bootstrap).to.include('hideDownloadButtons: true');
+    expect(bootstrap).to.not.include('Redoc.init');
+  });
 
   it('copies the redoc bundle into the webpack public output', function () {
     const webpackConfigPath = path.resolve(__dirname, '../../../../packages/redbox-core/src/config/webpack.config.ts');

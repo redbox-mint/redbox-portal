@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { trackHttpRequestWork } from '../../middleware/requestLifetime';
-import type { StreamingMultipart, MultipartResult } from '../express/multipart';
+import type { StreamingMultipart, MultipartResult } from '../integrations/multipart';
 import type { RouteBinding } from './routes';
 
 const scopes = new WeakSet<IncomingMessage>();

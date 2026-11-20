@@ -11,7 +11,7 @@ import { prepareSelectedPersistenceIndexes } from '../../../src/persistence/main
 import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
 import { getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { getBrandingRepository } from '../../../src/persistence/branding/runtime';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { requestContext } from '../../../src/http/context';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import type { ApiRouteSource } from '../../../src/http/fastify/routes';

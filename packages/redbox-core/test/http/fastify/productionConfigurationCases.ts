@@ -4,7 +4,6 @@ import { createHmac } from 'node:crypto';
 import { mongoSessionDatabase } from '../../../src/persistence/runtime';
 import { fixture, target, cookie } from './pilotMongoFixture';
 import { nativeSessionNamespace } from '../../../src/http/fastify/session';
-
 async function availablePort() {
   const server = createServer();
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -18,7 +17,7 @@ export function productionConfigurationCases() {
     it(
       'production proxy trust ' + JSON.stringify(trustProxy) + ' controls secure sessions on both stacks',
       async () => {
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const f = await fixture(native, { server: { trustProxy }, session: { cookie: { secure: true } } });
           try {
             for (const protocol of ['https', 'http']) {
@@ -40,7 +39,7 @@ export function productionConfigurationCases() {
       }
     );
   it('production listener, root, origin, session/cookie and local-auth settings take effect on both stacks', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const port = await availablePort();
       const secret = 'nondefault-production-session-secret-00000000001';
       const f = await fixture(native, {
@@ -88,9 +87,7 @@ export function productionConfigurationCases() {
         const expiry = new Date(/Expires=([^;]+)/.exec(setCookie)![1]).getTime();
         assert(Math.abs(expiry - Date.now() - 123456) < 2000);
         const signed = decodeURIComponent(cookie(response).split('=').slice(1).join('='));
-        const signingSecret = native
-          ? createHmac('sha256', secret).update(nativeSessionNamespace).digest('base64url')
-          : secret;
+        const signingSecret = createHmac('sha256', secret).update(nativeSessionNamespace).digest('base64url');
         assert(require('cookie-signature').unsign(signed.slice(2), signingSecret));
         const token = (await response.json())._csrf;
         const login = await fetch(f.url + '/user/login_local', {
@@ -161,7 +158,7 @@ export function productionConfigurationCases() {
     }
   });
   it('production defaultBrand selects login context rather than a hardcoded brand on both stacks', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await fixture(native, { auth: { defaultBrand: 'other' } });
       try {
         const role = await f.identities.create('role', { name: 'OtherAdmin', branding: f.otherBrand.id });
@@ -191,7 +188,7 @@ export function productionConfigurationCases() {
   });
   for (const origin of ['https://logout.example.invalid', 'https://refused.example.invalid'])
     it('production logoutOrigins ' + origin + ' governs provider redirects on both stacks', async () => {
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const f = await fixture(native, {
           auth: { logoutOrigins: ['https://logout.example.invalid'], postLogoutRedir: '/configured/signed-out' },
         });
@@ -236,7 +233,7 @@ export function productionConfigurationCases() {
       }
     });
   it('production session database/options, TTL and touchAfter select the owned store on both stacks', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const configuration = {
         adapter: 'mongo' as const,
         mongoUrl: '',
@@ -286,7 +283,7 @@ export function productionConfigurationCases() {
     }
   });
   it('production loginPath and explicit portal selection affect policy redirects on both stacks', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await fixture(native, {
         auth: { loginPath: 'configured-login', defaultPortal: 'research' },
         portals: ['rdmp'],
@@ -303,7 +300,7 @@ export function productionConfigurationCases() {
     }
   });
   it('production stopDeadlineMs bounds retained shutdown work on both stacks', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await fixture(native, { server: { stopDeadlineMs: 35 } });
       const pending = Promise.withResolvers<void>();
       const stop = f.application.stop.bind(f.application);

@@ -1,6 +1,8 @@
+import { goldenControls } from './goldenContracts';
+import { assertWireContract } from './wireContracts';
 import assert from 'node:assert/strict';
 import { assertNoNewConnections } from './ownedCleanup';
-import { fork, type ChildProcess } from 'node:child_process';
+import { fork } from 'node:child_process';
 import { request } from 'node:http';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -8,13 +10,11 @@ import path from 'node:path';
 import WebSocket from 'ws';
 import { io } from 'socket.io-client';
 import { canonical, socketPath } from './rawSocketFixture';
-
 if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT)
   throw new Error('FM-021 requires disposable real Mongo and Solr.');
-
 const credentials = { Authorization: 'Bearer pilot-api-token', Origin: canonical };
 function child(native: boolean, mode = 'enabled') {
-  const process = fork(path.join(__dirname, 'fixtures/companion-portal.cjs'), [native ? 'fastify' : 'express', mode], {
+  const process = fork(path.join(__dirname, 'fixtures/companion-portal.cjs'), ['fastify', mode], {
     execArgv: ['--no-experimental-strip-types', '--unhandled-rejections=strict'],
     env: { ...global.process.env, NODE_ENV: 'test' },
     silent: true,
@@ -27,7 +27,13 @@ function child(native: boolean, mode = 'enabled') {
   process.stderr!.on('data', bytes => {
     logs += bytes.toString();
   });
-  const pending = new Map<number, { resolve(value: any): void; reject(error: Error): void }>();
+  const pending = new Map<
+    number,
+    {
+      resolve(value: any): void;
+      reject(error: Error): void;
+    }
+  >();
   process.on('message', ({ id, result, error, stack }: any) => {
     const call = pending.get(id);
     pending.delete(id);
@@ -65,7 +71,11 @@ function wire(
   body?: string,
   rawTarget?: string
 ) {
-  return new Promise<{ status: number; headers: Record<string, unknown>; body: string }>((resolve, reject) => {
+  return new Promise<{
+    status: number;
+    headers: Record<string, unknown>;
+    body: string;
+  }>((resolve, reject) => {
     const req = request(
       url,
       {
@@ -152,10 +162,15 @@ async function login(url: string) {
   const fresh = await wire(url + '/csrfToken', 'GET', { Cookie: rotated });
   return { Cookie: rotated, Origin: canonical, 'X-CSRF-Token': JSON.parse(fresh.body)._csrf };
 }
-
-const oracle = new Map<string, unknown>();
-for (const native of [false, true])
-  describe(`FM-021 ${native ? 'Fastify' : 'retained Express'} production Companion`, function () {
+function assertProviderHeaders(value: ReturnType<typeof snapshot>, method = 'GET') {
+  // Companion's internal Express app adds its own vendor header; native
+  // refusals and the canonical popup action do not enter that app.
+  assert([undefined, 'Express'].includes(value.headers['x-powered-by'] as string | undefined));
+  if (method === 'HEAD' || value.status === 204 || value.status === 304) assert.equal(value.body, '');
+  if (value.body) assert(value.headers['content-type']);
+}
+for (const native of [true])
+  describe(`FM-021 ${'Fastify'} production Companion`, function () {
     this.timeout(60000);
     let c: ReturnType<typeof child>, url: string, upstream: string;
     const sockets = new Set<WebSocket>();
@@ -179,21 +194,17 @@ for (const native of [false, true])
       const init = await c.call('init');
       url = init.url;
       upstream = init.upstream;
-      if (native) {
+      {
         assert.equal(init.prepared, true);
         assert.equal(init.listenCalls, 1);
         assert.equal(init.bridgeIsServer, false);
         assert.equal(init.upgrades, 1, 'One production upgrade dispatcher');
-      } else {
-        assert.equal(init.reference.revision, '5cc027e11d95994e1dc9d549427a883d65b3269d');
-        assert.match(init.reference.sha256, /^[a-f0-9]{64}$/);
       }
     });
     after(async () => {
       for (const client of sockets) client.terminate();
       if (c) await stopChild(c);
     });
-
     it('activates the Companion-enabled production host after ownership construction', async () => {
       const state = await c.call('state');
       assert.equal(state.listening, true);
@@ -201,7 +212,6 @@ for (const native of [false, true])
       const health = await wire(url + '/imports/health');
       assert.equal(health.status, 200, health.body);
     });
-
     const cases: {
       name: string;
       path: string;
@@ -277,15 +287,16 @@ for (const native of [false, true])
         assert.equal(result.status, row.status, result.body);
         if (row.outside) return;
         const value = snapshot(result, upstream);
-        if (!native) oracle.set(row.name, value);
-        else assert.deepEqual(value, oracle.get(row.name));
+        assertWireContract('companion', row.name, value);
+        assertProviderHeaders(value, row.method ?? 'GET');
       });
     it('preserves real URL metadata, destination allowlisting and brand roles before remote I/O', async () => {
       const response = await post('/url/meta', { url: upstream + '/source/small' });
       assert.equal(response.status, 200, response.body);
       const value = snapshot(response, upstream);
-      if (!native) oracle.set('meta', value);
-      else assert.deepEqual(value, oracle.get('meta'));
+      assertWireContract('companion', 'meta', value);
+      assertProviderHeaders(value);
+      assert.match(value.body, /remote|text|size|type/);
       const before = (await c.call('state')).metaHits;
       await c.call('actor', 'reader');
       assert.equal((await post('/url/meta', { url: upstream + '/source/small' })).status, 403);
@@ -297,7 +308,7 @@ for (const native of [false, true])
         400
       );
     });
-    it('uses real native/Express sessions and enforces CSRF before the provider', async () => {
+    it('uses native sessions and enforces CSRF before the provider', async () => {
       const session = await login(url);
       assert.equal(
         (await post('/url/meta', { url: upstream + '/source/small' }, { Cookie: session.Cookie })).status,
@@ -309,7 +320,7 @@ for (const native of [false, true])
         403
       );
       assert.equal((await post('/url/meta', { url: upstream + '/source/small' }, session)).status, 200);
-      if (native) {
+      {
         await c.call('holdSession');
         let finished = false;
         const response = post('/url/meta', { url: upstream + '/source/small' }, session).then(result => {
@@ -334,20 +345,19 @@ for (const native of [false, true])
       // Grant matches originalUrl against server.path without implicitPath in the pinned baseline.
       assert.equal((await wire(url + '/imports/connect/googledrive', 'GET', session)).status, 404);
     });
-    if (native)
-      it('keeps session write failures behind the shared safe writer before raw provider bytes', async () => {
-        const session = await login(url);
-        await c.call('failSession');
-        try {
-          const result = await post('/url/meta', { url: upstream + '/source/small' }, session);
-          assert.equal(result.status, 500);
-          assert(!result.body.includes('private-session-provider-credential'));
-          assert(!result.body.includes('small'));
-          assert.equal(result.headers['set-cookie'], undefined);
-        } finally {
-          await c.call('releaseSession');
-        }
-      });
+    it('keeps session write failures behind the shared safe writer before raw provider bytes', async () => {
+      const session = await login(url);
+      await c.call('failSession');
+      try {
+        const result = await post('/url/meta', { url: upstream + '/source/small' }, session);
+        assert.equal(result.status, 500);
+        assert(!result.body.includes('private-session-provider-credential'));
+        assert(!result.body.includes('small'));
+        assert.equal(result.headers['set-cookie'], undefined);
+      } finally {
+        await c.call('releaseSession');
+      }
+    });
     it('refuses untracked/malformed/foreign-origin upgrades and retains a real transfer through reconnect', async () => {
       for (const token of ['unknown', '__proto__', 'constructor', 'unknown/extra']) await refused(ws(url, token), 403);
       await c.call('holdSink');
@@ -437,7 +447,7 @@ for (const native of [false, true])
       req.end(JSON.stringify({ url: upstream + '/source/held' }));
       await c.call('waitMeta');
       req.destroy();
-      if (native) {
+      {
         await delay(30);
         assert((await c.call('state')).requests > 0);
         const began = Date.now();
@@ -461,43 +471,30 @@ for (const native of [false, true])
         assert.equal(retried.error, null);
         assert.equal((await c.call('state')).closeCalls, 1);
         assert.equal(await c.call('restart'), true);
-      } else {
-        // The retained baseline does not own a provider callback after disconnect.
-        // Release the external provider before closing its historical application.
-        const done = terminal(active);
-        await c.call('releaseMeta');
-        await c.call('releaseSink');
-        await done;
-        active.close();
-        await once(active, 'close');
-        await delay(100);
       }
     });
   });
-
 for (const mode of ['disabled', 'denied'])
   describe(`FM-021 optional ${mode} production mode`, function () {
     this.timeout(60000);
-    for (const native of [false, true])
-      it(`${native ? 'Fastify' : 'Express'} ${mode} acquires no unauthorized provider work`, async () => {
+    for (const native of [true])
+      it(`${'Fastify'} ${mode} acquires no unauthorized provider work`, async () => {
         const c = child(native, mode);
         try {
           const init = await c.call('init');
           const result = await wire(init.url + '/imports/health');
           assert.equal(result.status, mode === 'disabled' ? 404 : 403);
           assert.equal((await c.call('state')).metaHits, 0);
-          if (native && mode === 'disabled') assert(!init.routes.some((r: any) => r.path.includes('/imports')));
+          if (mode === 'disabled') assert(!init.routes.some((r: any) => r.path.includes('/imports')));
         } finally {
           await stopChild(c);
         }
       });
   });
-
 for (const mode of ['drive', 'onedrive', 'streaming']) {
   const providerNames = mode === 'drive' ? ['drive'] : mode === 'onedrive' ? ['onedrive'] : ['drive', 'onedrive'];
-  const observations = new Map<string, unknown>();
-  for (const native of [false, true])
-    describe(`FM-035 ${mode} ${native ? 'Fastify' : 'retained Express'} Companion completion`, function () {
+  for (const native of [true])
+    describe(`FM-035 ${mode} ${'Fastify'} Companion completion`, function () {
       this.timeout(90000);
       let c: ReturnType<typeof child>, url: string, upstream: string, portalEndpoint: string;
       const sockets = new Set<WebSocket>();
@@ -505,7 +502,7 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
         c = child(native, mode);
         const init = await c.call('init');
         ({ url, upstream, portalEndpoint } = init);
-        if (native) assert.equal(init.upgrades, 1);
+        assert.equal(init.upgrades, 1);
       });
       after(async () => {
         for (const client of sockets) client.terminate();
@@ -526,8 +523,8 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
           assert(listing.items.some((item: any) => item.id === 'provider-file'));
           const value = snapshot(listed, upstream),
             key = provider + '-authenticated-list';
-          if (!native) observations.set(key, value);
-          else assert.deepEqual(value, observations.get(key));
+          assertWireContract('companion', mode + ':' + key, value);
+          assertProviderHeaders(value);
           const response = await wire(
             url + '/imports/' + provider + '/get/provider-file',
             'POST',
@@ -560,8 +557,8 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
               const response = await wire(url + '/imports/' + provider + '/' + endpoint, method);
               const value = snapshot(response, upstream);
               const key = provider + endpoint + method;
-              if (!native) observations.set(key, value);
-              else assert.deepEqual(value, observations.get(key));
+              assertWireContract('companion', mode + ':' + key, value);
+              assertProviderHeaders(value, typeof method === 'undefined' ? 'GET' : method);
               assert.notEqual(response.status, 500, response.body);
             });
         for (const endpoint of [
@@ -581,11 +578,10 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
             );
             const value = snapshot(response, upstream);
             const key = provider + endpoint;
-            if (!native) observations.set(key, value);
-            else if (endpoint === 'deauthorization/callback') {
-              const retained = observations.get(key) as typeof value;
-              assert.equal(value.status, retained.status);
-              assert.equal(value.body, retained.body);
+            assertWireContract('companion', mode + ':' + key, value);
+            if (endpoint === 'deauthorization/callback') {
+              assert.equal(value.status, 500);
+              assert.deepEqual(JSON.parse(value.body), { message: 'Internal server error', details: '' });
               // Thrown provider faults use the existing native opaque-error boundary:
               // only its fixed cache/framing/COOP headers survive, never vendor headers.
               assert.deepEqual(Object.keys(value.headers).sort(), [
@@ -596,7 +592,7 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
                 'expires',
                 'pragma',
               ]);
-            } else assert.deepEqual(value, observations.get(key));
+            } else assertProviderHeaders(value, 'POST');
             // The pinned provider's unsigned deauthorization callback returns 500.
             // Preserve and characterize that existing provider failure on both hosts.
             if (endpoint === 'deauthorization/callback') assert.equal(response.status, 500);
@@ -758,10 +754,6 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
         await assertNoNewConnections(url);
         await c.call('releaseSink');
         assert.equal((await completed).action, 'success');
-        if (!native) {
-          client.close();
-          await once(client, 'close');
-        }
         const result = await stopping;
         const stopped = await c.call('state');
         assert.equal(result.error, null, JSON.stringify(stopped));
@@ -770,3 +762,5 @@ for (const mode of ['drive', 'onedrive', 'streaming']) {
       });
     });
 }
+
+goldenControls('companion');

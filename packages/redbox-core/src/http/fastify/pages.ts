@@ -6,7 +6,7 @@ import { HttpFailure, safeHttpErrorStatus, httpReplySubmitted } from './errorBou
 import { requestPathname } from './router';
 
 /** Native transport facts are read at invocation, after beforeAction hooks. */
-export function nativePageRequest(request: FastifyRequest, input: PageRenderingInput, csrfToken: () => string) {
+export function nativePageRenderingFacts(request: FastifyRequest, input: PageRenderingInput, csrfToken: () => string) {
   const originalUrl = request.raw.url ?? request.url;
   // Express trims the mounted root after the raw scheme/authority, preserving
   // their spelling and the remaining path/query rather than reserializing a URL.
@@ -17,13 +17,13 @@ export function nativePageRequest(request: FastifyRequest, input: PageRenderingI
   const url = authority + (authority || relative.startsWith('/') ? relative : '/' + relative);
   return {
     context: requestContext(request),
-    params: request.params as Record<string, unknown>,
-    query: request.query as Record<string, unknown>,
-    body: request.body as Record<string, unknown> | undefined,
+    routeParameters: request.params as Record<string, unknown>,
+    queryValues: request.query as Record<string, unknown>,
+    bodyValues: request.body as Record<string, unknown> | undefined,
     session: request.session as unknown as Record<string, unknown>,
-    url,
-    originalUrl,
-    path: requestPathname(url) ?? '/',
+    relativeTarget: url,
+    requestTarget: originalUrl,
+    pathname: requestPathname(url) ?? '/',
     csrfToken,
     acceptsHtml: () => requestAccepts(request).types(['html', 'json']) === 'html',
   };
@@ -47,7 +47,9 @@ export async function prepareNativePage(
   input: PageRenderingInput,
   csrfToken: () => string
 ) {
-  return preparePageRendering(nativePageRequest(request, input, csrfToken), input, headers => reply.headers(headers));
+  return preparePageRendering(nativePageRenderingFacts(request, input, csrfToken), input, headers =>
+    reply.headers(headers)
+  );
 }
 export async function sendPageError(
   request: FastifyRequest,

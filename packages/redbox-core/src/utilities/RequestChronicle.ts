@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { isSpanContextValid, trace } from '@opentelemetry/api';
-import { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
+import { requestPathname } from '../http/fastify/router';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { redactSecret } from './RedactionUtils';
 import { RequestChronicleSettings, resolveRequestChronicleSettings } from './RequestChronicleSettings';
@@ -558,7 +559,11 @@ export class RequestChronicleHelper {
    * Get the request chronicle helper for a request, creating it if needed.
    * The logger and options are only used when the helper is created.
    */
-  public static fromReq(logger: ILogger, req: Request, options?: RequestChronicleOptions): RequestChronicleHelper {
+  public static fromReq(
+    logger: ILogger,
+    req: FastifyRequest,
+    options?: RequestChronicleOptions
+  ): RequestChronicleHelper {
     const request = req as { options?: ChronicleRequestOptions };
     if (request.options === undefined || request.options === null) {
       request.options = {};
@@ -628,7 +633,7 @@ export class RequestChronicleHelper {
     });
   }
 
-  updateReq(req: Request): void {
+  updateReq(req: FastifyRequest): void {
     this.#safely('updateReq', () => {
       if (!this.isRunning || this.#data.req !== undefined) {
         this.logger.warn(
@@ -636,7 +641,7 @@ export class RequestChronicleHelper {
         );
         return;
       }
-      const path = req.path ?? req.url?.split('?')[0];
+      const path = requestPathname(req.url);
       const upstreamRequestId = req.headers?.['x-request-id'];
       this.#data.req = {
         method:

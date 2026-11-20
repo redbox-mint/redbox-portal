@@ -1,0 +1,2815 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "audits": [
+        {
+          "action": "login",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        },
+        {
+          "action": "logout",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        }
+      ],
+      "events": [
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onUpdate"
+        }
+      ],
+      "sessions": 0
+    },
+    "v000002": {
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "cn": null,
+      "createdAt": "<timestamp>",
+      "displayname": null,
+      "edupersonprincipalname": null,
+      "edupersonscopedaffiliation": null,
+      "edupersontargetedid": null,
+      "email": "synthetic@example.invalid",
+      "givenname": null,
+      "hasApiKey": true,
+      "id": "user:pilot-admin",
+      "lastLogin": "<timestamp>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "Synthetic Admin",
+      "roles": [
+        {
+          "branding": "brand:default",
+          "createdAt": "<timestamp>",
+          "id": "role:Admin",
+          "name": "Admin",
+          "updatedAt": "<timestamp>"
+        }
+      ],
+      "surname": null,
+      "type": "local",
+      "updatedAt": "<timestamp>",
+      "username": "pilot-admin"
+    },
+    "v000003": {
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "cn": null,
+      "createdAt": "<timestamp>",
+      "displayname": null,
+      "edupersonprincipalname": null,
+      "edupersonscopedaffiliation": null,
+      "edupersontargetedid": null,
+      "email": "synthetic@example.invalid",
+      "givenname": null,
+      "hasApiKey": true,
+      "id": "user:pilot-admin",
+      "lastLogin": "<timestamp>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "Synthetic Admin",
+      "roles": [
+        {
+          "branding": "brand:default",
+          "createdAt": "<timestamp>",
+          "id": "role:Researcher",
+          "name": "Researcher",
+          "updatedAt": "<timestamp>"
+        }
+      ],
+      "surname": null,
+      "type": "local",
+      "updatedAt": "<timestamp>",
+      "username": "pilot-admin"
+    },
+    "v000004": [
+      {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000002"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      },
+      {
+        "body": {
+          "user": {
+            "$ref": "v000003"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      },
+      {
+        "body": "<redirect>",
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Path=/"
+          ]
+        ],
+        "expires": "0",
+        "location": "/portal/default/rdmp/home",
+        "pragma": "no-cache",
+        "status": 302
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      }
+    ],
+    "v000005": {
+      "audits": [],
+      "events": [
+        {
+          "brandId": "brand:default",
+          "category": "authentication",
+          "eventType": "authentication.login.failure",
+          "portalId": "rdmp",
+          "requestContext": {
+            "method": "POST",
+            "path": "/user/login_local"
+          },
+          "source": "Authentication",
+          "subject": {
+            "username": "pilot-admin"
+          }
+        }
+      ],
+      "sessions": 0
+    },
+    "v000006": {
+      "audits": [],
+      "events": [
+        {
+          "brandId": "brand:default",
+          "category": "authentication",
+          "eventType": "authentication.login.failure",
+          "portalId": "rdmp",
+          "requestContext": {
+            "method": "POST",
+            "path": "/user/login_local"
+          },
+          "source": "Authentication",
+          "subject": {
+            "username": "missing"
+          }
+        }
+      ],
+      "sessions": 0
+    },
+    "v000007": {
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "POST",
+              "path": "/user/login_local"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 0
+      },
+      "result": {
+        "body": {
+          "message": "Invalid login parameters"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 400
+      }
+    },
+    "v000008": [
+      {
+        "usersPostSaveSyncHookCount": 0,
+        "usersPostSaveSyncMode": "onUpdate"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_local"
+        },
+        "source": "Authentication",
+        "subject": {
+          "username": "pilot-admin"
+        }
+      }
+    ],
+    "v000009": {
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "cn": null,
+      "createdAt": "<timestamp>",
+      "displayname": null,
+      "edupersonprincipalname": null,
+      "edupersonscopedaffiliation": null,
+      "edupersontargetedid": null,
+      "email": "synthetic@example.invalid",
+      "givenname": null,
+      "hasApiKey": true,
+      "id": "user:pilot-admin",
+      "lastLogin": "",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "Synthetic Admin",
+      "roles": [
+        {
+          "branding": "brand:default",
+          "createdAt": "<timestamp>",
+          "id": "role:Admin",
+          "name": "Admin",
+          "updatedAt": "<timestamp>"
+        }
+      ],
+      "surname": null,
+      "type": "local",
+      "updatedAt": "<timestamp>",
+      "username": "pilot-admin"
+    },
+    "v000010": {
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:pilot-admin",
+              "username": "pilot-admin"
+            }
+          }
+        ],
+        "events": [
+          {
+            "usersPostSaveSyncHookCount": 0,
+            "usersPostSaveSyncMode": "onUpdate"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000009"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      }
+    },
+    "v000011": {
+      "audits": [],
+      "events": [
+        {
+          "brandId": "brand:default",
+          "category": "authentication",
+          "eventType": "authentication.login.failure",
+          "portalId": "rdmp",
+          "requestContext": {
+            "method": "POST",
+            "path": "/user/login_local"
+          },
+          "source": "Authentication",
+          "subject": {
+            "username": "alias"
+          }
+        }
+      ],
+      "sessions": 0
+    },
+    "v000012": [
+      {
+        "usersPostSaveSyncHookCount": 0,
+        "usersPostSaveSyncMode": "onUpdate"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_local"
+        },
+        "source": "Authentication",
+        "subject": {
+          "username": "alias"
+        }
+      }
+    ],
+    "v000013": {
+      "audits": [
+        {
+          "action": "login",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        },
+        {
+          "action": "login",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        }
+      ],
+      "events": [
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onUpdate"
+        },
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onUpdate"
+        }
+      ],
+      "sessions": 2
+    },
+    "v000014": {
+      "effects": {
+        "$ref": "v000013"
+      },
+      "first": {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000002"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      "second": {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000002"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      }
+    },
+    "v000015": [
+      {
+        "usersPreSaveHookCount": 1,
+        "usersPreSaveMode": "onUpdate"
+      },
+      {
+        "usersPreSaveHookIndex": 0,
+        "usersPreSaveOutcome": "success"
+      },
+      {
+        "usersPostSaveOutcome": "success"
+      },
+      {
+        "usersPostSaveSyncHookCount": 1,
+        "usersPostSaveSyncMode": "onUpdate"
+      },
+      {
+        "usersPostSaveSyncHookIndex": 0,
+        "usersPostSaveSyncOutcome": "success"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_local"
+        },
+        "source": "Authentication",
+        "subject": {
+          "username": "pilot-admin"
+        }
+      },
+      {
+        "usersPreSaveHookCount": 1,
+        "usersPreSaveMode": "onUpdate"
+      },
+      {
+        "usersPreSaveHookIndex": 0,
+        "usersPreSaveOutcome": "success"
+      },
+      {
+        "usersPostSaveOutcome": "success"
+      },
+      {
+        "usersPostSaveSyncHookCount": 1,
+        "usersPostSaveSyncMode": "onUpdate"
+      },
+      {
+        "usersPostSaveSyncHookIndex": 0,
+        "usersPostSaveSyncOutcome": "success"
+      }
+    ],
+    "v000016": {
+      "accountLinkState": "active",
+      "additionalAttributes": {
+        "hook": true
+      },
+      "cn": null,
+      "createdAt": "<timestamp>",
+      "displayname": null,
+      "edupersonprincipalname": null,
+      "edupersonscopedaffiliation": null,
+      "edupersontargetedid": null,
+      "email": "synthetic@example.invalid",
+      "givenname": null,
+      "hasApiKey": true,
+      "id": "user:pilot-admin",
+      "lastLogin": "<timestamp>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "Synthetic Admin",
+      "roles": [
+        {
+          "branding": "brand:default",
+          "createdAt": "<timestamp>",
+          "id": "role:Admin",
+          "name": "Admin",
+          "updatedAt": "<timestamp>"
+        }
+      ],
+      "surname": null,
+      "type": "local",
+      "updatedAt": "<timestamp>",
+      "username": "pilot-admin"
+    },
+    "v000017": {
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:pilot-admin",
+              "username": "pilot-admin"
+            }
+          },
+          {
+            "action": "login",
+            "user": {
+              "id": "user:pilot-admin",
+              "username": "pilot-admin"
+            }
+          }
+        ],
+        "events": {
+          "$ref": "v000015"
+        },
+        "sessions": 2
+      },
+      "first": {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000016"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      "fresh": {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000016"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      "old": {
+        "body": {
+          "message": "Incorrect username/password",
+          "user": false
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      }
+    },
+    "v000018": [
+      {
+        "usersPreSaveHookCount": 1,
+        "usersPreSaveMode": "onUpdate"
+      },
+      {
+        "usersPreSaveHookIndex": 0,
+        "usersPreSaveOutcome": "success"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_local"
+        },
+        "source": "Authentication",
+        "subject": {
+          "username": "pilot-admin"
+        }
+      }
+    ],
+    "v000019": {
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "POST",
+              "path": "/user/login_aaf"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 0
+      },
+      "result": {
+        "body": {
+          "message": "Authentication rejected",
+          "user": false
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 403
+      }
+    },
+    "v000020": {
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "POST",
+              "path": "/user/login_aaf"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 0
+      },
+      "result": {
+        "body": {
+          "details": "",
+          "message": "Internal server error"
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 500
+      }
+    },
+    "v000021": {
+      "body": {
+        "email": "synthetic@example.invalid",
+        "id": "user:pilot-admin",
+        "name": "Synthetic Admin",
+        "roles": [
+          {
+            "brandId": "brand:default",
+            "id": "role:Admin",
+            "name": "Admin"
+          }
+        ],
+        "type": "local",
+        "username": "pilot-admin"
+      },
+      "cache": null,
+      "cookie": [],
+      "expires": null,
+      "location": null,
+      "pragma": null,
+      "status": 200
+    },
+    "v000022": {
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:pilot-admin",
+              "username": "pilot-admin"
+            }
+          }
+        ],
+        "events": [
+          {
+            "usersPostSaveSyncHookCount": 0,
+            "usersPostSaveSyncMode": "onUpdate"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      }
+    },
+    "v000023": [
+      {
+        "$ref": "v000021"
+      },
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      },
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      },
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      },
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      },
+      {
+        "$ref": "v000021"
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      },
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      }
+    ],
+    "v000024": {
+      "audits": [
+        {
+          "action": "login",
+          "user": {
+            "id": "user:YWFmLXN1YmplY3Q=",
+            "username": "YWFmLXN1YmplY3Q="
+          }
+        },
+        {
+          "action": "logout",
+          "user": {
+            "id": "user:YWFmLXN1YmplY3Q=",
+            "username": "YWFmLXN1YmplY3Q="
+          }
+        }
+      ],
+      "events": [
+        {
+          "usersEmailAccessOutcome": "allowed-domain"
+        },
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onCreate"
+        }
+      ],
+      "sessions": 0
+    },
+    "v000025": {
+      "accountLinkState": "active",
+      "additionalAttributes": null,
+      "cn": null,
+      "createdAt": "<timestamp>",
+      "displayname": "AAF Fixture",
+      "edupersonprincipalname": null,
+      "edupersonscopedaffiliation": null,
+      "edupersontargetedid": null,
+      "email": "aaf@example.invalid",
+      "givenname": "AAF",
+      "hasApiKey": false,
+      "id": "user:YWFmLXN1YmplY3Q=",
+      "lastLogin": "<timestamp>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "AAF Fixture",
+      "roles": [
+        {
+          "branding": "brand:default",
+          "createdAt": "<timestamp>",
+          "id": "role:Researcher",
+          "name": "Researcher",
+          "updatedAt": "<timestamp>"
+        }
+      ],
+      "surname": "Test",
+      "type": "aaf",
+      "updatedAt": "<timestamp>",
+      "username": "YWFmLXN1YmplY3Q="
+    },
+    "v000026": {
+      "effects": {
+        "$ref": "v000024"
+      },
+      "profile": {
+        "body": {
+          "user": {
+            "$ref": "v000025"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      "result": {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      }
+    },
+    "v000027": {
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "POST",
+              "path": "/user/login_aaf"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 0
+      },
+      "profile": {
+        "$undefined": true
+      },
+      "result": {
+        "body": {
+          "message": "Authentication rejected",
+          "user": false
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 403
+      }
+    },
+    "v000028": [
+      {
+        "usersAuthProvider": "aaf",
+        "usersEmailAccessOutcome": "denied"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_aaf"
+        },
+        "source": "Authentication"
+      }
+    ],
+    "v000029": {
+      "effects": {
+        "audits": [],
+        "events": {
+          "$ref": "v000028"
+        },
+        "sessions": 0
+      },
+      "profile": {
+        "$undefined": true
+      },
+      "result": {
+        "body": {
+          "message": "Authentication rejected",
+          "user": false
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 403
+      }
+    },
+    "v000030": {
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:pilot-admin",
+              "username": "pilot-admin"
+            }
+          }
+        ],
+        "events": [
+          {
+            "usersPostSaveSyncHookCount": 0,
+            "usersPostSaveSyncMode": "onUpdate"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      }
+    },
+    "v000031": [
+      {
+        "usersPostSaveSyncHookCount": 0,
+        "usersPostSaveSyncMode": "onUpdate"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_aaf"
+        },
+        "source": "Authentication"
+      }
+    ],
+    "v000032": [
+      {
+        "usersEmailAccessOutcome": "allowed-domain"
+      },
+      {
+        "usersPostSaveSyncHookCount": 0,
+        "usersPostSaveSyncMode": "onCreate"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "POST",
+          "path": "/user/login_aaf"
+        },
+        "source": "Authentication"
+      }
+    ],
+    "v000033": {
+      "bad": {
+        "body": {
+          "message": "Authentication rejected",
+          "user": false
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 403
+      },
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:bWFwcGVkLXN1YmplY3Q=",
+              "username": "bWFwcGVkLXN1YmplY3Q="
+            }
+          }
+        ],
+        "events": {
+          "$ref": "v000032"
+        },
+        "sessions": 1
+      },
+      "good": {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      }
+    },
+    "v000034": {
+      "effects": {
+        "audits": [],
+        "events": {
+          "$ref": "v000008"
+        },
+        "sessions": 0
+      },
+      "result": {
+        "body": {
+          "details": "",
+          "message": "Internal server error"
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Path=/"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 500
+      }
+    },
+    "v000035": {
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:YWFmLXN1YmplY3Q=",
+              "username": "YWFmLXN1YmplY3Q="
+            }
+          }
+        ],
+        "events": [
+          {
+            "usersEmailAccessOutcome": "allowed-domain"
+          },
+          {
+            "usersPostSaveSyncHookCount": 0,
+            "usersPostSaveSyncMode": "onCreate"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      }
+    },
+    "v000036": {
+      "audits": [
+        {
+          "action": "login",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        },
+        {
+          "action": "login",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        },
+        {
+          "action": "login",
+          "user": {
+            "id": "user:pilot-admin",
+            "username": "pilot-admin"
+          }
+        }
+      ],
+      "events": [
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onUpdate"
+        },
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onUpdate"
+        },
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onUpdate"
+        }
+      ],
+      "sessions": 0
+    },
+    "v000037": [
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      },
+      {
+        "body": "",
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 405
+      }
+    ],
+    "v000038": {
+      "audits": [
+        {
+          "action": "login",
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed"
+          }
+        },
+        {
+          "action": "logout",
+          "user": {
+            "id": "user:allowed",
+            "username": "allowed"
+          }
+        }
+      ],
+      "events": [
+        {
+          "usersEmailAccessOutcome": "allowed-domain"
+        },
+        {
+          "usersPostSaveSyncHookCount": 0,
+          "usersPostSaveSyncMode": "onCreate"
+        }
+      ],
+      "sessions": 0
+    },
+    "v000039": {
+      "accountLinkState": "active",
+      "additionalAttributes": {
+        "department.name": "Research"
+      },
+      "cn": null,
+      "createdAt": "<timestamp>",
+      "displayname": null,
+      "edupersonprincipalname": null,
+      "edupersonscopedaffiliation": null,
+      "edupersontargetedid": null,
+      "email": "allowed@example.invalid",
+      "givenname": null,
+      "hasApiKey": false,
+      "id": "user:allowed",
+      "lastLogin": "<timestamp>",
+      "linkedPrimaryUserId": "",
+      "loginDisabled": false,
+      "name": "OIDC Fixture",
+      "roles": [
+        {
+          "branding": "brand:default",
+          "createdAt": "<timestamp>",
+          "id": "role:Researcher",
+          "name": "Researcher",
+          "updatedAt": "<timestamp>"
+        }
+      ],
+      "surname": null,
+      "type": "oidc",
+      "updatedAt": "<timestamp>",
+      "username": "allowed"
+    },
+    "v000040": {
+      "body": "<redirect>",
+      "cache": "no-cache, private",
+      "cookie": [
+        [
+          "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+          "Path=/"
+        ]
+      ],
+      "expires": "0",
+      "location": "http://fixture/logout?client_id=redbox&post_logout_redirect_uri=http%3A%2F%2Ffixture%2Fportal%2Fdefault%2Frdmp%2Fhome",
+      "pragma": "no-cache",
+      "status": 302
+    },
+    "v000041": [
+      {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      },
+      {
+        "body": {
+          "user": {
+            "$ref": "v000039"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "$ref": "v000040"
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      }
+    ],
+    "v000042": [
+      {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      },
+      {
+        "body": {
+          "user": {
+            "$ref": "v000039"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "body": "<redirect>",
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Path=/"
+          ]
+        ],
+        "expires": "0",
+        "location": "/portal/default/rdmp/home",
+        "pragma": "no-cache",
+        "status": 302
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      }
+    ],
+    "v000043": [
+      {
+        "usersAuthProvider": "oidc",
+        "usersEmailAccessOutcome": "denied"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "GET",
+          "path": "/user/login_oidc"
+        },
+        "source": "Authentication"
+      }
+    ],
+    "v000044": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 1,
+        "token": 1,
+        "userinfo": 1
+      },
+      "effects": {
+        "audits": [],
+        "events": {
+          "$ref": "v000043"
+        },
+        "sessions": 1
+      },
+      "result": [
+        {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      ]
+    },
+    "v000045": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 0,
+        "token": 0,
+        "userinfo": 0
+      },
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "GET",
+              "path": "/user/login_oidc"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": [
+        {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      ]
+    },
+    "v000046": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 0,
+        "token": 0,
+        "userinfo": 0
+      },
+      "effects": {
+        "audits": [],
+        "events": [],
+        "sessions": 1
+      },
+      "result": [
+        {
+          "body": {
+            "message": "Invalid branding or portal"
+          },
+          "cache": null,
+          "cookie": [],
+          "expires": null,
+          "location": null,
+          "pragma": null,
+          "status": 400
+        }
+      ]
+    },
+    "v000047": [
+      {
+        "usersEmailAccessOutcome": "allowed-domain"
+      },
+      {
+        "usersPostSaveSyncHookCount": 0,
+        "usersPostSaveSyncMode": "onCreate"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "GET",
+          "path": "/user/login_oidc"
+        },
+        "source": "Authentication"
+      }
+    ],
+    "v000048": [
+      {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      },
+      {
+        "body": {
+          "user": {
+            "$ref": "v000039"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "body": {
+          "message": "Authentication rejected",
+          "user": false
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 403
+      },
+      {
+        "$ref": "v000040"
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      }
+    ],
+    "v000049": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 1,
+        "token": 1,
+        "userinfo": 1
+      },
+      "effects": {
+        "audits": [
+          {
+            "action": "login",
+            "user": {
+              "id": "user:allowed",
+              "username": "allowed"
+            }
+          },
+          {
+            "action": "logout",
+            "user": {
+              "id": "user:allowed",
+              "username": "allowed"
+            }
+          }
+        ],
+        "events": {
+          "$ref": "v000047"
+        },
+        "sessions": 0
+      },
+      "result": {
+        "$ref": "v000048"
+      }
+    },
+    "v000050": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 1,
+        "token": 1,
+        "userinfo": 0
+      },
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "GET",
+              "path": "/user/login_oidc"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": [
+        {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      ]
+    },
+    "v000051": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 1,
+        "token": 1,
+        "userinfo": 1
+      },
+      "effects": {
+        "audits": [],
+        "events": [
+          {
+            "brandId": "brand:default",
+            "category": "authentication",
+            "eventType": "authentication.login.failure",
+            "portalId": "rdmp",
+            "requestContext": {
+              "method": "GET",
+              "path": "/user/login_oidc"
+            },
+            "source": "Authentication"
+          }
+        ],
+        "sessions": 1
+      },
+      "result": [
+        {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      ]
+    },
+    "v000052": [
+      {
+        "body": "<redirect>",
+        "cache": null,
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": null,
+        "location": "/portal/default/rdmp/home",
+        "pragma": null,
+        "status": 302
+      },
+      {
+        "body": {
+          "user": {
+            "$ref": "v000009"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      },
+      {
+        "body": "<redirect>",
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Path=/"
+          ]
+        ],
+        "expires": "0",
+        "location": "/portal/default/rdmp/home",
+        "pragma": "no-cache",
+        "status": 302
+      },
+      {
+        "body": {
+          "message": "error-please-login"
+        },
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 403
+      }
+    ],
+    "v000053": [
+      {
+        "usersPostSaveSyncHookCount": 0,
+        "usersPostSaveSyncMode": "onUpdate"
+      },
+      {
+        "brandId": "brand:default",
+        "category": "authentication",
+        "eventType": "authentication.login.failure",
+        "portalId": "rdmp",
+        "requestContext": {
+          "method": "GET",
+          "path": "/user/login_oidc"
+        },
+        "source": "Authentication"
+      }
+    ],
+    "v000054": {
+      "calls": {
+        "authorization": 1,
+        "discovery": 1,
+        "logout": 0,
+        "pkce": 1,
+        "token": 1,
+        "userinfo": 1
+      },
+      "effects": {
+        "audits": [],
+        "events": {
+          "$ref": "v000053"
+        },
+        "sessions": 1
+      },
+      "result": [
+        {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      ]
+    }
+  },
+  "sequences": {
+    "FM-015 retained Express/native authentication differential (real Mongo) rotates local login, saves safe mapped profiles/audits, refreshes roles and destroys logout": [
+      {
+        "effects": {
+          "$ref": "v000001"
+        },
+        "result": {
+          "$ref": "v000004"
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: wrong password": [
+      {
+        "effects": {
+          "$ref": "v000005"
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: missing user": [
+      {
+        "effects": {
+          "$ref": "v000006"
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: object credential": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: array credential": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: empty credential": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: oversize credential": [
+      {
+        "effects": {
+          "$ref": "v000005"
+        },
+        "result": {
+          "body": {
+            "message": "Invalid login parameters"
+          },
+          "cache": null,
+          "cookie": [],
+          "expires": null,
+          "location": null,
+          "pragma": null,
+          "status": 400
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: cross brand": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000008"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local denial: invalid context": [
+      {
+        "effects": {
+          "audits": [],
+          "events": [],
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Invalid branding or portal"
+          },
+          "cache": null,
+          "cookie": [],
+          "expires": null,
+          "location": null,
+          "pragma": null,
+          "status": 400
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local account state: linked": [
+      {
+        "$ref": "v000010"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local account state: disabled": [
+      {
+        "effects": {
+          "$ref": "v000011"
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local account state: primary-disabled": [
+      {
+        "effects": {
+          "$ref": "v000011"
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local account state: orphan": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000012"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local account state: cycle": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000012"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local account state: nonlocal": [
+      {
+        "effects": {
+          "$ref": "v000011"
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local custom bracket fields and query fallback preserve Passport lookup": [
+      {
+        "$ref": "v000014"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) uses fresh passwords and awaits profile hooks; identity replacement is rejected": [
+      {
+        "$ref": "v000017"
+      },
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000018"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Incorrect username/password",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 200
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) uses the default local fields when configured field names are empty": [
+      {
+        "body": {
+          "message": "Login OK",
+          "url": "/portal/default/rdmp/home",
+          "user": {
+            "$ref": "v000002"
+          }
+        },
+        "cache": "no-cache, private",
+        "cookie": [
+          [
+            "HttpOnly",
+            "Path=/",
+            "SameSite=Lax"
+          ]
+        ],
+        "expires": "0",
+        "location": null,
+        "pragma": "no-cache",
+        "status": 200
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) handles AAF key-provider callback failures like Express": [
+      {
+        "$ref": "v000019"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) handles AAF key-provider throw failures like Express": [
+      {
+        "$ref": "v000020"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer account state: linked": [
+      {
+        "$ref": "v000021"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer account state: disabled": [
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer account state: primary-disabled": [
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer account state: orphan": [
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer account state: cycle": [
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) rejects signed session authentication version undefined": [
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) rejects signed session authentication version 5": [
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) rejects signed session authentication version 7": [
+      {
+        "$ref": "v000022"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) refreshes bearer tokens and disabled users, gives explicit bearer precedence over session": [
+      {
+        "effects": {
+          "audits": [
+            {
+              "action": "login",
+              "user": {
+                "id": "user:pilot-admin",
+                "username": "pilot-admin"
+              }
+            }
+          ],
+          "events": [
+            {
+              "usersPostSaveSyncHookCount": 0,
+              "usersPostSaveSyncMode": "onUpdate"
+            }
+          ],
+          "sessions": 1
+        },
+        "result": {
+          "$ref": "v000023"
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer token source: body": [
+      {
+        "$ref": "v000021"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer token source: query": [
+      {
+        "$ref": "v000021"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer token source: duplicate": [
+      {
+        "body": false,
+        "cache": null,
+        "cookie": [],
+        "expires": null,
+        "location": null,
+        "pragma": null,
+        "status": 200
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) bearer token source: session-precedence": [
+      {
+        "$ref": "v000021"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: valid": [
+      {
+        "$ref": "v000026"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: bad signature": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: expired": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: issuer": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: algorithm": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: malformed": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: missing": [
+      {
+        "effects": {
+          "audits": [],
+          "events": [],
+          "sessions": 0
+        },
+        "profile": {
+          "$undefined": true
+        },
+        "result": {
+          "body": {
+            "message": "Invalid assertion"
+          },
+          "cache": null,
+          "cookie": [],
+          "expires": null,
+          "location": null,
+          "pragma": null,
+          "status": 400
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: email denial": [
+      {
+        "$ref": "v000029"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF signature/profile: missing subject": [
+      {
+        "$ref": "v000027"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF existing account: disabled": [
+      {
+        "$ref": "v000019"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF existing account: linked": [
+      {
+        "$ref": "v000030"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF existing account: primary-disabled": [
+      {
+        "$ref": "v000019"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF existing account: orphan": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000031"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) AAF existing account: cycle": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000031"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) preserves configured AAF subject/attribute fields, audience, and not-before policy": [
+      {
+        "$ref": "v000033"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) required audit failure destroys the rotated session and records safe failure events": [
+      {
+        "$ref": "v000034"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) local accepts the real URL-encoded credential form": [
+      {
+        "$ref": "v000030"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) aaf accepts the real URL-encoded credential form": [
+      {
+        "$ref": "v000035"
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) negotiates provider rejection for Accept text/html": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000028"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": "<p>authorized-email-denied</p>",
+          "cache": null,
+          "cookie": [],
+          "expires": null,
+          "location": null,
+          "pragma": null,
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) negotiates provider rejection for Accept application/json": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000028"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) negotiates provider rejection for Accept text/html;q=0,application/json": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000028"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) negotiates provider rejection for Accept application/json;q=1,text/html;q=0.1": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000028"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": {
+            "message": "Authentication rejected",
+            "user": false
+          },
+          "cache": "no-cache, private",
+          "cookie": [],
+          "expires": "0",
+          "location": null,
+          "pragma": "no-cache",
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) negotiates provider rejection for Accept */*": [
+      {
+        "effects": {
+          "audits": [],
+          "events": {
+            "$ref": "v000028"
+          },
+          "sessions": 0
+        },
+        "result": {
+          "body": "<p>authorized-email-denied</p>",
+          "cache": null,
+          "cookie": [],
+          "expires": null,
+          "location": null,
+          "pragma": null,
+          "status": 403
+        }
+      }
+    ],
+    "FM-015 retained Express/native authentication differential (real Mongo) preserves session/version work on explicit OIDC HEAD and implicit info/logout HEAD": [
+      {
+        "effects": {
+          "$ref": "v000036"
+        },
+        "result": {
+          "$ref": "v000037"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC good": [
+      {
+        "calls": {
+          "authorization": 1,
+          "discovery": 1,
+          "logout": 0,
+          "pkce": 1,
+          "token": 1,
+          "userinfo": 1
+        },
+        "effects": {
+          "$ref": "v000038"
+        },
+        "result": {
+          "$ref": "v000041"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC claims": [
+      {
+        "calls": {
+          "authorization": 1,
+          "discovery": 1,
+          "logout": 0,
+          "pkce": 1,
+          "token": 1,
+          "userinfo": 0
+        },
+        "effects": {
+          "$ref": "v000038"
+        },
+        "result": {
+          "$ref": "v000041"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC named": [
+      {
+        "calls": {
+          "authorization": 1,
+          "discovery": 1,
+          "logout": 0,
+          "pkce": 1,
+          "token": 1,
+          "userinfo": 1
+        },
+        "effects": {
+          "$ref": "v000038"
+        },
+        "result": {
+          "$ref": "v000041"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC metadata": [
+      {
+        "calls": {
+          "authorization": 1,
+          "discovery": 1,
+          "logout": 0,
+          "pkce": 1,
+          "token": 1,
+          "userinfo": 1
+        },
+        "effects": {
+          "$ref": "v000038"
+        },
+        "result": {
+          "$ref": "v000041"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC logout-disabled": [
+      {
+        "calls": {
+          "authorization": 1,
+          "discovery": 1,
+          "logout": 0,
+          "pkce": 1,
+          "token": 1,
+          "userinfo": 1
+        },
+        "effects": {
+          "$ref": "v000038"
+        },
+        "result": {
+          "$ref": "v000042"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC denied": [
+      {
+        "$ref": "v000044"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC access-denied": [
+      {
+        "$ref": "v000045"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC wrong-state": [
+      {
+        "$ref": "v000045"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC missing-session": [
+      {
+        "$ref": "v000046"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC replay": [
+      {
+        "$ref": "v000049"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC token-error": [
+      {
+        "$ref": "v000050"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC wrong-audience": [
+      {
+        "$ref": "v000050"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC wrong-issuer": [
+      {
+        "$ref": "v000050"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC expired": [
+      {
+        "$ref": "v000050"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC userinfo-error": [
+      {
+        "$ref": "v000051"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC wrong-subject": [
+      {
+        "$ref": "v000051"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC disabled": [
+      {
+        "$ref": "v000051"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC linked": [
+      {
+        "calls": {
+          "authorization": 1,
+          "discovery": 1,
+          "logout": 0,
+          "pkce": 1,
+          "token": 1,
+          "userinfo": 1
+        },
+        "effects": {
+          "$ref": "v000001"
+        },
+        "result": {
+          "$ref": "v000052"
+        }
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC primary-disabled": [
+      {
+        "$ref": "v000051"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC orphan": [
+      {
+        "$ref": "v000054"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions OIDC cycle": [
+      {
+        "$ref": "v000054"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions preserves OIDC authorization parameters for scope \"\"": [
+      {
+        "client_id": "redbox",
+        "code_challenge": "<random>",
+        "code_challenge_method": "S256",
+        "login_hint": "allowed",
+        "redirect_uri": "http://fixture/portal/user/login_oidc",
+        "response_type": "code",
+        "state": "<random>",
+        "tenant": "campus"
+      }
+    ],
+    "FM-015 OIDC protocol differential with real local issuer and native Mongo sessions preserves OIDC authorization parameters for scope false": [
+      {
+        "client_id": "redbox",
+        "code_challenge": "<random>",
+        "code_challenge_method": "S256",
+        "login_hint": "allowed",
+        "redirect_uri": "http://fixture/portal/user/login_oidc",
+        "response_type": "code",
+        "state": "<random>",
+        "tenant": "campus"
+      }
+    ]
+  }
+}

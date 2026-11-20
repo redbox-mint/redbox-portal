@@ -23,9 +23,9 @@ import {
   recordSaveFailureStatus,
   recordSaveProblem,
 } from '../../RecordSaveResponse';
-import { MultipartError, type MultipartResult } from '../express/multipart';
+import { MultipartError, type MultipartResult } from '../integrations/multipart';
 import { apiVersion, apiNoCacheHeaders } from '../apiResponses';
-import { actionApiErrors, type ActionReply, type ActionRequest } from './actionReply';
+import { actionApiErrors, type JsonOutput, type ActionRequest } from './jsonOutput';
 export interface DatastreamUploadInput {
   readonly records: Pick<
     RecordsService,
@@ -35,7 +35,7 @@ export interface DatastreamUploadInput {
   readonly log: Pick<ILogger, 'error'>;
 }
 /** Shared guards and domain operations. Native transport owns when these run. */
-export function datastreamUploadActorPrelude(req: ActionRequest, res: ActionReply) {
+export function datastreamUploadActorPrelude(req: ActionRequest, res: JsonOutput) {
   const { actor, brand: snapshot, portal } = req.context();
   if (!actor) {
     actionApiErrors(req, res, 401, [{ detail: 'Authentication required' }]);
@@ -62,7 +62,7 @@ export function datastreamUploadPreludeContract(route: Pick<ApiRouteDefinition, 
 export async function prepareDatastreamUpload(
   input: DatastreamUploadInput,
   req: ActionRequest,
-  res: ActionReply,
+  res: JsonOutput,
   identity: NonNullable<ReturnType<typeof datastreamUploadActorPrelude>>,
   validated: Pick<ValidatedApiRouteRequest, 'params'>
 ) {
@@ -186,7 +186,7 @@ type UploadResponse = Awaited<ReturnType<typeof writeDatastreamUpload>>;
 async function respondDatastreamUpload(
   input: DatastreamUploadInput,
   req: ActionRequest,
-  res: ActionReply,
+  res: JsonOutput,
   prepared: PreparedDatastreamUpload,
   response: UploadResponse
 ): Promise<void> {
@@ -230,47 +230,46 @@ async function respondDatastreamUpload(
     }
     const detail = 'Error sending datastreams upstream.';
     const status = recordSaveFailureStatus(failure);
-    res.set(apiNoCacheHeaders).set(recordSaveResultHeaders(failure));
+    const headers = { ...apiNoCacheHeaders, ...recordSaveResultHeaders(failure) };
     if (apiVersion(req) === '2.0')
-      res.status(status).json({ errors: recordSaveDisplayErrors(failure, detail), meta: { ...failure } });
+      res.publish({ errors: recordSaveDisplayErrors(failure, detail), meta: { ...failure } }, status, headers);
     else {
       const schemaMalformed = failure.problems.some(
         problem =>
           problem.kind === 'validation' && problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
       );
-      res.status(status === 412 || isRecordConflictStatus(status) ? status : schemaMalformed ? 400 : 500).json({
-        message: detail,
-      });
+      res.publish(
+        { message: detail },
+        status === 412 || isRecordConflictStatus(status) ? status : schemaMalformed ? 400 : 500,
+        headers
+      );
     }
     return;
   }
   if (response.finalizationFailed) {
     const detail = 'Attachment finalization failed. Review current attachments before retrying.';
-    res.set(recordSaveResultHeaders(response.saved));
+    const headers = recordSaveResultHeaders(response.saved);
     if (apiVersion(req) === '2.0')
-      res
-        .set(apiNoCacheHeaders)
-        .status(500)
-        .json({ errors: [{ detail }], meta: { ...response.saved } });
-    else actionApiErrors(req, res, 500, [{ detail }]);
+      res.publish({ errors: [{ detail }], meta: { ...response.saved } }, 500, { ...apiNoCacheHeaders, ...headers });
+    else actionApiErrors(req, res, 500, [{ detail }], apiVersion(req), headers);
     return;
   }
-  res
-    .set({ ...apiNoCacheHeaders, ...recordSaveResultHeaders(response.saved) })
-    .json(
-      apiVersion(req) === '2.0'
-        ? { data: { message: response.result }, meta: { ...response.saved } }
-        : { message: response.result }
-    );
+  res.publish(
+    apiVersion(req) === '2.0'
+      ? { data: { message: response.result }, meta: { ...response.saved } }
+      : { message: response.result },
+    undefined,
+    { ...apiNoCacheHeaders, ...recordSaveResultHeaders(response.saved) }
+  );
 }
 export function rejectDatastreamUpload(
   input: Pick<DatastreamUploadInput, 'log'>,
   req: ActionRequest,
-  res: ActionReply,
+  res: JsonOutput,
   error: unknown
 ): void {
   input.log.error('Datastream upload failed');
-  if (!res.headersSent)
+  if (!res.isCommitted())
     actionApiErrors(req, res, error instanceof MultipartError ? error.status : 500, [
       {
         detail:
@@ -284,7 +283,7 @@ export function rejectDatastreamUpload(
 export async function executePreparedDatastreamUpload(
   input: DatastreamUploadInput,
   req: ActionRequest,
-  res: ActionReply,
+  res: JsonOutput,
   prepared: PreparedDatastreamUpload,
   receive: <T>(consume: (result: MultipartResult) => Promise<T>) => Promise<T>
 ): Promise<void> {
@@ -299,7 +298,7 @@ export async function executePreparedDatastreamUpload(
 export async function executeDatastreamUpload(
   input: DatastreamUploadInput,
   req: ActionRequest,
-  res: ActionReply,
+  res: JsonOutput,
   route: Pick<ApiRouteDefinition, 'request'>,
   receive: <T>(consume: (result: MultipartResult) => Promise<T>) => Promise<T>
 ): Promise<void> {

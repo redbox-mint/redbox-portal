@@ -1,16 +1,15 @@
-
 import sinon from 'sinon';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Request } from 'express';
+import type { FastifyRequest as Request } from 'fastify';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 
 describe('request chronicle default log output', function () {
-this.timeout(20000);
-it('renders readable logfmt fields for the event, errors, and stack', async function () {
+  this.timeout(20000);
+  it('renders readable logfmt fields for the event, errors, and stack', async function () {
     const pino = require('pino');
     const { log, logfmtTransportTarget, logfmtTransportOptions } = require('../../src/config/log.config');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'request-chronicle-'));
@@ -23,7 +22,7 @@ it('renders readable logfmt fields for the event, errors, and stack', async func
     try {
       const req = {
         method: 'GET',
-        path: '/default/rdmp/preview/token123.css',
+        url: '/default/rdmp/preview/token123.css',
         hostname: 'localhost',
         headers: {},
       } as unknown as Request;
@@ -63,5 +62,5 @@ it('renders readable logfmt fields for the event, errors, and stack', async func
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
-afterEach(() => sinon.restore());
+  afterEach(() => sinon.restore());
 });

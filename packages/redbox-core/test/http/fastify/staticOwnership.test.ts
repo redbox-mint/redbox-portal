@@ -7,8 +7,8 @@ import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { createPortalFastifyApplication } from '../../../src/application/portal/application';
 import { StaticOwnershipTable } from '../../../src/http/fastify/staticOwnership';
 import { coreRouteName } from '../../../src/http/fastify/routes';
-import { resumableUploadRoutes } from '../../../src/http/express/resumableUploads';
-import { progressSocketHttpOwners } from '../../../src/http/express/progressSockets';
+import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
+import { progressSocketHttpOwners } from '../../../src/http/integrations/progressSockets';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { getMetaRoute } from '../../../src/api-routes/groups/records';
 

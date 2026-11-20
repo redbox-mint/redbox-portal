@@ -1,0 +1,632 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "unknown-role/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"message\":\"Unknown role for brand\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "disable-self/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "62"
+        },
+        "text": "{\"message\":\"You cannot disable your own account\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "self-role/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "62"
+        },
+        "text": "{\"message\":\"Profile updates cannot change roles\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "identity-search-field/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "52"
+        },
+        "text": "{\"message\":\"Invalid user search field\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "index-foreign/1.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "43"
+        },
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "metadata-foreign/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "103"
+        },
+        "text": "{\"message\":\"Failed to update meta, cannot find existing record with oid: foreign-record.\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "delete-foreign/1.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "43"
+        },
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "acl-subject/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "54"
+        },
+        "text": "{\"message\":\"Invalid permission subjects\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "list-filter-mode/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "47"
+        },
+        "text": "{\"message\":\"Invalid filter mode.\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "foreign-form/1.0": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "468"
+          },
+          "text": "{\"id\":\"000000000000000000000023\",\"attachmentFields\":null,\"branding\":\"000000000000000000000011\",\"configuration\":{\"name\":\"dataRecord\",\"type\":\"dataRecord\",\"componentDefinitions\":[{\"name\":\"title\",\"component\":{\"class\":\"SimpleInputComponent\",\"config\":{\"type\":\"text\"}},\"model\":{\"class\":\"SimpleInputModel\",\"config\":{\"defaultValue\":\"Default title\"}}}]},\"createdAt\":\"0000-00-00T00:00:00.000Z\",\"name\":\"dataRecord\",\"updatedAt\":\"0000-00-00T00:00:00.000Z\",\"validationOperations\":[]}"
+        },
+        {
+          "status": 200,
+          "headers": {
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "468"
+          },
+          "text": "{\"id\":\"000000000000000000000023\",\"attachmentFields\":null,\"branding\":\"000000000000000000000011\",\"configuration\":{\"name\":\"dataRecord\",\"type\":\"dataRecord\",\"componentDefinitions\":[{\"name\":\"title\",\"component\":{\"class\":\"SimpleInputComponent\",\"config\":{\"type\":\"text\"}},\"model\":{\"class\":\"SimpleInputModel\",\"config\":{\"defaultValue\":\"Default title\"}}}]},\"createdAt\":\"0000-00-00T00:00:00.000Z\",\"name\":\"dataRecord\",\"updatedAt\":\"0000-00-00T00:00:00.000Z\",\"validationOperations\":[]}"
+        }
+      ],
+      "state": {
+        "discoveryCalls": 1
+      }
+    },
+    "unknown-role/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "58"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Unknown role for brand\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "disable-self/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "71"
+        },
+        "text": "{\"errors\":[{\"detail\":\"You cannot disable your own account\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "self-role/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "71"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Profile updates cannot change roles\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "identity-search-field/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "61"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid user search field\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "index-foreign/2.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "52"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Record not found\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "metadata-foreign/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "112"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Failed to update meta, cannot find existing record with oid: foreign-record.\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "delete-foreign/2.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "52"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Record not found\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "acl-subject/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "63"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid permission subjects\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "list-filter-mode/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "56"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid filter mode.\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "foreign-form/2.0": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "487"
+          },
+          "text": "{\"data\":{\"id\":\"000000000000000000000023\",\"attachmentFields\":null,\"branding\":\"000000000000000000000011\",\"configuration\":{\"name\":\"dataRecord\",\"type\":\"dataRecord\",\"componentDefinitions\":[{\"name\":\"title\",\"component\":{\"class\":\"SimpleInputComponent\",\"config\":{\"type\":\"text\"}},\"model\":{\"class\":\"SimpleInputModel\",\"config\":{\"defaultValue\":\"Default title\"}}}]},\"createdAt\":\"0000-00-00T00:00:00.000Z\",\"name\":\"dataRecord\",\"updatedAt\":\"0000-00-00T00:00:00.000Z\",\"validationOperations\":[]},\"meta\":{}}"
+        },
+        {
+          "status": 200,
+          "headers": {
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "487"
+          },
+          "text": "{\"data\":{\"id\":\"000000000000000000000023\",\"attachmentFields\":null,\"branding\":\"000000000000000000000011\",\"configuration\":{\"name\":\"dataRecord\",\"type\":\"dataRecord\",\"componentDefinitions\":[{\"name\":\"title\",\"component\":{\"class\":\"SimpleInputComponent\",\"config\":{\"type\":\"text\"}},\"model\":{\"class\":\"SimpleInputModel\",\"config\":{\"defaultValue\":\"Default title\"}}}]},\"createdAt\":\"0000-00-00T00:00:00.000Z\",\"name\":\"dataRecord\",\"updatedAt\":\"0000-00-00T00:00:00.000Z\",\"validationOperations\":[]},\"meta\":{}}"
+        }
+      ],
+      "state": {
+        "discoveryCalls": 1
+      }
+    },
+    "unselected-origin": [
+      {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      {
+        "status": 501,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "42"
+        },
+        "text": "{\"message\":\"Not implemented\",\"details\":\"\"}"
+      }
+    ],
+    "unselected-actor": {
+      "status": 401,
+      "headers": {
+        "cache-control": "no-cache, private",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "50"
+      },
+      "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+    },
+    "csrf-origin": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "54"
+        },
+        "text": "{\"message\":\"Cross-origin request denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "sessionsUnchanged": true
+      }
+    },
+    "guest JSON path policy": {
+      "status": 403,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "27"
+      },
+      "text": "{\"message\":\"Access Denied\"}"
+    },
+    "browser session required": {
+      "status": 302,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "location": "/portal/default/rdmp/user/login",
+        "vary": "Accept",
+        "content-type": "text/plain; charset=utf-8",
+        "content-length": "53",
+        "set-cookie": [
+          "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      },
+      "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+    },
+    "false policy": {
+      "status": 403,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "content-length": "0"
+      },
+      "text": ""
+    },
+    "self-service/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "record mutation/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "self-service/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "record mutation/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "self-service/foreign/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "record mutation/foreign/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "self-service/foreign/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    },
+    "record mutation/foreign/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true
+      }
+    }
+  },
+  "shared": {}
+}

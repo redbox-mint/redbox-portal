@@ -24,7 +24,7 @@ import { composeHttpFallbacks } from './fallbacks';
 import { validateRouteRequest } from './validation';
 import { HttpRouteRegistry, type CoreNamespaceConfiguration } from './registry';
 import { StaticOwnershipTable } from './staticOwnership';
-import type { HttpOwnerDeclaration } from '../express/ownedRoutes';
+import type { HttpOwnerDeclaration } from '../ownedRoutes';
 import type { PoliciesConfig } from '../../config/policies.config';
 import { requestContext } from '../context';
 import { sendApiErrors } from './responses';

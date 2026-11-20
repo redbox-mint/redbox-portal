@@ -1,4 +1,8 @@
+import { authorizationWitness } from './authorizationRequests';
+import { assertGolden, golden, goldenControls as matrixControls } from './goldenContracts';
 import assert from 'node:assert/strict';
+import { assertNoObservedEffects, observeNoSideEffects, withoutSideEffects } from './noSideEffects';
+import { mutationWitnessCases } from './mutationWitnessSelection';
 import { assertNoNewConnections } from './ownedCleanup';
 import { request, type ClientRequest } from 'node:http';
 import { once } from 'node:events';
@@ -6,14 +10,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as pause } from 'node:timers/promises';
 import sinon from 'sinon';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedUploadExpress } from './retainedUploadExpress';
-import { uploadDeclarations, brandingUploadRoutes, resumableUploadRoutes } from '../../../src/http/uploadRoutes';
+
+import { uploadDeclarations, brandingUploadRoutes } from '../../../src/http/uploadRoutes';
 import { datastreamReadRoutes } from '../../../src/http/datastreamRoutes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
-import { getStorageRepositories } from '../../../src/persistence/storage/runtime';
+
 import { recordRepresentationConcurrency } from '../../../src/RecordHttpConcurrency';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
-
 type Fixture = Awaited<ReturnType<typeof referenceProductionFixture>>;
 interface Wire {
   status: number;
@@ -42,11 +45,11 @@ function normalize(value: Wire): Wire {
   // Volatile identifiers can change encoded JSON length (session/security metadata).
   return out;
 }
-const protocolBaseline = new Map<string, Wire>();
-function compareProtocol(mode: string, name: string, value: Wire): void {
-  const response = normalize(value);
-  if (mode === 'retained' || mode === 'retained-express') protocolBaseline.set(name, response);
-  else assert.deepEqual(response, protocolBaseline.get(name), name + ' matches retained status, headers and body');
+function assertProtocol(mode: string, name: string, value: Wire): void {
+  assert.equal(value.headers['x-powered-by'], undefined, name);
+  if (value.body && value.headers['content-length'])
+    assert.equal(Number(value.headers['content-length']), Buffer.byteLength(value.body), name);
+  if (value.status >= 400) assert(!value.body.includes('private-provider'), name);
 }
 export async function uploadWire(
   f: Fixture,
@@ -83,7 +86,10 @@ export async function uploadWire(
 function multipart(
   field: string,
   bytes = payload,
-  fields: { name: string; value: string }[] = [],
+  fields: {
+    name: string;
+    value: string;
+  }[] = [],
   after = false,
   filename = 'file.txt'
 ) {
@@ -113,7 +119,19 @@ async function stagingKeys(f: Fixture | import('../../../src/storage/StorageMana
   const disk = 'data' in f ? f.data.disks.get().stagingDisk() : f;
   const files = await disk.listAll('', { recursive: true });
   return Array.from(files.objects).map(value =>
-    String((value as { key?: string; name?: string }).key ?? (value as { name?: string }).name)
+    String(
+      (
+        value as {
+          key?: string;
+          name?: string;
+        }
+      ).key ??
+        (
+          value as {
+            name?: string;
+          }
+        ).name
+    )
   );
 }
 async function cleanStaging(f: Fixture) {
@@ -135,7 +153,11 @@ async function session(f: Fixture) {
   const next = await uploadWire(f, '/csrfToken', 'GET', { Cookie: signed });
   return { Cookie: signed, 'X-CSRF-Token': JSON.parse(next.body)._csrf, Origin: referenceOrigin };
 }
-const profiles: { name: string; root: string; policy?: PoliciesConfig }[] = [
+const profiles: {
+  name: string;
+  root: string;
+  policy?: PoliciesConfig;
+}[] = [
   { name: 'portal', root: '/portal' },
   { name: 'root', root: '' },
   { name: 'reduced', root: '/portal', policy: { '*': ['noCache', 'brandingAndPortal'] } },
@@ -159,8 +181,8 @@ const variants = [
     absolute: true,
   },
 ] as const;
-
-describe('FM-034 production upload differential', function () {
+const uploadSuiteTitle = 'FM-034 production upload differential';
+describe(uploadSuiteTitle, function () {
   this.timeout(1200000);
   for (const profile of profiles)
     describe(profile.name, () => {
@@ -174,26 +196,20 @@ describe('FM-034 production upload differential', function () {
           }))
         )
       );
-      const results: Wire[][] = [];
+      const results = new Map<string, { value: Wire; effects?: string[]; staged: string[] }>();
       before(async () => {
-        const retained = await retainedUploadExpress();
+        const prepared = mutationWitnessCases(`${uploadSuiteTitle} ${profile.name}`, cases, c => c.name);
         const clock = sinon.useFakeTimers({ now: new Date('2026-11-14T08:00:00.000Z'), toFake: ['Date'] });
         try {
-          for (const mode of ['retained', 'express', 'fastify']) {
-            const f = await referenceProductionFixture(
-              mode === 'fastify',
-              profile.policy,
-              mode === 'retained' ? () => retained.install() : undefined,
-              {
-                declarations,
-                pages: {},
-                rootContext: profile.root,
-                configuration: { record: { maxUploadSize: 1024 * 1024, diskSpaceThreshold: 0 } },
-              }
-            );
-            const observations: Wire[] = [];
+          for (const mode of ['fastify']) {
+            const f = await referenceProductionFixture(mode === 'fastify', profile.policy, undefined, {
+              declarations,
+              pages: {},
+              rootContext: profile.root,
+              configuration: { record: { maxUploadSize: 1024 * 1024, diskSpaceThreshold: 0 } },
+            });
             try {
-              for (const c of cases) {
+              for (const c of prepared) {
                 const protocol = c.route.method === 'all';
                 const data = multipart(
                   c.route.action === 'addDataStreams'
@@ -206,37 +222,42 @@ describe('FM-034 production upload differential', function () {
                 );
                 let target = routePath(c.route);
                 if ('foreign' in c.variant) target = target.replace('reference-record', 'foreign-record');
-                const value = await uploadWire(
-                  f,
-                  target,
-                  protocol ? 'POST' : c.route.method.toUpperCase(),
-                  {
-                    ...c.variant.headers,
-                    'X-ReDBox-API-Version': c.version,
-                    ...(protocol ? { ...tusHeaders, 'Upload-Length': '6' } : data.headers),
-                  },
-                  protocol ? undefined : data.body,
-                  'absolute' in c.variant
-                );
-                observations.push(value);
-                if (protocol && value.status === 201) {
-                  assert.match(
-                    String(value.headers.location),
-                    new RegExp(
-                      '^' + profile.root + '/default/rdmp/(companion/)?record/reference-record/attach/[a-f0-9]{32}$'
+                const archived = golden('uploads', profile.name + ':' + c.name) as { status: number };
+                const denied =
+                  [401, 403].includes(archived.status) ||
+                  (archived.status >= 400 && c.variant.name === 'foreign-record' && c.route.path.includes(':oid'));
+                const observer = denied ? await observeNoSideEffects(f) : undefined;
+                let value: Wire;
+                let effects: string[] | undefined;
+                try {
+                  value = await authorizationWitness(`${uploadSuiteTitle} ${profile.name} ${c.name}`, () =>
+                    uploadWire(
+                      f,
+                      target,
+                      protocol ? 'POST' : c.route.method.toUpperCase(),
+                      {
+                        ...c.variant.headers,
+                        'X-ReDBox-API-Version': c.version,
+                        ...(protocol ? { ...tusHeaders, 'Upload-Length': '6' } : data.headers),
+                      },
+                      protocol ? undefined : data.body,
+                      'absolute' in c.variant
                     )
                   );
-                  await cleanStaging(f);
-                } else assert.deepEqual(await stagingKeys(f), [], c.name + ' leaves no staged files');
+                  if (observer) effects = await observer.differences();
+                } finally {
+                  observer?.restore();
+                }
+                const staged = await stagingKeys(f);
+                results.set(c.name, { value, effects, staged });
+                if (staged.length) await cleanStaging(f);
               }
-              results.push(observations);
             } finally {
               await f.close();
             }
           }
         } finally {
           clock.restore();
-          await retained.close();
         }
         if (process.env.FM034_RESULTS)
           await writeFile(
@@ -244,47 +265,41 @@ describe('FM-034 production upload differential', function () {
             JSON.stringify(
               {
                 cases: cases.map(c => ({ name: c.name, method: c.route.method, path: c.route.path })),
-                results,
-                retainedHashes: retained.hashes,
+                results: [prepared.map(c => results.get(c.name)?.value)],
               },
               null,
               2
             )
           );
       });
-      cases.forEach((c, index) =>
+      cases.forEach(c =>
         it(c.name, () => {
-          assert.deepEqual(
-            normalize(results[1][index]),
-            normalize(results[0][index]),
-            'Shared actions preserve retained Express'
-          );
-          assert.deepEqual(
-            normalize(results[2][index]),
-            normalize(results[0][index]),
-            'Native production action preserves status, headers and body'
-          );
-          assert.notEqual(results[2][index].status, 501);
+          const result = results.get(c.name);
+          assert(result);
+          if (result.effects) assertNoObservedEffects(result.effects);
+          if (c.route.method === 'all' && result.value.status === 201) {
+            assert.match(
+              String(result.value.headers.location),
+              new RegExp('^' + profile.root + '/default/rdmp/(companion/)?record/reference-record/attach/[a-f0-9]{32}$')
+            );
+          } else assert.deepEqual(result.staged, [], c.name + ' leaves no staged files');
+          assertGolden('uploads', profile.name + ':' + c.name, normalize(result.value));
         })
       );
     });
-
-  for (const mode of ['retained', 'express', 'fastify'])
+  for (const mode of ['fastify'])
     describe(mode + ' protocol and staging', () => {
-      let f: Fixture, retained: Awaited<ReturnType<typeof retainedUploadExpress>>;
+      let f: Fixture;
       const base = '/default/rdmp/record/reference-record/attach';
       before(async () => {
-        retained = await retainedUploadExpress();
-        f = await referenceProductionFixture(
-          mode === 'fastify',
-          undefined,
-          mode === 'retained' ? () => retained.install() : undefined,
-          { declarations, pages: {}, configuration: { record: { maxUploadSize: 1024 * 1024, diskSpaceThreshold: 0 } } }
-        );
+        f = await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
+          declarations,
+          pages: {},
+          configuration: { record: { maxUploadSize: 1024 * 1024, diskSpaceThreshold: 0 } },
+        });
       });
       after(async () => {
         await f?.close();
-        await retained?.close();
       });
       afterEach(async () => {
         await cleanStaging(f);
@@ -327,7 +342,7 @@ describe('FM-034 production upload differential', function () {
           assert.equal(head.body, '');
           assert.equal(head.headers['upload-offset'], '3');
           assert.equal(head.headers['upload-length'], '6');
-          compareProtocol(mode, 'TUS partial HEAD companion=' + companion, head);
+          assertProtocol(mode, 'TUS partial HEAD companion=' + companion, head);
           assert.equal((await patch(0, 'bad')).status, 409);
           assert.equal(
             (await uploadWire(f, resource, 'HEAD', { Authorization: 'Bearer reader-token', ...tusHeaders })).status,
@@ -383,7 +398,7 @@ describe('FM-034 production upload differential', function () {
         const options = await uploadWire(f, base, 'OPTIONS', auth);
         assert.equal(options.status, 204);
         assert(String(options.headers['tus-extension']).includes('termination'));
-        compareProtocol(mode, 'TUS OPTIONS', options);
+        assertProtocol(mode, 'TUS OPTIONS', options);
         assert.equal((await uploadWire(f, base, 'POST', auth)).status, 412);
         assert.equal(
           (await uploadWire(f, base, 'POST', { ...auth, ...tusHeaders, 'Upload-Length': '1048577' })).status,
@@ -439,10 +454,10 @@ describe('FM-034 production upload differential', function () {
             data.body
           );
           assert.equal(out.status, 404, out.body);
-          compareProtocol(mode, 'multipart structured version ' + query, out);
+          assertProtocol(mode, 'multipart structured version ' + query, out);
           const head = await uploadWire(f, base + '/invalid' + query, 'HEAD', { ...auth, ...tusHeaders });
           assert.equal(head.status, 400);
-          compareProtocol(mode, 'TUS structured version ' + query, head);
+          assertProtocol(mode, 'TUS structured version ' + query, head);
           assert.deepEqual(await stagingKeys(f), []);
         });
       for (const body of [undefined, Buffer.from('{}'), Buffer.from('{')])
@@ -603,22 +618,20 @@ describe('FM-034 production upload differential', function () {
             body
           );
           assert.equal(result.status, issue === 'oversized' ? 413 : 400, result.body);
-          compareProtocol(mode, 'multipart ' + issue, result);
+          assertProtocol(mode, 'multipart ' + issue, result);
           assert.deepEqual(await stagingKeys(f), []);
         });
     });
 });
-
 /** Faults wrap the real production disk/records, never replace the portal or
  * synthesize successful persistence. Every gate releases and every socket joins. */
 describe('FM-034 upload failures, cancellation and lifetime', function () {
   this.timeout(120000);
-  for (const native of [false, true])
-    describe(native ? 'fastify' : 'retained-express', () => {
-      let f: Fixture, retained: Awaited<ReturnType<typeof retainedUploadExpress>>;
+  for (const native of [true])
+    describe('fastify', () => {
+      let f: Fixture;
       beforeEach(async () => {
-        retained = await retainedUploadExpress();
-        f = await referenceProductionFixture(native, undefined, native ? undefined : () => retained.install(), {
+        f = await referenceProductionFixture(native, undefined, undefined, {
           declarations,
           pages: {},
           configuration: { record: { maxUploadSize: 16 * 1024 * 1024, diskSpaceThreshold: 0 } },
@@ -627,13 +640,12 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
       afterEach(async () => {
         sinon.restore();
         await f?.close();
-        await retained?.close();
       });
       const path = '/default/rdmp/api/records/datastreams/reference-record';
       it('refuses low filesystem space without allocating disk data', async () => {
         // The same production threshold input is used by both owners. A reserve
         // beyond this filesystem's capacity safely simulates the low-space branch.
-        const low = await referenceProductionFixture(native, undefined, native ? undefined : () => retained.install(), {
+        const low = await referenceProductionFixture(native, undefined, undefined, {
           declarations,
           pages: {},
           configuration: { record: { maxUploadSize: 1024 * 1024, diskSpaceThreshold: Number.MAX_SAFE_INTEGER } },
@@ -645,7 +657,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
             'Upload-Length': '3',
           });
           assert.equal(out.status, 500, out.body);
-          compareProtocol(native ? 'fastify' : 'retained-express', 'low disk reserve', out);
+          assertProtocol('fastify', 'low disk reserve', out);
           assert.equal(JSON.parse(out.body).message, 'not-enough-disk-space');
           assert.deepEqual(await stagingKeys(low), []);
         } finally {
@@ -662,7 +674,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
         const data = multipart('attachmentFields');
         const out = await uploadWire(f, path, 'POST', { ...auth, ...data.headers }, data.body);
         assert.equal(out.status, 500, out.body);
-        compareProtocol(native ? 'fastify' : 'retained-express', 'ambiguous provider failure', out);
+        assertProtocol('fastify', 'ambiguous provider failure', out);
         assert(!out.body.includes('private provider'));
         assert.deepEqual(await stagingKeys(f), []);
       });
@@ -673,7 +685,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
         const data = multipart('attachmentFields');
         const out = await uploadWire(f, path, 'POST', { ...auth, ...data.headers }, data.body);
         assert.equal(out.status, 500, out.body);
-        compareProtocol(native ? 'fastify' : 'retained-express', 'cleanup failure', out);
+        assertProtocol('fastify', 'cleanup failure', out);
         assert.equal((await stagingKeys(f)).length, 1);
         deletion.callsFake(remove);
         await f.host.stop();
@@ -693,7 +705,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           data.body
         );
         assert.equal(out.status, 500, out.body);
-        compareProtocol(native ? 'fastify' : 'retained-express', 'finalization failure', out);
+        assertProtocol('fastify', 'finalization failure', out);
         assert(out.body.includes('datastream-finalization-failed'));
         assert(!out.body.includes('private upstream'));
         const after = await f.data.records.get().getMeta('reference-record');
@@ -708,8 +720,21 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           const target = '/default/rdmp/api/branding/draft/typeface/faces/regular';
           const initial = await f.data.reference.branding.get().getAdminState('default');
           const revision = Number(
-            (initial as { draftRevision?: number; draft?: { revision?: number } }).draftRevision ??
-              (initial as { draft?: { revision?: number } }).draft?.revision ??
+            (
+              initial as {
+                draftRevision?: number;
+                draft?: {
+                  revision?: number;
+                };
+              }
+            ).draftRevision ??
+              (
+                initial as {
+                  draft?: {
+                    revision?: number;
+                  };
+                }
+              ).draft?.revision ??
               0
           );
           const data = multipart(
@@ -747,11 +772,13 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
             { redboxOid: 'reference-record' },
             { $set: { 'authorization.edit': [], 'authorization.editRoles': [] } }
           );
-        const out = await uploadWire(f, '/default/rdmp/record/reference-record/attach', 'POST', {
-          ...auth,
-          ...tusHeaders,
-          'Upload-Length': '3',
-        });
+        const out = await withoutSideEffects(f, () =>
+          uploadWire(f, '/default/rdmp/record/reference-record/attach', 'POST', {
+            ...auth,
+            ...tusHeaders,
+            'Upload-Length': '3',
+          })
+        );
         assert.equal(out.status, 403, out.body);
         assert.deepEqual(await stagingKeys(f), []);
       });
@@ -819,7 +846,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           const out = await response;
           await producing;
           assert.equal(out.status, 200, out.body);
-          compareProtocol(native ? 'fastify' : 'retained-express', 'slow producer', out);
+          assertProtocol('fastify', 'slow producer', out);
           assert(buffered <= 128 * 1024);
           assert.deepEqual(await stagingKeys(f), []);
           if (process.env.FM034_RESULTS)
@@ -915,7 +942,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           const head = await uploadWire(f, target, 'HEAD', { ...auth, ...tusHeaders });
           assert.equal(head.status, 200);
           assert.equal(head.headers['upload-offset'], '65536');
-          compareProtocol(native ? 'fastify' : 'retained-express', 'cancelled TUS HEAD', head);
+          assertProtocol('fastify', 'cancelled TUS HEAD', head);
           assert.deepEqual((await stagingKeys(f)).sort(), [
             'tus/' + id + '/info.json',
             'tus/' + id + '/parts/00000000000000000000',
@@ -962,7 +989,7 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
           );
         const failure = await patch();
         assert.equal(failure.status, 500, failure.body);
-        compareProtocol(native ? 'fastify' : 'retained-express', 'TUS provider failure', failure);
+        assertProtocol('fastify', 'TUS provider failure', failure);
         assert(!failure.body.includes('private part'));
         assert.deepEqual(await stagingKeys(f), ['tus/' + id + '/info.json']);
         assert.equal((await uploadWire(f, target, 'HEAD', { ...auth, ...tusHeaders })).headers['upload-offset'], '0');
@@ -1053,7 +1080,6 @@ describe('FM-034 upload failures, cancellation and lifetime', function () {
       });
     });
 });
-
 /** Installed hooks exercise live inputs after host staging and validation. */
 describe('FM-034 live upload inputs and raw session publication', function () {
   this.timeout(120000);
@@ -1079,6 +1105,28 @@ describe('FM-034 live upload inputs and raw session publication', function () {
   afterEach(async () => {
     sinon.restore();
     await f?.close();
+  });
+  it('preserves the beforeAction status on a successful multipart datastream upload', async () => {
+    f = await fixture('reply.code(202)');
+    const data = multipart('attachmentFields');
+    const out = await uploadWire(
+      f,
+      dataPath,
+      'POST',
+      { ...auth, ...data.headers, 'X-ReDBox-API-Version': '2.0' },
+      data.body
+    );
+    assert.equal(out.status, 202, out.body);
+    const result = JSON.parse(out.body).data.message;
+    assert.equal(result.success, true);
+    assert.equal(result.fileIds.length, 1);
+    const file = await f.data.datastream.get().getDatastream('reference-record', result.fileIds[0].fileId);
+    const chunks: Buffer[] = [];
+    for await (const chunk of file.readstream!) chunks.push(Buffer.from(chunk));
+    assert.deepEqual(Buffer.concat(chunks), payload);
+    const saved = await f.data.records.get().getMeta('reference-record');
+    assert.equal(out.headers.etag, recordRepresentationConcurrency(saved).metadata.entityTag);
+    assert.deepEqual(await stagingKeys(f), []);
   });
   for (const replacement of ['foreign-record', 'save-request', 'query', 'body'])
     it('multipart action reads live ' + replacement + ' replacement and cleans staging', async () => {
@@ -1224,3 +1272,5 @@ describe('FM-034 live upload inputs and raw session publication', function () {
     }
   });
 });
+
+matrixControls('uploads');

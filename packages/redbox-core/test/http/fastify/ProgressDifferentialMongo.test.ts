@@ -1,16 +1,19 @@
+import { goldenControls } from './goldenContracts';
+import { assertWireContract } from './wireContracts';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { once } from 'node:events';
-import { readdirSync } from 'node:fs';
+import { brotliDecompressSync, gunzipSync, inflateSync } from 'node:zlib';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import sinon from 'sinon';
 import { io, type Socket } from 'socket.io-client';
 import WebSocket from 'ws';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedProgressExpress } from './retainedProgressExpress';
+import { withoutSideEffects } from './noSideEffects';
+
 import { progressOperationRoutes, progressSocketGrantRoute } from '../../../src/http/progressRoutes';
-import { replaceRequest } from './requestReplacementHook';
 
 const declarations = [...progressOperationRoutes, progressSocketGrantRoute].map(route => ({ ...route, responses: {} }));
 const credentials = { Authorization: 'Bearer pilot-api-token', Origin: referenceOrigin };
@@ -23,7 +26,11 @@ function wire(
   headers: Record<string, string> = credentials,
   body?: unknown
 ) {
-  return new Promise<{ status: number; headers: Record<string, unknown>; bytes: Buffer }>((resolve, reject) => {
+  return new Promise<{
+    status: number;
+    headers: Record<string, unknown>;
+    bytes: Buffer;
+  }>((resolve, reject) => {
     const bytes = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
     const req = request(
       new URL(base).origin,
@@ -71,17 +78,15 @@ async function connect(base: string, root: string, token: string, origin = refer
   });
   return { client, connected };
 }
-const oracle = new Map<string, unknown>();
 for (const profile of [
   { name: 'portal', root: '/portal' },
   { name: 'root', root: '' },
   { name: 'reduced', root: '/portal', policy: { '*': ['noCache', 'brandingAndPortal'] } },
 ]) {
-  for (const native of [false, true])
-    describe(`FM-035 ${profile.name} ${native ? 'Fastify' : 'retained Express'} progress`, function () {
+  for (const native of [true])
+    describe(`FM-035 ${profile.name} ${'Fastify'} progress`, function () {
       this.timeout(120000);
-      let f: Awaited<ReturnType<typeof referenceProductionFixture>>,
-        retained: Awaited<ReturnType<typeof retainedProgressExpress>>;
+      let f: Awaited<ReturnType<typeof referenceProductionFixture>>;
       const clients = new Set<Socket>();
       const target = (suffix = '') => profile.root + '/default/rdmp/asynch' + suffix;
       const grant = async () => {
@@ -90,10 +95,7 @@ for (const profile of [
         return JSON.parse(response.bytes.toString()).token as string;
       };
       before(async () => {
-        retained = await retainedProgressExpress((req, _res, next) => {
-          void replaceRequest(req, true).then(() => next(), next);
-        });
-        f = await referenceProductionFixture(native, profile.policy, native ? undefined : retained.install, {
+        f = await referenceProductionFixture(native, profile.policy, undefined, {
           declarations,
           rootContext: profile.root,
           hooksModule: require.resolve('./requestReplacementHook'),
@@ -102,7 +104,6 @@ for (const profile of [
       after(async () => {
         for (const client of clients) client.disconnect();
         await f?.close();
-        await retained?.close();
       });
       for (const route of declarations)
         for (const version of ['1.0', '2.0'])
@@ -149,12 +150,38 @@ for (const profile of [
                         id: '000000000000000000000099',
                         message: 'progress',
                       };
-              const response = await wire(f.url, path, route.method.toUpperCase(), headers, body);
-              assert.notEqual(response.status, 501);
-              assert.notEqual(response.status, 500, response.bytes.toString());
+              const expected =
+                route.method !== 'get' &&
+                (variant === 'origin' || (profile.policy && ['anonymous', 'invalid'].includes(variant)))
+                  ? 403
+                  : profile.policy || ['anonymous', 'invalid'].includes(variant)
+                    ? 401
+                    : ['reader', 'foreign', 'cross-brand'].includes(variant)
+                      ? 403
+                      : route.path.endsWith('socket-token')
+                        ? 200
+                        : ['subscribe', 'unsubscribe'].includes(route.action)
+                          ? 410
+                          : route.action === 'progress'
+                            ? 200
+                            : route.action === 'start'
+                              ? ['bodyless', 'empty'].includes(variant)
+                                ? 403
+                                : 200
+                              : ['bodyless', 'empty'].includes(variant)
+                                ? 400
+                                : 403;
+              const send = () => wire(f.url, path, route.method.toUpperCase(), headers, body);
+              const response =
+                route.method !== 'get' && [400, 401, 403].includes(expected)
+                  ? await withoutSideEffects(f, send, { collections: ['asynchprogress'] })
+                  : await send();
+              assert.equal(response.status, expected, response.bytes.toString());
               const key = profile.name + route.method + route.path + version + variant;
-              if (!native) oracle.set(key, normalized(response));
-              else assert.deepEqual(normalized(response), oracle.get(key));
+              assertWireContract('progress', key, normalized(response));
+              assert.equal(response.headers['x-powered-by'], undefined);
+              if (response.bytes.length && response.headers['content-length'])
+                assert.equal(Number(response.headers['content-length']), response.bytes.length);
             });
       it('preserves conditional progress reads and admission for GET and HEAD', async () => {
         for (const method of ['GET', 'HEAD'])
@@ -174,8 +201,10 @@ for (const profile of [
             }
             if (method === 'HEAD') assert.equal(response.bytes.length, 0);
             const key = profile.name + 'conditional-progress-' + method + '-' + variant;
-            if (!native) oracle.set(key, normalized(response));
-            else assert.deepEqual(normalized(response), oracle.get(key));
+            assertWireContract('progress', key, normalized(response));
+            assert.equal(response.headers['x-powered-by'], undefined);
+            if (response.bytes.length && response.headers['content-length'])
+              assert.equal(Number(response.headers['content-length']), response.bytes.length);
           }
       });
       const files = readdirSync(path.join(path.dirname(require.resolve('socket.io/package.json')), 'client-dist'));
@@ -222,8 +251,24 @@ for (const profile of [
                 sha256: createHash('sha256').update(response.bytes).digest('hex'),
               };
               const key = profile.name + file + method + encoding;
-              if (!native) oracle.set(key, value);
-              else assert.deepEqual(value, oracle.get(key));
+              assertWireContract('progress-client', key, { ...value, body: response.bytes.toString('base64') });
+              assert(headers.etag);
+              if (method === 'HEAD') assert.equal(value.length, 0);
+              else {
+                const coding = headers['content-encoding'];
+                const bytes =
+                  coding === 'gzip'
+                    ? gunzipSync(response.bytes)
+                    : coding === 'br'
+                      ? brotliDecompressSync(response.bytes)
+                      : coding === 'deflate'
+                        ? inflateSync(response.bytes)
+                        : response.bytes;
+                assert.deepEqual(
+                  bytes,
+                  readFileSync(path.join(path.dirname(require.resolve('socket.io/package.json')), 'client-dist', file))
+                );
+              }
               const fresh = await wire(f.url, profile.root + '/portal-socket.io/' + file, method, {
                 'If-None-Match': String(headers.etag),
               });
@@ -343,3 +388,7 @@ for (const profile of [
       }
     });
 }
+
+goldenControls('progress');
+
+goldenControls('progress-client');

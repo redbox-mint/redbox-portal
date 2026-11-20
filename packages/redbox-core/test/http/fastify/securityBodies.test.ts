@@ -1,11 +1,14 @@
+import { ApiNamedQueryReadController } from '../../../src/http/controllers/ReadControllers';
+import { PageController } from '../../../src/http/controllers/PageController';
+import { loadPortalConfiguration } from '../../../src/configuration/portal';
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import iconv from 'iconv-lite';
-import MongoStore from 'connect-mongo';
 import { NativeMongoSessionStore } from '../../../src/http/fastify/session';
 import { nativeClientErrors, safeHttpErrorStatus } from '../../../src/http/fastify/responses';
 import { inventory, inventoryRegistration } from './inventory-fixture';
 import { securityFixture, route, rawRequest } from './securityFixture';
-import { productionSecurityFixture } from './securityProductionFixture';
 
 const variants = [
   ...['toString', 'valueOf', 'Symbol.toPrimitive'].flatMap(
@@ -56,9 +59,8 @@ const variants = [
   ['json suffix unparsed', 'application/vnd.test+json', '{"access_token":"pilot-api-token"}'],
 ] as const;
 
-describe('FM-016 raw HTTP method/body differential against production Express', function () {
+describe('FM-016 native raw HTTP parsing and session precedence', function () {
   this.timeout(45000);
-  let oracle: Awaited<ReturnType<typeof productionSecurityFixture>>;
   const natives = new Map<string, Awaited<ReturnType<typeof securityFixture>>>();
   function selection(method: string) {
     const path = ['PATCH', 'OPTIONS'].includes(method)
@@ -71,7 +73,33 @@ describe('FM-016 raw HTTP method/body differential against production Express', 
     return { row, target: path.replace(':branding', 'default').replace(':portal', 'rdmp').replace(':name', 'value') };
   }
   before(async () => {
-    oracle = await productionSecurityFixture();
+    const config = await loadPortalConfiguration({
+      env: { REDBOX_SESSION_SECRET: 'fm016-session-secret-000000000000000001' },
+      argv: [],
+    });
+    const queries = new ApiNamedQueryReadController({ queries: { list: async () => [] } as never });
+    const pages = new PageController({
+      csrfToken: () => '',
+      rendering: {
+        artifacts: {
+          assets: [],
+          bundleHash: () => '',
+          view: (name: string) => name,
+          layout: () => 'layout',
+          render: (name: string) => '<html>' + name + '</html>',
+        } as never,
+        rootContext: '/portal',
+        origin: 'https://portal.example.invalid',
+        environment: config.environment,
+        csp: config.csp,
+        log: nothingLogger,
+        settings: async () => ({ auth: { active: [] } }),
+        languages: async () => [{ code: 'en', displayName: 'English' }],
+        translate: (_brand: string, _language: string, key: string) => key,
+        typeface: () => null,
+        templateConfig: { ...config, appUrl: 'https://portal.example.invalid', rootContext: '/portal' },
+      } as never,
+    });
     for (const method of ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']) {
       const { row } = selection(method);
       natives.set(
@@ -80,7 +108,16 @@ describe('FM-016 raw HTTP method/body differential against production Express', 
           routes: [inventoryRegistration(row)],
           mongo: true,
           productionRules: true,
-          action: oracle.action(row),
+          // Invoke the real native controller for admitted reads/pages. Mutations
+          // in this body-token corpus must stop at CSRF before action entry.
+          action:
+            method === 'GET'
+              ? queries.listQueries.bind(queries)
+              : method === 'PATCH'
+                ? pages.render.bind(pages)
+                : () => {
+                    throw new Error('Mutation passed CSRF without a verified bearer header');
+                  },
         })
       );
     }
@@ -89,17 +126,50 @@ describe('FM-016 raw HTTP method/body differential against production Express', 
   });
   after(async () => {
     for (const native of new Set(natives.values())) await native.close();
-    await oracle?.close();
   });
   for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
     for (const [name, type, body] of variants)
       it(`${method} ${name}`, async () => {
         const { target } = selection(method);
-        const expected = await rawRequest(oracle.url + target, method, type, body);
+
         const actual = await rawRequest(natives.get(method)!.url + target, method, type, body);
-        assert.equal(actual.status, expected.status);
-        assert.equal(actual.text, expected.text);
-        assert.equal(actual.headers['www-authenticate'], expected.headers['www-authenticate']);
+        assertGoldenNext('security-bodies', stableWire(actual));
+
+        const parserStatus =
+          (name.includes('oversized') && !name.includes('unparsed')) || name === 'too many form fields'
+            ? 413
+            : ['latin1 json denied', 'unsupported form charset', 'unknown json charset'].includes(name)
+              ? 415
+              : name === 'malformed json'
+                ? 400
+                : undefined;
+        const authenticated = [
+          'json token',
+          'form token',
+          'utf8 json',
+          'utf16 json',
+          'latin1 form',
+          'quoted charset',
+        ].includes(name);
+        const browser = ['PATCH', 'OPTIONS'].includes(method);
+        const browserJsonDenial = name.startsWith('nested json') || ['empty json', 'bad charset syntax'].includes(name);
+        // Body tokens authenticate, but only a verified Authorization header can
+        // bypass mutation CSRF. Browser misses preserve login/brand precedence.
+        const expected =
+          parserStatus ??
+          (authenticated
+            ? ['GET', 'HEAD', 'OPTIONS'].includes(method)
+              ? 200
+              : 403
+            : browser
+              ? browserJsonDenial
+                ? 403
+                : 302
+              : 401);
+        assert.equal(actual.status, expected, actual.text);
+        if (method === 'HEAD') assert.equal(actual.text, '');
+
+        if (!parserStatus && expected === 401) assert.equal(actual.headers['www-authenticate'], 'Bearer');
         assert(!actual.text.includes('secret-body'));
       });
 
@@ -107,10 +177,20 @@ describe('FM-016 raw HTTP method/body differential against production Express', 
     for (const type of ['application/json; charset=utf-secret', 'application/x-www-form-urlencoded; charset=utf-16le'])
       it(`${method} unframed empty ${type}`, async () => {
         const { target } = selection(method);
-        const expected = await rawRequest(oracle.url + target, method, type, '', {}, false);
+
         const actual = await rawRequest(natives.get(method)!.url + target, method, type, '', {}, false);
-        assert.equal(actual.status, expected.status);
-        assert.equal(actual.text, expected.text);
+        assertGoldenNext('security-bodies', stableWire(actual));
+        assert.equal(
+          actual.status,
+          ['POST', 'PUT', 'PATCH'].includes(method)
+            ? 415
+            : method === 'OPTIONS'
+              ? type.startsWith('application/json')
+                ? 403
+                : 302
+              : 401
+        );
+        if (method === 'HEAD') assert.equal(actual.text, '');
       });
 
   for (const capture of ['%ZZ', '%E0%A4%A', '%FF'])
@@ -118,11 +198,11 @@ describe('FM-016 raw HTTP method/body differential against production Express', 
       for (const [name, type, body] of variants)
         it(`${method} path fault ${capture} with ${name}`, async () => {
           const target = '/default/rdmp/api/named-query/' + capture;
-          const expected = await rawRequest(oracle.url + target, method, type, body);
+
           // A matching path's decode failure must survive method misses too.
           const actual = await rawRequest(natives.get('PUT')!.url + target, method, type, body);
-          assert.equal(actual.status, expected.status);
-          assert.equal(actual.text, expected.text);
+          assertGoldenNext('security-bodies', stableWire(actual));
+
           assert(!actual.text.includes('secret-body'));
           const parserStatus =
             (name.includes('oversized') && !name.includes('unparsed')) || name === 'too many form fields'
@@ -130,15 +210,13 @@ describe('FM-016 raw HTTP method/body differential against production Express', 
               : ['latin1 json denied', 'unsupported form charset', 'unknown json charset'].includes(name)
                 ? 415
                 : 400;
-          assert.equal(expected.status, parserStatus);
+          assert.equal(actual.status, parserStatus);
+          if (method === 'HEAD') assert.equal(actual.text, '');
         });
 
   for (const method of ['GET', 'HEAD', 'POST', 'DELETE', 'OPTIONS'])
     it(`${method} malformed JSON beats a valid cookie and failing session read`, async () => {
-      for (const [f, prototype] of [
-        [oracle, MongoStore.prototype],
-        [natives.get(method)!, NativeMongoSessionStore.prototype],
-      ] as const) {
+      for (const [f, prototype] of [[natives.get(method)!, NativeMongoSessionStore.prototype]] as const) {
         const response = await fetch(f.url + '/csrfToken');
         await response.text();
         const cookie = response.headers.get('set-cookie')!.split(';')[0];
@@ -245,3 +323,16 @@ describe('FM-016 pinned Fastify 5.12.8 input-error classification', function () 
     assert.equal(safeHttpErrorStatus(Object.assign(new Error('secret'), { statusCode: 400 })), 500);
   });
 });
+
+goldenControls('security-bodies');
+
+function stableWire(value: Awaited<ReturnType<typeof rawRequest>>) {
+  const { date, connection, 'keep-alive': keepAlive, ...headers } = value.headers;
+  if (headers['set-cookie'])
+    headers['set-cookie'] = headers['set-cookie'].map((cookie: string) =>
+      cookie.replace(/^[^;]+/, '<credential>').replace(/Expires=[^;]+/i, 'Expires=<timestamp>')
+    );
+  for (const name of ['content-security-policy', 'content-security-policy-report-only'])
+    if (typeof headers[name] === 'string') headers[name] = headers[name].replace(/'nonce-[^']+'/g, "'nonce-<nonce>'");
+  return { ...value, headers };
+}

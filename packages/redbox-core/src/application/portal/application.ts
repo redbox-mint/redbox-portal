@@ -1,8 +1,5 @@
-import { integrationModule } from '../../extensions/integrationModule';
 import path from 'node:path';
 import { retainHttpRequestFollowup } from '../../middleware/requestLifetime';
-import { httpAction } from '../../http/express/middleware';
-import { portalOwnedHttpRoutes } from '../../http/express/ownedRoutes';
 import type { Observable } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime, type ApplicationModule, type ApplicationWork } from '../Application';
@@ -15,15 +12,7 @@ import { initializeCachePersistence } from '../../persistence/cache/runtime';
 import { initializeStoragePersistence } from '../../persistence/storage/runtime';
 import { prepareSelectedPersistenceIndexes, type StorageIndexPreparation } from '../../persistence/maintenance';
 import { type ExtensionFactory, type ExtensionWork, type ResolvedRegistration } from '../../extensions';
-import {
-  loadInstalledExtensionProviders,
-  resolveExtensions,
-  type ResolvedExtensions,
-} from '../../extensions/resolution';
-import type { ExtensionBindings } from '../../extensions/composition';
-import type { ExtensionHostIntegration } from '../../extensions/legacyContract';
-import type { RequestHandler, Router } from 'express';
-import type { Server } from 'node:http';
+import type { ResolvedExtensionData } from '../../extensions/resolution';
 import type { AgendaJobHandler } from '../../queues/AgendaQueue';
 import { ScheduledWork } from '../../queues/ScheduledWork';
 import { selectedAgendaMongoOptions } from '../../queues/indexes';
@@ -54,8 +43,7 @@ type LifecycleResolution = {
   readonly rawDeclaration?: ExtensionFactory;
   readonly pages?: import('./pageHttpPlan').PortalPages;
   readonly pageDeclaration?: ExtensionFactory;
-} & Pick<ResolvedExtensions, 'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'> &
-  Partial<Pick<ResolvedExtensions, 'handlers' | 'integrations' | 'routes' | 'middleware'>>;
+} & Pick<ResolvedExtensionData, 'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'>;
 type InstalledContributions = {
   readonly providers: readonly {
     readonly name: string;
@@ -114,35 +102,6 @@ export interface PortalApplicationOptions {
   readonly postBootstrap?: readonly ApplicationWork[];
 }
 
-/** Private pre-cutover host inputs. @preCutover */
-export interface LegacyPortalApplicationOptions extends Omit<PortalApplicationOptions, 'bindings'> {
-  readonly bindings?: PortalApplicationOptions['bindings'] & {
-    readonly handler?: ExtensionBindings['handler'];
-    readonly integration?: ExtensionBindings['integration'];
-  };
-}
-
-/** Retained pre-cutover Express composition. @preCutover */
-export async function createPortalApplication(options: LegacyPortalApplicationOptions) {
-  const installed = await loadInstalledExtensionProviders(options.appPath, {
-    includeDevDependencies: options.includeDevDependencies,
-  });
-  return buildPortalApplication(options, installed, ({ plans, config }) =>
-    resolveExtensions(
-      [
-        {
-          name: 'core',
-          root: options.appPath,
-          declaration: { apiVersion: 1, modules: plans.map(plan => plan.declaration) },
-        },
-        ...installed.providers,
-      ],
-      installed.hookLoadPriority,
-      portalOwnedHttpRoutes(config)
-    )
-  );
-}
-
 /** API2 production bootstrap. Discovery, data and HTTP resolution run offline once;
  * the same application lifecycle owns every selected non-HTTP contribution. */
 export async function createPortalFastifyApplication(
@@ -157,12 +116,11 @@ export async function createPortalFastifyApplication(
   const portal = await buildPortalApplication(options, installed, context =>
     resolvePortalInstallation(installed, context, options.http, options.appPath)
   );
-  const { prepareExtensions: _legacyPreparation, ...nativePortal } = portal;
-  return { ...nativePortal, installation: portal.resolved };
+  return { ...portal, installation: portal.resolved };
 }
 
 async function buildPortalApplication<R extends LifecycleResolution>(
-  options: LegacyPortalApplicationOptions,
+  options: PortalApplicationOptions,
   installed: InstalledContributions,
   select: (
     context: PortalApplicationContext & { readonly plans: readonly { readonly declaration: ExtensionFactory }[] }
@@ -407,16 +365,6 @@ async function buildPortalApplication<R extends LifecycleResolution>(
     requires: item.declaration.requires,
     run: bindWork(item),
   }));
-  const handlers = (resolved.handlers ?? []).map(item => {
-    if (!options.bindings?.handler) throw new Error('Bind extension HTTP handler: ' + item.declaration.name);
-    return { name: item.declaration.name, create: options.bindings.handler(item) };
-  });
-  const integrations = new Map<string, ExtensionHostIntegration>();
-  for (const item of resolved.integrations ?? []) {
-    if (!options.bindings?.integration) throw new Error('Bind extension host integration: ' + item.declaration.name);
-    const create = options.bindings.integration(item);
-    factories.push(integrationModule(item.declaration.name, create, integrations));
-  }
   const scheduleOperations = {
     'workspaces.loop': () => data.workspaceWorkers.get().loop(),
     ...options.bindings?.schedules,
@@ -497,7 +445,6 @@ async function buildPortalApplication<R extends LifecycleResolution>(
       ...(options.postBootstrap ?? []),
     ],
   });
-  let handlerInstances: Map<string, RequestHandler> | undefined;
   return {
     application,
     owner,
@@ -510,45 +457,5 @@ async function buildPortalApplication<R extends LifecycleResolution>(
     resolveHook,
     preflight,
     log: options.log,
-    async prepareExtensions(
-      stage: 'beforeRoutes' | 'afterRoutes',
-      router: Router,
-      server: Server,
-      policy: (names: readonly string[]) => RequestHandler
-    ): Promise<void> {
-      handlerInstances ??= new Map(
-        handlers.map(item => {
-          const handler = item.create();
-          return [
-            item.name,
-            httpAction(async (req, res, next) => {
-              await handler(req, res, next);
-            }),
-          ];
-        })
-      );
-      if (stage === 'beforeRoutes') {
-        for (const instance of integrations.values()) await instance.prepare(server);
-        for (const { declaration: middleware } of resolved.middleware ?? [])
-          if (middleware.stage === stage) router.use(handlerInstances.get(middleware.handler)!);
-        for (const { declaration: route } of resolved.routes ?? []) {
-          const boundPolicy = route.access === 'public' ? undefined : policy(route.access);
-          router[route.method](
-            route.path,
-            ...(boundPolicy
-              ? [
-                  httpAction(async (req, res, next) => {
-                    await boundPolicy(req, res, next);
-                  }),
-                ]
-              : []),
-            handlerInstances.get(route.handler)!
-          );
-        }
-      } else {
-        for (const { declaration: middleware } of resolved.middleware ?? [])
-          if (middleware.stage === stage) router.use(handlerInstances.get(middleware.handler)!);
-      }
-    },
   };
 }

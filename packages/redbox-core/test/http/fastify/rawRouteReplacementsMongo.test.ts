@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { io } from 'socket.io-client';
 import { addDataStreamsRoute, getMetaRoute, updateMetaRoute } from '../../../src/api-routes/groups/records';
-import { progressSocketGrantRoute } from '../../../src/http/express/progressOperations';
+import { progressSocketGrantRoute } from '../../../src/http/progressRoutes';
 import { progressOperationRoutes } from '../../../src/http/progressRoutes';
 import { coreRouteName } from '../../../src/http/fastify/routes';
 import { runAcceptedPersistenceWork, persistenceStatus } from '../../../src/persistence/runtime';
@@ -135,7 +135,7 @@ async function replacementPortal(
 const storage = require(${JSON.stringify(path.resolve(__dirname, '../../../../sails-hook-redbox-storage-mongo/dist/extension.js'))});
 const { bindControllerFactory } = require(${JSON.stringify(modulePath('http/controllers'))});
 const { z } = require(${JSON.stringify(path.resolve(__dirname, '../../../node_modules/zod'))});
-const source = require(${JSON.stringify(family === 'progress' ? modulePath('http/express/progressOperations') : modulePath('api-routes/groups/records'))})[${JSON.stringify(family === 'upload' ? 'addDataStreamsRoute' : family === 'metadata' ? 'updateMetaRoute' : 'progressSocketGrantRoute')}];
+const source = require(${JSON.stringify(family === 'progress' ? modulePath('http/progressRoutes') : modulePath('api-routes/groups/records'))})[${JSON.stringify(family === 'upload' ? 'addDataStreamsRoute' : family === 'metadata' ? 'updateMetaRoute' : 'progressSocketGrantRoute')}];
 const { receiveMultipart } = require(${JSON.stringify(modulePath('http/fastify/rawMultipart'))});
 exports.inspectPrismaStagedStorage = storage.inspectPrismaStagedStorage;
 exports.ensurePrismaStagedStorageIndexes = storage.ensurePrismaStagedStorageIndexes;

@@ -63,7 +63,7 @@ export {
   preparePageRendering,
   renderPageShell,
   type PageRenderingInput,
-  type PageRequest,
+  type PageRenderingFacts,
   type PageResponse,
 } from '../pages/rendering';
 export { prepareNativePage, sendPageResponse, sendPageError } from './fastify/pages';

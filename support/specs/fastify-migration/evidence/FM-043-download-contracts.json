@@ -1,0 +1,23 @@
+[
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-036-implementation/downloads-final-data/downloads-portal.json",
+    "sha256": "bf0404e126b93c37256fa3b329458fba9bd00af417d426aa95d4358e8771dd1a",
+    "side": "results[2] (qualified native Fastify)",
+    "cases": 640,
+    "normalization": "Existing wire helper removes Date, connection, keep-alive and request ID; test freezes Date as before"
+  },
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-036-implementation/downloads-final-data/downloads-root.json",
+    "sha256": "bf0404e126b93c37256fa3b329458fba9bd00af417d426aa95d4358e8771dd1a",
+    "side": "results[2] (qualified native Fastify)",
+    "cases": 640,
+    "normalization": "Existing wire helper removes Date, connection, keep-alive and request ID; test freezes Date as before"
+  },
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-036-implementation/downloads-final-data/downloads-reduced.json",
+    "sha256": "22554901741cb60069e6239d5c26817fc1b680b79547fdd1afd7666e0e3b380f",
+    "side": "results[2] (qualified native Fastify)",
+    "cases": 640,
+    "normalization": "Existing wire helper removes Date, connection, keep-alive and request ID; test freezes Date as before"
+  }
+]

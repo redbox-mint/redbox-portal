@@ -1,4 +1,4 @@
-import type { ActionReply } from '../../actions/actionReply';
+import type { JsonOutput } from '../../actions/jsonOutput';
 import type { HttpRequestContext, AuthenticatedActor } from '../../context';
 import { buildCompanionSendTokenHtml } from './companionSendToken';
 
@@ -7,17 +7,13 @@ interface CompanionRequest {
   readonly path: string;
   readonly body: unknown;
 }
-export function companionRequestPrelude(
-  req: CompanionRequest,
-  res: Pick<ActionReply, 'status' | 'json'>,
-  path: string
-) {
+export function companionRequestPrelude(req: CompanionRequest, res: Pick<JsonOutput, 'publish'>, path: string) {
   if (
     req.method === 'POST' &&
     [path + '/url/meta', path + '/url/get'].includes(req.path) &&
     (!req.body || typeof req.body !== 'object' || typeof Reflect.get(req.body, 'url') !== 'string')
   ) {
-    res.status(400).json({ message: 'Invalid URL request' });
+    res.publish({ message: 'Invalid URL request' }, 400);
     return false;
   }
   return true;

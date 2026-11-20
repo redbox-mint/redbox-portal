@@ -1,6 +1,6 @@
 import type { ILogger } from '@researchdatabox/sails-ng-common';
-import type { ProgressSockets } from '../express/progressSockets';
-import { actionApiData, actionApiErrors, type ActionRequest, type ActionReply } from './actionReply';
+import type { ProgressSockets } from '../integrations/progressSockets';
+import { actionApiData, actionApiErrors, type ActionRequest, type JsonOutput } from './jsonOutput';
 export interface ProgressGrantInput {
   readonly sockets: Pick<ProgressSockets, 'issue'>;
   readonly log: Pick<ILogger, 'error'>;
@@ -8,7 +8,7 @@ export interface ProgressGrantInput {
 export async function executeProgressGrant(
   input: ProgressGrantInput,
   req: ActionRequest,
-  res: ActionReply
+  res: JsonOutput
 ): Promise<void> {
   try {
     const { actor, brand } = req.context();

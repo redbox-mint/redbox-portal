@@ -1,0 +1,636 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {},
+  "sequences": {
+    "FM-016 FM-004 simultaneous-failure action-prelude differential named query missing before bad start": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Named query not found\",\"details\":\"\"}",
+        "trace": [
+          "query"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential named query existing before bad start": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination parameter.\",\"details\":\"\"}",
+        "trace": [
+          "query"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential named query missing before bad rows": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Named query not found\",\"details\":\"\"}",
+        "trace": [
+          "query"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential named query existing before bad rows": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination parameter.\",\"details\":\"\"}",
+        "trace": [
+          "query"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential named query structured pagination Zod before lookup": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"query.start\",\"details\":\"Invalid input: expected string, received object\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential API search missing type before bad exactNames": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Record Type provided is not valid\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential API search existing type before bad exactNames": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid search field\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential API search missing type before bad facetNames": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Record Type provided is not valid\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential API search existing type before bad facetNames": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid search field\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential API search Zod before type": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"query.rows\",\"details\":\"Invalid input: expected number, received string\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser search missing type before bad rows": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Record Type provided is not valid\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser search existing type before bad rows": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination parameter.\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getRecordAudit missing before bad date/depth": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getRelatedRecords missing before bad date/depth": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getRecordAudit denied before bad date/depth": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getRelatedRecords denied before bad date/depth": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getRecordAudit visible before bad date/depth": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid dateFrom parameter.\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getRelatedRecords visible before bad date/depth": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination parameter.\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential link candidate missing target before structured query": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"User not found\",\"details\":\"\"}",
+        "trace": [
+          "target"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential link candidate existing target before structured query": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid user parameter\",\"details\":\"\"}",
+        "trace": [
+          "target"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential user listing enrichment-failed enrichment before numeric bounds": [
+      {
+        "status": 500,
+        "text": "{\"message\":\"Failed to process user request\",\"details\":\"\"}",
+        "trace": [
+          "users",
+          "links"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential user listing existing enrichment before numeric bounds": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination\",\"details\":\"\"}",
+        "trace": [
+          "users",
+          "links",
+          "disabled"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential user list malformed integer fails Zod before reads": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"query.page\",\"details\":\"Invalid input: expected number, received string\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress start missing before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress start denied before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress start visible before invalid fields": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid progress fields\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress update missing before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress update denied before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress update visible before invalid fields": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid progress fields\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress update foreign-owner before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress stop missing before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress stop denied before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress stop visible before invalid fields": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid progress fields\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress stop foreign-owner before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential retired subscribe before payload/room": [
+      {
+        "status": 410,
+        "text": "{\"message\":\"Use direct Socket.IO subscribe/unsubscribe events with an owned socket grant.\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential retired unsubscribe before payload/room": [
+      {
+        "status": 410,
+        "text": "{\"message\":\"Use direct Socket.IO subscribe/unsubscribe events with an owned socket grant.\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getAuditData missing before dates": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getAuditData foreign before dates": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"view-error-no-permissions\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getAuditData visible before dates": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid audit start date.\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getIntegrationAuditData missing before dates": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getIntegrationAuditData foreign before dates": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"view-error-no-permissions\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getIntegrationAuditData visible before dates": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid integration audit start date.\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getAuditData bad page before object": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination parameter.\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getIntegrationAuditData bad page before object": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid pagination parameter.\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential raw integration audit date before authorized domain": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid dateFrom parameter.\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential configuration missing form before optional OID discovery": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Form not found\",\"details\":\"\"}",
+        "trace": [
+          "form"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential configuration existing form before optional OID discovery": [
+      {
+        "status": 200,
+        "text": "{\"form\":\"public\"}",
+        "trace": [
+          "form",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential getAttachments ignores unused malformed byte parameters": [
+      {
+        "status": 200,
+        "text": "[]",
+        "trace": [
+          "record",
+          "attachments"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential listDatastreams ignores unused malformed byte parameters": [
+      {
+        "status": 200,
+        "text": "{\"summary\":{\"numFound\":0,\"page\":1,\"start\":0},\"records\":[]}",
+        "trace": [
+          "record",
+          "attachments"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential datastream missing authorization before identifier": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential datastream denied authorization before identifier": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential datastream visible authorization before identifier": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid datastream identifier or filename\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential record create missing type before metadata shape": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Record Type provided is not valid\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential record create existing type before metadata shape": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid record body\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential record create missing type before authorization shape": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Record Type provided is not valid\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential record create existing type before authorization shape": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid record body\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential tracked harvest missing type before updateMode": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Record Type provided is not valid\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential tracked harvest existing type before updateMode": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"updateMode is not supported for tracked harvest requests.\",\"details\":\"\"}",
+        "trace": [
+          "type"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress update reassignment before invalid fields": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Progress record ownership cannot change\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress stop reassignment before invalid fields": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Progress record ownership cannot change\",\"details\":\"\"}",
+        "trace": [
+          "progress",
+          "record",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress listing filters unauthorized rows after branded read": [
+      {
+        "status": 200,
+        "text": "[{\"id\":\"0123456789abcdef01234567\",\"relatedRecordId\":\"visible\",\"started_by\":\"fixture\"}]",
+        "trace": [
+          "progress",
+          "record",
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser integration audit missing before status": [
+      {
+        "status": 404,
+        "text": "{\"message\":\"Record not found\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser integration audit foreign before status": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"view-error-no-permissions\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser integration audit visible before status": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid integration audit status.\",\"details\":\"\"}",
+        "trace": [
+          "record"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getAuditData structured filter before object": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid parameter: dateFrom\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential browser getIntegrationAuditData structured filter before object": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid parameter: dateFrom\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential raw integration audit status before authorized domain": [
+      {
+        "status": 400,
+        "text": "{\"message\":\"Invalid status parameter.\",\"details\":\"\"}",
+        "trace": []
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential user listing read failure before numeric bounds": [
+      {
+        "status": 500,
+        "text": "{\"message\":\"Failed to process user request\",\"details\":\"\"}",
+        "trace": [
+          "users"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress update missing row before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress"
+        ]
+      }
+    ],
+    "FM-016 FM-004 simultaneous-failure action-prelude differential progress stop missing row before invalid fields": [
+      {
+        "status": 403,
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}",
+        "trace": [
+          "progress"
+        ]
+      }
+    ]
+  }
+}

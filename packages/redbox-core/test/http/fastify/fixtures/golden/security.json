@@ -1,0 +1,973 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "headers": {
+        "allow": null,
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-type": "application/json",
+        "location": null,
+        "vary": null,
+        "www-authenticate": null
+      },
+      "status": 200,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "ok",
+              true
+            ],
+            [
+              "context",
+              {
+                "$object": [
+                  [
+                    "brand",
+                    "default"
+                  ],
+                  [
+                    "portal",
+                    "rdmp"
+                  ],
+                  [
+                    "actor",
+                    {
+                      "$object": [
+                        [
+                          "username",
+                          "fixture"
+                        ],
+                        [
+                          "roles",
+                          [
+                            {
+                              "$object": [
+                                [
+                                  "name",
+                                  "Admin"
+                                ],
+                                [
+                                  "brand",
+                                  "default"
+                                ]
+                              ]
+                            }
+                          ]
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000002": {
+      "headers": {
+        "allow": null,
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-type": "application/json",
+        "location": null,
+        "vary": null,
+        "www-authenticate": "Bearer"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000003": {
+      "headers": {
+        "allow": null,
+        "cache-control": null,
+        "content-type": "text/html",
+        "location": "/portal/default/rdmp/user/login",
+        "vary": "Accept",
+        "www-authenticate": null
+      },
+      "status": 302,
+      "text": "<!DOCTYPE html><head><title>Found</title></head><body><p>Found. Redirecting to /portal/default/rdmp/user/login</p></body>"
+    }
+  },
+  "sequences": {
+    "FM-016 native context, policy, CSRF and error boundary retains Express repeated explicit/configured policy chains for good": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express repeated explicit/configured policy chains for foreign": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": null,
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express repeated explicit/configured policy chains for bad": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express repeated explicit/configured policy chains for anonymous": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary rechecks changed roles between explicit and configured branding/authorization chains over real HTTP": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": null,
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express missing credentials": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express invalid credentials": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express foreign roles": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": null,
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express missing brand before invalid credentials": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": null,
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 404,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express invalid portal before invalid credentials": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": null,
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 404,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains Express authenticated": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains explicit public access without fabricating context": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 200,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ],
+              [
+                "context",
+                null
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary retains explicit deny access without fabricating context": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": null,
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect keeps the mount-specific GET exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect keeps the mount-specific HEAD exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect keeps the mount-specific POST exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect keeps the mount-specific OPTIONS exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect keeps the mount-specific GET exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect keeps the mount-specific HEAD exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 200,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect keeps the mount-specific POST exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect keeps the mount-specific OPTIONS exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect except GET/HEAD/OPTIONS keeps the mount-specific GET exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect except GET/HEAD/OPTIONS keeps the mount-specific HEAD exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 200,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect except GET/HEAD/OPTIONS keeps the mount-specific POST exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary protect except GET/HEAD/OPTIONS keeps the mount-specific OPTIONS exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect on ALL methods, including HEAD/OPTIONS keeps the mount-specific GET exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect on ALL methods, including HEAD/OPTIONS keeps the mount-specific HEAD exemption": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 200,
+        "text": ""
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect on ALL methods, including HEAD/OPTIONS keeps the mount-specific POST exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary apiProtect on ALL methods, including HEAD/OPTIONS keeps the mount-specific OPTIONS exemption": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary canonical origin wins before independently valid API bearer: {\"Origin\":\"https://evil.invalid\"}": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary canonical origin wins before independently valid API bearer: {\"Origin\":\"https://portal.example.invalid\",\"Sec-Fetch-Site\":\"same-site\"}": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 native context, policy, CSRF and error boundary canonical origin wins before independently valid API bearer: {\"Sec-Fetch-Site\":\"cross-site\"}": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution invalid JSON secret": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution scalar JSON": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution empty JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution array JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution UTF-16LE JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution utf-7 JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution utf-32le JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution utf-32be JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution utf-16 JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution unsupported JSON charset": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 415,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution Latin-1 form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution JSON size": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 413,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution form keys": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 413,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution form depth": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution unknown encoding": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 415,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution corrupt gzip": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution unparsed problem JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution unparsed text": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution gzip JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution gzip inflated oversize": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 413,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution deflate JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution deflate inflated oversize": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 413,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution br JSON": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 retained ordinary parser differential before policy execution br inflated oversize": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": "no-cache, private",
+          "content-type": "application/json",
+          "location": null,
+          "vary": null,
+          "www-authenticate": null
+        },
+        "status": 413,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid request"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "FM-016 safe native action errors and parsed body semantics retains GET browser redirects negotiated as text/plain": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": "text/plain",
+          "location": "/portal/default/rdmp/user/login",
+          "vary": "Accept",
+          "www-authenticate": null
+        },
+        "status": 302,
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 safe native action errors and parsed body semantics retains HEAD browser redirects negotiated as text/plain": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": "text/plain",
+          "location": "/portal/default/rdmp/user/login",
+          "vary": "Accept",
+          "www-authenticate": null
+        },
+        "status": 302,
+        "text": ""
+      }
+    ],
+    "FM-016 safe native action errors and parsed body semantics retains GET browser redirects negotiated as text/html": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 safe native action errors and parsed body semantics retains HEAD browser redirects negotiated as text/html": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": "text/html",
+          "location": "/portal/default/rdmp/user/login",
+          "vary": "Accept",
+          "www-authenticate": null
+        },
+        "status": 302,
+        "text": ""
+      }
+    ],
+    "FM-016 safe native action errors and parsed body semantics retains GET browser redirects negotiated as application/json": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": null,
+          "location": "/portal/default/rdmp/user/login",
+          "vary": "Accept",
+          "www-authenticate": null
+        },
+        "status": 302,
+        "text": ""
+      }
+    ],
+    "FM-016 safe native action errors and parsed body semantics retains HEAD browser redirects negotiated as application/json": [
+      {
+        "headers": {
+          "allow": null,
+          "cache-control": null,
+          "content-type": null,
+          "location": "/portal/default/rdmp/user/login",
+          "vary": "Accept",
+          "www-authenticate": null
+        },
+        "status": 302,
+        "text": ""
+      }
+    ]
+  }
+}

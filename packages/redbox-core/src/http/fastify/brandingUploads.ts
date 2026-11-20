@@ -7,7 +7,7 @@ import {
   type BrandingUploadInput,
 } from '../actions/brandingUploads';
 import { requestContext } from '../context';
-import { nativeActionReply } from './actionReply';
+import { nativeJsonOutput } from './jsonOutput';
 import { resolvedRequestContract } from './validation';
 import { stageMultipart, validatedMultipart, finishMultipart } from './rawMultipart';
 import { httpReplySubmitted } from './errorBoundary';
@@ -24,7 +24,7 @@ export function createBrandingUploadBoundary(input: () => BrandingUploadInput) {
     async prelude(request: FastifyRequest, reply: FastifyReply) {
       const ports = input(),
         req = facts(request),
-        res = nativeActionReply(reply);
+        res = nativeJsonOutput(reply);
       if (!brandingUploadActorPrelude(req, res)) return;
       try {
         const route = (request.routeOptions.config as { redboxRoute?: { route: { declaration: { action: string } } } })
@@ -40,7 +40,7 @@ export function createBrandingUploadBoundary(input: () => BrandingUploadInput) {
       try {
         await finishMultipart(request);
       } catch (error) {
-        if (!httpReplySubmitted(reply)) rejectBrandingUpload(input(), facts(request), nativeActionReply(reply), error);
+        if (!httpReplySubmitted(reply)) rejectBrandingUpload(input(), facts(request), nativeJsonOutput(reply), error);
       }
     },
     wrap(action: ReturnType<ControllerInstances['action']>): ReturnType<ControllerInstances['action']> {
@@ -59,7 +59,7 @@ export function createBrandingUploadBoundary(input: () => BrandingUploadInput) {
         rejectBrandingUpload(
           input(),
           facts(request),
-          nativeActionReply(reply, bytes => {
+          nativeJsonOutput(reply, bytes => {
             payload = bytes;
           }),
           error
@@ -79,7 +79,7 @@ export async function brandingUploadAction(
   return executeBrandingUpload(
     input,
     facts(request),
-    nativeActionReply(reply),
+    nativeJsonOutput(reply),
     { action, ...resolvedRequestContract(request) },
     async consume => {
       try {

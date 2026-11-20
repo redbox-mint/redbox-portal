@@ -1,0 +1,135 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "login": {
+      "wire": [
+        {
+          "status": 302,
+          "headers": {
+            "cache-control": "max-age=31536000, private",
+            "content-length": "58",
+            "content-type": "text/plain; charset=utf-8",
+            "expires": "<date plus one year>",
+            "location": "/portal/default/rdmp/researcher/home",
+            "pragma": "no-cache",
+            "vary": "Accept"
+          },
+          "cookies": [
+            "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+          ],
+          "text": "Found. Redirecting to /portal/default/rdmp/researcher/home"
+        },
+        {
+          "status": 302,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "content-length": "40",
+            "content-type": "text/plain; charset=utf-8",
+            "expires": "0",
+            "location": "/default/rdmp/home",
+            "pragma": "no-cache",
+            "vary": "Accept"
+          },
+          "cookies": [
+            "fm023.sid=<session>; Path=/; Expires=<time>"
+          ],
+          "text": "Found. Redirecting to /default/rdmp/home"
+        },
+        {
+          "status": 403,
+          "headers": {
+            "cache-control": "max-age=31536000, private",
+            "content-length": "32",
+            "content-type": "application/json; charset=utf-8",
+            "expires": "<date plus one year>",
+            "pragma": "no-cache"
+          },
+          "cookies": [],
+          "text": "{\"message\":\"error-please-login\"}"
+        }
+      ],
+      "state": {
+        "audits": [
+          "login",
+          "logout"
+        ],
+        "authenticatedSession": false,
+        "savedLogoutOrigin": null,
+        "provider": {
+          "discovery": 0,
+          "authorization": 1,
+          "token": 1,
+          "userinfo": 1,
+          "pkce": 1,
+          "logout": 0
+        }
+      }
+    },
+    "logout": {
+      "wire": [
+        {
+          "status": 302,
+          "headers": {
+            "cache-control": "max-age=31536000, private",
+            "content-length": "58",
+            "content-type": "text/plain; charset=utf-8",
+            "expires": "<date plus one year>",
+            "location": "/portal/default/rdmp/researcher/home",
+            "pragma": "no-cache",
+            "vary": "Accept"
+          },
+          "cookies": [
+            "fm023.sid=<session>; Path=/; HttpOnly; SameSite=Lax"
+          ],
+          "text": "Found. Redirecting to /portal/default/rdmp/researcher/home"
+        },
+        {
+          "status": 302,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "content-length": "40",
+            "content-type": "text/plain; charset=utf-8",
+            "expires": "0",
+            "location": "/default/rdmp/home",
+            "pragma": "no-cache",
+            "vary": "Accept"
+          },
+          "cookies": [
+            "fm023.sid=<session>; Path=/; Expires=<time>"
+          ],
+          "text": "Found. Redirecting to /default/rdmp/home"
+        },
+        {
+          "status": 403,
+          "headers": {
+            "cache-control": "max-age=31536000, private",
+            "content-length": "32",
+            "content-type": "application/json; charset=utf-8",
+            "expires": "<date plus one year>",
+            "pragma": "no-cache"
+          },
+          "cookies": [],
+          "text": "{\"message\":\"error-please-login\"}"
+        }
+      ],
+      "state": {
+        "audits": [
+          "login",
+          "logout"
+        ],
+        "authenticatedSession": false,
+        "savedLogoutOrigin": "provider",
+        "provider": {
+          "discovery": 1,
+          "authorization": 1,
+          "token": 1,
+          "userinfo": 1,
+          "pkce": 1,
+          "logout": 0
+        }
+      }
+    }
+  },
+  "shared": {}
+}

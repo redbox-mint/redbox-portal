@@ -7,7 +7,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as sinon from 'sinon';
 import { ILogger, isLogger, logAtLevel, nothingLogger } from '@researchdatabox/sails-ng-common';
-import { bindExtensionFactory } from '../../src/extensions/composition';
+import { bindExtensionFactory } from '../../src/extensions/bindings';
 import { isPinoLogger, log, logfmtTransportOptions } from '../../src/config/log.config';
 import { createSinonStubLogger } from '../logger.test';
 import assert from 'node:assert/strict';

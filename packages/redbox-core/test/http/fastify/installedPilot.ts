@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, writeFile, rm, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import ts from 'typescript';
 import { createHash } from 'node:crypto';
 import { assertResolvedPilotPins, pilotPins } from './pilotPins';
+import { registerAuthorizationPortal } from './authorizationRequests';
 
 /** Reject consumer-side type erasure independently of tsc, including suppression comments. */
 export function checkConsumerSource(source: string) {
@@ -23,7 +25,40 @@ export function checkConsumerSource(source: string) {
   visit(file);
 }
 export async function installedPilot(options: { integrated?: boolean } = {}) {
-  const directory = await mkdtemp(path.join(tmpdir(), 'fm019-consumer-'));
+  const scratch = !options.integrated ? process.env.FM043_MUTATION_SCRATCH_ROOT : undefined;
+  const receipt = scratch && path.join(scratch, 'packed-pilot.json');
+  function load(installation: {
+    directory: string;
+    application: string;
+    installed: string;
+    hashes: Record<string, string>;
+    resolvedPins: ReturnType<typeof assertResolvedPilotPins>;
+  }) {
+    const makeFixture = require(path.join(installation.directory, 'harness/fastify/productionPilotFixture.js'))
+      .productionPilotFixture as typeof import('./productionPilotFixture').productionPilotFixture;
+    const nativeProductionFixture: typeof makeFixture = async (...args) => {
+      const fixture = await makeFixture(...args);
+      const url = new URL(fixture.url);
+      const unregister = registerAuthorizationPortal(Number(url.port), url.pathname === '/' ? '' : url.pathname);
+      return {
+        ...fixture,
+        async close() {
+          await fixture.close();
+          unregister();
+        },
+      };
+    };
+    return {
+      ...installation,
+      nativeProductionFixture,
+      module: require(installation.installed) as import('./productionPilotFixture').PilotExtension,
+      close: async () => {
+        if (!scratch) await rm(installation.directory, { recursive: true, force: true });
+      },
+    };
+  }
+  if (receipt && existsSync(receipt)) return load(JSON.parse(await readFile(receipt, 'utf8')));
+  const directory = await mkdtemp(path.join(scratch ?? tmpdir(), 'fm019-consumer-'));
   const root = path.resolve(__dirname, '../../../../..');
   const run = (cmd: string, args: string[], cwd = directory) =>
     execFileSync('timeout', ['300', cmd, ...args], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -77,10 +112,11 @@ export async function installedPilot(options: { integrated?: boolean } = {}) {
         "const pilot = require('./index.js');\nexports.registerRedboxExtension = pilot.registerIntegrated;\nexports.inspectPrismaStagedStorage = pilot.inspectPrismaStagedStorage;\nexports.ensurePrismaStagedStorageIndexes = pilot.ensurePrismaStagedStorageIndexes;\n"
       );
     }
-    const compiler = path.join(root, 'packages/redbox-core/node_modules/.bin/tsc');
+    const compiler = require.resolve('typescript/bin/tsc');
     run(
-      compiler,
+      process.execPath,
       [
+        compiler,
         '--strict',
         '--skipLibCheck',
         '--target',
@@ -253,18 +289,12 @@ declare const host: ProductionControllerHostOptions;
       /Command failed/,
       'Missing concrete dependency inputs must fail tsc'
     );
-    // Compile the retained domain fixtures against the SAME installed core as
+    // Compile the production fixture against the SAME installed core as
     // the host/extension. Trusted save contexts intentionally use package-local
     // identity; source and installed domains must never be mixed to fake parity.
     const harness = path.join(directory, 'harness');
     await mkdir(harness);
-    for (const filename of [
-      'mongoFixture',
-      'pilotFixture',
-      'prepareRecordReads',
-      'recordWriteFixture',
-      'fastify/productionPilotFixture',
-    ]) {
+    for (const filename of ['fastify/productionPilotFixture']) {
       const input = await readFile(path.join(root, 'packages/redbox-core/test/http', filename + '.ts'), 'utf8');
       const relocated = input.replace(
         /(['"])((?:\.\.\/){2,3}src\/[^'"]+)\1/g,
@@ -305,17 +335,10 @@ declare const host: ProductionControllerHostOptions;
       hashes[name] = createHash('sha256')
         .update(await readFile(filename))
         .digest('hex');
-    return {
-      directory,
-      application,
-      installed,
-      hashes,
-      resolvedPins,
-      nativeProductionFixture: require(path.join(harness, 'fastify/productionPilotFixture.js'))
-        .productionPilotFixture as typeof import('./productionPilotFixture').productionPilotFixture,
-      module: require(installed) as import('./productionPilotFixture').PilotExtension,
-      close: () => rm(directory, { recursive: true, force: true }),
-    };
+    const installation = { directory, application, installed, hashes, resolvedPins };
+    const result = load(installation);
+    if (receipt) await writeFile(receipt, JSON.stringify(installation));
+    return result;
   } catch (error) {
     await rm(directory, { recursive: true, force: true });
     throw error;

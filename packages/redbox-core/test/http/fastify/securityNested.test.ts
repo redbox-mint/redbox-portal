@@ -1,8 +1,12 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
+import { inventory, inventoryRegistration } from './inventory-fixture';
+import { ApiNamedQueryMutationController } from '../../../src/http/controllers/MutationControllers';
+import { ApiReportReadController } from '../../../src/http/controllers/ReadControllers';
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import assert from 'node:assert/strict';
 import sinon from 'sinon';
 import type { FastifyRequest } from 'fastify';
-import { inventory, inventoryRegistration } from './inventory-fixture';
-import { productionSecurityFixture } from './securityProductionFixture';
+
 import { securityFixture, route, rawRequest } from './securityFixture';
 import { requestString, requestStrings, requestText } from '../../../src/http/requestValues';
 import { resolveLanguage } from '../../../src/http/language';
@@ -206,14 +210,28 @@ async function observed(url: string, scenario: Scenario, variant: Variant) {
 
 describe('FM-016 nested-input axis against unchanged production Express actions', function () {
   this.timeout(45000);
-  const oracles = new Map<boolean, Awaited<ReturnType<typeof productionSecurityFixture>>>();
   const natives = new Map<string, Awaited<ReturnType<typeof securityFixture>>>();
   before(async () => {
-    for (const open of [false, true]) oracles.set(open, await productionSecurityFixture(undefined, open));
+    const mutations = new ApiNamedQueryMutationController({
+      queries: {
+        delete: async () => {
+          throw new Error('Controlled downstream failure');
+        },
+      },
+      log: nothingLogger,
+    } as never);
+    const reports = new ApiReportReadController({} as never);
     for (const scenario of scenarios) {
       const row = inventory.routes.find(row => row.original.path === scenario.path && row.method === scenario.verb);
       assert(row, scenario.name);
-      const oracle = oracles.get(!!scenario.open)!;
+      const action =
+        scenario.name === 'domain 500' || scenario.name === 'action role 403'
+          ? mutations.deleteQuery.bind(mutations)
+          : scenario.name === 'validation 400'
+            ? reports.executeNamedQuery.bind(reports)
+            : () => {
+                throw new Error('Expected the production security boundary to deny before action entry');
+              };
       natives.set(
         scenario.name,
         await securityFixture(true, {
@@ -221,19 +239,17 @@ describe('FM-016 nested-input axis against unchanged production Express actions'
           mongo: true,
           productionRules: true,
           openPaths: scenario.open,
-          action: oracle.action(row),
+          action,
         })
       );
     }
   });
   after(async () => {
     for (const native of natives.values()) await native.close();
-    for (const oracle of oracles.values()) await oracle.close();
   });
   for (const scenario of scenarios)
     for (const variant of variants)
       it(`${scenario.name}: ${variant.name}`, async () => {
-        const expected = await observed(oracles.get(!!scenario.open)!.url, scenario, variant);
         const native = natives.get(scenario.name)!;
         const actual = await observed(native.url, scenario, variant);
         assert(!('reset' in actual), 'Native denial/error must always publish a safe response');
@@ -242,32 +258,8 @@ describe('FM-016 nested-input axis against unchanged production Express actions'
             /Cannot convert|request-secret|TypeError|stack|credential-secret/
           )
         );
-        if ('reset' in expected) {
-          // ACCEPTED-NESTED-INPUT-SAFE-RESPONSE: preserve the Express abort
-          // observation and require the exact intended native status/body.
-          assert(
-            variant.version && variant.query!.includes('[toString]'),
-            'Only the recorded Express defect may differ'
-          );
-          assert.equal(actual.status, scenario.status);
-          assert.deepEqual(JSON.parse(actual.text), {
-            message:
-              scenario.detail ??
-              (scenario.status === 500
-                ? 'Internal server error'
-                : scenario.name.includes('origin')
-                  ? 'Cross-origin request denied'
-                  : scenario.name === 'action role 403'
-                    ? 'Access Denied'
-                    : scenario.status === 403
-                      ? 'Invalid CSRF token'
-                      : 'Invalid request'),
-            details: '',
-          });
-        } else {
-          assert.deepEqual(actual, expected);
-          if (variant.name === 'baseline') assert.equal(expected.status, scenario.status);
-        }
+        assertGoldenNext('security-nested', actual);
+        if (variant.name === 'baseline') assert.equal(actual.status, scenario.status);
       });
 });
 
@@ -433,3 +425,5 @@ describe('FM-016 total error boundary and typed request extraction', function ()
         }
       });
 });
+
+goldenControls('security-nested');

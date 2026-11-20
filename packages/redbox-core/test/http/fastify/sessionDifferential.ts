@@ -1,30 +1,24 @@
+import { sessionWire } from './sessionWire';
+import { assertSessionContract } from './sessionContracts';
 import assert from 'node:assert/strict';
 import { request, Agent, type IncomingHttpHeaders } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import sinon from 'sinon';
-import { Signer } from '@fastify/cookie';
+
 import type { Db } from 'mongodb';
 import type { FastifyRequest } from 'fastify';
-import type { Request } from 'express';
-import type {} from '../../../dist/http/express/sessionData';
+
 import { ApplicationRuntime } from '../../../dist/application';
-import { ExpressHost } from '../../../dist/http/express/ExpressHost';
-import { composeHttpSession } from '../../../dist/http/express/session';
+
 import { FastifyHost } from '../../../dist/http/fastify/FastifyHost';
 import { prepareNativeSessions, type NativeSessionConfiguration } from '../../../dist/http/fastify/session';
 import { mongoDatabase } from '../../../dist/persistence/runtime';
 import { prepareSessionIndexes } from '../../../dist/persistence/sessions/indexes';
-
 export const url = process.env.FM014_TEST_MONGO_URL;
 if (process.env.FM014_SESSION_FULL === '1' && !url)
   throw new Error('Full session matrix requires FM014_TEST_MONGO_URL and real Mongo 9.0.4+.');
 let qualifiedMongo = false;
 if (url && !/\/fm014_sessions(?:\?|$)/.test(url)) throw new Error('Use disposable /fm014_sessions.');
-declare module 'express-session' {
-  interface SessionData {
-    value?: string;
-  }
-}
 const secret = 'fm014-differential-root-secret-for-mongo-0001';
 export const epoch = Date.UTC(2035, 0, 1);
 const maxAge = 1200;
@@ -87,7 +81,6 @@ export interface Result {
     sessionPresent?: boolean;
   };
 }
-
 export function exchange(
   port: number,
   action: Action,
@@ -144,7 +137,6 @@ export function exchange(
     req.end();
   });
 }
-
 export async function fixture(
   native: boolean,
   settings: Settings,
@@ -188,86 +180,36 @@ export async function fixture(
     await database.collection('sessions').deleteMany({});
     await prepareSessionIndexes(owner, { ...session }, 'ensure');
   };
-  const host = native
-    ? new FastifyHost(application, {
-        hostname: '127.0.0.1',
-        port: 0,
-        owner,
-        trustProxy: settings.trust,
-        prepare: async app => {
-          await initialize();
-          await prepareNativeSessions(app, owner, session);
-          for (const prefix of routePrefixes)
-            for (const action of [...actions, 'sequence'] as const)
-              app.get(actionPath(prefix, action), async req => {
-                const driver = nativeDriver(req, settings.optionUpdate);
-                const events = action === 'sequence' ? await execute!(driver, database) : undefined;
-                if (req.session?.sessionId && (action === 'modify' || action === 'modify-save'))
-                  req.session.set('value', (req.session.get('value') ?? '') + 'kept');
-                if (req.session?.sessionId && (action === 'save' || action === 'modify-save')) await req.session.save();
-                if (req.session?.sessionId && action === 'destroy') await req.session.destroy();
-                if (req.session?.sessionId && action === 'regenerate') await req.session.regenerate();
-                return {
-                  value: req.session?.sessionId ? (req.session.get('value') ?? null) : null,
-                  id: req.session?.sessionId ?? null,
-                  credential: req.session?.encryptedSessionId ?? null,
-                  events,
-                  target: req.raw.url,
-                  sessionPresent: Boolean(req.session),
-                };
-              });
-          app.setErrorHandler((_error, _req, reply) => reply.code(500).send({ error: 'session-failed' }));
-        },
-      })
-    : new ExpressHost(application, {
-        hostname: '127.0.0.1',
-        port: 0,
-        owner,
-        trustProxy: settings.trust,
-        prepare: async app => {
-          await initialize();
-          // Exactly the current production composeHttpSession + store configuration.
-          // DDL remains the explicit maintenance step above, as in prepareHttpMiddleware.
-          const composed = composeHttpSession(
-            { ...session, secret, autoRemove: 'disabled', collectionName: 'sessions' },
-            owner,
-            true
-          );
-          await composed.ready;
-          app.use(composed.middleware);
-          for (const prefix of routePrefixes)
-            for (const action of [...actions, 'sequence'] as const)
-              app.get(actionPath(prefix, action), async (req, res) => {
-                const driver = expressDriver(req, settings.optionUpdate);
-                const events = action === 'sequence' ? await execute!(driver, database) : undefined;
-                if (req.session && (action === 'modify' || action === 'modify-save'))
-                  req.session.value = (req.session.value ?? '') + 'kept';
-                if (
-                  req.session &&
-                  (action === 'save' || action === 'modify-save' || action === 'destroy' || action === 'regenerate')
-                ) {
-                  await new Promise<void>((resolve, reject) =>
-                    req.session[action === 'modify-save' ? 'save' : action](error =>
-                      error ? reject(error) : resolve()
-                    )
-                  );
-                }
-                const id = req.session ? req.sessionID : null;
-                res.json({
-                  value: req.session?.value ?? null,
-                  id,
-                  credential: id ? new Signer(secret).sign(id) : null,
-                  events,
-                  target: req.url,
-                  sessionPresent: Boolean(req.session),
-                });
-              });
-          app.use(
-            (_error: unknown, _req: Request, res: import('express').Response, _next: import('express').NextFunction) =>
-              res.status(500).json({ error: 'session-failed' })
-          );
-        },
-      });
+  const host = new FastifyHost(application, {
+    hostname: '127.0.0.1',
+    port: 0,
+    owner,
+    trustProxy: settings.trust,
+    prepare: async app => {
+      await initialize();
+      await prepareNativeSessions(app, owner, session);
+      for (const prefix of routePrefixes)
+        for (const action of [...actions, 'sequence'] as const)
+          app.get(actionPath(prefix, action), async req => {
+            const driver = nativeDriver(req, settings.optionUpdate);
+            const events = action === 'sequence' ? await execute!(driver, database) : undefined;
+            if (req.session?.sessionId && (action === 'modify' || action === 'modify-save'))
+              Reflect.set(req.session, 'value', (Reflect.get(req.session, 'value') ?? '') + 'kept');
+            if (req.session?.sessionId && (action === 'save' || action === 'modify-save')) await req.session.save();
+            if (req.session?.sessionId && action === 'destroy') await req.session.destroy();
+            if (req.session?.sessionId && action === 'regenerate') await req.session.regenerate();
+            return {
+              value: req.session?.sessionId ? (Reflect.get(req.session, 'value') ?? null) : null,
+              id: req.session?.sessionId ?? null,
+              credential: req.session?.encryptedSessionId ?? null,
+              events,
+              target: req.raw.url,
+              sessionPresent: Boolean(req.session),
+            };
+          });
+      app.setErrorHandler((_error, _req, reply) => reply.code(500).send({ error: 'session-failed' }));
+    },
+  });
   try {
     await host.initialize();
     await host.activate();
@@ -277,7 +219,6 @@ export async function fixture(
   }
   return { host, database, port: host.address()!.port };
 }
-
 // Differential normalization list:
 // - Random credentials, cutover key namespace/signature and native metadata are
 //   mapped to opaque identity continuity. Expiry and application data stay exact.
@@ -305,12 +246,12 @@ export function cookieHeaders(headers: IncomingHttpHeaders) {
     return attributes.sort();
   });
 }
-
 export async function script(native: boolean, settings: Settings, realClock = false) {
   const f = await fixture(native, settings);
   const agent = new Agent({ keepAlive: true });
   const clock = realClock ? undefined : sinon.useFakeTimers({ now: epoch, toFake: ['Date'] });
   const observations: unknown[] = [];
+  const complete: unknown[] = [];
   try {
     for (const existing of realClock ? [true] : [false, true])
       for (const action of realClock ? ['read' as const] : actions) {
@@ -336,7 +277,7 @@ export async function script(native: boolean, settings: Settings, realClock = fa
                 ...data
               } = JSON.parse(document.session);
               return {
-                id: identity(native ? metadata.generation : document._id),
+                id: identity(metadata.generation),
                 expires: document.expires.getTime(),
                 cookie: cookiePayload(storedCookie),
                 data,
@@ -349,6 +290,17 @@ export async function script(native: boolean, settings: Settings, realClock = fa
           }
           const cookies = cookieHeaders(result.headers);
           observations.push({ existing, action, label, value: result.body.value, id, cookies, stored });
+          if (!realClock)
+            complete.push({
+              existing,
+              action,
+              label,
+              value: result.body.value,
+              id,
+              cookies,
+              stored,
+              wire: sessionWire(result, identity),
+            });
           if (result.headers['set-cookie']?.[0]) cookie = result.headers['set-cookie'][0].split(';', 1)[0];
         };
         if (existing) {
@@ -375,6 +327,7 @@ export async function script(native: boolean, settings: Settings, realClock = fa
           await snapshot(await exchange(f.port, 'read', cookie, settings.proto, agent, settings.target), '+' + elapsed);
         }
       }
+    if (!realClock) assertSessionContract('transport', settings, complete);
     return observations;
   } finally {
     clock?.restore();
@@ -382,9 +335,16 @@ export async function script(native: boolean, settings: Settings, realClock = fa
     await f.host.stop();
   }
 }
-
 export type Method =
-  'read' | 'modify' | 'save' | 'reload' | 'touch' | 'resetMaxAge' | 'regenerate' | 'destroy' | 'options';
+  | 'read'
+  | 'modify'
+  | 'save'
+  | 'reload'
+  | 'touch'
+  | 'resetMaxAge'
+  | 'regenerate'
+  | 'destroy'
+  | 'options';
 export interface Driver {
   snapshot(): {
     id: string | null;
@@ -406,7 +366,7 @@ function driver(
       const cookie = session && Reflect.get(session, 'cookie');
       const lastModified = session && Reflect.get(session, 'lastModified');
       return {
-        id: session ? Reflect.get(session, native ? 'sessionId' : 'id') : null,
+        id: session ? Reflect.get(session, 'sessionId') : null,
         value: session ? (Reflect.get(session, 'value') ?? null) : null,
         cookie: cookie ? cookiePayload(JSON.parse(JSON.stringify(cookie))) : null,
         lastModified: lastModified instanceof Date ? lastModified.getTime() : null,
@@ -423,8 +383,7 @@ function driver(
       }
       if (method === 'options') {
         const cookie = Reflect.get(session, 'cookie');
-        if (native) Reflect.apply(Reflect.get(session, 'options'), session, [options]);
-        else Object.assign(cookie, options);
+        Reflect.apply(Reflect.get(session, 'options'), session, [options]);
         assert.strictEqual(Reflect.get(session, 'cookie'), cookie, 'Cookie option updates preserve identity.');
         return;
       }
@@ -441,7 +400,4 @@ function driver(
 }
 function nativeDriver(request: FastifyRequest, options?: Record<string, unknown>): Driver {
   return driver(() => (request.session?.sessionId ? request.session : undefined), true, options);
-}
-function expressDriver(request: Request, options?: Record<string, unknown>): Driver {
-  return driver(() => request.session, false, options);
 }

@@ -1,0 +1,35 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "default:local session transition": {
+      "info": 200,
+      "old": 403,
+      "rotated": true
+    },
+    "default:logout session transition": {
+      "destroyed": true,
+      "oldCookieStatus": 403
+    },
+    "reduced:local session transition": {
+      "info": 200,
+      "old": 403,
+      "rotated": true
+    },
+    "reduced:logout session transition": {
+      "destroyed": true,
+      "oldCookieStatus": 403
+    },
+    "hooks:local session transition": {
+      "info": 200,
+      "old": 403,
+      "rotated": true
+    },
+    "hooks:logout session transition": {
+      "destroyed": true,
+      "oldCookieStatus": 403
+    }
+  },
+  "shared": {},
+  "sequences": {}
+}

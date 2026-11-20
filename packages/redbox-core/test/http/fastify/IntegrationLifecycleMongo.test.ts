@@ -3,34 +3,27 @@ import { request } from 'node:http';
 import { integrationDeclarations } from '../../../src/http/integrationRoutes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedIntegrationExpress } from './retainedIntegrationExpress';
+
 import { integrationProviderFixture } from './integrationProviderFixture';
 import { session, type Fixture } from './mutationDifferentialSupport';
-
 /** Hold only the external socket response. Production registration, provider
  * request and request-lifetime ownership remain untouched. */
 describe('FM-027 accepted external provider work', function () {
   this.timeout(120000);
   for (const version of ['1.0', '2.0'])
     it(`retains provider work after disconnect and stop deadline, then drains (${version})`, async () => {
-      const retained = await retainedIntegrationExpress();
       try {
-        for (const mode of ['retained', 'express', 'fastify'] as const) {
+        for (const mode of ['fastify']) {
           const provider = await integrationProviderFixture();
           let f: Fixture | undefined;
           let gate: ReturnType<typeof provider.hold> | undefined;
           let client: ReturnType<typeof request> | undefined;
           let timer: ReturnType<typeof setTimeout> | undefined;
           try {
-            f = await referenceProductionFixture(
-              mode === 'fastify',
-              undefined,
-              mode === 'retained' ? retained.install : undefined,
-              {
-                declarations: integrationDeclarations,
-                configuration: provider.configuration,
-              }
-            );
+            f = await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
+              declarations: integrationDeclarations,
+              configuration: provider.configuration,
+            });
             const login = await session(f);
             provider.reset();
             gate = provider.hold();
@@ -88,7 +81,6 @@ describe('FM-027 accepted external provider work', function () {
           }
         }
       } finally {
-        await retained.close();
       }
     });
 });

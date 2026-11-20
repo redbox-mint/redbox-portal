@@ -7,7 +7,7 @@ import { authenticationRoutes } from '../../http/authenticationRoutes';
 import { namedQueryPageController, reportsPageController } from '../../http/controllers/BrowserControllers';
 import { PortalPages, type PortalPageOptions } from './pageHttpPlan';
 import { pageController, pageRootController } from '../../http/controllers/PageController';
-import { resolveEffectivePolicies } from '../../http/express/policies';
+import { resolveEffectivePolicies } from '../../http/policyConfiguration';
 import { integrationDeclarations } from '../../http/integrationRoutes';
 import { portalIntegrationControllers } from './integrationHttpPlan';
 import { mutationDeclarations } from '../../http/mutationRoutes';
@@ -37,8 +37,8 @@ import { portalHttpPlan, portalHttpSettings } from './httpPlan';
 import { portalReferenceControllers } from './referenceHttpPlan';
 import { coreFallbackReservedPrefixes } from '../../http/fastify/registry';
 import { z } from 'zod';
-import { portalHttpOwnerDeclarations } from '../../http/express/ownedRoutes';
-import { progressSocketHttpOwners } from '../../http/express/progressSockets';
+import { portalHttpOwnerDeclarations } from '../../http/ownedRoutes';
+import { progressSocketHttpOwners } from '../../http/integrations/progressSockets';
 import type {
   ProductionApiRouteOptions,
   ProductionExtensionResolutionOptions,
@@ -99,7 +99,7 @@ export async function resolvePortalInstallation(
     get staging() {
       return context.data.disks.get().stagingDisk();
     },
-    get multipart(): import('../../http/express/multipart').StreamingMultipart {
+    get multipart(): import('../../http/integrations/multipart').StreamingMultipart {
       return raw!.multipart;
     },
     audit: (actor: { id: string; username: string }, action: string, details: { brandId: string }) =>
@@ -191,7 +191,7 @@ export async function resolvePortalInstallation(
         get datastream() {
           return context.data.datastream.get();
         },
-        get multipart(): import('../../http/express/multipart').StreamingMultipart {
+        get multipart(): import('../../http/integrations/multipart').StreamingMultipart {
           return raw!.multipart;
         },
       }

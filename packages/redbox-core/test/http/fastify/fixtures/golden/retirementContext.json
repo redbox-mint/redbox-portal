@@ -1,0 +1,1192 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "shared": {},
+  "cases": {
+    "configured-action/false": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "11"
+        },
+        "text": "{\"ok\":true}"
+      },
+      "state": {
+        "record": [
+          {
+            "_id": "record:foreign-record",
+            "redboxOid": "foreign-record",
+            "revision": 0,
+            "metadata": {},
+            "metaMetadata": {
+              "brandId": "000000000000000000000012",
+              "type": "dataRecord"
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ]
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:reference-record",
+            "redboxOid": "reference-record",
+            "revision": 0,
+            "metadata": {
+              "title": "Reference"
+            },
+            "metaMetadata": {
+              "brandId": "000000000000000000000011",
+              "type": "dataRecord",
+              "form": "dataRecord",
+              "workflow": {
+                "stage": "draft"
+              }
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          }
+        ],
+        "deletedrecord": [],
+        "recordidentity": [
+          {
+            "_id": "recordidentity:foreign-record",
+            "redboxOid": "foreign-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:reference-record",
+            "redboxOid": "reference-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          }
+        ],
+        "recordschemareference": [],
+        "recordaudit": [],
+        "appconfig": [
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000011",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+              "brand": {
+                "id": "000000000000000000000011",
+                "name": "default"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [
+                {
+                  "recordType": "dataRecord",
+                  "name": "draft",
+                  "hidden": false,
+                  "config": {
+                    "form": "dataRecord",
+                    "authorization": {
+                      "editRoles": [
+                        "Admin"
+                      ],
+                      "transitionRoles": [
+                        "Admin"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000012",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+              "brand": {
+                "id": "000000000000000000000012",
+                "name": "other"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18ntranslation": [
+          {
+            "_id": "i18ntranslation:greeting",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "greeting",
+            "namespace": "translation",
+            "value": "Hello",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:greeting",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:nested.key",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "nested.key",
+            "namespace": "translation",
+            "value": "Nested",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:nested.key",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18nbundle": [
+          {
+            "_id": "i18nbundle:row",
+            "branding": "000000000000000000000011",
+            "locale": "en",
+            "displayName": "en",
+            "namespace": "translation",
+            "enabled": true,
+            "data": {
+              "greeting": "Hello",
+              "nested": {
+                "key": "Nested"
+              }
+            },
+            "uid": "000000000000000000000011:en:translation",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "namedquery": [],
+        "report": [],
+        "dashboardconfiguration": [
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000011",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {
+                "dataRecord": {
+                  "draft": {
+                    "searchable": true,
+                    "showStageTitle": true,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {},
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000012",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {},
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "harvestrun": [],
+        "harvestrunchunk": [],
+        "harvestrecordevent": [],
+        "useraudit": [
+          {
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "brandId": "000000000000000000000011",
+                  "name": "Admin"
+                }
+              ]
+            },
+            "action": "action:testAction",
+            "additionalContext": "{\"brandId\":\"000000000000000000000011\"}",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "brandId": "000000000000000000000011",
+                  "name": "Admin"
+                }
+              ]
+            },
+            "action": "login",
+            "additionalContext": "{\"brandId\":\"000000000000000000000011\"}",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "securityevent": [],
+        "jobs": []
+      },
+      "trace": [
+        "authorize",
+        "execute",
+        "operation-finished",
+        "audit",
+        "response"
+      ],
+      "contexts": [
+        {
+          "actor": {
+            "id": "000000000000000000000015",
+            "username": "pilot-admin"
+          },
+          "brand": {
+            "id": "000000000000000000000011",
+            "name": "default"
+          },
+          "portal": "rdmp",
+          "body": {
+            "value": 1
+          },
+          "query": {
+            "oid": "123"
+          }
+        },
+        {
+          "actor": {
+            "id": "000000000000000000000015",
+            "username": "pilot-admin"
+          },
+          "brand": {
+            "id": "000000000000000000000011",
+            "name": "default"
+          },
+          "portal": "rdmp",
+          "body": {
+            "value": 1
+          },
+          "query": {
+            "oid": "123"
+          }
+        }
+      ]
+    },
+    "configured-action/true": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "15"
+        },
+        "text": "{\"data\":\"test\"}"
+      },
+      "state": {
+        "record": [
+          {
+            "_id": "record:foreign-record",
+            "redboxOid": "foreign-record",
+            "revision": 0,
+            "metadata": {},
+            "metaMetadata": {
+              "brandId": "000000000000000000000012",
+              "type": "dataRecord"
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ]
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          },
+          {
+            "_id": "record:reference-record",
+            "redboxOid": "reference-record",
+            "revision": 0,
+            "metadata": {
+              "title": "Reference"
+            },
+            "metaMetadata": {
+              "brandId": "000000000000000000000011",
+              "type": "dataRecord",
+              "form": "dataRecord",
+              "workflow": {
+                "stage": "draft"
+              }
+            },
+            "authorization": {
+              "view": [
+                "pilot-admin"
+              ],
+              "edit": [
+                "pilot-admin"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "recordVersion": 1,
+            "incarnationId": "<incarnationId>",
+            "dateCreated": "<time>",
+            "lastSaveDate": "<time>"
+          }
+        ],
+        "deletedrecord": [],
+        "recordidentity": [
+          {
+            "_id": "recordidentity:foreign-record",
+            "redboxOid": "foreign-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          },
+          {
+            "_id": "recordidentity:reference-record",
+            "redboxOid": "reference-record",
+            "incarnationId": "<incarnationId>",
+            "createdAt": "<time>"
+          }
+        ],
+        "recordschemareference": [],
+        "recordaudit": [],
+        "appconfig": [
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000011",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+              "brand": {
+                "id": "000000000000000000000011",
+                "name": "default"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [
+                {
+                  "recordType": "dataRecord",
+                  "name": "draft",
+                  "hidden": false,
+                  "config": {
+                    "form": "dataRecord",
+                    "authorization": {
+                      "editRoles": [
+                        "Admin"
+                      ],
+                      "transitionRoles": [
+                        "Admin"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "appconfig:dashboardConfigLegacySnapshot",
+            "branding": "000000000000000000000012",
+            "configKey": "dashboardConfigLegacySnapshot",
+            "configData": {
+              "snapshotVersion": 1,
+              "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+              "brand": {
+                "id": "000000000000000000000012",
+                "name": "other"
+              },
+              "capturedAt": "<time>",
+              "overrideSource": "none",
+              "appConfigDashboardTableConfigRows": [],
+              "dashboardTypeRows": [],
+              "configuredDashboardTypes": [],
+              "workflowSteps": [],
+              "dashboardViews": {
+                "referenceView": {
+                  "name": "referenceView",
+                  "titleLabelKey": "Reference",
+                  "dashboardType": "dataRecord",
+                  "sourceRecordType": "dataRecord",
+                  "steps": [
+                    {
+                      "name": "draft",
+                      "sourceRecordType": "dataRecord",
+                      "fetchMode": "workflowStage",
+                      "workflowStage": "draft"
+                    }
+                  ]
+                }
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18ntranslation": [
+          {
+            "_id": "i18ntranslation:greeting",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "greeting",
+            "namespace": "translation",
+            "value": "Hello",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:greeting",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "i18ntranslation:nested.key",
+            "branding": "000000000000000000000011",
+            "bundle": "i18nbundle:row",
+            "locale": "en",
+            "key": "nested.key",
+            "namespace": "translation",
+            "value": "Nested",
+            "category": null,
+            "description": null,
+            "contentFormat": null,
+            "uid": "000000000000000000000011:en:translation:nested.key",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "i18nbundle": [
+          {
+            "_id": "i18nbundle:row",
+            "branding": "000000000000000000000011",
+            "locale": "en",
+            "displayName": "en",
+            "namespace": "translation",
+            "enabled": true,
+            "data": {
+              "greeting": "Hello",
+              "nested": {
+                "key": "Nested"
+              }
+            },
+            "uid": "000000000000000000000011:en:translation",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "namedquery": [],
+        "report": [],
+        "dashboardconfiguration": [
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000011",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {
+                "dataRecord": {
+                  "draft": {
+                    "searchable": true,
+                    "showStageTitle": true,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {},
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "b9674787f07d46ff29e2e582af5a45bea7fb328348ddfab75920dffac9cf9c89",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "_id": "dashboardconfiguration:row",
+            "branding": "000000000000000000000012",
+            "revision": 1,
+            "configData": {
+              "schemaVersion": 1,
+              "workflows": {},
+              "views": {
+                "referenceView": {
+                  "draft": {
+                    "searchable": false,
+                    "showStageTitle": false,
+                    "tableConfig": {
+                      "rowConfig": [
+                        {
+                          "title": "Record Title",
+                          "variable": "metadata.title",
+                          "template": "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>\n            <span class=\"dashboard-controls\">\n              {{#if hasEditAccess}}\n                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t \"edit-link-label\"}}'><i class=\"fa fa-pencil\" aria-hidden=\"true\"></i></a>\n              {{/if}}\n            </span>\n          ",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-ci",
+                          "variable": "metadata.contributor_ci.text_full_name",
+                          "template": "{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-data-manager",
+                          "variable": "metadata.contributor_data_manager.text_full_name",
+                          "template": "{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-created",
+                          "variable": "metaMetadata.createdOn",
+                          "template": "{{formatDateLocale dateCreated \"DATETIME_MED\"}}",
+                          "initialSort": "desc"
+                        },
+                        {
+                          "title": "header-modified",
+                          "variable": "metaMetadata.lastSaveDate",
+                          "template": "{{formatDateLocale dateModified \"DATETIME_MED\"}}",
+                          "initialSort": "desc",
+                          "defaultSort": true
+                        }
+                      ],
+                      "rowRulesConfig": [],
+                      "groupRowConfig": [],
+                      "groupRowRulesConfig": [],
+                      "formatRules": {
+                        "filterBy": {},
+                        "queryFilters": {
+                          "rdmp": [
+                            {
+                              "filterType": "text",
+                              "filterFields": [
+                                {
+                                  "name": "Title",
+                                  "path": "metadata.title"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "sortBy": "metaMetadata.lastSaveDate:-1",
+                        "groupBy": "",
+                        "sortGroupBy": []
+                      }
+                    }
+                  }
+                }
+              },
+              "contexts": {}
+            },
+            "provenance": {
+              "migration": {
+                "name": "20260925T000000-dashboard-stage-configuration",
+                "migratedAt": "<time>",
+                "inputFingerprint": "d6b171e96c3ed3a6a66f1b5ae6becc78e5586793837781d375afb535b7f78b25",
+                "acceptedFindingIds": [],
+                "replacementResolvedFindingIds": [],
+                "findings": []
+              }
+            },
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "harvestrun": [],
+        "harvestrunchunk": [],
+        "harvestrecordevent": [],
+        "useraudit": [
+          {
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "brandId": "000000000000000000000011",
+                  "name": "Admin"
+                }
+              ]
+            },
+            "action": "action:testAction",
+            "additionalContext": "{\"brandId\":\"000000000000000000000011\"}",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          },
+          {
+            "user": {
+              "id": "000000000000000000000015",
+              "username": "pilot-admin",
+              "type": "local",
+              "name": "pilot-admin",
+              "email": "pilot-admin@example.invalid",
+              "roles": [
+                {
+                  "id": "000000000000000000000013",
+                  "brandId": "000000000000000000000011",
+                  "name": "Admin"
+                }
+              ]
+            },
+            "action": "login",
+            "additionalContext": "{\"brandId\":\"000000000000000000000011\"}",
+            "createdAt": "<time>",
+            "updatedAt": "<time>"
+          }
+        ],
+        "securityevent": [],
+        "jobs": []
+      },
+      "trace": [
+        "authorize",
+        "execute",
+        "operation-finished",
+        "audit",
+        "response"
+      ],
+      "contexts": [
+        {
+          "actor": {
+            "id": "000000000000000000000015",
+            "username": "pilot-admin"
+          },
+          "brand": {
+            "id": "000000000000000000000011",
+            "name": "default"
+          },
+          "portal": "rdmp",
+          "body": {},
+          "query": {}
+        },
+        {
+          "actor": {
+            "id": "000000000000000000000015",
+            "username": "pilot-admin"
+          },
+          "brand": {
+            "id": "000000000000000000000011",
+            "name": "default"
+          },
+          "portal": "rdmp",
+          "body": {},
+          "query": {}
+        }
+      ]
+    },
+    "language/fr/false": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "expires": "0",
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "pragma": "no-cache",
+            "surrogate-control": "no-store",
+            "content-security-policy": "default-src 'self'; script-src 'nonce-<nonce>' 'self'; worker-src 'self'; object-src 'none'; manifest-src 'self'; style-src 'nonce-<nonce>' 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; media-src 'self'; frame-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='; upgrade-insecure-requests;",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "6490"
+          },
+          "text": "\n<!DOCTYPE html>\n<html lang=\"fr\">\n\n<head>\n  <base href=\"/portal\">\n  <meta charset=\"utf-8\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"ReDBox research data management portal\">\n  <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/portal/apple-touch-icon.png\">\n  <link rel=\"icon\" href=\"/portal/default/rdmp/images/favicon\" type=\"image/png\">\n\n  <title>\n    welcome-title | default-title\n  </title>\n\n  \n  \n  \n  <!-- Google Fonts -->\n  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>\n  \n\n\n  <!-- Custom CSS -->\n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/style.min.css\">\n  \n  \n  \n  \n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/theme.css\">\n  \n  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->\n  \n\n  <!-- Print stylesheet served as a static asset so it can be updated independently of the\n       MongoDB-cached theme.css (which only refreshes on admin republish). -->\n  <link rel=\"stylesheet\" media=\"print\" href=\"/portal/styles/print.css\">\n\n  <!-- Current latest jQuery -->\n  <script src=\"/portal/default/rdmp/js/jquery.min.js\" nonce=\"<nonce>\"></script>\n  <!-- Current latest Bootstrap JS  -->\n  <script src=\"/portal/default/rdmp/js/bootstrap.bundle.min.js\" nonce=\"<nonce>\"></script>\n  <script src=\"/portal/default/rdmp/js/index.bundle.js\" data-redbox-root=\"/portal\" nonce=\"<nonce>\"></script>\n\n\n    <angular-bootstrap rootContext=\"/portal\" ></angular-bootstrap>\n\n    <!-- Branding-aware web analytics (loader scripts) -->\n    \n\n\n\n</head>\n\n<body>\n  <!-- Branding-aware web analytics (noscript fallback) -->\n  \n\n\n\n  <div class=\"header-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        <div class=\"col-md-8\">\n          <div class=\"user-menu\">\n            <ul>\n              \n                <li><i class=\"fa fa-user\"></i>&nbsp;menu-welcome-text\n                  pilot-admin\n                </li>\n                <li><form class=\"redbox-logout\" method=\"post\" action=\"/portal/default/rdmp/user/logout\">\n                  <input type=\"hidden\" name=\"_csrf\" value=\"<csrf>\">\n                  <button type=\"submit\" class=\"btn btn-link\">menu-logout</button>\n                </form></li>\n              \n\n            </ul>\n          </div>\n        </div>\n        <div class=\"col-md-4\">\n          <div class=\"mt-3\" >\n            <div class=\"dropdown pull-right\">\n                \n                  <a class=\"dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\" aria-expanded=\"false\">\n                    fr\n                  </a>\n                  <ul class=\"dropdown-menu\">\n                    \n                        <li><a class=\"dropdown-item\" href=\"/portal/default/rdmp/home?lng=en\">en</a></li>\n                        \n                  </ul>\n                    \n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End header area -->\n\n  <div class=\"site-branding-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        \n        <div class=\"col-sm-10\">\n  <div class=\"logo\">\n    \n    \n    \n    \n    <h1>\n      <img src=\"/portal/default/rdmp/images/logo\" alt=\"logo-alt-text\"/>\n      \n    </h1>\n  </div>\n</div>\n\n        \n\n        <div class=\"col-sm-2 search-box\">\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End site branding area -->\n  \n  <div class=\"mainmenu-area\">\n  <div class=\"container\">\n    <div class=\"row\">\n\n      <nav class=\"navbar navbar-expand-lg\">\n        <button type=\"button\" class=\"navbar-toggle\" data-bs-toggle=\"collapse\" data-bs-target=\"#navbarSupportedContent\">\n            <span class=\"sr-only\">menu-toggle</span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n        </button>\n        <div class=\"collapse navbar-collapse\" id=\"navbarSupportedContent\">\n          <ul class=\"nav navbar-nav d-flex\">\n\n            \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/researcher/home\"\n                       \n                    >menu-home</a>\n                  </li>\n                \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/admin\"\n                       \n                    >menu-admin</a>\n                  </li>\n                \n\n            \n            <li>\n              <form class=\"nav-search-bar form-inline\" method=\"get\" action=\"/portal/default/rdmp/record/search\" name=\"form\">\n                <div class=\"input-group\">\n                  <input name=\"q\" type=\"text\" class=\"form-control\" placeholder=\"record-search-basic-search-placeholder\" aria-label=\"record-search-basic-search-placeholder\">\n                  <span class=\"input-group-btn\">\n                    <input class=\"btn btn-primary btn-search-bar\" type=\"submit\" value=\"record-search-basic-search\">\n                  </span>\n                </div>\n              </form>\n            </li>\n            \n\n          </ul>\n\n        </div>\n      </nav>\n    </div>\n  </div>\n</div>\n\n    \n  <!-- End mainmenu area -->\n\n\n\n\n\n\n  <div class=\"maincontent-body\">\n    <!-- Default home page -->\n\n\n<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>\n\n\n\n<div class=\"default-page\">\n  <div class=\"header\">\n    <h1 id=\"main-title\" class=\"container\">welcome-title</h1>\n    <!-- Placeholder for error messages, etc. -->\n    \n      <div class=\"container\">welcome-homepage-text</div>\n      <div class=\"main container clearfix\">\n        <br/>\n        <a href=\"/portal/default/rdmp/researcher/home\">welcome-dashboard-link-text</a>\n      </div>\n    \n    <br/>\n  </div>\n\n</div>\n\n  </div>\n\n\n\n  <div class=\"footer-bottom-area navbar-bottom\">\n    \n      <div class=\"container\">\n  <div class=\"row\">\n    <div class=\"col-md-8\">\n      <div class=\"copyright\">\n        <p>&copy; 2026 Queensland Cyber Infrastructure Foundation</p>\n      </div>\n    </div>\n\n  </div>\n</div>\n\n      \n\n  </div>\n\n\n\n</body>\n</html>\n"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "langCode": "fr"
+        }
+      ]
+    },
+    "language/fr/true": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "expires": "0",
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "pragma": "no-cache",
+            "surrogate-control": "no-store",
+            "content-security-policy": "default-src 'self'; script-src 'nonce-<nonce>' 'self'; worker-src 'self'; object-src 'none'; manifest-src 'self'; style-src 'nonce-<nonce>' 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; media-src 'self'; frame-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='; upgrade-insecure-requests;",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "6490"
+          },
+          "text": "\n<!DOCTYPE html>\n<html lang=\"fr\">\n\n<head>\n  <base href=\"/portal\">\n  <meta charset=\"utf-8\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"ReDBox research data management portal\">\n  <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/portal/apple-touch-icon.png\">\n  <link rel=\"icon\" href=\"/portal/default/rdmp/images/favicon\" type=\"image/png\">\n\n  <title>\n    welcome-title | default-title\n  </title>\n\n  \n  \n  \n  <!-- Google Fonts -->\n  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>\n  \n\n\n  <!-- Custom CSS -->\n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/style.min.css\">\n  \n  \n  \n  \n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/theme.css\">\n  \n  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->\n  \n\n  <!-- Print stylesheet served as a static asset so it can be updated independently of the\n       MongoDB-cached theme.css (which only refreshes on admin republish). -->\n  <link rel=\"stylesheet\" media=\"print\" href=\"/portal/styles/print.css\">\n\n  <!-- Current latest jQuery -->\n  <script src=\"/portal/default/rdmp/js/jquery.min.js\" nonce=\"<nonce>\"></script>\n  <!-- Current latest Bootstrap JS  -->\n  <script src=\"/portal/default/rdmp/js/bootstrap.bundle.min.js\" nonce=\"<nonce>\"></script>\n  <script src=\"/portal/default/rdmp/js/index.bundle.js\" data-redbox-root=\"/portal\" nonce=\"<nonce>\"></script>\n\n\n    <angular-bootstrap rootContext=\"/portal\" ></angular-bootstrap>\n\n    <!-- Branding-aware web analytics (loader scripts) -->\n    \n\n\n\n</head>\n\n<body>\n  <!-- Branding-aware web analytics (noscript fallback) -->\n  \n\n\n\n  <div class=\"header-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        <div class=\"col-md-8\">\n          <div class=\"user-menu\">\n            <ul>\n              \n                <li><i class=\"fa fa-user\"></i>&nbsp;menu-welcome-text\n                  pilot-admin\n                </li>\n                <li><form class=\"redbox-logout\" method=\"post\" action=\"/portal/default/rdmp/user/logout\">\n                  <input type=\"hidden\" name=\"_csrf\" value=\"<csrf>\">\n                  <button type=\"submit\" class=\"btn btn-link\">menu-logout</button>\n                </form></li>\n              \n\n            </ul>\n          </div>\n        </div>\n        <div class=\"col-md-4\">\n          <div class=\"mt-3\" >\n            <div class=\"dropdown pull-right\">\n                \n                  <a class=\"dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\" aria-expanded=\"false\">\n                    fr\n                  </a>\n                  <ul class=\"dropdown-menu\">\n                    \n                        <li><a class=\"dropdown-item\" href=\"/portal/default/rdmp/home?lng=en\">en</a></li>\n                        \n                  </ul>\n                    \n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End header area -->\n\n  <div class=\"site-branding-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        \n        <div class=\"col-sm-10\">\n  <div class=\"logo\">\n    \n    \n    \n    \n    <h1>\n      <img src=\"/portal/default/rdmp/images/logo\" alt=\"logo-alt-text\"/>\n      \n    </h1>\n  </div>\n</div>\n\n        \n\n        <div class=\"col-sm-2 search-box\">\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End site branding area -->\n  \n  <div class=\"mainmenu-area\">\n  <div class=\"container\">\n    <div class=\"row\">\n\n      <nav class=\"navbar navbar-expand-lg\">\n        <button type=\"button\" class=\"navbar-toggle\" data-bs-toggle=\"collapse\" data-bs-target=\"#navbarSupportedContent\">\n            <span class=\"sr-only\">menu-toggle</span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n        </button>\n        <div class=\"collapse navbar-collapse\" id=\"navbarSupportedContent\">\n          <ul class=\"nav navbar-nav d-flex\">\n\n            \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/researcher/home\"\n                       \n                    >menu-home</a>\n                  </li>\n                \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/admin\"\n                       \n                    >menu-admin</a>\n                  </li>\n                \n\n            \n            <li>\n              <form class=\"nav-search-bar form-inline\" method=\"get\" action=\"/portal/default/rdmp/record/search\" name=\"form\">\n                <div class=\"input-group\">\n                  <input name=\"q\" type=\"text\" class=\"form-control\" placeholder=\"record-search-basic-search-placeholder\" aria-label=\"record-search-basic-search-placeholder\">\n                  <span class=\"input-group-btn\">\n                    <input class=\"btn btn-primary btn-search-bar\" type=\"submit\" value=\"record-search-basic-search\">\n                  </span>\n                </div>\n              </form>\n            </li>\n            \n\n          </ul>\n\n        </div>\n      </nav>\n    </div>\n  </div>\n</div>\n\n    \n  <!-- End mainmenu area -->\n\n\n\n\n\n\n  <div class=\"maincontent-body\">\n    <!-- Default home page -->\n\n\n<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>\n\n\n\n<div class=\"default-page\">\n  <div class=\"header\">\n    <h1 id=\"main-title\" class=\"container\">welcome-title</h1>\n    <!-- Placeholder for error messages, etc. -->\n    \n      <div class=\"container\">welcome-homepage-text</div>\n      <div class=\"main container clearfix\">\n        <br/>\n        <a href=\"/portal/default/rdmp/researcher/home\">welcome-dashboard-link-text</a>\n      </div>\n    \n    <br/>\n  </div>\n\n</div>\n\n  </div>\n\n\n\n  <div class=\"footer-bottom-area navbar-bottom\">\n    \n      <div class=\"container\">\n  <div class=\"row\">\n    <div class=\"col-md-8\">\n      <div class=\"copyright\">\n        <p>&copy; 2026 Queensland Cyber Infrastructure Foundation</p>\n      </div>\n    </div>\n\n  </div>\n</div>\n\n      \n\n  </div>\n\n\n\n</body>\n</html>\n"
+        },
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "expires": "0",
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "pragma": "no-cache",
+            "surrogate-control": "no-store",
+            "content-security-policy": "default-src 'self'; script-src 'nonce-<nonce>' 'self'; worker-src 'self'; object-src 'none'; manifest-src 'self'; style-src 'nonce-<nonce>' 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; media-src 'self'; frame-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='; upgrade-insecure-requests;",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "6490"
+          },
+          "text": "\n<!DOCTYPE html>\n<html lang=\"fr\">\n\n<head>\n  <base href=\"/portal\">\n  <meta charset=\"utf-8\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"ReDBox research data management portal\">\n  <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/portal/apple-touch-icon.png\">\n  <link rel=\"icon\" href=\"/portal/default/rdmp/images/favicon\" type=\"image/png\">\n\n  <title>\n    welcome-title | default-title\n  </title>\n\n  \n  \n  \n  <!-- Google Fonts -->\n  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>\n  \n\n\n  <!-- Custom CSS -->\n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/style.min.css\">\n  \n  \n  \n  \n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/theme.css\">\n  \n  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->\n  \n\n  <!-- Print stylesheet served as a static asset so it can be updated independently of the\n       MongoDB-cached theme.css (which only refreshes on admin republish). -->\n  <link rel=\"stylesheet\" media=\"print\" href=\"/portal/styles/print.css\">\n\n  <!-- Current latest jQuery -->\n  <script src=\"/portal/default/rdmp/js/jquery.min.js\" nonce=\"<nonce>\"></script>\n  <!-- Current latest Bootstrap JS  -->\n  <script src=\"/portal/default/rdmp/js/bootstrap.bundle.min.js\" nonce=\"<nonce>\"></script>\n  <script src=\"/portal/default/rdmp/js/index.bundle.js\" data-redbox-root=\"/portal\" nonce=\"<nonce>\"></script>\n\n\n    <angular-bootstrap rootContext=\"/portal\" ></angular-bootstrap>\n\n    <!-- Branding-aware web analytics (loader scripts) -->\n    \n\n\n\n</head>\n\n<body>\n  <!-- Branding-aware web analytics (noscript fallback) -->\n  \n\n\n\n  <div class=\"header-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        <div class=\"col-md-8\">\n          <div class=\"user-menu\">\n            <ul>\n              \n                <li><i class=\"fa fa-user\"></i>&nbsp;menu-welcome-text\n                  pilot-admin\n                </li>\n                <li><form class=\"redbox-logout\" method=\"post\" action=\"/portal/default/rdmp/user/logout\">\n                  <input type=\"hidden\" name=\"_csrf\" value=\"<csrf>\">\n                  <button type=\"submit\" class=\"btn btn-link\">menu-logout</button>\n                </form></li>\n              \n\n            </ul>\n          </div>\n        </div>\n        <div class=\"col-md-4\">\n          <div class=\"mt-3\" >\n            <div class=\"dropdown pull-right\">\n                \n                  <a class=\"dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\" aria-expanded=\"false\">\n                    fr\n                  </a>\n                  <ul class=\"dropdown-menu\">\n                    \n                        <li><a class=\"dropdown-item\" href=\"/portal/default/rdmp/home?lng=en\">en</a></li>\n                        \n                  </ul>\n                    \n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End header area -->\n\n  <div class=\"site-branding-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        \n        <div class=\"col-sm-10\">\n  <div class=\"logo\">\n    \n    \n    \n    \n    <h1>\n      <img src=\"/portal/default/rdmp/images/logo\" alt=\"logo-alt-text\"/>\n      \n    </h1>\n  </div>\n</div>\n\n        \n\n        <div class=\"col-sm-2 search-box\">\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End site branding area -->\n  \n  <div class=\"mainmenu-area\">\n  <div class=\"container\">\n    <div class=\"row\">\n\n      <nav class=\"navbar navbar-expand-lg\">\n        <button type=\"button\" class=\"navbar-toggle\" data-bs-toggle=\"collapse\" data-bs-target=\"#navbarSupportedContent\">\n            <span class=\"sr-only\">menu-toggle</span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n        </button>\n        <div class=\"collapse navbar-collapse\" id=\"navbarSupportedContent\">\n          <ul class=\"nav navbar-nav d-flex\">\n\n            \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/researcher/home\"\n                       \n                    >menu-home</a>\n                  </li>\n                \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/admin\"\n                       \n                    >menu-admin</a>\n                  </li>\n                \n\n            \n            <li>\n              <form class=\"nav-search-bar form-inline\" method=\"get\" action=\"/portal/default/rdmp/record/search\" name=\"form\">\n                <div class=\"input-group\">\n                  <input name=\"q\" type=\"text\" class=\"form-control\" placeholder=\"record-search-basic-search-placeholder\" aria-label=\"record-search-basic-search-placeholder\">\n                  <span class=\"input-group-btn\">\n                    <input class=\"btn btn-primary btn-search-bar\" type=\"submit\" value=\"record-search-basic-search\">\n                  </span>\n                </div>\n              </form>\n            </li>\n            \n\n          </ul>\n\n        </div>\n      </nav>\n    </div>\n  </div>\n</div>\n\n    \n  <!-- End mainmenu area -->\n\n\n\n\n\n\n  <div class=\"maincontent-body\">\n    <!-- Default home page -->\n\n\n<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>\n\n\n\n<div class=\"default-page\">\n  <div class=\"header\">\n    <h1 id=\"main-title\" class=\"container\">welcome-title</h1>\n    <!-- Placeholder for error messages, etc. -->\n    \n      <div class=\"container\">welcome-homepage-text</div>\n      <div class=\"main container clearfix\">\n        <br/>\n        <a href=\"/portal/default/rdmp/researcher/home\">welcome-dashboard-link-text</a>\n      </div>\n    \n    <br/>\n  </div>\n\n</div>\n\n  </div>\n\n\n\n  <div class=\"footer-bottom-area navbar-bottom\">\n    \n      <div class=\"container\">\n  <div class=\"row\">\n    <div class=\"col-md-8\">\n      <div class=\"copyright\">\n        <p>&copy; 2026 Queensland Cyber Infrastructure Foundation</p>\n      </div>\n    </div>\n\n  </div>\n</div>\n\n      \n\n  </div>\n\n\n\n</body>\n</html>\n"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "langCode": "fr"
+        }
+      ]
+    },
+    "language/en/false": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "expires": "0",
+            "cross-origin-opener-policy": "same-origin-allow-popups",
+            "pragma": "no-cache",
+            "surrogate-control": "no-store",
+            "content-security-policy": "default-src 'self'; script-src 'nonce-<nonce>' 'self'; worker-src 'self'; object-src 'none'; manifest-src 'self'; style-src 'nonce-<nonce>' 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; media-src 'self'; frame-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='; upgrade-insecure-requests;",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "6490"
+          },
+          "text": "\n<!DOCTYPE html>\n<html lang=\"en\">\n\n<head>\n  <base href=\"/portal\">\n  <meta charset=\"utf-8\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"ReDBox research data management portal\">\n  <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/portal/apple-touch-icon.png\">\n  <link rel=\"icon\" href=\"/portal/default/rdmp/images/favicon\" type=\"image/png\">\n\n  <title>\n    welcome-title | default-title\n  </title>\n\n  \n  \n  \n  <!-- Google Fonts -->\n  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>\n  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>\n  \n\n\n  <!-- Custom CSS -->\n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/style.min.css\">\n  \n  \n  \n  \n  <link rel=\"stylesheet\" href=\"/portal/default/rdmp/styles/theme.css\">\n  \n  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->\n  \n\n  <!-- Print stylesheet served as a static asset so it can be updated independently of the\n       MongoDB-cached theme.css (which only refreshes on admin republish). -->\n  <link rel=\"stylesheet\" media=\"print\" href=\"/portal/styles/print.css\">\n\n  <!-- Current latest jQuery -->\n  <script src=\"/portal/default/rdmp/js/jquery.min.js\" nonce=\"<nonce>\"></script>\n  <!-- Current latest Bootstrap JS  -->\n  <script src=\"/portal/default/rdmp/js/bootstrap.bundle.min.js\" nonce=\"<nonce>\"></script>\n  <script src=\"/portal/default/rdmp/js/index.bundle.js\" data-redbox-root=\"/portal\" nonce=\"<nonce>\"></script>\n\n\n    <angular-bootstrap rootContext=\"/portal\" ></angular-bootstrap>\n\n    <!-- Branding-aware web analytics (loader scripts) -->\n    \n\n\n\n</head>\n\n<body>\n  <!-- Branding-aware web analytics (noscript fallback) -->\n  \n\n\n\n  <div class=\"header-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        <div class=\"col-md-8\">\n          <div class=\"user-menu\">\n            <ul>\n              \n                <li><i class=\"fa fa-user\"></i>&nbsp;menu-welcome-text\n                  pilot-admin\n                </li>\n                <li><form class=\"redbox-logout\" method=\"post\" action=\"/portal/default/rdmp/user/logout\">\n                  <input type=\"hidden\" name=\"_csrf\" value=\"<csrf>\">\n                  <button type=\"submit\" class=\"btn btn-link\">menu-logout</button>\n                </form></li>\n              \n\n            </ul>\n          </div>\n        </div>\n        <div class=\"col-md-4\">\n          <div class=\"mt-3\" >\n            <div class=\"dropdown pull-right\">\n                \n                  <a class=\"dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\" aria-expanded=\"false\">\n                    en\n                  </a>\n                  <ul class=\"dropdown-menu\">\n                    \n                        <li><a class=\"dropdown-item\" href=\"/portal/default/rdmp/home?lng=fr\">fr</a></li>\n                        \n                  </ul>\n                    \n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End header area -->\n\n  <div class=\"site-branding-area\">\n    <div class=\"container\">\n      <div class=\"row\">\n        \n        <div class=\"col-sm-10\">\n  <div class=\"logo\">\n    \n    \n    \n    \n    <h1>\n      <img src=\"/portal/default/rdmp/images/logo\" alt=\"logo-alt-text\"/>\n      \n    </h1>\n  </div>\n</div>\n\n        \n\n        <div class=\"col-sm-2 search-box\">\n        </div>\n      </div>\n    </div>\n  </div>\n  <!-- End site branding area -->\n  \n  <div class=\"mainmenu-area\">\n  <div class=\"container\">\n    <div class=\"row\">\n\n      <nav class=\"navbar navbar-expand-lg\">\n        <button type=\"button\" class=\"navbar-toggle\" data-bs-toggle=\"collapse\" data-bs-target=\"#navbarSupportedContent\">\n            <span class=\"sr-only\">menu-toggle</span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n            <span class=\"icon-bar\"></span>\n        </button>\n        <div class=\"collapse navbar-collapse\" id=\"navbarSupportedContent\">\n          <ul class=\"nav navbar-nav d-flex\">\n\n            \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/researcher/home\"\n                       \n                    >menu-home</a>\n                  </li>\n                \n                  <li class=\"nav-item\">\n                    <a href=\"/portal/default/rdmp/admin\"\n                       \n                    >menu-admin</a>\n                  </li>\n                \n\n            \n            <li>\n              <form class=\"nav-search-bar form-inline\" method=\"get\" action=\"/portal/default/rdmp/record/search\" name=\"form\">\n                <div class=\"input-group\">\n                  <input name=\"q\" type=\"text\" class=\"form-control\" placeholder=\"record-search-basic-search-placeholder\" aria-label=\"record-search-basic-search-placeholder\">\n                  <span class=\"input-group-btn\">\n                    <input class=\"btn btn-primary btn-search-bar\" type=\"submit\" value=\"record-search-basic-search\">\n                  </span>\n                </div>\n              </form>\n            </li>\n            \n\n          </ul>\n\n        </div>\n      </nav>\n    </div>\n  </div>\n</div>\n\n    \n  <!-- End mainmenu area -->\n\n\n\n\n\n\n  <div class=\"maincontent-body\">\n    <!-- Default home page -->\n\n\n<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>\n\n\n\n<div class=\"default-page\">\n  <div class=\"header\">\n    <h1 id=\"main-title\" class=\"container\">welcome-title</h1>\n    <!-- Placeholder for error messages, etc. -->\n    \n      <div class=\"container\">welcome-homepage-text</div>\n      <div class=\"main container clearfix\">\n        <br/>\n        <a href=\"/portal/default/rdmp/researcher/home\">welcome-dashboard-link-text</a>\n      </div>\n    \n    <br/>\n  </div>\n\n</div>\n\n  </div>\n\n\n\n  <div class=\"footer-bottom-area navbar-bottom\">\n    \n      <div class=\"container\">\n  <div class=\"row\">\n    <div class=\"col-md-8\">\n      <div class=\"copyright\">\n        <p>&copy; 2026 Queensland Cyber Infrastructure Foundation</p>\n      </div>\n    </div>\n\n  </div>\n</div>\n\n      \n\n  </div>\n\n\n\n</body>\n</html>\n"
+        }
+      ],
+      "sessions": [
+        {
+          "branding": "default",
+          "portal": "rdmp",
+          "langCode": "en"
+        }
+      ]
+    }
+  }
+}

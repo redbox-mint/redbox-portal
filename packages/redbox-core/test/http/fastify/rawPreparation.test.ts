@@ -5,7 +5,7 @@ import { prepareNativeParsers } from '../../../src/http/fastify/parsers';
 import { rawMultipartParserPlugin, receiveMultipart } from '../../../src/http/fastify/rawMultipart';
 import { prepareDatastreamUploads } from '../../../src/http/fastify/datastreamUploads';
 import { composeRoutes } from '../../../src/http/fastify/routes';
-import { ProgressSockets } from '../../../src/http/express/progressSockets';
+import { ProgressSockets } from '../../../src/http/integrations/progressSockets';
 import WebSocket from 'ws';
 import { Server as SocketServer } from 'socket.io';
 import { createServer, type RequestListener } from 'node:http';

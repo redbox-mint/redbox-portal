@@ -14,7 +14,7 @@ import { ConfigModelRegistry } from '../../src/configuration/ConfigModelRegistry
 import { recordServiceChronicle } from '../../src/utilities/serviceChronicle';
 import { AuthenticationAccounts, AuthenticationRejected } from '../../src/authentication/Accounts';
 import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
-import type { Request } from 'express';
+import type { FastifyRequest as Request } from 'fastify';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import { Services as EmailServices } from '../../src/services/EmailService';
 import { Services as TriggerServices } from '../../src/services/TriggerService';
@@ -173,7 +173,7 @@ describe('Request chronicles in services', () => {
   ] as const) {
     it(`retains a service warning with sampling disabled for a ${testCase.statusCode} ${testCase.outcome} response`, () => {
       const item = helper('warning', { settings: { successSampleRate: 0 } });
-      item.updateReq({ method: 'GET', path: '/excluded.css' } as Request);
+      item.updateReq({ method: 'GET', url: '/excluded.css' } as Request);
       runWithRequestChronicle(item, () => service.record({ solrJobExecution: 'inline' }, [], 'warn'));
       item.finish({ statusCode: testCase.statusCode, headersSent: true, writableFinished: testCase.completed });
       item.log();

@@ -1,4 +1,9 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
+import { assertNoObservedEffects, observeNoSideEffects } from './noSideEffects';
+import { mutationWitnessCases } from './mutationWitnessSelection';
 import { request } from 'node:http';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -6,19 +11,22 @@ import { pageRoutes } from '../../../src/http/pageRoutes';
 import { coreRouteName } from '../../../src/http/fastify/routes';
 import { getReferenceRepositories } from '../../../src/persistence/reference/runtime';
 import { referenceProductionFixture } from './referenceProductionFixture';
-import { retainedPageExpress } from './retainedPageExpress';
+
 import { oidcFixture } from './oidcFixture';
 import { aafAssertion, availablePort } from './authenticationFixture';
 import type { ResolvedPortalInstallation } from '../../../src/application/portal/installation';
 import type { ApiRouteSource } from '../../../src/http/fastify/routes';
-import type { RequestHandler } from 'express';
-import type { OidcAuthConfig } from '../../../src/authentication/Accounts';
 
+import type { OidcAuthConfig } from '../../../src/authentication/Accounts';
 const audit = require('../../../../../support/specs/fastify-migration/evidence/reconcile-FM-030.cjs') as {
   declarations: readonly ApiRouteSource[];
   reconcile(installation: ResolvedPortalInstallation, runtime: unknown): unknown;
 };
-type Wire = { status: number; headers: Record<string, unknown>; text: string };
+type Wire = {
+  status: number;
+  headers: Record<string, unknown>;
+  text: string;
+};
 async function wire(
   url: string,
   method = 'GET',
@@ -246,7 +254,8 @@ const selected = profiles.filter(
 );
 const captures = new Map<string, ReturnType<typeof normalized>[]>();
 const flowCaptures = new Map<string, unknown[]>();
-const modes = ['retained', 'express', 'fastify'] as const;
+const prohibitedEffects = new Map<string, string[]>();
+const modes = ['fastify'] as const;
 const flowNames = [
   'local session transition',
   'protected return URL',
@@ -294,13 +303,19 @@ const flowNames = [
     '/portal/default/rdmp/researcher/home',
   ].map(value => 'return ' + JSON.stringify(value)),
 ];
-
-describe('FM-030 production browser declaration/runtime and retained Express raw HTTP differential', function () {
+const browserSuiteTitle = 'FM-030 production browser declaration/runtime and retained Express raw HTTP differential';
+describe(browserSuiteTitle, function () {
   this.timeout(1800000);
   before(async () => {
-    const retained = await retainedPageExpress();
     try {
-      for (const profile of selected)
+      for (const profile of selected.filter(
+        profile =>
+          mutationWitnessCases(
+            browserSuiteTitle,
+            [...scenarios.map(scenario => scenario.name), ...flowNames],
+            name => `${profile} ${name}`
+          ).length
+      ))
         for (const mode of modes) {
           const provider = await oidcFixture();
           let f: Awaited<ReturnType<typeof referenceProductionFixture>> | undefined;
@@ -333,13 +348,10 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
             f = await referenceProductionFixture(
               mode === 'fastify',
               profile === 'reduced' ? { '*': ['noCache', 'brandingAndPortal'] } : undefined,
-              mode === 'retained' ? retained.install : undefined,
+              undefined,
               {
                 declarations: audit.declarations,
                 pages: {},
-                bindings: {
-                  handler: registration => () => (registration.declaration.create as () => RequestHandler)(),
-                },
                 configuration: {
                   i18n: { next: { init: { debug: false } } },
                   server: {
@@ -385,13 +397,10 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
                   );
                   const live =
                     "if(request.headers['x-fm030-live']==='yes'){request.body={fixture:'body'};request.params={...request.params,oid:request.params.oid?'reference-record':undefined};REPLACE_QUERY}";
-                  const contribution =
-                    mode === 'fastify'
-                      ? `hooks:[{name:'fm030-live',stage:'beforeAction',scope:{kind:'routes',names:${JSON.stringify(pageRoutes.map(route => coreRouteName(route.method, route.path)))}},run:async request=>{${live.replace('REPLACE_QUERY', "request.query={rdmp:'hook',titleLabel:'live'};")}}}]`
-                      : `handlers:[{name:'fm030-live',create:()=>((request,response,next)=>{${live.replace("request.params={...request.params,oid:request.params.oid?'reference-record':undefined};", "request.url=request.url.replace('/record/edit/absent','/record/edit/reference-record');").replace('REPLACE_QUERY', "Object.defineProperty(request,'query',{configurable:true,writable:true,value:{rdmp:'hook',titleLabel:'live'}});")}next();})}],middleware:[{name:'fm030-live',stage:'beforeRoutes',handler:'fm030-live'}]`;
+                  const contribution = `hooks:[{name:'fm030-live',stage:'beforeAction',scope:{kind:'routes',names:${JSON.stringify(pageRoutes.map(route => coreRouteName(route.method, route.path)))}},run:async request=>{${live.replace('REPLACE_QUERY', "request.query={rdmp:'hook',titleLabel:'live'};")}}}]`;
                   await writeFile(
                     path.join(root, 'index.cjs'),
-                    `exports.registerRedboxExtension=()=>({apiVersion:${mode === 'fastify' ? 2 : 1},${contribution}});`
+                    `exports.registerRedboxExtension=()=>({apiVersion:${2},${contribution}});`
                   );
                 },
               }
@@ -417,6 +426,15 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
             const capture = (name: string, value: Wire) => {
               const key = profile + ':' + name;
               captures.set(key, [...(captures.get(key) ?? []), normalized(value, port, provider.issuer)]);
+            };
+            const captureDeniedMutation = async (name: string, send: () => Promise<Wire>, account?: string) => {
+              const effects = await observeNoSideEffects(fixture, { expectedCredentialTimestamp: account });
+              try {
+                capture(name, await authorizationWitness(`${browserSuiteTitle} ${profile} ${name}`, send));
+                prohibitedEffects.set(`${profile}:${name}`, await effects.differences());
+              } finally {
+                effects.restore();
+              }
             };
             const flow = (name: string, value: unknown) => {
               const key = profile + ':' + name;
@@ -478,18 +496,20 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
             flow('local session transition', { old: old.status, info: info.status, rotated: true });
             const state = await getToken(active);
             for (const scenario of scenarios) {
-              const response = await wire(
-                fixture.url + scenario.path,
-                scenario.method,
-                {
-                  Accept: 'text/html',
-                  ...(scenario.auth ? { Authorization: 'Bearer ' + scenario.auth } : {}),
-                  ...(scenario.session ? { Cookie: active } : {}),
-                  ...(scenario.csrf ? { Cookie: active, Origin: origin, 'X-CSRF-Token': state.csrf } : {}),
-                  ...scenario.headers,
-                },
-                scenario.body,
-                scenario.absolute ? 'http://request.invalid/portal' + scenario.path : undefined
+              const response = await authorizationWitness(`${browserSuiteTitle} ${profile} ${scenario.name}`, () =>
+                wire(
+                  fixture.url + scenario.path,
+                  scenario.method,
+                  {
+                    Accept: 'text/html',
+                    ...(scenario.auth ? { Authorization: 'Bearer ' + scenario.auth } : {}),
+                    ...(scenario.session ? { Cookie: active } : {}),
+                    ...(scenario.csrf ? { Cookie: active, Origin: origin, 'X-CSRF-Token': state.csrf } : {}),
+                    ...scenario.headers,
+                  },
+                  scenario.body,
+                  scenario.absolute ? 'http://request.invalid/portal' + scenario.path : undefined
+                )
               );
               capture(scenario.name, response);
             }
@@ -503,8 +523,21 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
               ['local invalid portal', {}, 'username=pilot-admin&password=pilot-password&portal=missing'],
               ['local foreign brand', {}, 'username=pilot-admin&password=pilot-password&branding=other'],
               ['local javascript response', { 'X-Source': 'jsclient' }, undefined],
-            ] as const)
-              capture(name, await postLocal(extra, '', undefined, body));
+            ] as const) {
+              if (name === 'local foreign brand') {
+                const credentials = await getToken();
+                const users = fixture.client.db().collection('user');
+                const account = { username: 'pilot-admin' };
+                const before = await users.findOne(account);
+                assert(before);
+                // Valid local credentials refresh the timestamp before brand
+                // admission. The refusal cannot issue a session or business audit.
+                await captureDeniedMutation(name, () => postLocal(extra, '', credentials, body), account.username);
+                const after = await users.findOne(account);
+                assert(after);
+                assert(new Date(after.lastLogin).getTime() > new Date(before.lastLogin).getTime());
+              } else capture(name, await postLocal(extra, '', undefined, body));
+            }
             const absoluteState = await getToken();
             capture(
               'local absolute target',
@@ -589,16 +622,17 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
               ],
               ['AAF rejection', 'invalid'],
               ['AAF invalid assertion', ''],
-            ] as const)
-              capture(
-                name,
-                await wire(
+            ] as const) {
+              const send = () =>
+                wire(
                   fixture.url + '/user/login_aaf',
                   'POST',
                   { 'Content-Type': 'application/json' },
                   JSON.stringify({ assertion })
-                )
-              );
+                );
+              if (name === 'AAF invalid assertion') await captureDeniedMutation(name, send);
+              else capture(name, await send());
+            }
             capture('OIDC begin HEAD', await wire(fixture.url + '/user/begin_oidc', 'HEAD'));
             capture(
               'OIDC callback no session',
@@ -692,7 +726,6 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
           }
         }
     } finally {
-      await retained.close();
     }
     if (process.env.FM030_HTTP_REPORT)
       await writeFile(
@@ -703,24 +736,26 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
   for (const profile of selected)
     for (const scenario of [...scenarios, ...flowNames.map((name): Scenario => ({ name, path: '' }))])
       it(profile + ' ' + scenario.name, () => {
+        const effects = prohibitedEffects.get(`${profile}:${scenario.name}`);
+        if (effects) assertNoObservedEffects(effects);
         const values = captures.get(profile + ':' + scenario.name)!;
-        assert.equal(values.length, 3);
-        assert.deepEqual(values[1], values[0], 'shared Express');
-        assert.deepEqual(values[2], values[0], 'production Fastify');
-        if (scenario.expectedStatus) assert.equal(values[2].status, scenario.expectedStatus);
+        assert.equal(values.length, 1);
+        assertProductionContract('browser', profile + ':' + scenario.name, values[0]);
+
+        if (scenario.expectedStatus) assert.equal(values[0].status, scenario.expectedStatus);
         if (scenario.name === 'AAF initiation link') {
-          assert.equal(values[2].status, 200);
-          assert.equal(values[2].headers.location, undefined);
-          assert(values[2].text.includes(providerUrls[profiles.indexOf(profile)].authorization));
+          assert.equal(values[0].status, 200);
+          assert.equal(values[0].headers.location, undefined);
+          assert(values[0].text.includes(providerUrls[profiles.indexOf(profile)].authorization));
         }
         const providerUrl = providerUrls.find(url => scenario.name.endsWith(' ' + url.name));
         if (providerUrl && scenario.name.startsWith('AAF return ')) {
-          assert.equal(values[2].status, 302);
-          assert.equal(values[2].headers.location, providerUrl.expectedLocal);
+          assert.equal(values[0].status, 302);
+          assert.equal(values[0].headers.location, providerUrl.expectedLocal);
         }
         if (providerUrl && scenario.name.startsWith('OIDC ')) {
-          assert.equal(values[2].status, 302);
-          const target = new URL(String(values[2].headers.location));
+          assert.equal(values[0].status, 302);
+          const target = new URL(String(values[0].headers.location));
           if (!scenario.name.startsWith('OIDC logout setup ')) {
             const expected = new URL(
               scenario.name.startsWith('OIDC provider logout ') ? providerUrl.logout : providerUrl.authorization
@@ -732,36 +767,38 @@ describe('FM-030 production browser declaration/runtime and retained Express raw
           (scenario.name.startsWith('OIDC ') && scenario.name.includes('initiation')) ||
           (scenario.name.startsWith('OIDC begin ') && scenario.name !== 'OIDC begin HEAD')
         ) {
-          assert.equal(values[2].status, 302);
-          assert.equal(values[2].headers['content-length'], '0');
-          assert.equal(values[2].headers['content-type'], undefined);
-          assert.equal(values[2].headers.vary, undefined);
-          assert.equal(values[2].text, '');
+          assert.equal(values[0].status, 302);
+          assert.equal(values[0].headers['content-length'], '0');
+          assert.equal(values[0].headers['content-type'], undefined);
+          assert.equal(values[0].headers.vary, undefined);
+          assert.equal(values[0].text, '');
         }
-        if (scenario.name === 'browser operation missing actor') assert.equal(values[2].status, 401);
+        if (scenario.name === 'browser operation missing actor') assert.equal(values[0].status, 401);
         const transitions = flowCaptures.get(profile + ':' + scenario.name);
         if (transitions) {
-          assert.equal(transitions.length, 3);
-          assert.deepEqual(transitions[1], transitions[0]);
-          assert.deepEqual(transitions[2], transitions[0]);
+          assert.equal(transitions.length, 1);
+          assertProductionContract('browser-flow', profile + ':' + scenario.name, transitions[0]);
         }
         if (scenario.name.endsWith(' admin'))
-          assert.equal(values[2].status, scenario.name.includes('/dashboard/consolidated') ? 302 : 200);
+          assert.equal(values[0].status, scenario.name.includes('/dashboard/consolidated') ? 302 : 200);
         if (scenario.name.includes('missing csrf') || scenario.name.includes('cross origin'))
-          assert.equal(values[2].status, 403);
+          assert.equal(values[0].status, 403);
         if (
           scenario.name.includes('record/edit/%20') ||
           scenario.name.includes('lng[toString]') ||
           scenario.name.includes('dashboardType[]')
         )
-          assert.equal(values[2].status, 400);
-        if (scenario.name.startsWith('not found ')) assert.equal(values[2].status, 404);
-        if (scenario.name.endsWith('HEAD')) assert.equal(values[2].text, '');
+          assert.equal(values[0].status, 400);
+        if (scenario.name.startsWith('not found ')) assert.equal(values[0].status, 404);
+        if (scenario.name.endsWith('HEAD')) assert.equal(values[0].text, '');
         if (profile === 'hooks' && scenario.name.startsWith('live replacement')) {
-          assert.equal(values[2].status, 200);
-          assert.match(values[2].text, /hook/);
-          assert.match(values[2].text, /body/);
+          assert.equal(values[0].status, 200);
+          assert.match(values[0].text, /hook/);
+          assert.match(values[0].text, /body/);
         }
-        assert(!values[2].text.includes('private-provider'));
+        assert(!values[0].text.includes('private-provider'));
       });
 });
+
+goldenControls('browser');
+goldenControls('browser-flow');

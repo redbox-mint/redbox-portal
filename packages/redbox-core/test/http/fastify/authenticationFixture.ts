@@ -1,3 +1,4 @@
+import { registerAuthorizationPortal } from './authorizationRequests';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { createServer } from 'node:net';
@@ -10,14 +11,8 @@ import {
 } from '../../../src/authentication/Accounts';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import { RoleModel } from '../../../src/model/storage/RoleModel';
-import { ExpressHost } from '../../../src/http/express/ExpressHost';
-import { prepareHttpMiddleware, httpAction, httpErrorHandler } from '../../../src/http/express/middleware';
-import {
-  installLocalAuthentication,
-  installAafAuthentication,
-  installOidcAuthentication,
-} from '../../../src/http/express/identityProviders';
-import { mountAuthenticationRoutes, authenticationFailureEvent } from '../../../src/http/express/login';
+
+import { authenticationFailureEvent } from '../../../src/authentication/events';
 import { FastifyHost } from '../../../src/http/fastify/FastifyHost';
 import { prepareNativeSessions } from '../../../src/http/fastify/session';
 import {
@@ -27,7 +22,6 @@ import {
 import { prepareSessionIndexes } from '../../../src/persistence/sessions/indexes';
 import type { FastifyPreparation } from '../../../src/http/fastify/preparation';
 import qs from 'qs';
-
 export const secret = 'fm015-synthetic-aaf-signature-secret';
 export function aafAssertion(payload: object, key = secret, algorithm = 'HS256') {
   const data = [
@@ -56,25 +50,20 @@ export interface FixtureOptions {
   bearer?: () => Promise<void>;
   renderFailure?: boolean;
 }
-
 /** The two real hosts use the same account domain, repositories, configuration and effects.
  * Express goes through its unchanged production middleware/providers/login adapter.
  */
 export async function authenticationFixture(native: boolean, options: FixtureOptions = {}) {
   let nativeHost: FastifyHost | undefined;
   let prepareNative!: (app: FastifyPreparation) => Promise<void>;
-  const f = await mongoFixture(
-    native
-      ? (application, owner) => {
-          nativeHost = new FastifyHost(application, {
-            owner,
-            hostname: '127.0.0.1',
-            port: options.port ?? 0,
-            prepare: app => prepareNative(app),
-          });
-        }
-      : undefined
-  );
+  const f = await mongoFixture((application, owner) => {
+    nativeHost = new FastifyHost(application, {
+      owner,
+      hostname: '127.0.0.1',
+      port: options.port ?? 0,
+      prepare: app => prepareNative(app),
+    });
+  });
   const version = String((await f.native.db().admin().command({ buildInfo: 1 })).version)
     .split('.')
     .map(Number);
@@ -128,7 +117,13 @@ export async function authenticationFixture(native: boolean, options: FixtureOpt
     brandId: (name: string) => (name === 'default' ? f.brand.id : f.otherBrand.id),
     postLoginPath: (name: string, portal: string) => `/portal/${name}/${portal}/home`,
     logoutOrigins: options.logoutOrigins ?? [],
-    audit: async (action: 'login' | 'logout', actor: { id: string; username: string }) => {
+    audit: async (
+      action: 'login' | 'logout',
+      actor: {
+        id: string;
+        username: string;
+      }
+    ) => {
       await options.audit?.();
       await f.identities.create('useraudit', { user: { id: actor.id, username: actor.username }, action });
     },
@@ -185,67 +180,12 @@ export async function authenticationFixture(native: boolean, options: FixtureOpt
         .send({ message: 'Internal server error', details: '' })
     );
   };
-  const host = native
-    ? nativeHost!
-    : new ExpressHost(f.application, {
-        owner: f.owner,
-        hostname: '127.0.0.1',
-        port: options.port ?? 0,
-        rootContext: '/portal',
-        prepare: async router => {
-          const authentication = await prepareHttpMiddleware(router, {
-            owner: f.owner,
-            identity: f.identity,
-            session,
-            log: nothingLogger,
-            configureAuthentication: async passport => {
-              const providers = { passport, accounts, config, brand: () => brand };
-              installLocalAuthentication(providers);
-              installAafAuthentication(providers);
-              await installOidcAuthentication(providers);
-            },
-          });
-          router.get('/__test/session', (req, res) => {
-            req.session.branding = 'default';
-            req.session.portal = 'rdmp';
-            res.json({ id: req.sessionID });
-          });
-          for (const method of ['get', 'post'] as const)
-            router[method](
-              '/__test/actor',
-              httpAction(async (req, res) => {
-                res.json(await authentication.authenticate(req));
-              })
-            );
-          mountAuthenticationRoutes(router, {
-            ...routeInput,
-            passport: authentication.passport,
-            loginFailure: async req => {
-              events.push({
-                ...authenticationFailureEvent(
-                  req,
-                  { brandId: f.brand.id, portalId: 'rdmp' },
-                  routeInput.credentialFields[0]
-                ),
-              });
-            },
-            csrf: (_req, _res, next) => next(),
-            renderAuthenticationFailure: options.renderFailure
-              ? async (_req, res, reason) => {
-                  res
-                    .status(403)
-                    .type('text/html')
-                    .send('<p>' + reason + '</p>');
-                }
-              : undefined,
-          });
-          router.use(httpErrorHandler(nothingLogger));
-        },
-      });
+  const host = nativeHost!;
   try {
     await prepareSessionIndexes(f.owner, session, 'ensure');
     await host.initialize();
     await host.activate();
+    const unregister = registerAuthorizationPortal(host.address()!.port, '/portal');
     return {
       ...f,
       host,
@@ -253,6 +193,7 @@ export async function authenticationFixture(native: boolean, options: FixtureOpt
       url: `http://127.0.0.1:${host.address()!.port}/portal`,
       async close() {
         await host.stop();
+        unregister();
         await f.close();
       },
     };

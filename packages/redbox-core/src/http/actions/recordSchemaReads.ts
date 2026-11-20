@@ -1,6 +1,5 @@
 import { normalizeRedboxCanonicalJsonV1 } from '../../record-contract/canonical-json';
 import type { Services as Schemas } from '../../recordSchema/RecordSchema';
-import { recordSchemaApiRoutes } from '../../api-routes/groups/record-schemas';
 import { validateApiRouteRequest } from '../../api-routes/validation';
 import {
   buildRecordSchemaInvalidRequestProblem,

@@ -1,0 +1,473 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "165",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.0.QbcwtgZz7Xm3r6tatqS2US_rgZ-pl9zYeXpDQBIfpzg\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000002": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "55",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": null,
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000003": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 0,
+        "entityTag": "\"rb-record-v1.0.QbcwtgZz7Xm3r6tatqS2US_rgZ-pl9zYeXpDQBIfpzg\"",
+        "mode": "strict",
+        "resolution": "direct",
+        "revision": 0
+      },
+      "context": {
+        "requestId": "<volatile>"
+      },
+      "items": [],
+      "message": "",
+      "metadata": {
+        "retained": true,
+        "title": "Original"
+      },
+      "oid": "fm019-record",
+      "outcome": "not-saved",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-precondition-required",
+              "message": "@record-save-record-precondition-required"
+            }
+          ],
+          "kind": "conflict",
+          "phase": "pre-save"
+        }
+      ],
+      "requestId": "<volatile>",
+      "success": false,
+      "totalItems": 0
+    },
+    "v000004": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "760",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.0.QbcwtgZz7Xm3r6tatqS2US_rgZ-pl9zYeXpDQBIfpzg\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000005": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 1,
+        "entityTag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+        "expectedRevision": 0,
+        "mode": "strict",
+        "resolution": "direct",
+        "revision": 1
+      },
+      "context": {
+        "requestId": "<volatile>"
+      },
+      "items": [],
+      "message": "",
+      "metadata": null,
+      "oid": "fm019-record",
+      "outcome": "saved-with-warnings",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-schema.not-resolvable",
+              "message": "@record-schema.not-resolvable"
+            }
+          ],
+          "kind": "system",
+          "phase": "schema",
+          "source": "schema"
+        }
+      ],
+      "requestId": "<volatile>",
+      "success": true,
+      "totalItems": 0
+    },
+    "v000006": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "1313",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000007": {
+      "completion": {
+        "attachments": {
+          "items": [],
+          "status": "not-required"
+        }
+      },
+      "concurrency": {
+        "currentRevision": 1,
+        "entityTag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+        "expectedRevision": 0,
+        "mode": "strict",
+        "resolution": "direct",
+        "revision": 1
+      },
+      "context": {
+        "requestId": "<volatile>"
+      },
+      "items": [],
+      "message": "",
+      "metadata": {
+        "retained": true,
+        "title": "Updated"
+      },
+      "oid": "fm019-record",
+      "outcome": "not-saved",
+      "problems": [
+        {
+          "issues": [
+            {
+              "code": "record-revision-stale",
+              "message": "@record-save-record-revision-stale"
+            }
+          ],
+          "kind": "conflict",
+          "phase": "pre-save"
+        }
+      ],
+      "requestId": "<volatile>",
+      "success": false,
+      "totalItems": 0
+    },
+    "v000008": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "752",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000009": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "54",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": null,
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000010": {
+      "allow": null,
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-encoding": null,
+      "content-length": "50",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": null,
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": "Bearer"
+    },
+    "v000011": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "63",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": null,
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000012": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "164",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000013": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "35",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000014": {
+      "allow": null,
+      "cache-control": "no-cache, private",
+      "content-encoding": null,
+      "content-length": "92",
+      "content-security-policy": null,
+      "content-type": "application/json; charset=utf-8",
+      "etag": "\"rb-record-v1.2.rFpjGwyyP1p5OtUpg_j3BuSQMJ6nei8TJY-Lg9XnZUs\"",
+      "expires": "0",
+      "link": null,
+      "pragma": "no-cache",
+      "vary": null,
+      "www-authenticate": null
+    },
+    "v000015": [
+      {
+        "body": {
+          "data": {
+            "retained": true,
+            "title": "Original"
+          },
+          "meta": {
+            "entityTag": "\"rb-record-v1.0.QbcwtgZz7Xm3r6tatqS2US_rgZ-pl9zYeXpDQBIfpzg\"",
+            "oid": "fm019-record",
+            "revision": 0
+          }
+        },
+        "headers": {
+          "$ref": "v000001"
+        },
+        "status": 200
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid record body"
+            }
+          ],
+          "meta": {}
+        },
+        "headers": {
+          "$ref": "v000002"
+        },
+        "status": 400
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "code": "record-precondition-required",
+              "title": "@record-save-record-precondition-required"
+            }
+          ],
+          "meta": {
+            "$ref": "v000003"
+          }
+        },
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 428
+      },
+      {
+        "body": {
+          "data": {
+            "$ref": "v000005"
+          },
+          "meta": {
+            "$ref": "v000005"
+          }
+        },
+        "headers": {
+          "$ref": "v000006"
+        },
+        "status": 200
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "code": "record-revision-stale",
+              "title": "@record-save-record-revision-stale"
+            }
+          ],
+          "meta": {
+            "$ref": "v000007"
+          }
+        },
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 412
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Invalid CSRF token"
+            }
+          ],
+          "meta": {}
+        },
+        "headers": {
+          "$ref": "v000009"
+        },
+        "status": 403
+      },
+      {
+        "body": {
+          "details": "",
+          "message": "Authentication required"
+        },
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 401
+      },
+      {
+        "body": {
+          "errors": [
+            {
+              "detail": "Cross-origin request denied"
+            }
+          ],
+          "meta": {}
+        },
+        "headers": {
+          "$ref": "v000011"
+        },
+        "status": 403
+      },
+      {
+        "body": {
+          "data": {
+            "retained": true,
+            "title": "Updated"
+          },
+          "meta": {
+            "entityTag": "\"rb-record-v1.1.5T056hJYoSjPnPD7a22moMHouKRUesm6DULoAzsE3sk\"",
+            "oid": "fm019-record",
+            "revision": 1
+          }
+        },
+        "headers": {
+          "$ref": "v000012"
+        },
+        "status": 200
+      },
+      {
+        "body": {
+          "retained": true,
+          "title": "Updated"
+        },
+        "headers": {
+          "$ref": "v000013"
+        },
+        "status": 200
+      },
+      {
+        "body": {
+          "items": [],
+          "message": "",
+          "metadata": null,
+          "oid": "fm019-record",
+          "success": true,
+          "totalItems": 0
+        },
+        "headers": {
+          "$ref": "v000014"
+        },
+        "status": 200
+      }
+    ]
+  },
+  "sequences": {
+    "FM-019 production controller/session/domain installed pilot compares authenticated reads, strict mutations, guards, ETags and persisted state to current Express": [
+      {
+        "persisted": {
+          "authorization": {
+            "edit": [
+              "pilot-admin"
+            ],
+            "editPending": null,
+            "editRoles": [],
+            "view": [
+              "pilot-admin"
+            ],
+            "viewPending": null,
+            "viewRoles": []
+          },
+          "metadata": {
+            "retained": true,
+            "title": "Updated",
+            "v1": true
+          },
+          "revision": 2
+        },
+        "results": {
+          "$ref": "v000015"
+        }
+      }
+    ]
+  }
+}

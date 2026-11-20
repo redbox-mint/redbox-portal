@@ -1,4 +1,9 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
+import { mutationWitnessCases } from './mutationWitnessSelection';
+import { assertNoObservedEffects, observeNoSideEffects } from './noSideEffects';
 import { createServer, request } from 'node:http';
 import { once } from 'node:events';
 import { createHash } from 'node:crypto';
@@ -12,12 +17,16 @@ import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies
 import { getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { RoleModel } from '../../../src/model/storage/RoleModel';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedIdentityExpress } from './retainedIdentityExpress';
-import type { createPortalFastifyApplication } from '../../../src/application/portal/application';
 
+import type { createPortalFastifyApplication } from '../../../src/application/portal/application';
 type Fixture = Awaited<ReturnType<typeof referenceProductionFixture>>;
 type Route = (typeof routes)[number];
-type Wire = { status: number; headers: Record<string, unknown>; text: string; aborted?: boolean };
+type Wire = {
+  status: number;
+  headers: Record<string, unknown>;
+  text: string;
+  aborted?: boolean;
+};
 type Scenario = {
   name: string;
   auth?: string | false;
@@ -35,7 +44,7 @@ type Scenario = {
   stale?: boolean;
   control?: string;
 };
-const modes = ['retained', 'express', 'fastify'] as const;
+const modes = ['fastify'] as const;
 const ids = {
   admin: '000000000000000000000015',
   reader: '000000000000000000000017',
@@ -110,7 +119,14 @@ const baseScenarios: Scenario[] = [
 ];
 const observations = new Map<string, unknown[]>();
 const flows = new Map<string, unknown[]>();
-const cases: { key: string; route: Route; scenario: Scenario; reduced: boolean }[] = [];
+const flowNames = ['token freshness', 'linked disabled-account lifecycle'] as const;
+const aliasDisableEffects = new Map<string, string[]>();
+const cases: {
+  key: string;
+  route: Route;
+  scenario: Scenario;
+  reduced: boolean;
+}[] = [];
 for (const reduced of [false, true])
   for (const route of routes) {
     const scenarios: Scenario[] = reduced
@@ -525,11 +541,13 @@ async function normalize(f: Fixture, wire: Wire, endpoint: string, generate: boo
   }
   return { wire: { ...wire, headers, text }, state };
 }
-
-describe('FM-025 retained production identity/administration raw-HTTP differential', function () {
+const identitySuiteTitle = 'FM-025 retained production identity/administration raw-HTTP differential';
+describe(identitySuiteTitle, function () {
   this.timeout(900000);
+  const prohibitedEffects = new Map<string, string[]>();
   before(async () => {
-    const retained = await retainedIdentityExpress();
+    const prepared = mutationWitnessCases(identitySuiteTitle, cases, test => test.key);
+    const flowsSelected = mutationWitnessCases(identitySuiteTitle, flowNames, name => name);
     const collector = createServer((req, res) => {
       req.resume();
       res.setHeader('Content-Type', 'application/json');
@@ -543,53 +561,48 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
     try {
       for (const reduced of [false, true])
         for (const mode of modes) {
-          if (!cases.some(c => c.reduced === reduced)) continue;
+          if (!prepared.some(c => c.reduced === reduced) && (reduced || !flowsSelected.length)) continue;
           const policies = portalHttpPolicies();
           if (reduced)
             for (const name of new Set(routes.map(r => r.controller)))
               policies[name] = ['noCache', 'brandingAndPortal'];
-          const f = await referenceProductionFixture(
-            mode === 'fastify',
-            policies,
-            mode === 'retained' ? retained.install : undefined,
-            {
-              // Include the inherited SIEM reads to prove there is one selected controller.
-              declarations: [...routes, ...queryReadRoutes.filter(r => r.controller === 'webservice/SiemController')],
-              configuration: {
+          const f = await referenceProductionFixture(mode === 'fastify', policies, undefined, {
+            // Include the inherited SIEM reads to prove there is one selected controller.
+            declarations: [...routes, ...queryReadRoutes.filter(r => r.controller === 'webservice/SiemController')],
+            configuration: {
+              auth: {
+                roles: [{ name: 'Admin' }, { name: 'Researcher' }, { name: 'Guest' }],
+                rules: [{ path: '/:branding/:portal(/*)', role: 'Admin', can_update: true }],
+                hiddenRoles: ['Researcher'],
+                hiddenUsers: ['secondary'],
+              },
+              brandingConfigurationDefaults: {
                 auth: {
-                  roles: [{ name: 'Admin' }, { name: 'Researcher' }, { name: 'Guest' }],
-                  rules: [{ path: '/:branding/:portal(/*)', role: 'Admin', can_update: true }],
-                  hiddenRoles: ['Researcher'],
-                  hiddenUsers: ['secondary'],
-                },
-                brandingConfigurationDefaults: {
-                  auth: {
-                    active: ['local'],
-                    local: {
-                      default: {
-                        adminUser: 'pilot-admin',
-                        adminPw: 'pilot-password',
-                        email: 'synthetic@example.invalid',
-                        token: 'pilot-api-token',
-                      },
+                  active: ['local'],
+                  local: {
+                    default: {
+                      adminUser: 'pilot-admin',
+                      adminPw: 'pilot-password',
+                      email: 'synthetic@example.invalid',
+                      token: 'pilot-api-token',
                     },
                   },
-                  siem: {
-                    enabled: true,
-                    destinations: [
-                      {
-                        id: 'fixture',
-                        enabled: false,
-                        adapterType: 'splunk-hec-json',
-                        endpointUrl: endpoint,
-                        token: 'synthetic-siem-secret',
-                      },
-                    ],
-                  },
+                },
+                siem: {
+                  enabled: true,
+                  destinations: [
+                    {
+                      id: 'fixture',
+                      enabled: false,
+                      adapterType: 'splunk-hec-json',
+                      endpointUrl: endpoint,
+                      token: 'synthetic-siem-secret',
+                    },
+                  ],
                 },
               },
-            }
-          );
+            },
+          });
           try {
             await seed(f);
             const login = await session(f);
@@ -627,7 +640,7 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
                 'Content-Type': 'application/json',
                 'X-ReDBox-API-Version': '2.0',
               };
-              for (const flow of ['token freshness', 'linked disabled-account lifecycle']) {
+              for (const flow of flowsSelected) {
                 await reset();
                 const steps: unknown[] = [];
                 const flowValues = flows.get(flow) ?? [];
@@ -642,13 +655,26 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
                   status: number,
                   generate = false
                 ) => {
-                  const response = await wire(
-                    f.url + '/default/rdmp' + path,
-                    method,
-                    headers,
-                    body === undefined ? '' : JSON.stringify(body)
-                  );
-                  assert.equal(response.status, status, flow + ': ' + path + ': ' + response.text);
+                  const assertInWitness =
+                    method === 'POST' && path === '/api/users/' + ids.secondary + '/disable' && status === 400;
+                  const observer = assertInWitness ? await observeNoSideEffects(f) : undefined;
+                  const response = await (async () => {
+                    try {
+                      const result = await authorizationWitness(`${identitySuiteTitle} ${flow}`, () =>
+                        wire(
+                          f.url + '/default/rdmp' + path,
+                          method,
+                          headers,
+                          body === undefined ? '' : JSON.stringify(body)
+                        )
+                      );
+                      if (observer) aliasDisableEffects.set(flow, await observer.differences());
+                      else assert.equal(result.status, status, flow + ': ' + path + ': ' + result.text);
+                      return result;
+                    } finally {
+                      observer?.restore();
+                    }
+                  })();
                   if (generate) token = JSON.parse(response.text).message;
                   await settleEvents(f);
                   steps.push(await normalize(f, response, endpoint, generate, token));
@@ -705,7 +731,7 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
               }
             }
             let resetConfig = false;
-            for (const test of cases.filter(c => c.reduced === reduced)) {
+            for (const test of prepared.filter(c => c.reduced === reduced)) {
               const { route, scenario: s, key } = test;
               for (const [name, rows] of baseline) {
                 await f.client.db().collection(name).deleteMany({});
@@ -774,12 +800,22 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
                 cache.fontResponseCacheBytes = 4;
               }
               let response;
+              const deniesWithoutWrite =
+                (method === 'POST' &&
+                  route.path.endsWith('/api/users') &&
+                  ['foreign-target', 'shared-target'].includes(s.name)) ||
+                (method === 'POST' && route.path.endsWith('/api/users/:id/disable') && s.name === 'bad-target');
+              const observer = deniesWithoutWrite ? await observeNoSideEffects(f) : undefined;
               try {
-                response = await wire(f.url + t.path, method, headers, body);
+                response = await authorizationWitness(`${identitySuiteTitle} ${key}`, () =>
+                  wire(f.url + t.path, method, headers, body)
+                );
+                if (observer) prohibitedEffects.set(key, await observer.differences());
               } catch (error) {
                 if (s.control) response = { status: 0, headers: {}, text: '', aborted: true };
                 else throw new Error(key + ': ' + error);
               } finally {
+                observer?.restore();
                 fault.restore();
               }
               if (cache) {
@@ -821,14 +857,12 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
             process.stdout.write(`FM-025 completed ${reduced ? 'reduced' : 'default'} ${mode}\n`);
         }
     } finally {
-      await retained.close();
       await new Promise<void>((resolve, reject) => collector.close(error => (error ? reject(error) : resolve())));
       if (process.env.FM025_HTTP_REPORT)
         await writeFile(
           process.env.FM025_HTTP_REPORT,
           JSON.stringify(
             {
-              retained: retained.hashes,
               observations: Object.fromEntries(observations),
               flows: Object.fromEntries(flows),
             },
@@ -840,9 +874,15 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
   });
   for (const { key, route, scenario: s, reduced } of cases)
     it(key, () => {
+      const effects = prohibitedEffects.get(key);
+      if (effects) assertNoObservedEffects(effects);
       const values = observations.get(key)!;
-      assert.equal(values.length, 3);
-      const expected = values[0] as { wire: Wire; state: Record<string, unknown[]> };
+      assert.equal(values.length, 1);
+      assertProductionContract('identity', key, values[0]);
+      const expected = values[0] as {
+        wire: Wire;
+        state: Record<string, unknown[]>;
+      };
       const browser = !route.path.includes('/api/');
       if (reduced && s.stale)
         assert.equal(expected.wire.status, 401, 'Missing actor guard must precede declared validation');
@@ -902,32 +942,34 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
             assert(expected.state.recordaudit.length > 0, 'The ACL rewrite must persist record audit history');
         }
       }
-      for (const value of values as { state: Record<string, unknown[]> }[]) {
+      for (const value of values as {
+        state: Record<string, unknown[]>;
+      }[]) {
         const events = JSON.stringify([value.state.useraudit, value.state.securityevent]);
         for (const secret of ['synthetic-password', 'synthetic-siem-secret', 'private-backend-password-token-marker'])
           assert(!events.includes(secret), 'Audit/security events must redact ' + secret);
       }
-      if (expected.wire.aborted && s.control) {
-        const controlKey = `${reduced ? 'reduced' : 'default'} ${route.method} ${route.path} ${s.control}`;
-        const control = observations.get(controlKey)!;
-        assert.deepEqual(control[1], control[0]);
-        assert.deepEqual(control[2], control[0]);
-        assert.deepEqual(values[1], control[0]);
-        assert.deepEqual(values[2], control[0]);
-      } else {
-        assert.deepEqual(values[1], values[0], 'shared Express differs');
-        assert.deepEqual(values[2], values[0], 'native Fastify differs');
-      }
       if (s.fault === 'once' || s.fault === 'serialization')
-        for (const value of values as { encodings: number }[])
+        for (const value of values as {
+          encodings: number;
+        }[])
           assert.equal(value.encodings, 1, key + ': serialize once inside the shared guard');
-      assert(!JSON.stringify(values[2]).includes('private-backend-password-token-marker'));
+      assert(!JSON.stringify(values[0]).includes('private-backend-password-token-marker'));
     });
-  for (const flow of process.env.FM027_BODY_SWEEP ? [] : ['token freshness', 'linked disabled-account lifecycle'])
+  for (const flow of process.env.FM027_BODY_SWEEP ? [] : flowNames)
     it(flow, () => {
       const values = flows.get(flow)!;
-      assert.equal(values.length, 3);
-      assert.deepEqual(values[1], values[0], 'shared Express lifecycle differs');
-      assert.deepEqual(values[2], values[0], 'native Fastify lifecycle differs');
+      assert.equal(values.length, 1);
+      if (flow === 'linked disabled-account lifecycle') {
+        const effects = aliasDisableEffects.get(flow);
+        assert(effects);
+        assertNoObservedEffects(effects, 'Refusing a linked alias leaves no side effects');
+        const steps = values[0] as { wire: { status: number } }[];
+        assert.equal(steps[3].wire.status, 400);
+      }
+      assertProductionContract('identity-flow', flow, values[0]);
     });
 });
+
+goldenControls('identity');
+goldenControls('identity-flow');

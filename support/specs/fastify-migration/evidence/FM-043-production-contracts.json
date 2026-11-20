@@ -1,0 +1,132 @@
+[
+  {
+    "kind": "mutation",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/mutations-wire-final.json",
+    "sha256": "eb62388a124d7ad6b2654bccea1f8b145a6a4ddda0c27cd9f405b74a561edd39",
+    "side": "[2], qualified Fastify",
+    "cases": 4782
+  },
+  {
+    "kind": "integration",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/integrations-wire-final.json",
+    "sha256": "2c26251f86277f662131792ff0f606867dfb11114035e208b0fd05dc1d037def",
+    "side": "[2], qualified Fastify",
+    "cases": 4234
+  },
+  {
+    "kind": "reference",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/reference-wire-final.json",
+    "sha256": "a7667475a2baabf01650b35d1661dc99c71d429b5280d6538c0e72a4a2cce290",
+    "side": "[2], qualified Fastify",
+    "cases": 7808
+  },
+  {
+    "kind": "read",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/reads-wire-final.json",
+    "sha256": "a7c129500255fb6e4b9188e2904696c064a3fb4e2acc4198ab2fb9af9f986725",
+    "side": "[2], qualified Fastify",
+    "cases": 6847
+  },
+  {
+    "kind": "read-actor",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/reads-wire-final.json.actors.json",
+    "sha256": "b8a42121f53173e8f56ed6acf5e040a5c07a79f0e309d2dfd59c013349b90b95",
+    "side": "[2], qualified Fastify",
+    "cases": 300
+  },
+  {
+    "kind": "identity",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/identity-wire-final.json",
+    "sha256": "04a63d23dadc1251a9b7ca49f25d7606524c99b58589af82d8a8539ffde28466",
+    "side": "[2], qualified Fastify",
+    "cases": 2590
+  },
+  {
+    "kind": "identity-flow",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/identity-wire-final.json",
+    "sha256": "04a63d23dadc1251a9b7ca49f25d7606524c99b58589af82d8a8539ffde28466",
+    "side": "[2], qualified Fastify",
+    "cases": 2
+  },
+  {
+    "kind": "prepared",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-027-round-2-20261112T185056Z-results.tar.gz",
+    "member": "fm027-round2-results/hooks-wire-final.json",
+    "sha256": "9dcc597374f038fe9ccccb0bb88d091532a1af41b2b2c7306a35a2a070dd41cd",
+    "side": "[2], qualified Fastify",
+    "cases": 30
+  },
+  {
+    "kind": "browser",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-030-r1-20261113T052057Z-results.tar.gz",
+    "member": "fm030-r1-results/browser-wire.json",
+    "sha256": "a6d56bd72d843eee7b8185a63262458a563f93eb1bb3f0477949c2ea298a3542",
+    "side": "[2], qualified native Fastify",
+    "cases": 1236
+  },
+  {
+    "kind": "browser-flow",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-030-r1-20261113T052057Z-results.tar.gz",
+    "member": "fm030-r1-results/browser-wire.json",
+    "sha256": "a6d56bd72d843eee7b8185a63262458a563f93eb1bb3f0477949c2ea298a3542",
+    "side": "[2], qualified native Fastify",
+    "cases": 6
+  },
+  {
+    "kind": "page",
+    "archive": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-029-r2-20261113T022019Z-results.tar.gz",
+    "member": "FM-029-r2-results/pages-wire.json",
+    "sha256": "9ba6f14a259a9f201681d2aa0720522d1111bfbc49ab19de3a82c246f7b9d612",
+    "side": "[2], qualified native Fastify",
+    "cases": 1000
+  },
+  {
+    "kind": "asset-default",
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/default-wire.json",
+    "sha256": "f2edcab6b0f17fa8df05e9774d0e25efde5ff7bfe6e4be15fc754877b3522aeb",
+    "side": "[2], qualified native Fastify",
+    "cases": 1170
+  },
+  {
+    "kind": "asset-explicit",
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/explicit-wire.json",
+    "sha256": "43988ba4c28434fcb7642afeb314d955a7fa89b915b5d73e84042c6fd7b76368",
+    "side": "[2], qualified native Fastify",
+    "cases": 1170
+  },
+  {
+    "kind": "asset-overrides",
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/overrides-wire.json",
+    "sha256": "b79d20ce31143eb3dfb67710d2d41a963f8edee86d08bedc50105f25de01b68e",
+    "side": "[2], qualified native Fastify",
+    "cases": 1170
+  },
+  {
+    "kind": "asset-reduced",
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/reduced-wire.json",
+    "sha256": "b86a73c2326b95e96b316c24db6c83c3e27b38d35333f42c96a52052db41e845",
+    "side": "[2], qualified native Fastify",
+    "cases": 1170
+  },
+  {
+    "kind": "asset-report-only-http",
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/report-only-http-wire.json",
+    "sha256": "c9e232f27ed171b9fa8ab64127d5b94566483d96b2ba97e368951acea9a6f47d",
+    "side": "[2], qualified native Fastify",
+    "cases": 1170
+  },
+  {
+    "kind": "asset-root",
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-031-review6/root-wire.json",
+    "sha256": "91fca519209214b53d21062cca0b73954bca55f6aa43f4fb8f200b17355328f1",
+    "side": "[2], qualified native Fastify",
+    "cases": 1170
+  }
+]

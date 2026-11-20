@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
-import type { Request, Response } from 'express';
-import { resolveExtensions, type ExtensionProvider } from '../../src/extensions/resolution';
-import { type RedboxExtension } from '../../src/extensions/legacyContract';
+
+import { resolveExtensionData, type ExtensionDataProvider } from '../../src/extensions/resolution';
+import { type ExtensionData } from '../../src/extensions/contract';
 
 const makeModule = (name: string, requires?: string[]) => ({
   name,
   requires,
   create: () => ({ initialize: async () => {}, close: async () => {} }),
 });
-const provider = (name: string, declaration: Partial<RedboxExtension> = {}): ExtensionProvider => ({
+const provider = (name: string, declaration: Partial<ExtensionData> = {}): ExtensionDataProvider => ({
   name,
   root: '/installed/' + name,
-  declaration: { apiVersion: 1, ...declaration },
+  declaration: { ...declaration },
 });
 
 describe('v6 extension declarations', () => {
   it('preserves listed priority and descending-name lookup with low-to-high contributions', () => {
-    const result = resolveExtensions(
+    const result = resolveExtensionData(
       [
         provider('core'),
         provider('a', { views: ['views'], assets: ['assets'] }),
@@ -42,7 +42,7 @@ describe('v6 extension declarations', () => {
         throw new Error('discarded core factory');
       },
     };
-    const result = resolveExtensions([
+    const result = resolveExtensionData([
       provider('core', {
         modules: [first],
         migrations: [
@@ -78,8 +78,8 @@ describe('v6 extension declarations', () => {
     assert.equal(calls, 0);
   });
   it('rejects missing contracts, invalid fields, duplicate entries, invalid replacements and cycles', () => {
-    const invalid: ExtensionProvider[] = [
-      provider('version', { apiVersion: 2 } as unknown as RedboxExtension),
+    const invalid: ExtensionDataProvider[] = [
+      provider('version', { unknownField: true } as unknown as ExtensionData),
       provider('duplicate', { modules: [makeModule('same'), makeModule('same')] }),
       provider('missing', { modules: [makeModule('a', ['absent'])] }),
       provider('cycle', { modules: [makeModule('a', ['b']), makeModule('b', ['a'])] }),
@@ -87,15 +87,14 @@ describe('v6 extension declarations', () => {
       provider('traversal', { views: ['../escape'] }),
       provider('configModel', { configModels: [{ name: 'pdfgen', definition: null! }] }),
     ];
-    for (const value of invalid) assert.throws(() => resolveExtensions([value]), /Extension /);
+    for (const value of invalid) assert.throws(() => resolveExtensionData([value]), /Extension /);
     assert.throws(
       () =>
-        resolveExtensions([
+        resolveExtensionData([
           provider('core', { modules: [makeModule('a')] }),
           provider('hook', { modules: [makeModule('a')] }),
         ]),
       /requires replaces/
     );
   });
-
 });

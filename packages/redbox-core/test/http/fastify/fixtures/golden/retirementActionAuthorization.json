@@ -1,0 +1,760 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "form vocabulary/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "73"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"Authentication required\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "form vocabulary/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "126"
+        },
+        "text": "{\"errors\":[{\"code\":\"Authentication required\",\"title\":\"Authentication required\",\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "metadata read/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "metadata read/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "permissions read/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "permissions read/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "metadata update/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "metadata update/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "multipart upload/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "multipart upload/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "resumable upload/none/1.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "50"
+        },
+        "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "resumable upload/none/2.0": {
+      "wire": {
+        "status": 401,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Authentication required\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "form vocabulary/foreign/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "53"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"Access Denied\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "form vocabulary/foreign/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "96"
+        },
+        "text": "{\"errors\":[{\"code\":\"Access Denied\",\"title\":\"Access Denied\",\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "metadata update/foreign/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "metadata update/foreign/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "multipart upload/foreign/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "multipart upload/foreign/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "resumable upload/foreign/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "resumable upload/foreign/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "metadata": {
+          "title": "Reference"
+        },
+        "acl": {
+          "view": [
+            "pilot-admin"
+          ],
+          "edit": [
+            "pilot-admin"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "revision": 0,
+        "staged": []
+      }
+    },
+    "tus record edit/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "staging": []
+      }
+    },
+    "tus pending create/1.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "40"
+        },
+        "text": "{\"message\":\"Access Denied\",\"details\":\"\"}"
+      },
+      "state": {
+        "staging": []
+      }
+    },
+    "tus record edit/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "staging": []
+      }
+    },
+    "tus pending create/2.0": {
+      "wire": {
+        "status": 403,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "49"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Access Denied\"}],\"meta\":{}}"
+      },
+      "state": {
+        "staging": []
+      }
+    },
+    "tus distinct owner": {
+      "wire": [
+        {
+          "status": 403,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "access-control-allow-origin": "https://portal.example.invalid",
+            "access-control-expose-headers": "Authorization, Content-Type, Location, Tus-Extension, Tus-Max-Size, Tus-Resumable, Tus-Version, Upload-Concat, Upload-Defer-Length, Upload-Length, Upload-Metadata, Upload-Offset, X-HTTP-Method-Override, X-Requested-With, X-Forwarded-Host, X-Forwarded-Proto, Forwarded",
+            "content-length": "13",
+            "content-type": "text/plain;charset=UTF-8",
+            "tus-resumable": "1.0.0"
+          },
+          "text": ""
+        },
+        {
+          "status": 403,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "access-control-allow-origin": "https://portal.example.invalid",
+            "access-control-expose-headers": "Authorization, Content-Type, Location, Tus-Extension, Tus-Max-Size, Tus-Resumable, Tus-Version, Upload-Concat, Upload-Defer-Length, Upload-Length, Upload-Metadata, Upload-Offset, X-HTTP-Method-Override, X-Requested-With, X-Forwarded-Host, X-Forwarded-Proto, Forwarded",
+            "content-length": "13",
+            "content-type": "text/plain;charset=UTF-8",
+            "tus-resumable": "1.0.0"
+          },
+          "text": "Access Denied"
+        },
+        {
+          "status": 200,
+          "headers": {
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "access-control-allow-origin": "https://portal.example.invalid",
+            "access-control-expose-headers": "Authorization, Content-Type, Location, Tus-Extension, Tus-Max-Size, Tus-Resumable, Tus-Version, Upload-Concat, Upload-Defer-Length, Upload-Length, Upload-Metadata, Upload-Offset, X-HTTP-Method-Override, X-Requested-With, X-Forwarded-Host, X-Forwarded-Proto, Forwarded",
+            "cache-control": "no-store",
+            "content-type": "text/plain;charset=UTF-8",
+            "tus-resumable": "1.0.0",
+            "upload-length": "3",
+            "upload-metadata": "redboxActor MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDE1,redboxBrand MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEx,redboxRecord cmVmZXJlbmNlLXJlY29yZA==",
+            "upload-offset": "0"
+          },
+          "text": ""
+        }
+      ],
+      "state": {
+        "staged": 1,
+        "infoUnchanged": true
+      }
+    }
+  },
+  "shared": {}
+}

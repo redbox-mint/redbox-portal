@@ -13,7 +13,7 @@ import { registerCoreApiRoutes } from '../../api-routes/route-registry';
 import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig, PolicyChain } from '../../config/policies.config';
 import { portalHttpPolicies } from '../../application/portal/httpPolicies';
-import { resolveEffectivePolicies } from '../express/policies';
+import { resolveEffectivePolicies } from '../policyConfiguration';
 import { sendApiErrors } from './responses';
 import { httpReplySubmitted } from './errorBoundary';
 import { adminApiRoutes } from '../../api-routes/groups/admin';

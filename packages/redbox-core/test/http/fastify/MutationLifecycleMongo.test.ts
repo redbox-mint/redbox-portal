@@ -1,3 +1,4 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import { recordApiRoutes } from '../../../src/api-routes/groups/records';
 import { firstValueFrom } from 'rxjs';
 import type { Document } from 'mongodb';
@@ -6,7 +7,7 @@ import { createServer, request } from 'node:http';
 import { once } from 'node:events';
 import { writeFile } from 'node:fs/promises';
 import { setTimeout as pause } from 'node:timers/promises';
-import sinon from 'sinon';
+
 import { mutationDeclarations, recordMutationRoutes, configurationWriteRoutes } from '../../../src/http/mutationRoutes';
 import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
 import { recordQueryReadDeclarations } from '../../../src/http/readRoutes';
@@ -15,7 +16,7 @@ import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedMutationExpress } from './retainedMutationExpress';
+
 import {
   recordRace,
   recordInterleavings,
@@ -34,9 +35,10 @@ import {
   dashboardMutationPayload,
   type Fixture,
 } from './mutationDifferentialSupport';
-const modes = ['retained', 'express', 'fastify'] as const;
+const retainedObservations: Record<string, any> = {};
+const modes = ['fastify'] as const;
 const scope = [...referenceReadDeclarations, ...recordQueryReadDeclarations, ...mutationDeclarations];
-const retainedObservations: Record<string, unknown[]> = {};
+
 async function fingerprint(
   f: Fixture,
   record: Parameters<ReturnType<Fixture['data']['records']['get']>['getRecordFormFingerprint']>[0]
@@ -53,17 +55,15 @@ async function fixture(
   mode: (typeof modes)[number],
   extra: Omit<NonNullable<Parameters<typeof referenceProductionFixture>[3]>, 'declarations'> = {}
 ) {
-  const retained = mode === 'retained' ? await retainedMutationExpress() : undefined;
   try {
     return {
-      f: await referenceProductionFixture(mode === 'fastify', undefined, retained?.install, {
+      f: await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
         declarations: scope,
         ...extra,
       }),
-      release: () => retained?.close(),
+      release: () => undefined,
     };
   } catch (error) {
-    await retained?.close();
     throw error;
   }
 }
@@ -229,8 +229,7 @@ describe('FM-026 production concurrency, revision, retry and accepted side effec
       }
     }
     retainedObservations.races = observations;
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('mutation-lifecycle-mongo', observations[0]);
   });
   it('matches workflow transitions, revision history, tracked-harvest retries and legacy duplicate-create behavior', async () => {
     const observations = [];
@@ -334,8 +333,7 @@ describe('FM-026 production concurrency, revision, retry and accepted side effec
       }
     }
     retainedObservations.workflows = observations;
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('mutation-lifecycle-mongo', observations[0]);
   });
   it('matches dashboard revision saves and copy races through browser and API routes', async () => {
     const observations = [];
@@ -398,8 +396,7 @@ describe('FM-026 production concurrency, revision, retry and accepted side effec
       }
     }
     retainedObservations.dashboard = observations;
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('mutation-lifecycle-mongo', observations[0]);
   });
   it('owns a disconnected configured action and characterizes repeated save-request IDs', async () => {
     const observations = [];
@@ -468,8 +465,7 @@ describe('FM-026 production concurrency, revision, retry and accepted side effec
       }
     }
     retainedObservations.configuredAction = observations;
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('mutation-lifecycle-mongo', observations[0]);
   });
   it('keeps hooks, triggers, audit, real Solr and queue side effects owned after disconnect and stop timeout, without duplicate conditional retries', async () => {
     const observations = [];
@@ -658,7 +654,8 @@ describe('FM-026 production concurrency, revision, retry and accepted side effec
       }
     }
     retainedObservations.ownership = observations;
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('mutation-lifecycle-mongo', observations[0]);
   });
 });
+
+goldenControls('mutation-lifecycle-mongo');

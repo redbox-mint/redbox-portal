@@ -5,6 +5,9 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const directory = path.resolve(__dirname, '../../../../../support/specs/fastify-migration/evidence');
 const { inventory, checkInventory } = require(path.join(directory, 'reconcile-FM-036.cjs'));
+// The suite's first case verifies this complete baseline against a fresh scan.
+// Reuse its fixture data here so each bounded child owns one compiler program.
+const baseline = () => readFileSync(path.join(directory, 'FM-036.raw-boundaries.json'), 'utf8');
 
 switch (process.argv[2]) {
   case 'headers-fixture':
@@ -27,7 +30,7 @@ switch (process.argv[2]) {
     const source = readFileSync(path.resolve(directory, '../../../../packages/redbox-core/src', file), 'utf8');
     assert.throws(
       () =>
-        checkInventory(JSON.stringify(inventory(), null, 2) + '\n', {
+        checkInventory(baseline(), {
           overrides: {
             [file]:
               source + "\ndeclare const fm036Reply: FastifyReply; fm036Reply.raw.setHeader('X-Drift', 'present');",
@@ -37,7 +40,8 @@ switch (process.argv[2]) {
     );
     break;
   }
-  case 'interfaces': {
+  case 'interfaces-generation':
+  case 'interfaces-check': {
     const overrides = {
       'http/000-unclassified-emitter.ts':
         "interface EmitterLike { on(event: string, listener: () => void): void; } declare const receiver: EmitterLike; receiver.on('terminal', () => {});",
@@ -50,13 +54,16 @@ switch (process.argv[2]) {
       assert.match(error.message, /storage\/000-unclassified-stream.ts[\s\S]*source.once/);
       return true;
     };
-    assert.throws(() => inventory({ overrides }), unclassified);
-    assert.throws(() => checkInventory('', { overrides }), unclassified);
+    assert.throws(
+      () =>
+        process.argv[2] === 'interfaces-generation' ? inventory({ overrides }) : checkInventory('', { overrides }),
+      unclassified
+    );
     break;
   }
   case 'consumption-generation':
   case 'consumption-check': {
-    const result = inventory();
+    const result = JSON.parse(baseline());
     const file = Object.keys(result.scannerFixtures).find(file => file.endsWith('/consumption-matrix.json.fixture'));
     const declarations = readFileSync(path.resolve(__dirname, 'fixtures/raw-boundaries/context.d.ts.fixture'), 'utf8');
     const cases = [

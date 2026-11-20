@@ -4,22 +4,18 @@ import type { Readable } from 'node:stream';
 import { mkdtemp, mkdir, writeFile, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { StreamingMultipart } from '../../../src/http/express/multipart';
-import type { ProgressSockets } from '../../../src/http/express/progressSockets';
-import type { mountDatastreamWriteRoutes } from '../../../src/http/express/datastreamWrites';
-import type { mountProgressOperationRoutes } from '../../../src/http/express/progressOperations';
+import type { StreamingMultipart } from '../../../src/http/integrations/multipart';
+import type { ProgressSockets } from '../../../src/http/integrations/progressSockets';
+
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { productionRawPortal } from './productionRawPortal';
-import { retainedRawExpress } from './retainedRawExpress';
 import type { ApiRequestDefinition } from '../../../src/api-routes/types';
 import { assertOwnedHttpClosed } from './ownedCleanup';
-
 export const canonical = 'https://portal.example.invalid';
 export const uploadPath = '/default/rdmp/api/records/datastreams/fm020-record';
 export const grantPath = '/default/rdmp/asynch/socket-token';
 export const socketPath = '/portal/portal-socket.io';
 export const deferred = () => Promise.withResolvers<void>();
-
 /** Only deployment configuration, an installed extension and domain fault probes.
  * Both transports assemble the actual production application and host. */
 export async function rawSocketFixture(
@@ -58,12 +54,11 @@ const echo = { name: 'RawSiblingController', actions: ['echo'], create: () => ({
 const { addDataStreamsRoute: source } = require(${JSON.stringify(path.resolve(__dirname, '../../../src/api-routes/groups/records'))});
 const { coreRouteName } = require(${JSON.stringify(path.resolve(__dirname, '../../../src/http/fastify/routes'))});
 exports.bindings = () => [require(${JSON.stringify(controllersPath)}).bindControllerFactory(echo, undefined)];
-exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(), apiVersion: ${native ? 2 : 1},
-  ${native ? "controllers: [echo], routes: [{ name: 'raw-sibling', method: 'post', path: '/echo', controller: echo.name, action: 'echo', access: { kind: 'public' } }, ...(exports.uploadRequest ? [{ name: coreRouteName(source.method, source.path), method: source.method, path: source.path, controller: source.controller, action: source.action, access: { kind: 'policies', names: ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'] }, replaces: true, csrf: source.csrf, api: { ...source, request: exports.uploadRequest } }] : [])]" : "handlers: [{ name: 'raw-sibling', create: () => (req, res) => res.json({ body: req.body }) }], routes: [{ name: 'raw-sibling', method: 'post', path: '/echo', handler: 'raw-sibling', access: 'public' }]"}
+exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(), apiVersion: ${2},
+  ${"controllers: [echo], routes: [{ name: 'raw-sibling', method: 'post', path: '/echo', controller: echo.name, action: 'echo', access: { kind: 'public' } }, ...(exports.uploadRequest ? [{ name: coreRouteName(source.method, source.path), method: source.method, path: source.path, controller: source.controller, action: source.action, access: { kind: 'policies', names: ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'] }, replaces: true, csrf: source.csrf, api: { ...source, request: exports.uploadRequest } }] : [])]"}
 });`
   );
-  if (native) require(path.join(extensionPath, 'index.cjs')).uploadRequest = options.uploadRequest;
-  const retained = !native && options.retainExpress !== false ? await retainedRawExpress() : undefined;
+  require(path.join(extensionPath, 'index.cjs')).uploadRequest = options.uploadRequest;
   let sockets!: ProgressSockets, multipart!: StreamingMultipart, server!: Server;
   let preparedBeforeListening = false,
     closeCalls = 0,
@@ -101,50 +96,6 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
     };
     server = Reflect.get(sockets, 'io').httpServer;
   }
-  // Keep the immutable prior adapters inside the real Express production host.
-  // Restore exports immediately after preparation; no alternative portal assembly.
-  const uploadsModule = require('../../../src/http/express/datastreamWrites');
-  const grantsModule = require('../../../src/http/express/progressOperations');
-  const socketsModule = require('../../../src/http/express/progressSockets');
-  const originals = {
-    uploads: uploadsModule.mountDatastreamWriteRoutes,
-    grants: grantsModule.mountProgressOperationRoutes,
-    Sockets: socketsModule.ProgressSockets,
-  };
-  if (!native) {
-    const uploads: typeof mountDatastreamWriteRoutes = retained?.uploads ?? originals.uploads;
-    const grants: typeof mountProgressOperationRoutes = retained?.grants ?? originals.grants;
-    socketsModule.ProgressSockets = retained?.Sockets ?? originals.Sockets;
-    uploadsModule.mountDatastreamWriteRoutes = (
-      router: Parameters<typeof uploads>[0],
-      input: Parameters<typeof uploads>[1]
-    ) => {
-      instrumentMultipart(input.multipart);
-      // Contract probe only: Express has no API2 replacement syntax. Supply the
-      // same declaration to its real production mount, restoring the export as
-      // soon as that mount captures it. No action/parser/socket is substituted.
-      const records = require('../../../src/api-routes/groups/records');
-      const original = records.addDataStreamsRoute;
-      try {
-        if (options.uploadRequest) records.addDataStreamsRoute = { ...original, request: options.uploadRequest };
-        uploads(router, input);
-      } finally {
-        records.addDataStreamsRoute = original;
-      }
-    };
-    grantsModule.mountProgressOperationRoutes = (
-      router: Parameters<typeof grants>[0],
-      input: Parameters<typeof grants>[1]
-    ) => {
-      instrumentSockets(input.sockets as ProgressSockets);
-      grants(router, input);
-    };
-  }
-  const restore = () => {
-    uploadsModule.mountDatastreamWriteRoutes = originals.uploads;
-    grantsModule.mountProgressOperationRoutes = originals.grants;
-    socketsModule.ProgressSockets = originals.Sockets;
-  };
   try {
     const f = await productionRawPortal(native, appPath, {
       companion: options.companion,
@@ -186,7 +137,6 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
         } as Server['listen'];
       },
     });
-    restore();
     const add = f.datastream.addDatastreams.bind(f.datastream);
     f.datastream.addDatastreams = async (...args) => {
       finalizations++;
@@ -200,7 +150,6 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
       multipart,
       server,
       bindings: { ...f, records: f.writer, log: f.portal.log },
-      retainedHashes: retained?.hashes,
       preparedBeforeListening,
       closeCalls: () => closeCalls,
       listenCalls: () => listenCalls,
@@ -230,22 +179,19 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
         providerGate?.resolve();
         authenticationGate?.resolve();
         await f.close();
-        if (native) await assertOwnedHttpClosed(f.host, f.owner, server);
+        await assertOwnedHttpClosed(f.host, f.owner, server);
         // The immutable FM-019 Express adapter predates explicit TCP-upgrade
         // leases; current/native owners must additionally empty that set.
-        for (const name of ['pending', 'grants', 'connections', ...(retained ? [] : ['upgraded'])])
+        for (const name of ['pending', 'grants', 'connections', 'upgraded'])
           assert.equal(Reflect.get(sockets, name).size, 0, 'Stopped progress owner: ' + name);
         assert.equal(Reflect.get(sockets, 'io'), undefined);
         assert.equal(Reflect.get(multipart, 'pending').size, 0);
         assert.equal(Reflect.get(multipart, 'cleanup').size, 0);
         assert.equal(persistenceStatus(f.owner).pools, 0);
-        await retained?.close();
         await rm(appPath, { recursive: true, force: true });
       },
     };
   } catch (error) {
-    restore();
-    await retained?.close();
     await rm(appPath, { recursive: true, force: true });
     throw error;
   }

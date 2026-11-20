@@ -9,7 +9,7 @@ import { ensureBrandingPersistenceIndexes } from '../../src/persistence/branding
 import { initializeIdentityPersistence, getIdentityRepositories } from '../../src/persistence/identity/runtime';
 import { initializeReferencePersistence, getReferenceRepositories } from '../../src/persistence/reference/runtime';
 import { referenceIndexes } from '../../src/persistence/reference/preflight';
-import { HttpIdentity } from '../../src/http/express/identity';
+import { HttpIdentity } from '../../src/authentication/HttpIdentity';
 
 let counter = 0;
 export async function mongoFixture(

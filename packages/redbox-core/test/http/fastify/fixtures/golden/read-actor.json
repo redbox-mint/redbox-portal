@@ -1,0 +1,4037 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "default get /:branding/:portal/api/report/namedQuery anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report/namedQuery anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report/namedQuery missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report/namedQuery missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/api/report-config/preview anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/api/report-config/preview anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/api/report-config/preview missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/api/report-config/preview missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config/:name anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config/:name anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config/:name missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/report-config/:name missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/admin/report-config/preview anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/admin/report-config/preview anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/admin/report-config/preview missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default post /:branding/:portal/admin/report-config/preview missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config/:name anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config/:name anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config/:name missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/report-config/:name missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/collections anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/collections anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/collections missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/collections missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/:name anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/:name anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/:name missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/named-query/:name missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id/events anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id/events anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id/events missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/harvest-runs/:id/events missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/config anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/config anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/config missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/config missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/events anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/events anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/events missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/events missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/delivery-status anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/delivery-status anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/delivery-status missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/siem/delivery-status missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/search anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/search anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/search missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/search missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/integration-audit/:oid anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/integration-audit/:oid anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/integration-audit/:oid missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/api/integration-audit/:oid missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReport anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReport anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReport missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReport missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReportResults anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReportResults anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReportResults missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/getReportResults missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/downloadReportCSV anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/downloadReportCSV anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/downloadReportCSV missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/admin/downloadReportCSV missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/audit anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/audit anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/audit missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/audit missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/permissions anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/permissions anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/permissions missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/permissions missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/integration-audit anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/integration-audit anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/integration-audit missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/viewAudit/:oid/integration-audit missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/integrationStatus/:oid anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/integrationStatus/:oid anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/integrationStatus/:oid missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "default get /:branding/:portal/record/integrationStatus/:oid missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report/namedQuery anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report/namedQuery anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report/namedQuery missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report/namedQuery missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report post /:branding/:portal/api/report-config/preview anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report post /:branding/:portal/api/report-config/preview anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report post /:branding/:portal/api/report-config/preview missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report post /:branding/:portal/api/report-config/preview missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config/:name anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config/:name anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config/:name missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/report-config/:name missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/admin/report-config anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report post /:branding/:portal/admin/report-config/preview anonymous v1.0": {
+      "$ref": "v000004"
+    },
+    "reduced-report post /:branding/:portal/admin/report-config/preview anonymous v2.0": {
+      "$ref": "v000005"
+    },
+    "reduced-report post /:branding/:portal/admin/report-config/preview missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report post /:branding/:portal/admin/report-config/preview missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config/:name anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config/:name anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config/:name missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/report-config/:name missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/api/named-query anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/collections anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/collections anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/collections missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/collections missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/:name anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/:name anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/:name missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/named-query/:name missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id/events anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id/events anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id/events missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/harvest-runs/:id/events missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/config anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/config anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/config missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/config missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/events anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/events anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/events missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/events missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/delivery-status anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/delivery-status anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/delivery-status missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/siem/delivery-status missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/search anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/search anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/search missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/search missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/integration-audit/:oid anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/integration-audit/:oid anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/integration-audit/:oid missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/api/integration-audit/:oid missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/admin/getReport anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/getReport anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/getReport missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/getReport missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/getReportResults anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/getReportResults anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/getReportResults missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/getReportResults missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/downloadReportCSV anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/downloadReportCSV anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/admin/downloadReportCSV missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-report get /:branding/:portal/admin/downloadReportCSV missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/audit anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/audit anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/audit missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/audit missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/permissions anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/permissions anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/permissions missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/permissions missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/integration-audit anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/integration-audit anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/integration-audit missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/viewAudit/:oid/integration-audit missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/integrationStatus/:oid anonymous v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/integrationStatus/:oid anonymous v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/integrationStatus/:oid missing-actor v1.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-report get /:branding/:portal/record/integrationStatus/:oid missing-actor v2.0": {
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 401,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "reduced-query get /:branding/:portal/api/report/namedQuery anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/report/namedQuery anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/report/namedQuery missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/report/namedQuery missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/report-config anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/report-config anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/report-config missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/report-config missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query post /:branding/:portal/api/report-config/preview anonymous v1.0": {
+      "$ref": "v000004"
+    },
+    "reduced-query post /:branding/:portal/api/report-config/preview anonymous v2.0": {
+      "$ref": "v000005"
+    },
+    "reduced-query post /:branding/:portal/api/report-config/preview missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query post /:branding/:portal/api/report-config/preview missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/report-config/:name anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/report-config/:name anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/report-config/:name missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/report-config/:name missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query post /:branding/:portal/admin/report-config/preview anonymous v1.0": {
+      "$ref": "v000004"
+    },
+    "reduced-query post /:branding/:portal/admin/report-config/preview anonymous v2.0": {
+      "$ref": "v000005"
+    },
+    "reduced-query post /:branding/:portal/admin/report-config/preview missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query post /:branding/:portal/admin/report-config/preview missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config/:name anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config/:name anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config/:name missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/report-config/:name missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/named-query anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/named-query anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/named-query missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/named-query missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/collections anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/collections anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/collections missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/collections missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/:name anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/:name anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/:name missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/named-query/:name missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id/events anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id/events anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id/events missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/harvest-runs/:id/events missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/siem/config anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/siem/config anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/siem/config missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/siem/config missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/siem/events anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/siem/events anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/siem/events missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/siem/events missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/siem/delivery-status anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/siem/delivery-status anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/siem/delivery-status missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/siem/delivery-status missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/search anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/search anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/search missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/search missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/integration-audit/:oid anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/integration-audit/:oid anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/api/integration-audit/:oid missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/api/integration-audit/:oid missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/getReport anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/getReport anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/getReport missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/getReport missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/getReportResults anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/getReportResults anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/getReportResults missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/getReportResults missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/downloadReportCSV anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/downloadReportCSV anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/admin/downloadReportCSV missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/admin/downloadReportCSV missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/audit anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/audit anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/audit missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/audit missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/permissions anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/permissions anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/permissions missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/permissions missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/integration-audit anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/integration-audit anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/integration-audit missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/viewAudit/:oid/integration-audit missing-actor v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/integrationStatus/:oid anonymous v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/integrationStatus/:oid anonymous v2.0": {
+      "$ref": "v000003"
+    },
+    "reduced-query get /:branding/:portal/record/integrationStatus/:oid missing-actor v1.0": {
+      "$ref": "v000002"
+    },
+    "reduced-query get /:branding/:portal/record/integrationStatus/:oid missing-actor v2.0": {
+      "$ref": "v000003"
+    }
+  },
+  "shared": {
+    "v000001": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "50",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000002": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "52",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "view-error-no-permissions"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000003": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "61",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "view-error-no-permissions"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000004": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "45",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid CSRF token"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000005": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "54",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Invalid CSRF token"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "sequences": {}
+}

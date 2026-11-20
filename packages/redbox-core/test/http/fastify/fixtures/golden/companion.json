@@ -1,0 +1,1240 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "root": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "error",
+              "not-found"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000001"
+      },
+      "status": 404
+    },
+    "health": {
+      "$ref": "v000002"
+    },
+    "trailing health": {
+      "$ref": "v000002"
+    },
+    "case mount": {
+      "$ref": "v000002"
+    },
+    "drive missing provider auth": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "canonical send token": {
+      "body": {
+        "$ref": "v000004"
+      },
+      "headers": {
+        "$ref": "v000005"
+      },
+      "status": 200
+    },
+    "health HEAD": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store",
+        "x-powered-by": "Express"
+      },
+      "status": 200
+    },
+    "health OPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "unauthenticated": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000007"
+      },
+      "status": 401
+    },
+    "bad bearer before input": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000007"
+      },
+      "status": 401
+    },
+    "missing URL": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid URL request"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000008"
+      },
+      "status": 400
+    },
+    "structured URL": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid URL request"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000008"
+      },
+      "status": 400
+    },
+    "parser before auth": {
+      "$ref": "v000009"
+    },
+    "flat form": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid URL request"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000008"
+      },
+      "status": 400
+    },
+    "origin": {
+      "$ref": "v000010"
+    },
+    "meta": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "name",
+              "small"
+            ],
+            [
+              "size",
+              22
+            ],
+            [
+              "type",
+              "text/plain"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000011"
+      },
+      "status": 200
+    },
+    "drive:drive-authenticated-list": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "username",
+              "provider@example.invalid"
+            ],
+            [
+              "items",
+              {
+                "$ref": "v000012"
+              }
+            ],
+            [
+              "nextPagePath",
+              null
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000013"
+      },
+      "status": 200
+    },
+    "drive:drivelistGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivelist/folderGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivesearch?q=fixtureGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivethumbnail/fileGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivelogoutGET": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "ok",
+              true
+            ],
+            [
+              "revoked",
+              false
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "drive:drivelistHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivelist/folderHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivesearch?q=fixtureHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivethumbnail/fileHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivelogoutHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "drive:drivelistOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "drive:drivelist/folderOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "drive:drivesearch?q=fixtureOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "drive:drivethumbnail/fileOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "drive:drivelogoutOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "drive:drivepreauth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "drive:driveget/file": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:driverefresh-token": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "drive:drivedeauthorization/callback": {
+      "$ref": "v000016"
+    },
+    "drive:drivesimple-auth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "drive:drivemutate/delete": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "onedrive:onedrive-authenticated-list": {
+      "body": {
+        "$json": {
+          "$object": {
+            "$ref": "v000017"
+          }
+        }
+      },
+      "headers": {
+        "$ref": "v000018"
+      },
+      "status": 200
+    },
+    "onedrive:onedrivelistGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivelist/folderGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivesearch?q=fixtureGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivethumbnail/fileGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivelogoutGET": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "ok",
+              true
+            ],
+            [
+              "revoked",
+              false
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "onedrive:onedrivelistHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivelist/folderHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivesearch?q=fixtureHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivethumbnail/fileHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivelogoutHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "onedrive:onedrivelistOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "onedrive:onedrivelist/folderOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "onedrive:onedrivesearch?q=fixtureOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "onedrive:onedrivethumbnail/fileOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "onedrive:onedrivelogoutOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "onedrive:onedrivepreauth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "onedrive:onedriveget/file": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedriverefresh-token": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "onedrive:onedrivedeauthorization/callback": {
+      "$ref": "v000016"
+    },
+    "onedrive:onedrivesimple-auth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "onedrive:onedrivemutate/delete": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "streaming:drive-authenticated-list": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "username",
+              "provider@example.invalid"
+            ],
+            [
+              "items",
+              {
+                "$ref": "v000012"
+              }
+            ],
+            [
+              "nextPagePath",
+              null
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000013"
+      },
+      "status": 200
+    },
+    "streaming:drivelistGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivelist/folderGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivesearch?q=fixtureGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivethumbnail/fileGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivelogoutGET": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "ok",
+              true
+            ],
+            [
+              "revoked",
+              false
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "streaming:drivelistHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivelist/folderHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivesearch?q=fixtureHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivethumbnail/fileHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivelogoutHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "streaming:drivelistOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:drivelist/folderOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:drivesearch?q=fixtureOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:drivethumbnail/fileOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:drivelogoutOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:drivepreauth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "streaming:driveget/file": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:driverefresh-token": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:drivedeauthorization/callback": {
+      "$ref": "v000016"
+    },
+    "streaming:drivesimple-auth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "streaming:drivemutate/delete": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "streaming:onedrive-authenticated-list": {
+      "body": {
+        "$json": {
+          "$object": {
+            "$ref": "v000017"
+          }
+        }
+      },
+      "headers": {
+        "$ref": "v000018"
+      },
+      "status": 200
+    },
+    "streaming:onedrivelistGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivelist/folderGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivesearch?q=fixtureGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivethumbnail/fileGET": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivelogoutGET": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "ok",
+              true
+            ],
+            [
+              "revoked",
+              false
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "streaming:onedrivelistHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivelist/folderHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivesearch?q=fixtureHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivethumbnail/fileHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivelogoutHEAD": {
+      "body": "",
+      "headers": {
+        "$ref": "v000014"
+      },
+      "status": 200
+    },
+    "streaming:onedrivelistOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:onedrivelist/folderOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:onedrivesearch?q=fixtureOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:onedrivethumbnail/fileOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:onedrivelogoutOPTIONS": {
+      "body": "",
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 204
+    },
+    "streaming:onedrivepreauth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "streaming:onedriveget/file": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedriverefresh-token": {
+      "body": "Unauthorized",
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "streaming:onedrivedeauthorization/callback": {
+      "$ref": "v000016"
+    },
+    "streaming:onedrivesimple-auth": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    },
+    "streaming:onedrivemutate/delete": {
+      "body": "Bad Request",
+      "headers": {
+        "$ref": "v000015"
+      },
+      "status": 400
+    }
+  },
+  "shared": {
+    "v000001": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "21",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"15-HgI+DoBk6ksYbJElsykv2NthUsw\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000002": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store",
+        "x-powered-by": "Express"
+      },
+      "status": 200
+    },
+    "v000003": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "12",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"c-dAuDFQrdjS3hezqxDTNgW7AOlYk\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000004": "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /></head><body><div hidden id=\"companion-send-token-config\">{&quot;targetOrigin&quot;:&quot;https://portal.example.invalid&quot;,&quot;provider&quot;:&quot;drive&quot;,&quot;secureCookie&quot;:true}</div><script>(function(){'use strict';var configElement=document.getElementById('companion-send-token-config');var config={targetOrigin:'',provider:'',secureCookie:false};try{config=JSON.parse(configElement&&configElement.textContent?configElement.textContent:'{}');}catch(_e){}var origin=typeof config.targetOrigin==='string'?config.targetOrigin:'';var provider=typeof config.provider==='string'?config.provider:'';var query=new URLSearchParams(window.location.search);var hashRaw=window.location.hash&&window.location.hash.charAt(0)==='#'?window.location.hash.slice(1):'';var hash=new URLSearchParams(hashRaw);var token=(query.get('uppyAuthToken')||hash.get('uppyAuthToken')||'').trim();if(!origin||!token){if(origin){window.location.replace(origin);}return;}if(provider){var storageKey='companion-'+provider+'-auth-token';var cookieName='uppyAuthToken--'+provider;if(provider==='drive'||provider==='googledrive'){storageKey='companion-GoogleDrive-auth-token';cookieName='uppyAuthToken--googledrive';}if(provider==='onedrive'){storageKey='companion-OneDrive-auth-token';}try{window.localStorage.setItem(storageKey,token);}catch(_e){}document.cookie=cookieName+'='+encodeURIComponent(token)+'; Path=/; Max-Age=34560000; SameSite=Lax'+(config.secureCookie?'; Secure':'');}var data={token:token};var openerRef=null;try{openerRef=window.opener||null;}catch(_e){}if(!openerRef){window.location.replace(origin);return;}var attempts=0;var send=function(){attempts+=1;try{openerRef.postMessage(data,origin);}catch(_e){}if(attempts<5){setTimeout(send,150);return;}setTimeout(function(){try{window.close();}catch(_e){}},300);};send();})();</script>Completing sign in...</body></html>",
+    "v000005": {
+      "cache-control": "no-cache, no-store, must-revalidate",
+      "content-length": "1923",
+      "content-security-policy": "default-src 'none'; script-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; style-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "content-type": "text/html; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000006": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-headers": "uppy-auth-token,uppy-credentials-params,authorization,origin,content-type,accept",
+      "access-control-allow-methods": "GET,POST,OPTIONS,DELETE",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "0",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000007": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "50",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000008": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "33",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000009": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid request"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "42",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 400
+    },
+    "v000010": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Cross-origin request denied"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "54",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000011": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "46",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"2e-FWtYheSixt4xf8McTxdJ567Ksas\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000012": [
+      {
+        "$object": [
+          [
+            "isFolder",
+            true
+          ],
+          [
+            "icon",
+            "folder"
+          ],
+          [
+            "name",
+            "Shared with me"
+          ],
+          [
+            "mimeType",
+            "application/vnd.google-apps.folder"
+          ],
+          [
+            "id",
+            "shared-with-me"
+          ],
+          [
+            "requestPath",
+            "shared-with-me"
+          ]
+        ]
+      },
+      {
+        "$object": [
+          [
+            "isFolder",
+            false
+          ],
+          [
+            "name",
+            "provider.txt"
+          ],
+          [
+            "mimeType",
+            "text/plain"
+          ],
+          [
+            "id",
+            "provider-file"
+          ],
+          [
+            "requestPath",
+            "provider-file"
+          ],
+          [
+            "size",
+            22
+          ],
+          [
+            "custom",
+            {
+              "$object": [
+                [
+                  "isSharedDrive",
+                  false
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    ],
+    "v000013": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "387",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"183-AL5Y7SzN9YdKZ1wNP7mFHQsGihw\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000014": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "27",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"1b-fqdx7CSI9rqUBn9++6URTvU8Mp4\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000015": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "11",
+      "content-type": "text/plain; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"b-EFiDB1U+dmqzx9Mo2UjcZ1SJPO8\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    },
+    "v000016": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Internal server error"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "48",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 500
+    },
+    "v000017": [
+      [
+        "username",
+        "provider@example.invalid"
+      ],
+      [
+        "items",
+        [
+          {
+            "$object": [
+              [
+                "isFolder",
+                false
+              ],
+              [
+                "icon",
+                null
+              ],
+              [
+                "name",
+                "provider.txt"
+              ],
+              [
+                "mimeType",
+                "text/plain"
+              ],
+              [
+                "id",
+                "provider-file"
+              ],
+              [
+                "thumbnail",
+                null
+              ],
+              [
+                "requestPath",
+                "provider-file?driveId=fixture"
+              ],
+              [
+                "size",
+                22
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "nextPagePath",
+        null
+      ]
+    ],
+    "v000018": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "240",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "W/\"f0-U26549/G2iaj8B/vUDcHLShU4X4\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "vary": "Origin",
+      "x-powered-by": "Express"
+    }
+  },
+  "sequences": {}
+}

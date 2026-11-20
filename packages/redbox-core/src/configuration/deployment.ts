@@ -299,7 +299,7 @@ export function convertLegacyDeployment(
           throw new ConfigurationError(
             source,
             'http.' + setting,
-            'unsupported Sails middleware setting; declare an owned Express integration'
+            'unsupported Sails middleware setting; declare an API2 controller, hook or integration'
           );
       }
     } else

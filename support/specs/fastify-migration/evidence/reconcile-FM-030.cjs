@@ -11,8 +11,8 @@ const { pageRoutes } = source('http/pageRoutes');
 const { authenticationRoutes } = source('http/authenticationRoutes');
 const { brandingDeliveryRoutes, fontDeliveryRoute, dynamicAssetRoutes } = source('http/assetRoutes');
 const assetDeclarations = [...brandingDeliveryRoutes, fontDeliveryRoute, ...dynamicAssetRoutes];
-const { pageRootRoute } = source('http/express/pages');
-const { resolveEffectivePolicies } = source('http/express/policies');
+const pageRootRoute = { method: 'all', path: '/' };
+const { resolveEffectivePolicies } = source('http/policyConfiguration');
 const { datastreamReadRoutes } = source('http/datastreamRoutes');
 const { progressOperationRoutes, progressSocketGrantRoute } = source('http/progressRoutes');
 const progressDeclarations = [...progressOperationRoutes, progressSocketGrantRoute].map(route => ({
@@ -102,7 +102,14 @@ function reconcile(installation, runtime) {
               ? []
               : [...new Set([...mandatory, ...resolveEffectivePolicies(original, installation.policyConfiguration)])]
           );
-        } else assert.deepEqual(route.effectivePolicies, row.access.effectivePolicies);
+        } else
+          assert.deepEqual(
+            route.effectivePolicies,
+            original === pageRootRoute || authenticationRoutes.includes(original)
+              ? row.access.effectivePolicies
+              : resolveEffectivePolicies(original, installation.policyConfiguration),
+            row.name
+          );
       } else {
         const declaration = migratedDeclarations.find(item => coreRouteName(item.method, item.path) === row.name);
         assert(declaration, 'Missing executable browser-operation declaration: ' + row.name);

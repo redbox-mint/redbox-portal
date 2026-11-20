@@ -1,3 +1,4 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import iconv from 'iconv-lite';
 import { gzipSync, deflateSync, brotliCompressSync } from 'node:zlib';
@@ -10,11 +11,9 @@ import { bindNativeRouteSecurity } from '../../../src/http/fastify/policies';
 import { createNativePolicies } from '../../../src/http/fastify/policies';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { resolveRequestBrand, resolveRequestActor } from '../../../src/http/context';
-
 const target = '/default/rdmp/api/probe';
 const get = (url: string, method = 'POST', headers: Record<string, string> = {}, body?: string | Buffer) =>
   fetch(url, { method, headers, body: Buffer.isBuffer(body) ? new Uint8Array(body).buffer : body, redirect: 'manual' });
-
 describe('FM-016 native context, policy, CSRF and error boundary', function () {
   this.timeout(10000);
   for (const [token, status] of [
@@ -25,7 +24,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
   ] as const)
     it('retains Express repeated explicit/configured policy chains for ' + (token || 'anonymous'), async () => {
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const source = route();
         const f = await securityFixture(native, {
           routes: [{ ...source, effectivePolicies: [...policyChain, ...policyChain] }],
@@ -40,7 +39,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security', results[0]);
     });
   it('repeated branding policies preserve the tenant snapshot, refresh actors and reject another tenant', async () => {
     const policies = createNativePolicies({
@@ -86,7 +85,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
   });
   it('rechecks changed roles between explicit and configured branding/authorization chains over real HTTP', async () => {
     const results = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       let lookups = 0;
       let changeRoles = () => {};
       const source = route();
@@ -114,7 +113,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
         await f.close();
       }
     }
-    assert.deepEqual(results[1], results[0]);
+    assertGoldenNext('security', results[0]);
   });
   for (const key of Object.getOwnPropertyNames(Object.prototype)) {
     it(`never resolves inherited policy/error/language/route names: ${key}`, async () => {
@@ -177,7 +176,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
   ] as const)
     it(`retains Express ${label}`, async () => {
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const f = await securityFixture(native);
         try {
           const result = await observation(
@@ -189,12 +188,12 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security', results[0]);
     });
   for (const access of [{ kind: 'public' }, { kind: 'deny' }] as const)
     it(`retains explicit ${access.kind} access without fabricating context`, async () => {
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const r = route('/public', 'get');
         const f = await securityFixture(native, { routes: [{ ...r, declaration: { ...r.declaration, access } }] });
         try {
@@ -206,7 +205,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security', results[0]);
     });
   it('copies and freezes brand, actor, role array and role objects independently of the identity', async () => {
     let snapshot: ReturnType<typeof requestContext>;
@@ -239,7 +238,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
     }
   });
   it('retains ordered effects before deny and stops later CSRF/action work', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const r = route();
       const f = await securityFixture(native, {
         routes: [
@@ -264,7 +263,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
   });
   for (const fault of ['failProvider', 'failBrand'] as const)
     it(`redacts ${fault} and fake domain status/body/credential fields`, async () => {
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const f = await securityFixture(native);
         f.state[fault] = true;
         try {
@@ -323,7 +322,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
     for (const method of ['GET', 'HEAD', 'POST', 'OPTIONS'])
       it(`${mode} keeps the mount-specific ${method} exemption`, async () => {
         const observations = [];
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const r = route();
           const f = await securityFixture(native, {
             routes: [{ ...r, effectiveCsrf: mode, declaration: { ...r.declaration, method: 'all' } }],
@@ -339,7 +338,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
             await f.close();
           }
         }
-        assert.deepEqual(observations[1], observations[0]);
+        assertGoldenNext('security', observations[0]);
       });
   for (const headers of [
     { Origin: 'https://evil.invalid' },
@@ -348,7 +347,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
   ] as Record<string, string>[])
     it(`canonical origin wins before independently valid API bearer: ${JSON.stringify(headers)}`, async () => {
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const f = await securityFixture(native, { routes: [{ ...route(), effectiveCsrf: 'apiProtect' }] });
         try {
           const result = await observation(
@@ -365,7 +364,7 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security', results[0]);
     });
   it('fails missing/unknown/empty access and unknown CSRF/policy bindings offline', async () => {
     for (const access of [undefined, { kind: 'policies', names: [] }, { kind: 'policies', names: ['missing'] }])
@@ -424,10 +423,15 @@ describe('FM-016 native context, policy, CSRF and error boundary', function () {
     );
   });
 });
-
 describe('FM-016 retained ordinary parser differential before policy execution', function () {
   this.timeout(10000);
-  const cases: { name: string; body: Buffer | string; type: string; encoding?: string; status: number }[] = [
+  const cases: {
+    name: string;
+    body: Buffer | string;
+    type: string;
+    encoding?: string;
+    status: number;
+  }[] = [
     { name: 'invalid JSON secret', body: '{"password":"body-secret",', type: 'application/json', status: 400 },
     { name: 'scalar JSON', body: '"body-secret"', type: 'application/json', status: 400 },
     { name: 'empty JSON', body: '', type: 'application/json', status: 401 },
@@ -481,7 +485,7 @@ describe('FM-016 retained ordinary parser differential before policy execution',
   for (const c of cases)
     it(c.name, async () => {
       const results = [];
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const f = await securityFixture(native);
         try {
           const result = await observation(
@@ -499,10 +503,9 @@ describe('FM-016 retained ordinary parser differential before policy execution',
           await f.close();
         }
       }
-      assert.deepEqual(results[1], results[0]);
+      assertGoldenNext('security', results[0]);
     });
 });
-
 describe('FM-016 safe native action errors and parsed body semantics', function () {
   this.timeout(10000);
   for (const version of ['1.0', '2.0'])
@@ -563,7 +566,7 @@ describe('FM-016 safe native action errors and parsed body semantics', function 
     for (const method of ['GET', 'HEAD'])
       it(`retains ${method} browser redirects negotiated as ${accept}`, async () => {
         const results = [];
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const r = route('/:branding/:portal/page', 'get');
           const f = await securityFixture(native, {
             routes: [
@@ -585,6 +588,8 @@ describe('FM-016 safe native action errors and parsed body semantics', function 
             await f.close();
           }
         }
-        assert.deepEqual(results[1], results[0]);
+        assertGoldenNext('security', results[0]);
       });
 });
+
+goldenControls('security');

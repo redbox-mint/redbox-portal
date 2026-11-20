@@ -3,7 +3,10 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
-import { buildCompanionSendTokenConfig, buildCompanionSendTokenHtml } from '../../src/http/express/companionSendToken';
+import {
+  buildCompanionSendTokenConfig,
+  buildCompanionSendTokenHtml,
+} from '../../src/http/integrations/companion/companionSendToken';
 import { isImmutableAssetPath, applyPageHeaders } from '../../src/pages/headers';
 import { PageArtifacts } from '../../src/pages/Artifacts';
 import { serveStaticAsset } from '../../src/http/fastify/assets';
@@ -67,14 +70,23 @@ describe('HTTP config security helpers', function () {
     async function request(url: string) {
       const app = fastify();
       app.get('/*', async (req, reply) => {
-        await serveStaticAsset(req, reply, artifacts, '', { publicUrl: 'http://example.invalid', noCache: [] }, async () => {});
+        await serveStaticAsset(
+          req,
+          reply,
+          artifacts,
+          '',
+          { publicUrl: 'http://example.invalid', noCache: [] },
+          async () => {}
+        );
         if (!reply.sent) reply.code(404).send();
       });
       try {
         const response = await app.inject({ method: 'GET', url });
         expect(response.statusCode).to.equal(200);
         return response.body;
-      } finally { await app.close(); }
+      } finally {
+        await app.close();
+      }
     }
     it('accepts simple branding and portal segments', async () => {
       expect(await request('/default/rdmp_portal-1/assets/app.js')).to.equal('safe');
@@ -117,14 +129,23 @@ describe('HTTP config security helpers', function () {
     ) {
       const app = fastify();
       app.get('/*', async (req, reply) => {
-        applyPageHeaders({ path: req.url.split('?')[0] }, {
-          set: (name: string | Record<string, string>, value?: string) => typeof name === 'string' ? reply.header(name, value!) : reply.headers(name),
-          removeHeader: name => reply.removeHeader(name),
-        }, { sessionMaxAgeMs: session ? session.cookie?.maxAge : undefined, noCache, publicUrl }, true);
+        applyPageHeaders(
+          { path: req.url.split('?')[0] },
+          {
+            set: (name: string | Record<string, string>, value?: string) =>
+              typeof name === 'string' ? reply.header(name, value!) : reply.headers(name),
+            removeHeader: name => reply.removeHeader(name),
+          },
+          { sessionMaxAgeMs: session ? session.cookie?.maxAge : undefined, noCache, publicUrl },
+          true
+        );
         return reply.send();
       });
-      try { return await app.inject({ method: 'GET', url: pathname, headers: forwarded }); }
-      finally { await app.close(); }
+      try {
+        return await app.inject({ method: 'GET', url: pathname, headers: forwarded });
+      } finally {
+        await app.close();
+      }
     }
     it('preserves immutable caching for fingerprinted Angular artifacts', async () => {
       const response = await headers('/default/default/angular/form/browser/main-ABC123DEF.js');
@@ -139,12 +160,16 @@ describe('HTTP config security helpers', function () {
       expect(response.headers['cross-origin-opener-policy']).to.equal('same-origin-allow-popups');
     });
     it('omits the HTTPS-only opener policy on a configured HTTP origin despite forwarded protocol headers', async () => {
-      const response = await headers('/default/default/js/index.bundle.js', false, [], 'http://redboxportal:1500', { 'X-Forwarded-Proto': 'https' });
+      const response = await headers('/default/default/js/index.bundle.js', false, [], 'http://redboxportal:1500', {
+        'X-Forwarded-Proto': 'https',
+      });
       expect(response.headers['cross-origin-opener-policy']).to.equal(undefined);
       expect(response.headers['cache-control']).to.equal('max-age=31536000, private');
     });
     it('retains the opener policy for a configured HTTPS origin despite forwarded HTTP headers', async () => {
-      const response = await headers('/default/default/js/index.bundle.js', undefined, [], undefined, { 'X-Forwarded-Proto': 'http' });
+      const response = await headers('/default/default/js/index.bundle.js', undefined, [], undefined, {
+        'X-Forwarded-Proto': 'http',
+      });
       expect(response.headers['cross-origin-opener-policy']).to.equal('same-origin-allow-popups');
     });
     for (const { description, session, expected } of [
@@ -162,5 +187,4 @@ describe('HTTP config security helpers', function () {
         ).to.equal(expected);
       });
   });
-
 });

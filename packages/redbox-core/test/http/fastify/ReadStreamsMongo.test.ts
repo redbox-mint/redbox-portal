@@ -1,3 +1,4 @@
+import { assertGolden, goldenControls } from './goldenContracts';
 import sinon from 'sinon';
 import * as sessions from '../../../src/http/fastify/session';
 const { NativeMongoSessionStore } = sessions;
@@ -12,11 +13,19 @@ import { referenceProductionFixture } from './referenceProductionFixture';
 import { recordQueryReadDeclarations } from '../../../src/http/readRoutes';
 import { addDataStreamsRoute } from '../../../src/api-routes/groups/records';
 import { persistenceStatus } from '../../../src/persistence/runtime';
-import { retainedReadExpress } from './retainedReadExpress';
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
 
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
 type StreamObservation = {
-  response: { status: number; headers: Record<string, unknown>; text: string; aborted?: boolean } | { error: string };
+  response:
+    | {
+        status: number;
+        headers: Record<string, unknown>;
+        text: string;
+        aborted?: boolean;
+      }
+    | {
+        error: string;
+      };
   destroyed: boolean;
   closed: boolean;
   disposed: boolean;
@@ -31,7 +40,6 @@ const streamCases = ['/api/export/record/download/', '/export/record/download/']
     )
   )
 );
-
 /** A completed assertion must not retain its losing deadline timer. */
 async function withStreamDeadline<T>(work: Promise<T>, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -46,7 +54,6 @@ async function withStreamDeadline<T>(work: Promise<T>, message: string): Promise
     clearTimeout(timer);
   }
 }
-
 /** Keep the HEAD socket open until the source settles: a bodyless client end
  * must not itself cancel a delayed server-side source error. */
 async function observeStream(
@@ -127,23 +134,16 @@ async function observeStream(
     else Reflect.deleteProperty(storage, 'exportAllPlans');
   }
 }
-
 describe('FM-024 retained GET/HEAD export stream differential', function () {
   this.timeout(120000);
   const observations = new Map<string, StreamObservation[]>();
   const key = (scenario: (typeof streamCases)[number]) => Object.values(scenario).join(' ');
   before(async () => {
-    const retained = await retainedReadExpress();
     try {
-      for (const mode of ['retained', 'express', 'fastify'] as const) {
-        const f = await referenceProductionFixture(
-          mode === 'fastify',
-          undefined,
-          mode === 'retained' ? retained.install : undefined,
-          {
-            declarations: recordQueryReadDeclarations,
-          }
-        );
+      for (const mode of ['fastify']) {
+        const f = await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
+          declarations: recordQueryReadDeclarations,
+        });
         try {
           for (const scenario of streamCases) {
             const rows = observations.get(key(scenario)) ?? [];
@@ -156,7 +156,6 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
         }
       }
     } finally {
-      await retained.close();
     }
     if (process.env.FM024_STREAM_REPORT)
       await writeFile(process.env.FM024_STREAM_REPORT, JSON.stringify(Object.fromEntries(observations), null, 2));
@@ -164,10 +163,10 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
   for (const scenario of streamCases)
     it(key(scenario), () => {
       const rows = observations.get(key(scenario));
-      assert(rows && rows.length === 3);
-      assert.deepEqual(rows[1], rows[0], 'Current Express must match retained stream behavior');
+      assert(rows && rows.length === 1);
+      assertGolden('read-streams', key(scenario), rows[0]);
       if (scenario.failure === 'before-byte') {
-        const response = rows[2].response;
+        const response = rows[0].response;
         assert('status' in response);
         assert.equal(response.status, 500);
         assert.equal(response.aborted, undefined);
@@ -179,19 +178,10 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
             : '{"message":"Internal server error","details":""}';
         assert.equal(response.headers['content-length'], String(Buffer.byteLength(expected)));
         assert.equal(response.text, scenario.method === 'HEAD' ? '' : expected);
-      } else {
-        // HEAD now mirrors GET's framing instead of the preceding empty HEAD
-        // hook. All other status/header/body/disposal observations stay exact.
-        const current = structuredClone(rows[2]);
-        if (scenario.method === 'HEAD' && 'status' in current.response) {
-          delete current.response.headers['transfer-encoding'];
-          if (scenario.failure === 'empty') delete current.response.headers['content-length'];
-        }
-        assert.deepEqual(current, rows[0], 'Fastify must retain the remaining stream behavior');
       }
       for (const row of rows) {
         assert(row.destroyed && row.closed && row.disposed, 'Every source must be disposed');
-        if (row === rows[2] && scenario.failure === 'before-byte') continue;
+        if (row === rows[0] && scenario.failure === 'before-byte') continue;
         if (scenario.failure === 'before-byte' || (scenario.failure === 'mid-stream' && scenario.method === 'HEAD'))
           assert.deepEqual(row.response, { error: 'ECONNRESET' });
         else if (scenario.failure === 'client-abort')
@@ -217,15 +207,14 @@ describe('FM-024 retained GET/HEAD export stream differential', function () {
         }
       }
       if (scenario.method === 'HEAD' && ['before-byte', 'empty', 'normal'].includes(scenario.failure)) {
-        const get = observations.get(key({ ...scenario, method: 'GET' }))?.[2].response;
-        assert(get && 'status' in get && 'status' in rows[2].response);
-        assert.equal(rows[2].response.status, get.status);
-        assert.deepEqual(rows[2].response.headers, get.headers, 'HEAD must carry all GET headers');
-        assert.equal(rows[2].response.text, '');
+        const get = observations.get(key({ ...scenario, method: 'GET' }))?.[0].response;
+        assert(get && 'status' in get && 'status' in rows[0].response);
+        assert.equal(rows[0].response.status, get.status);
+        assert.deepEqual(rows[0].response.headers, get.headers, 'HEAD must carry all GET headers');
+        assert.equal(rows[0].response.text, '');
       }
     });
 });
-
 /** Real production host/session/policy/send stages: the injected domain source
  * observes consumption and disposal, without replacing HTTP dispatch. */
 describe('FM-024 export ownership through the production bootstrap', function () {
@@ -429,7 +418,6 @@ describe('FM-024 export ownership through the production bootstrap', function ()
             }
           });
 });
-
 describe('FM-024 post-EOF export disposal through the production bootstrap', function () {
   this.timeout(60000);
   const getHeaders = new Map<string, Record<string, unknown>>();
@@ -537,3 +525,5 @@ describe('FM-024 post-EOF export disposal through the production bootstrap', fun
               }
             });
 });
+
+goldenControls('read-streams');

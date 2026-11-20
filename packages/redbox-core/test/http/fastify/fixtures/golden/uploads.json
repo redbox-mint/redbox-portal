@@ -1,0 +1,3758 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 admin": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              {
+                "$object": {
+                  "$ref": "v000001"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000002"
+      },
+      "status": 200
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 foreign-record": {
+      "$ref": "v000005"
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v1.0 absolute-host-poison": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              {
+                "$object": {
+                  "$ref": "v000001"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000006"
+      },
+      "status": 200
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 admin": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "message",
+                    {
+                      "$object": {
+                        "$ref": "v000001"
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": {
+                  "$ref": "v000007"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000008"
+      },
+      "status": 200
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 foreign-record": {
+      "$ref": "v000010"
+    },
+    "portal:post /:branding/:portal/api/records/datastreams/:oid v2.0 absolute-host-poison": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "message",
+                    {
+                      "$object": {
+                        "$ref": "v000001"
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": {
+                  "$ref": "v000011"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000012"
+      },
+      "status": 200
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 admin": {
+      "$ref": "v000013"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 foreign-record": {
+      "$ref": "v000013"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 absolute-host-poison": {
+      "$ref": "v000013"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 admin": {
+      "$ref": "v000014"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 foreign-record": {
+      "$ref": "v000014"
+    },
+    "portal:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 absolute-host-poison": {
+      "$ref": "v000014"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 admin": {
+      "$ref": "v000015"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 foreign-record": {
+      "$ref": "v000015"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v1.0 absolute-host-poison": {
+      "$ref": "v000015"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 admin": {
+      "$ref": "v000016"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 foreign-record": {
+      "$ref": "v000016"
+    },
+    "portal:post /:branding/:portal/api/branding/logo v2.0 absolute-host-poison": {
+      "$ref": "v000016"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 admin": {
+      "$ref": "v000017"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 foreign-record": {
+      "$ref": "v000017"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v1.0 absolute-host-poison": {
+      "$ref": "v000017"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 admin": {
+      "$ref": "v000018"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 foreign-record": {
+      "$ref": "v000018"
+    },
+    "portal:post /:branding/:portal/api/branding/favicon v2.0 absolute-host-poison": {
+      "$ref": "v000018"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 admin": {
+      "$ref": "v000019"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 foreign-record": {
+      "$ref": "v000019"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 absolute-host-poison": {
+      "$ref": "v000019"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 admin": {
+      "$ref": "v000020"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 foreign-record": {
+      "$ref": "v000020"
+    },
+    "portal:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 absolute-host-poison": {
+      "$ref": "v000020"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 admin": {
+      "$ref": "v000019"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 foreign-record": {
+      "$ref": "v000019"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v1.0 absolute-host-poison": {
+      "$ref": "v000019"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 admin": {
+      "$ref": "v000020"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 foreign-record": {
+      "$ref": "v000020"
+    },
+    "portal:post /:branding/:portal/app/branding/logo v2.0 absolute-host-poison": {
+      "$ref": "v000020"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 admin": {
+      "$ref": "v000019"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 foreign-record": {
+      "$ref": "v000019"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v1.0 absolute-host-poison": {
+      "$ref": "v000019"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 admin": {
+      "$ref": "v000020"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 foreign-record": {
+      "$ref": "v000020"
+    },
+    "portal:post /:branding/:portal/app/branding/favicon v2.0 absolute-host-poison": {
+      "$ref": "v000020"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 foreign-record": {
+      "$ref": "v000005"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v1.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 foreign-record": {
+      "$ref": "v000010"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach v2.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 foreign-record": {
+      "$ref": "v000005"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v1.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 foreign-record": {
+      "$ref": "v000010"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach v2.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 foreign-record": {
+      "$ref": "v000005"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v1.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 foreign-record": {
+      "$ref": "v000010"
+    },
+    "portal:all /:branding/:portal/record/:oid/attach/:attachId v2.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000022"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 foreign-record": {
+      "$ref": "v000005"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 admin": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 reader": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 foreign-actor": {
+      "body": "",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 anonymous": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 invalid-bearer": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "$ref": "v000003"
+      },
+      "status": 401
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 foreign-record": {
+      "$ref": "v000010"
+    },
+    "portal:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 absolute-host-poison": {
+      "body": "",
+      "headers": {
+        "$ref": "v000023"
+      },
+      "status": 201
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/records/datastreams/:oid v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/logo v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/api/branding/favicon v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/logo v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:post /:branding/:portal/app/branding/favicon v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/record/:oid/attach/:attachId v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 admin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 reader": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 foreign-actor": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 anonymous": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 invalid-bearer": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 hostile-origin": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 foreign-record": {
+      "$ref": "v000024"
+    },
+    "root:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 absolute-host-poison": {
+      "$ref": "v000024"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/records/datastreams/:oid v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:put /:branding/:portal/api/branding/draft/typeface/faces/:slot v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/logo v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:post /:branding/:portal/api/branding/favicon v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 admin": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 reader": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 foreign-actor": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 foreign-record": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v1.0 absolute-host-poison": {
+      "$ref": "v000019"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 admin": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 reader": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 foreign-actor": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 foreign-record": {
+      "$ref": "v000020"
+    },
+    "reduced:put /:branding/:portal/app/branding/draft/typeface/faces/:slot v2.0 absolute-host-poison": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 admin": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 reader": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 foreign-actor": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 foreign-record": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v1.0 absolute-host-poison": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 admin": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 reader": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 foreign-actor": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 foreign-record": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/logo v2.0 absolute-host-poison": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 admin": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 reader": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 foreign-actor": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 foreign-record": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v1.0 absolute-host-poison": {
+      "$ref": "v000019"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 admin": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 reader": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 foreign-actor": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 foreign-record": {
+      "$ref": "v000020"
+    },
+    "reduced:post /:branding/:portal/app/branding/favicon v2.0 absolute-host-poison": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/record/:oid/attach/:attachId v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 admin": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 reader": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 foreign-actor": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 anonymous": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 invalid-bearer": {
+      "$ref": "v000019"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 hostile-origin": {
+      "$ref": "v000004"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 foreign-record": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v1.0 absolute-host-poison": {
+      "$ref": "v000025"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 admin": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 reader": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 foreign-actor": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 anonymous": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 invalid-bearer": {
+      "$ref": "v000020"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 hostile-origin": {
+      "$ref": "v000009"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 foreign-record": {
+      "$ref": "v000026"
+    },
+    "reduced:all /:branding/:portal/companion/record/:oid/attach/:attachId v2.0 absolute-host-poison": {
+      "$ref": "v000026"
+    }
+  },
+  "shared": {
+    "v000001": [
+      [
+        "success",
+        true
+      ],
+      [
+        "message",
+        "Successfully uploaded: {\"fileId\":\"<uuid>\",\"metadata\":{\"fileId\":\"<uuid>\",\"name\":\"file.txt\",\"mimeType\":\"application/octet-stream\",\"size\":23,\"uploadedBy\":\"pilot-admin\"}}"
+      ],
+      [
+        "fileIds",
+        [
+          {
+            "$object": [
+              [
+                "fileId",
+                "<uuid>"
+              ],
+              [
+                "metadata",
+                {
+                  "$object": [
+                    [
+                      "fileId",
+                      "<uuid>"
+                    ],
+                    [
+                      "name",
+                      "file.txt"
+                    ],
+                    [
+                      "mimeType",
+                      "application/octet-stream"
+                    ],
+                    [
+                      "size",
+                      23
+                    ],
+                    [
+                      "uploadedBy",
+                      "pilot-admin"
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      ]
+    ],
+    "v000002": {
+      "cache-control": "no-cache, private",
+      "content-length": "507",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "\"rb-record-v1.1.ycc2XQtPtGJRJUyKDhnL_uIfVzVbVY4F3howRYuu6bU\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000003": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "50",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "www-authenticate": "Bearer"
+    },
+    "v000004": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Cross-origin request denied"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "54",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000005": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Record not found"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "43",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000006": {
+      "cache-control": "no-cache, private",
+      "content-length": "507",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "\"rb-record-v1.2.1KgWS8Rd2qF0G6NOr2xz6xNabcJa2mb9py-ZZ0qyOow\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000007": [
+      [
+        "success",
+        true
+      ],
+      [
+        "oid",
+        "reference-record"
+      ],
+      [
+        "message",
+        ""
+      ],
+      [
+        "metadata",
+        null
+      ],
+      [
+        "totalItems",
+        0
+      ],
+      [
+        "items",
+        []
+      ],
+      [
+        "outcome",
+        "saved-with-warnings"
+      ],
+      [
+        "problems",
+        [
+          {
+            "$object": [
+              [
+                "kind",
+                "system"
+              ],
+              [
+                "source",
+                "schema"
+              ],
+              [
+                "phase",
+                "schema"
+              ],
+              [
+                "issues",
+                [
+                  {
+                    "$object": [
+                      [
+                        "message",
+                        "@record-schema.not-resolvable"
+                      ],
+                      [
+                        "code",
+                        "record-schema.not-resolvable"
+                      ]
+                    ]
+                  }
+                ]
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "completion",
+        {
+          "$object": [
+            [
+              "attachments",
+              {
+                "$object": [
+                  [
+                    "status",
+                    "not-required"
+                  ],
+                  [
+                    "items",
+                    []
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      ],
+      [
+        "requestId",
+        "<uuid>"
+      ],
+      [
+        "context",
+        {
+          "$object": [
+            [
+              "requestId",
+              "<uuid>"
+            ]
+          ]
+        }
+      ],
+      [
+        "concurrency",
+        {
+          "$object": [
+            [
+              "mode",
+              "last-write-wins"
+            ],
+            [
+              "revision",
+              3
+            ],
+            [
+              "currentRevision",
+              3
+            ],
+            [
+              "entityTag",
+              "\"rb-record-v1.3.6QbArOycazJAspyvVGJBSJ_Eaf0Q4_bO00z93wLf9Uw\""
+            ],
+            [
+              "resolution",
+              "direct"
+            ]
+          ]
+        }
+      ]
+    ],
+    "v000008": {
+      "cache-control": "no-cache, private",
+      "content-length": "1164",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "\"rb-record-v1.3.6QbArOycazJAspyvVGJBSJ_Eaf0Q4_bO00z93wLf9Uw\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000009": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Cross-origin request denied"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "63",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000010": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Record not found"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "52",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404
+    },
+    "v000011": [
+      [
+        "success",
+        true
+      ],
+      [
+        "oid",
+        "reference-record"
+      ],
+      [
+        "message",
+        ""
+      ],
+      [
+        "metadata",
+        null
+      ],
+      [
+        "totalItems",
+        0
+      ],
+      [
+        "items",
+        []
+      ],
+      [
+        "outcome",
+        "saved-with-warnings"
+      ],
+      [
+        "problems",
+        [
+          {
+            "$object": [
+              [
+                "kind",
+                "system"
+              ],
+              [
+                "source",
+                "schema"
+              ],
+              [
+                "phase",
+                "schema"
+              ],
+              [
+                "issues",
+                [
+                  {
+                    "$object": [
+                      [
+                        "message",
+                        "@record-schema.not-resolvable"
+                      ],
+                      [
+                        "code",
+                        "record-schema.not-resolvable"
+                      ]
+                    ]
+                  }
+                ]
+              ]
+            ]
+          }
+        ]
+      ],
+      [
+        "completion",
+        {
+          "$object": [
+            [
+              "attachments",
+              {
+                "$object": [
+                  [
+                    "status",
+                    "not-required"
+                  ],
+                  [
+                    "items",
+                    []
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      ],
+      [
+        "requestId",
+        "<uuid>"
+      ],
+      [
+        "context",
+        {
+          "$object": [
+            [
+              "requestId",
+              "<uuid>"
+            ]
+          ]
+        }
+      ],
+      [
+        "concurrency",
+        {
+          "$object": [
+            [
+              "mode",
+              "last-write-wins"
+            ],
+            [
+              "revision",
+              4
+            ],
+            [
+              "currentRevision",
+              4
+            ],
+            [
+              "entityTag",
+              "\"rb-record-v1.4.yH1fMjv8bLe0j6Ew-2IW1iRFJ1Vritce5YBLn5amRm4\""
+            ],
+            [
+              "resolution",
+              "direct"
+            ]
+          ]
+        }
+      ]
+    ],
+    "v000012": {
+      "cache-control": "no-cache, private",
+      "content-length": "1164",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "etag": "\"rb-record-v1.4.yH1fMjv8bLe0j6Ew-2IW1iRFJ1Vritce5YBLn5amRm4\"",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000013": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "typeface-invalid-font"
+            ],
+            [
+              "details",
+              "Invalid WOFF2 font: WOFF2 header truncated"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "90",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000014": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "title",
+                      "typeface-invalid-font"
+                    ],
+                    [
+                      "code",
+                      "typeface-invalid-font"
+                    ],
+                    [
+                      "detail",
+                      "Invalid WOFF2 font: WOFF2 header truncated"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "141",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000015": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "hash",
+              "<upload><upload>"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "75",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000016": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "data",
+              {
+                "$object": [
+                  [
+                    "hash",
+                    "<upload><upload>"
+                  ]
+                ]
+              }
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "94",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 200
+    },
+    "v000017": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid favicon upload"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "49",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000018": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Invalid favicon upload"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "58",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 400
+    },
+    "v000019": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid CSRF token"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "45",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000020": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Invalid CSRF token"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "54",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403
+    },
+    "v000021": "Authorization, Content-Type, Location, Tus-Extension, Tus-Max-Size, Tus-Resumable, Tus-Version, Upload-Concat, Upload-Defer-Length, Upload-Length, Upload-Metadata, Upload-Offset, X-HTTP-Method-Override, X-Requested-With, X-Forwarded-Host, X-Forwarded-Proto, Forwarded",
+    "v000022": {
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "access-control-expose-headers": {
+        "$ref": "v000021"
+      },
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-type": "text/plain;charset=UTF-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "location": "/portal/default/rdmp/record/reference-record/attach/<upload>",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked",
+      "tus-resumable": "1.0.0"
+    },
+    "v000023": {
+      "access-control-allow-origin": "https://portal.example.invalid",
+      "access-control-expose-headers": {
+        "$ref": "v000021"
+      },
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-type": "text/plain;charset=UTF-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "location": "/portal/default/rdmp/companion/record/reference-record/attach/<upload>",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked",
+      "tus-resumable": "1.0.0"
+    },
+    "v000024": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "error",
+              "not-found"
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "max-age=31536000, private",
+        "content-length": "21",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "Sun, 14 Nov 2027 08:00:00 GMT",
+        "pragma": "no-cache"
+      },
+      "status": 404
+    },
+    "v000025": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "50",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 401
+    },
+    "v000026": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Authentication required"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "59",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 401
+    }
+  },
+  "sequences": {}
+}

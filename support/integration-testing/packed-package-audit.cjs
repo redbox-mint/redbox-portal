@@ -120,10 +120,7 @@ for (const name of Object.keys(manifest.dependencies)) {
     for (const subpath of ['http/express', 'dist/http/express', 'dist/application/portal/host', 'src/index.ts'])
       assert.throws(() => ownRequire.resolve(pkg.name + '/' + subpath), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
     assert(!fs.existsSync(path.join(root, 'app.express.cjs')));
-    assert(
-      fs.existsSync(path.join(root, 'dist/application/portal/host.js')),
-      'Pre-cutover private executable code retained'
-    );
+    assert(fs.existsSync(path.join(root, 'dist/application/portal/host.js')), 'Native production host is packaged');
     assert(
       !fs.existsSync(path.join(root, 'dist/application/portal/host.d.ts')),
       'Private declarations must not be published'

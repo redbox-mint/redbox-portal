@@ -1,6 +1,6 @@
 import type { PoliciesConfig, ControllerPolicies } from '../../config/policies.config';
-import { pageRoutes } from '../../http/express/pages';
-import { pilotPolicyChain } from '../../http/express/policies';
+import { pageRoutes } from '../../http/pageRoutes';
+import { pilotPolicyChain } from '../../http/policyConfiguration';
 
 /** Transport helpers now live in adapters. These chains preserve authentication and path authorization. */
 export function portalHttpPolicies(): PoliciesConfig {

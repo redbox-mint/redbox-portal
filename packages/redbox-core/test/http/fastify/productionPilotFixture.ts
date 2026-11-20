@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { drainHttpRequests } from '../../../src/middleware/requestLifetime';
+import { drainAcceptedPersistenceWork } from '../../../src/persistence/runtime';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -12,7 +14,7 @@ import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
 import { initializeBrandingPersistence, getBrandingRepository } from '../../../src/persistence/branding/runtime';
 import { initializeIdentityPersistence, getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { initializeReferencePersistence, getReferenceRepositories } from '../../../src/persistence/reference/runtime';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
@@ -372,6 +374,10 @@ export async function productionPilotFixture(
       },
       directory,
       url: 'http://127.0.0.1:' + address.port + rootContext,
+      async drainRequestEffects() {
+        await drainHttpRequests(owner);
+        await drainAcceptedPersistenceWork(owner);
+      },
       close: async () => {
         await nativePlan!.host.stop();
         await native.db().dropDatabase();

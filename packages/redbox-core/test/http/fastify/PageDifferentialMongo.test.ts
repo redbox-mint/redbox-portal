@@ -1,3 +1,5 @@
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
@@ -7,11 +9,14 @@ import { PageArtifacts } from '../../../src/pages/Artifacts';
 import { Services as Navigation } from '../../../src/navigation/Navigation';
 import { referenceProductionFixture } from './referenceProductionFixture';
 import { coreRouteName } from '../../../src/http/fastify/routes';
-import type { RequestHandler } from 'express';
-import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
-import { retainedPageExpress } from './retainedPageExpress';
 
-type Wire = { status: number; headers: Record<string, unknown>; text: string };
+import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
+
+type Wire = {
+  status: number;
+  headers: Record<string, unknown>;
+  text: string;
+};
 type Scenario = {
   name: string;
   path: string;
@@ -127,7 +132,7 @@ const profiles = [
 const selectedProfiles = profiles.filter(
   profile => !process.env.FM029_PROFILES || process.env.FM029_PROFILES.split(',').includes(profile)
 );
-const modes = ['retained', 'express', 'fastify'] as const;
+const modes = ['fastify'] as const;
 const snapshots = new Map<string, Wire[]>();
 export function pageWire(
   url: string,
@@ -198,25 +203,24 @@ async function login(f: Awaited<ReturnType<typeof referenceProductionFixture>>, 
     cookie: String((result.headers['set-cookie'] as string[] | undefined)?.[0] ?? cookie).split(';')[0]!,
   };
 }
-
 describe('FM-029 production pages: retained Express / shared Express / Fastify raw HTTP', function () {
   this.timeout(900000);
   before(async () => {
-    const retained = await retainedPageExpress();
-    const assetMisses = new Map<string, ReturnType<typeof normalized>>();
     try {
       for (const profile of selectedProfiles)
         for (const mode of modes) {
-          const pageOptions: { viewRoots?: string[]; assetRoots?: string[] } = {};
+          const pageOptions: {
+            viewRoots?: string[];
+            assetRoots?: string[];
+          } = {};
           const f = await referenceProductionFixture(
             mode === 'fastify',
             profile === 'reduced-policies' ? { '*': ['noCache', 'brandingAndPortal'] } : undefined,
-            mode === 'retained' ? retained.install : undefined,
+            undefined,
             {
               declarations: [referenceReadDeclarations[0]],
               pages: pageOptions,
               rootContext: profile === 'no-root' ? '' : '/portal',
-              bindings: { handler: registration => () => (registration.declaration.create as () => RequestHandler)() },
               env:
                 profile === 'http-canonical'
                   ? { REDBOX_PUBLIC_URL: 'http://canonical.example.invalid:8123/prefix' }
@@ -273,13 +277,11 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
                     );
                     const live =
                       name === 'fm029-high'
-                        ? mode === 'fastify'
-                          ? `,hooks:[{name:'fm029-live-input',stage:'beforeAction',scope:{kind:'routes',names:[${JSON.stringify(coreRouteName('all', '/:branding/:portal/home'))}]},run:async request=>{if(request.headers['x-fm029-live']==='yes'){request.query={lng:'fr',rdmp:'hook'};request.body={fixture:'body'};request.params={...request.params};}}}]`
-                          : `,handlers:[{name:'fm029-live-input',create:()=>((request,response,next)=>{if(request.headers['x-fm029-live']==='yes'){Object.defineProperty(request,'query',{configurable:true,writable:true,value:{lng:'fr',rdmp:'hook'}});request.body={fixture:'body'};request.params={...request.params};}next();})}],middleware:[{name:'fm029-live-input',stage:'beforeRoutes',handler:'fm029-live-input'}]`
+                        ? `,hooks:[{name:'fm029-live-input',stage:'beforeAction',scope:{kind:'routes',names:[${JSON.stringify(coreRouteName('all', '/:branding/:portal/home'))}]},run:async request=>{if(request.headers['x-fm029-live']==='yes'){request.query={lng:'fr',rdmp:'hook'};request.body={fixture:'body'};request.params={...request.params};}}}]`
                         : '';
                     await writeFile(
                       path.join(root, 'index.cjs'),
-                      `exports.registerRedboxExtension=()=>({apiVersion:${mode === 'fastify' ? 2 : 1},views:['views'],assets:['assets']${live}});`
+                      `exports.registerRedboxExtension=()=>({apiVersion:${2},views:['views'],assets:['assets']${live}});`
                     );
                     await writeFile(
                       path.join(
@@ -357,12 +359,29 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
                     if (method === 'GET') assert.deepEqual(JSON.parse(denied.text), { error: 'not-found' }, pathname);
                   } else {
                     const key = profile + ':' + method + ':' + pathname;
-                    if (mode === 'retained') assetMisses.set(key, normalized(denied));
-                    else assert.deepEqual(normalized(denied), assetMisses.get(key), key);
+                    assertProductionContract('page-misses', key, normalized(denied));
+                    assert.deepEqual(
+                      normalized(denied),
+                      {
+                        status: 404,
+                        headers: {
+                          'cache-control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                          expires: '0',
+                          ...(profile === 'http-canonical'
+                            ? {}
+                            : { 'cross-origin-opener-policy': 'same-origin-allow-popups' }),
+                          pragma: 'no-cache',
+                          'surrogate-control': 'no-store',
+                          ...(method === 'GET' ? { 'content-length': '0' } : {}),
+                        },
+                        text: '',
+                      },
+                      key
+                    );
                   }
                   if (method === 'HEAD') assert.equal(denied.text, '');
                   assert.equal(denied.headers['content-security-policy'], undefined);
-                  if (mode === 'fastify') {
+                  {
                     const absolute = await pageWire(f.url, method, {}, '', 'http://request.invalid' + pathname);
                     assert.deepEqual(normalized(absolute), normalized(denied), pathname);
                   }
@@ -485,7 +504,6 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
           process.stdout.write('Captured pages ' + profile + '/' + mode + '\n');
         }
     } finally {
-      await retained.close();
     }
     if (process.env.FM029_HTTP_REPORT)
       await writeFile(process.env.FM029_HTTP_REPORT, JSON.stringify(Object.fromEntries(snapshots), null, 2));
@@ -494,29 +512,29 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
     for (const scenario of [...all, { name: '403 authentication error', path: '' }, ...targetNegatives])
       it(profile + ' ' + scenario.name, () => {
         const values = snapshots.get(profile + ':' + scenario.name)!;
-        assert.equal(values.length, 3);
-        assert.deepEqual(values[1], values[0], 'shared Express');
-        assert.deepEqual(values[2], values[0], 'native Fastify');
-        assert(!values[2].text.includes('private '));
-        assert.equal(values[2].headers['content-encoding'], undefined);
-        assert(!String(values[2].headers.vary ?? '').includes('Accept-Encoding'));
-        if (scenario.method === 'HEAD') assert.equal(values[2].text, '');
+        assert.equal(values.length, 1);
+        assertProductionContract('page', profile + ':' + scenario.name, values[0]);
+
+        assert(!values[0].text.includes('private '));
+        assert.equal(values[0].headers['content-encoding'], undefined);
+        assert(!String(values[0].headers.vary ?? '').includes('Accept-Encoding'));
+        if (scenario.method === 'HEAD') assert.equal(values[0].text, '');
         if (scenario.name === 'anonymous home' || scenario.name === 'authenticated home') {
-          assert.equal(values[2].status, 200);
-          if (profile === 'hook-priority') assert.match(values[2].text, /fm029-high/);
-          if (profile === 'brand-specificity') assert.match(values[2].text, /core-brand/);
-          if (profile === 'explicit-roots') assert.match(values[2].text, /explicit-root/);
+          assert.equal(values[0].status, 200);
+          if (profile === 'hook-priority') assert.match(values[0].text, /fm029-high/);
+          if (profile === 'brand-specificity') assert.match(values[0].text, /core-brand/);
+          if (profile === 'explicit-roots') assert.match(values[0].text, /explicit-root/);
         }
-        if (scenario.name.startsWith('404 html')) assert.equal(values[2].status, 404);
+        if (scenario.name.startsWith('404 html')) assert.equal(values[0].status, 404);
         if (
           scenario.name === 'live input replacement' &&
           ['hook-priority', 'brand-specificity', 'explicit-roots'].includes(profile)
         ) {
-          assert.match(values[2].text, /body/);
-          assert.match(values[2].text, /hook/);
+          assert.match(values[0].text, /body/);
+          assert.match(values[0].text, /hook/);
         }
         if (scenario.name === 'bodyless POST with csrf' || scenario.name === 'empty JSON POST with csrf')
-          assert.equal(values[2].status, 200);
+          assert.equal(values[0].status, 200);
         if (scenario.name.includes('preparation fault')) {
           for (const value of values) {
             assert.equal(value.status, 500);
@@ -546,22 +564,26 @@ describe('FM-029 production pages: retained Express / shared Express / Fastify r
           for (const value of values)
             assert.equal(value.headers['cross-origin-opener-policy'], https ? 'same-origin-allow-popups' : undefined);
           if (scenario.name.includes('home')) {
-            assert.equal(values[2].status, 200);
+            assert.equal(values[0].status, 200);
             if (
               scenario.method !== 'HEAD' &&
               ['hook-priority', 'brand-specificity', 'explicit-roots'].includes(profile)
             ) {
-              assert(values[2].text.includes('&#34;url&#34;:&#34;http://request.invalid' + scenario.path + '&#34;'));
+              assert(values[0].text.includes('&#34;url&#34;:&#34;http://request.invalid' + scenario.path + '&#34;'));
               assert(
-                values[2].text.includes(
+                values[0].text.includes(
                   '&#34;originalUrl&#34;:&#34;http://request.invalid/portal' + scenario.path + '&#34;'
                 )
               );
             }
-          } else if (scenario.name.includes('404')) assert.equal(values[2].status, 404);
-          else assert.equal(values[2].status, 302);
+          } else if (scenario.name.includes('404')) assert.equal(values[0].status, 404);
+          else assert.equal(values[0].status, 302);
         }
-        if (scenario.name === '500 html') assert.equal(values[2].status, 500);
-        if (scenario.name === '403 authentication error') assert.equal(values[2].status, 403);
+        if (scenario.name === '500 html') assert.equal(values[0].status, 500);
+        if (scenario.name === '403 authentication error') assert.equal(values[0].status, 403);
       });
 });
+
+goldenControls('page');
+
+goldenControls('page-misses');

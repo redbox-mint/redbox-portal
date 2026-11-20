@@ -7,9 +7,9 @@ import { ResumableUploads } from '../../http/actions/resumableUploads';
 import type { Server } from 'node:http';
 import type { ApplicationModule } from '../Application';
 import type { PortalApplicationContext } from './application';
-import { StreamingMultipart } from '../../http/express/multipart';
-import { ProgressSockets, progressSocketPath, type ProgressCredential } from '../../http/express/progressSockets';
-import type { AuthenticatedActor } from '../../http/express/identity';
+import { StreamingMultipart } from '../../http/integrations/multipart';
+import { ProgressSockets, progressSocketPath, type ProgressCredential } from '../../http/integrations/progressSockets';
+import type { AuthenticatedActor } from '../../authentication/HttpIdentity';
 import { CompanionUploads, companionOptions } from '../../http/integrations/companion/uploads';
 
 // Companion's Express adapter stays behind the private production integration seam.

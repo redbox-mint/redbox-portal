@@ -1,0 +1,278 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "expired": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "replacementCookie": false
+      }
+    },
+    "wrong storage version": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "replacementCookie": false
+      }
+    },
+    "wrong storage namespace": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "replacementCookie": false
+      }
+    },
+    "malformed signature": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "replacementCookie": false
+      }
+    },
+    "automatic touch": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "set-cookie": [
+              "fm023.sid=<session>; Max-Age=0; Path=/; Expires=<time>; SameSite=Lax"
+            ],
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "attempts": 1,
+        "revived": false
+      }
+    },
+    "explicit save": {
+      "wire": [
+        {
+          "status": 500,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "48"
+          },
+          "text": "{\"message\":\"Internal server error\",\"details\":\"\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "attempts": 1,
+        "revived": false
+      }
+    },
+    "cookie-path": {
+      "wire": [
+        {
+          "status": 200,
+          "headers": {
+            "cache-control": "no-cache, private",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "21"
+          },
+          "text": "{\"title\":\"Reference\"}"
+        },
+        {
+          "status": 401,
+          "headers": {
+            "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "pragma": "no-cache",
+            "expires": "0",
+            "surrogate-control": "no-store",
+            "www-authenticate": "Bearer",
+            "content-type": "application/json; charset=utf-8",
+            "content-length": "50"
+          },
+          "text": "{\"message\":\"Authentication required\",\"details\":\"\"}"
+        }
+      ],
+      "state": {
+        "authenticatedWithinScope": true
+      }
+    },
+    "trusted-proxy/false": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-store, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "76"
+        },
+        "text": "{\"_csrf\":\"0000000000000000000000000000000000000000000000000000000000000000\"}"
+      },
+      "state": {
+        "persisted": 1,
+        "secure": true
+      }
+    },
+    "trusted-proxy/true": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-store, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "content-type": "application/json; charset=utf-8",
+          "set-cookie": [
+            "fm023.sid=<session>; Path=/; HttpOnly; Secure; SameSite=Lax"
+          ],
+          "content-length": "76"
+        },
+        "text": "{\"_csrf\":\"0000000000000000000000000000000000000000000000000000000000000000\"}"
+      },
+      "state": {
+        "persisted": 1,
+        "secure": true
+      }
+    }
+  },
+  "shared": {}
+}

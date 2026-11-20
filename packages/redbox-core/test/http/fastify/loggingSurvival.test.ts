@@ -41,8 +41,8 @@ function get(port: number, target: string, headers: Record<string, string> = {})
   });
 }
 
-async function fixture(kind: 'fastify' | 'express', failure: string, shape = 'direct') {
-  const child = fork(join(__dirname, 'fixtures/logging-survival.cjs'), [kind, failure, shape], {
+async function fixture(failure: string, shape = 'direct') {
+  const child = fork(join(__dirname, 'fixtures/logging-survival.cjs'), [failure, shape], {
     execArgv: ['--unhandled-rejections=strict', '--no-experimental-strip-types'],
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
@@ -102,7 +102,7 @@ describe('FM-016 logger destination and worker survival', function () {
   for (const { failure, shape } of cases)
     for (const point of points)
       it(`${failure} × ${shape} × ${point}: strict native child survives and drops later diagnostics`, async () => {
-        const f = await fixture('fastify', failure, shape);
+        const f = await fixture(failure, shape);
         try {
           await f.command('arm');
           const response = await get(f.port, `/${point}?password=query-secret`, {
@@ -125,75 +125,51 @@ describe('FM-016 logger destination and worker survival', function () {
         }
       });
 
-  it('the unchanged production Express oracle serves a normal request with a healthy destination', async () => {
-    const f = await fixture('express', 'none');
+  it('serves a native request with a healthy destination', async () => {
+    const f = await fixture('none');
     try {
       await f.command('arm');
-      const response = await get(f.port, '/portal/default/rdmp/api/named-query', {
+      const response = await get(f.port, '/normal', {
         Authorization: 'Bearer pilot-api-token',
       });
       assert.equal(response.status, 200);
+      assert.equal(response.body, '{"ok":true}');
       assert.deepEqual(await f.stop(), [0, null]);
     } finally {
       await f.stop();
     }
   });
-
-  for (const failure of [...streamFailures, ...workerFailures])
-    it(`records the existing Express production destination failure: ${failure}`, async () => {
-      const f = await fixture('express', failure);
-      try {
-        await f.command('arm');
-        if (failure === 'sync') {
-          // Production chronicle catches synchronous destination throws, unlike
-          // deferred stream errors. Record that survival instead of claiming a crash.
-          assert.equal(
-            (
-              await get(f.port, '/portal/default/rdmp/api/named-query', {
-                Authorization: 'Bearer pilot-api-token',
-              })
-            ).status,
-            200
-          );
-          await f.command('audit-express-sync');
-          await f.command('ping');
-          assert.deepEqual(await f.stop(), [0, null]);
-          assert(!f.output().includes('secret'));
-          return;
-        }
-        const probe = () =>
-          get(f.port, '/portal/default/rdmp/api/named-query', { Authorization: 'Bearer pilot-api-token' }).catch(
-            () => undefined
-          );
-        await probe();
-        // A zero-exit worker closes without emitting an error; the next actual
-        // production request exposes thread-stream's failed-destination write.
-        await new Promise(resolve => setTimeout(resolve, 150));
-        await probe();
-        const [code, signal] = await f.exit;
-        assert.equal(code, 1, f.output());
-        assert.equal(signal, null, f.output());
-        assert.match(f.output(), /Error:|Unhandled.*error/);
-      } finally {
-        await f.stop();
-      }
-    });
 });
 
 describe('FM-016 shared logger destination registration', () => {
   it('retains bounded request correlation for export disposal failures without diagnostics or query values', async () => {
     const records: unknown[] = [];
-    const logger = createHttpLogger(record => { records.push(record); });
+    const logger = createHttpLogger(record => {
+      records.push(record);
+    });
     try {
-      logger.error({ req: { id: 'req-42', url: '/export?token=query-secret' }, err: new Error('cursor-secret') }, 'HTTP_STREAM_DISPOSAL_FAILED');
-      for (const id of ['secret\nforged', 'x'.repeat(101), { toString() { throw new Error('secret'); } }])
+      logger.error(
+        { req: { id: 'req-42', url: '/export?token=query-secret' }, err: new Error('cursor-secret') },
+        'HTTP_STREAM_DISPOSAL_FAILED'
+      );
+      for (const id of [
+        'secret\nforged',
+        'x'.repeat(101),
+        {
+          toString() {
+            throw new Error('secret');
+          },
+        },
+      ])
         logger.error({ req: { id, url: '/export?token=query-secret' } }, 'HTTP_STREAM_DISPOSAL_FAILED');
       assert.deepEqual(records, [
         { code: 'HTTP_STREAM_DISPOSAL_FAILED', level: 'error', path: '/export', requestId: 'req-42' },
         ...Array.from({ length: 3 }, () => ({ code: 'HTTP_STREAM_DISPOSAL_FAILED', level: 'error', path: '/export' })),
       ]);
       assert(!JSON.stringify(records).includes('secret'));
-    } finally { await drainHttpLogger(logger); }
+    } finally {
+      await drainHttpLogger(logger);
+    }
   });
   for (const shape of ['plain', 'null-prototype', 'default'])
     it(`preserves 00511d68b shared logger output and runtime/namespace levels: ${shape}`, async () => {

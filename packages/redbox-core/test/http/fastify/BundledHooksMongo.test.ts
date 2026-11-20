@@ -1,15 +1,15 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
 import { referenceProductionFixture } from './referenceProductionFixture';
 import { wire } from './mutationDifferentialSupport';
-
 describe('FM-038 bundled hooks on the production composition', function () {
   this.timeout(120000);
   it('loads the real three public extension entrypoints with concrete storage/PDF bindings and preserves configured HTTP behavior', async () => {
     const observations: unknown[] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const fixture = await referenceProductionFixture(native, undefined, undefined, {
         declarations: referenceReadDeclarations,
         pages: {},
@@ -40,7 +40,7 @@ describe('FM-038 bundled hooks on the production composition', function () {
         const declaration = installed.find(provider => provider.name === 'redbox-hook-dev')!.declaration;
         assert(declaration.forms?.['default-1.0-draft']);
         assert(declaration.workflows?.rdmp);
-        if (native) {
+        {
           assert('installation' in fixture.portal);
           assert(installed.every(provider => provider.declaration.apiVersion === 2));
           assert.equal(
@@ -86,6 +86,8 @@ describe('FM-038 bundled hooks on the production composition', function () {
         await fixture.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('bundled-hooks-mongo', observations[0]);
   });
 });
+
+goldenControls('bundled-hooks-mongo');

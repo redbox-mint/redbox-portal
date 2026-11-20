@@ -1,9 +1,11 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import type { ConfiguredAction } from '../../../src/http/actions/configuredActions';
 import { HarvestRunServiceError } from '../../../src/HarvestRunService';
 import { Services as Reports } from '../../../src/queries/Reports';
 import { Services as Dashboard } from '../../../src/dashboards/DashboardConfig';
-import { HttpIdentity } from '../../../src/http/express/identity';
-import { getIdentityRepositories } from '../../../src/persistence/identity/runtime';
+
 import {
   wire,
   session,
@@ -17,6 +19,8 @@ import {
   mutationCollections as collections,
 } from './mutationDifferentialSupport';
 import assert from 'node:assert/strict';
+import { mutationWitnessCases } from './mutationWitnessSelection';
+import { assertNoObservedEffects, observeNoSideEffects } from './noSideEffects';
 import { writeFile } from 'node:fs/promises';
 import { ObjectId, type Document } from 'mongodb';
 import sinon from 'sinon';
@@ -26,7 +30,6 @@ import { recordQueryReadDeclarations } from '../../../src/http/readRoutes';
 import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedMutationExpress } from './retainedMutationExpress';
 
 type Route = (typeof mutationDeclarations)[number];
 const routes = mutationDeclarations.filter(
@@ -34,7 +37,7 @@ const routes = mutationDeclarations.filter(
     process.env.FM027_BODY_SWEEP ||
     !(route.controller === 'webservice/RecordController' && route.action === 'updateMeta')
 );
-const modes = ['retained', 'express', 'fastify'] as const;
+const modes = ['fastify'] as const;
 const scope = [...referenceReadDeclarations, ...recordQueryReadDeclarations, ...mutationDeclarations];
 const scenarios = [
   'body-empty',
@@ -80,7 +83,13 @@ const scenarios = [
   'invalid-body-missing-actor',
 ] as const;
 type Scenario = (typeof scenarios)[number];
-const cases: { key: string; route: Route; scenario: Scenario; version: string; reduced: boolean }[] = [];
+const cases: {
+  key: string;
+  route: Route;
+  scenario: Scenario;
+  version: string;
+  reduced: boolean;
+}[] = [];
 for (const reduced of [false, true])
   for (const route of routes)
     for (const version of ['1.0', '2.0'])
@@ -97,7 +106,7 @@ for (const reduced of [false, true])
             reduced,
           });
 const observations = new Map<string, unknown[]>();
-
+const prohibitedEffects = new Map<string, string[]>();
 function endpoint(route: Route, scenario: Scenario) {
   const replacements: Record<string, string> = {
     branding:
@@ -243,26 +252,30 @@ function fault(f: Fixture, route: Route, scenario: Scenario) {
   }
   return stub.rejects(new Error('private-backend-password-token-marker'));
 }
-
-describe('FM-026 retained production mutation raw-HTTP differential', function () {
+const mutationSuiteTitle = 'FM-026 retained production mutation raw-HTTP differential';
+describe(mutationSuiteTitle, function () {
   this.timeout(2400000);
   before(async () => {
-    const retained = await retainedMutationExpress();
+    const selected = mutationWitnessCases(mutationSuiteTitle, cases, test => test.key);
+    const controls = new Set(
+      selected
+        .filter(test => test.scenario === 'version-toString')
+        .map(test => test.key.replace(/version-toString$/, 'safe-version'))
+    );
+    const prepared = cases.filter(test => selected.includes(test) || controls.has(test.key));
     try {
       for (const reduced of [false, true])
         for (const mode of modes) {
-          if (!cases.some(test => test.reduced === reduced)) continue;
+          if (!prepared.some(test => test.reduced === reduced)) continue;
           const policies = portalHttpPolicies();
           if (reduced)
             for (const controller of new Set(routes.map(route => route.controller)))
               policies[controller] = ['noCache', 'brandingAndPortal'];
           const action: ConfiguredAction = { authorize: async () => true, execute: async () => ({ accepted: true }) };
-          const f = await referenceProductionFixture(
-            mode === 'fastify',
-            policies,
-            mode === 'retained' ? retained.install : undefined,
-            { declarations: scope, actions: { owned: action } }
-          );
+          const f = await referenceProductionFixture(mode === 'fastify', policies, undefined, {
+            declarations: scope,
+            actions: { owned: action },
+          });
           try {
             const login = await session(f);
             await seedMutationState(f, login);
@@ -270,7 +283,7 @@ describe('FM-026 retained production mutation raw-HTTP differential', function (
             for (const name of [...collections, 'user', 'referenceSessions'])
               baseline.set(name, await f.client.db().collection(name).find({}).toArray());
             let observed = 0;
-            for (const test of cases.filter(c => c.reduced === reduced)) {
+            for (const test of prepared.filter(c => c.reduced === reduced)) {
               for (const [name, rows] of baseline) {
                 await f.client.db().collection(name).deleteMany({});
                 if (rows.length) await f.client.db().collection(name).insertMany(rows);
@@ -370,20 +383,28 @@ describe('FM-026 retained production mutation raw-HTTP differential', function (
               if (scenario === 'body-empty') headers['Content-Length'] = '0';
               if (scenario === 'body-absent') delete headers['Content-Type'];
               let result: Wire;
+              const deniesWithoutWrite =
+                (scenario === 'invalid-parameter' && route.path.endsWith('/harvest/:recordType')) ||
+                (scenario === 'typed-missing' && route.method === 'put' && route.path.endsWith('/report-config/:name'));
+              const observer = deniesWithoutWrite ? await observeNoSideEffects(f) : undefined;
               try {
-                result = await wire(
-                  f.url + endpoint(route, scenario) + query,
-                  route.method.toUpperCase(),
-                  headers,
-                  scenario === 'parser-before-auth'
-                    ? '{'
-                    : scenario === 'body-object'
-                      ? '{}'
-                      : scenario.startsWith('body-')
-                        ? ''
-                        : JSON.stringify(body)
+                result = await authorizationWitness(`${mutationSuiteTitle} ${test.key}`, () =>
+                  wire(
+                    f.url + endpoint(route, scenario) + query,
+                    route.method.toUpperCase(),
+                    headers,
+                    scenario === 'parser-before-auth'
+                      ? '{'
+                      : scenario === 'body-object'
+                        ? '{}'
+                        : scenario.startsWith('body-')
+                          ? ''
+                          : JSON.stringify(body)
+                  )
                 );
+                if (observer) prohibitedEffects.set(test.key, await observer.differences());
               } finally {
+                observer?.restore();
                 stub?.restore();
                 sinon.restore();
               }
@@ -396,43 +417,44 @@ describe('FM-026 retained production mutation raw-HTTP differential', function (
                 process.stdout.write(
                   'FM026 observations ' + mode + ' ' + (reduced ? 'reduced' : 'default') + ' ' + test.key + '\n'
                 );
-              if (scenario === 'success' && !reduced)
-                assert.equal(
-                  result.status,
-                  route.action === 'retiredOperation'
-                    ? 410
-                    : (route.action === 'create' && route.controller.startsWith('webservice/')) ||
-                        (route.action.startsWith('create') && route.action !== 'create')
-                      ? 201
-                      : 200,
-                  mode + ' ' + test.key + ' ' + result.text
-                );
             }
           } finally {
             await f.close();
           }
         }
     } finally {
-      await retained.close();
       if (process.env.FM026_HTTP_REPORT)
         await writeFile(process.env.FM026_HTTP_REPORT, JSON.stringify({ cases: [...observations] }, null, 2));
     }
   });
   for (const test of cases)
     it(test.key, () => {
-      const values = observations.get(test.key) as { wire: Wire; state: Record<string, unknown> }[];
-      assert.equal(values?.length, 3, test.key);
-      if (values[0].wire.aborted || values[1].wire.aborted) {
-        assert.equal(test.scenario, 'version-toString', 'Only accepted FM-016 nested-version abort is permitted');
+      const effects = prohibitedEffects.get(test.key);
+      if (effects) assertNoObservedEffects(effects);
+      const values = observations.get(test.key) as {
+        wire: Wire;
+        state: Record<string, unknown>;
+      }[];
+      assert.equal(values?.length, modes.length, test.key);
+      if (test.scenario === 'success' && !test.reduced) {
+        const { action, controller } = test.route;
+        const expectedStatus =
+          action === 'retiredOperation'
+            ? 410
+            : (action === 'create' && controller.startsWith('webservice/')) ||
+                (action.startsWith('create') && action !== 'create')
+              ? 201
+              : 200;
+        for (const { wire } of values) assert.equal(wire.status, expectedStatus, test.key + ' ' + wire.text);
+      }
+      assertProductionContract('mutation', test.key, values[0]);
+      if (test.scenario === 'version-toString') {
         const control = observations.get(test.key.replace(/version-toString$/, 'safe-version'))!;
-        assert.deepEqual(values[2], control[2]);
-        assert.deepEqual(control[2], control[0]);
-        if (!values[1].wire.aborted) assert.deepEqual(values[1], control[1]);
-      } else {
-        assert.deepEqual(values[1], values[0]);
-        assert.deepEqual(values[2], values[0]);
+        assert.deepEqual(values[0], control[0]);
       }
       if (['domain-failure', 'serialization-failure'].includes(test.scenario))
         for (const value of values) assert(!JSON.stringify(value).includes('private-backend-password-token-marker'));
     });
 });
+
+goldenControls('mutation');

@@ -1,3 +1,4 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import sinon from 'sinon';
 import { productionConfigurationCases } from './productionConfigurationCases';
 import { productionCompositionInputCases } from './productionCompositionInputs';
@@ -8,9 +9,7 @@ import { inventory, inventoryRegistration, productionInventoryOrder } from './in
 import { composeRoutes, coreRoutePrecedence } from '../../../dist/http/fastify/routes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { initializeIdentityPersistence, getIdentityRepositories } from '../../../src/persistence/identity/runtime';
-import { ExpressHost } from '../../../src/http/express/ExpressHost';
-import { prepareHttpMiddleware } from '../../../src/http/express/middleware';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import {
   packed,
   preparePilot,
@@ -34,11 +33,6 @@ describe('FM-019 production controller/session/domain installed pilot', function
   });
   it('bootstraps API2 once and gives the host the same priority-ordered installation and module graph', async () => {
     const requireInstalled = createRequire(packed.directory + '/package.json');
-    const production = requireInstalled('@researchdatabox/redbox-core/portal');
-    await assert.rejects(
-      production.createPortalApplication({ appPath: packed.application, log: { warn() {} } }),
-      /expected apiVersion 1 declaration/
-    );
     const resolution = requireInstalled(
       packed.directory + '/node_modules/@researchdatabox/redbox-core/dist/extensions/v2.js'
     );
@@ -118,7 +112,7 @@ describe('FM-019 production controller/session/domain installed pilot', function
       }
     }
   });
-  it('retains full inventory rejection for both deferred TUS splits', async () => {
+  it('requires explicit conversion scope and preserves both resolved TUS ownership splits', async () => {
     const consumerRequire = createRequire(packed.directory + '/package.json');
     const { createPortalFastifyApplication } = consumerRequire('@researchdatabox/redbox-core/portal');
     for (const declarations of [undefined, []])
@@ -128,8 +122,42 @@ describe('FM-019 production controller/session/domain installed pilot', function
       );
     const rows = productionInventoryOrder().map(inventoryRegistration);
     const policies = [...new Set(rows.flatMap(r => r.effectivePolicies ?? []).filter((x): x is string => x !== false))];
+    const plan = await composeRoutes(rows, {
+      policyNames: policies,
+      precedence: coreRoutePrecedence,
+      legacyOrder: true,
+    });
+    assert.deepEqual(
+      new Set(plan.routes.map(route => route.declaration.name)),
+      new Set(rows.map(route => route.declaration.name))
+    );
+    const splits = coreRoutePrecedence.filter(rule =>
+      rule.reason.startsWith('Retained attachment GET handles downloads before TUS ALL;')
+    );
+    assert.equal(splits.length, 2);
+    for (const split of splits) {
+      const overlap = plan.overlaps.find(
+        overlap =>
+          [overlap.first, overlap.second].includes(split.winner) && [overlap.first, overlap.second].includes(split.over)
+      );
+      assert(overlap, split.name);
+      assert.deepEqual(overlap.precedence, split);
+      assert(
+        plan.bindings.some(binding => binding.route.declaration.name === split.winner && binding.method === 'GET'),
+        split.name + ': download GET'
+      );
+      for (const method of ['PATCH'])
+        assert(
+          plan.bindings.some(binding => binding.route.declaration.name === split.over && binding.method === method),
+          split.name + ': TUS ' + method
+        );
+    }
     await assert.rejects(
-      composeRoutes(rows, { policyNames: policies, precedence: coreRoutePrecedence, legacyOrder: true }),
+      composeRoutes(rows, {
+        policyNames: policies,
+        precedence: coreRoutePrecedence.filter(rule => !splits.includes(rule)),
+        legacyOrder: true,
+      }),
       error => {
         assert.match(String(error), /route overlap/);
         assert.equal((String(error).match(/requires named precedence with a reason/g) ?? []).length, 2);
@@ -140,7 +168,7 @@ describe('FM-019 production controller/session/domain installed pilot', function
   });
   it('preserves selected production policy denial through assembly, HEAD and replacement', async () => {
     const policyConfiguration = { 'webservice/RecordController': { getMeta: false, updateMeta: false } };
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await fixture(native, { policyConfiguration });
       try {
         const auth = await login(f, native);
@@ -156,11 +184,10 @@ describe('FM-019 production controller/session/domain installed pilot', function
         const saved = await f.storage.getMeta('fm019-record');
         assert.equal(saved.metadata.title, 'Original');
         assert.equal(saved.revision, 0);
-        if (native)
-          for (const route of f.nativePlan!.resolved.routeRegistrations.filter(
-            r => r.declaration.api?.controller === 'webservice/RecordController'
-          ))
-            assert.deepEqual(route.effectivePolicies, [false]);
+        for (const route of f.nativePlan!.resolved.routeRegistrations.filter(
+          r => r.declaration.api?.controller === 'webservice/RecordController'
+        ))
+          assert.deepEqual(route.effectivePolicies, [false]);
       } finally {
         await f.close();
       }
@@ -168,17 +195,30 @@ describe('FM-019 production controller/session/domain installed pilot', function
   });
   it('compares authenticated reads, strict mutations, guards, ETags and persisted state to current Express', async () => {
     const transcripts: unknown[] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await fixture(native);
       try {
         const auth = await login(f, native);
         const headers = { Cookie: auth.cookie, 'X-CSRF-Token': auth.token, 'Content-Type': 'application/json' };
         const read = await observe(f, target, { headers });
         assert.equal(read.status, 200, JSON.stringify(read));
-        assert.equal((read.body as { data: { title: string } }).data.title, 'Original');
+        assert.equal(
+          (
+            read.body as {
+              data: {
+                title: string;
+              };
+            }
+          ).data.title,
+          'Original'
+        );
         assert(read.headers.etag);
         const results = [read];
-        const cases: { body: unknown; extra: Record<string, string>; status: number }[] = [
+        const cases: {
+          body: unknown;
+          extra: Record<string, string>;
+          status: number;
+        }[] = [
           { body: [], extra: {}, status: 400 },
           { body: { title: 'Missing precondition' }, extra: {}, status: 428 },
           { body: { title: 'Updated', retained: true }, extra: { 'If-Match': read.headers.etag! }, status: 200 },
@@ -218,9 +258,9 @@ describe('FM-019 production controller/session/domain installed pilot', function
             f
           )
         );
-        if (native) {
+        {
           assert.equal(f.nativePlan!.scope.included.length, 2);
-          assert.match(f.nativePlan!.scope.excluded, /FM-034 TUS/);
+          assert.equal(f.nativePlan!.scope.excluded, 'All other unselected core families');
           assert.equal(
             f.nativePlan!.resolved.controllerPlan.controllers.find(
               x => x.declaration.name === 'webservice/RecordController'
@@ -273,41 +313,13 @@ describe('FM-019 production controller/session/domain installed pilot', function
         assert.equal(persistenceStatus(f.owner).pools, 0);
       }
     }
-    assert.deepEqual(transcripts[1], transcripts[0]);
+    assertGoldenNext('pilot-mongo', transcripts[0]);
   });
-  it('forces login at cutover and rejects old, revoked and native credentials after rollback with fresh root', async () => {
-    // Use a real Express-issued cookie; copy its stored row to native Mongo so
-    // rejection proves the signature/namespace boundary, not a missing record.
-    const old = await fixture(false);
-    let oldAuth: Awaited<ReturnType<typeof login>>, oldRows: Document[];
-    try {
-      oldAuth = await login(old, false);
-      oldRows = await old.native.db().collection('pilotSessions').find().toArray();
-    } finally {
-      await old.close();
-    }
+  it('revokes native credentials at logout', async () => {
     const f = await fixture(true);
     try {
-      assert.equal(f.user.id, old.user.id);
-      assert.equal(f.role.id, old.role.id);
-      assert.equal(f.brand.id, old.brand.id);
-      await f.native.db().collection('pilotSessions').insertMany(oldRows!);
-      await verifyCookies(f, false, 'synthetic-secret-at-least-32-characters-long', [oldAuth!.cookie]);
-      const denied = await observe(f, target, { headers: { Cookie: oldAuth!.cookie } });
-      assert.equal(denied.status, 401);
       const auth = await login(f, true);
       assert.equal((await observe(f, target, { headers: { Cookie: auth.cookie } })).status, 200);
-      const nativeRows = await f.native.db().collection('pilotSessions').find().toArray();
-      for (let index = nativeRows.length - 1; index >= 0; index--)
-        if (!String(nativeRows[index]._id).startsWith('redbox-fastify-v1:')) nativeRows.splice(index, 1);
-      const live = await login(f, true);
-      for (const row of await f.native.db().collection('pilotSessions').find().toArray()) {
-        if (
-          String(row._id).startsWith('redbox-fastify-v1:') &&
-          !nativeRows.some(previous => String(previous._id) === String(row._id))
-        )
-          nativeRows.push(row);
-      }
       const loggedOut = await fetch(f.url + '/default/rdmp/user/logout', {
         method: 'POST',
         headers: { Cookie: auth.cookie, 'X-CSRF-Token': auth.token },
@@ -316,75 +328,10 @@ describe('FM-019 production controller/session/domain installed pilot', function
       assert.equal(loggedOut.status, 302);
       await loggedOut.text();
       assert.equal((await observe(f, target, { headers: { Cookie: auth.cookie } })).status, 401);
-      // Roll back to the unchanged Express production middleware on a fresh root.
-      // Retain both formats, including the old Express row, to test no revival.
-      await f.host.stop();
-      const { ApplicationRuntime } = require('../../../src/application');
-      await f.native.db().collection('pilotSessions').deleteMany({});
-      await f.native
-        .db()
-        .collection('pilotSessions')
-        .insertMany([...oldRows!, ...nativeRows]);
-      await verifyCookies(f, false, 'synthetic-secret-at-least-32-characters-long', [oldAuth!.cookie]);
-      await verifyCookies(f, true, rootSecret, [auth.cookie, live.cookie]);
-      const rollbackOwner = { config: f.owner.config, log: f.owner.log };
-      const app = new ApplicationRuntime(rollbackOwner, [
-        {
-          name: 'identity',
-          create: () => ({ initialize: () => initializeIdentityPersistence(rollbackOwner), close: async () => {} }),
-        },
-      ]);
-      const rollback = new ExpressHost(app, {
-        owner: rollbackOwner,
-        hostname: '127.0.0.1',
-        port: 0,
-        prepare: async router => {
-          const middleware = await prepareHttpMiddleware(router, {
-            owner: rollbackOwner,
-            identity: new HttpIdentity(getIdentityRepositories(rollbackOwner)),
-            session: {
-              adapter: 'mongo',
-              mongoUrl: String((f.owner.config as { datastores: { mongodb: { url: string } } }).datastores.mongodb.url),
-              name: 'redbox.v6.sid',
-              secret: rollbackSecret,
-              collection: 'pilotSessions',
-              cookie: { secure: false },
-            },
-            log: require('@researchdatabox/sails-ng-common').nothingLogger,
-          });
-          router.post('/login', middleware.local, (_req, res) => res.json({ success: true }));
-          router.get('/actor', async (req, res) =>
-            res.status((await middleware.authenticate(req)) ? 200 : 401).json({})
-          );
-        },
-      });
-      await rollback.initialize();
-      await rollback.activate();
-      try {
-        for (const credential of [oldAuth!.cookie, auth.cookie, live.cookie]) {
-          const r = await fetch('http://127.0.0.1:' + rollback.address()!.port + '/actor', {
-            headers: { Cookie: credential },
-          });
-          assert.equal(r.status, 401);
-          await r.text();
-        }
-        const fresh = await fetch('http://127.0.0.1:' + rollback.address()!.port + '/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'pilot-admin', password: 'pilot-password' }),
-        });
-        assert.equal(fresh.status, 200);
-        await fresh.text();
-        const accepted = await fetch('http://127.0.0.1:' + rollback.address()!.port + '/actor', {
-          headers: { Cookie: cookie(fresh) },
-        });
-        assert.equal(accepted.status, 200);
-        await accepted.text();
-      } finally {
-        await rollback.stop();
-      }
     } finally {
       await f.close();
     }
   });
 });
+
+goldenControls('pilot-mongo');

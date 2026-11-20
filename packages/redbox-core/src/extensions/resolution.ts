@@ -1,29 +1,21 @@
-import type { ExtensionRoute } from './legacyContract';
-import type { RedboxExtension } from './legacyContract';
 import path from 'node:path';
 import { parse, pathToRegexp, TokenData, type Token } from 'path-to-regexp';
-import type { ExtensionFactory, ExtensionWork } from './contract';
-import { ExtensionError, inspectInstalledExtensionProviders } from './loading';
+import type { ExtensionData, ExtensionFactory, ExtensionWork } from './contract';
+import { ExtensionError } from './loading';
 
-/** Retained API1 composition declaration. @preCutover */
-export interface ExtensionProvider {
+export interface ExtensionDataProvider {
   readonly name: string;
   readonly root: string;
-  readonly declaration: RedboxExtension;
+  readonly declaration: ExtensionData;
 }
 export interface ResolvedRegistration<T> {
   readonly provider: string;
   readonly declaration: T;
 }
-/** Retained API1 composition declaration. @preCutover */
-export interface ResolvedExtensions {
+export interface ResolvedExtensionData {
   /** Contributions merge low to high; lookup paths search high to low. */
-  readonly providers: readonly ExtensionProvider[];
+  readonly providers: readonly ExtensionDataProvider[];
   readonly modules: readonly ResolvedRegistration<ExtensionFactory>[];
-  readonly handlers: readonly ResolvedRegistration<NonNullable<RedboxExtension['handlers']>[number]>[];
-  readonly integrations: readonly ResolvedRegistration<NonNullable<RedboxExtension['integrations']>[number]>[];
-  readonly routes: readonly ResolvedRegistration<ExtensionRoute>[];
-  readonly middleware: readonly ResolvedRegistration<NonNullable<RedboxExtension['middleware']>[number]>[];
   readonly migrations: readonly ResolvedRegistration<ExtensionWork>[];
   readonly bootstrap: readonly ResolvedRegistration<ExtensionWork>[];
   readonly views: readonly string[];
@@ -37,17 +29,12 @@ function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 const identifier = /^[A-Za-z][A-Za-z0-9_-]{0,99}$/;
-function validate(provider: ExtensionProvider): void {
+function validate(provider: ExtensionDataProvider): void {
   const value: unknown = provider.declaration;
-  if (!object(value) || value.apiVersion !== 1) fail(provider.name, 'expected apiVersion 1 declaration');
+  if (!object(value)) fail(provider.name, 'expected data contribution declaration');
   const supported = new Set([
-    'apiVersion',
     'config',
     'modules',
-    'handlers',
-    'routes',
-    'middleware',
-    'integrations',
     'migrations',
     'bootstrap',
     'jobs',
@@ -61,17 +48,7 @@ function validate(provider: ExtensionProvider): void {
   if (Object.keys(value).some(key => !supported.has(key))) fail(provider.name, 'unknown declaration field');
   for (const field of ['config', 'jobs', 'forms', 'workflows'])
     if (value[field] !== undefined && !object(value[field])) fail(provider.name, `${field} must be an object`);
-  for (const field of [
-    'modules',
-    'handlers',
-    'integrations',
-    'routes',
-    'middleware',
-    'migrations',
-    'bootstrap',
-    'configModels',
-    'contributors',
-  ]) {
+  for (const field of ['modules', 'migrations', 'bootstrap', 'configModels', 'contributors']) {
     const entries = value[field];
     if (entries === undefined) continue;
     if (!Array.isArray(entries)) fail(provider.name, `${field} must be an array`);
@@ -93,31 +70,10 @@ function validate(provider: ExtensionProvider): void {
         fail(provider.name, `${field} have invalid prerequisites`);
       if (entry.replaces !== undefined && entry.replaces !== true)
         fail(provider.name, `${field} replaces must be true when present`);
-      if (['modules', 'handlers', 'integrations'].includes(field) && typeof entry.create !== 'function')
+      if (field === 'modules' && typeof entry.create !== 'function')
         fail(provider.name, `${field} require create(input)`);
       if (['migrations', 'bootstrap'].includes(field) && typeof entry.run !== 'function')
         fail(provider.name, `${field} require run(input)`);
-      if (field === 'routes') {
-        if (
-          !['get', 'post', 'put', 'patch', 'delete', 'head', 'options'].includes(String(entry.method)) ||
-          typeof entry.path !== 'string' ||
-          !entry.path.startsWith('/') ||
-          typeof entry.handler !== 'string'
-        )
-          fail(provider.name, 'invalid route declaration');
-        if (
-          entry.access !== 'public' &&
-          (!Array.isArray(entry.access) ||
-            entry.access.length === 0 ||
-            entry.access.some(policy => typeof policy !== 'string' || !identifier.test(policy)))
-        )
-          fail(provider.name, 'route requires explicit public access or policy names');
-      }
-      if (
-        field === 'middleware' &&
-        (!['beforeRoutes', 'afterRoutes'].includes(String(entry.stage)) || typeof entry.handler !== 'string')
-      )
-        fail(provider.name, 'invalid middleware declaration');
       if (field === 'contributors' && typeof entry.module !== 'string')
         fail(provider.name, 'contributor requires its owning module');
       if (field === 'configModels' && !object(entry.definition))
@@ -142,8 +98,8 @@ function validate(provider: ExtensionProvider): void {
 }
 
 function select<T extends { readonly name: string; readonly replaces?: true }>(
-  providers: readonly ExtensionProvider[],
-  field: keyof RedboxExtension,
+  providers: readonly ExtensionDataProvider[],
+  field: keyof ExtensionData,
   existingNames: ReadonlySet<string> = new Set()
 ): ResolvedRegistration<T>[] {
   const selected = new Map<string, ResolvedRegistration<T>>();
@@ -160,12 +116,6 @@ function select<T extends { readonly name: string; readonly replaces?: true }>(
     }
   }
   return [...selected.values()];
-}
-
-export interface OwnedHttpRoute {
-  readonly name: string;
-  readonly method: string;
-  readonly path: string;
 }
 
 /** Match Express's non-Unicode ignoreCase folding, without decoding URL literals. */
@@ -271,11 +221,10 @@ function orderModules(modules: readonly ResolvedRegistration<ExtensionFactory>[]
 }
 
 /** Validate and order offline contributions before concrete core factory inputs exist. */
-/** Retained API1 composition declaration. @preCutover */
-export function orderExtensionProviders(
-  providers: readonly ExtensionProvider[],
+export function orderExtensionDataProviders(
+  providers: readonly ExtensionDataProvider[],
   hookLoadPriority: readonly string[] = []
-): readonly ExtensionProvider[] {
+): readonly ExtensionDataProvider[] {
   providers.forEach(validate);
   if (new Set(providers.map(item => item.name)).size !== providers.length) fail('installation', 'duplicate provider');
   const priority = new Map(hookLoadPriority.map((name, index) => [name, index]));
@@ -295,58 +244,20 @@ export function orderExtensionProviders(
 }
 
 /** Resolve the whole graph before any factory is called. Core is always lowest precedence. */
-/** Retained API1 composition declaration. @preCutover */
-export function resolveExtensions(
-  providers: readonly ExtensionProvider[],
-  hookLoadPriority: readonly string[] = [],
-  ownedRoutes: readonly OwnedHttpRoute[] = []
-): ResolvedExtensions {
-  const ordered = orderExtensionProviders(providers, hookLoadPriority);
+export function resolveExtensionData(
+  providers: readonly ExtensionDataProvider[],
+  hookLoadPriority: readonly string[] = []
+): ResolvedExtensionData {
+  const ordered = orderExtensionDataProviders(providers, hookLoadPriority);
   const modules = orderModules(select<ExtensionFactory>(ordered, 'modules'));
-  const handlers = select<NonNullable<RedboxExtension['handlers']>[number]>(ordered, 'handlers');
-  const integrations = select<NonNullable<RedboxExtension['integrations']>[number]>(ordered, 'integrations');
-  const routes = select<ExtensionRoute>(ordered, 'routes', new Set(ownedRoutes.map(route => route.name)));
-  const middleware = select<NonNullable<RedboxExtension['middleware']>[number]>(ordered, 'middleware');
   const migrations = select<ExtensionWork>(ordered, 'migrations').sort((a, b) =>
     a.declaration.name.localeCompare(b.declaration.name)
   );
   const bootstrap = select<ExtensionWork>(ordered, 'bootstrap');
-  const methods = new Set<string>();
-  const owned = ownedRoutes.map(route => ({ ...route, matching: httpRoutePath(route.path) }));
-  for (const route of routes) {
-    // Match the host's default case-insensitive, non-strict Express router.
-    let matching: ReturnType<typeof httpRoutePath>;
-    try {
-      matching = httpRoutePath(route.declaration.path);
-    } catch {
-      fail(route.provider, 'invalid Express route path');
-    }
-    for (const target of owned) {
-      const samePath = matching.identity === target.matching.identity;
-      const sharedPath = samePath || matching.patterns.some(pattern => target.matching.patterns.includes(pattern));
-      const sameMethod = route.declaration.method === target.method;
-      if (route.declaration.name === target.name && (!samePath || !sameMethod))
-        fail(route.provider, 'owned route replacement must retain its method and path');
-      if (sharedPath && (sameMethod || target.method === 'all')) {
-        if (route.declaration.name !== target.name || !route.declaration.replaces)
-          fail(route.provider, 'collision with an owned portal route requires its name and replaces: true');
-      }
-    }
-    // This deliberately checks identical complete alternatives, rather than all
-    // overlaps (for example a static route and a parameter or wildcard route).
-    for (const pattern of matching.patterns) {
-      const key = route.declaration.method + ' ' + pattern;
-      if (methods.has(key)) fail(route.provider, 'accidental method/path route collision');
-      methods.add(key);
-    }
-  }
   const moduleNames = new Set(modules.map(item => item.declaration.name));
-  const handlerNames = new Set(handlers.map(item => item.declaration.name));
-  for (const item of [...handlers, ...integrations, ...migrations, ...bootstrap])
+  for (const item of [...migrations, ...bootstrap])
     for (const dependency of item.declaration.requires ?? [])
       if (!moduleNames.has(dependency)) fail(item.provider, `missing module prerequisite ${dependency}`);
-  for (const item of [...routes, ...middleware])
-    if (!handlerNames.has(item.declaration.handler)) fail(item.provider, 'missing HTTP handler');
   for (const provider of ordered)
     for (const contributor of provider.declaration.contributors ?? [])
       if (!moduleNames.has(contributor.module)) fail(provider.name, 'contributor requires missing module');
@@ -357,55 +268,9 @@ export function resolveExtensions(
   return {
     providers: ordered,
     modules,
-    handlers,
-    integrations,
-    // Express GET routes also handle HEAD. Explicit HEAD policies and handlers
-    // must therefore mount first, independent of provider/declaration order.
-    routes: routes.sort((a, b) => Number(b.declaration.method === 'head') - Number(a.declaration.method === 'head')),
-    middleware,
     migrations,
     bootstrap,
     views: lookup('views'),
     assets: lookup('assets'),
-  };
-}
-
-/** Retained API1 composition declaration. @preCutover */
-export async function loadExtensions(
-  appPath: string,
-  options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}
-): Promise<ResolvedExtensions> {
-  const installed = await loadInstalledExtensionProviders(appPath, options);
-  return resolveExtensions(installed.providers, installed.hookLoadPriority);
-}
-
-/** Discovery/registration only; the production root resolves the complete graph after config. */
-/** Retained API1 composition declaration. @preCutover */
-export async function loadInstalledExtensionProviders(
-  appPath: string,
-  options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}
-): Promise<{
-  providers: readonly ExtensionProvider[];
-  hookLoadPriority: readonly string[];
-  entrypoints: ReadonlyMap<string, Record<string, unknown>>;
-}> {
-  const installed = await inspectInstalledExtensionProviders(appPath, options);
-  const providers: ExtensionProvider[] = options.core
-    ? [{ name: 'core', root: appPath, declaration: options.core }]
-    : [];
-  for (const provider of installed.providers) {
-    const value = provider.declaration;
-    if (value && typeof value === 'object' && Reflect.get(value, 'apiVersion') === 2) {
-      // Data-only hooks are shared during cutover; never reinterpret Fastify HTTP as Express.
-      for (const field of ['controllers', 'routes', 'hooks', 'fallbacks', 'handlers', 'middleware', 'integrations'])
-        if (Reflect.get(value, field) !== undefined)
-          fail(provider.name, `API2 ${field} requires the Fastify host; the retained Express host accepts data-only API2 hooks`);
-      providers.push({ ...provider, declaration: { ...value, apiVersion: 1 } as RedboxExtension });
-    } else providers.push({ ...provider, declaration: value as RedboxExtension });
-  }
-  return {
-    providers: orderExtensionProviders(providers, installed.hookLoadPriority),
-    hookLoadPriority: installed.hookLoadPriority,
-    entrypoints: installed.entrypoints,
   };
 }

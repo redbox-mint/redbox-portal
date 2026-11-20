@@ -6,6 +6,11 @@ import path from 'node:path';
 const directory = path.resolve(__dirname, '../../../../../support/specs/fastify-migration/evidence');
 const { inventory, profiles } = require(path.join(directory, 'reconcile-FM-036.cjs'));
 const evidence = () => JSON.parse(readFileSync(path.join(directory, 'FM-036.raw-boundaries.json'), 'utf8'));
+// All assertions inspect the same source snapshot. Mutation controls run in
+// isolated child processes; rereading every source for each fixture adds no
+// coverage and retains large temporary strings during the complete core run.
+let suiteInventory: ReturnType<typeof inventory> | undefined;
+const currentInventory = () => (suiteInventory ??= inventory());
 
 function runControl(name: string): void {
   const result = spawnSync(
@@ -22,7 +27,7 @@ describe('FM-036 type-checked raw boundaries', function () {
   // external command deadline also bounds negative reconciliation controls.
   this.timeout(120000);
   it('reconciles every typed site with evidence and resolves the canonical declaration symbols', () => {
-    const result = inventory();
+    const result = currentInventory();
     assert.deepEqual(result, evidence());
     assert.equal(result.canonicalTypes.length, 24);
     for (const type of result.canonicalTypes) assert(type.declarations.length, type.type);
@@ -60,7 +65,7 @@ describe('FM-036 type-checked raw boundaries', function () {
   for (const [file, fixture] of Object.entries(fixtureFiles) as [string, { cases: any[] }][]) {
     for (const testCase of fixture.cases) {
       it(`${path.basename(file)} discovers ${testCase.source}`, () => {
-        const actual = inventory().scannerFixtures[file].cases.find(
+        const actual = currentInventory().scannerFixtures[file].cases.find(
           (candidate: { source: string }) => candidate.source === testCase.source
         );
         assert(
@@ -78,10 +83,11 @@ describe('FM-036 type-checked raw boundaries', function () {
   it('rejects an unowned typed header writer outside the HTTP directory, even during generation', () =>
     runControl('header-unowned'));
   it('detects a newly added header call in an existing owner as evidence drift', () => runControl('header-drift'));
-  it('rejects unclassified structural HTTP and storage interfaces during generation and --check', () =>
-    runControl('interfaces'));
+  for (const mode of ['generation', 'check'])
+    it(`rejects unclassified structural HTTP and storage interfaces during ${mode}`, () =>
+      runControl('interfaces-' + mode));
   it('checks every applicable family/form cell against the actual consumption receiver', () => {
-    const result = inventory();
+    const result = currentInventory();
     const file = Object.keys(result.scannerFixtures).find((file: string) =>
       file.endsWith('/consumption-matrix.json.fixture')
     );
@@ -111,7 +117,7 @@ describe('FM-036 type-checked raw boundaries', function () {
   it('fails generation/check fixture validation when async iteration discovery regresses', () =>
     runControl('iteration-fixture'));
   it('owns direct promised GridFS/OCFL producers and the imported Web stream argument', () => {
-    const result = inventory();
+    const result = currentInventory();
     for (const [file, line, kind, operation, receiver, proof] of [
       [
         'storage/GridFSDriver.ts',
@@ -147,10 +153,10 @@ describe('FM-036 type-checked raw boundaries', function () {
     }
   });
   it('owns all current implicit stream consumers with their iteration and executable proofs', () => {
-    const result = inventory();
-    const rows = [...result.boundaries, ...result.retainedExpress];
+    const result = currentInventory();
+    const rows = result.boundaries;
     for (const [file, line, profile] of [
-      ['http/express/multipart.ts', 144, 'multipart'],
+      ['http/integrations/multipart.ts', 144, 'multipart'],
       ['http/fastify/parsers.ts', 84, 'parser'],
       ['storage/TusStorageManagerDataStore.ts', 279, 'tus'],
       ['storage/TusStorageManagerDataStore.ts', 318, 'tus'],
@@ -174,8 +180,8 @@ describe('FM-036 type-checked raw boundaries', function () {
     }
   });
   it('owns all nine interface-typed review sites with their actual operation and executable proof', () => {
-    const result = inventory();
-    const rows = [...result.boundaries, ...result.retainedExpress];
+    const result = currentInventory();
+    const rows = result.boundaries;
     for (const [file, line, operation, profile, proof] of [
       ['http/integrations/companion/uploads.ts', 115, 'on', 'companion', 'test/http/fastify/companionMongo.test.ts'],
       [
@@ -196,20 +202,6 @@ describe('FM-036 type-checked raw boundaries', function () {
       ['storage/GridFSDriver.ts', 502, 'on', 'service', 'test/services/GridFSDriver.test.ts'],
       ['storage/GridFSDriver.ts', 509, 'once', 'service', 'test/services/GridFSDriver.test.ts'],
       ['storage/GridFSDriver.ts', 510, 'once', 'service', 'test/services/GridFSDriver.test.ts'],
-      [
-        'http/express/datastreamReads.ts',
-        66,
-        'destroy',
-        'retained',
-        'test/http/fastify/DatastreamDifferentialMongo.test.ts',
-      ],
-      [
-        'http/express/datastreamReads.ts',
-        67,
-        'resume',
-        'retained',
-        'test/http/fastify/DatastreamDifferentialMongo.test.ts',
-      ],
     ] as const) {
       const row = rows.find(
         (site: any) =>
@@ -225,26 +217,26 @@ describe('FM-036 type-checked raw boundaries', function () {
     }
   });
   it('includes all review-identified operations as actual calls, not nearby references', () => {
-    const rows = inventory().boundaries;
+    const rows = currentInventory().boundaries;
     for (const [file, line, operation] of [
       ['http/fastify/resumableUploads.ts', 86, 'setHeader'],
       ['http/integrations/companion/fastify.ts', 113, 'setHeader'],
       ['http/integrations/companion/fastify.ts', 134, 'setHeader'],
-      ['http/express/progressSockets.ts', 196, 'disconnect'],
-      ['http/express/progressSockets.ts', 329, 'disconnectSockets'],
-      ['http/express/progressSockets.ts', 330, 'close'],
-      ['http/express/progressSockets.ts', 331, 'close'],
+      ['http/integrations/progressSockets.ts', 196, 'disconnect'],
+      ['http/integrations/progressSockets.ts', 329, 'disconnectSockets'],
+      ['http/integrations/progressSockets.ts', 330, 'close'],
+      ['http/integrations/progressSockets.ts', 331, 'close'],
       ['http/fastify/routes.ts', 970, 'cancel'],
-      ['http/express/progressSockets.ts', 145, 'call'],
-      ['http/express/progressSockets.ts', 164, 'prependListener'],
-      ['http/express/progressSockets.ts', 192, 'on'],
+      ['http/integrations/progressSockets.ts', 145, 'call'],
+      ['http/integrations/progressSockets.ts', 164, 'prependListener'],
+      ['http/integrations/progressSockets.ts', 192, 'on'],
       ['http/integrations/companion/uploads.ts', 174, 'set'],
       ['http/integrations/companion/uploads.ts', 213, 'setTimeout'],
       ['http/integrations/companion/uploads.ts', 245, 'setTimeout'],
-      ['http/express/multipart.ts', 82, 'unpipe'],
-      ['http/express/multipart.ts', 83, 'resume'],
-      ['http/express/multipart.ts', 84, 'destroy'],
-      ['http/express/multipart.ts', 85, 'destroy'],
+      ['http/integrations/multipart.ts', 82, 'unpipe'],
+      ['http/integrations/multipart.ts', 83, 'resume'],
+      ['http/integrations/multipart.ts', 84, 'destroy'],
+      ['http/integrations/multipart.ts', 85, 'destroy'],
       ['http/fastify/parsers.ts', 63, 'destroy'],
       ['http/fastify/parsers.ts', 117, 'destroy'],
       ['http/fastify/readStreams.ts', 53, 'destroy'],
@@ -264,7 +256,7 @@ describe('FM-036 type-checked raw boundaries', function () {
       );
   });
   it('keeps HTTP cancellation/session ownership distinct from upgrades and native response completion', () => {
-    const rows = inventory().boundaries.filter((row: any) => row.file.endsWith('/companion/uploads.ts'));
+    const rows = currentInventory().boundaries.filter((row: any) => row.file.endsWith('/companion/uploads.ts'));
     const http = rows.find((row: any) => row.line === 272 && row.kind === 'typed-call');
     const upgrade = rows.find((row: any) => row.line === 271 && row.kind === 'typed-call');
     assert.equal(http.profile, 'companionHttpCancellation');
@@ -280,12 +272,14 @@ describe('FM-036 type-checked raw boundaries', function () {
       (site: any) => site.scopes.includes('handle') || site.scopes.includes('retainTransfer')
     ))
       assert.equal(row.profile, 'companion', row.call);
-    for (const row of inventory().boundaries.filter((site: any) => site.file.endsWith('/fastify/errorBoundary.ts')))
+    for (const row of currentInventory().boundaries.filter((site: any) =>
+      site.file.endsWith('/fastify/errorBoundary.ts')
+    ))
       assert.equal(row.profile, row.socketTarget ? 'socketError' : 'error');
   });
-  it('assigns every discovered site exactly one owner and executable proofs, including retained Express', () => {
-    const result = inventory();
-    const all = [...result.boundaries, ...result.retainedExpress];
+  it('assigns every discovered site exactly one owner and executable proofs, after Express retirement', () => {
+    const result = currentInventory();
+    const all = result.boundaries;
     assert.deepEqual(new Set(all.map((row: any) => row.profile)), new Set(Object.keys(profiles)));
     for (const row of all) {
       assert(row.owner && row.file && row.line && row.tests.length);

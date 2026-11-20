@@ -1,19 +1,18 @@
 import assert from 'node:assert/strict';
 import { bindExtensionFactory } from '../../src/extensions';
-import { composeExtensionApplication } from '../../src/extensions/composition';
-import { resolveExtensions, type ExtensionProvider } from '../../src/extensions/resolution';
+import { extensionDataFixture } from '../helpers/extensionDataFixture';
+import { resolveExtensionData, type ExtensionDataProvider } from '../../src/extensions/resolution';
 
 describe('owned extension composition', () => {
   it('never constructs the discarded factory and isolates winner instances across applications', async () => {
     let discarded = 0,
       created = 0;
     const closed: number[] = [];
-    const providers: ExtensionProvider[] = [
+    const providers: ExtensionDataProvider[] = [
       {
         name: 'core',
         root: '.',
         declaration: {
-          apiVersion: 1,
           modules: [
             {
               name: 'sample',
@@ -29,7 +28,6 @@ describe('owned extension composition', () => {
         name: 'hook',
         root: '.',
         declaration: {
-          apiVersion: 1,
           modules: [
             {
               name: 'sample',
@@ -48,9 +46,9 @@ describe('owned extension composition', () => {
         },
       },
     ];
-    const resolved = resolveExtensions(providers);
+    const resolved = resolveExtensionData(providers);
     const compositions = [1, 2].map(label =>
-      composeExtensionApplication({ config: {}, log: console }, resolved, {
+      extensionDataFixture({ config: {}, log: console }, resolved, {
         module: item => bindExtensionFactory(item.declaration, { label }),
       })
     );

@@ -1,0 +1,1074 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "/api/export/record/download/json GET before-byte 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000001"
+      }
+    },
+    "/api/export/record/download/json GET before-byte 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000002"
+      }
+    },
+    "/api/export/record/download/json GET mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/api/export/record/download/json GET mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/api/export/record/download/json GET empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/json GET empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/json GET client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/json GET client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/json GET normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/api/export/record/download/json GET normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/api/export/record/download/json HEAD before-byte 1.0": {
+      "$ref": "v000005"
+    },
+    "/api/export/record/download/json HEAD before-byte 2.0": {
+      "$ref": "v000006"
+    },
+    "/api/export/record/download/json HEAD mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/api/export/record/download/json HEAD mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/api/export/record/download/json HEAD empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/json HEAD empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/json HEAD client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/json HEAD client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/json HEAD normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/json HEAD normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/csv GET before-byte 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000001"
+      }
+    },
+    "/api/export/record/download/csv GET before-byte 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000002"
+      }
+    },
+    "/api/export/record/download/csv GET mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/api/export/record/download/csv GET mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/api/export/record/download/csv GET empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/csv GET empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/csv GET client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/csv GET client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/csv GET normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/api/export/record/download/csv GET normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/api/export/record/download/csv HEAD before-byte 1.0": {
+      "$ref": "v000005"
+    },
+    "/api/export/record/download/csv HEAD before-byte 2.0": {
+      "$ref": "v000006"
+    },
+    "/api/export/record/download/csv HEAD mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/api/export/record/download/csv HEAD mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/api/export/record/download/csv HEAD empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/csv HEAD empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/csv HEAD client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/csv HEAD client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/api/export/record/download/csv HEAD normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/api/export/record/download/csv HEAD normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/json GET before-byte 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000001"
+      }
+    },
+    "/export/record/download/json GET before-byte 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000002"
+      }
+    },
+    "/export/record/download/json GET mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/export/record/download/json GET mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/export/record/download/json GET empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/json GET empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/json GET client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/json GET client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/json GET normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/export/record/download/json GET normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/export/record/download/json HEAD before-byte 1.0": {
+      "$ref": "v000005"
+    },
+    "/export/record/download/json HEAD before-byte 2.0": {
+      "$ref": "v000006"
+    },
+    "/export/record/download/json HEAD mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/export/record/download/json HEAD mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/export/record/download/json HEAD empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/json HEAD empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000004"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/json HEAD client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/json HEAD client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/json HEAD normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/json HEAD normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000003"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/csv GET before-byte 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000001"
+      }
+    },
+    "/export/record/download/csv GET before-byte 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "$ref": "v000002"
+      }
+    },
+    "/export/record/download/csv GET mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/export/record/download/csv GET mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "aborted": true,
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": "["
+      }
+    },
+    "/export/record/download/csv GET empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/csv GET empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/csv GET client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/csv GET client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/csv GET normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/export/record/download/csv GET normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": {
+          "$json": [
+            {
+              "$object": [
+                [
+                  "unicode",
+                  "研究 🌏"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "/export/record/download/csv HEAD before-byte 1.0": {
+      "$ref": "v000005"
+    },
+    "/export/record/download/csv HEAD before-byte 2.0": {
+      "$ref": "v000006"
+    },
+    "/export/record/download/csv HEAD mid-stream 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/export/record/download/csv HEAD mid-stream 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "error": "ECONNRESET"
+      }
+    },
+    "/export/record/download/csv HEAD empty 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/csv HEAD empty 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/csv HEAD client-abort 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/csv HEAD client-abort 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "error": "client cancelled export"
+      }
+    },
+    "/export/record/download/csv HEAD normal 1.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": ""
+      }
+    },
+    "/export/record/download/csv HEAD normal 2.0": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 1,
+      "response": {
+        "headers": {
+          "$ref": "v000007"
+        },
+        "status": 200,
+        "text": ""
+      }
+    }
+  },
+  "shared": {
+    "v000001": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "48",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 500,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Internal server error"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000002": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "57",
+        "content-type": "application/json; charset=utf-8",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 500,
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "errors",
+              [
+                {
+                  "$object": [
+                    [
+                      "detail",
+                      "Internal server error"
+                    ]
+                  ]
+                }
+              ]
+            ],
+            [
+              "meta",
+              {
+                "$object": []
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "v000003": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"dataRecord-title - Exported Records.json\"",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked"
+    },
+    "v000004": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"dataRecord-title - Exported Records.json\"",
+      "content-length": "0",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    },
+    "v000005": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "48",
+          "content-type": "application/json; charset=utf-8",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 500,
+        "text": ""
+      }
+    },
+    "v000006": {
+      "closed": true,
+      "destroyed": true,
+      "disposed": true,
+      "produced": 0,
+      "response": {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "57",
+          "content-type": "application/json; charset=utf-8",
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 500,
+        "text": ""
+      }
+    },
+    "v000007": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"dataRecord-title - Exported Records.csv\"",
+      "content-type": "text/csv; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store",
+      "transfer-encoding": "chunked"
+    },
+    "v000008": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-disposition": "attachment; filename=\"dataRecord-title - Exported Records.csv\"",
+      "content-length": "0",
+      "content-type": "text/csv; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin-allow-popups",
+      "expires": "0",
+      "pragma": "no-cache",
+      "surrogate-control": "no-store"
+    }
+  },
+  "sequences": {}
+}

@@ -1,8 +1,8 @@
 import checkDiskSpace from 'check-disk-space';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { ActionRequest, ActionReply } from './actionReply';
-import { actionApiErrors } from './actionReply';
+import type { ActionRequest, JsonOutput } from './jsonOutput';
+import { actionApiErrors } from './jsonOutput';
 import type { HttpRequestContext } from '../context';
 import { Server as TusServer } from '@tus/server';
 import type { Services as Disks } from '../../storage/StorageManager';
@@ -107,9 +107,9 @@ export class ResumableUploads {
       },
     });
   }
-  handle(req: ResumableUploadRequest, res: ActionReply, publish: ResumablePublisher): Promise<void> {
+  handle(req: ResumableUploadRequest, res: JsonOutput, publish: ResumablePublisher): Promise<void> {
     if (this.closing) {
-      res.status(503).json(undefined);
+      res.publish(undefined, 503);
       return Promise.resolve();
     }
     const work = this.handleAccepted(req, res, publish);
@@ -122,7 +122,7 @@ export class ResumableUploads {
   }
   private async handleAccepted(
     req: ResumableUploadRequest,
-    res: ActionReply,
+    res: JsonOutput,
     publish: ResumablePublisher
   ): Promise<void> {
     const facts = req.context(),

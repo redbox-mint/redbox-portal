@@ -26,7 +26,7 @@ export interface ExtensionWork {
   run(input: never): Promise<void>;
 }
 
-/** Transport-independent extension contributions, shared by both hosts.
+/** Transport-independent extension contributions.
  * @extensionPoint Use through the public HTTP or extensions entrypoint; bind concrete application inputs and preserve route security.
  */
 export interface ExtensionData {

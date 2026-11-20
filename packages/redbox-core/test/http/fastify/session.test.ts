@@ -4,9 +4,7 @@ import { request, type IncomingHttpHeaders } from 'node:http';
 import { createHmac } from 'node:crypto';
 import type { Db, CommandStartedEvent, MongoClient } from 'mongodb';
 import sinon from 'sinon';
-import express from 'express';
-import expressSession from 'express-session';
-import type {} from '../../../dist/http/express/sessionData';
+
 import cookiePlugin, { Signer } from '@fastify/cookie';
 import sessionPlugin from '@fastify/session';
 import type { FastifyRequest, FastifyInstance } from 'fastify';
@@ -473,39 +471,6 @@ describe('native session configuration', () => {
       assert.equal(rows.length, action === 'rotate' ? 1 : 0);
       for (const row of rows) assert(!row.session.includes('stale'));
     });
-
-  it('requires rollback secret rotation to reject preceding Express and native cookies', async () => {
-    const f = await fixture();
-    const native = cookieOf(await exchange(f.port, '/change'));
-    const memory = new expressSession.MemoryStore();
-    await new Promise<void>((resolve, reject) =>
-      memory.set('old', { cookie: { originalMaxAge: null }, user: { id: 'revoked' } }, error =>
-        error ? reject(error) : resolve()
-      )
-    );
-    const app = express();
-    app.use(
-      expressSession({
-        secret: secret + '-rollback-fresh',
-        name: 'redbox.sid',
-        store: memory,
-        resave: false,
-        saveUninitialized: false,
-      })
-    );
-    app.get('/', (req, res) => res.json({ user: req.session.user ?? null }));
-    const server = app.listen(0, '127.0.0.1');
-    await once(server, 'listening');
-    try {
-      const address = server.address();
-      assert(address && typeof address === 'object');
-      const old = 'redbox.sid=' + encodeURIComponent('s:' + new Signer(secret).sign('old'));
-      for (const cookie of [old, native])
-        assert.equal(JSON.parse((await exchange(address.port, '/', cookie)).text).user, null);
-    } finally {
-      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
-    }
-  });
 
   it('keeps ordinary plugins sealed while exact native plugin decorators and Symbols work', async () => {
     const f = await fixture({}, false, app => {

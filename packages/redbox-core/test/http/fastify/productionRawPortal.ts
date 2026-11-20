@@ -1,3 +1,4 @@
+import { registerAuthorizationPortal } from './authorizationRequests';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,14 +7,14 @@ import { createHash } from 'node:crypto';
 import { MongoClient } from 'mongodb';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { createPortalFastifyApplication, createPortalFastifyHost } from '../../../src/application/portal';
-import { createPortalHost } from '../../../src/application/portal/host';
+
 import { addDataStreamsRoute, getMetaRoute, updateMetaRoute } from '../../../src/api-routes/groups/records';
 import { prepareSelectedPersistenceIndexes } from '../../../src/persistence/maintenance';
 import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
 import { initializeBrandingPersistence, getBrandingRepository } from '../../../src/persistence/branding/runtime';
 import { initializeIdentityPersistence, getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { initializeReferencePersistence, getReferenceRepositories } from '../../../src/persistence/reference/runtime';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
 import type { ApiRouteSource } from '../../../src/http/fastify/routes';
@@ -109,19 +110,10 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
         recordSchema: { enabled: true },
       })
   );
-  let portal:
-    | Awaited<ReturnType<typeof createPortalFastifyApplication>>
-    | Awaited<ReturnType<typeof createPortalHost>>
-    | undefined;
+  let portal: Awaited<ReturnType<typeof createPortalFastifyApplication>> | undefined;
   let nativePlan: Awaited<ReturnType<typeof createPortalFastifyHost>> | undefined;
   try {
-    const bindings: NonNullable<
-      import('../../../src/application/portal/application').LegacyPortalApplicationOptions['bindings']
-    > = {
-      handler: registration => () => registration.declaration.create(undefined as never),
-    };
     const common = {
-      bindings,
       appPath,
       files: { application: file },
       env: {},
@@ -129,24 +121,17 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
       log: nothingLogger,
       localesDirectory: path.join(directory, 'locales'),
     };
-    portal = nativeHost
-      ? await createPortalFastifyApplication({
-          ...common,
-          http: {
-            declarations: options.declarations ?? [getMetaRoute, updateMetaRoute, addDataStreamsRoute],
-            progress: options.progress ?? true,
-            policyConfiguration: options.policyConfiguration ?? {
-              '*': ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
-            },
-            bindings: context => require(path.join(appPath, 'node_modules/fm020-storage')).bindings(context),
-          },
-        })
-      : await createPortalHost({
-          ...common,
-          policyConfiguration: options.policyConfiguration ?? {
-            '*': ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
-          },
-        });
+    portal = await createPortalFastifyApplication({
+      ...common,
+      http: {
+        declarations: options.declarations ?? [getMetaRoute, updateMetaRoute, addDataStreamsRoute],
+        progress: options.progress ?? true,
+        policyConfiguration: options.policyConfiguration ?? {
+          '*': ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
+        },
+        bindings: context => require(path.join(appPath, 'node_modules/fm020-storage')).bindings(context),
+      },
+    });
     const { owner, data } = portal;
     await prepareSelectedPersistenceIndexes(owner, 'ensure', {
       storage: portal.preflight,
@@ -240,7 +225,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
         },
       });
     }
-    const host = nativePlan?.host ?? ('host' in portal ? portal.host : undefined)!;
+    const host = nativePlan!.host;
     if ('installation' in portal) assert.strictEqual(nativePlan!.resolved, portal.installation);
     await host.initialize();
     if (nativePlan) await options.beforeActivate?.(nativePlan.host);
@@ -257,6 +242,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
       'dataRecord'
     );
     const address = host.address()!;
+    const unregister = registerAuthorizationPortal(address.port, rootContext, options.declarations);
     return {
       portal,
       nativePlan,
@@ -291,6 +277,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
       url: 'http://127.0.0.1:' + address.port + rootContext,
       close: async () => {
         await host.stop();
+        unregister();
         await native.db().dropDatabase();
         await native.close();
         await rm(directory, { recursive: true, force: true });
@@ -298,7 +285,6 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
     };
   } catch (error) {
     await nativePlan?.host.stop();
-    if (portal && 'host' in portal) await portal.host.stop();
     await portal?.application.stop();
     await native.db().dropDatabase();
     await native.close();

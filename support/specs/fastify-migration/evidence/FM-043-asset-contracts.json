@@ -1,0 +1,23 @@
+[
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-035-implementation/collisions-portal.json",
+    "sha256": "4d1d101dd7164f8b90f129de923379a48e4f0e557d423e753f7f71149dbbb9cd",
+    "side": "results[1] (qualified native Fastify)",
+    "cases": 4220,
+    "assertions": "status and static-versus-route selection; complete native response still compared with live no-file baseline"
+  },
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-035-implementation/collisions-root.json",
+    "sha256": "1fb8aa68ad2f35a7844deb01a872be6c776160c629fd4913af207f209871699b",
+    "side": "results[1] (qualified native Fastify)",
+    "cases": 4220,
+    "assertions": "status and static-versus-route selection; complete native response still compared with live no-file baseline"
+  },
+  {
+    "source": "/home/ubuntu/work/fastify-orchestration/artifacts/FM-035-implementation/collisions-reduced.json",
+    "sha256": "8712d31d374515fbc102db70510224cc0f79dbd2a29787cbd760b097174a0b11",
+    "side": "results[1] (qualified native Fastify)",
+    "cases": 4220,
+    "assertions": "status and static-versus-route selection; complete native response still compared with live no-file baseline"
+  }
+]

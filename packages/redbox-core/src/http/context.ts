@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
 import type { BrandRow } from '../persistence/branding/BrandingRepository';
-import type { AuthenticatedActor } from './express/identity';
+import type { AuthenticatedActor } from '../authentication/HttpIdentity';
 
 export type { BrandRow, AuthenticatedActor };
 /** HttpRequestContext authoring contract.

@@ -1,3 +1,4 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
@@ -42,14 +43,7 @@ function raw(port: number, target: string, method = 'GET', wire?: string): Promi
 }
 
 async function inProcess<T>(
-  kind:
-    | 'express'
-    | 'fastify'
-    | 'native'
-    | 'express-security'
-    | 'fastify-security'
-    | 'fastify-diagnostics'
-    | 'fastify-default-diagnostics',
+  kind: 'fastify' | 'native' | 'fastify-security' | 'fastify-diagnostics' | 'fastify-default-diagnostics',
   run: (fixture: Fixture) => Promise<T>
 ): Promise<T> {
   const child = fork(join(__dirname, 'fixtures/host-survival.cjs'), [kind], {
@@ -181,7 +175,7 @@ describe('Fastify host process survival at request boundaries', function () {
     for (const method of ['POST', 'HEAD'])
       it(`survives malformed ${method} JSON with structured apiVersion ${key}`, async () => {
         const responses = [];
-        for (const kind of ['express-security', 'fastify-security'] as const)
+        for (const kind of ['fastify-security'] as const)
           responses.push(
             await inProcess(kind, async fixture => {
               await fixture.command('activate');
@@ -203,16 +197,15 @@ describe('Fastify host process survival at request boundaries', function () {
               return response;
             })
           );
-        assert.match(responses[1]!.status, /^HTTP\/1.1 400 /);
-        assert.equal(responses[1]!.body, method === 'HEAD' ? '' : '{"message":"Invalid request","details":""}');
+        assert.match(responses[0]!.status, /^HTTP\/1.1 400 /);
+        assert.equal(responses[0]!.body, method === 'HEAD' ? '' : '{"message":"Invalid request","details":""}');
         // ACCEPTED-NESTED-INPUT-SAFE-RESPONSE: Express abort is recorded above;
         // native emits exact safe 400 and survives fresh connections and IPC.
-        if (key === 'toString') assert.equal(responses[0], undefined);
-        else assert.deepEqual(responses[1], responses[0]);
+        assertGoldenNext('fastify-host-survival', responses[0]);
       });
     it(`rejects bracketed header names containing ${key} at the HTTP boundary and survives`, async () => {
       const responses = [];
-      for (const kind of ['express-security', 'fastify-security'] as const)
+      for (const kind of ['fastify-security'] as const)
         responses.push(
           await inProcess(kind, async fixture => {
             await fixture.command('activate');
@@ -226,7 +219,7 @@ describe('Fastify host process survival at request boundaries', function () {
             return response;
           })
         );
-      assert.deepEqual(responses[1], responses[0]);
+      assertGoldenNext('fastify-host-survival', responses[0]);
       assert.match(responses[0].status, /^HTTP\/1.1 400 /);
     });
   }
@@ -235,7 +228,7 @@ describe('Fastify host process survival at request boundaries', function () {
     for (const header of ['encoding', 'type', 'charset'] as const)
       it(`survives request-controlled ${header} prototype key ${key} like Express`, async () => {
         const responses = [];
-        for (const kind of ['express-security', 'fastify-security'] as const)
+        for (const kind of ['fastify-security'] as const)
           responses.push(
             await inProcess(kind, async fixture => {
               await fixture.command('activate');
@@ -252,14 +245,14 @@ describe('Fastify host process survival at request boundaries', function () {
               return response;
             })
           );
-        assert.deepEqual(responses[1], responses[0]);
+        assertGoldenNext('fastify-host-survival', responses[0]);
         assert.match(responses[0].status, new RegExp(`^HTTP/1.1 ${header === 'type' ? 200 : 415} `));
       });
 
   for (const [category, targets] of malformed) {
     it(`matches Express for ${category} before/after activation and survives every target`, async () => {
       const observations = [];
-      for (const kind of ['express', 'fastify'] as const) {
+      for (const kind of ['fastify'] as const) {
         observations.push(
           await inProcess(kind, async fixture => {
             const responses = [];
@@ -276,7 +269,8 @@ describe('Fastify host process survival at request boundaries', function () {
           })
         );
       }
-      assert.deepEqual(observations[1], observations[0]);
+
+      assertGoldenNext('fastify-host-survival', observations[0]);
       if (category === 'overlong targets')
         for (const response of observations[0])
           assert.deepEqual(response, {
@@ -336,7 +330,7 @@ describe('Fastify host process survival at request boundaries', function () {
 
   it('matches Express for parser/socket errors and survives resets and partial requests', async () => {
     const observations = [];
-    for (const kind of ['express', 'fastify'] as const) {
+    for (const kind of ['fastify'] as const) {
       observations.push(
         await inProcess(kind, async fixture => {
           const responses = [];
@@ -374,10 +368,13 @@ describe('Fastify host process survival at request boundaries', function () {
         })
       );
     }
-    assert.deepEqual(observations[1], observations[0]);
+
+    assertGoldenNext('fastify-host-survival', observations[0]);
     for (const response of observations[0]) {
       assert.deepEqual(response.headers, { connection: 'close' });
       assert.equal(response.body, '');
     }
   });
 });
+
+goldenControls('fastify-host-survival');

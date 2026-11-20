@@ -10,6 +10,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const repo = path.resolve(__dirname, '../..');
+const expressClosure = require('../tooling/fastify-retirement/express-closure.cjs');
 const packages = [
   ['sails-ng-common', 'compile'],
   ['agenda-sqs-backend', 'build'],
@@ -89,6 +90,12 @@ function pack(directory) {
     assert(!file.path.includes('app.express.cjs'), 'Private executable must not be published');
   }
   const filename = path.join(tarballs, item.filename);
+  const closure = expressClosure.auditTarball(filename);
+  assert.deepEqual(closure.violations, [], JSON.stringify(closure.violations));
+  fs.writeFileSync(
+    path.join(output, item.name.replaceAll('/', '-') + '-express-closure.json'),
+    JSON.stringify(closure, null, 2)
+  );
   artifacts.push({ ...item, sha256: crypto.createHash('sha256').update(fs.readFileSync(filename)).digest('hex') });
   fs.writeFileSync(path.join(output, 'tarballs.json'), JSON.stringify(artifacts, null, 2));
   return [item.name, 'file:' + filename];
@@ -150,6 +157,12 @@ function install(directory) {
   run('npm', ['install', ...installArgs], directory, 900);
   fs.rmSync(path.join(directory, 'node_modules'), { recursive: true, force: true });
   run('npm', ['ci', '--offline', ...installArgs], directory, 600);
+  const closure = expressClosure.auditTree(directory, { installed: true, generated: true });
+  assert.deepEqual(closure.violations, [], JSON.stringify(closure.violations));
+  fs.writeFileSync(
+    path.join(output, path.basename(directory) + '-express-closure.json'),
+    JSON.stringify(closure, null, 2)
+  );
   const lock = JSON.parse(fs.readFileSync(path.join(directory, 'package-lock.json'), 'utf8'));
   for (const [name, record] of Object.entries(lock.packages)) {
     assert(!record.link, 'Workspace link in installed lock: ' + name);

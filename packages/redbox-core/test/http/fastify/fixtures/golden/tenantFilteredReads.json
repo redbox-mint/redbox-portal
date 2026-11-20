@@ -1,0 +1,170 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "shared": {},
+  "cases": {
+    "identity/get": {
+      "filtered": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "776"
+        },
+        "text": "{\"data\":{\"id\":\"000000000000000000000017\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"email\":\"reader@example.invalid\",\"lastLogin\":\"\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"Shared name\",\"type\":\"local\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\",\"username\":\"reader\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000014\",\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"name\":\"Researcher\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\"}],\"linkedAccountCount\":0,\"effectivePrimaryUsername\":\"reader\",\"effectiveLoginDisabled\":false},\"meta\":{}}"
+      },
+      "foreignOnly": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "128"
+        },
+        "text": "{\"errors\":[{\"title\":\"No user found with given criteria\",\"detail\":\"Searchby: id and Query: 000000000000000000000018\"}],\"meta\":{}}"
+      },
+      "calls": {
+        "search": [
+          [
+            {
+              "name": "Shared name"
+            },
+            null
+          ],
+          [
+            {
+              "id": "000000000000000000000018"
+            },
+            null
+          ]
+        ],
+        "member": [
+          "000000000000000000000018",
+          "000000000000000000000011"
+        ],
+        "matches": [
+          null,
+          "000000000000000000000017"
+        ],
+        "broadList": 0
+      }
+    },
+    "identity/find": {
+      "filtered": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "776"
+        },
+        "text": "{\"data\":{\"id\":\"000000000000000000000017\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"email\":\"reader@example.invalid\",\"lastLogin\":\"\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"Shared name\",\"type\":\"local\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\",\"username\":\"reader\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000014\",\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"name\":\"Researcher\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\"}],\"linkedAccountCount\":0,\"effectivePrimaryUsername\":\"reader\",\"effectiveLoginDisabled\":false},\"meta\":{}}"
+      },
+      "foreignOnly": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "128"
+        },
+        "text": "{\"errors\":[{\"title\":\"No user found with given criteria\",\"detail\":\"Searchby: id and Query: 000000000000000000000018\"}],\"meta\":{}}"
+      },
+      "calls": {
+        "search": [
+          [
+            {
+              "name": "Shared name"
+            },
+            null
+          ],
+          [
+            {
+              "id": "000000000000000000000018"
+            },
+            null
+          ]
+        ],
+        "member": [
+          "000000000000000000000018",
+          "000000000000000000000011"
+        ],
+        "matches": [
+          null,
+          "000000000000000000000017"
+        ],
+        "broadList": 0
+      }
+    },
+    "identity/list": {
+      "status": 200,
+      "headers": {
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "cache-control": "no-cache, private",
+        "pragma": "no-cache",
+        "expires": "0",
+        "surrogate-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "834"
+      },
+      "text": "{\"data\":{\"summary\":{\"numFound\":1,\"page\":1,\"start\":0},\"records\":[{\"id\":\"000000000000000000000017\",\"additionalAttributes\":null,\"cn\":null,\"displayname\":null,\"edupersonprincipalname\":null,\"edupersonscopedaffiliation\":null,\"edupersontargetedid\":null,\"givenname\":null,\"surname\":null,\"accountLinkState\":\"active\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"email\":\"reader@example.invalid\",\"lastLogin\":\"\",\"linkedPrimaryUserId\":\"\",\"loginDisabled\":false,\"name\":\"Shared name\",\"type\":\"local\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\",\"username\":\"reader\",\"hasApiKey\":true,\"roles\":[{\"id\":\"000000000000000000000014\",\"branding\":\"000000000000000000000011\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"name\":\"Researcher\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\"}],\"linkedAccountCount\":0,\"effectivePrimaryUsername\":\"reader\",\"effectiveLoginDisabled\":false}]},\"meta\":{}}"
+    },
+    "siem/events": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "587"
+        },
+        "text": "{\"data\":{\"rows\":[{\"actor\":null,\"destinationStates\":null,\"leaseExpiresAt\":null,\"leaseToken\":null,\"nextEligibleAt\":null,\"payload\":null,\"requestContext\":null,\"resource\":null,\"subject\":null,\"terminalAt\":null,\"brandId\":\"000000000000000000000011\",\"category\":\"test\",\"correlationId\":\"\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"deliveryState\":\"delivered\",\"eventId\":\"local-01\",\"eventType\":\"fixture\",\"occurredAt\":\"2026-01-01T00:00:01.000Z\",\"portalId\":\"\",\"severity\":\"info\",\"source\":\"fixture\",\"traceId\":\"\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\",\"id\":\"040000000000000000000001\"}],\"total\":26},\"meta\":{}}"
+      },
+      "calls": [
+        {
+          "brandId": "000000000000000000000011"
+        },
+        25,
+        25
+      ]
+    },
+    "siem/delivery-status": {
+      "wire": {
+        "status": 200,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "443"
+        },
+        "text": "{\"data\":{\"rows\":[{\"errorSummary\":null,\"responseSummary\":null,\"adapterType\":\"json\",\"attemptNumber\":1,\"brandId\":\"000000000000000000000011\",\"completedAt\":\"\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"destinationId\":\"fixture\",\"durationMs\":0,\"eventId\":\"local-01\",\"httpStatusCode\":0,\"leaseToken\":\"\",\"startedAt\":\"2026-01-01T00:00:01.000Z\",\"status\":\"success\",\"updatedAt\":\"2026-01-01T00:00:00.000Z\",\"id\":\"040000000000000000000001\"}],\"total\":26},\"meta\":{}}"
+      },
+      "calls": [
+        {
+          "brandId": "000000000000000000000011"
+        },
+        25,
+        25
+      ]
+    }
+  }
+}

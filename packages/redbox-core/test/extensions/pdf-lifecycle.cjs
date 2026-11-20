@@ -1,7 +1,8 @@
+const { extensionDataFixture } = require('../helpers/extensionDataFixture.cjs');
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { ApplicationRuntime } = require('../../dist/application');
-const { resolveExtensions, composeExtensionApplication, bindExtensionFactory } = require('../../dist/extensions');
+const { resolveExtensionData, bindExtensionFactory } = require('../../dist/extensions');
 const pdfExtension = require('../../../sails-hook-redbox-pdfgen/dist/extension');
 
 function deferred() {
@@ -64,15 +65,15 @@ function fixture(overrides = {}) {
       return browser;
     }
   }
-  const declaration = pdfExtension.registerRedboxExtension();
-  const resolved = resolveExtensions(
+  const { apiVersion, ...declaration } = pdfExtension.registerRedboxExtension();
+  assert.equal(apiVersion, 2);
+  const resolved = resolveExtensionData(
     [
       { name: 'pdf', root: '.', declaration },
       {
         name: 'core',
         root: '.',
         declaration: {
-          apiVersion: 1,
           modules: [
             {
               name: 'storage',
@@ -90,7 +91,6 @@ function fixture(overrides = {}) {
         name: 'test',
         root: '.',
         declaration: {
-          apiVersion: 1,
           modules: [{ name: 'pdf', requires: ['storage'], replaces: true, create: input => new TestPDF(input) }],
         },
       },
@@ -98,7 +98,7 @@ function fixture(overrides = {}) {
     ['test', 'pdf']
   );
   let pdf;
-  const composition = composeExtensionApplication(
+  const composition = extensionDataFixture(
     { config: {}, log: console },
     resolved,
     {
@@ -135,7 +135,8 @@ function graph() {
 }
 
 test('PDF declarations are offline; normal generation requires explicit activation', async () => {
-  const declaration = pdfExtension.registerRedboxExtension();
+  const { apiVersion, ...declaration } = pdfExtension.registerRedboxExtension();
+  assert.equal(apiVersion, 2);
   assert(declaration.jobs['PDFService-CreatePDF']);
   assert.equal(declaration.configModels[0].name, 'pdfgen');
   const instance = fixture();

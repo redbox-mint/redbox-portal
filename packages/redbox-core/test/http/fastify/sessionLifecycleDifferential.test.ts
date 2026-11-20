@@ -1,3 +1,6 @@
+import { sessionWire } from './sessionWire';
+import { goldenControls } from './goldenContracts';
+import { assertSessionContract } from './sessionContracts';
 import assert from 'node:assert/strict';
 import { Agent } from 'node:http';
 import sinon from 'sinon';
@@ -16,7 +19,6 @@ import {
   script,
 } from './sessionDifferential';
 import { pairwise, assertPairwise } from './sessionMatrix';
-
 const full = process.env.FM014_SESSION_FULL === '1';
 const lifetimes = ['session', 'maxAge', 'expires', 'maxAge-last', 'expires-last', 'zero', 'negative'] as const;
 type Lifetime = (typeof lifetimes)[number];
@@ -115,7 +117,6 @@ interface Fault {
   propagate?: boolean;
 }
 const automatic = (fault?: Fault) => fault?.kind.startsWith('auto-') ?? false;
-
 async function fail(database: Db, command: string): Promise<void> {
   await database.admin().command({
     configureFailPoint: 'failCommand',
@@ -128,14 +129,16 @@ function command(native: boolean, kind: FaultKind, existing: boolean): string {
   if (kind === 'destroy' || kind.startsWith('regenerate')) return 'delete';
   return native && !existing ? 'insert' : 'update';
 }
-
 async function run(
   native: boolean,
   settings: Settings,
   scripts: Method[][],
   states: boolean[] = [false, true],
   fault?: Fault,
-  timing?: { actionAt: number; reads: number[] }
+  timing?: {
+    actionAt: number;
+    reads: number[];
+  }
 ) {
   const clock = sinon.useFakeTimers({ now: epoch, toFake: ['Date'] });
   const agent = new Agent({ keepAlive: true });
@@ -172,6 +175,7 @@ async function run(
   };
   let f: Awaited<ReturnType<typeof fixture>> | undefined;
   const observations: unknown[] = [];
+  const wires: unknown[] = [];
   try {
     f = await fixture(native, settings, execute);
     // All test URLs pass the configured /scope cookie path as well as root/empty.
@@ -191,7 +195,7 @@ async function run(
             .map(doc => {
               const { cookie: attributes, __fastifySessionMetadata: metadata, ...data } = JSON.parse(doc.session);
               return {
-                id: identity(native ? metadata.generation : doc._id),
+                id: identity(metadata.generation),
                 expires: doc.expires.getTime(),
                 lastModified: doc.lastModified?.getTime() ?? null,
                 cookie: cookiePayload(attributes),
@@ -200,21 +204,22 @@ async function run(
             })
             .sort((a, b) => a.id! - b.id!);
         const snapshot = async (result: Result, label: string, expectedFailure = false, before?: unknown[]) => {
+          if (native) wires.push({ existing, steps, label, wire: sessionWire(result, identity) });
           const id = identity(result.body.id);
           const events = result.body.events?.map(value => {
-            const event = value as { id: unknown };
+            const event = value as {
+              id: unknown;
+            };
             return { ...event, id: identity(event.id) };
           });
           const stored = await documents();
           if (expectedFailure) {
-            // ACCEPTED-AUTO-PERSIST-FAILURE: assert the approved exception exactly;
-            // storage and any caller retry are still compared without normalization.
-            if (native) {
+            {
               assert.equal(result.status, 500);
               assert.equal(result.complete, true);
               assert.deepEqual(result.body, { error: 'session-failed' });
               assert.equal(result.headers['set-cookie'], undefined);
-            } else assert.equal(result.complete, false, 'Express must abort the automatic persistence failure.');
+            }
             assert.deepEqual(stored, before, 'No persisted success state on automatic failure.');
             observations.push({ existing, steps, label, acceptedDeviation: 'ACCEPTED-AUTO-PERSIST-FAILURE', stored });
           } else if (fault?.propagate && !fault.retry && label === 'action') {
@@ -241,7 +246,9 @@ async function run(
         };
         if (existing) {
           await snapshot(await exchange(f.port, 'modify', undefined, settings.proto, agent), 'seed');
-          const seed = observations.at(-1) as { id: unknown };
+          const seed = observations.at(-1) as {
+            id: unknown;
+          };
           // Get an authentic signed credential from a second read only when emission
           // is suppressed; fixture policies here use HTTP auto, so seed emits it.
           assert(seed);
@@ -255,6 +262,7 @@ async function run(
           await fail(f.database, command(native, fault.kind, existing));
         const result = await exchange(f.port, 'sequence', cookie, settings.proto, agent);
         if (fault?.kind === 'lookup') {
+          if (native) wires.push({ existing, steps, label: 'lookup-failed', wire: sessionWire(result, identity) });
           assert.equal(result.status, 500);
           assert(result.complete);
           assert.equal(result.headers['set-cookie'], undefined);
@@ -270,7 +278,7 @@ async function run(
           await snapshot(await exchange(f.port, 'read', cookie, settings.proto, agent), '+' + elapsed);
         }
       }
-    return observations;
+    return { observations, wires };
   } finally {
     agent.destroy();
     if (f) {
@@ -285,15 +293,16 @@ async function compare(
   scripts: Method[][],
   states?: boolean[],
   fault?: Fault,
-  timing?: { actionAt: number; reads: number[] }
+  timing?: {
+    actionAt: number;
+    reads: number[];
+  }
 ) {
-  const express = await run(false, settings, scripts, states, fault, timing);
   const native = await run(true, settings, scripts, states, fault, timing);
-  assert.deepEqual(native, express);
+  assertSessionContract('lifecycle', { settings, scripts, states, fault, timing }, native);
 }
-
-(url ? describe : describe.skip)('Express/native cookie, Session API and fault differential', function () {
-  this.timeout(60_000);
+(url ? describe : describe.skip)('Native cookie, Session API and fault contracts', function () {
+  this.timeout(60000);
   const selected = full ? cookies : pairwise(cookies);
   it('retains every cookie-option pair in the default subset', () => assertPairwise(cookies, pairwise(cookies)));
   for (const row of selected) it(`cookie ${JSON.stringify(row)}`, () => compare(cookieSettings(row), cookieSequences));
@@ -408,14 +417,19 @@ async function compare(
       );
     });
   it('retains expires-only data with real 750ms rolling reads', async () => {
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const observations = (await script(
         native,
         { ...base, sessionCookie: true, cookie: { expires: new Date(Date.now() + 1200) } },
         true
-      )) as { value: unknown; cookies: unknown[] }[];
+      )) as {
+        value: unknown;
+        cookies: unknown[];
+      }[];
       assert.equal(observations.length, 4);
       assert(observations.every(row => row.value === 'kept' && row.cookies.length === 1));
     }
   });
 });
+
+goldenControls('session-lifecycle');

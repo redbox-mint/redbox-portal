@@ -147,8 +147,6 @@ async function main() {
   await fsp.mkdir(output, { recursive: true });
   assert.equal(docker(['ps', '-q', '--filter', 'name=^fm007-portal$']), '', 'never overlap owner processes');
   await reset();
-  const live = process.env.FM007_CHECKOUT;
-  assert(!live || smoke, 'live source mounts cannot qualify a baseline');
   docker([
     'run',
     '-d',
@@ -172,15 +170,12 @@ async function main() {
     'NODE_OPTIONS=--max-old-space-size=1024',
     '-e',
     `FM007_PROFILE=${cell.profile}`,
-    ...(process.env.RBPORTAL_PLAYWRIGHT_HOST === 'express' ? ['-e', 'RBPORTAL_PLAYWRIGHT_HOST=express'] : []),
     ...(process.env.FM007_TLS === 'true' ? ['-e', 'FM007_TLS=true'] : []),
     '-v',
     `${state}:/fm007-state`,
     '-v',
     `${output}:/fm007-output`,
-    ...(live ? ['-v', `${path.resolve(live)}:/opt/redbox-portal:ro`, '--entrypoint', 'node'] : []),
     image,
-    ...(live ? ['support/integration-testing/fastify-performance/owner.cjs'] : []),
   ]);
   started = true;
   const deadline = Date.now() + 90000;

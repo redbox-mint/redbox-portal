@@ -97,6 +97,7 @@ RUN rm -rf \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules \
  && npm ci --omit=dev --no-audit
+RUN node support/tooling/fastify-retirement/prune-runtime.cjs
 
 FROM node:26.12.1-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS runtime
 
@@ -117,7 +118,6 @@ RUN apt-get update \
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.js ./app.js
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/portal.cjs ./portal.cjs
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.express.cjs ./app.express.cjs
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public

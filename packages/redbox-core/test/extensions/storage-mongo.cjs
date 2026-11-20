@@ -1,15 +1,11 @@
+const { extensionDataFixture } = require('../helpers/extensionDataFixture.cjs');
 const assert = require('node:assert/strict');
 const { test, after } = require('node:test');
 const { MongoClient } = require('mongodb');
 const { firstValueFrom } = require('rxjs');
 const { ApplicationRuntime } = require('../../dist/application');
 const { RecordTypes } = require('../../dist/recordTypes');
-const {
-  resolveExtensions,
-  composeExtensionApplication,
-  bindExtensionFactory,
-  bindExtensionWork,
-} = require('../../dist/extensions');
+const { resolveExtensionData, bindExtensionFactory, bindExtensionWork } = require('../../dist/extensions');
 const runtime = require('../../dist/extensions/storage');
 const storageExtension = require('../../../sails-hook-redbox-storage-mongo/dist/extension');
 
@@ -72,7 +68,8 @@ function collaborators() {
 }
 
 test('storage declaration is offline and real index readiness fails closed', async () => {
-  const declaration = storageExtension.registerRedboxExtension();
+  const { apiVersion, ...declaration } = storageExtension.registerRedboxExtension();
+  assert.equal(apiVersion, 2);
   assert.equal(declaration.modules.length, 1);
   assert.equal(
     declaration.migrations[0].name,
@@ -80,9 +77,9 @@ test('storage declaration is offline and real index readiness fails closed', asy
   );
   const selectedOwner = await owner();
   let module;
-  const composition = composeExtensionApplication(
+  const composition = extensionDataFixture(
     selectedOwner,
-    resolveExtensions([{ name: 'storage-hook', root: '.', declaration }]),
+    resolveExtensionData([{ name: 'storage-hook', root: '.', declaration }]),
     {
       work: item => bindExtensionWork(item.declaration, { owner: selectedOwner }),
       module: item => () => {
@@ -106,14 +103,14 @@ test('storage capability precedes strict record-type bootstrap; writes, GridFS, 
   await storageExtension.ensurePrismaStagedStorageIndexes(selectedOwner);
   await runtime.ensureReferencePersistenceIndexes(selectedOwner);
   let storage, recordTypes;
-  const declaration = storageExtension.registerRedboxExtension();
-  const resolved = resolveExtensions([
+  const { apiVersion, ...declaration } = storageExtension.registerRedboxExtension();
+  assert.equal(apiVersion, 2);
+  const resolved = resolveExtensionData([
     { name: 'storage-hook', root: '.', declaration },
     {
       name: 'core',
       root: '.',
       declaration: {
-        apiVersion: 1,
         modules: [
           {
             name: 'recordTypes',
@@ -142,7 +139,7 @@ test('storage capability precedes strict record-type bootstrap; writes, GridFS, 
       },
     },
   ]);
-  const composition = composeExtensionApplication(selectedOwner, resolved, {
+  const composition = extensionDataFixture(selectedOwner, resolved, {
     work: item => bindExtensionWork(item.declaration, { owner: selectedOwner }),
     module: item => () => {
       const module =

@@ -1,0 +1,892 @@
+{
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute greeting?ignored=/#ignored/": [
+    {
+      "$ref": "v284159"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute greeting?ignored=/#ignored/": [
+    {
+      "$ref": "v284160"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute greeting/?ignored=1#ignored": [
+    {
+      "$ref": "v284162"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute greeting/?ignored=1#ignored": [
+    {
+      "$ref": "v284163"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute greeting%2F#ignored/": [
+    {
+      "$ref": "v284165"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute greeting%2F#ignored/": [
+    {
+      "$ref": "v284166"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute greeting%2f?ignored=/": [
+    {
+      "$ref": "v284168"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute greeting%2f?ignored=/": [
+    {
+      "$ref": "v284169"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute group%2fitem#ignored/": [
+    {
+      "$ref": "v284171"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute group%2fitem#ignored/": [
+    {
+      "$ref": "v284172"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute group%252Fitem?ignored=/": [
+    {
+      "$ref": "v284174"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute group%252Fitem?ignored=/": [
+    {
+      "$ref": "v284175"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute group%23item#ignored/": [
+    {
+      "$ref": "v284177"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute group%23item#ignored/": [
+    {
+      "$ref": "v284178"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute group%3Fitem?ignored=/": [
+    {
+      "$ref": "v284180"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute group%3Fitem?ignored=/": [
+    {
+      "$ref": "v284181"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute greeting/#ignored/?query=/": [
+    {
+      "$ref": "v284183"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute greeting/#ignored/?query=/": [
+    {
+      "$ref": "v284184"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute greeting#ignored?query=/": [
+    {
+      "$ref": "v284186"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute greeting#ignored?query=/": [
+    {
+      "$ref": "v284187"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> GET absolute group//item/?ignored=/#ignored/": [
+    {
+      "$ref": "v284189"
+    }
+  ],
+  "FM-031 wildcard request-target differential core-http-get-5d3b7784a7c762b2 root=<empty> HEAD absolute group//item/?ignored=/#ignored/": [
+    {
+      "$ref": "v284190"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting": [
+    {
+      "calls": {
+        "fastifyCalls": 1,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 1,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284191"
+      },
+      "url": "/portal/custom/greeting"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting": [
+    {
+      "$ref": "v284192"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting/": [
+    {
+      "calls": {
+        "fastifyCalls": 3,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 3,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284193"
+      },
+      "url": "/portal/custom/greeting/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting/": [
+    {
+      "$ref": "v284194"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 5,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 5,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284195"
+      },
+      "url": "/portal/custom/greeting#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting#ignored/": [
+    {
+      "$ref": "v284196"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting/#ignored": [
+    {
+      "calls": {
+        "fastifyCalls": 7,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 7,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284197"
+      },
+      "url": "/portal/custom/greeting/#ignored"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting/#ignored": [
+    {
+      "$ref": "v284198"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 9,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 9,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284199"
+      },
+      "url": "/portal/custom/greeting?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting?ignored=/": [
+    {
+      "$ref": "v284200"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting/?ignored=1": [
+    {
+      "calls": {
+        "fastifyCalls": 11,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 11,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284201"
+      },
+      "url": "/portal/custom/greeting/?ignored=1"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting/?ignored=1": [
+    {
+      "$ref": "v284202"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting?ignored=/#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 13,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 13,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284203"
+      },
+      "url": "/portal/custom/greeting?ignored=/#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting?ignored=/#ignored/": [
+    {
+      "$ref": "v284204"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting/?ignored=1#ignored": [
+    {
+      "calls": {
+        "fastifyCalls": 15,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 15,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284205"
+      },
+      "url": "/portal/custom/greeting/?ignored=1#ignored"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting/?ignored=1#ignored": [
+    {
+      "$ref": "v284206"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting%2F#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 17,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 17,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284207"
+      },
+      "url": "/portal/custom/greeting%2F#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting%2F#ignored/": [
+    {
+      "$ref": "v284208"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting%2f?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 19,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 19,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284209"
+      },
+      "url": "/portal/custom/greeting%2f?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting%2f?ignored=/": [
+    {
+      "$ref": "v284210"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin group%2fitem#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 21,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 21,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284211"
+      },
+      "url": "/portal/custom/group%2fitem#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin group%2fitem#ignored/": [
+    {
+      "$ref": "v284212"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin group%252Fitem?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 23,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 23,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284213"
+      },
+      "url": "/portal/custom/group%252Fitem?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin group%252Fitem?ignored=/": [
+    {
+      "$ref": "v284214"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin group%23item#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 25,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 25,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284215"
+      },
+      "url": "/portal/custom/group%23item#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin group%23item#ignored/": [
+    {
+      "$ref": "v284216"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin group%3Fitem?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 27,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 27,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284217"
+      },
+      "url": "/portal/custom/group%3Fitem?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin group%3Fitem?ignored=/": [
+    {
+      "$ref": "v284218"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting/#ignored/?query=/": [
+    {
+      "calls": {
+        "fastifyCalls": 29,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 29,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284219"
+      },
+      "url": "/portal/custom/greeting/#ignored/?query=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting/#ignored/?query=/": [
+    {
+      "$ref": "v284220"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin greeting#ignored?query=/": [
+    {
+      "calls": {
+        "fastifyCalls": 31,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 31,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284221"
+      },
+      "url": "/portal/custom/greeting#ignored?query=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin greeting#ignored?query=/": [
+    {
+      "$ref": "v284222"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET origin group//item/?ignored=/#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 33,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 33,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284223"
+      },
+      "url": "/portal/custom/group//item/?ignored=/#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD origin group//item/?ignored=/#ignored/": [
+    {
+      "$ref": "v284224"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting": [
+    {
+      "calls": {
+        "fastifyCalls": 35,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 35,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284225"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting": [
+    {
+      "$ref": "v284226"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting/": [
+    {
+      "calls": {
+        "fastifyCalls": 37,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 37,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284227"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting/": [
+    {
+      "$ref": "v284228"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 39,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 39,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284229"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting#ignored/": [
+    {
+      "$ref": "v284230"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting/#ignored": [
+    {
+      "calls": {
+        "fastifyCalls": 41,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 41,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284231"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting/#ignored"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting/#ignored": [
+    {
+      "$ref": "v284232"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 43,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 43,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284233"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting?ignored=/": [
+    {
+      "$ref": "v284234"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting/?ignored=1": [
+    {
+      "calls": {
+        "fastifyCalls": 45,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 45,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284235"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting/?ignored=1"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting/?ignored=1": [
+    {
+      "$ref": "v284236"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting?ignored=/#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 47,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 47,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284237"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting?ignored=/#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting?ignored=/#ignored/": [
+    {
+      "$ref": "v284238"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting/?ignored=1#ignored": [
+    {
+      "calls": {
+        "fastifyCalls": 49,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 49,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284239"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting/?ignored=1#ignored"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting/?ignored=1#ignored": [
+    {
+      "$ref": "v284240"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting%2F#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 51,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 51,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284241"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting%2F#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting%2F#ignored/": [
+    {
+      "$ref": "v284242"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting%2f?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 53,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 53,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284243"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting%2f?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting%2f?ignored=/": [
+    {
+      "$ref": "v284244"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute group%2fitem#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 55,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 55,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284245"
+      },
+      "url": "http://evil.invalid/portal/custom/group%2fitem#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute group%2fitem#ignored/": [
+    {
+      "$ref": "v284246"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute group%252Fitem?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 57,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 57,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284247"
+      },
+      "url": "http://evil.invalid/portal/custom/group%252Fitem?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute group%252Fitem?ignored=/": [
+    {
+      "$ref": "v284248"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute group%23item#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 59,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 59,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284249"
+      },
+      "url": "http://evil.invalid/portal/custom/group%23item#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute group%23item#ignored/": [
+    {
+      "$ref": "v284250"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute group%3Fitem?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 61,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 61,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284251"
+      },
+      "url": "http://evil.invalid/portal/custom/group%3Fitem?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute group%3Fitem?ignored=/": [
+    {
+      "$ref": "v284252"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting/#ignored/?query=/": [
+    {
+      "calls": {
+        "fastifyCalls": 63,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 63,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284253"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting/#ignored/?query=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting/#ignored/?query=/": [
+    {
+      "$ref": "v284254"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute greeting#ignored?query=/": [
+    {
+      "calls": {
+        "fastifyCalls": 65,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 65,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284255"
+      },
+      "url": "http://evil.invalid/portal/custom/greeting#ignored?query=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute greeting#ignored?query=/": [
+    {
+      "$ref": "v284256"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal GET absolute group//item/?ignored=/#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 67,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 67,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284257"
+      },
+      "url": "http://evil.invalid/portal/custom/group//item/?ignored=/#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=/portal HEAD absolute group//item/?ignored=/#ignored/": [
+    {
+      "$ref": "v284258"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> GET origin greeting": [
+    {
+      "calls": {
+        "fastifyCalls": 1,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 1,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284259"
+      },
+      "url": "/custom/greeting"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> HEAD origin greeting": [
+    {
+      "$ref": "v284260"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> GET origin greeting/": [
+    {
+      "calls": {
+        "fastifyCalls": 3,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 3,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284261"
+      },
+      "url": "/custom/greeting/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> HEAD origin greeting/": [
+    {
+      "$ref": "v284262"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> GET origin greeting#ignored/": [
+    {
+      "calls": {
+        "fastifyCalls": 5,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 5,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284263"
+      },
+      "url": "/custom/greeting#ignored/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> HEAD origin greeting#ignored/": [
+    {
+      "$ref": "v284264"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> GET origin greeting/#ignored": [
+    {
+      "calls": {
+        "fastifyCalls": 7,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 7,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284265"
+      },
+      "url": "/custom/greeting/#ignored"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> HEAD origin greeting/#ignored": [
+    {
+      "$ref": "v284266"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> GET origin greeting?ignored=/": [
+    {
+      "calls": {
+        "fastifyCalls": 9,
+        "fastifyGuard": "hook-required-wildcard",
+        "fastifyGuardCalls": 9,
+        "fastifyRoute": "hook-required-wildcard"
+      },
+      "method": "GET",
+      "response": {
+        "$ref": "v284267"
+      },
+      "url": "/custom/greeting?ignored=/"
+    }
+  ],
+  "FM-031 wildcard request-target differential hook-required-wildcard root=<empty> HEAD origin greeting?ignored=/": [
+    {
+      "$ref": "v284268"
+    }
+  ]
+}

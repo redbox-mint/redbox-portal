@@ -1,0 +1,5454 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "50",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store",
+        "www-authenticate": "Bearer"
+      },
+      "status": 401,
+      "statusMessage": "Unauthorized",
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Authentication required"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000002": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "42",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 413,
+      "statusMessage": "Payload Too Large",
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid request"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000003": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "42",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 400,
+      "statusMessage": "Bad Request",
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid request"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000004": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "42",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": 415,
+      "statusMessage": "Unsupported Media Type",
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid request"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000005": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "50",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store",
+        "www-authenticate": "Bearer"
+      },
+      "status": 401,
+      "statusMessage": "Unauthorized",
+      "text": ""
+    },
+    "v000006": {
+      "headers": {
+        "cache-control": "no-cache, private",
+        "content-length": "45",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403,
+      "statusMessage": "Forbidden",
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid CSRF token"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      }
+    },
+    "v000007": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "27",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 403,
+      "statusMessage": "Forbidden",
+      "text": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Access Denied"
+            ]
+          ]
+        }
+      }
+    },
+    "v000008": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "53",
+      "content-type": "text/plain; charset=utf-8",
+      "expires": "0",
+      "location": "/portal/default/rdmp/user/login",
+      "pragma": "no-cache",
+      "set-cookie": [
+        "<credential>; Path=/; HttpOnly; SameSite=Lax"
+      ],
+      "surrogate-control": "no-store",
+      "vary": "Accept"
+    },
+    "v000009": "default-src 'self'; script-src 'nonce-<nonce>' 'self'; worker-src 'self'; object-src 'none'; manifest-src 'self'; style-src 'nonce-<nonce>' 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; media-src 'self'; frame-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='; upgrade-insecure-requests;",
+    "v000010": {
+      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "content-length": "19",
+      "content-security-policy": {
+        "$ref": "v000009"
+      },
+      "content-type": "text/html; charset=utf-8",
+      "expires": "0",
+      "pragma": "no-cache",
+      "set-cookie": [
+        "<credential>; Path=/; HttpOnly; SameSite=Lax"
+      ],
+      "surrogate-control": "no-store"
+    }
+  },
+  "sequences": {
+    "FM-016 native raw HTTP parsing and session precedence GET nested json toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET nested form toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET nested json valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET nested form valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET json token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": {
+          "$json": []
+        }
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET form token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": {
+          "$json": []
+        }
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET multipart": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET empty invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET malformed form escape": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET oversized unparsed text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET missing type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET empty json": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET utf8 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": {
+          "$json": []
+        }
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET utf16 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": {
+          "$json": []
+        }
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET latin1 form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": {
+          "$json": []
+        }
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET quoted charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": {
+          "$json": []
+        }
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET bad charset syntax": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET json suffix unparsed": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD nested json toString": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD nested form toString": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD nested json valueOf": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD nested form valueOf": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD json token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD form token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD multipart": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD empty invalid type": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD malformed form escape": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD too many form fields": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD oversized unparsed text": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD text": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD invalid type": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD missing type": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD malformed json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD oversized json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD oversized form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD empty json": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD utf8 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD utf16 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD latin1 json denied": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD latin1 form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD unsupported form charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD unknown json charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD quoted charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "2",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache",
+          "surrogate-control": "no-store"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD bad charset syntax": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD json suffix unparsed": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST nested json toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST nested form toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST nested json valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST nested form valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST json token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST form token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST multipart": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST empty invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST malformed form escape": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST oversized unparsed text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST missing type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST empty json": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST utf8 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST utf16 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST latin1 form": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST quoted charset": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST bad charset syntax": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST json suffix unparsed": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT nested json toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT nested form toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT nested json valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT nested form valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT json token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT form token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT multipart": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT empty invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT malformed form escape": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT oversized unparsed text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT missing type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT empty json": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT utf8 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT utf16 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT latin1 form": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT quoted charset": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT bad charset syntax": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT json suffix unparsed": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH nested json toString": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH nested form toString": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH nested json valueOf": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH nested form valueOf": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH nested form Symbol.toPrimitive": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH json token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH form token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH multipart": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH empty invalid type": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH malformed form escape": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH oversized unparsed text": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH text": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH invalid type": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH missing type": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH empty json": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH utf8 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH utf16 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH latin1 form": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH quoted charset": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH bad charset syntax": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH json suffix unparsed": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE nested json toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE nested form toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE nested json valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE nested form valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE json token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE form token": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE multipart": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE empty invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE malformed form escape": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE oversized unparsed text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE text": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE invalid type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE missing type": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE empty json": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE utf8 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE utf16 json": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE latin1 form": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE quoted charset": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE bad charset syntax": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE json suffix unparsed": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS nested json toString": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS nested form toString": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS nested json valueOf": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS nested form valueOf": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS nested form Symbol.toPrimitive": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS json token": [
+      {
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": "<html>layout</html>"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS form token": [
+      {
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": "<html>layout</html>"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS multipart": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS empty invalid type": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS malformed form escape": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS oversized unparsed text": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS text": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS invalid type": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS missing type": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS empty json": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS utf8 json": [
+      {
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": "<html>layout</html>"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS utf16 json": [
+      {
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": "<html>layout</html>"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS latin1 form": [
+      {
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": "<html>layout</html>"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS quoted charset": [
+      {
+        "headers": {
+          "$ref": "v000010"
+        },
+        "status": 200,
+        "statusMessage": "OK",
+        "text": "<html>layout</html>"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS bad charset syntax": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS json suffix unparsed": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS unframed empty application/json; charset=utf-secret": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS unframed empty application/x-www-form-urlencoded; charset=utf-16le": [
+      {
+        "headers": {
+          "$ref": "v000008"
+        },
+        "status": 302,
+        "statusMessage": "Found",
+        "text": "Found. Redirecting to /portal/default/rdmp/user/login"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %ZZ with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with nested json toString": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with nested form toString": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with nested json valueOf": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with nested form valueOf": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with json token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with form token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with multipart": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with empty invalid type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with malformed form escape": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with too many form fields": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with oversized unparsed text": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with text": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with invalid type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with missing type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with malformed json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with oversized json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with oversized form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with empty json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with utf8 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with utf16 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with latin1 json denied": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with latin1 form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with unsupported form charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with unknown json charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with quoted charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with bad charset syntax": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %ZZ with json suffix unparsed": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %ZZ with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %ZZ with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %ZZ with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %ZZ with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %ZZ with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with nested json toString": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with nested form toString": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with nested json valueOf": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with nested form valueOf": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with json token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with form token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with multipart": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with empty invalid type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with malformed form escape": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with too many form fields": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with text": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with invalid type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with missing type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with malformed json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with oversized json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with oversized form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with empty json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with utf8 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with utf16 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with latin1 json denied": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with latin1 form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with unsupported form charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with unknown json charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with quoted charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with bad charset syntax": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %E0%A4%A with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence GET path fault %FF with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with nested json toString": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with nested form toString": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with nested json valueOf": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with nested form valueOf": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with json token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with form token": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with multipart": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with empty invalid type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with malformed form escape": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with too many form fields": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with oversized unparsed text": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with text": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with invalid type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with missing type": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with malformed json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with oversized json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with oversized form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 413,
+        "statusMessage": "Payload Too Large",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with empty json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with utf8 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with utf16 json": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with latin1 json denied": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with latin1 form": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with unsupported form charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with unknown json charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 415,
+        "statusMessage": "Unsupported Media Type",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with quoted charset": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with bad charset syntax": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence HEAD path fault %FF with json suffix unparsed": [
+      {
+        "headers": {
+          "cache-control": "no-cache, private",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": 400,
+        "statusMessage": "Bad Request",
+        "text": ""
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence POST path fault %FF with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PUT path fault %FF with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence PATCH path fault %FF with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence DELETE path fault %FF with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with nested json toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with nested form toString": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with nested json valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with nested form valueOf": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with nested json Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with nested form Symbol.toPrimitive": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with json token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with form token": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with multipart": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with empty invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with malformed form escape": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with too many form fields": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with oversized unparsed text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with text": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with invalid type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with missing type": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with malformed json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with oversized json": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with oversized form": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with empty json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with utf8 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with utf16 json": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with latin1 json denied": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with latin1 form": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with unsupported form charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with unknown json charset": [
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with quoted charset": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with bad charset syntax": [
+      {
+        "$ref": "v000003"
+      }
+    ],
+    "FM-016 native raw HTTP parsing and session precedence OPTIONS path fault %FF with json suffix unparsed": [
+      {
+        "$ref": "v000003"
+      }
+    ]
+  }
+}

@@ -3,7 +3,7 @@ const { createServer } = require('node:http');
 const { mkdtemp, rm } = require('node:fs/promises');
 const { join } = require('node:path');
 const { tmpdir } = require('node:os');
-const { CompanionUploads } = require('../../../dist/http/express/companion');
+const { CompanionUploads } = require('../../../dist/http/integrations/companion/uploads');
 (async () => {
   await import('@uppy/companion');
   const directory = await mkdtemp(join(tmpdir(), 'sr-companion-preloaded-'));

@@ -1,10 +1,11 @@
-import assert from 'node:assert/strict';
+import { golden, assertGolden, goldenKey, goldenControls } from './goldenContracts';
 import { readFileSync } from 'node:fs';
-import { Agent, createServer, request as httpRequest, type RequestListener } from 'node:http';
-import { once } from 'node:events';
+import assert from 'node:assert/strict';
+
+import { Agent, request as httpRequest, type RequestListener } from 'node:http';
+
 import path from 'node:path';
-import express from 'express';
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
+
 import inject from 'light-my-request';
 import { parse, type Token } from 'path-to-regexp';
 import fastify, { type HTTPMethods } from 'fastify';
@@ -12,7 +13,7 @@ import { inventory, inventoryRegistration, productionInventoryOrder } from './in
 import { getMergedApiRoutes, registerCoreApiRoutes } from '../../../dist/api-routes/route-registry';
 import { validateApiRouteRequest } from '../../../dist/api-routes/validation';
 import { updateMetaRoute } from '../../../dist/api-routes/groups/records';
-import { httpErrorHandler } from '../../../dist/http/express/middleware';
+
 import {
   apiRouteRegistrations,
   composeRoutes,
@@ -57,7 +58,8 @@ const registration = (routePath: string): RouteRegistration => ({
 });
 
 /** Independent corpus generation from the original Express tokens, not Fastify's
- * translated alternatives. The real Express Router is the matching oracle.
+ * translated alternatives. Expectations were recorded from the qualified native
+ * router while the original Express comparisons still passed.
  */
 function alternatives(tokens: readonly Token[]): Token[][] {
   if (!tokens.length) return [[]];
@@ -146,7 +148,7 @@ function corpusUrls(routePath: string, prefix: string): string[] {
 }
 
 /** Candidate crossings from pairs of original Express alternatives. This only
- * generates targets: the two real routers still decide matching and ownership.
+ * generates targets: the native router must preserve recorded matching and ownership.
  */
 interface Crossing {
   first: string;
@@ -315,36 +317,6 @@ async function fixture(
       ),
     ],
   });
-  const old = express();
-  old.set('query parser', 'extended');
-  let expressCalls = 0;
-  let expressRoute: string | undefined;
-  let expressGuard: string | undefined;
-  let expressGuardCalls = 0;
-  const router = express.Router();
-  for (const route of [...registrations].sort(
-    (a, b) => Number(b.declaration.method === 'head') - Number(a.declaration.method === 'head')
-  ))
-    router[route.declaration.method](expressRuntimePath(route.declaration.path), (request, reply) => {
-      expressGuard = route.declaration.name;
-      expressGuardCalls++;
-      if (!allowActionProbes && route.declaration.access.kind !== 'public') {
-        reply.status(403).end();
-        return;
-      }
-      if (request.method === 'HEAD' && route.declaration.head?.kind === 'deny') {
-        if (route.declaration.head.allow) reply.set('Allow', route.declaration.head.allow);
-        reply.status(405).end();
-        return;
-      }
-      const owner = describeAction(route, request.method);
-      expressCalls++;
-      expressRoute = owner.declaration.name;
-      reply.json(result(owner, request.params, request.query, request.originalUrl));
-    });
-  old.use(prefix || '/', router);
-  old.use((_request, reply) => reply.status(404).json({ error: 'not-found' }));
-  old.use(httpErrorHandler(nothingLogger));
   const current = createPortalRouter({ exposeHeadRoutes: false });
   current.setNotFoundHandler(async (_request, reply) => reply.code(404).send({ error: 'not-found' }));
   let fastifyCalls = 0;
@@ -371,14 +343,7 @@ async function fixture(
     }
   );
   await current.ready();
-  // Express on Node 26 changes ServerResponse's prototype; use actual HTTP for
-  // the oracle instead of light-my-request's response interception.
-  const server = createServer(old);
   const agent = new Agent({ keepAlive: true });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const address = server.address();
-  assert(address && typeof address === 'object');
   await current.listen({ port: 0, host: '127.0.0.1' });
   const currentAddress = current.server.address();
   assert(currentAddress && typeof currentAddress === 'object');
@@ -413,23 +378,55 @@ async function fixture(
       client.setTimeout(5000, () => client.destroy(new Error('Differential request timed out')));
       client.end();
     });
+  type Observation = {
+    url: string;
+    method: string;
+    response: Awaited<ReturnType<typeof network>>;
+    calls: { fastifyCalls: number; fastifyRoute?: string; fastifyGuard?: string; fastifyGuardCalls: number };
+  };
+  let pendingKey: string | undefined;
+  let recorded = {
+    fastifyCalls: 0,
+    fastifyRoute: undefined as string | undefined,
+    fastifyGuard: undefined as string | undefined,
+    fastifyGuardCalls: 0,
+  };
   return {
-    original: (url: string, method: HTTPMethods = 'GET') => network(address.port, url, method),
-    migrated: (url: string, method: HTTPMethods = 'GET') => network(currentAddress.port, url, method),
+    recorded: (url: string, method: HTTPMethods = 'GET') => {
+      assert.equal(pendingKey, undefined, 'Each recorded request must be consumed');
+      pendingKey = goldenKey('routes');
+      const expected = golden('routes', pendingKey) as Observation;
+      assert.equal(expected.url, url);
+      assert.equal(expected.method, method);
+      recorded = { ...expected.calls } as typeof recorded;
+      return Promise.resolve({ ...expected.response, json: () => JSON.parse(expected.response.body) });
+    },
+    migrated: async (url: string, method: HTTPMethods = 'GET') => {
+      const key = pendingKey ?? goldenKey('routes');
+      pendingKey = undefined;
+      const response = await network(currentAddress.port, url, method);
+      const { date, connection, 'keep-alive': keepAlive, ...headers } = response.headers;
+      assertGolden('routes', key, {
+        url,
+        method,
+        response: { statusCode: response.statusCode, body: response.body, headers, allow: response.allow },
+        calls: { fastifyCalls, fastifyRoute, fastifyGuard, fastifyGuardCalls },
+      });
+      return response;
+    },
     current,
     calls: () => ({
-      expressCalls,
+      recordedCalls: recorded.fastifyCalls,
+      recordedRoute: recorded.fastifyRoute,
+      recordedGuard: recorded.fastifyGuard,
+      recordedGuardCalls: recorded.fastifyGuardCalls,
       fastifyCalls,
-      expressRoute,
       fastifyRoute,
-      expressGuard,
       fastifyGuard,
-      expressGuardCalls,
       fastifyGuardCalls,
     }),
     async close() {
       agent.destroy();
-      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
       await current.close();
     },
   };
@@ -442,11 +439,11 @@ function assertGuards(
 ) {
   assert.equal(
     after.fastifyGuardCalls - before.fastifyGuardCalls,
-    after.expressGuardCalls - before.expressGuardCalls,
+    after.recordedGuardCalls - before.recordedGuardCalls,
     label + ': guard count'
   );
-  if (after.expressGuardCalls !== before.expressGuardCalls)
-    assert.equal(after.fastifyGuard, after.expressGuard, label + ': guard identity');
+  if (after.recordedGuardCalls !== before.recordedGuardCalls)
+    assert.equal(after.fastifyGuard, after.recordedGuard, label + ': guard identity');
 }
 
 let comparisons = 0;
@@ -485,7 +482,7 @@ describe('FM-010 retained Express/Fastify differential corpus', function () {
         const urls = corpusUrls(routePath, prefix);
         for (const url of urls) {
           const before = f.calls();
-          const [expected, actual] = await Promise.all([f.original(url), f.migrated(url)]);
+          const [expected, actual] = await Promise.all([f.recorded(url), f.migrated(url)]);
           comparisons++;
           const label = JSON.stringify({
             routePath,
@@ -494,7 +491,7 @@ describe('FM-010 retained Express/Fastify differential corpus', function () {
           assert.equal(actual.statusCode, expected.statusCode, label);
           assert.equal(
             f.calls().fastifyCalls - before.fastifyCalls,
-            f.calls().expressCalls - before.expressCalls,
+            f.calls().recordedCalls - before.recordedCalls,
             label + ': action dispatch'
           );
           assertGuards(before, f.calls(), label);
@@ -538,7 +535,7 @@ describe('FM-010 complete inventory route-set differential', function () {
           for (const method of ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE', 'PROPFIND'] as const) {
             const url = prefix + target + '?' + query;
             const before = f.calls();
-            const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+            const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
             setComparisons++;
             const label = method + ' ' + url;
             try {
@@ -547,11 +544,11 @@ describe('FM-010 complete inventory route-set differential', function () {
               assertGuards(before, after, label);
               assert.equal(
                 after.fastifyCalls - before.fastifyCalls,
-                after.expressCalls - before.expressCalls,
+                after.recordedCalls - before.recordedCalls,
                 label + ': dispatch count'
               );
-              if (after.expressCalls !== before.expressCalls)
-                assert.equal(after.fastifyRoute, after.expressRoute, label + ': dispatch identity');
+              if (after.recordedCalls !== before.recordedCalls)
+                assert.equal(after.fastifyRoute, after.recordedRoute, label + ': dispatch identity');
               assert.equal(actual.allow, expected.allow, label + ': Allow');
               if (actual.body && actual.headers['content-type']?.includes('application/json'))
                 assert.deepEqual(actual.json(), expected.json(), label);
@@ -574,7 +571,7 @@ describe('FM-010 complete inventory route-set differential', function () {
           for (const url of corpusUrls(expressRuntimePath(row.original.path), prefix))
             for (const method of methods) {
               const before = f.calls();
-              const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+              const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
               setComparisons++;
               const label = JSON.stringify({
                 row: row.name,
@@ -586,11 +583,11 @@ describe('FM-010 complete inventory route-set differential', function () {
               assertGuards(before, after, label);
               assert.equal(
                 after.fastifyCalls - before.fastifyCalls,
-                after.expressCalls - before.expressCalls,
+                after.recordedCalls - before.recordedCalls,
                 label + ': dispatch count'
               );
-              if (after.expressCalls !== before.expressCalls)
-                assert.equal(after.fastifyRoute, after.expressRoute, label + ': dispatch identity');
+              if (after.recordedCalls !== before.recordedCalls)
+                assert.equal(after.fastifyRoute, after.recordedRoute, label + ': dispatch identity');
               assert.equal(actual.headers.allow, expected.allow, label + ': Allow');
               if (actual.body && actual.headers['content-type']?.includes('application/json'))
                 assert.deepEqual(actual.json(), expected.json(), label);
@@ -663,7 +660,7 @@ describe('FM-010 generated crossing guard differential in every composition mode
                   ]) {
                     const url = prefix + target;
                     const before = f.calls();
-                    const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+                    const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
                     outcomes.comparisons++;
                     const label = JSON.stringify({
                       pair: [pair.first, pair.second],
@@ -744,7 +741,7 @@ describe('FM-010 all-method route overlap matrix', () => {
                   ] as const) {
                     const url = prefix + '/x/fixed';
                     const before = f.calls();
-                    const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+                    const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
                     outcomes.comparisons++;
                     assert.equal(actual.statusCode, expected.statusCode, method);
                     assert.equal(actual.allow, expected.allow, method);
@@ -802,7 +799,7 @@ describe('FM-010 declared HEAD ownership with identical access metadata', () => 
               try {
                 const before = f.calls();
                 const [expected, actual] = await Promise.all([
-                  f.original(prefix + '/x/fixed', 'HEAD'),
+                  f.recorded(prefix + '/x/fixed', 'HEAD'),
                   f.migrated(prefix + '/x/fixed', 'HEAD'),
                 ]);
                 assert.equal(actual.statusCode, expected.statusCode);
@@ -834,7 +831,7 @@ describe('FM-010 review regressions', () => {
             for (const target of ['%ZZ', '%', '%E0%A4', 'Value', 'A%2FB']) {
               const before = f.calls();
               const url = prefix + '/submit/' + target;
-              const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+              const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
               assert.equal(expected.statusCode, ['Value', 'A%2FB'].includes(target) ? 404 : 400);
               assert.equal(actual.statusCode, expected.statusCode, method + ' ' + url);
               assert.equal(actual.body, expected.body, url);
@@ -843,14 +840,14 @@ describe('FM-010 review regressions', () => {
           const fallbackMiss = prefix + '/unmatched/%ZZ';
           for (const method of ['GET', 'HEAD', 'OPTIONS'] as const) {
             const [expected, actual] = await Promise.all([
-              f.original(fallbackMiss, method),
+              f.recorded(fallbackMiss, method),
               f.migrated(fallbackMiss, method),
             ]);
             assert.equal(expected.statusCode, 404);
             assert.equal(actual.statusCode, 404, method + ': fallback must not validate captures');
           }
           assert.equal(f.calls().fastifyGuardCalls, 0);
-          assert.equal(f.calls().expressGuardCalls, 0);
+          assert.equal(f.calls().recordedGuardCalls, 0);
         } finally {
           await f.close();
         }
@@ -887,7 +884,7 @@ describe('FM-010 review regressions', () => {
           for (const target of new Set([prefix || '/', prefix + '/', prefix + '//', prefix + '/value/'])) {
             const before = f.calls();
             const [expected, actual] = await Promise.all([
-              f.original(target, 'OPTIONS'),
+              f.recorded(target, 'OPTIONS'),
               f.migrated(target, 'OPTIONS'),
             ]);
             assert.equal(actual.statusCode, expected.statusCode, target);
@@ -912,7 +909,7 @@ describe('FM-010 review regressions', () => {
           ]))
             for (const method of ['GET', 'HEAD', 'OPTIONS'] as const) {
               const before = f.calls();
-              const [expected, actual] = await Promise.all([f.original(target, method), f.migrated(target, method)]);
+              const [expected, actual] = await Promise.all([f.recorded(target, method), f.migrated(target, method)]);
               assert.equal(actual.statusCode, expected.statusCode, method + ' ' + target);
               assert.equal(actual.body, expected.body, target);
               assert.equal(actual.allow, expected.allow, target);
@@ -950,7 +947,7 @@ describe('FM-010 review regressions', () => {
               for (const method of ['GET', 'HEAD', 'OPTIONS'] as const) {
                 const before = f.calls();
                 const [expected, actual] = await Promise.all([
-                  f.original(prefix + '/x/fixed', method),
+                  f.recorded(prefix + '/x/fixed', method),
                   f.migrated(prefix + '/x/fixed', method),
                 ]);
                 assert.equal(actual.statusCode, expected.statusCode);
@@ -995,11 +992,11 @@ describe('FM-010 review regressions', () => {
         for (const target of ['/x/form/edit', '/X/FORM/EDIT', '/x/form/%65dit', '/x/form/A%2FB', '/x/form/Value'])
           for (const method of ['GET', 'HEAD', 'OPTIONS'] as const) {
             const url = prefix + target;
-            const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+            const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
             assert.equal(actual.statusCode, expected.statusCode, url);
             assert.equal(actual.body, expected.body, url);
             assert.equal(actual.allow, expected.allow, url);
-            assert.equal(f.calls().fastifyRoute, f.calls().expressRoute, url);
+            assert.equal(f.calls().fastifyRoute, f.calls().recordedRoute, url);
           }
       } finally {
         await f.close();
@@ -1015,14 +1012,14 @@ describe('FM-010 review regressions', () => {
           ['Value', method === 'HEAD' ? 404 : 200],
         ] as const) {
           const url = '/submit/' + target;
-          const expected = await f.original(url, method);
+          const expected = await f.recorded(url, method);
           const actual = await f.migrated(url, method);
           assert.equal(expected.statusCode, status);
           assert.equal(actual.statusCode, status);
           assert.equal(actual.body, expected.body);
           assert.equal(actual.allow, expected.allow);
         }
-        assert.equal(f.calls().expressCalls, 0);
+        assert.equal(f.calls().recordedCalls, 0);
         assert.equal(f.calls().fastifyCalls, 0);
       } finally {
         await f.close();
@@ -1136,18 +1133,18 @@ describe('FM-010 review regressions', () => {
           ]);
           try {
             const url = prefix + '/translations//';
-            const [expected, actual] = await Promise.all([f.original(url, method), f.migrated(url, method)]);
+            const [expected, actual] = await Promise.all([f.recorded(url, method), f.migrated(url, method)]);
             assert.equal(expected.statusCode, 200);
             assert.equal(actual.statusCode, expected.statusCode);
             assert.equal(actual.headers.allow, expected.allow);
             assert.deepEqual(f.calls(), {
-              expressCalls: method === 'OPTIONS' ? 0 : 1,
+              recordedCalls: method === 'OPTIONS' ? 0 : 1,
               fastifyCalls: method === 'OPTIONS' ? 0 : 1,
-              expressRoute: method === 'OPTIONS' ? undefined : 'wildcard',
+              recordedRoute: method === 'OPTIONS' ? undefined : 'wildcard',
               fastifyRoute: method === 'OPTIONS' ? undefined : 'wildcard',
-              expressGuard: method === 'OPTIONS' ? undefined : 'wildcard',
+              recordedGuard: method === 'OPTIONS' ? undefined : 'wildcard',
               fastifyGuard: method === 'OPTIONS' ? undefined : 'wildcard',
-              expressGuardCalls: method === 'OPTIONS' ? 0 : 1,
+              recordedGuardCalls: method === 'OPTIONS' ? 0 : 1,
               fastifyGuardCalls: method === 'OPTIONS' ? 0 : 1,
             });
             if (method === 'GET') {
@@ -1336,7 +1333,7 @@ describe('FM-010 review regressions', () => {
     });
 });
 
-/** Every accepted named inventory exception has a direct Express oracle, beyond
+/** Every accepted named inventory exception has a recorded native contract, beyond
  * the complete-table corpus. Reverse order may fail composition: a name/reason
  * does not permit a priority that disagrees with the Express stack.
  */
@@ -1404,7 +1401,7 @@ describe('FM-010 each declared inventory precedence against Express', function (
                   for (const version of target.includes('%ZZ') ? ['', '?apiVersion=2.0'] : ['']) {
                     const before = f.calls();
                     const [expected, actual] = await Promise.all([
-                      f.original(url + version, method),
+                      f.recorded(url + version, method),
                       f.migrated(url + version, method),
                     ]);
                     counts.comparisons++;
@@ -1413,8 +1410,8 @@ describe('FM-010 each declared inventory precedence against Express', function (
                     assert.equal(actual.allow, expected.allow, label);
                     assert.equal(actual.body, expected.body, label);
                     assertGuards(before, f.calls(), label);
-                    if (f.calls().expressCalls !== before.expressCalls)
-                      assert.equal(f.calls().fastifyRoute, f.calls().expressRoute, label + ': handler identity');
+                    if (f.calls().recordedCalls !== before.recordedCalls)
+                      assert.equal(f.calls().fastifyRoute, f.calls().recordedRoute, label + ': handler identity');
                   }
                 }
             } finally {
@@ -1464,46 +1461,6 @@ describe('FM-010 round-6 narrowed composition regressions', () => {
             composeRoutes(routes, { policyNames: [], rootContext, legacyOrder }),
             /Unsupported route literal/
           );
-          // Keep the original Express before-method decode behavior and reversed
-          // 200 control visible, for GET/HEAD and both API versions.
-          const old = express();
-          const router = express.Router();
-          for (const route of routes)
-            router[route.declaration.method](route.declaration.path, (_request, reply) =>
-              reply.set('x-handler', route.declaration.name).send('ok')
-            );
-          old.use(rootContext || '/', router);
-          old.use(httpErrorHandler(nothingLogger));
-          const server = createServer(old);
-          server.listen(0, '127.0.0.1');
-          await once(server, 'listening');
-          const address = server.address();
-          assert(address && typeof address === 'object');
-          try {
-            for (const method of ['GET', 'HEAD'])
-              for (const version of ['', '?apiVersion=2.0']) {
-                const status = await new Promise<number>((resolve, reject) => {
-                  const req = httpRequest(
-                    {
-                      host: '127.0.0.1',
-                      port: address.port,
-                      path: rootContext + '/submit/%ZZ' + version,
-                      method,
-                      agent: false,
-                    },
-                    reply => {
-                      reply.resume();
-                      reply.on('end', () => resolve(reply.statusCode!));
-                    }
-                  );
-                  req.on('error', reject);
-                  req.end();
-                });
-                assert.equal(status, reverse ? 200 : 400);
-              }
-          } finally {
-            await new Promise<void>(resolve => server.close(() => resolve()));
-          }
         });
     }
   for (const unsupported of [
@@ -1561,13 +1518,13 @@ describe('FM-031 wildcard request-target differential', function () {
                   stem +
                   (optional ? '/' : '') +
                   test.suffix;
-                const original = await f.original(target, method as HTTPMethods);
+                const original = await f.recorded(target, method as HTTPMethods);
                 const migrated = await f.migrated(target, method as HTTPMethods);
                 assert.equal(original.statusCode, 200, target + ': ' + original.body);
                 assert.equal(migrated.statusCode, original.statusCode, target);
                 assert.equal(migrated.body, original.body, target);
                 assert.equal(f.calls().fastifyRoute, route.declaration.name, target);
-                assert.equal(f.calls().expressRoute, route.declaration.name, target);
+                assert.equal(f.calls().recordedRoute, route.declaration.name, target);
                 if (method !== 'HEAD') {
                   const key = (original.json() as { params: Record<string, unknown> }).params[
                     optional ? 'tail' : 'key'
@@ -1578,3 +1535,5 @@ describe('FM-031 wildcard request-target differential', function () {
       });
     }
 });
+
+goldenControls('routes');

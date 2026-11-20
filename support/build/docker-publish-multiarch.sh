@@ -8,12 +8,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/docker-build-vars.sh"
 
 target_image="${REPO}:${DEPLOY_TAG}${SUFFIX}"
-amd64_image="${target_image}-amd64"
-arm64_image="${target_image}-arm64"
 builder_name="${DOCKER_BUILDX_BUILDER_NAME:-redbox-portal-multiarch}"
 platforms="${DOCKER_PUBLISH_PLATFORMS:-linux/amd64,linux/arm64}"
 max_attempts="${DOCKER_PUBLISH_MAX_ATTEMPTS:-5}"
 base_delay_seconds="${DOCKER_PUBLISH_BASE_DELAY_SECONDS:-60}"
+receipt_dir="$(mktemp -d)"
 
 retry_command() {
   local description="$1"
@@ -37,27 +36,8 @@ retry_command() {
   done
 }
 
-resolve_platform_digest() {
-  local manifest_json="$1"
-  local architecture="$2"
-
-  printf '%s' "${manifest_json}" | node -e '
-let input = "";
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-});
-process.stdin.on("end", () => {
-  const manifest = JSON.parse(input);
-  const entry = (manifest.manifests || []).find((item) => item.platform && item.platform.os === "linux" && item.platform.architecture === process.argv[1]);
-  if (!entry || !entry.digest) {
-    process.exit(1);
-  }
-  process.stdout.write(entry.digest);
-});
-' "${architecture}"
-}
-
 cleanup_builder() {
+  rm -rf "$receipt_dir"
   docker buildx rm "${builder_name}" >/dev/null 2>&1 || true
 }
 
@@ -69,23 +49,30 @@ docker run --privileged --rm tonistiigi/binfmt --install arm64
 docker buildx create --name "${builder_name}" --driver docker-container --use
 docker buildx inspect --bootstrap
 
-echo "Publishing ${target_image} from Dockerfile target ${TARGET} for ${platforms}"
-docker buildx build \
-  --progress plain \
-  --platform "${platforms}" \
-  --target "${TARGET}" \
-  --tag "${target_image}" \
-  --push \
-  .
+# Loading one platform per build lets the filesystem gate inspect the exact
+# local image that will be pushed. Qualify both before publishing either.
+IFS=, read -ra selected_platforms <<< "${platforms}"
+if [[ "${platforms}" != linux/amd64,linux/arm64 && "${platforms}" != linux/arm64,linux/amd64 ]]; then
+  echo 'The multi-arch release requires both linux/amd64 and linux/arm64.' >&2
+  exit 1
+fi
+for platform in "${selected_platforms[@]}"; do
+  image="${target_image}-${platform#linux/}"
+  docker buildx build \
+    --progress plain \
+    --platform "${platform}" \
+    --target "${TARGET}" \
+    --tag "${image}" \
+    --load \
+    .
+  bash "${SCRIPT_DIR}/docker-audit-runtime.sh" "${image}"
+done
 
-manifest_json="$(docker buildx imagetools inspect --raw "${target_image}")"
-amd64_digest="$(resolve_platform_digest "${manifest_json}" amd64)"
-arm64_digest="$(resolve_platform_digest "${manifest_json}" arm64)"
-
-retry_command "create amd64 alias ${amd64_image}" \
-  docker buildx imagetools create --tag "${amd64_image}" "${REPO}@${amd64_digest}"
-
-retry_command "create arm64 alias ${arm64_image}" \
-  docker buildx imagetools create --tag "${arm64_image}" "${REPO}@${arm64_digest}"
-
-echo "Published ${target_image}, ${amd64_image}, and ${arm64_image}"
+for arch in amd64 arm64; do
+  image="${target_image}-${arch}"
+  retry_command "push ${image}" bash "${SCRIPT_DIR}/docker-push-digest.sh" "${image}" \
+    "${receipt_dir}/runtime${SUFFIX}-${arch}"
+done
+DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS="${max_attempts}" \
+DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS="${base_delay_seconds}" \
+  bash "${SCRIPT_DIR}/docker-publish-manifest.sh" "${SUFFIX}" "${receipt_dir}"

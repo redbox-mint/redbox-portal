@@ -3,7 +3,7 @@ import { requestContext } from '../context';
 import { defineController } from '../controllers';
 import { executeProgressGrant } from '../actions/progressGrant';
 import { executeProgressOperation, type ProgressOperationInput } from '../actions/progressOperations';
-import { nativeActionReply } from '../fastify/actionReply';
+import { nativeJsonOutput } from '../fastify/jsonOutput';
 import { sendFreshResponse } from '../fastify/responses';
 export class ProgressController {
   constructor(private readonly input: ProgressOperationInput) {}
@@ -23,7 +23,7 @@ export class ProgressController {
         sessionId: request.session?.sessionId,
         context: () => requestContext(request),
       },
-      nativeActionReply(reply)
+      nativeJsonOutput(reply)
     );
   }
   start(request: FastifyRequest, reply: FastifyReply) {
@@ -56,7 +56,7 @@ export class ProgressController {
         headers: request.headers,
         context: () => requestContext(request),
       },
-      nativeActionReply(reply, bytes => {
+      nativeJsonOutput(reply, bytes => {
         if (!sendFreshResponse(request, reply, reply.statusCode)) reply.send(bytes);
       })
     );

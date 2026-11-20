@@ -1,5 +1,5 @@
 import { firstValueFrom } from 'rxjs';
-import { HttpIdentity } from '../../../src/http/express/identity';
+import { HttpIdentity } from '../../../src/authentication/HttpIdentity';
 import { getIdentityRepositories } from '../../../src/persistence/identity/runtime';
 import { userFromActor } from '../../../src/http/actors';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
@@ -12,7 +12,10 @@ import { referenceProductionFixture, referenceOrigin } from './referenceProducti
 export type Fixture = Awaited<ReturnType<typeof referenceProductionFixture>>;
 export type Wire = { status: number; headers: Record<string, unknown>; text: string; aborted?: boolean };
 export const mutationJobs = /storeRecordAudit|solrAddOrUpdate|solrDelete|storeSecurityEvent|FM026-Trigger/i;
+// Keep the historical contract projection unchanged; only the drain also
+// recognizes the configured Agenda job names.
 const jobs = mutationJobs;
+const drainJobs = new RegExp(mutationJobs.source + '|CreateOrUpdateIndex|DeleteFromIndex', 'i');
 export async function wire(
   url: string,
   method: string,
@@ -71,16 +74,16 @@ export async function session(f: Fixture) {
       ._csrf as string,
   };
 }
-export async function settleMutationWork(f: Fixture) {
+export async function settleMutationWork(f: Pick<Fixture, 'data' | 'client'>) {
   await f.data.records.get().drain();
-  const deadline = Date.now() + 10000;
+  const deadline = performance.now() + 10000;
   while (
     await f.client
       .db()
       .collection('agendaJobs')
-      .countDocuments({ name: jobs, $or: [{ nextRunAt: { $ne: null } }, { lockedAt: { $ne: null } }] })
+      .countDocuments({ name: drainJobs, $or: [{ nextRunAt: { $ne: null } }, { lockedAt: { $ne: null } }] })
   ) {
-    assert(Date.now() < deadline, 'Production mutation jobs must settle');
+    assert(performance.now() < deadline, 'Production mutation jobs must settle');
     await new Promise(resolve => setTimeout(resolve, 10));
   }
 }

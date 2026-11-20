@@ -1,7 +1,10 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { request } from 'node:http';
+import { tmpdir } from 'node:os';
+import { createServer, request } from 'node:http';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Readable } from 'node:stream';
@@ -10,10 +13,9 @@ import WebSocket from 'ws';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import { runAcceptedPersistenceWork, persistenceStatus } from '../../../src/persistence/runtime';
 import { rawSocketFixture, uploadPath, grantPath, socketPath, canonical, deferred } from './rawSocketFixture';
-
+import { withoutSideEffects } from './noSideEffects';
 if (!process.env.HTTP_PILOT_TEST_MONGO_URL || !process.env.HTTP_READ_SOLR_PORT)
   throw new Error('FM-020 requires disposable real Mongo and Solr; never skip these cases.');
-
 const boundary = 'fm020-raw-boundary';
 const start = Buffer.from(
   `--${boundary}\r\nContent-Disposition: form-data; name="before"\r\n\r\nfirst\r\n--${boundary}\r\nContent-Disposition: form-data; name="attachmentFields"; filename="payload.bin"\r\nContent-Type: application/octet-stream\r\n\r\n`
@@ -54,6 +56,7 @@ function connect(f: Fixture, token: string, origin = canonical, path = socketPat
 async function polling(f: Fixture, sid?: string, origin: string | null = canonical, body?: string) {
   const url = new URL(socketPath + '/?EIO=4&transport=polling', f.url);
   if (sid) url.searchParams.set('sid', sid);
+  const signal = AbortSignal.timeout(5000);
   const response = await fetch(url, {
     method: body === undefined ? 'GET' : 'POST',
     headers: {
@@ -61,7 +64,12 @@ async function polling(f: Fixture, sid?: string, origin: string | null = canonic
       ...(body === undefined ? {} : { 'Content-Type': 'text/plain;charset=UTF-8' }),
     },
     body,
-    signal: AbortSignal.timeout(5000),
+    signal,
+  }).catch((error: unknown) => {
+    const cause = error instanceof TypeError ? (error.cause as { code?: string } | undefined) : undefined;
+    if (signal.aborted || cause?.code === 'UND_ERR_SOCKET' || cause?.code === 'ECONNRESET')
+      assert.fail('Expected a polling HTTP response before the connection closed');
+    throw error;
   });
   return { status: response.status, body: await response.text() };
 }
@@ -69,7 +77,7 @@ function pollingUpgrade(f: Fixture, sid: string, origin?: string) {
   const url = new URL(socketPath + '/?EIO=4&transport=websocket', f.url);
   url.protocol = 'ws:';
   url.searchParams.set('sid', sid);
-  return new WebSocket(url, { headers: origin === undefined ? {} : { Origin: origin } });
+  return new WebSocket(url, { handshakeTimeout: 5000, headers: origin === undefined ? {} : { Origin: origin } });
 }
 async function bytes(f: Fixture, fileId: string) {
   return runAcceptedPersistenceWork(f.owner, async () => {
@@ -126,13 +134,12 @@ function normalize(value: unknown): unknown {
     );
   return value;
 }
-
 describe('FM-020 scoped raw upload and progress upgrade on the owned server', function () {
   this.timeout(60000);
   it('serializes upload, grant and metadata JSON once inside their guards, matching retained and current Express', async () => {
     const observations: unknown[][] = [];
-    for (const stack of ['retained Express', 'current Express', 'Fastify']) {
-      const f = await rawSocketFixture(stack === 'Fastify', { retainExpress: stack === 'retained Express' });
+    for (const stack of ['Fastify']) {
+      const f = await rawSocketFixture(stack === 'Fastify', {});
       const results: unknown[] = [];
       let calls = 0;
       const value = { serialized: 'once 日本 🧪' };
@@ -146,12 +153,21 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
           const initialTitle = (await f.storage.getMeta('fm020-record')).metadata.title;
           const observe = async (
             path: string,
-            init: { method?: string; headers?: Record<string, string>; body?: string | Buffer } = {},
+            init: {
+              method?: string;
+              headers?: Record<string, string>;
+              body?: string | Buffer;
+            } = {},
             status = 200
           ) => {
             calls = 0;
             const { response, text } = await new Promise<{
-              response: { status: number; headers: { get(name: string): string | null } };
+              response: {
+                status: number;
+                headers: {
+                  get(name: string): string | null;
+                };
+              };
               text: string;
             }>((resolve, reject) => {
               const req = request(
@@ -266,39 +282,50 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
   });
-  for (const native of [false, true])
-    it(`enforces canonical origin for every existing polling sid and upgrade on ${native ? 'Fastify' : 'current Express'} production`, async () => {
+  for (const native of [true])
+    it(`enforces canonical origin for every existing polling sid and upgrade on ${'Fastify'} production`, async () => {
       const f = await rawSocketFixture(native, { retainExpress: false });
       let upgraded: WebSocket | undefined;
       try {
+        const observeRefusal = <T>(run: () => Promise<T>) =>
+          withoutSideEffects({ data: f.portal.data, client: f.native, owner: f.owner, url: f.url }, run, {
+            sessionCollection: 'pilotSessions',
+          });
+        const refuseUpgrade = (sid: string, origin: string | null) =>
+          observeRefusal(async () => {
+            const denied = pollingUpgrade(f, sid, origin ?? undefined);
+            await assert.rejects(once(denied, 'open'), /403/);
+            await new Promise<void>(resolve => {
+              if (denied.readyState === WebSocket.CLOSED) resolve();
+              else denied.once('close', () => resolve());
+            });
+          });
         const token = await grant(f);
         const initial = await polling(f);
         assert.equal(initial.status, 200);
         const sid = JSON.parse(initial.body.slice(1)).sid as string;
         const connectPacket = '40' + JSON.stringify({ token });
         for (const origin of ['https://foreign.invalid', 'null', null]) {
-          assert.equal((await polling(f, undefined, origin)).status, 403);
-          assert.equal((await polling(f, sid, origin)).status, 403);
-          assert.equal((await polling(f, sid, origin, connectPacket)).status, 403);
-          const denied = pollingUpgrade(f, sid, origin ?? undefined);
-          await assert.rejects(once(denied, 'open'), /403/);
+          assert.equal((await observeRefusal(() => polling(f, undefined, origin))).status, 403);
+          assert.equal((await observeRefusal(() => polling(f, sid, origin))).status, 403);
+          assert.equal((await observeRefusal(() => polling(f, sid, origin, connectPacket))).status, 403);
+          await refuseUpgrade(sid, origin);
           assert.equal(Reflect.get(f.sockets, 'connections').size, 0);
           assert.equal(Reflect.get(f.sockets, 'grants').has(token), true);
         }
         assert.equal((await polling(f, sid, canonical, connectPacket)).status, 200);
         assert.match((await polling(f, sid)).body, /^40/);
         const subscribe = '420' + JSON.stringify(['subscribe', 'fm020-record']);
-        assert.equal((await polling(f, sid, 'https://foreign.invalid', subscribe)).status, 403);
+        assert.equal((await observeRefusal(() => polling(f, sid, 'https://foreign.invalid', subscribe))).status, 403);
         const connection = [...Reflect.get(f.sockets, 'connections').values()][0];
         assert.equal(connection.rooms.size, 0);
         assert.equal((await polling(f, sid, canonical, subscribe)).status, 200);
         assert.equal((await polling(f, sid)).body, '430[{"status":true}]');
         assert.equal(connection.rooms.has('fm020-record'), true);
         const unsubscribe = '421' + JSON.stringify(['unsubscribe', 'fm020-record']);
-        assert.equal((await polling(f, sid, 'https://foreign.invalid', unsubscribe)).status, 403);
+        assert.equal((await observeRefusal(() => polling(f, sid, 'https://foreign.invalid', unsubscribe))).status, 403);
         assert.equal(connection.rooms.has('fm020-record'), true);
         await f.sockets.emit('update', {
           branding: f.brand.id,
@@ -306,11 +333,10 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
           message: 'PRIVATE-PROGRESS-ONLY-FOR-CANONICAL-ORIGIN',
         });
         for (const origin of ['https://foreign.invalid', 'null', null]) {
-          const refused = await polling(f, sid, origin);
+          const refused = await observeRefusal(() => polling(f, sid, origin));
           assert.equal(refused.status, 403);
           assert.equal(refused.body.includes('PRIVATE-PROGRESS'), false);
-          const denied = pollingUpgrade(f, sid, origin ?? undefined);
-          await assert.rejects(once(denied, 'open'), /403/);
+          await refuseUpgrade(sid, origin);
         }
         assert.match((await polling(f, sid)).body, /PRIVATE-PROGRESS-ONLY-FOR-CANONICAL-ORIGIN/);
         upgraded = pollingUpgrade(f, sid, canonical);
@@ -330,8 +356,131 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         await f.close();
       }
     });
-  for (const native of [false, true])
-    describe(native ? 'Fastify' : 'retained Express at 7c15c19c3', () => {
+  it('refuses unknown Companion transfers and foreign callback origins before provider upgrade', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'companion-authorization-'));
+    const source = createServer(async (req, res) => {
+      if (req.url === '/sink' && req.method === 'POST') {
+        res.writeHead(201, { Location: '/sink/transfer', 'Tus-Resumable': '1.0.0' }).end();
+        return;
+      }
+      if (req.url === '/sink/transfer') {
+        if (req.method === 'HEAD') {
+          res.writeHead(200, { 'Upload-Offset': '0', 'Tus-Resumable': '1.0.0' }).end();
+          return;
+        }
+        let bytes = 0;
+        for await (const chunk of req) bytes += chunk.length;
+        res.writeHead(204, { 'Upload-Offset': String(bytes), 'Tus-Resumable': '1.0.0' }).end();
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/plain', 'Content-Length': 4 });
+      res.end('test');
+    });
+    let f: Fixture | undefined;
+    const clients = new Set<WebSocket>();
+    try {
+      source.listen(0, '127.0.0.1');
+      await once(source, 'listening');
+      const address = source.address();
+      assert(address && typeof address === 'object');
+      const upstream = 'http://127.0.0.1:' + address.port;
+      const companion: NonNullable<Parameters<typeof rawSocketFixture>[1]>['companion'] = {
+        enabled: true,
+        route: '/imports',
+        secret: 'fixture-companion-secret-at-least-32-characters',
+        filePath: directory,
+        metrics: false,
+        server: { host: 'portal.example.invalid', protocol: 'https', path: '/imports' },
+        enableUrlEndpoint: true,
+        allowLocalUrls: true,
+        streamingUpload: false,
+        clientSocketConnectTimeout: 3000,
+        uploadUrls: [upstream + '/sink'],
+      };
+      const portal = (f = await rawSocketFixture(true, { companion }));
+      const health = await fetch(portal.url + '/imports/health', { headers });
+      assert.equal(health.status, 200);
+      await health.text();
+      const effectFixture = { data: portal.portal.data, client: portal.native, owner: portal.owner, url: portal.url };
+      const observe = <T>(run: () => Promise<T>) =>
+        withoutSideEffects(effectFixture, run, {
+          sessionCollection: 'pilotSessions',
+        });
+      const client = (endpoint: string, origin = canonical) => {
+        const ws = new WebSocket(portal.url.replace('http:', 'ws:') + '/imports/' + endpoint, {
+          origin,
+          handshakeTimeout: 5000,
+        });
+        ws.on('error', () => {});
+        clients.add(ws);
+        return ws;
+      };
+      const refusal = (endpoint: string, origin?: string) =>
+        observe(async () => {
+          const ws = client(endpoint, origin);
+          try {
+            await assert.rejects(once(ws, 'open'), /Unexpected server response: 403/);
+          } finally {
+            ws.terminate();
+          }
+        });
+      const callback = 'api2/auth-callback/token/validCallbackToken';
+      await refusal('api/untrackedTransfer');
+      await refusal(callback, 'https://foreign.invalid');
+      const admitted = client(callback);
+      assert.equal(
+        await once(admitted, 'open').then(
+          () => true,
+          () => false
+        ),
+        true,
+        'Canonical callback upgrade'
+      );
+      admitted.close();
+      await once(admitted, 'close');
+      const invalid = await observe(() =>
+        fetch(portal.url + '/imports/url/meta', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: 1 }),
+        })
+      );
+      assert.equal(invalid.status, 400);
+      assert.deepEqual(await invalid.json(), { message: 'Invalid URL request' });
+      const transfer = await fetch(portal.url + '/imports/url/get', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: upstream + '/source',
+          protocol: 'tus',
+          endpoint: upstream + '/sink',
+          metadata: { name: 'contract.txt' },
+        }),
+      });
+      assert.equal(transfer.status, 200, await transfer.clone().text());
+      const { token } = await transfer.json();
+      assert.equal(typeof token, 'string');
+      const tracked = client('api/' + token);
+      assert.equal(
+        await once(tracked, 'open').then(
+          () => true,
+          () => false
+        ),
+        true,
+        'Tracked transfer upgrade'
+      );
+    } finally {
+      for (const ws of clients) ws.terminate();
+      try {
+        await f?.close();
+      } finally {
+        await new Promise<void>(resolve => source.close(() => resolve()));
+        await rm(directory, { recursive: true, force: true });
+      }
+    }
+  });
+  for (const native of [true])
+    describe('Fastify', () => {
       let f: Fixture;
       const clients: Socket[] = [];
       before(async () => {
@@ -349,7 +498,7 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         assert.equal(file.metadata.size, sent.length);
         assert.deepEqual(await bytes(f, file.fileId), sent);
         assert.deepEqual(await f.files(), []);
-        if (native) {
+        {
           assert.equal(f.preparedBeforeListening, true);
           assert.equal(f.listenCalls(), 1);
         }
@@ -384,7 +533,7 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
           assert.equal(response.status, 200);
           // The full Express portal also owns GET/HEAD datastream listing.
           // This explicit conversion scope selects only POST for these paths.
-          const allowed = !native && path === uploadPath ? 'GET, HEAD, POST' : 'POST';
+          const allowed = 'POST';
           assert.equal(response.headers.get('allow'), allowed);
           assert.equal(await response.text(), allowed);
         }
@@ -409,25 +558,100 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
           ['missing', canonical],
           [await grant(f), 'https://foreign.invalid'],
         ]) {
-          const failed = connect(f, token, origin);
-          clients.push(failed.client);
-          await assert.rejects(failed.connected);
-          failed.client.disconnect();
+          await withoutSideEffects(
+            { data: f.portal.data, client: f.native, owner: f.owner, url: f.url },
+            async () => {
+              const failed = connect(f, token, origin);
+              clients.push(failed.client);
+              await assert.rejects(failed.connected);
+              failed.client.disconnect();
+            },
+            { sessionCollection: 'pilotSessions' }
+          );
         }
         const token = await grant(f),
           accepted = connect(f, token);
         clients.push(accepted.client);
-        const client = await accepted.connected;
-        const reused = connect(f, token);
-        clients.push(reused.client);
-        await assert.rejects(reused.connected);
-        reused.client.disconnect();
+        assert.equal(
+          await accepted.connected.then(
+            () => true,
+            () => false
+          ),
+          true,
+          'Valid grant connects'
+        );
+        const client = accepted.client;
+        await withoutSideEffects(
+          { data: f.portal.data, client: f.native, owner: f.owner, url: f.url },
+          async () => {
+            const reused = connect(f, token);
+            clients.push(reused.client);
+            await assert.rejects(reused.connected, /^Error: Authentication required$/);
+            reused.client.disconnect();
+          },
+          { sessionCollection: 'pilotSessions' }
+        );
         assert.deepEqual(await client.timeout(5000).emitWithAck('subscribe', 'fm020-record'), { status: true });
         assert.deepEqual(await client.timeout(5000).emitWithAck('subscribe', 'foreign-record'), { status: false });
-        const received = new Promise<{ message: string }>(resolve => client.once('update', resolve));
+        const [connection] = Reflect.get(f.sockets, 'connections').values();
+        assert.deepEqual([...connection.rooms], ['fm020-record']);
+        const received: string[] = [];
+        client.on('update', ({ message }) => received.push(message));
+        await f.sockets.emit('update', {
+          branding: f.otherBrand.id,
+          relatedRecordId: 'fm020-record',
+          message: 'foreign tenant',
+        });
         await f.sockets.emit('update', { branding: f.brand.id, relatedRecordId: 'fm020-record', message: 'progress' });
-        assert.equal((await received).message, 'progress');
+        // The same socket delivers broadcasts and acknowledgements in order.
+        assert.deepEqual(await client.timeout(5000).emitWithAck('subscribe', 'fm020-record'), { status: true });
+        assert.deepEqual(received, ['progress']);
         client.disconnect();
+      });
+      it('requires grant authentication to resolve the original actor and brand', async () => {
+        const input = Reflect.get(f.sockets, 'input');
+        const authenticate = input.authenticate as (input: {
+          authorization?: string;
+        }) => Promise<import('../../../src/http/context').AuthenticatedActor | false>;
+        try {
+          for (const change of ['missing', 'different', 'foreign'] as const) {
+            const token = await grant(f);
+            input.authenticate = async (credential: Parameters<typeof authenticate>[0]) => {
+              const actor = await authenticate(credential);
+              assert(actor);
+              if (change === 'missing') return false;
+              if (change === 'different') return { ...actor, id: f.reader.id };
+              return { ...actor, roles: actor.roles.map(role => ({ ...role, brandId: f.otherBrand.id })) };
+            };
+            await withoutSideEffects(
+              { data: f.portal.data, client: f.native, owner: f.owner, url: f.url },
+              async () => {
+                const client = connect(f, token);
+                clients.push(client.client);
+                await assert.rejects(client.connected, /^Error: Authentication required$/);
+                assert.equal(Reflect.get(f.sockets, 'connections').size, 0);
+                client.client.disconnect();
+              },
+              { sessionCollection: 'pilotSessions' }
+            );
+            input.authenticate = authenticate;
+          }
+          const allowed = connect(f, await grant(f));
+          clients.push(allowed.client);
+          assert.equal(
+            await allowed.connected.then(
+              () => true,
+              () => false
+            ),
+            true
+          );
+          assert.deepEqual(await allowed.client.timeout(5000).emitWithAck('subscribe', 'fm020-record'), {
+            status: true,
+          });
+          allowed.client.disconnect();
+        } finally {
+          input.authenticate = authenticate;
+        }
       });
       it('retains authentication after disconnect until the real identity operation settles', async () => {
         const hold = f.holdAuthentication();
@@ -472,26 +696,23 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         assert.equal((await upload(f)).status, 200);
       });
     });
-
   it('matches retained Express upload/denial observations and socket behavior', async () => {
     const observations: unknown[] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await rawSocketFixture(native);
       try {
         const good = await upload(f);
         const denied = await upload(f, undefined, { Origin: 'https://foreign.invalid' });
         observations.push(normalize({ good, denied }));
-        if (!native) assert.equal(Object.keys(f.retainedHashes!).length, 3);
       } finally {
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
   });
-
   it('matches retained JSON/form parser failures before upload authentication', async () => {
     const observations: unknown[][] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await rawSocketFixture(native);
       const results: unknown[] = [];
       try {
@@ -516,9 +737,8 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
   });
-
   it('propagates real-network backpressure and drains a transfer plus open socket on retry', async () => {
     const f = await rawSocketFixture(true);
     const accepted = connect(f, await grant(f));
@@ -574,7 +794,6 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
       await f.close();
     }
   });
-
   it('retains Engine.IO accepted subpaths through actual upgraded TCP closure', async () => {
     const f = await rawSocketFixture(true);
     const accepted = connect(f, await grant(f), canonical, socketPath + '/suffix');
@@ -595,7 +814,6 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
       await f.close();
     }
   });
-
   it('retains an in-progress namespace authentication during stop and rejects new upgrade ingress', async () => {
     const f = await rawSocketFixture(true);
     const hold = f.holdAuthentication();
@@ -618,12 +836,16 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
   });
   it('matches retained upload and grant validation, security, fault and capacity responses in API1/API2', async () => {
     const observations: unknown[][] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await rawSocketFixture(native);
       const results: unknown[] = [];
       const observe = async (
         path: string,
-        init: { method: string; headers: Record<string, string>; body?: Buffer }
+        init: {
+          method: string;
+          headers: Record<string, string>;
+          body?: Buffer;
+        }
       ) => {
         // Capacity setup can exceed a keep-alive idle interval. Each retained
         // observation owns a fresh raw HTTP connection and its complete response.
@@ -819,12 +1041,11 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
   });
-
   it('matches retained session grants, reconnect, CSRF and fresh session/identity revocation', async () => {
     const observations: unknown[][] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const f = await rawSocketFixture(native);
       const results: unknown[] = [];
       const clients: Socket[] = [];
@@ -936,7 +1157,6 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         await delay(30);
         assert.equal(leaked, false);
         live.disconnect();
-
         await f.identities.update('user', { id: f.user.id }, { loginDisabled: false });
         const roleGrant = await sessionGrant();
         await f.identities.removeMemberships('user', f.user.id, [f.role.id]);
@@ -967,10 +1187,9 @@ describe('FM-020 scoped raw upload and progress upgrade on the owned server', fu
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
   });
 });
-
 // Stage ordering belongs to the shared production action, not an incremental
 // Busboy callback or a second native validation pass.
 describe('FM-020 complete multipart validation stages', function () {
@@ -1017,7 +1236,13 @@ describe('FM-020 complete multipart validation stages', function () {
         },
         extractor: request => {
           calls++;
-          return { permit: (request.body as { permit: string }).permit.toLowerCase() };
+          return {
+            permit: (
+              request.body as {
+                permit: string;
+              }
+            ).permit.toLowerCase(),
+          };
         },
       },
     });
@@ -1040,7 +1265,12 @@ describe('FM-020 complete multipart validation stages', function () {
         body: { content: { 'multipart/form-data': { schema: z.object({ permit: z.literal('yes!') }) } } },
         extractor: request => {
           calls++;
-          const body = request.body as { permit?: string; suffix?: string } | undefined;
+          const body = request.body as
+            | {
+                permit?: string;
+                suffix?: string;
+              }
+            | undefined;
           return { permit: (body?.permit?.toLowerCase() ?? '') + (body?.suffix ?? '') };
         },
       },
@@ -1061,8 +1291,8 @@ describe('FM-020 complete multipart validation stages', function () {
   });
   it('matches retained/current Express timing and staging outcomes for the current upload declaration', async () => {
     const observations: unknown[][] = [];
-    for (const mode of ['retained', 'current', 'native'] as const) {
-      const f = await rawSocketFixture(mode === 'native', { retainExpress: mode === 'retained' });
+    for (const mode of ['native'] as const) {
+      const f = await rawSocketFixture(true);
       const events: string[] = [];
       const disk = f.disks.stagingDisk(),
         put = disk.putStream,
@@ -1110,7 +1340,18 @@ describe('FM-020 complete multipart validation stages', function () {
         ] as [string, string, Record<string, string>, number, string[]][]) {
           events.length = 0;
           const before = (await f.storage.getMeta('fm020-record')).revision;
-          const response = await send(f, body, '', extra);
+          const response =
+            status === 200
+              ? await send(f, body, '', extra)
+              : await withoutSideEffects(
+                  { data: f.portal.data, client: f.native, owner: f.owner, url: f.url },
+                  () => send(f, body, '', extra),
+                  {
+                    sessionCollection: 'pilotSessions',
+                    expectedCalls:
+                      name === 'unexpected-file' ? { 'staging:putStream': 1, 'staging:delete': 1 } : undefined,
+                  }
+                );
           assert.equal(response.status, status, JSON.stringify({ mode, name, response }));
           assert.deepEqual(events, expected, mode + ': ' + name);
           assert.deepEqual(await f.files(), []);
@@ -1126,12 +1367,75 @@ describe('FM-020 complete multipart validation stages', function () {
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
-    assert.deepEqual(observations[2], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
+  });
+  it('rejects repeated and reserved multipart field names before a record write', async () => {
+    const f = await rawSocketFixture(true);
+    try {
+      const before = await f.storage.getMeta('fm020-record');
+      for (const name of ['permit', '__proto__', 'constructor']) {
+        const denied = await withoutSideEffects(
+          { data: f.portal.data, client: f.native, owner: f.owner, url: f.url },
+          () => send(f, multipart([field('permit', 'first'), field(name, 'second'), file()])),
+          { sessionCollection: 'pilotSessions' }
+        );
+        assert.equal(denied.status, 400);
+        assert.deepEqual(denied.errors, [{ detail: 'Invalid or repeated multipart field' }]);
+        assert.equal(denied.etag, false);
+        assert.deepEqual(await f.files(), []);
+        assert.deepEqual(await f.storage.getMeta('fm020-record'), before);
+      }
+      const allowed = await send(f, multipart([field('permit', 'first'), file()]));
+      assert.equal(allowed.status, 200);
+      assert.equal(f.finalizations(), 1);
+    } finally {
+      await f.close();
+    }
+  });
+  it('refuses an undeclared multipart file alongside a valid attachment without dispatch', async () => {
+    const f = await rawSocketFixture(true);
+    let writes = 0;
+    const save = f.writer.updateMeta;
+    f.writer.updateMeta = async function (...args) {
+      writes++;
+      return save.apply(this, args);
+    };
+    try {
+      const before = await f.storage.getMeta('fm020-record');
+      const denied = await withoutSideEffects(
+        { data: f.portal.data, client: f.native, owner: f.owner, url: f.url },
+        () => send(f, multipart([file(), file('must not persist', 'other')])),
+        {
+          sessionCollection: 'pilotSessions',
+          // Parsing may stage both parts. The preexisting trace and snapshot
+          // still require cleanup and no record write or finalization.
+          ignorePorts: ['staging:putStream', 'staging:delete'],
+        }
+      );
+      assert.deepEqual(denied, {
+        status: 400,
+        errors: [{ detail: 'Unexpected file field' }],
+        cache: 'no-cache, private',
+        etag: false,
+      });
+      assert.equal(writes, 0);
+      assert.equal(f.finalizations(), 0);
+      assert.deepEqual(await f.storage.getMeta('fm020-record'), before);
+      assert.deepEqual(await f.files(), []);
+
+      const allowed = await send(f, multipart([file()]));
+      assert.equal(allowed.status, 200);
+      assert.equal(writes, 1);
+      assert.equal(f.finalizations(), 1);
+      assert.deepEqual(await f.files(), []);
+    } finally {
+      f.writer.updateMeta = save;
+      await f.close();
+    }
   });
   it('matches current Express for one validation pass per stage, complete extraction, rejection cleanup and finalisation', async () => {
     const observations: unknown[][] = [];
-    for (const native of [false, true]) {
+    for (const native of [true]) {
       const events: string[] = [];
       let f: Fixture;
       const count = <T extends import('zod').ZodType>(name: string, schema: T): T => {
@@ -1153,14 +1457,23 @@ describe('FM-020 complete multipart validation stages', function () {
         files: { attachmentFields: { required: true, multiple: false, maxBytes: 16 } },
         extractor: request => {
           events.push('extract');
-          const files = request.files as Record<string, { fd: string; size: number }[]>;
+          const files = request.files as Record<
+            string,
+            {
+              fd: string;
+              size: number;
+            }[]
+          >;
           assert.ok(files, 'complete file metadata is available to the body extractor');
           for (const entries of Object.values(files))
             for (const entry of entries) {
               assert.ok(existsSync(join(f.directory, 'staging', entry.fd)), 'all files are staged before extraction');
               assert.ok(entry.size > 0);
             }
-          const body = request.body as { permit?: string; suffix?: string };
+          const body = request.body as {
+            permit?: string;
+            suffix?: string;
+          };
           if (body.permit === 'THROW') throw new Error('private extractor failure');
           if (body.permit === 'NONE') return undefined;
           return { permit: (body.permit?.toLowerCase() ?? '') + (body.suffix ?? '') };
@@ -1306,6 +1619,8 @@ describe('FM-020 complete multipart validation stages', function () {
         await f.close();
       }
     }
-    assert.deepEqual(observations[1], observations[0]);
+    assertGoldenNext('raw-socket-mongo', observations[0]);
   });
 });
+
+goldenControls('raw-socket-mongo');

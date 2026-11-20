@@ -29,7 +29,7 @@ x-bruno-service: &bruno-service
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
   - RBPORTAL_TEST_PROFILE=s3
-  - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
+  - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/portal-integration.config.cjs
   - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
   - PORT=1500
   - NODE_OPTIONS=--max-old-space-size=1024

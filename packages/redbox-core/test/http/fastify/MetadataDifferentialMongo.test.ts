@@ -1,4 +1,7 @@
+import { authorizationWitness } from './authorizationRequests';
+import { golden, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
+import { assertNoObservedEffects, observeNoSideEffects } from './noSideEffects';
 import { request } from 'node:http';
 import { ObjectId } from 'mongodb';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -378,13 +381,16 @@ function conditionHeaders(kind: string | undefined, tag: string) {
                   : tag;
   return headers;
 }
-async function run(native: boolean, version: string, retainedExpress = false, prelude = false) {
-  const f = await fixture(native, {
-    retainedExpress,
+const metadataSuiteTitle = 'FM-019 complete metadata raw HTTP retained differential';
+const metadataCaseTitle = (version: string, name: string) => 'API ' + version + ' ' + name;
+
+async function run(native: boolean, version: string, prelude = false) {
+  // Earlier writes establish the schema-reference history checked by the
+  // golden, even when Mocha selects just one witness title.
+  const prepared = cases.filter(c => !!c.prelude === prelude);
+  const f = await fixture(true, {
     ...(prelude ? { policyConfiguration: { '*': ['noCache', 'brandingAndPortal', 'isWebServiceAuthenticated'] } } : {}),
   });
-  if (retainedExpress && 'baselineHashes' in f)
-    console.log('FM019 retained Express SHA256 ' + JSON.stringify(f.baselineHashes));
   try {
     const auth = await login(f, native),
       db = f.native.db(),
@@ -442,12 +448,12 @@ async function run(native: boolean, version: string, retainedExpress = false, pr
     }
     const baseline = (await collection.findOne({ redboxOid: 'fm019-record' }))!;
     const observations = [];
-    for (const c of cases.filter(c => !!c.prelude === prelude)) {
+    for (const c of prepared) {
       await collection.replaceOne({ redboxOid: 'fm019-record' }, baseline, { upsert: true });
       await f.identities.update('user', { id: f.user.id }, { roles: [f.role.id] });
       const initial = await raw(f.url + target, 'GET', { 'X-ReDBox-Api-Version': version, Cookie: auth.cookie });
-      assert.equal(initial.status, 200, JSON.stringify({ native, retainedExpress, initial }));
-      assert(initial.headers.link, JSON.stringify({ native, retainedExpress, initial }));
+      assert.equal(initial.status, 200, JSON.stringify({ native, initial }));
+      assert(initial.headers.link, JSON.stringify({ native, initial }));
       const tag = initial.headers.etag!;
       const schema = '"sha256:' + initial.headers.link!.split('/schemas/')[1].split('>')[0] + '"';
       let path = target + (c.query ? '?' + c.query : '');
@@ -502,14 +508,35 @@ async function run(native: boolean, version: string, retainedExpress = false, pr
           return result;
         };
       let result: Awaited<ReturnType<typeof raw>>;
+      let effects: string[] | undefined;
+      const observer =
+        c.method === 'PUT' && (c.denial || c.race) && (c.status ?? 0) >= 400 && !c.fault
+          ? await observeNoSideEffects(
+              {
+                client: f.native,
+                data: f.portal.data,
+                owner: f.owner,
+                url: f.url,
+                drainRequestEffects: f.drainRequestEffects,
+              },
+              {
+                sessionCollection: 'pilotSessions',
+                ...(c.race
+                  ? ({
+                      concurrentWinner: { collection: 'record', oid: 'fm019-record' },
+                      expectedCalls: { 'record:updateMeta': 1 },
+                    } as const)
+                  : {}),
+              }
+            )
+          : undefined;
       try {
-        result = await raw(
-          f.url + path,
-          c.method,
-          headers,
-          c.rawBody ?? (c.body === undefined ? undefined : JSON.stringify(c.body))
+        result = await authorizationWitness(`${metadataSuiteTitle} ${metadataCaseTitle(version, c.name)}`, () =>
+          raw(f.url + path, c.method, headers, c.rawBody ?? (c.body === undefined ? undefined : JSON.stringify(c.body)))
         );
+        if (observer) effects = await observer.differences();
       } finally {
+        observer?.restore();
         f.writer.updateMeta = update;
         f.storage.getMeta = readMeta;
       }
@@ -527,8 +554,10 @@ async function run(native: boolean, version: string, retainedExpress = false, pr
           workflow: value.workflow,
           metaMetadata: value.metaMetadata,
         };
-      observations.push(
-        normalize(
+      observations.push({
+        key: version + ':' + cases.indexOf(c) + ':' + c.name,
+        effects,
+        value: normalize(
           {
             result,
             before: select(before),
@@ -537,12 +566,11 @@ async function run(native: boolean, version: string, retainedExpress = false, pr
             schemaReferences: await db.collection('recordschemareference').countDocuments({ oid: 'fm019-record' }),
           },
           f
-        )
-      );
+        ),
+      });
     }
     console.log(
-      'FM019 metadata composition complete ' +
-        JSON.stringify({ native, retainedExpress, version, cases: observations.length })
+      'FM019 metadata composition complete ' + JSON.stringify({ native, version, cases: observations.length })
     );
     return observations;
   } finally {
@@ -550,37 +578,32 @@ async function run(native: boolean, version: string, retainedExpress = false, pr
   }
 }
 
-describe('FM-019 complete metadata raw HTTP retained differential', function () {
+describe(metadataSuiteTitle, function () {
   this.timeout(900000);
-  let results: unknown[][][];
+  const results = new Map<string, { value: unknown; effects?: string[] }>();
   before(async () => {
     await preparePilot();
-    results = [];
-    for (const version of ['1.0', '2.0']) {
-      const pair = [];
-      for (const [native, retained] of [
-        [false, true],
-        [false, false],
-        [true, false],
-      ])
-        pair.push([...(await run(native, version, retained)), ...(await run(native, version, retained, true))]);
-      results.push(pair);
-    }
+    for (const version of ['1.0', '2.0'])
+      for (const prelude of [false, true])
+        for (const { key, value, effects } of await run(true, version, prelude)) results.set(key, { value, effects });
   });
   after(async () => {
     await packed?.close();
   });
-  for (const [v, version] of ['1.0', '2.0'].entries())
+  for (const version of ['1.0', '2.0'])
     for (const [i, c] of cases.entries())
-      it('API ' + version + ' ' + c.name, () => {
-        const native = results[v][2][i] as {
+      it(metadataCaseTitle(version, c.name), () => {
+        const key = version + ':' + i + ':' + c.name;
+        const observation = results.get(key);
+        assert(observation);
+        if (observation.effects) assertNoObservedEffects(observation.effects);
+        const native = observation.value as {
           result: Awaited<ReturnType<typeof raw>>;
           before: { metadata: unknown; revision: number };
           saved: { metadata: unknown; revision: number };
           auditDelta: number;
         };
-        assert.deepEqual(results[v][1][i], results[v][0][i], 'Refactored Express changed');
-        assert.deepEqual(results[v][2][i], results[v][0][i], 'Fastify differs from retained Express');
+        assert.deepEqual(native, golden('metadata', key), `Complete native contract: metadata ${key}`);
         if (c.status !== undefined)
           assert.equal(
             native.result.status,
@@ -624,3 +647,5 @@ describe('FM-019 complete metadata raw HTTP retained differential', function () 
         assert(!JSON.stringify(native.result.body).includes('PRIVATE-SECRET'));
       });
 });
+
+goldenControls('metadata');

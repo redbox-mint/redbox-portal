@@ -1,0 +1,273 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "account-self/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "63"
+        },
+        "text": "{\"message\":\"Cannot link a user account to itself\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "named-reserved/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "62"
+        },
+        "text": "{\"message\":\"Invalid or reserved definition name\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "named-mismatch/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "62"
+        },
+        "text": "{\"message\":\"Invalid or reserved definition name\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "named-illegal/1.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "62"
+        },
+        "text": "{\"message\":\"Invalid or reserved definition name\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "vocabulary-update/1.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "47"
+        },
+        "text": "{\"message\":\"Vocabulary not found\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "vocabulary-sync/1.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "47"
+        },
+        "text": "{\"message\":\"Vocabulary not found\",\"details\":\"\"}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "account-self/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "72"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Cannot link a user account to itself\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "named-reserved/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "71"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid or reserved definition name\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "named-mismatch/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "71"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid or reserved definition name\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "named-illegal/2.0": {
+      "wire": {
+        "status": 400,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "71"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Invalid or reserved definition name\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "vocabulary-update/2.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "56"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Vocabulary not found\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "vocabulary-sync/2.0": {
+      "wire": {
+        "status": 404,
+        "headers": {
+          "cross-origin-opener-policy": "same-origin-allow-popups",
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "56"
+        },
+        "text": "{\"errors\":[{\"detail\":\"Vocabulary not found\"}],\"meta\":{}}"
+      },
+      "state": {
+        "unchanged": true,
+        "catalog": 0,
+        "provider": 0
+      }
+    },
+    "brand-lookup": [
+      {
+        "status": 200,
+        "headers": {
+          "cache-control": "no-cache, private",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "etag": "\"rb-record-v1.0.BKlIMQZR6pO6WlkZFUfYdatr9kkP8MkqsXDLRqfj_hI\"",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "21"
+        },
+        "text": "{\"title\":\"Reference\"}"
+      },
+      {
+        "status": 404,
+        "headers": {
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store",
+          "transfer-encoding": "chunked"
+        },
+        "text": ""
+      }
+    ]
+  },
+  "shared": {}
+}

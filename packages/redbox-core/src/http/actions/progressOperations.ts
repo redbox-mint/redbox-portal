@@ -1,10 +1,10 @@
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { Services as Progress } from '../../progress/Asynchs';
 import type { RecordsService } from '../../RecordsService';
-import type { ProgressSockets } from '../express/progressSockets';
+import type { ProgressSockets } from '../integrations/progressSockets';
 import { authorizeProgressRoom } from '../../progress/authorization';
 import { referenceValue as singleHttpResult } from './reference';
-import { actionApiData, actionApiErrors, type ActionRequest, type ActionReply } from './actionReply';
+import { actionApiData, actionApiErrors, type ActionRequest, type JsonOutput } from './jsonOutput';
 export interface ProgressOperationInput {
   readonly progress: Pick<Progress.Asynchs, 'start' | 'update' | 'finish' | 'get'>;
   readonly records: Pick<RecordsService, 'getMeta' | 'hasViewAccess'>;
@@ -16,7 +16,7 @@ export async function executeProgressOperation(
   input: ProgressOperationInput,
   operation: 'start' | 'update' | 'stop' | 'progress' | 'subscribe' | 'unsubscribe',
   req: ActionRequest,
-  res: ActionReply
+  res: JsonOutput
 ): Promise<void> {
   const { actor, brand } = req.context();
   try {

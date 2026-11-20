@@ -1,0 +1,92 @@
+[
+  {
+    "file": "package.json",
+    "section": "dependencies",
+    "dependency": "compression",
+    "version": "1.8.1"
+  },
+  {
+    "file": "package.json",
+    "section": "dependencies",
+    "dependency": "connect-mongo",
+    "version": "6.0.0"
+  },
+  {
+    "file": "package.json",
+    "section": "dependencies",
+    "dependency": "express-session",
+    "version": "1.19.0"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "compression",
+    "version": "1.8.2"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "connect-mongo",
+    "version": "6.0.0"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "csrf-sync",
+    "version": "4.2.1"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "express-session",
+    "version": "1.19.0"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "passport",
+    "version": "0.7.0"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "passport-http-bearer",
+    "version": "1.0.1"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "passport-jwt",
+    "version": "4.0.1"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "dependencies",
+    "dependency": "passport-local",
+    "version": "1.0.0"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "devDependencies",
+    "dependency": "@types/express-session",
+    "version": "1.19.0"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "devDependencies",
+    "dependency": "@types/passport-http-bearer",
+    "version": "1.0.42"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "devDependencies",
+    "dependency": "@types/passport-jwt",
+    "version": "4.0.1"
+  },
+  {
+    "file": "packages/redbox-core/package.json",
+    "section": "devDependencies",
+    "dependency": "@types/passport-local",
+    "version": "1.0.38"
+  }
+]

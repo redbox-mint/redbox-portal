@@ -14,7 +14,7 @@ import { HttpFailure, writeHttpError } from '../../fastify/errorBoundary';
 import { loadCompanionWithSafeLogging } from './companionLogging';
 import type { CompanionConfig } from '../../../config/companionDefaults';
 
-/** The same explicit deployment selection feeds both hosts. Vendor optional
+/** The explicit deployment selection feeds the Companion boundary. Vendor optional
  * values stay undefined; the pinned provider owns their documented defaults. */
 export function companionOptions(config: CompanionConfig, rootContext: string): CompanionInput['options'] {
   return {

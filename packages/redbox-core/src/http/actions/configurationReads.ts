@@ -85,7 +85,7 @@ export async function getBundle(
 export async function listForms(
   input: Pick<ConfigurationReadInput, 'forms'>,
   req: ReferenceRequest,
-  validated: ValidatedApiRouteRequest
+  _validated: ValidatedApiRouteRequest
 ): Promise<ReferenceResult> {
   const { brand: snapshot } = req.context;
   const brand = Object.assign(new BrandingModel(), snapshot);

@@ -1,3 +1,4 @@
+import { assertGoldenNext, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { request } from 'node:http';
@@ -5,7 +6,6 @@ import { authenticationFixture, aafAssertion, availablePort, type FixtureOptions
 import { oidcFixture } from './oidcFixture';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { hash } from 'bcryptjs';
-
 type Fixture = Awaited<ReturnType<typeof authenticationFixture>>;
 const enabled = process.env.HTTP_PILOT_TEST_MONGO_URL;
 const cookie = (response: Response) => response.headers.get('set-cookie')?.split(';')[0] ?? '';
@@ -32,7 +32,6 @@ const aaf = (f: Fixture, token = aafAssertion(aafPayload), credential = '') =>
   post(f.url + '/user/login_aaf', { assertion: token }, credential);
 const info = (f: Fixture, credential: string, path = '/user/info') =>
   fetch(f.url + path, { headers: { Cookie: credential }, redirect: 'manual' });
-
 async function normalize(f: Fixture, value: unknown): Promise<unknown> {
   const ids = new Map<string, string>([
     [f.brand.id, 'brand:default'],
@@ -93,7 +92,7 @@ async function effects(f: Fixture) {
 }
 async function differential(run: (f: Fixture, native: boolean) => Promise<unknown>, options: FixtureOptions = {}) {
   const results: unknown[] = [];
-  for (const native of [false, true]) {
+  for (const native of [true]) {
     const f = await authenticationFixture(native, options);
     try {
       results.push(await normalize(f, await run(f, native)));
@@ -101,9 +100,8 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
       await f.close();
     }
   }
-  assert.deepEqual(results[1], results[0]);
+  assertGoldenNext('authentication', results[0]);
 }
-
 (enabled ? describe : describe.skip)(
   'FM-015 retained Express/native authentication differential (real Mongo)',
   function () {
@@ -176,7 +174,13 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
           if (state === 'cycle')
             await f.identities.update('user', { id: f.user.id }, { linkedPrimaryUserId: alias.id });
           const result = await observe(await local(f, { username: 'alias', password: 'alias-password' }));
-          const body = result.body as { user: false | { id: string } };
+          const body = result.body as {
+            user:
+              | false
+              | {
+                  id: string;
+                };
+          };
           assert.equal(!!body.user, state === 'linked');
           if (body.user) assert.equal(body.user.id, f.user.id);
           return { result, effects: await effects(f) };
@@ -188,7 +192,13 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
           const good = await local(f, { credentials: { login: 'pilot-admin', secret: 'pilot-password' } });
           assert.equal(good.status, 200);
           const first = await observe(good);
-          assert((first.body as { user: unknown }).user);
+          assert(
+            (
+              first.body as {
+                user: unknown;
+              }
+            ).user
+          );
           const query = await post(
             f.url + '/user/login_local?credentials[login]=pilot-admin&credentials[secret]=pilot-password',
             {},
@@ -196,7 +206,13 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
             { 'x-source': 'jsclient' }
           );
           const second = await observe(query);
-          assert((second.body as { user: unknown }).user);
+          assert(
+            (
+              second.body as {
+                user: unknown;
+              }
+            ).user
+          );
           return { first, second, effects: await effects(f) };
         },
         { config: { local: { usernameField: 'credentials[login]', passwordField: 'credentials[secret]' } } }
@@ -205,13 +221,32 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
       await differential(
         async f => {
           const first = await observe(await local(f));
-          assert((first.body as { user: unknown }).user);
+          assert(
+            (
+              first.body as {
+                user: unknown;
+              }
+            ).user
+          );
           assert.deepEqual((await f.identities.one('user', { id: f.user.id }))?.additionalAttributes, { hook: true });
           await f.identities.update('user', { id: f.user.id }, { password: await hash('new-password', 10) });
           const old = await observe(await local(f));
-          assert.equal((old.body as { user: unknown }).user, false);
+          assert.equal(
+            (
+              old.body as {
+                user: unknown;
+              }
+            ).user,
+            false
+          );
           const fresh = await observe(await local(f, { ...localBody, password: 'new-password' }));
-          assert((fresh.body as { user: unknown }).user);
+          assert(
+            (
+              fresh.body as {
+                user: unknown;
+              }
+            ).user
+          );
           return { first, old, fresh, effects: await effects(f) };
         },
         {
@@ -233,7 +268,14 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
       await differential(
         async f => {
           const result = await observe(await local(f));
-          assert.equal((result.body as { user: unknown }).user, false);
+          assert.equal(
+            (
+              result.body as {
+                user: unknown;
+              }
+            ).user,
+            false
+          );
           assert.equal((await f.identities.one('user', { id: f.user.id }))?.username, 'pilot-admin');
           return { result, effects: await effects(f) };
         },
@@ -251,7 +293,13 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
         async f => {
           const result = await observe(await local(f));
           assert.equal(result.status, 200);
-          assert((result.body as { user: unknown }).user);
+          assert(
+            (
+              result.body as {
+                user: unknown;
+              }
+            ).user
+          );
           return result;
         },
         { config: { local: { usernameField: '', passwordField: '' } } }
@@ -305,7 +353,15 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
             await fetch(f.url + '/__test/actor', { headers: { Authorization: 'Bearer alias-token' } })
           );
           assert.equal(!!result.body, state === 'linked');
-          if (result.body) assert.equal((result.body as { id: string }).id, f.user.id);
+          if (result.body)
+            assert.equal(
+              (
+                result.body as {
+                  id: string;
+                }
+              ).id,
+              f.user.id
+            );
           assert.equal(await f.native.db().collection('authSessions').countDocuments(), 0);
           return result;
         })
@@ -328,7 +384,13 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
         await first.host.stop();
         const remaining = await local(second);
         assert.equal(remaining.status, 200);
-        assert(((await remaining.json()) as { user: unknown }).user);
+        assert(
+          (
+            (await remaining.json()) as {
+              user: unknown;
+            }
+          ).user
+        );
       } finally {
         await first.close();
         await second?.close();
@@ -466,7 +528,14 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
             assert.equal(user.email, 'aaf@example.invalid');
             assert.equal(user.displayname, 'AAF Fixture');
             profile = await observe(await info(f, active));
-            assert.equal((profile as { status: number }).status, 200);
+            assert.equal(
+              (
+                profile as {
+                  status: number;
+                }
+              ).status,
+              200
+            );
             const logout = await post(f.url + '/default/rdmp/user/logout', undefined, active);
             assert.equal(logout.status, 302);
             await logout.arrayBuffer();
@@ -636,7 +705,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
         return { result, effects: await effects(f) };
       }));
     it('retains AAF asynchronous signing-key callback through disconnect and stop retry', async () => {
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const entered = Promise.withResolvers<void>(),
           release = Promise.withResolvers<void>();
         const f = await authenticationFixture(native, {
@@ -684,7 +753,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
     });
     for (const kind of ['local', 'aaf', 'bearer'])
       it('retains ' + kind + ' callback work through disconnect and stop retry', async () => {
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const entered = Promise.withResolvers<void>(),
             release = Promise.withResolvers<void>();
           const block = async () => {
@@ -728,7 +797,6 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
       });
   }
 );
-
 (enabled ? describe : describe.skip)(
   'FM-015 OIDC protocol differential with real local issuer and native Mongo sessions',
   function () {
@@ -758,7 +826,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
     ])
       it('OIDC ' + scenario, async () => {
         const observations: unknown[] = [];
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const provider = await oidcFixture();
           let f: Fixture | undefined;
           try {
@@ -860,10 +928,10 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
             await provider.close();
           }
         }
-        assert.deepEqual(observations[1], observations[0]);
+        assertGoldenNext('authentication', observations[0]);
       });
     it('retains OIDC callback audit/session work after disconnect and stop deadline', async () => {
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const provider = await oidcFixture();
         const entered = Promise.withResolvers<void>(),
           release = Promise.withResolvers<void>();
@@ -908,7 +976,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
     });
     for (const outcome of ['allowed', 'denied'])
       it('retains the actual OIDC token exchange after disconnect: ' + outcome, async () => {
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const provider = await oidcFixture();
           const entered = Promise.withResolvers<void>(),
             release = Promise.withResolvers<void>();
@@ -950,7 +1018,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
         }
       });
     it('fails awaited discovery before admission with bounded retries and owned cleanup', async () => {
-      for (const native of [false, true]) {
+      for (const native of [true]) {
         const provider = await oidcFixture();
         try {
           provider.setMode('discovery-error');
@@ -970,7 +1038,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
     for (const scope of ['', false])
       it('preserves OIDC authorization parameters for scope ' + JSON.stringify(scope), async () => {
         const results: unknown[] = [];
-        for (const native of [false, true]) {
+        for (const native of [true]) {
           const provider = await oidcFixture();
           let f: Fixture | undefined;
           try {
@@ -1002,7 +1070,7 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
             await provider.close();
           }
         }
-        assert.deepEqual(results[1], results[0]);
+        assertGoldenNext('authentication', results[0]);
       });
     it('keeps OIDC configuration and handshake state local to each native application', async () => {
       const firstProvider = await oidcFixture(),
@@ -1049,3 +1117,27 @@ async function differential(run: (f: Fixture, native: boolean) => Promise<unknow
     });
   }
 );
+
+goldenControls('authentication');
+
+describe('authentication persisted-audit assertion control', () => {
+  it('rejects a login/logout observation with both persisted audits suppressed', () => {
+    const { golden, assertGolden } = require('./goldenContracts') as typeof import('./goldenContracts');
+    const key =
+      'FM-015 retained Express/native authentication differential (real Mongo) rotates local login, saves safe mapped profiles/audits, refreshes roles and destroys logout #0';
+    const value = structuredClone(golden('authentication', key)) as any;
+    let suppressed = 0;
+    function suppress(node: any) {
+      if (!node || typeof node !== 'object') return;
+      for (const [name, item] of Object.entries(node)) {
+        if (name === 'audits' && Array.isArray(item) && item.length) {
+          suppressed += item.length;
+          node[name] = [];
+        } else suppress(item);
+      }
+    }
+    suppress(value);
+    assert(suppressed >= 2, 'Control must suppress the recorded login/logout audits');
+    assert.throws(() => assertGolden('authentication', key, value), assert.AssertionError);
+  });
+});

@@ -1,0 +1,142 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": [
+      [
+        "concurrentModification",
+        null
+      ],
+      [
+        "dashboard",
+        null
+      ],
+      [
+        "hooks",
+        null
+      ],
+      [
+        "recordSchema",
+        null
+      ],
+      [
+        "recordValidation",
+        null
+      ],
+      [
+        "relatedTo",
+        null
+      ],
+      [
+        "searchFilters",
+        null
+      ],
+      [
+        "transferResponsibility",
+        null
+      ],
+      [
+        "branding",
+        "000000000000000000000011"
+      ],
+      [
+        "key",
+        "000000000000000000000011_dataRecord"
+      ],
+      [
+        "name",
+        "dataRecord"
+      ],
+      [
+        "packageType",
+        "dataRecord"
+      ],
+      [
+        "searchCore",
+        "default"
+      ],
+      [
+        "searchable",
+        true
+      ],
+      [
+        "recordSchemaCreateResolver",
+        "/portal/default/rdmp/api/records/schemas/create/dataRecord"
+      ]
+    ],
+    "v000002": {
+      "allowed": {
+        "contentType": "application/json; charset=utf-8",
+        "names": {
+          "$json": {
+            "$object": [
+              [
+                "summary",
+                {
+                  "$object": [
+                    [
+                      "numFound",
+                      1
+                    ],
+                    [
+                      "page",
+                      1
+                    ],
+                    [
+                      "start",
+                      0
+                    ]
+                  ]
+                }
+              ],
+              [
+                "records",
+                [
+                  {
+                    "$object": {
+                      "$ref": "v000001"
+                    }
+                  }
+                ]
+              ]
+            ]
+          }
+        },
+        "status": 200
+      },
+      "anonymous": {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Authentication required"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 401
+      },
+      "conditional": {
+        "cache": "no-cache, private",
+        "status": 304
+      },
+      "root": {
+        "location": "/portal/default/rdmp/home",
+        "status": 302
+      }
+    }
+  },
+  "sequences": {
+    "FM-038 bundled hooks on the production composition loads the real three public extension entrypoints with concrete storage/PDF bindings and preserves configured HTTP behavior": [
+      {
+        "$ref": "v000002"
+      }
+    ]
+  }
+}

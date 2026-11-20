@@ -1,16 +1,15 @@
+import { assertGolden, goldenControls } from './goldenContracts';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedReferenceExpress } from './retainedReferenceExpress';
-import { retainedMutationExpress } from './retainedMutationExpress';
+
 import { session } from './mutationDifferentialSupport';
 import { wildcardRequestTargets } from './wildcardRequestTargets';
 import type { Wire } from './AssetDifferentialMongo.test';
 const audit = require('../../../../../support/specs/fastify-migration/evidence/reconcile-FM-028.cjs');
-
 type Exchange = (
   url: string,
   target: string,
@@ -27,9 +26,8 @@ const owners = [
 ] as const;
 const keys = [...new Set(wildcardRequestTargets.map(test => test.key))];
 const initial = (key: string) => 'Before:' + key;
-
 /** Real translation operations, policy/CSRF chain and production bootstrap on
- * immutable Express adapters, current Express and Fastify. Raw HTTP preserves
+ * Fastify. Raw HTTP preserves
  * fragments and absolute authorities that URL()/fetch would discard. */
 export function declareTranslationWildcardTargets(wire: Exchange, normalize: (value: Wire) => Wire): void {
   describe('FM-031 production translation wildcard request targets', function () {
@@ -45,12 +43,13 @@ export function declareTranslationWildcardTargets(wire: Exchange, normalize: (va
           )
         );
         describe(profile, () => {
-          const results: { wire: Wire; state: unknown[] }[][] = [[], [], []];
+          const results: {
+            wire: Wire;
+            state: unknown[];
+          }[][] = [[]];
           before(async () => {
-            const reads = await retainedReferenceExpress();
-            const writes = await retainedMutationExpress();
             try {
-              for (const [host, mode] of ['retained', 'express', 'fastify'].entries()) {
+              for (const [host, mode] of ['fastify'].entries()) {
                 const policies = portalHttpPolicies();
                 // Controller identities come from declarations, not aliases.
                 if (reduced)
@@ -58,24 +57,10 @@ export function declareTranslationWildcardTargets(wire: Exchange, normalize: (va
                     row.path.includes('/i18n/entries/')
                   ))
                     policies[route.controller] = ['noCache', 'brandingAndPortal'];
-                const f = await referenceProductionFixture(
-                  mode === 'fastify',
-                  policies,
-                  mode === 'retained'
-                    ? () => {
-                        const restoreReads = reads.install();
-                        const restoreWrites = writes.install();
-                        return () => {
-                          try {
-                            restoreWrites();
-                          } finally {
-                            restoreReads();
-                          }
-                        };
-                      }
-                    : undefined,
-                  { declarations: audit.migratedDeclarations, rootContext }
-                );
+                const f = await referenceProductionFixture(mode === 'fastify', policies, undefined, {
+                  declarations: audit.migratedDeclarations,
+                  rootContext,
+                });
                 try {
                   const login = await session(f);
                   const brand = Object.assign(new BrandingModel(), f.brand);
@@ -143,20 +128,29 @@ export function declareTranslationWildcardTargets(wire: Exchange, normalize: (va
               if (process.env.FM031_RESULTS)
                 await writeFile(
                   path.join(process.env.FM031_RESULTS, 'wildcard-translations-' + profile + '.json'),
-                  JSON.stringify({ cases, results, retained: { reads: reads.hashes, writes: writes.hashes } }, null, 2)
+                  JSON.stringify({ cases, results }, null, 2)
                 );
             } finally {
-              await writes.close();
-              await reads.close();
             }
           });
           cases.forEach((c, index) =>
             it(`${c.actor} ${c.method} ${c.path} ${c.form} ${c.suffix}`, () => {
-              assert.deepEqual(results[1][index], results[0][index], 'current vs retained Express');
-              assert.deepEqual(results[2][index], results[0][index], 'production Fastify vs retained Express');
+              const actual = results[0][index];
+              assertGolden('translation-targets', profile + ':' + index, actual);
+              assert(actual, 'Every target was exercised');
+              const expected = require('./fixtures/translation-responses.json')[profile][index];
+              assert.deepEqual(c, expected.input, 'Frozen translation request identity');
+              assert.deepEqual(actual, expected.output, 'Frozen translation wire and persisted-state contract');
+              assert.equal(
+                actual.wire.status,
+                c.actor === 'authenticated' || (reduced && c.action === 'read') ? 200 : reduced ? 403 : 401
+              );
+              if (c.method === 'HEAD') assert.equal(actual.wire.body, '');
             })
           );
         });
       }
   });
 }
+
+goldenControls('translation-targets');

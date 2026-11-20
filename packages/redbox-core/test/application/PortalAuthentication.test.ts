@@ -18,6 +18,7 @@ import * as sessions from '../../src/http/fastify/session';
 import * as nativeAuth from '../../src/http/fastify/authentication';
 import * as controllerComposition from '../../src/http/fastify/composition';
 import { referenceProductionFixture } from '../http/fastify/referenceProductionFixture';
+import { withoutSideEffects } from '../http/fastify/noSideEffects';
 import { referenceReadDeclarations } from '../../src/http/referenceRoutes';
 import { bootstrapDefaultAdministrator } from '../../src/identity/bootstrap';
 import { createHash } from 'node:crypto';
@@ -230,7 +231,7 @@ async function callbackFixture(denied: boolean) {
       const layoutFile = join(directory, 'views/other/_layouts/default.ejs');
       await mkdir(join(errorFile, '..'), { recursive: true });
       await mkdir(join(layoutFile, '..'), { recursive: true });
-      await writeFile(errorFile, '<section data-artifact="403:other:catalog">Denied</section>');
+      await writeFile(errorFile, '<section data-artifact="403:other:catalog"><%= data.detailedMessage %></section>');
       await writeFile(layoutFile, '<section data-artifact="layout:other:catalog"><%- body %></section>');
     },
   });
@@ -268,11 +269,12 @@ describe('validated AAF callback context in production composition', function ()
         const assertion = sign({ sub: 'aaf-subject', 'https://aaf.edu.au/attributes': {
           mail: 'person@example.invalid', cn: 'AAF Person' } }, hydrated.aaf.opts.secretOrKey,
           { issuer: 'https://rapid.aaf.edu.au', expiresIn: '5m' });
-        const response = await fetch(f.url + '/user/login_aaf' + (source === 'query' ? '?branding=other&portal=rdmp' : ''), {
+        const send = () => fetch(f.url + '/user/login_aaf' + (source === 'query' ? '?branding=other&portal=rdmp' : ''), {
           method: 'POST', redirect: 'manual', headers,
           body: JSON.stringify({ assertion, ...(source === 'body' ? { branding: 'other', portal: 'rdmp' }
             : source === 'invalid' ? { branding: ['other'], portal: 'rdmp' } : {}) }),
         });
+        const response = source === 'invalid' ? await withoutSideEffects(f, send) : await send();
         await response.text();
         assert.equal(response.status, source === 'invalid' ? 400 : 302);
         const users = await f.client.db().collection('user').find({ type: 'aaf' }).toArray();
@@ -306,14 +308,22 @@ describe('rejected AAF callback context in production composition', function () 
           const assertion = reason === 'assertion' ? 'invalid' : sign({ sub: 'subject',
             'https://aaf.edu.au/attributes': { mail: 'person@denied.invalid', cn: 'Denied Person' } },
             hydrated.aaf.opts.secretOrKey, { issuer: 'https://rapid.aaf.edu.au', expiresIn: '5m' });
-          const response = await fetch(f.url + '/user/login_aaf' + (source === 'query' ? '?branding=other&portal=catalog' : ''), {
-            method: 'POST', headers, body: JSON.stringify({ assertion, ...(source === 'body' ? { branding: 'other', portal: 'catalog' } : {}) }),
-          });
+          const collection = f.client.db().collection('referenceSessions');
+          const before = await collection.findOne();
+          assert(before);
+          const response = await withoutSideEffects(
+            f,
+            () => fetch(f.url + '/user/login_aaf' + (source === 'query' ? '?branding=other&portal=catalog' : ''), {
+              method: 'POST', headers, body: JSON.stringify({ assertion, ...(source === 'body' ? { branding: 'other', portal: 'catalog' } : {}) }),
+            }),
+            { expectedAnonymousPageContext: { sessionId: String(before._id), branding: 'other', portal: 'catalog', langCode: 'en' } }
+          );
           const html = await response.text();
           assert.equal(response.status, 403, html);
           assert.match(html, /data-artifact="403:other:catalog"/);
           assert.match(html, /data-artifact="layout:other:catalog"/);
-          const saved = await f.client.db().collection('referenceSessions').findOne();
+          assert.match(html, reason === 'email' ? /authorized-email-denied/ : /There was an issue with your user credentials/);
+          const saved = await collection.findOne({ _id: before._id });
           assert(saved);
           const session = JSON.parse(saved.session);
           assert.equal(session.branding, 'other');

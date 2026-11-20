@@ -98,12 +98,12 @@ describe('FM-030 browser action error boundary', () => {
             browserPage(
               {
                 context: { brand: { id: 'brand', name: 'default' }, portal: 'rdmp' },
-                params: {},
-                query: {},
+                routeParameters: {},
+                queryValues: {},
                 session: {},
-                url: '/default/rdmp/home',
-                originalUrl: '/portal/default/rdmp/home',
-                path: '/default/rdmp/home',
+                relativeTarget: '/default/rdmp/home',
+                requestTarget: '/portal/default/rdmp/home',
+                pathname: '/default/rdmp/home',
                 csrfToken: () => '',
                 acceptsHtml: () => true,
               },

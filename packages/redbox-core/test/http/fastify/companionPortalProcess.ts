@@ -6,8 +6,6 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { rawSocketFixture, canonical } from './rawSocketFixture';
-import { retainedCompanionExpress } from './retainedCompanionExpress';
-import { retainedProgressExpress } from './retainedProgressExpress';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import WebSocket from 'ws';
 import { availablePort } from './authenticationFixture';
@@ -15,15 +13,13 @@ import { resumableUploadRoutes } from '../../../src/http/uploadRoutes';
 import { getMetaRoute, updateMetaRoute, addDataStreamsRoute } from '../../../src/api-routes/groups/records';
 import { portalCompanion } from '../../../src/application/portal/rawHttp';
 import { NativeMongoSessionStore } from '../../../src/http/fastify/session';
-
 export async function run() {
-  const native = process.argv[2] === 'fastify';
+  const native = true;
   const mode = process.argv[3] ?? 'enabled';
   let f: Awaited<ReturnType<typeof rawSocketFixture>>;
   let companion: any;
   let source: ReturnType<typeof createServer>;
-  let reference: Awaited<ReturnType<typeof retainedCompanionExpress>>;
-  let progressReference: Awaited<ReturnType<typeof retainedProgressExpress>> | undefined;
+
   let directory: string;
   let releaseMeta: (() => void) | undefined;
   let metaStarted = Promise.withResolvers<void>();
@@ -152,24 +148,8 @@ export async function run() {
           callback
         );
       }) as typeof https.request;
-      const module = require('../../../src/http/express/companion');
-      const uploadsModule = require('../../../src/http/integrations/companion/uploads');
-      const original = {
-        CompanionUploads: uploadsModule.CompanionUploads,
-        mountCompanionRoutes: module.mountCompanionRoutes,
-      };
-      if (!native) {
-        reference = await retainedCompanionExpress();
-        progressReference = await retainedProgressExpress();
-        uploadsModule.CompanionUploads = reference.CompanionUploads;
-        module.mountCompanionRoutes = (router: unknown, input: any) => {
-          companion = input.uploads;
-          reference.mountCompanionRoutes(router, input);
-        };
-      }
       const port = await availablePort();
       const portalEndpoint = 'http://127.0.0.1:' + port + '/portal/default/rdmp/companion/record/fm020-record/attach';
-      const restoreProgress = progressReference?.install();
       try {
         f = await rawSocketFixture(native, {
           retainExpress: false,
@@ -229,11 +209,8 @@ export async function run() {
           },
         });
       } finally {
-        uploadsModule.CompanionUploads = original.CompanionUploads;
-        module.mountCompanionRoutes = original.mountCompanionRoutes;
-        restoreProgress?.();
       }
-      if (native) {
+      {
         assert('installation' in f.portal);
         companion = portalCompanion(f.portal.installation.raw);
         const owners = f.portal.installation.registry.ownership!.snapshot();
@@ -257,7 +234,6 @@ export async function run() {
         portalEndpoint,
         upgrades: f.server.listenerCount('upgrade'),
         upstream,
-        reference: reference && { revision: reference.revision, sha256: reference.sha256 },
         prepared: f.preparedBeforeListening,
         listenCalls: f.listenCalls(),
         bridgeIsServer: companion?.bridge instanceof require('node:http').Server,
@@ -402,8 +378,6 @@ export async function run() {
       assert.equal(f?.server.listening ?? false, false);
       assert.equal(f?.server.listenerCount('upgrade') ?? 0, 0);
       await new Promise<void>(resolve => source.close(() => resolve()));
-      await reference?.close();
-      await progressReference?.close();
       await rm(directory, { recursive: true, force: true });
       return {
         pools: f ? persistenceStatus(f.owner).pools : 0,

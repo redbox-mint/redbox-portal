@@ -1,0 +1,470 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": "This dashboard configuration operation has been retired. Dashboard profiles, defaults and overrides were replaced by independent settings for each workflow stage and dashboard-view step. Use GET /api/dashboard-config/targets, GET|PUT /api/dashboard-config/workflows/:recordType/:stage, GET|PUT /api/dashboard-config/views/:view/:step and the /api/dashboard-config/copy operations."
+  },
+  "sequences": {
+    "FM-016 native/Express real Mongo session-aware CSRF differential browser header token": [
+      {
+        "denial": {
+          "$undefined": true
+        },
+        "status": 200
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential browser body token": [
+      {
+        "denial": {
+          "$undefined": true
+        },
+        "status": 200
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential bad header beats good body": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential query token is ignored": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential structured body token denied": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential overlength token denied": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential AJAX browser request still needs token": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential browser bearer still needs token": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential API verified header bearer exemption": [
+      {
+        "denial": {
+          "$undefined": true
+        },
+        "status": 200
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential API cookie requires token": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential API cookie with token": [
+      {
+        "denial": {
+          "$undefined": true
+        },
+        "status": 200
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential body bearer cannot exempt synchronizer": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential query bearer cannot exempt synchronizer": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential invalid explicit bearer outranks valid cookie and token": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Authentication required"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 401
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential valid token cannot grant a foreign brand": [
+      {
+        "denial": "",
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential origin beats valid token": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential origin beats valid bearer": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential canonical origin accepted": [
+      {
+        "denial": {
+          "$undefined": true
+        },
+        "status": 200
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential same-site rejected despite token": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 native/Express real Mongo session-aware CSRF differential forwarded host cannot authorize origin": [
+      {
+        "denial": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Cross-origin request denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "status": 403
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential CSRF before administrator and draft read": [
+      {
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Invalid CSRF token"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "trace": []
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential administrator before draft read and Zod": [
+      {
+        "status": 403,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Access Denied"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "trace": []
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential authorized legacy draft read before revision Zod": [
+      {
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "body.expectedDraftRevision"
+              ],
+              [
+                "details",
+                "Invalid input: expected number, received array"
+              ]
+            ]
+          }
+        },
+        "trace": [
+          "draft"
+        ]
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential legacy draft failure before revision Zod": [
+      {
+        "status": 500,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Internal server error"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "trace": [
+          "draft"
+        ]
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential array body skips legacy draft prelude": [
+      {
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "body.expectedDraftRevision"
+              ],
+              [
+                "details",
+                "Invalid input: expected number, received undefined"
+              ]
+            ]
+          }
+        },
+        "trace": []
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential malformed browser details before target lookup": [
+      {
+        "status": 400,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "Request body must be an object"
+              ],
+              [
+                "details",
+                ""
+              ]
+            ]
+          }
+        },
+        "trace": [
+          "roles"
+        ]
+      }
+    ],
+    "FM-016 real Mongo browser action-prelude ordering differential retired configuration before malformed body": [
+      {
+        "status": 410,
+        "text": {
+          "$json": {
+            "$object": [
+              [
+                "message",
+                "legacy-operation-retired"
+              ],
+              [
+                "details",
+                {
+                  "$ref": "v000001"
+                }
+              ]
+            ]
+          }
+        },
+        "trace": []
+      }
+    ]
+  }
+}

@@ -7,7 +7,7 @@ import type { PoliciesConfig } from '../../../config/policies.config';
 import { pilotPolicyChain, resolveEffectivePolicies } from '../../policyConfiguration';
 import { requestContext, type AuthenticatedActor } from '../../context';
 import { companionRequestPrelude, companionDispatch } from './actions';
-import { nativeActionReply } from '../../fastify/actionReply';
+import { nativeJsonOutput } from '../../fastify/jsonOutput';
 import { requestPathname } from '../../fastify/router';
 import { HttpFailure, httpReplySubmitted, writeHttpError } from '../../fastify/errorBoundary';
 import { commitNativeSessionForCompanion } from '../../fastify/session';
@@ -81,7 +81,7 @@ export function prepareCompanionRoutes(
         const path = requestPathname(request.raw.url ?? '/')!.slice(input.rootContext.length);
         companionRequestPrelude(
           { method: request.method, path, body: request.body },
-          nativeActionReply(reply),
+          nativeJsonOutput(reply),
           input.path
         );
       },

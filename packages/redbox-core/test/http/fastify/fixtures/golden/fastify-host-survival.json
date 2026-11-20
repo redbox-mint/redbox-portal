@@ -1,0 +1,1644 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {},
+  "shared": {
+    "v000001": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid request"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "connection": "close",
+        "content-length": "42",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": "HTTP/1.1 400 Bad Request"
+    },
+    "v000002": {
+      "body": {
+        "$json": {
+          "$object": [
+            [
+              "message",
+              "Invalid request"
+            ],
+            [
+              "details",
+              ""
+            ]
+          ]
+        }
+      },
+      "headers": {
+        "cache-control": "no-cache, private",
+        "connection": "close",
+        "content-length": "42",
+        "content-type": "application/json; charset=utf-8",
+        "expires": "0",
+        "pragma": "no-cache"
+      },
+      "status": "HTTP/1.1 415 Unsupported Media Type"
+    },
+    "v000003": {
+      "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET resource</pre>\n</body>\n</html>\n",
+      "headers": {
+        "connection": "close",
+        "content-length": "146",
+        "content-security-policy": "default-src 'none'",
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff"
+      },
+      "status": "HTTP/1.1 404 Not Found"
+    },
+    "v000004": {
+      "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST resource</pre>\n</body>\n</html>\n",
+      "headers": {
+        "connection": "close",
+        "content-length": "147",
+        "content-security-policy": "default-src 'none'",
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff"
+      },
+      "status": "HTTP/1.1 404 Not Found"
+    },
+    "v000005": [
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      }
+    ],
+    "v000006": [
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "v000007": [
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      }
+    ],
+    "v000008": [
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "$ref": "v000003"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "147",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "$ref": "v000004"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "healthy",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      }
+    ],
+    "v000009": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "application-not-ready"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "33",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 503 Service Unavailable"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      },
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "error",
+                "not-found"
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 404 Not Found"
+      }
+    ],
+    "v000010": [
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      }
+    ],
+    "v000011": [
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 408 Request Timeout"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 413 Payload Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 431 Request Header Fields Too Large"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 408 Request Timeout"
+      },
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 413 Payload Too Large"
+      }
+    ]
+  },
+  "sequences": {
+    "Fastify host process survival at request boundaries survives malformed POST JSON with structured apiVersion toString": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives malformed HEAD JSON with structured apiVersion toString": [
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-cache, private",
+          "connection": "close",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      }
+    ],
+    "Fastify host process survival at request boundaries rejects bracketed header names containing toString at the HTTP boundary and survives": [
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives malformed POST JSON with structured apiVersion valueOf": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives malformed HEAD JSON with structured apiVersion valueOf": [
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-cache, private",
+          "connection": "close",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      }
+    ],
+    "Fastify host process survival at request boundaries rejects bracketed header names containing valueOf at the HTTP boundary and survives": [
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives malformed POST JSON with structured apiVersion Symbol.toPrimitive": [
+      {
+        "$ref": "v000001"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives malformed HEAD JSON with structured apiVersion Symbol.toPrimitive": [
+      {
+        "body": "",
+        "headers": {
+          "cache-control": "no-cache, private",
+          "connection": "close",
+          "content-length": "42",
+          "content-type": "application/json; charset=utf-8",
+          "expires": "0",
+          "pragma": "no-cache"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      }
+    ],
+    "Fastify host process survival at request boundaries rejects bracketed header names containing Symbol.toPrimitive at the HTTP boundary and survives": [
+      {
+        "body": "",
+        "headers": {
+          "connection": "close"
+        },
+        "status": "HTTP/1.1 400 Bad Request"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key constructor like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key constructor like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key constructor like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key __defineGetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key __defineGetter__ like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key __defineGetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key __defineSetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key __defineSetter__ like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key __defineSetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key hasOwnProperty like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key hasOwnProperty like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key hasOwnProperty like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key __lookupGetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key __lookupGetter__ like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key __lookupGetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key __lookupSetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key __lookupSetter__ like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key __lookupSetter__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key isPrototypeOf like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key isPrototypeOf like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key isPrototypeOf like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key propertyIsEnumerable like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key propertyIsEnumerable like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key propertyIsEnumerable like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key toString like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key toString like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key toString like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key valueOf like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key valueOf like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key valueOf like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key __proto__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key __proto__ like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key __proto__ like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled encoding prototype key toLocaleString like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled type prototype key toLocaleString like Express": [
+      {
+        "body": {
+          "$json": {
+            "$object": [
+              [
+                "ok",
+                true
+              ]
+            ]
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "11",
+          "content-type": "application/json; charset=utf-8"
+        },
+        "status": "HTTP/1.1 200 OK"
+      }
+    ],
+    "Fastify host process survival at request boundaries survives request-controlled charset prototype key toLocaleString like Express": [
+      {
+        "$ref": "v000002"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for authorities before/after activation and survives every target": [
+      {
+        "$ref": "v000005"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for ports before/after activation and survives every target": [
+      {
+        "$ref": "v000006"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for userinfo before/after activation and survives every target": [
+      {
+        "$ref": "v000007"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for IPv6 brackets before/after activation and survives every target": [
+      {
+        "$ref": "v000008"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for authority escapes before/after activation and survives every target": [
+      {
+        "$ref": "v000009"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for overlong targets before/after activation and survives every target": [
+      {
+        "$ref": "v000010"
+      }
+    ],
+    "Fastify host process survival at request boundaries matches Express for parser/socket errors and survives resets and partial requests": [
+      {
+        "$ref": "v000011"
+      }
+    ]
+  }
+}

@@ -1,4 +1,8 @@
+import { authorizationWitness } from './authorizationRequests';
+import { goldenControls } from './goldenContracts';
+import { assertProductionContract } from './productionContracts';
 import assert from 'node:assert/strict';
+import { mutationWitnessCases } from './mutationWitnessSelection';
 import { request } from 'node:http';
 import { writeFile } from 'node:fs/promises';
 import { Readable } from 'node:stream';
@@ -9,7 +13,8 @@ import { recordQueryReadDeclarations, queryReadRoutes, recordSchemaReadRoutes } 
 import { portalHttpPolicies } from '../../../src/application/portal/httpPolicies';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import { referenceProductionFixture, referenceOrigin } from './referenceProductionFixture';
-import { retainedReadExpress } from './retainedReadExpress';
+import { assertNoObservedEffects, observeNoSideEffects, withoutSideEffects } from './noSideEffects';
+
 import { getReferenceRepositories } from '../../../src/persistence/reference/runtime';
 import { getHarvestRepositories } from '../../../src/persistence/harvest/runtime';
 import { getSiemRepository } from '../../../src/persistence/siem/runtime';
@@ -26,10 +31,14 @@ import {
   defaultReport,
   defaultQueryTitle,
 } from '../../helpers/namedQueryDefaults';
-
 type Fixture = Awaited<ReturnType<typeof referenceProductionFixture>>;
 type Route = (typeof recordQueryReadDeclarations)[number];
-type Wire = { status: number; headers: Record<string, unknown>; text: string; aborted?: boolean };
+type Wire = {
+  status: number;
+  headers: Record<string, unknown>;
+  text: string;
+  aborted?: boolean;
+};
 type Scenario = {
   name: string;
   method?: string;
@@ -56,17 +65,29 @@ type Scenario = {
     | 'invalid-schema'
     | 'unavailable-schema'
     | 'stream-failure';
-  defaults?: { configuration: string; input: string };
-  conversion?: { titles: readonly string[]; outcome?: 'refused' | 'mongo-error' };
+  defaults?: {
+    configuration: string;
+    input: string;
+  };
+  conversion?: {
+    titles: readonly string[];
+    outcome?: 'refused' | 'mongo-error';
+  };
   control?: string;
-  security?: { operator: boolean; records?: number; retainedStatus?: number; retainedRecords?: number };
+  security?: {
+    operator: boolean;
+    records?: number;
+    retainedStatus?: number;
+    retainedRecords?: number;
+  };
   refusal?: 403 | 404;
 };
-const modes = ['retained', 'express', 'fastify'] as const;
+const modes = ['fastify'] as const;
 const snapshots = new Map<string, (Wire | undefined)[]>(),
   failures = new Map<string, string>(),
   calls = new Map<string, number[]>();
 const state = new Map<string, unknown[]>();
+const schemaDenialEffects = new Map<string, string[]>();
 const scenarios: Scenario[] = [
   { name: 'v1' },
   { name: 'v2', headers: { 'X-ReDBox-API-Version': '2.0' } },
@@ -163,10 +184,10 @@ const versions: Scenario[] = [undefined, '2.0'].flatMap(version => {
     })),
   ];
 });
-
 /** Genuine anonymous and stale-principal requests through the production policy
  * chain, including CSRF-valid POSTs. Never replace authentication or dispatch. */
-describe('FM-024 retained query actor-refusal differential', function () {
+const actorRefusalSuite = 'FM-024 retained query actor-refusal differential';
+describe(actorRefusalSuite, function () {
   this.timeout(300000);
   const profiles = ['default', 'reduced-report', 'reduced-query'] as const;
   const subjects = ['anonymous', 'missing-actor'] as const;
@@ -175,7 +196,6 @@ describe('FM-024 retained query actor-refusal differential', function () {
   const id = (profile: string, route: Route, subject: string, version: string) =>
     `${profile} ${route.method} ${route.path} ${subject} v${version}`;
   before(async () => {
-    const retained = await retainedReadExpress();
     try {
       for (const profile of profiles)
         for (const mode of modes) {
@@ -184,12 +204,9 @@ describe('FM-024 retained query actor-refusal differential', function () {
             for (const controller of new Set(queryReadRoutes.map(route => route.controller)))
               if (profile === 'reduced-query' || controller === 'ReportController')
                 policyConfiguration[controller] = ['noCache', 'brandingAndPortal'];
-          const f = await referenceProductionFixture(
-            mode === 'fastify',
-            policyConfiguration,
-            mode === 'retained' ? retained.install : undefined,
-            { declarations: recordQueryReadDeclarations }
-          );
+          const f = await referenceProductionFixture(mode === 'fastify', policyConfiguration, undefined, {
+            declarations: recordQueryReadDeclarations,
+          });
           try {
             const cookie = await session(f);
             const csrf = JSON.parse((await wire(f.url + '/csrfToken', 'GET', { Cookie: cookie })).text)._csrf;
@@ -202,6 +219,8 @@ describe('FM-024 retained query actor-refusal differential', function () {
             for (const route of queryReadRoutes)
               for (const subject of subjects)
                 for (const version of versions) {
+                  const title = id(profile, route, subject, version);
+                  if (!mutationWitnessCases(actorRefusalSuite, [title], name => name).length) continue;
                   const method = route.method.toUpperCase();
                   const headers: Record<string, string> = {
                     'X-ReDBox-API-Version': version,
@@ -223,11 +242,13 @@ describe('FM-024 retained query actor-refusal differential', function () {
                       : '';
                   const response = await normalized(
                     f,
-                    await wire(
-                      f.url + target(route, { name: subject }, '000000000000000000000099', 'a'.repeat(64)),
-                      method,
-                      headers,
-                      body
+                    await authorizationWitness(`${actorRefusalSuite} ${title}`, () =>
+                      wire(
+                        f.url + target(route, { name: subject }, '000000000000000000000099', 'a'.repeat(64)),
+                        method,
+                        headers,
+                        body
+                      )
                     )
                   );
                   const key = id(profile, route, subject, version),
@@ -241,7 +262,6 @@ describe('FM-024 retained query actor-refusal differential', function () {
           }
         }
     } finally {
-      await retained.close();
     }
     if (process.env.FM024_HTTP_REPORT)
       await writeFile(
@@ -255,9 +275,9 @@ describe('FM-024 retained query actor-refusal differential', function () {
         for (const version of versions)
           it(id(profile, route, subject, version), () => {
             const values = observations.get(id(profile, route, subject, version));
-            assert(values && values.length === 3);
-            assert.deepEqual(values[1], values[0], 'Current Express must retain the authorization refusal');
-            assert.deepEqual(values[2], values[0], 'Fastify must delegate to the same actor guard and response');
+            assert(values && values.length === modes.length);
+            assertProductionContract('read-actor', id(profile, route, subject, version), values[0]);
+
             const actorGuardReached =
               profile === 'reduced-query' || (profile === 'reduced-report' && route.controller === 'ReportController');
             if (actorGuardReached && (route.method === 'get' || subject === 'missing-actor')) {
@@ -632,7 +652,6 @@ async function normalized(f: Fixture, value: Wire) {
   for (const [id, label] of identities) text = text.replaceAll(id, label);
   return { status: value.status, headers, text, ...(value.aborted ? { aborted: true } : {}) };
 }
-
 async function seed(f: Fixture) {
   const refs = getReferenceRepositories(f.owner),
     brand = Object.assign(new BrandingModel(), f.brand);
@@ -789,41 +808,38 @@ async function seed(f: Fixture) {
   assert.match(String(schema.headers.etag), /^"sha256:[a-f0-9]{64}"$/);
   return { runId: String(run.id), digest: String(schema.headers.etag).slice(8, -1) };
 }
+const readSuiteTitle = 'FM-024 production record/query/schema differential over raw HTTP';
+const readCaseTitle = (route: { controller: string; action: string; path: string }, scenario: { name: string }) =>
+  `${route.controller}.${route.action} ${route.path} ${scenario.name}`;
 
-describe('FM-024 production record/query/schema differential over raw HTTP', function () {
+describe(readSuiteTitle, function () {
   this.timeout(900000);
   before(async () => {
-    const retained = await retainedReadExpress();
     try {
       for (const mode of modes) {
         console.log('FM024 host ' + mode);
-        const f = await referenceProductionFixture(
-          mode === 'fastify',
-          undefined,
-          mode === 'retained' ? retained.install : undefined,
-          {
-            declarations: recordQueryReadDeclarations,
-            configuration: {
-              api: { max_requests: 3 },
-              record: {
-                search: { returnFields: ['id', 'full_text', 'date_object_modified'], maxRecordsPerPage: 4 },
-                contextVariables: {},
-              },
-              auth: {
-                roles: [{ name: 'Admin' }, { name: 'Researcher' }, { name: 'Guest' }],
-                rules: [
-                  { path: '/:branding/:portal(/*)', role: 'Admin', can_update: true },
-                  { path: '/:branding/:portal/api(/*)', role: 'Researcher', can_update: true },
-                ],
-              },
+        const f = await referenceProductionFixture(mode === 'fastify', undefined, undefined, {
+          declarations: recordQueryReadDeclarations,
+          configuration: {
+            api: { max_requests: 3 },
+            record: {
+              search: { returnFields: ['id', 'full_text', 'date_object_modified'], maxRecordsPerPage: 4 },
+              contextVariables: {},
             },
-          }
-        );
+            auth: {
+              roles: [{ name: 'Admin' }, { name: 'Researcher' }, { name: 'Guest' }],
+              rules: [
+                { path: '/:branding/:portal(/*)', role: 'Admin', can_update: true },
+                { path: '/:branding/:portal/api(/*)', role: 'Researcher', can_update: true },
+              ],
+            },
+          },
+        });
         try {
           const { runId, digest } = await seed(f),
             cookie = await session(f);
           const csrf = JSON.parse((await wire(f.url + '/csrfToken', 'GET', { Cookie: cookie })).text)._csrf;
-          if (mode === 'fastify') {
+          {
             const installation = (
               f.portal as Awaited<
                 ReturnType<typeof import('../../../src/application/portal').createPortalFastifyApplication>
@@ -839,6 +855,10 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
             }
           }
           for (const route of recordQueryReadDeclarations) {
+            const prepared = mutationWitnessCases(readSuiteTitle, forRoute(route), scenario =>
+              readCaseTitle(route, scenario)
+            );
+            if (!prepared.length) continue;
             console.log('FM024 ' + mode + ' ' + route.controller + '.' + route.action);
             const positive = await wire(
               f.url + target(route, { name: 'positive' }, runId, digest),
@@ -856,13 +876,10 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
                 : ''
             );
             const etag = typeof positive.headers.etag === 'string' ? positive.headers.etag : '"fm024-no-etag"';
-            for (const scenario of forRoute(route)) {
+            for (const scenario of prepared) {
               let serializations = 0;
               const targetFault = faultTarget(f, route);
-              const restoreParameters =
-                mode === 'retained' && (scenario.security || scenario.defaults || scenario.conversion)
-                  ? replace(f.data.reference.queries.get(), 'setParamsInQuery', retained.parameterSubstitution)
-                  : () => {};
+              const restoreParameters = () => {};
               let restore = () => {};
               if (scenario.variant === 'fault' && targetFault) {
                 const [domain, method, observable] = targetFault;
@@ -939,12 +956,25 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
                       })
                     : '');
                 if (raw && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-                const value = await normalized(
-                  f,
-                  await wire(f.url + target(route, scenario, runId, digest), method, headers, raw)
-                );
                 const id = key(route, scenario),
                   values = snapshots.get(id) ?? [];
+                const observer =
+                  route.controller.endsWith('RecordSchemaController') &&
+                  ['private-object', 'unknown-brand', 'unknown-portal'].includes(scenario.name)
+                    ? await observeNoSideEffects(f)
+                    : undefined;
+                let value;
+                try {
+                  value = await normalized(
+                    f,
+                    await authorizationWitness(`${readSuiteTitle} ${readCaseTitle(route, scenario)}`, () =>
+                      wire(f.url + target(route, scenario, runId, digest), method, headers, raw)
+                    )
+                  );
+                  if (observer) schemaDenialEffects.set(id, await observer.differences());
+                } finally {
+                  observer?.restore();
+                }
                 values[modes.indexOf(mode)] = value;
                 snapshots.set(id, values);
                 if (scenario.variant?.startsWith('serialize-'))
@@ -969,7 +999,6 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
         }
       }
     } finally {
-      await retained.close();
     }
   });
   after(async () => {
@@ -990,36 +1019,37 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
   });
   for (const route of recordQueryReadDeclarations)
     for (const scenario of forRoute(route))
-      it(`${route.controller}.${route.action} ${route.path} ${scenario.name}`, () => {
+      it(readCaseTitle(route, scenario), () => {
         const values = snapshots.get(key(route, scenario));
-        assert(values?.[2], JSON.stringify(modes.map(mode => [mode, failures.get(mode + ':' + key(route, scenario))])));
+        const effects = schemaDenialEffects.get(key(route, scenario));
+        if (effects) assertNoObservedEffects(effects);
+        assert(values?.[0], JSON.stringify(modes.map(mode => [mode, failures.get(mode + ':' + key(route, scenario))])));
+        assertProductionContract('read', key(route, scenario), values[0]);
         if (scenario.conversion) {
-          assert(values[0] && values[1]);
+          assert(values[0]);
           if (scenario.conversion.outcome === 'refused') {
-            assert.deepEqual(values[2], values[1], 'Both current hosts must refuse interpreted structured inputs');
-            assert.equal(values[2].status, 400, values[2].text);
-            assert.match(values[2].text, /parameter/);
-            assert.equal(values[2].headers['content-disposition'], undefined);
+            assert.equal(values[0].status, 400, values[0].text);
+            assert.match(values[0].text, /parameter/);
+            assert.equal(values[0].headers['content-disposition'], undefined);
             return;
           }
-          assert.deepEqual(values[1], values[0], 'Current Express conversion must match retained Express');
-          assert.deepEqual(values[2], values[0], 'Fastify conversion must match retained Express');
+
           if (scenario.conversion.outcome === 'mongo-error') {
             // Retain each action's original safe error, including legacy browser
             // report/CSV 200 error envelopes. Never rewrite the $in predicate.
-            assert.equal(values[2].status, ['getResults', 'downloadCSV'].includes(route.action) ? 200 : 500);
-            assert.match(values[2].text, /Internal server error/);
-            assert.doesNotMatch(values[2].text, /cannot nest|MongoServerError|\$schema/);
-            assert.equal(values[2].headers['content-disposition'], undefined);
+            assert.equal(values[0].status, ['getResults', 'downloadCSV'].includes(route.action) ? 200 : 500);
+            assert.match(values[0].text, /Internal server error/);
+            assert.doesNotMatch(values[0].text, /cannot nest|MongoServerError|\$schema/);
+            assert.equal(values[0].headers['content-disposition'], undefined);
             return;
           }
-          assert.equal(values[2].status, 200, values[2].text);
+          assert.equal(values[0].status, 200, values[0].text);
           const titles = scenario.conversion.titles;
           if (route.action === 'downloadCSV') {
-            assert.match(String(values[2].headers['content-disposition']), /attachment/);
-            assert.deepEqual(values[2].text.trimEnd().split(/\r?\n/), ['Title', ...titles]);
+            assert.match(String(values[0].headers['content-disposition']), /attachment/);
+            assert.deepEqual(values[0].text.trimEnd().split(/\r?\n/), ['Title', ...titles]);
           } else {
-            const body = JSON.parse(values[2].text),
+            const body = JSON.parse(values[0].text),
               result = body.data ?? body;
             assert.equal(route.action === 'executeNamedQuery' ? result.summary.numFound : result.total, titles.length);
             assert.deepEqual(
@@ -1030,11 +1060,9 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
           return;
         }
         if (scenario.defaults) {
-          assert(values[0] && values[1]);
-          assert.deepEqual(values[2], values[1], 'Both transports must preserve configured report defaults');
+          assert(values[0]);
+
           const { configuration, input } = scenario.defaults;
-          if (input !== 'operator')
-            assert.deepEqual(values[1], values[0], 'Non-operator report defaults retain original Express behavior');
           const report = route.action !== 'executeNamedQuery';
           // Report parameters historically normalize explicit empty filters to
           // undefined. Direct named-query requests preserve the empty string.
@@ -1050,12 +1078,12 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
                   ? 200
                   : 500
                 : 200;
-          assert.equal(values[2].status, status, values[2].text);
+          assert.equal(values[0].status, status, values[0].text);
           if (refused) {
-            assert.match(values[2].text, input === 'operator' ? /parameter/ : /Internal server error/);
-            assert.equal(values[2].headers['content-disposition'], undefined);
+            assert.match(values[0].text, input === 'operator' ? /parameter/ : /Internal server error/);
+            assert.equal(values[0].headers['content-disposition'], undefined);
             if (status === 200)
-              assert.equal((JSON.parse(values[2].text).data ?? JSON.parse(values[2].text)).status, false);
+              assert.equal((JSON.parse(values[0].text).data ?? JSON.parse(values[0].text)).status, false);
           } else {
             const count = omitted
               ? configuration === 'no-default'
@@ -1067,14 +1095,14 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
                 ? 0
                 : 1;
             if (route.action === 'downloadCSV') {
-              assert.match(String(values[2].headers['content-disposition']), /attachment/);
+              assert.match(String(values[0].headers['content-disposition']), /attachment/);
               const expected = [
                 'Title',
                 ...(count === 2 ? ['Private', defaultQueryTitle] : count ? [defaultQueryTitle] : []),
               ];
-              assert.deepEqual(values[2].text.trimEnd().split(/\r?\n/), expected);
+              assert.deepEqual(values[0].text.trimEnd().split(/\r?\n/), expected);
             } else {
-              const body = JSON.parse(values[2].text),
+              const body = JSON.parse(values[0].text),
                 result = body.data ?? body;
               assert.equal(route.action === 'executeNamedQuery' ? result.summary.numFound : result.total, count);
               assert.equal(result.records.length, count);
@@ -1084,58 +1112,33 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
           return;
         }
         if (scenario.security) {
-          assert(values[0] && values[1]);
-          assert.deepEqual(values[2], values[1], 'Both current transports must share the security fix');
+          assert(values[0]);
+
           if (scenario.security.operator) {
-            assert.equal(values[2].status, 400, values[2].text);
-            assert.match(values[2].text, /parameter/);
-            assert.equal(values[2].headers['content-disposition'], undefined);
+            assert.equal(values[0].status, 400, values[0].text);
+            assert.match(values[0].text, /parameter/);
+            assert.equal(values[0].headers['content-disposition'], undefined);
           } else {
-            assert.deepEqual(values[1], values[0], 'Non-operator values retain the original pipeline behavior');
             if (scenario.security.records !== undefined) {
-              const body = JSON.parse(values[2].text);
+              const body = JSON.parse(values[0].text);
               assert.equal((body.data ?? body).summary.numFound, scenario.security.records);
             }
           }
-          if (scenario.security.retainedStatus)
-            assert.equal(values[0].status, scenario.security.retainedStatus, values[0].text);
-          if (scenario.security.retainedRecords !== undefined) {
-            const retainedBody = JSON.parse(values[0].text);
-            assert.equal(
-              (retainedBody.data ?? retainedBody).summary.numFound,
-              scenario.security.retainedRecords,
-              'Retained Express must demonstrate the predicate injection'
-            );
-          }
           return;
         }
-        if (!values[0]) {
-          assert(scenario.control && scenario.query?.includes('[toString]'), 'Unexpected retained abort');
-          assert.match(failures.get('retained:' + key(route, scenario)) ?? '', /ECONNRESET|socket hang up|aborted/);
+        assert(values[0], failures.get('fastify:' + key(route, scenario)));
+        if (scenario.control && scenario.query?.includes('[toString]')) {
           const control = snapshots.get(key(route, { name: scenario.control }));
-          assert(control?.[0] && control[1] && control[2]);
-          assert.deepEqual(control[1], control[0]);
-          assert.deepEqual(control[2], control[0]);
-          if (values[1]) assert.deepEqual(values[1], control[0]);
-          else {
-            assert.equal(route.controller, 'ReportController');
-            assert.equal(route.action, 'previewConfig');
-            assert.match(failures.get('express:' + key(route, scenario)) ?? '', /ECONNRESET|socket hang up|aborted/);
-          }
-          assert.deepEqual(values[2], control[0]);
-        } else {
-          assert(values[1], failures.get('express:' + key(route, scenario)));
-          assert.deepEqual(values[1], values[0], 'shared Express differs from retained');
-          if (route.action === 'downloadRecs' && scenario.method === 'HEAD' && values[2].status === 200) {
-            const native = structuredClone(values[2]);
-            assert.equal(native.headers['transfer-encoding'], 'chunked', 'Export HEAD now mirrors GET framing');
-            delete native.headers['transfer-encoding'];
-            assert.deepEqual(native, values[0]);
-          } else assert.deepEqual(values[2], values[0], 'Fastify differs from retained');
+          assert(control?.[0]);
+          assert.deepEqual(values[0], control[0], 'Structured version input keeps the safe default');
+        }
+        if (route.action === 'downloadRecs' && scenario.method === 'HEAD' && values[0].status === 200) {
+          assert.equal(values[0].headers['transfer-encoding'], 'chunked');
+          assert.equal(values[0].text, '');
         }
         if (scenario.variant === 'stream-failure') {
-          assert.equal(values[2].aborted, true);
-          assert.equal(values[2].text, '[');
+          assert.equal(values[0].aborted, true);
+          assert.equal(values[0].text, '[');
         }
         if (
           scenario.name === 'private-object' &&
@@ -1150,20 +1153,20 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
           !route.path.includes('deletedrecords') &&
           route.action !== 'getDeletedRecord'
         )
-          assert.equal(values[2].status, 403);
+          assert.equal(values[0].status, 403);
         if (
           scenario.name === 'foreign-object' &&
           ['getObjectMeta', 'getMeta', 'getPermissions', 'getRelatedRecords', 'getRecordAudit'].includes(route.action)
         )
-          assert.equal(values[2].status, 404);
+          assert.equal(values[0].status, 404);
         if (
           scenario.name === 'private-object' &&
           route.controller === 'webservice/RecordSchemaController' &&
           route.action === 'update'
         )
-          assert.equal(values[2].status, 404);
+          assert.equal(values[0].status, 404);
         if (scenario.name === 'page-sort' && route.action === 'listRecords') {
-          const body = JSON.parse(values[2].text);
+          const body = JSON.parse(values[0].text);
           assert.equal(body.summary.start, 1);
           assert.equal(body.records.length, 0);
         }
@@ -1174,63 +1177,62 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
           ) &&
           route.controller !== 'webservice/SearchController'
         )
-          assert.equal(values[2].status, 400);
+          assert.equal(values[0].status, 400);
         if (scenario.name === 'search-or-injection' && route.action === 'search') {
-          assert.equal(values[2].status, 200);
-          const body = JSON.parse(values[2].text);
+          assert.equal(values[0].status, 200);
+          const body = JSON.parse(values[0].text);
           assert.equal(body.totalItems, 1);
           assert.equal(body.records[0].id, 'visible');
         }
-        if (scenario.method === 'HEAD') assert.equal(values[2].text, '');
+        if (scenario.method === 'HEAD') assert.equal(values[0].text, '');
         if (scenario.refusal) {
           assert.equal(
-            values[2].status,
+            values[0].status,
             route.controller === 'ReportController' && ['getResults', 'downloadCSV'].includes(route.action)
               ? 200
               : scenario.refusal
           );
-          assert.match(values[2].text, /controlled domain refusal/);
+          assert.match(values[0].text, /controlled domain refusal/);
         }
-        if (values[2].status === 304) {
-          assert.equal(values[2].text, '');
+        if (values[0].status === 304) {
+          assert.equal(values[0].text, '');
           for (const name of ['content-type', 'content-length', 'transfer-encoding'])
-            assert.equal(values[2].headers[name], undefined);
+            assert.equal(values[0].headers[name], undefined);
         }
         if (scenario.name === 'v1')
           assert.equal(
-            values[2].status,
+            values[0].status,
             route.action === 'listWorkspaces'
               ? 302
               : route.action === 'previewConfig' && route.controller === 'ReportController'
                 ? 403
                 : 200,
-            values[2].text
+            values[0].text
           );
         if (scenario.variant === 'fault' || scenario.variant === 'serialize-failure')
-          assert(!/secret FM024/.test(values[2].text));
+          assert(!/secret FM024/.test(values[0].text));
         if (
           scenario.variant === 'odd' &&
-          values[2].status === 200 &&
+          values[0].status === 200 &&
           route.controller !== 'webservice/SiemController'
         ) {
-          assert(values[2].text.includes('研究 🌏 café'));
-          assert(values[2].text.includes('0123456789abcdef01234567'));
-          assert(values[2].text.includes('2026-01-02T03:04:05.678Z'));
-          assert(values[2].text.includes('"nil":null'));
-          assert(values[2].text.includes('α'.repeat(65537)));
-          assert(values[2].text.includes('"unfiltered":true'));
+          assert(values[0].text.includes('研究 🌏 café'));
+          assert(values[0].text.includes('0123456789abcdef01234567'));
+          assert(values[0].text.includes('2026-01-02T03:04:05.678Z'));
+          assert(values[0].text.includes('"nil":null'));
+          assert(values[0].text.includes('α'.repeat(65537)));
+          assert(values[0].text.includes('"unfiltered":true'));
         }
         if (scenario.variant === 'serialize-once' && route.controller !== 'webservice/SiemController')
-          assert.deepEqual(calls.get(key(route, scenario)), [1, 1, 1]);
+          assert.deepEqual(calls.get(key(route, scenario)), [1]);
       });
-  it('preserves persisted read/discovery state across the three independent production hosts', () => {
-    assert.deepEqual(state.get('express'), state.get('retained'));
-    assert.deepEqual(state.get('fastify'), state.get('retained'));
+  it('preserves persisted read/discovery state against recorded native expectations', () => {
+    assertProductionContract('read', 'persisted-state', { state: state.get('fastify') });
   });
 });
-
 /** Exact instances are part of the public problem contract: never sanitize them. */
-describe('FM-031 schema request-target problem instances', function () {
+const schemaTargetSuite = 'FM-031 schema request-target problem instances';
+describe(schemaTargetSuite, function () {
   this.timeout(600000);
   for (const rootContext of ['/portal', ''])
     for (const reduced of [false, true]) {
@@ -1262,37 +1264,43 @@ describe('FM-031 schema request-target problem instances', function () {
           )
         )
       );
-      describe(`root=${rootContext || '/'} reduced=${reduced}`, () => {
+      const profile = `root=${rootContext || '/'} reduced=${reduced}`;
+      describe(profile, () => {
+        const title = (c: (typeof cases)[number]) => `${c.route.action} ${c.kind} ${c.method} absolute=${c.absolute}`;
         const observations: Wire[][] = [[], [], []];
         before(async () => {
-          const retained = await retainedReadExpress();
           try {
             for (const mode of modes) {
               const policies = portalHttpPolicies();
               if (reduced) policies['webservice/RecordSchemaController'] = ['noCache', 'brandingAndPortal'];
-              const f = await referenceProductionFixture(
-                mode === 'fastify',
-                policies,
-                mode === 'retained' ? retained.install : undefined,
-                { declarations: recordQueryReadDeclarations, rootContext }
-              );
+              const f = await referenceProductionFixture(mode === 'fastify', policies, undefined, {
+                declarations: recordQueryReadDeclarations,
+                rootContext,
+              });
               try {
-                for (const c of cases) {
+                const selected = mutationWitnessCases(`${schemaTargetSuite} ${profile}`, cases, title);
+                for (const c of selected) {
+                  const send = () =>
+                    authorizationWitness(`${schemaTargetSuite} ${profile} ${title(c)}`, () =>
+                      wire(
+                        f.url,
+                        c.method,
+                        {
+                          Accept: 'application/json',
+                          ...(c.kind === 'anonymous' ? {} : auth),
+                          ...(c.kind === 'validation' ? { 'If-None-Match': 'invalid' } : {}),
+                        },
+                        '',
+                        c.target
+                      )
+                    );
                   const value = await normalized(
                     f,
-                    await wire(
-                      f.url,
-                      c.method,
-                      {
-                        Accept: 'application/json',
-                        ...(c.kind === 'anonymous' ? {} : auth),
-                        ...(c.kind === 'validation' ? { 'If-None-Match': 'invalid' } : {}),
-                      },
-                      '',
-                      c.target
-                    )
+                    c.kind === 'anonymous' && c.route.action !== 'immutable'
+                      ? await withoutSideEffects(f, send)
+                      : await send()
                   );
-                  observations[modes.indexOf(mode)].push(value);
+                  observations[modes.indexOf(mode)][cases.indexOf(c)] = value;
                 }
               } finally {
                 await f.close();
@@ -1300,7 +1308,6 @@ describe('FM-031 schema request-target problem instances', function () {
               }
             }
           } finally {
-            await retained.close();
           }
           if (process.env.FM031_RESULTS)
             await writeFile(
@@ -1309,11 +1316,10 @@ describe('FM-031 schema request-target problem instances', function () {
             );
         });
         cases.forEach((c, index) =>
-          it(`${c.route.action} ${c.kind} ${c.method} absolute=${c.absolute}`, () => {
+          it(title(c), () => {
             const values = observations.map(host => host[index]);
-            assert.deepEqual(values[1], values[0], 'shared Express vs retained');
-            assert.deepEqual(values[2], values[0], 'native problem and framing match retained exactly');
-            const response = values[2];
+
+            const response = values[0];
             assert.equal(
               response.status,
               c.kind === 'validation'
@@ -1325,7 +1331,7 @@ describe('FM-031 schema request-target problem instances', function () {
                     : 404
             );
             const get =
-              observations[2][
+              observations[0][
                 cases.findIndex(
                   item =>
                     item.route === c.route &&
@@ -1349,3 +1355,6 @@ describe('FM-031 schema request-target problem instances', function () {
       });
     }
 });
+
+goldenControls('read');
+goldenControls('read-actor');

@@ -6,7 +6,7 @@ import { createWriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { StreamingMultipart, MultipartError } from '../../src/http/express/multipart';
+import { StreamingMultipart, MultipartError } from '../../src/http/integrations/multipart';
 
 describe('owned streaming multipart with real HTTP and disk', function () {
   this.timeout(10000);

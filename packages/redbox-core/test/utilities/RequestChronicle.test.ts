@@ -1,4 +1,4 @@
-import type { Request } from 'express';
+import type { FastifyRequest as Request } from 'fastify';
 import { merge } from 'lodash';
 import { RBValidationError } from '../../src';
 
@@ -32,7 +32,7 @@ describe('RequestChronicleHelper', () => {
   });
 
   function createHelper(options: RequestChronicleOptions = {}, req: Record<string, unknown> = {}) {
-    const request = { method: 'GET', path: '/default/rdmp/home', hostname: 'localhost', headers: {}, ...req };
+    const request = { method: 'GET', url: '/default/rdmp/home', hostname: 'localhost', headers: {}, ...req };
     const rc = RequestChronicleHelper.fromReq(logger, request as unknown as Request, {
       now: () => clockMs,
       random: () => 0.99,
@@ -65,7 +65,7 @@ describe('RequestChronicleHelper', () => {
       const { rc, req } = createHelper();
 
       expect(RequestChronicleHelper.fromReq(logger, req)).to.equal(rc);
-      req.options = merge({}, { action: 'user/info' }, req.options);
+      Reflect.set(req, 'options', merge({}, { action: 'user/info' }, Reflect.get(req, 'options')));
       expect(RequestChronicleHelper.existing(req)).to.equal(rc);
     });
 
@@ -88,7 +88,7 @@ describe('RequestChronicleHelper', () => {
     it('does not create a helper when looking up an existing helper', () => {
       const req = {} as Request;
       expect(RequestChronicleHelper.existing(req)).to.equal(undefined);
-      expect(req.options).to.equal(undefined);
+      expect(Reflect.get(req, 'options')).to.equal(undefined);
     });
 
     it('records the request, a request id, and a monotonic duration', () => {
@@ -266,18 +266,18 @@ describe('RequestChronicleHelper', () => {
     it('can retain every request', () => {
       const { rc } = startedHelper(
         { settings: { successSampleRate: 1, successSampleExcludePattern: '' }, random: () => 0.999999 },
-        { path: '/default/rdmp/styles/style.css' }
+        { url: '/default/rdmp/styles/style.css' }
       );
       rc.finish(completed(200));
       expect(rc.data.result?.classification).to.equal('sample');
     });
 
     it('does not sample successful static asset requests by default', () => {
-      const { rc } = startedHelper({ settings: { successSampleRate: 1 } }, { path: '/default/rdmp/js/app.js' });
+      const { rc } = startedHelper({ settings: { successSampleRate: 1 } }, { url: '/default/rdmp/js/app.js' });
       rc.finish(completed(200));
       expect(rc.data.result?.classification).to.equal('discard');
 
-      const failed = startedHelper({ settings: { successSampleRate: 1 } }, { path: '/default/rdmp/js/missing.js' }).rc;
+      const failed = startedHelper({ settings: { successSampleRate: 1 } }, { url: '/default/rdmp/js/missing.js' }).rc;
       failed.finish(completed(404));
       expect(failed.data.result?.classification).to.equal('client-error');
     });
@@ -444,7 +444,7 @@ describe('RequestChronicleHelper', () => {
     });
 
     it('sanitises token-bearing request paths', () => {
-      const { rc } = startedHelper({}, { path: '/default/rdmp/preview/abc123def.css' });
+      const { rc } = startedHelper({}, { url: '/default/rdmp/preview/abc123def.css' });
       expect(rc.data.req?.path).to.equal('/default/rdmp/preview/REDACTED.css');
       expect(sanitizeChroniclePath('/a/b?token=t1&x=1')).to.equal('/a/b?token=REDACTED&x=1');
     });

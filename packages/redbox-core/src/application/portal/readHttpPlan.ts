@@ -19,7 +19,7 @@ import { defineController, bindControllerFactory } from '../../http/controllers'
 import * as c from '../../http/controllers/ReadControllers';
 import { portalHttpPlan } from './httpPlan';
 import { portalReferenceHttpInputs } from './referenceHttpPlan';
-/** Offline domain selection shared by Express and Fastify. Getters borrow only
+/** Offline domain selection for the production Fastify host. Getters borrow only
  * initialized modules; no connection, controller or domain is acquired here. */
 export function portalReadHttpInputs(portal: PortalApplicationContext) {
   const { data, config, log, owner } = portal,

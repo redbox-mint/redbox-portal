@@ -8,15 +8,15 @@ import { pageCsp, type CspConfig } from './csp';
 import { Services as Navigation } from '../navigation/Navigation';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
-export interface PageRequest {
+export interface PageRenderingFacts {
   readonly context: HttpRequestContext;
-  readonly params: Record<string, unknown>;
-  readonly query: Record<string, unknown>;
-  readonly body?: Record<string, unknown>;
+  readonly routeParameters: Record<string, unknown>;
+  readonly queryValues: Record<string, unknown>;
+  readonly bodyValues?: Record<string, unknown>;
   readonly session: Record<string, unknown>;
-  readonly url: string;
-  readonly originalUrl: string;
-  readonly path: string;
+  readonly relativeTarget: string;
+  readonly requestTarget: string;
+  readonly pathname: string;
   csrfToken(): string;
   acceptsHtml(): boolean;
 }
@@ -50,9 +50,9 @@ export interface PageRenderingInput {
   readonly loginView?: string;
 }
 
-/** Read live request facts after hooks; both hosts use the same EJS/locals/error implementation. */
+/** Read live request facts after hooks; the native host uses the EJS/locals/error implementation. */
 export async function preparePageRendering(
-  req: PageRequest,
+  req: PageRenderingFacts,
   input: PageRenderingInput,
   applyHeaders: (headers: Readonly<Record<string, string>>) => void
 ) {
@@ -61,7 +61,7 @@ export async function preparePageRendering(
   req.session.portal = portal;
   const settings = await input.settings(brand);
   const { language, languages } = await resolveLanguage({
-    query: req.query.lng,
+    query: req.queryValues.lng,
     session: req.session.langCode,
     config: input.templateConfig.i18n?.next?.init,
     languages: () => input.languages(brand),
@@ -70,15 +70,15 @@ export async function preparePageRendering(
   req.session.langCode = language;
   const t = (key: string, values?: Record<string, unknown>) => input.translate(brand.name!, language, key, values);
   const hasRole = (name: string) => actor?.roles.some(role => role.brandId === brand.id && role.name === name) === true;
-  const param = (name: string) => req.params[name] ?? req.body?.[name] ?? req.query[name];
+  const param = (name: string) => req.routeParameters[name] ?? req.bodyValues?.[name] ?? req.queryValues[name];
   const initialLocals = {
     branding: brand.name,
     portal,
     lang: language,
     req: {
-      query: req.query,
-      url: req.url,
-      originalUrl: req.originalUrl,
+      query: req.queryValues,
+      url: req.relativeTarget,
+      originalUrl: req.requestTarget,
       session: req.session,
       user: actor,
       isAuthenticated: () => !!actor,
@@ -88,15 +88,15 @@ export async function preparePageRendering(
     availableLanguages: languages,
     _csrf: req.csrfToken(),
     isAdmin: hasRole('Admin'),
-    oid: req.params.oid ?? '',
-    rdmp: req.query.rdmp ?? '',
+    oid: req.routeParameters.oid ?? '',
+    rdmp: req.queryValues.rdmp ?? '',
     formName: '',
-    recordType: String(req.params.recordType ?? ''),
+    recordType: String(req.routeParameters.recordType ?? ''),
   } as Record<string, unknown> & { formName: string; recordType: string };
   const headers: Record<string, string> = {};
   const csp = pageCsp({
     configuration: input.csp,
-    pathname: req.path,
+    pathname: req.pathname,
     appUrl: input.origin,
     environment: input.environment,
     analytics: settings.webAnalytics,
@@ -134,7 +134,7 @@ export async function preparePageRendering(
       user: actor,
       brand: Object.assign(new BrandingModel(), brand),
       brandPortalPath: locals.page.base,
-      currentPath: req.originalUrl.split('?')[0],
+      currentPath: req.requestTarget.split('?')[0],
     },
     configuration: settings,
     appmode: input.templateConfig.appmode ?? {},

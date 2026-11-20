@@ -19,7 +19,7 @@ import { referenceReadDeclarations } from '../../http/referenceRoutes';
 import { coreRouteName } from '../../http/fastify/routes';
 import type { RouteBinding } from '../../http/fastify/routes';
 import type { Application } from '../Application';
-import { portalHostSettings, portalHttpSettings, type PortalMetadataContext } from './httpPlan';
+import { portalHttpSettings, type PortalMetadataContext } from './httpPlan';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { recordMetadataBodyPrelude } from '../../http/controllers/webservice/RecordController';
 import { createControllerHost } from '../../http/fastify/composition';
@@ -34,7 +34,7 @@ import {
   type NativeAuthenticationRoutesInput,
 } from '../../http/fastify/authentication';
 import type { NativeIdentityProvidersInput } from '../../http/fastify/identityProviders';
-import type { HttpIdentity } from '../../http/express/identity';
+import type { HttpIdentity } from '../../authentication/HttpIdentity';
 import type { FastifyPreparation } from '../../http/fastify/preparation';
 import { ownerHttpLogger } from '../../http/fastify/logging';
 import type {
@@ -44,34 +44,10 @@ import type {
   ProductionAuthenticationRoutesInput,
 } from './compositionInputs';
 
-import { ExpressHost } from '../../http/express/ExpressHost';
-import { createPortalApplication, type LegacyPortalApplicationOptions } from './application';
-import { PortalHttp, type PortalHttpOptions } from './http';
 import { progressOperationRoutes, progressSocketGrantRoute } from '../../http/progressRoutes';
 import { prepareCompanionRoutes } from '../../http/integrations/companion/fastify';
 
-/** Retained pre-cutover Express executable composition. @preCutover */
-export async function createPortalHost(options: LegacyPortalApplicationOptions & PortalHttpOptions) {
-  let http: PortalHttp;
-  const portal = await createPortalApplication({
-    ...options,
-    hostModules: [
-      ...(options.hostModules ?? []),
-      { name: 'portal-http', create: () => (http = new PortalHttp(portal, options)) },
-    ],
-  });
-  const { config } = portal;
-  const host = new ExpressHost(portal.application, {
-    owner: portal.owner,
-    ...portalHostSettings(config.server),
-    prepare: (router, server) => http.prepare(router, server),
-  });
-  return { ...portal, host };
-}
-
-/** Native production portal assembly. The existing executable continues to use
- * createPortalHost until cutover. Require an explicit conversion scope: the API
- * declaration set alone is not the full API/browser/integration inventory. */
+/** Production Fastify portal assembly with explicit declarations and bindings. */
 export async function createPortalFastifyHost(
   portal: PortalMetadataContext & {
     readonly installation: import('./installation').ResolvedPortalInstallation;

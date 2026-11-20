@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { io } from 'socket.io-client';
 import { of } from 'rxjs';
-import { ProgressSockets } from '../../src/http/express/progressSockets';
+import { ProgressSockets } from '../../src/http/integrations/progressSockets';
 import { initializePersistence, cleanupPersistence } from '../../src/persistence/runtime';
 import type { RecordModel } from '../../src/model/storage/RecordModel';
 

@@ -1,0 +1,464 @@
+{
+  "format": "redbox-golden-v1",
+  "revision": "d776f9581bec488b211454791794e79eeaee034d",
+  "cases": {
+    "default:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "default:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "default:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "default:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "http-canonical:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "http-canonical:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "http-canonical:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "http-canonical:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "no-root:GET:/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "no-root:HEAD:/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "no-root:GET:/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "no-root:HEAD:/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "report-only:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "report-only:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "report-only:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "report-only:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "disabled-csp:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "disabled-csp:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "disabled-csp:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "disabled-csp:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "hook-priority:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "hook-priority:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "hook-priority:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "hook-priority:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "brand-specificity:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "brand-specificity:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "brand-specificity:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "brand-specificity:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "explicit-roots:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "explicit-roots:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "explicit-roots:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "explicit-roots:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "cookie-attributes:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "cookie-attributes:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "cookie-attributes:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "cookie-attributes:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "reduced-policies:GET:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "reduced-policies:HEAD:/portal/js/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "reduced-policies:GET:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "content-length": "0",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    },
+    "reduced-policies:HEAD:/portal/angular/missing.js": {
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "cross-origin-opener-policy": "same-origin-allow-popups",
+        "expires": "0",
+        "pragma": "no-cache",
+        "surrogate-control": "no-store"
+      },
+      "status": 404,
+      "text": ""
+    }
+  },
+  "shared": {},
+  "sequences": {}
+}
