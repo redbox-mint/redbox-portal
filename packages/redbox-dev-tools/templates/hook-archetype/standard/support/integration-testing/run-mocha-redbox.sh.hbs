@@ -84,7 +84,7 @@ else
     --ui bdd
   )
   if [[ "${CI:-false}" == "true" ]]; then
-    mocha_config_args+=(--reporter mocha-junit-reporter --reporter-option mochaFile=./.tmp/junit/backend-mocha/backend-mocha.xml)
+    mocha_config_args+=(--reporter xunit --reporter-option output=./.tmp/junit/backend-mocha/backend-mocha.xml)
   else
     mocha_config_args+=(--reporter spec)
   fi

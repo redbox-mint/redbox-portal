@@ -12,8 +12,8 @@ module.exports = {
 if (process.env.CI === "true") {
     console.log("Mocha running in CI.");
     // (For CI) Run mocha and write results to a junit format file:
-    module.exports["reporter"] = "mocha-junit-reporter";
-    module.exports["reporter-option"] = "mochaFile=/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-storage-mongo/support/junit/unit-mocha.xml";
+    module.exports["reporter"] = "xunit";
+    module.exports["reporter-option"] = "output=/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-storage-mongo/support/junit/unit-mocha.xml";
 } else {
     console.log("Mocha running in local dev.");
     // (For development) Run mocha and show the results on stdout:
