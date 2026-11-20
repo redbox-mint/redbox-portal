@@ -23,11 +23,15 @@ describe('ValidationSummaryFieldComponent', () => {
       ] } } },
       { name: 'errors', component: { class: 'ValidationSummaryComponent' } },
     ] };
-    const { fixture } = await createFormAndWaitForReady(config, { editMode: true });
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true });
+    await formComponent.saveForm({ force: true });
+    await fixture.whenStable();
     const nativeEl: HTMLElement = fixture.nativeElement;
     const button = Array.from(nativeEl.querySelectorAll('button[aria-expanded]')).find(element => element.textContent?.includes('Details'));
     expect(button?.getAttribute('aria-expanded')).toBe('false');
-    nativeEl.querySelector<HTMLAnchorElement>('a[data-validation-summary-id]')?.click();
+    const link = nativeEl.querySelector<HTMLAnchorElement>('a[data-validation-summary-id]');
+    expect(link).not.toBeNull();
+    link!.click();
     await fixture.whenStable();
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     expect(button?.getAttribute('aria-expanded')).toBe('true');
