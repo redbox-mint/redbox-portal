@@ -79,8 +79,10 @@ describe('Data grid editor', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(DataGridsComponent);
     component = fixture.componentInstance;
-    // Run initialization explicitly to keep request-race tests deterministic.
-    await component.load();
+    // Complete Angular initialization before request-race tests. A deferred
+    // first render must not start a competing load during the tested request.
+    fixture.detectChanges();
+    await component.waitForInit();
   });
 
   afterEach(() => {
@@ -776,6 +778,7 @@ describe('Data grid editor', () => {
     expect(component.notice).toBe('saved');
   });
   it('reopens stage-specific saved grids with fresh discovery and results after a hard reload', async () => {
+    fixture.detectChanges();
     const saved = { ...validGrid(), id: '123456789012345678901234', revision: 3 };
     source.read!.and.resolveTo(saved);
     source.fields = jasmine.createSpy('fields').and.resolveTo([structuredClone(scope)]);
