@@ -57,6 +57,9 @@ describe('View mode editing prompts', () => {
       formComponent.editMode.set(true);
       fixture.detectChanges();
       await fixture.whenStable();
+      expect(element.querySelector('.validation-summary')).toBeNull();
+      control.markAsTouched();
+      await fixture.whenStable();
       expect(element.querySelector('.validation-summary')).not.toBeNull();
       expect(element.querySelector('.suggested-validation-summary')).not.toBeNull();
       expect(element.querySelector('redbox-field-error-summary')).not.toBeNull();
@@ -123,8 +126,9 @@ describe('View mode editing prompts', () => {
       };
       const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: 'mode-test', editMode: true });
       const control = formComponent.form!.get('answer')!;
-      // Use a real invalid control so presentation cannot mask a lost validation state.
+      // Use a touched, invalid control so presentation cannot mask a lost validation state.
       expect(control.invalid).toBeTrue();
+      control.markAsTouched();
       formComponent.broadcastFormStatus(false);
       fixture.detectChanges();
       await fixture.whenStable();

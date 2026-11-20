@@ -1,14 +1,12 @@
 import { isUndefined as _isUndefined, isNull as _isNull, set as _set } from 'lodash-es';
-import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject } from '@angular/core';
+import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import {
   FieldLayoutDefinitionFrame,
-  FormValidatorComponentErrors,
   FormFieldComponentStatus,
   InlineLayoutName
 } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import { FormService } from "../form.service";
 
 /**
  * Inline Form Component Layout
@@ -65,8 +63,7 @@ import { FormService } from "../form.service";
     </ng-template>
     <ng-template #afterComponentTemplate>
       @if (isVisible && formComponent.editMode()) {
-        @let componentValidationList = getFormValidatorComponentErrors;
-        <redbox-field-error-summary [errors]="showValidationErrors ? componentValidationList : []" [fieldName]="componentName"></redbox-field-error-summary>
+        <redbox-field-error-summary [errors]="visibleValidationErrors ?? []" [fieldName]="componentName"></redbox-field-error-summary>
       }
     </ng-template>
   }
@@ -88,7 +85,6 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
   @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
   afterComponentTemplate!: TemplateRef<any>;
 
-  private formService = inject(FormService);
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
@@ -159,10 +155,6 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
 
   private setHelpTextVisibleOnInit() {
     this.helpTextVisible = true;
-  }
-
-  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[] {
-    return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
   protected get componentName() {

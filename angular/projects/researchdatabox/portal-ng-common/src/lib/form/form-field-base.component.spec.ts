@@ -1,16 +1,16 @@
 import {TestBed} from '@angular/core/testing';
 import {signal} from '@angular/core';
-import {Validators} from '@angular/forms';
-import {FormFieldComponentStatus, SimpleInputFormComponentDefinitionFrame} from '@researchdatabox/sails-ng-common';
+import {AbstractControl, Validators} from '@angular/forms';
+import {FormFieldComponentStatus, FormValidatorComponentErrors, SimpleInputFormComponentDefinitionFrame} from '@researchdatabox/sails-ng-common';
 import {LoggerService} from '../logger.service';
 import {UtilityService} from '../utility.service';
 import {FormFieldCompMapEntry, FormFieldBaseComponent} from './form-field-base.component';
 import {FormFieldModel} from "./base.model";
 
 class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
-  public formHost: { saveAttempted?: () => boolean } = {};
+  public formHost: { getVisibleFieldValidationErrors?: (entry: FormFieldCompMapEntry) => FormValidatorComponentErrors[] } = {};
 
-  protected override get formComponent(): { saveAttempted?: () => boolean } {
+  protected override get formComponent() {
     return this.formHost;
   }
 
@@ -35,8 +35,14 @@ describe('FormFieldBaseComponent', () => {
   });
 
   describe('inline validation feedback', () => {
+    const requiredError = { class: 'required', message: 'Required', params: {} };
+
     beforeEach(() => {
       component.model = new TestFormFieldModel({ class: 'SimpleInputModel', config: { value: null } });
+      component.formFieldCompMapEntry = {
+        compConfigJson: { name: 'title', component: { class: 'SimpleInputComponent' } },
+        model: component.model,
+      };
       component.formControl.setValidators(Validators.required);
       component.formControl.updateValueAndValidity();
     });
@@ -70,13 +76,18 @@ describe('FormFieldBaseComponent', () => {
       expect(component.showInvalidState).toBeFalse();
     });
 
-    it('reveals untouched failures after a save attempt and hides them when that state resets', () => {
-      const saveAttempted = signal(false);
-      component.formHost = { saveAttempted };
+    it('shows invalid state only for the control revealed by a failed save', () => {
+      const revealed = signal<AbstractControl | null>(null);
+      component.formHost = {
+        getVisibleFieldValidationErrors: entry => {
+          const control = entry.model?.formControl;
+          return control && control === revealed() && control.invalid ? [requiredError] : [];
+        },
+      };
       expect(component.showValidationErrors).toBeFalse();
       expect(component.showInvalidState).toBeFalse();
 
-      saveAttempted.set(true);
+      revealed.set(component.formControl);
       expect(component.formControl.untouched).toBeTrue();
       expect(component.showValidationErrors).toBeTrue();
       expect(component.showInvalidState).toBeTrue();
@@ -84,18 +95,30 @@ describe('FormFieldBaseComponent', () => {
       expect(component.showInvalidState).toBeTrue();
 
       component.formControl.setValue('Project');
-      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showValidationErrors).toBeFalse();
       expect(component.showInvalidState).toBeFalse();
 
       component.formControl.reset();
-      saveAttempted.set(false);
+      revealed.set(null);
       expect(component.formControl.invalid).toBeTrue();
       expect(component.showValidationErrors).toBeFalse();
       expect(component.showInvalidState).toBeFalse();
     });
 
+    it('shows a save-only error on a control that passes interactive validation', () => {
+      component.formControl.setValue('Valid for editing');
+      component.formHost = { getVisibleFieldValidationErrors: () => [requiredError] };
+      spyOnProperty(component, 'showValidIndicator', 'get').and.returnValue(true);
+
+      expect(component.formControl.valid).toBeTrue();
+      expect(component.showValidationErrors).toBeTrue();
+      expect(component.showInvalidState).toBeTrue();
+      expect(component.showValidState).toBeFalse();
+    });
+
     it('keeps an unbound field hidden on a host without save-attempt tracking', () => {
       component.model = undefined;
+      component.formFieldCompMapEntry = undefined;
       expect(component.showValidationErrors).toBeFalse();
       expect(component.showInvalidState).toBeFalse();
     });

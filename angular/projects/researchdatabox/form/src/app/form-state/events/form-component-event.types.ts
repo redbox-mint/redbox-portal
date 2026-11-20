@@ -226,6 +226,8 @@ export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedire
  */
 export interface FormSaveFailureEvent extends FormComponentEventBase {
   readonly type: 'form.save.failure';
+  /** Client validation stopped the attempt before it was dispatched. */
+  readonly kind?: 'client-validation';
   /** Whether the failed/uncertain save targeted a new or existing record. */
   readonly operation?: 'create' | 'update';
   readonly error?: string;

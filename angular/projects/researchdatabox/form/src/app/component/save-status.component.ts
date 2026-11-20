@@ -7,8 +7,9 @@ import {
   RecordSaveOutcome,
   RecordSaveIssue,
   SaveStatusComponentName,
+  SaveStatusFieldComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '../form-state';
+import { FormComponentEventBus, FormComponentEventType, FormSaveFailureEvent, FormStateFacade } from '../form-state';
 
 type SaveStatusMessageType =
   | 'saving'
@@ -83,6 +84,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   private static readonly defaultSuccessDisplayDurationMs = 3000;
 
   public override logName = SaveStatusComponentName;
+  public override componentDefinition?: SaveStatusFieldComponentDefinitionOutline;
   protected readonly formStateFacade = inject(FormStateFacade);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly deleteSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_DELETE_SUCCESS);
@@ -98,7 +100,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   private lastHandledDeleteSuccessAt: number | null = null;
   private lastHandledSavedAt: string | null = null;
   private lastHandledSaveSuccessAt: number | null = null;
-  private lastHandledSaveFailureAt: number | null = null;
+  private lastHandledSaveFailure: FormSaveFailureEvent | null = null;
   private successTimeoutId: number | null = null;
 
   constructor() {
@@ -129,6 +131,18 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         this.pendingOperation.set('delete');
         this.clearSuccessTimeout();
         this.messageState.set('deleting');
+        return;
+      }
+
+      // Client validation can finish before the effect observes the saving state.
+      if (saveFailureEvent?.kind === 'client-validation' && saveFailureEvent !== this.lastHandledSaveFailure) {
+        this.lastHandledSaveFailure = saveFailureEvent;
+        this.lastOperation.set('save');
+        this.pendingOperation.set(null);
+        this.advisoryIssues.set([]);
+        this.hasSchemaProblems.set(false);
+        this.clearSuccessTimeout();
+        this.messageState.set(this.componentDefinition?.config?.showClientValidationFailure === false ? null : 'error');
         return;
       }
 
@@ -173,11 +187,11 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         return;
       }
 
-      if (saveFailureEvent && saveFailureEvent.timestamp !== this.lastHandledSaveFailureAt) {
+      if (saveFailureEvent && saveFailureEvent !== this.lastHandledSaveFailure) {
         if (this.pendingOperation() !== 'save') {
           return;
         }
-        this.lastHandledSaveFailureAt = saveFailureEvent.timestamp;
+        this.lastHandledSaveFailure = saveFailureEvent;
         const outcome = this.saveOutcome(saveFailureEvent.response);
         this.saveOperation.set(saveFailureEvent.operation ?? null);
         this.requestId.set(saveFailureEvent.requestId ?? saveFailureEvent.response?.requestId ?? '');
@@ -260,7 +274,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   }
 
   private get successDisplayDurationMs(): number {
-    const configuredDuration = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['successDisplayDurationMs'];
+    const configuredDuration = this.componentDefinition?.config?.successDisplayDurationMs;
     if (typeof configuredDuration === 'number' && Number.isFinite(configuredDuration) && configuredDuration >= 0) {
       return configuredDuration;
     }

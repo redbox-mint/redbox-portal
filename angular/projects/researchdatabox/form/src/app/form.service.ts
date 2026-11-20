@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Inject, Injectable, WritableSignal } from '@angular/core';
-import { AbstractControl, FormControl } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, FormArray, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import {
   isEmpty as _isEmpty,
   isFinite as _isFinite,
@@ -85,7 +85,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient, HttpContext, HttpHeaders } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, from, map, Subscription } from "rxjs";
 import { VocabTreeService } from './service/vocab-tree.service';
 import { FormLoadConcurrencyState, parseFormLoadConcurrency } from './form-concurrency-state';
 
@@ -98,6 +98,11 @@ declare var redboxClientScript: {
   formValidatorDefinitions?: FormValidatorDefinition[];
   getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]>;
 };
+
+export interface ControlValidationError {
+  error: FormValidatorComponentErrors;
+  validator?: FormValidatorConfig;
+}
 
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
@@ -140,6 +145,11 @@ export class FormService extends HttpClientService {
   private dynamicImportFormCompiledItemsPromises = new Map<string, DynamicImportCacheEntry>();
   private formCompiledItems?: Promise<DynamicScriptResponse>;
   private currentFormMode: FormModesConfig = 'edit';
+  private readonly validatorConfigsByErrorKey = new WeakMap<AbstractControl, Map<string, FormValidatorConfig>>();
+  private readonly rootAsyncValidations = new WeakMap<AbstractControl, {
+    validation: FormControl<unknown>;
+    subscription: Subscription;
+  }>();
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
   private suggestedValidatorSummaryCache = new WeakMap<AbstractControl, SuggestedValidatorSummaryCacheEntry>();
 
@@ -282,13 +292,10 @@ export class FormService extends HttpClientService {
     // can differ structurally (e.g. extra tabs), which shifts expression keys and otherwise
     // produces "Unknown key" errors when evaluating expressions on non-draft records.
     const metaOid = typeof meta?.['oid'] === 'string' && meta['oid'] ? (meta['oid'] as string) : undefined;
-    this.formCompiledItems = formConfig?.type
+    const compiledItems = formConfig?.type
       ? this.getDynamicImportFormCompiledItems(formConfig.type, metaOid, this.currentFormMode)
       : undefined;
-
-    if ((this.formCompiledItems === null || this.formCompiledItems === undefined) && formConfig?.type) {
-      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, metaOid, this.currentFormMode);
-    }
+    this.formCompiledItems = compiledItems;
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
 
@@ -299,7 +306,7 @@ export class FormService extends HttpClientService {
 
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components, formConfig?.enabledValidationGroups, formConfig?.validationGroups);
-    return new FormComponentsMap(components, formConfig, meta, concurrency);
+    return new FormComponentsMap(components, formConfig, meta, concurrency, compiledItems);
   }
 
   /**
@@ -546,7 +553,10 @@ export class FormService extends HttpClientService {
    * @param mapEntry Gather the validation errors for this component.
    * @return An array of validation errors.
    */
-  public getFormValidatorSummaryErrors(mapEntry: FormFieldCompMapEntry | null): FormValidatorSummaryErrors[] {
+  public getFormValidatorSummaryErrors(
+    mapEntry: FormFieldCompMapEntry | null,
+    getErrors = (control: AbstractControl) => this.getFormValidatorComponentErrors(control),
+  ): FormValidatorSummaryErrors[] {
     const result: FormValidatorSummaryErrors[] = [];
 
     if (!mapEntry) {
@@ -561,7 +571,7 @@ export class FormService extends HttpClientService {
     const formControl = mapEntry.model?.formControl;
     const lineagePaths = mapEntry.lineagePaths;
     if (formControl && lineagePaths) {
-      const errors = this.getFormValidatorComponentErrors(formControl);
+      const errors = getErrors(formControl);
       if (errors.length > 0) {
         result.push({ id, message: labelMessage, errors, lineagePaths });
       }
@@ -569,7 +579,7 @@ export class FormService extends HttpClientService {
 
     // Get the validation errors from any child controls.
     for (const childMapEntry of mapEntry.component?.formFieldCompMapEntries ?? []) {
-      result.push(...this.getFormValidatorSummaryErrors(childMapEntry));
+      result.push(...this.getFormValidatorSummaryErrors(childMapEntry, getErrors));
     }
 
     return result;
@@ -708,6 +718,18 @@ export class FormService extends HttpClientService {
     return this.validatorsSupport.getFormValidatorComponentErrors(control?.errors ?? {});
   }
 
+  public getControlValidationErrors(control: AbstractControl): ControlValidationError[] {
+    const configs = this.validatorConfigsByErrorKey.get(control);
+    return Object.entries(control.errors ?? {}).map(([key, value]) => ({
+      error: this.validatorsSupport.getFormValidatorComponentErrors({ [key]: value })[0],
+      validator: configs?.get(key),
+    }));
+  }
+
+  public isValidatorEnabled(validator: FormValidatorConfig, groups: string[], availableGroups: FormValidationGroups): boolean {
+    return this.validatorsSupport.isValidatorEnabled(availableGroups, groups, validator);
+  }
+
   /**
    * Get the component id and translatable label message.
    *
@@ -778,6 +800,7 @@ export class FormService extends HttpClientService {
    * @param validationGroups The available validation groups.
    * @param updateValueAndValidityOpts Recalculates the value and validation status of the control.
    *    By default, it also updates the value and validity of its ancestors.
+   *    Root form validators check cross-field rules even while child controls are invalid.
    * @param mapEntry The component map entry related to the form control.
    */
   public setValidators(
@@ -785,7 +808,7 @@ export class FormService extends HttpClientService {
     validators?: FormValidatorConfig[] | null,
     enabledValidationGroups?: string[] | null,
     validationGroups?: FormValidationGroups | null,
-    updateValueAndValidityOpts?: { doUpdate?: boolean } & ModifyOptions,
+    updateValueAndValidityOpts?: { doUpdate?: boolean; rootForm?: FormComponentsMap } & ModifyOptions,
     mapEntry?: FormFieldCompMapEntry,
   ): void {
     if (!formControl) {
@@ -793,22 +816,19 @@ export class FormService extends HttpClientService {
       return;
     }
 
-    if (!validators) {
-      validators = [];
-    }
+    const originalValidators = validators ?? [];
+    const rootForm = updateValueAndValidityOpts?.rootForm;
+    const prepared = this.prepareValidatorConfigs(originalValidators, mapEntry, rootForm ? rootForm.compiledItems ?? null : undefined);
+    const enabledValidators = this.validatorsSupport.enabledValidators(validationGroups ?? {}, enabledValidationGroups ?? [], prepared);
 
-    // Get the form-level configs.
-    const availableGroups = validationGroups ?? {};
-
-    if (!enabledValidationGroups) {
-      enabledValidationGroups = [];
-    }
-
-    validators = this.prepareValidatorConfigs(validators, mapEntry);
-
-    // Filter the validator configs to the enabled ones.
-    const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
-    const validatorFns = this.getValidatorInstances(enabledValidators)
+    // Error keys can change when a same-class rule is enabled or disabled.
+    // Keep the original validator config as the identity across group changes.
+    const originalByPrepared = new Map(prepared.map((validator, index) => [validator, originalValidators[index]]));
+    const configsByKey = new Map<string, FormValidatorConfig>();
+    const validatorFns = this.getValidatorInstances(enabledValidators, (key, validator) => {
+      configsByKey.set(key, originalByPrepared.get(validator)!);
+    });
+    this.validatorConfigsByErrorKey.set(formControl, configsByKey);
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
@@ -817,8 +837,19 @@ export class FormService extends HttpClientService {
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
 
-    formControl.setValidators(validatorFns.syncDefs);
-    formControl.setAsyncValidators(validatorFns.asyncDefs);
+    const validateAsync = Validators.composeAsync(validatorFns.asyncDefs);
+    if (rootForm) {
+      this.setRootValidators(formControl, Validators.compose(validatorFns.syncDefs), validateAsync);
+    } else {
+      formControl.setValidators(validatorFns.syncDefs);
+      formControl.setAsyncValidators(validateAsync && (control => from(validateAsync(control)).pipe(
+        map(errors => {
+          // A save response can attach server issues while interactive validators settle.
+          const serverErrors = Object.entries(control.errors ?? {}).filter(([key]) => key.startsWith('server#'));
+          return serverErrors.length > 0 ? { ...errors, ...Object.fromEntries(serverErrors) } : errors;
+        })
+      )));
+    }
     if (updateValueAndValidityOpts?.doUpdate !== false) {
       // TODO: Store the first created validator functions per formControl, and use that in .hasValidator.
       //       This should reduce the amount of churn and events.
@@ -827,6 +858,51 @@ export class FormService extends HttpClientService {
         emitEvent: updateValueAndValidityOpts?.emitEvent,
       });
     }
+  }
+
+  private setRootValidators(root: AbstractControl, validateSync: ValidatorFn | null, validateAsync: AsyncValidatorFn | null): void {
+    this.clearRootAsyncValidation(root);
+    root.setAsyncValidators(null);
+    if (!validateAsync) {
+      root.setValidators(validateSync);
+      return;
+    }
+
+    // Angular skips a group's async validators when a child is already invalid.
+    // Run the root rules on a detached control so they still see the whole form.
+    // The detached control stays out of the metadata and cancels stale checks.
+    const validation = new FormControl<unknown>(null);
+    validation.setAsyncValidators(() => validateAsync(root));
+    const subscription = validation.statusChanges.subscribe(status => {
+      if (status === 'PENDING' || root.disabled) return;
+      root.setErrors(validation.errors ? { ...root.errors, ...validation.errors } : root.errors);
+    });
+    this.rootAsyncValidations.set(root, { validation, subscription });
+
+    root.setValidators(control => {
+      const syncErrors = validateSync?.(control) ?? null;
+      // Explicit revalidation can refresh dependencies without changing the value.
+      validation.updateValueAndValidity();
+      return validation.errors ? { ...syncErrors, ...validation.errors } : syncErrors;
+    });
+  }
+
+  public clearRootAsyncValidation(root: AbstractControl | undefined): void {
+    if (!root) return;
+    const active = this.rootAsyncValidations.get(root);
+    if (!active) return;
+    this.rootAsyncValidations.delete(root);
+    active.subscription.unsubscribe();
+    active.validation.setAsyncValidators(null);
+    active.validation.updateValueAndValidity({ emitEvent: false });
+  }
+
+  public hasPendingValidation(control: AbstractControl | undefined): boolean {
+    if (!control || control.disabled) return false;
+    if (control.pending || this.rootAsyncValidations.get(control)?.validation.pending) return true;
+    // An error on a parent can mask pending descendants in Angular's aggregate status.
+    return control.invalid && (control instanceof FormGroup || control instanceof FormArray) &&
+      Object.values(control.controls).some(child => this.hasPendingValidation(child));
   }
 
   /**
@@ -1255,16 +1331,23 @@ export class FormService extends HttpClientService {
     return undefined;
   }
 
-  private getValidatorInstances(enabledValidators: FormValidatorConfig[]) {
+  private getValidatorInstances(
+    enabledValidators: FormValidatorConfig[],
+    onErrorKey?: (key: string, validator: FormValidatorConfig) => void,
+  ): FormValidatorFns {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
     }
     const defMap = this.loadedValidatorDefinitions;
-    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
+    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators, onErrorKey);
   }
 
-  public prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
+  public prepareValidatorConfigs(
+    validators: FormValidatorConfig[],
+    mapEntry?: FormFieldCompMapEntry,
+    rootCompiledItems?: Promise<DynamicScriptResponse> | null,
+  ): FormValidatorConfig[] {
     const prepared = validators.map(validator => ({
       ...validator,
       config: validator.config ? { ...validator.config } : undefined,
@@ -1273,9 +1356,10 @@ export class FormService extends HttpClientService {
       const expression = validator?.config?.['expression']?.toString() ?? "";
       const keys = this.getValidatorCompiledItemKeys(mapEntry, index);
       return async (value: unknown) => {
-        if (this.formCompiledItems && keys.length > 0) {
+        const compiled = rootCompiledItems === undefined ? this.formCompiledItems : rootCompiledItems;
+        if (compiled && keys.length > 0) {
           try {
-            const compiledItems = await this.formCompiledItems;
+            const compiledItems = await compiled;
             for (const key of keys) {
               const result = await compiledItems.evaluate(key, value, { libraries: { jsonata: jsonataDecodeCompile} });
               if (result !== undefined) {
@@ -1284,7 +1368,7 @@ export class FormService extends HttpClientService {
             }
           } catch (error) {
             this.loggerService.warn(`${this.logName}: Could not evaluate compiled jsonata validator.`, error);
-            return null;
+            if (!rootCompiledItems || !expression) return null;
           }
         }
         return jsonataEvaluateFunc(expression)(value);
@@ -1349,7 +1433,9 @@ export class FormComponentsMap {
     components: FormFieldCompMapEntry[],
     formConfig: FormConfigFrame,
     meta?: FormRuntimeMeta,
-    concurrency: FormLoadConcurrencyState = {}
+    concurrency: FormLoadConcurrencyState = {},
+    // Nested component maps must not replace the root form's compiled validator context.
+    public readonly compiledItems?: Promise<DynamicScriptResponse>,
   ) {
     this.components = components;
     this.formConfig = formConfig;

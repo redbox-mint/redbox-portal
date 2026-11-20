@@ -1044,13 +1044,18 @@ describe("Validator", async () => {
     });
 
     it(`gives two sync validators of the same class distinct error keys that both survive merging`, async function () {
+      const validators: FormValidatorConfig[] = [
+        { class: "pattern", message: "@must-start-with-prefix", config: { pattern: "^prefix.*$", description: "must start with prefix" } },
+        { class: "pattern", message: "@must-end-with-suffix", config: { pattern: ".*suffix$", description: "must end with suffix" } },
+      ];
+      const configsByKey = new Map<string, FormValidatorConfig>();
       const fns = vs.createFormValidatorInstancesFromMapping(
         vs.createValidatorDefinitionMapping(formValidatorsSharedDefinitions),
-        [
-          { class: "pattern", message: "@must-start-with-prefix", config: { pattern: "^prefix.*$", description: "must start with prefix" } },
-          { class: "pattern", message: "@must-end-with-suffix", config: { pattern: ".*suffix$", description: "must end with suffix" } },
-        ],
+        validators,
+        (key, validator) => configsByKey.set(key, validator),
       );
+      expect(configsByKey.get("pattern#0")).to.equal(validators[0]);
+      expect(configsByKey.get("pattern#1")).to.equal(validators[1]);
       const control = new SimpleServerFormValidatorControl("nope");
       const merged = mergeAngularStyle(fns.syncDefs.map(fn => fn(control)));
 

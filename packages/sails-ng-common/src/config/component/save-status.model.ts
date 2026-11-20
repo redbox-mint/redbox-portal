@@ -14,6 +14,7 @@ import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 export class SaveStatusFieldComponentConfig extends FieldComponentConfig implements SaveStatusFieldComponentConfigOutline {
     successDisplayDurationMs = 3000;
+    showClientValidationFailure?: boolean;
     warningMessageCreate?: string;
     warningMessageUpdate?: string;
     unknownMessageCreate?: string;

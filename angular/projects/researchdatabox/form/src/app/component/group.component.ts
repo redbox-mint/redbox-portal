@@ -75,11 +75,16 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   selector: 'redbox-groupfield',
   template: `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
-    <div class="rb-form-group">
+    <div class="rb-form-group" [class.is-invalid]="showInvalidState">
       <ng-container #componentContainer/>
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
   `,
+  styles: [`
+    .rb-form-group.is-invalid {
+      outline: 1px solid var(--bs-form-invalid-border-color, #dc3545);
+    }
+  `],
   standalone: false
 })
 export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {

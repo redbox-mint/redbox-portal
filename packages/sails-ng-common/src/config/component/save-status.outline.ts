@@ -24,6 +24,11 @@ export interface SaveStatusFieldComponentConfigFrame extends FieldComponentConfi
      */
     successDisplayDurationMs?: number;
     /**
+     * Show the save-status message when client validation fails or times out. Defaults to true.
+     * Set false to clear the save status for these attempts.
+     */
+    showClientValidationFailure?: boolean;
+    /**
      * Translation code for a persisted warning after creating a record.
      * Falls back to the global save warning when not provided.
      */

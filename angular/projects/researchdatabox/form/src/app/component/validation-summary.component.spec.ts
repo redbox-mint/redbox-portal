@@ -9,7 +9,7 @@ import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeata
 import { TabComponent } from './tab.component';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentEventType } from '../form-state/events/form-component-event.types';
-import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { RecordActionResult, TranslationService } from '@researchdatabox/portal-ng-common';
 
 describe('ValidationSummaryFieldComponent', () => {
   let translationService: { translationMap: Record<string, string>; t: (key: string) => string };
@@ -30,6 +30,232 @@ describe('ValidationSummaryFieldComponent', () => {
     translationService.translationMap['@dmpt-form-validation-summary-valid'] = 'The form is valid.';
     spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
   });
+  async function createFormWithTouchedControls(config: FormConfigFrame) {
+    const result = await createFormAndWaitForReady(config, { editMode: true });
+    result.formComponent.form!.markAllAsTouched();
+    await result.fixture.whenStable();
+    return result;
+  }
+
+  it('shows scoped draft and full-save failures inline and in the summary', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'scoped-save-errors',
+      enabledValidationGroups: ['all', 'conditional'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        conditional: { description: '', initialMembership: 'none' },
+        'draft-minimum': { description: '', initialMembership: 'none' },
+      },
+      validators: [
+        {
+          class: 'different-values',
+          config: { controlNames: ['title', 'later'] },
+          targetField: { angularComponents: ['title'] },
+          message: 'Full cross-field error',
+        },
+      ],
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent' },
+          layout: { class: 'DefaultLayout' },
+          model: { class: 'SimpleInputModel', config: {
+            value: '', validators: [{ class: 'required', groups: { include: ['draft-minimum'] } }],
+          } },
+        },
+        {
+          name: 'later',
+          component: { class: 'SimpleInputComponent' },
+          layout: { class: 'DefaultLayout' },
+          model: { class: 'SimpleInputModel', config: {
+            value: '', validators: [{ class: 'required', groups: { include: ['conditional'], exclude: ['all'] } }],
+          } },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent' } },
+      ],
+    }, { editMode: true });
+    const form = formComponent.form!;
+    const summary = formComponent.componentDefArr[2].component as ValidationSummaryFieldComponent;
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(RecordActionResult.fromResponse({
+      success: true, outcome: 'saved', message: '', oid: formComponent.trimmedParams.oid(),
+    }));
+    const root: HTMLElement = fixture.nativeElement;
+    const inlineErrors = () => root.querySelectorAll('.rb-form-field-error-summary');
+    const laterInput = root.querySelectorAll('input')[1];
+    const laterControl = form.get('later')!;
+    const draft = { force: true, enabledValidationGroups: ['draft-minimum'] };
+
+    expect(form.invalid).toBeTrue();
+    expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+    expect(inlineErrors().length).toBe(0);
+
+    await formComponent.saveForm(draft);
+    await fixture.whenStable();
+    expect(update).not.toHaveBeenCalled();
+    expect(form.untouched).toBeTrue();
+    expect((await summary.allValidationErrorsDisplay()).map(entry => entry.lineagePaths.angularComponents)).toEqual([['title']]);
+    expect(inlineErrors().length).toBe(1);
+
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'conditional']);
+    expect(form.hasError('different-values')).toBeTrue();
+    expect((await summary.allValidationErrorsDisplay())[0].errors.map(error => error.class)).toEqual(['required']);
+
+    // Blur the untouched full-set field without changing its value.
+    const failedDraftValues = form.getRawValue();
+    expect(laterControl.untouched).toBeTrue();
+    laterInput.dispatchEvent(new Event('blur'));
+    await fixture.whenStable();
+    expect(laterControl.touched).toBeTrue();
+    expect(form.getRawValue()).toEqual(failedDraftValues);
+    expect((await summary.allValidationErrorsDisplay()).map(entry => entry.lineagePaths.angularComponents))
+      .toEqual([['title'], ['later']]);
+    expect(inlineErrors().length).toBe(2);
+    laterControl.markAsUntouched();
+
+    form.get('title')!.setValue('Draft title');
+    await formComponent.saveForm(draft);
+    await fixture.whenStable();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(await summary.allValidationErrorsDisplay()).toEqual([]);
+    expect(inlineErrors().length).toBe(0);
+
+    const savedDraftValues = form.getRawValue();
+    expect(laterControl.untouched).toBeTrue();
+    laterInput.dispatchEvent(new Event('blur'));
+    await fixture.whenStable();
+    expect(laterControl.touched).toBeTrue();
+    expect(form.getRawValue()).toEqual(savedDraftValues);
+    expect((await summary.allValidationErrorsDisplay()).map(entry => entry.lineagePaths.angularComponents)).toEqual([['later']]);
+    expect(inlineErrors().length).toBe(1);
+    laterControl.markAsUntouched();
+
+    form.get('title')!.setValue('');
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['all', 'conditional'] });
+    await fixture.whenStable();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect((await summary.allValidationErrorsDisplay()).map(entry => entry.errors.map(error => error.class)))
+      .toEqual([['required', 'different-values'], ['required']]);
+    expect(inlineErrors().length).toBe(2);
+    inlineErrors()[0].querySelector<HTMLButtonElement>('.rb-form-field-error-toggle')!.click();
+    await fixture.whenStable();
+    expect(root.querySelector('.rb-form-field-error-panel')?.textContent).toContain('Full cross-field error');
+  });
+
+  it('keeps a draft-only field error after a sibling edit and discards a root error', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'draft-error-lifetime',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        'draft-minimum': { description: '', initialMembership: 'none' },
+      },
+      validators: [{
+        class: 'different-values',
+        config: { controlNames: ['title', 'notes'] },
+        groups: { include: ['draft-minimum'], exclude: ['all'] },
+        message: 'Title and notes must differ',
+        targetField: { dataModel: ['title'] },
+      }],
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent' },
+          layout: { class: 'DefaultLayout' },
+          model: { class: 'SimpleInputModel', config: {
+            value: '   ',
+            validators: [{
+              class: 'pattern',
+              config: { pattern: '.*\\S.*', description: 'Non-blank title' },
+              groups: { include: ['draft-minimum'], exclude: ['all'] },
+              message: 'Enter a title',
+            }],
+          } },
+        },
+        {
+          name: 'notes',
+          component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { value: '   ' } },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent' } },
+      ],
+    }, { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const form = formComponent.form!;
+    const title = form.get('title')!;
+    const titleInput = root.querySelector('input')!;
+    const summary = () => root.querySelector('.validation-summary')?.textContent ?? '';
+    const inline = () => root.querySelector('.rb-form-field-error-summary')?.textContent ?? '';
+    const update = spyOn(formComponent.recordService, 'update');
+
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['draft-minimum'] });
+    await fixture.whenStable();
+    expect(update).not.toHaveBeenCalled();
+    expect(form.valid).toBeTrue();
+    expect(title.untouched).toBeTrue();
+    expect(summary()).toContain('Enter a title');
+    expect(summary()).toContain('Title and notes must differ');
+
+    form.get('notes')!.setValue('Updated notes');
+    await fixture.whenStable();
+    expect(title.value).toBe('   ');
+    expect(title.untouched).toBeTrue();
+    expect(summary()).toContain('Enter a title');
+    expect(summary()).not.toContain('Title and notes must differ');
+    expect(inline()).toContain('Enter a title');
+    expect(titleInput.classList.contains('is-invalid')).toBeTrue();
+
+    title.setValue('Draft title');
+    await fixture.whenStable();
+    expect(root.querySelector('.validation-summary')).toBeNull();
+    expect(root.querySelector('.rb-form-field-error-summary')).toBeNull();
+    expect(titleInput.classList.contains('is-invalid')).toBeFalse();
+  });
+
+  it('keeps server save errors visible when restored interactive validation settles', async () => {
+    let evaluate = async () => true;
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'server-error-visibility',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        'draft-minimum': { description: '', initialMembership: 'none' },
+      },
+      validators: [{ class: 'jsonata-expression', config: {
+        expression: 'true', evaluator: () => evaluate(),
+      } }],
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent' },
+          layout: { class: 'DefaultLayout' },
+          model: { class: 'SimpleInputModel', config: { value: 'Draft title' } },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent' } },
+      ],
+    }, { editMode: true });
+    spyOn(formComponent.recordService, 'update').and.resolveTo(RecordActionResult.fromResponse({
+      outcome: 'not-saved',
+      problems: [{ kind: 'validation', phase: 'pre-save', issues: [
+        { field: 'title', code: 'title-blocked', message: 'Server field error' },
+        { code: 'save-blocked', message: 'Server form error' },
+      ] }],
+    }, 422));
+
+    expect(formComponent.form!.get('title')!.untouched).toBeTrue();
+    let finishValidation!: (valid: boolean) => void;
+    evaluate = () => new Promise<boolean>(resolve => { finishValidation = resolve; });
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['draft-minimum'] });
+    expect(formComponent.enabledValidationGroups).toEqual(['all']);
+    finishValidation(false);
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    await fixture.whenStable();
+    expect(formComponent.form!.hasError('jsonata-expression')).toBeTrue();
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelector('.rb-form-field-error-summary')?.textContent).toContain('Server field error');
+    expect(root.querySelector('.validation-summary')?.textContent).toContain('Server field error');
+    expect(root.querySelector('.validation-summary')?.textContent).toContain('Server form error');
+  });
+
   it('should create component', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
     let component = fixture.componentInstance;
@@ -113,52 +339,31 @@ describe('ValidationSummaryFieldComponent', () => {
       expectTitleError(fixture.nativeElement);
     });
 
-    for (const [testId, eventType] of [
-      ['T4', FormComponentEventType.FORM_SAVE_REQUESTED],
-      ['T5', FormComponentEventType.FORM_SAVE_FAILURE],
-    ] as const) {
-      it(`${testId}: reveals errors on ${eventType}`, async () => {
-        const { fixture, formComponent } = await createDeferredForm();
-        // A requested save must reveal errors even if no failure event follows.
-        spyOn(formComponent, 'saveForm').and.resolveTo();
-        expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
-        TestBed.inject(FormComponentEventBus).publish({ type: eventType });
-        await fixture.whenStable();
-        expectTitleError(fixture.nativeElement);
-      });
-    }
-
     for (const eventType of [
       FormComponentEventType.FORM_SAVE_REQUESTED,
       FormComponentEventType.FORM_SAVE_FAILURE,
     ] as const) {
-      it(`ignores ${eventType} from another form and accepts its own scope`, async () => {
+      it(`keeps errors hidden on ${eventType} until validation rejects the field`, async () => {
         const { fixture, formComponent } = await createDeferredForm();
         spyOn(formComponent, 'saveForm').and.resolveTo();
-        const bus = TestBed.inject(FormComponentEventBus);
-        bus.publish({ type: eventType, formScopeId: 'another-form' });
+        TestBed.inject(FormComponentEventBus).publish({ type: eventType, formScopeId: formComponent.eventScopeId });
         await fixture.whenStable();
-        fixture.detectChanges();
         expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
-        expect(formComponent.form!.pristine).toBeTrue();
-        expect(formComponent.form!.untouched).toBeTrue();
-
-        bus.publish({ type: eventType, formScopeId: formComponent.eventScopeId });
-        await fixture.whenStable();
-        fixture.detectChanges();
-        expectTitleError(fixture.nativeElement);
       });
     }
 
-    it('T6: shows errors on load for an existing record with the flag enabled', async () => {
+    it('hides untouched errors on load for an existing record', async () => {
       const { fixture, formComponent } = await createDeferredForm({ deferErrorsOnNewRecord: true }, {});
       expect(formComponent.trimmedParams.oid()).not.toBe('');
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+      formComponent.form!.get('title')!.markAsTouched();
+      await fixture.whenStable();
       expectTitleError(fixture.nativeElement);
     });
 
-    it('T7: shows errors on load for a new record without the flag', async () => {
+    it('hides untouched errors on a new record with no deferral configured', async () => {
       const { fixture } = await createDeferredForm({});
-      expectTitleError(fixture.nativeElement);
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
     });
 
     it('T8: defers the valid info box until a field is touched', async () => {
@@ -233,7 +438,6 @@ describe('ValidationSummaryFieldComponent', () => {
         const component = fixture.componentInstance as any;
         spyOnProperty(component, 'formComponent', 'get').and.returnValue({
           trimmedParams: { oid: () => oid },
-          saveAttempted: () => false,
           form: undefined,
         });
         component.setPropertiesFromComponentMapEntry({
@@ -256,10 +460,8 @@ describe('ValidationSummaryFieldComponent', () => {
 
     it('reveals all errors on a direct save without relying on a save-request event', async () => {
       const { fixture, formComponent } = await createDeferredForm();
-      // Invalid data returns before persistence, while recording the attempt.
-      await formComponent.saveForm();
+      await formComponent.saveForm({ force: true });
       await fixture.whenStable();
-      expect(formComponent.saveAttempted()).toBeTrue();
       expectTitleError(fixture.nativeElement);
     });
 
@@ -376,24 +578,24 @@ describe('ValidationSummaryFieldComponent', () => {
       });
     }
 
-    it('shows errors on load for a new record with the flag explicitly false', async () => {
+    it('hides untouched errors on load for a new record with the flag explicitly false', async () => {
       const { fixture } = await createDeferredForm({ deferErrorsOnNewRecord: false });
-      expectTitleError(fixture.nativeElement);
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
     });
 
-    it('shows errors after a new record receives its first saved oid', async () => {
+    it('keeps untouched errors hidden after a new record receives its first saved oid', async () => {
       const { fixture, formComponent } = await createDeferredForm();
       expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
       formComponent.oid.set('first-saved-record');
       formComponent.form!.updateValueAndValidity();
       await fixture.whenStable();
-      expectTitleError(fixture.nativeElement);
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
     });
   });
 
   it('renders translated HTML labels as text inside the summary link, retaining raw metadata and error text', async () => {
     translationService.translationMap['@research-label'] = 'Research with <a href="https://example.org" target="_blank" rel="noopener">DFAT &amp; Australia&#39;s partners</a>?';
-    const { fixture } = await createFormAndWaitForReady({
+    const { fixture, formComponent } = await createFormAndWaitForReady({
       name: 'html-labels',
       componentDefinitions: [
         {
@@ -406,6 +608,8 @@ describe('ValidationSummaryFieldComponent', () => {
       ],
     }, { editMode: true });
     const root: HTMLElement = fixture.nativeElement;
+    formComponent.form!.markAllAsTouched();
+    await fixture.whenStable();
     const link = root.querySelector('.validation-summary-item a');
     expect(link?.textContent).toBe("Research with DFAT & Australia's partners?");
     expect(link?.querySelector('a')).toBeNull();
@@ -533,6 +737,116 @@ describe('ValidationSummaryFieldComponent', () => {
     const el = nativeEl.querySelector('div.alert-info');
     expect(el?.textContent).toContain('The form is valid.');
   });
+  it('clears a revealed root failure after successful revalidation without a value edit', async () => {
+    let available = false;
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'revalidated-root-error',
+      validators: [{
+        class: 'jsonata-expression',
+        config: { expression: 'true', evaluator: async () => available },
+        targetField: { dataModel: ['title'] },
+        message: 'Title is unavailable',
+      }],
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent', config: { showValidIndicator: true } },
+          model: { class: 'SimpleInputModel', config: { value: 'Same title' } },
+          layout: { class: 'DefaultLayout' },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent', config: { showWhenValid: true } } },
+      ],
+    }, { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const field = root.querySelector('input')!;
+    const form = formComponent.form!;
+    const value = form.getRawValue();
+    const update = spyOn(formComponent.recordService, 'update');
+
+    await formComponent.saveForm({ force: true });
+    await fixture.whenStable();
+    expect(update).not.toHaveBeenCalled();
+    expect(form.untouched).toBeTrue();
+    expect(root.querySelector('.validation-summary')?.textContent).toContain('Title is unavailable');
+    expect(root.querySelector('.rb-form-field-error-summary')?.textContent).toContain('Title is unavailable');
+    expect(field.classList.contains('is-invalid')).toBeTrue();
+    expect(root.querySelector('.alert-info')).toBeNull();
+
+    available = true;
+    formComponent.broadcastFormStatus();
+    await fixture.whenStable();
+
+    expect(form.getRawValue()).toEqual(value);
+    expect(form.valid).toBeTrue();
+    expect(root.querySelector('.validation-summary')).toBeNull();
+    expect(root.querySelector('.rb-form-field-error-summary')).toBeNull();
+    expect(field.classList.contains('is-invalid')).toBeFalse();
+    expect(field.classList.contains('is-valid')).toBeTrue();
+    expect(root.querySelector('.alert-info')?.textContent).toContain('The form is valid.');
+  });
+
+  it('keeps a save-only root failure in the summary and on its target after interactive validation passes', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'save-only-root-error',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        submit: { description: '', initialMembership: 'none' },
+      },
+      validators: [
+        {
+          class: 'jsonata-expression',
+          config: { expression: 'true' },
+          targetField: { dataModel: ['contributor_ci'] },
+          message: 'Choose a CI before submitting',
+        },
+        {
+          class: 'jsonata-expression',
+          groups: { include: ['submit'], exclude: ['all'] },
+          config: { expression: 'contributor_ci != "same"' },
+          targetField: { dataModel: ['contributor_ci'] },
+          message: 'Choose a CI before submitting',
+        },
+      ],
+      componentDefinitions: [
+        {
+          name: 'contributor_ci',
+          component: { class: 'SimpleInputComponent', config: { showValidIndicator: true } },
+          model: { class: 'SimpleInputModel', config: { value: 'same' } },
+          layout: { class: 'DefaultLayout' },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent', config: { showWhenValid: true } } },
+      ],
+    }, { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const field = root.querySelector('input')!;
+    const form = formComponent.form!;
+    const control = form.get('contributor_ci')!;
+    const summary = formComponent.componentDefArr[1].component as ValidationSummaryFieldComponent;
+    const update = spyOn(formComponent.recordService, 'update');
+
+    await fixture.whenStable();
+    expect(root.querySelector('.alert-info')?.textContent).toContain('The form is valid.');
+    expect(field.classList.contains('is-valid')).toBeTrue();
+
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['all', 'submit'] });
+    await fixture.whenStable();
+    formComponent.broadcastFormStatus();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(update).not.toHaveBeenCalled();
+    expect(form.valid).toBeTrue();
+    expect(control.valid).toBeTrue();
+    expect(control.untouched).toBeTrue();
+    expect(summary.hasValidationErrors).toBeTrue();
+    expect(root.querySelector('.alert-info')).toBeNull();
+    expect(root.querySelector('.validation-summary')?.textContent).toContain('Choose a CI before submitting');
+    expect(root.querySelector('.rb-form-field-error-summary')?.textContent).toContain('Choose a CI before submitting');
+    expect(field.classList.contains('is-invalid')).toBeTrue();
+    expect(field.classList.contains('is-valid')).toBeFalse();
+  });
+
   it('should contain one failed validation for the required text field that is empty', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
@@ -567,7 +881,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture, formComponent } = await createFormWithTouchedControls(formConfig);
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -630,7 +944,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
 
     const link = (fixture.nativeElement as HTMLElement).querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]');
     expect(link?.textContent).toContain('Translated Text Field');
@@ -686,7 +1000,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -743,7 +1057,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture, formComponent } = await createFormWithTouchedControls(formConfig);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const initialSummaryErrors = await validationSummary.allValidationErrorsDisplay();
     expect(initialSummaryErrors.map((summary) => summary.id)).toContain('form-item-id-text-1-event');
@@ -808,7 +1122,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const summaryErrors = await validationSummary.allValidationErrorsDisplay();
 
@@ -856,7 +1170,7 @@ describe('ValidationSummaryFieldComponent', () => {
 
     const eventBus = TestBed.inject(FormComponentEventBus);
     const publishSpy = spyOn(eventBus, 'publish').and.callThrough();
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture, formComponent } = await createFormWithTouchedControls(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]') as HTMLAnchorElement | null;
 
@@ -956,7 +1270,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');
@@ -1071,7 +1385,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');
@@ -1146,7 +1460,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -1221,7 +1535,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -1299,8 +1613,8 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture: fixtureWithoutTabLabel } = await createFormAndWaitForReady(formConfigWithoutTabLabel, { editMode: true });
-    const { fixture: fixtureWithTabLabel } = await createFormAndWaitForReady(formConfigWithTabLabel, { editMode: true });
+    const { fixture: fixtureWithoutTabLabel } = await createFormWithTouchedControls(formConfigWithoutTabLabel);
+    const { fixture: fixtureWithTabLabel } = await createFormWithTouchedControls(formConfigWithTabLabel);
 
     const linkWithoutTabLabel = (fixtureWithoutTabLabel.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
     expect(linkWithoutTabLabel?.textContent?.trim()).toBe('Project name');
@@ -1369,7 +1683,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture } = await createFormWithTouchedControls(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -1419,7 +1733,7 @@ describe('ValidationSummaryFieldComponent', () => {
         },
       ]
     };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const { fixture, formComponent } = await createFormWithTouchedControls(formConfig);
 
     // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
     const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
