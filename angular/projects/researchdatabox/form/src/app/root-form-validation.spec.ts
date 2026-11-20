@@ -17,7 +17,7 @@ describe('Root form validation', () => {
     await createTestbedModule({ declarations: {
       GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent,
       SimpleInputComponent, TabComponent, TabContentComponent, TypeaheadInputComponent, ValidationSummaryFieldComponent,
-    }, imports: { TypeaheadModule: TypeaheadModule.forRoot() } });
+    }, imports: { TypeaheadModule: TypeaheadModule } });
   });
 
   const alice = { name: 'Alice Staffer', email: 'alice.staff@example.edu' };
