@@ -3,8 +3,6 @@ process.env.TS_NODE_PROJECT = process.env.TS_NODE_PROJECT || 'test/tsconfig.json
 module.exports = {
     extension: ['ts'],
     spec: ['test/**/*.test.ts'],
-    // Use ts-node for TypeScript tests on Node versions with built-in stripping.
-    'node-option': ['no-experimental-strip-types'],
     require: ['ts-node/register'],
     timeout: 5000
 };
