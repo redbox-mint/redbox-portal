@@ -1432,9 +1432,7 @@
               "base": "../assets/angular/admin-ai-profiles"
             },
             "index": "projects/researchdatabox/admin-ai-profiles/src/index.html",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/admin-ai-profiles/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [],
@@ -1529,9 +1527,7 @@
               "base": "../assets/angular/admin-ai-models"
             },
             "index": "projects/researchdatabox/admin-ai-models/src/index.html",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/admin-ai-models/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [],

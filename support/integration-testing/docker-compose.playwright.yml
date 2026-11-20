@@ -33,6 +33,8 @@ x-playwright-service: &playwright-service
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
   - REDBOX_MCP_ENABLED=true
+  # Public fixture key for the disposable browser stack; never production data.
+  - PLAYWRIGHT_GENERATION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   - RBPORTAL_PLAYWRIGHT_MODE=${RBPORTAL_PLAYWRIGHT_MODE:-image}
   # Scenario registrations are opt-in. The lifecycle wrapper sets this to true
   # for acceptance runs; a direct portal start remains free of test forms.

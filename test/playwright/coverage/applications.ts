@@ -58,6 +58,8 @@ export const applicationManifest: readonly ApplicationManifestEntry[] = [
   app('A21', '@researchdatabox/email-templates', '/default/rdmp/admin/email-templates', ['email-templates-root #et-catalogue-filter', 'email-templates-root [data-template-action="name"]'], 'email-templates.spec.ts'),
   app('A22', '@researchdatabox/mcp-connect', '/default/rdmp/admin/mcp', ['mcp-connect h1', 'mcp-connect .mcp-readiness-checks, mcp-connect #mcp-choose-heading'], 'query-tools.spec.ts'),
   app('A23', '@researchdatabox/data-grids', '/default/rdmp/admin/data-grids', ['data-grids #grid-search', 'data-grids .rb-admin-page-actions button:enabled'], 'query-tools.spec.ts'),
+  app('A24', '@researchdatabox/admin-ai-models', '/default/rdmp/admin/ai-models', ['admin-ai-models h1', 'admin-ai-models .rb-admin-page-actions button:has-text("Add provider"):enabled'], 'ai-administration.spec.ts'),
+  app('A25', '@researchdatabox/admin-ai-profiles', '/default/rdmp/admin/ai-profiles', ['admin-ai-profiles h1', 'admin-ai-profiles .rb-admin-page-actions button:has-text("Create profile"):enabled'], 'ai-administration.spec.ts'),
 ];
 
 export function workspaceApplications(workspacePath = path.resolve('angular/angular.json')): string[] {

@@ -28,7 +28,6 @@
 <% } %>
 <%- include('layout/end.ejs') %>
 <% if (generationEnabled) { %>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js" type="module" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">
 <% } %>
