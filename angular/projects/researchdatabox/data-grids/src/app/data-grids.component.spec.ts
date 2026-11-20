@@ -778,18 +778,14 @@ describe('Data grid editor', () => {
     expect(component.notice).toBe('saved');
   });
   it('reopens stage-specific saved grids with fresh discovery and results after a hard reload', async () => {
+    fixture.detectChanges();
     const saved = { ...validGrid(), id: '123456789012345678901234', revision: 3 };
     source.read!.and.resolveTo(saved);
     source.fields = jasmine.createSpy('fields').and.resolveTo([structuredClone(scope)]);
     source.catalogue.and.resolveTo({ scopes: [{ ...scope, workflowStage: undefined, fields: [] }], persistence: true });
-    // A hard reload starts a new component with the deep link already present.
-    fixture.destroy();
+    component.draft = null;
     window.history.replaceState(null, '', '#grid=' + saved.id);
-    fixture = TestBed.createComponent(DataGridsComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-    await component.waitForInit();
-    await fixture.whenStable();
+    await component.load();
     expect(source.read).toHaveBeenCalledWith(saved.id);
     expect(source.fields).toHaveBeenCalled();
     expect(component.activeDefinition).toEqual(saved);

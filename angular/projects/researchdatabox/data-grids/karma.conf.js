@@ -39,6 +39,8 @@ module.exports = function (config) {
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
           '--disable-renderer-backgrounding',
+          // Rapid deep-link tests exceed Chrome's history/navigation IPC limit.
+          '--disable-ipc-flooding-protection',
         ],
       },
     },
