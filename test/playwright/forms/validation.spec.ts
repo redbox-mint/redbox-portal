@@ -147,7 +147,9 @@ test('F15 validation save-operations restore ordinary groups after success, reje
     await ordinary.fill('Ordinary restored');
     if (serverRejected) {
       await expect(ordinarySave).toBeDisabled();
-      await expect(adminPage.locator('redbox-validation-summary-field [data-validation-error-class="server"]')).toHaveCount(1);
+      const summary = adminPage.locator('redbox-validation-summary-field');
+      await expect(summary.getByRole('link', { name: 'Submission value', exact: true })).toBeVisible();
+      await expect(summary.locator('[data-validation-error-class]')).toHaveCount(1);
       await submit.fill('Submission recovered');
     }
     await expect(ordinarySave).toBeEnabled();
