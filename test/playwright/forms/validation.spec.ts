@@ -30,6 +30,11 @@ test('F12 validation groups switch all, none, selected and conditional membershi
   const mode = field(adminPage, 'Validation mode');
   const save = adminPage.getByRole('button', { name: 'Save', exact: true });
   await mode.fill('all');
+  await expect(errors).toHaveCount(0);
+  for (const label of ['Required value', 'Conditional value']) {
+    await field(adminPage, label).focus();
+    await field(adminPage, label).blur();
+  }
   await expect(errors).toHaveCount(2);
   await expect(save).toBeDisabled();
   await mode.fill('none');
@@ -62,6 +67,7 @@ test('F13 validation summaries reveal hidden fields while advisory errors permit
   await field(adminPage, 'Closed panel value').clear();
   await adminPage.getByRole('button', { name: 'More details', exact: true }).click();
   await field(adminPage, 'Required value').clear();
+  await field(adminPage, 'Required value').blur();
   const summary = adminPage.locator('redbox-validation-summary-field');
   await expect(summary.locator('[data-validation-error-class]')).toHaveCount(3);
   await expect(adminPage.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
@@ -98,14 +104,19 @@ test('F14 validation repeatables keep error counts and focus targets attached to
   await expect(rows).toHaveCount(2);
   await adminPage.locator('redbox-form-repeatable').getByRole('button', { name: /add/i }).click();
   await expect(rows).toHaveCount(3);
+  await expect(errors).toHaveCount(0);
+  await field(rows.nth(2), 'Contact email').focus();
+  await field(rows.nth(2), 'Contact email').blur();
   await expect(errors).toHaveCount(1);
   await field(rows.nth(0), 'Contact email').clear();
+  await field(rows.nth(0), 'Contact email').blur();
   await expect(errors).toHaveCount(2);
   await field(rows.nth(0), 'Contact email').fill('corrected@example.test');
   await expect(errors).toHaveCount(1);
   await rows.nth(2).getByRole('button', { name: /remove/i }).click();
   await expect(errors).toHaveCount(0);
   await field(rows.nth(1), 'Contact email').fill('invalid');
+  await field(rows.nth(1), 'Contact email').blur();
   await expect(errors).toHaveCount(1);
   await rows.nth(0).getByRole('button', { name: /remove/i }).click();
   await expect(rows).toHaveCount(1);
@@ -130,6 +141,7 @@ test('F15 validation save-operations restore ordinary groups after success, reje
   const saveUrl = new RegExp(`/recordmeta/${record.oid}(?:\\?|$)`);
   const restored = async () => {
     await ordinary.clear();
+    await ordinary.blur();
     await expect(adminPage.locator('redbox-validation-summary-field')).toContainText('Ordinary validation restored');
     await expect(ordinarySave).toBeDisabled();
     await ordinary.fill('Ordinary restored');
