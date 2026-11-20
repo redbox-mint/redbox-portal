@@ -199,7 +199,7 @@ To defer the valid-form message on a new record, configure the summary as follow
   name: 'validation_summary',
   component: {
     class: 'ValidationSummaryComponent',
-    config: { deferErrorsOnNewRecord: true },
+    config: { showWhenValid: true, deferErrorsOnNewRecord: true },
   },
 }
 ```

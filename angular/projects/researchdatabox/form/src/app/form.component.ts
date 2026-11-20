@@ -1084,6 +1084,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const attempt = this.saveValidationErrors();
     const saved = control.enabled ? attempt?.controls.get(control) : undefined;
     const sameFormGeneration = attempt?.generation === this.formValueGeneration;
+    const matchesSnapshot = saved && _isEqual(control.value, saved.value);
     const visible: FormValidatorComponentErrors[] = [];
 
     for (const { error, validator } of this.formService.getControlValidationErrors(control)) {
@@ -1092,7 +1093,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         : control;
       if (target?.touched === true || error.class === 'server' || saved?.errors.some(previous =>
         previous.validator === validator &&
-        ((sameFormGeneration && validator !== undefined) || _isEqual(previous.error, error))
+        ((matchesSnapshot && sameFormGeneration && validator !== undefined) || _isEqual(previous.error, error))
       )) {
         visible.push(error);
       }
@@ -1100,7 +1101,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     // Only rules excluded from interactive validation can supply a saved message.
     // An enabled rule supplies its live result, which may have passed on recheck.
-    if (saved && (sameFormGeneration || _isEqual(control.value, saved.value))) {
+    if (matchesSnapshot) {
       for (const { error, validator, saveOnly } of saved.errors) {
         if (saveOnly && validator && !this.formService.isValidatorEnabled(validator, this.enabledValidationGroups, this.validationGroups) &&
             !visible.some(current => _isEqual(current, error))) {

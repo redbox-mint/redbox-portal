@@ -1,12 +1,13 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { Store } from '@ngrx/store';
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, FormStatus } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import * as FormActions from '../form-state/state/form.actions';
 import {
   createFormDeleteSuccessEvent,
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
+  createFormValidationBroadcastEvent,
   FormComponentEventBus,
   FormStateFacade,
 } from '../form-state';
@@ -142,6 +143,56 @@ describe('SaveStatusComponent', () => {
     expect(error?.textContent).toContain('Error while saving:');
     expect(error?.textContent).toContain('The form is invalid.');
   });
+
+  it('keeps a server validation failure visible when interactive validation settles', fakeAsync(() => {
+    let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady(formConfig).then(result => { mounted = result; });
+    // Let the event-bus adapter finish throttling the initial validation broadcasts.
+    tick(250);
+    const { fixture, formComponent } = mounted;
+    const store = TestBed.inject(Store);
+    const facade = TestBed.inject(FormStateFacade);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const error = 'RDMP contributor validation failed';
+    const root: HTMLElement = fixture.nativeElement;
+    const banner = () => root.querySelector('.rb-form-save-status.alert-danger');
+    const startSave = () => {
+      store.dispatch(FormActions.submitForm({ force: true }));
+      tick();
+      fixture.detectChanges();
+    };
+    spyOn(formComponent, 'saveForm').and.resolveTo();
+    startSave();
+
+    eventBus.publish(createFormSaveFailureEvent({
+      formScopeId: formComponent.eventScopeId,
+      error,
+      response: { outcome: 'not-saved' },
+    }));
+    tick();
+    fixture.detectChanges();
+    expect(facade.status()).toBe(FormStatus.VALIDATION_ERROR);
+    expect(banner()?.textContent).toContain(error);
+
+    eventBus.publish(createFormValidationBroadcastEvent({ isValid: true }));
+    tick();
+    fixture.detectChanges();
+    expect(facade.status()).toBe(FormStatus.READY);
+    expect(facade.error()).toBe(error);
+    expect(banner()?.textContent).toContain(error);
+
+    startSave();
+    expect(facade.error()).toBeNull();
+    expect(banner()).toBeNull();
+    expect(root.querySelector('.rb-form-save-status.alert-info')).not.toBeNull();
+
+    store.dispatch(FormActions.submitFormSuccess({ savedData: {}, lastSavedAt: new Date().toISOString() }));
+    tick();
+    fixture.detectChanges();
+    expect(banner()).toBeNull();
+    expect(root.querySelector('.rb-form-save-status.alert-success')).not.toBeNull();
+    tick(3000);
+  }));
 
   it('clears the error banner when conflict recovery clears the failure', async () => {
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);

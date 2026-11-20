@@ -279,6 +279,49 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(root.querySelector('.validation-summary')).toBeNull();
   });
 
+  it('clears a save-only required error after the field is filled silently', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'silent-draft-field-update',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        'draft-minimum': { description: '', initialMembership: 'none' },
+      },
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: {
+            value: '',
+            validators: [{
+              class: 'required',
+              groups: { include: ['draft-minimum'], exclude: ['all'] },
+              message: 'Enter a title',
+            }],
+          } },
+          component: { class: 'SimpleInputComponent' },
+          layout: { class: 'DefaultLayout' },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent' } },
+      ],
+    }, { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const title = formComponent.form!.get('title')!;
+
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['draft-minimum'] });
+    await fixture.whenStable();
+    expect(root.querySelector('.validation-summary')?.textContent).toContain('Enter a title');
+    expect(root.querySelector('.rb-form-field-error-summary')?.textContent).toContain('Enter a title');
+    expect(title.untouched).toBeTrue();
+
+    title.setValue('Draft title', { emitEvent: false });
+    formComponent.broadcastFormStatus();
+    await fixture.whenStable();
+
+    expect(root.querySelector('.validation-summary')).toBeNull();
+    expect(root.querySelector('.rb-form-field-error-summary')).toBeNull();
+    expect(root.querySelector('input')?.classList.contains('is-invalid')).toBeFalse();
+  });
+
   it('keeps server save errors visible when restored interactive validation settles', async () => {
     let evaluate = async () => true;
     const { fixture, formComponent } = await createFormAndWaitForReady({

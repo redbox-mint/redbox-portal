@@ -33,6 +33,8 @@ export interface FormFeatureState {
   
   /** User-safe error message (R2.2, R2.6) */
   error?: string | null;
+  /** Save errors take precedence over interactive validation messages until the next operation. */
+  errorSource?: 'save' | null;
   
   /** Array of in-flight async operations (R2.2, R4.2) */
   pendingActions: string[];
@@ -60,6 +62,7 @@ export const formInitialState: FormFeatureState = {
   isDirty: false,
   lastSavedAt: null,
   error: null,
+  errorSource: null,
   pendingActions: [],
   resetToken: 0,
   submissionAttempt: 0,
