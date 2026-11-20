@@ -23,6 +23,8 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     labelSaving?: string;
     buttonCssClasses?: string;
     enabledValidationGroups?: string[];
+    disableWhenInvalid?: boolean;
+    disableWhenPristine?: boolean;
     closeOnSave?: boolean;
     redirectLocation?: string;
     redirectDelaySeconds?: number;

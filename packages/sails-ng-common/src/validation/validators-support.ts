@@ -36,10 +36,12 @@ export class ValidatorsSupport {
    * Create form validator instances from the validator definition mapping.
    * @param defMap The validator definition mapping.
    * @param config The form validator config blocks.
+   * @param onErrorKey Associates each allocated error key with its validator config.
    */
   public createFormValidatorInstancesFromMapping(
     defMap: Map<string, FormValidatorDefinition>,
     config: (FormValidatorConfig | FormValidatorTargetFieldConfig)[] | null | undefined,
+    onErrorKey?: (key: string, validator: FormValidatorConfig) => void,
   ): FormValidatorFns {
     const result: FormValidatorFns = { syncDefs: [], asyncDefs: [] };
 
@@ -74,6 +76,8 @@ export class ValidatorsSupport {
       if ((classCounts.get(validatorClass) ?? 0) > 1) {
         createConfig.errorKey = `${validatorClass}#${occurrence}`;
       }
+
+      onErrorKey?.(createConfig.errorKey ?? validatorClass, validatorConfigItem);
 
       if ('targetField' in validatorConfigItem && validatorConfigItem.targetField !== undefined) {
         createConfig.targetField = validatorConfigItem.targetField;

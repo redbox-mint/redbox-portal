@@ -3,11 +3,11 @@ import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inje
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import {
   FieldLayoutDefinitionFrame,
-  FormValidatorComponentErrors,
   FormFieldComponentStatus,
   DefaultLayoutName
 } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, TranslationService } from "@researchdatabox/portal-ng-common";
+
 import { FormService } from "../form.service";
 
 /**
@@ -65,8 +65,7 @@ import { FormService } from "../form.service";
     </ng-template>
     <ng-template #afterComponentTemplate>
       @if (isVisible && formComponent.editMode()) {
-        @let componentValidationList = getFormValidatorComponentErrors;
-        <redbox-field-error-summary [errors]="showValidationErrors ? componentValidationList : []" [fieldName]="componentName"></redbox-field-error-summary>
+        <redbox-field-error-summary [errors]="visibleValidationErrors ?? []" [fieldName]="componentName"></redbox-field-error-summary>
       }
     </ng-template>
   }
@@ -170,10 +169,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   private setHelpTextVisibleOnInit() {
     this.helpTextVisible = true;
-  }
-
-  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[] {
-    return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
   protected get componentName() {

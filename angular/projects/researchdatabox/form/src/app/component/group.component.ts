@@ -1,34 +1,21 @@
-import {
-  Component,
-  inject,
-  Injector,
-  ViewChild,
-  ViewContainerRef, ChangeDetectionStrategy
-} from '@angular/core';
-import { AbstractControl, FormGroup } from "@angular/forms";
-import {
-  FormFieldBaseComponent,
-  FormFieldCompMapEntry,
-  FormFieldModel,
-} from "@researchdatabox/portal-ng-common";
+import { Component, inject, Injector, ViewChild, ViewContainerRef, ChangeDetectionStrategy } from '@angular/core';
+import { AbstractControl, FormGroup } from '@angular/forms';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame,
-  GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  GroupFieldModelValueType,
+  GroupFieldModelName,
+  GroupFieldComponentName,
   isTypeFieldDefinitionName,
   isTypeWithComponentDefinitions,
   GroupFieldComponentDefinitionFrame,
-} from "@researchdatabox/sails-ng-common";
-import { FormComponentsMap, FormService } from "../form.service";
-import { FormComponent } from "../form.component";
-import {
-  get as _get,
-  isEmpty as _isEmpty,
-  isUndefined as _isUndefined,
-} from "lodash-es";
-import { FormBaseWrapperComponent } from "./base-wrapper.component";
+} from '@researchdatabox/sails-ng-common';
+import { FormComponentsMap, FormService } from '../form.service';
+import { FormComponent } from '../form.component';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
+import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 import { setControlValue } from '../form-state/custom-set-value.control';
-
 
 export type GroupFormControlValueType = { [key: string]: AbstractControl<GroupFieldModelValueType> };
 export type GroupFormControlType = FormGroup<GroupFormControlValueType>;
@@ -74,14 +61,21 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 @Component({
   selector: 'redbox-groupfield',
   template: `
-    <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
-    <div class="rb-form-group">
-      <ng-container #componentContainer/>
+    <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+    <div class="rb-form-group" [class.is-invalid]="showInvalidState">
+      <ng-container #componentContainer />
     </div>
-    <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
+    <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  styles: [
+    `
+      .rb-form-group.is-invalid {
+        outline: 1px solid var(--bs-form-invalid-border-color, #dc3545);
+      }
+    `,
+  ],
+  standalone: false,
 })
 export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {
   protected override logName: string = GroupFieldComponentName;
@@ -98,9 +92,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
-    return this.formFieldCompMapEntries
-      .map(c => c.component)
-      .filter(c => c !== undefined && c !== null);
+    return this.formFieldCompMapEntries.map(c => c.component).filter(c => c !== undefined && c !== null);
   }
 
   public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
@@ -112,7 +104,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
-    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? '';
 
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
     if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(componentFormConfig, GroupFieldComponentName)) {
@@ -120,8 +112,13 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     }
 
     const componentConfigFormConfig = componentFormConfig.config;
-    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1) {
-      throw new Error(`Expected a group component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
+    if (
+      !isTypeWithComponentDefinitions(componentConfigFormConfig) ||
+      componentConfigFormConfig.componentDefinitions?.length < 1
+    ) {
+      throw new Error(
+        `Expected a group component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`
+      );
     }
 
     const componentDefinitions = componentConfigFormConfig.componentDefinitions;
@@ -138,14 +135,12 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     };
 
     // Construct the components.
-    const parentLineagePaths = this.formService.buildLineagePaths(
-      this.formFieldCompMapEntry?.lineagePaths,
-      {
-        angularComponents: [],
-        layout: [],
-        dataModel: [],
-        formConfig: ['component', 'config', 'componentDefinitions'],
-      });
+    const parentLineagePaths = this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
+      angularComponents: [],
+      layout: [],
+      dataModel: [],
+      formConfig: ['component', 'config', 'componentDefinitions'],
+    });
     this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
 
     if (_isEmpty(this.formComponentsMap)) {
@@ -165,9 +160,11 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       // Related view controls are disabled for presentation, but their models
       // still carry reference identities and populated display values.
-      const relatedViewControl = !this.getFormComponent.editMode()
-        && elemFieldEntry?.compConfigJson?.component?.config?.relatedViewPreserved === true;
-      const includeInFormControlMap = relatedViewControl || this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      const relatedViewControl =
+        !this.getFormComponent.editMode() &&
+        elemFieldEntry?.compConfigJson?.component?.config?.relatedViewPreserved === true;
+      const includeInFormControlMap =
+        relatedViewControl || this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
       const elemVal = elemVals?.[key];
       const childModel = elemFieldEntry?.model;
       if (includeInFormControlMap && childModel && !_isUndefined(elemVal)) {
@@ -176,7 +173,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         // value as its baseline (so a later clear to null is still a change).
         childModel.initValue = elemVal;
         if (childModel.formControl && !('controls' in childModel.formControl)) {
-          childModel.setValue(elemVal as never, {emitEvent: false});
+          childModel.setValue(elemVal as never, { emitEvent: false });
         }
       }
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
@@ -185,12 +182,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       if (hasModel && includeInFormControlMap) {
         this.model.addItem(key, compInstance.model);
         await syncComponentDisplayFromModel(compInstance);
-      } else if (
-        this.model?.formControl &&
-        includeInFormControlMap &&
-        compInstance &&
-        elemFieldEntry?.formControlMap
-      ) {
+      } else if (this.model?.formControl && includeInFormControlMap && compInstance && elemFieldEntry?.formControlMap) {
         // Model-less containers (for example reusable form boundaries) expose
         // their descendant controls through formControlMap. Keep those controls
         // inside this group so child edits participate in group values, dirty
@@ -211,7 +203,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         }
         await syncComponentDisplayFromModel(compInstance);
       } else {
-        this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
+        this.loggerService.debug(
+          `${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`
+        );
       }
 
       // Set the reference to the wrapper component.

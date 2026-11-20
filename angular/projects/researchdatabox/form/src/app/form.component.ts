@@ -18,7 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { RelatedDataStateService } from './form-state/related-records/related-data-state.service';
 import { omitAbsentRelatedDisplayValues } from './form-state/related-records/related-display-control-state';
-import { relatedDisplayReferencesEqual, relatedDisplayActive, projectRelatedDisplayMetadata } from '@researchdatabox/sails-ng-common';
+import {
+  relatedDisplayReferencesEqual,
+  relatedDisplayActive,
+  projectRelatedDisplayMetadata,
+} from '@researchdatabox/sails-ng-common';
 import {
   Component,
   DestroyRef,
@@ -60,6 +64,7 @@ import {
   AbstractControl,
   FormControlStatus,
   FormGroup,
+  FormArray,
   PristineChangeEvent,
   StatusChangeEvent,
   ValueChangeEvent,
@@ -107,7 +112,7 @@ import {
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
-import { FormComponentsMap, FormService } from './form.service';
+import { ControlValidationError, FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import {
@@ -207,10 +212,7 @@ interface FormValueGenerationSnapshot {
   standalone: false,
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
-  private static readonly adoptableConflictStatuses: ReadonlySet<FormConflictStatus> = new Set([
-    'stale',
-    'reviewing',
-  ]);
+  private static readonly adoptableConflictStatuses: ReadonlySet<FormConflictStatus> = new Set(['stale', 'reviewing']);
   readonly relatedDataState = inject(RelatedDataStateService);
 
   @HostBinding('attr.data-rb-related-state')
@@ -219,7 +221,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const sources = this.formDefMap?.formConfig?.relatedRecords?.sources;
     if (!sources?.length) return 'ready';
     return sources.some(source => !this.relatedDataState.hasSource(source.componentPointer))
-      ? 'pending' : this.relatedDataState.state;
+      ? 'pending'
+      : this.relatedDataState.state;
   }
 
   private logName = 'FormComponent';
@@ -269,8 +272,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The FormGroup instance
    */
   form?: FormGroup;
-  /** Reveal inline failures after a save request, including on fields added later. */
-  readonly saveAttempted = signal(false);
+  // Keep save feedback separate from user touch so switching groups cannot
+  // expose other rules on the same, still-unvisited control.
+  private readonly saveValidationErrors = signal<
+    | {
+        controls: WeakMap<AbstractControl, SaveValidationControlSnapshot>;
+        generation: number;
+      }
+    | undefined
+  >(undefined);
   /**
    * The form group status signal
    */
@@ -306,8 +316,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private eventBus = inject(FormComponentEventBus);
   private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
-  private preTemporarySaveValidationGroups: string[] = [];
-  private resetTemporaryValidationGroupsOnNextChange = false;
+  private saveValidationScope?: { interactiveGroups: string[] };
   private pendingValidationTimeoutMs = 30000;
   public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
@@ -484,8 +493,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.debugPanelTaskCleanup = undefined;
     });
     effect(() => {
-      if (this.debugState.isDebugEnabled() && this.componentsLoaded() &&
-          this.componentDefArr.length > 0 && !this.debugPanelComponent() && !this.debugPanelLoading) {
+      if (
+        this.debugState.isDebugEnabled() &&
+        this.componentsLoaded() &&
+        this.componentDefArr.length > 0 &&
+        !this.debugPanelComponent() &&
+        !this.debugPanelLoading
+      ) {
         this.debugPanelLoading = true;
         this.debugPanelTaskCleanup = this.debugPanelPendingTasks.add();
         void (async () => {
@@ -557,7 +571,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.editMode(),
           this.trimmedParams.formName(),
           this.modulePaths,
-          this.getGenerationRuntimeContext(),
+          this.getGenerationRuntimeContext()
         );
       } else {
         this.loggerService.info(`${this.logName}: creating form definition from provided config`);
@@ -620,10 +634,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // Finally set the flag indicating components are loaded
       this.componentsLoaded.set(true);
       const meta = this.formDefMap?.formConfigMeta as FormRuntimeMeta | undefined;
-      this.store.dispatch(GenerationActions.configure({
-        actions: meta?.runtimeActions ?? [],
-        session: meta?.generationSession ?? null,
-      }));
+      this.store.dispatch(
+        GenerationActions.configure({
+          actions: meta?.runtimeActions ?? [],
+          session: meta?.generationSession ?? null,
+        })
+      );
       if (meta?.generationEnabled === true && this.trimmedParams.oid()) {
         try {
           await this.generationProvenance.load(this.trimmedParams.oid());
@@ -640,7 +656,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private clearLoadedForm(): void {
     // A reused form host must release the previous record before loading another.
     this.componentsLoaded.set(false);
-    this.saveAttempted.set(false);
+    this.formService.clearRootAsyncValidation(this.form);
+    this.saveValidationErrors.set(undefined);
+    this.saveValidationScope = undefined;
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.subMaps = {};
     this.behaviourManager.destroy();
@@ -654,7 +672,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formConflictReviewState.set(null);
     this.manualConflictResolutionPending.set(false);
     this.saveResponse.set(undefined);
-    this.resetTemporaryValidationGroupsOnNextChange = false;
     this.allowConflictNavigationOnce = false;
     this.conflictExportCompleted = false;
   }
@@ -663,7 +680,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Set up the JSONata query source from component definitions
    */
   protected setupQuerySource() {
-    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, this.getExpressionRuntimeContext());
+    this.componentDefQuerySource = this.formService.getJSONataQuerySource(
+      this.componentDefArr,
+      this.getExpressionRuntimeContext()
+    );
   }
 
   public getExpressionRuntimeContext(): JSONataQueryRuntimeContext {
@@ -692,9 +712,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private getGenerationRuntimeContext(): FormRuntimeRequestContext | undefined {
     const value = this.requestParams()['generationRunId'];
-    return typeof value === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(value)
-      ? { generationRunId: value }
-      : undefined;
+    return typeof value === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(value) ? { generationRunId: value } : undefined;
   }
   /**
    * Initialize reactive effects
@@ -728,7 +746,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
         // If validation completed
         if (!formGroupIsPending) {
-          if (!formGroupIsValid && formGroupWasValid) {
+          if (!formGroupIsValid && (formGroupWasValid || formGroupWasPending)) {
             this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
           }
           if (formGroupIsValid && !formGroupWasValid) {
@@ -744,11 +762,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   protected initSubscriptions() {
     this.focusRequestCoordinator.bind(this);
-
-    this.subMaps['saveAttemptedSub'] = this.eventBus
-      .select$(FormComponentEventType.FORM_SAVE_REQUESTED)
-      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
-      .subscribe(() => this.saveAttempted.set(true));
 
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
@@ -847,11 +860,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
         const targetControl = evt.fieldId ? this.form.get(evt.fieldId) : null;
         if (targetControl && this.isActiveRelatedDisplayControl(targetControl)) return;
-        if (this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length) {
+        const trackLocalChanges = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
+        const wasDirty = this.form.dirty;
+        if (trackLocalChanges) {
           this.localDirtyRequestControls.add(targetControl ?? this.form);
         }
         targetControl?.markAsDirty();
         this.form.markAsDirty();
+        // A local dirty request can change what is saveable while the root is already dirty.
+        if (trackLocalChanges && wasDirty) this.broadcastFormStatus(false);
       });
     this.subMaps['debugEventStreamSub']?.unsubscribe();
     this.subMaps['debugEventStreamSub'] = this.eventBus.selectAll$().subscribe((event: FormComponentEvent) => {
@@ -862,7 +879,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['setValidationGroupsSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST)
       .subscribe((event: FormValidationGroupsChangeRequestEvent) => {
-        const originalEnabledValidationGroups = [...this.enabledValidationGroups];
+        const saveValidation = this.saveValidationScope;
+        const originalEnabledValidationGroups = saveValidation?.interactiveGroups ?? this.enabledValidationGroups;
         const initial: FormValidationGroupsChangeInitial = event.initial ?? 'current';
         const groups = event.groups ?? {};
 
@@ -873,16 +891,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           groups
         );
 
-        // Set the enabled validation groups to the form component config.
-        this.enabledValidationGroups = enabledNames;
-        const validationGroups = this.validationGroups;
-        this.componentDefArr?.forEach(mapEntry =>
-          this.formService.updateValidators(mapEntry, enabledNames, validationGroups)
-        );
-        this.broadcastFormStatus();
+        if (saveValidation) {
+          saveValidation.interactiveGroups = enabledNames;
+        } else {
+          this.applyValidationGroups(enabledNames);
+        }
 
         this.loggerService.debug(
-          `${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`
+          `${this.logName}: Interactive validation groups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(enabledNames)} from event field ${event.fieldId}`
         );
       });
 
@@ -922,16 +938,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       let previousLocalValue = this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length
-        ? this.getPersistedFormValue() : null;
+        ? this.getPersistedFormValue()
+        : null;
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
         const optedIn = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
         const nextLocalValue = optedIn ? this.getPersistedFormValue() : null;
         const localChanged = !optedIn || !_isEqual(previousLocalValue, nextLocalValue);
         previousLocalValue = nextLocalValue;
         if (localChanged) this.formValueGeneration += 1;
-        if (localChanged && this.resetTemporaryValidationGroupsOnNextChange) {
-          this.resetTemporaryValidationGroups();
-        }
         const conflict = this.formConflictState();
         if (conflict?.status === 'reviewing' && this.formConflictReviewState()) {
           const local = immutableFormMetadata(this.getPersistedFormValue());
@@ -978,15 +992,40 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (revalidate) {
       this.form.updateValueAndValidity({ emitEvent: false });
     }
-    this.formGroupStatus.set(this.dataStatus);
+    const status = this.dataStatus;
+    this.formGroupStatus.set(status);
     this.eventBus.publish(
       createFormValidationBroadcastEvent({
-        isValid: this.dataStatus.valid,
-        errors: this.dataStatus.errors,
-        status: this.dataStatus,
+        isValid: status.valid,
+        errors: status.errors,
+        status,
       })
     );
   }
+  private applyValidationGroups(groups: string[], broadcastSettlement = true): void {
+    this.enabledValidationGroups = groups;
+    const validationGroups = this.validationGroups;
+    this.componentDefArr.forEach(entry => this.formService.updateValidators(entry, groups, validationGroups));
+    const form = this.form;
+    if (!form) return;
+
+    this.formService.setValidators(form, this.formValidators, groups, validationGroups, {
+      emitEvent: false,
+      rootForm: this.formDefMap,
+    });
+    this.broadcastFormStatus(false);
+    if (broadcastSettlement && this.formService.hasPendingValidation(form)) {
+      // Silent group changes can also settle silently, so refresh consumers
+      // that use the broadcast to leave the pending state.
+      const loadRevision = this.formLoadRevision;
+      void this.waitForPendingValidation().then(settled => {
+        if (settled && !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision) {
+          this.broadcastFormStatus(false);
+        }
+      });
+    }
+  }
+
   /**
    * Create the form group based on the form definition map.
    */
@@ -1009,7 +1048,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const validatorConfig = this.formValidators;
         const enabledValidationGroups = this.enabledValidationGroups;
         const validationGroups = this.validationGroups;
-        this.formService.setValidators(this.form, validatorConfig, enabledValidationGroups, validationGroups);
+        this.formService.setValidators(this.form, validatorConfig, enabledValidationGroups, validationGroups, {
+          rootForm: this.formDefMap,
+        });
       } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
         // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
         // That is ok. But a form must have at least one component.
@@ -1058,13 +1099,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Get the validation errors from all the controls in this form, and recurse into the control's child controls.
    */
-  public getValidationErrors(): FormValidatorSummaryErrors[] {
+  public getValidationErrors(visibleOnly = false): FormValidatorSummaryErrors[] {
     const summaryErrors: FormValidatorSummaryErrors[] = [];
 
     // component validators
     const mapEntries = this.formDefMap?.components ?? [];
     for (const mapEntry of mapEntries) {
-      const errors = this.formService.getFormValidatorSummaryErrors(mapEntry);
+      const errors = this.formService.getFormValidatorSummaryErrors(
+        mapEntry,
+        visibleOnly ? control => this.getVisibleControlValidationErrors(control) : undefined
+      );
       summaryErrors.push(...errors);
     }
 
@@ -1077,12 +1121,95 @@ export class FormComponent extends BaseComponent implements OnDestroy {
      *  so that any component details are already present, and it is clear whether assigning
      *  errors to a component can re-use existing details or requires creating a new entry.
      */
-    if (this.form) {
-      const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
+    const form = this.form;
+    if (form) {
+      const formErrors = visibleOnly
+        ? this.getVisibleControlValidationErrors(form)
+        : this.formService.getFormValidatorComponentErrors(form);
       this.assignFormValidatorErrorsToComponent(summaryErrors, formErrors);
     }
 
     return summaryErrors;
+  }
+
+  public getVisibleFieldValidationErrors(entry: FormFieldCompMapEntry | undefined): FormValidatorComponentErrors[] {
+    const control = entry?.model?.formControl;
+    if (!control) return [];
+
+    const errors = this.getVisibleControlValidationErrors(control);
+    const form = this.form;
+    const lineagePaths = entry.lineagePaths;
+    if (form && lineagePaths && (form.errors || this.saveValidationErrors()?.controls.has(form))) {
+      errors.push(
+        ...this.getVisibleControlValidationErrors(form).filter(
+          error => error.targetField && isMatchingLineagePaths(lineagePaths, error.targetField)
+        )
+      );
+    }
+    return errors;
+  }
+
+  private getVisibleControlValidationErrors(control: AbstractControl): FormValidatorComponentErrors[] {
+    const attempt = this.saveValidationErrors();
+    const saved = control.enabled ? attempt?.controls.get(control) : undefined;
+    const sameFormGeneration = attempt?.generation === this.formValueGeneration;
+    const matchesSnapshot = saved && _isEqual(control.value, saved.value);
+    const visible: FormValidatorComponentErrors[] = [];
+
+    for (const { error, validator } of this.formService.getControlValidationErrors(control)) {
+      const target =
+        control === this.form && error.targetField
+          ? this.getComponentDefByName(error.targetField)?.model?.formControl
+          : control;
+      if (
+        target?.touched === true ||
+        error.class === 'server' ||
+        saved?.errors.some(
+          previous =>
+            previous.validator === validator &&
+            ((matchesSnapshot && sameFormGeneration && validator !== undefined) || _isEqual(previous.error, error))
+        )
+      ) {
+        visible.push(error);
+      }
+    }
+
+    // Only rules excluded from interactive validation can supply a saved message.
+    // An enabled rule supplies its live result, which may have passed on recheck.
+    if (matchesSnapshot) {
+      for (const { error, validator, saveOnly } of saved.errors) {
+        if (
+          saveOnly &&
+          validator &&
+          !this.formService.isValidatorEnabled(validator, this.enabledValidationGroups, this.validationGroups) &&
+          !visible.some(current => _isEqual(current, error))
+        ) {
+          visible.push(error);
+        }
+      }
+    }
+    return visible;
+  }
+
+  private revealSaveValidationErrors(form: FormGroup, interactiveGroups: string[]): void {
+    const controls = new WeakMap<AbstractControl, SaveValidationControlSnapshot>();
+    const validationGroups = this.validationGroups;
+    const capture = (control: AbstractControl): void => {
+      if (!control.invalid) return;
+      const errors = this.formService.getControlValidationErrors(control).map(entry => ({
+        ...entry,
+        saveOnly:
+          entry.validator !== undefined &&
+          !this.formService.isValidatorEnabled(entry.validator, interactiveGroups, validationGroups),
+      }));
+      if (errors.length > 0) controls.set(control, { value: control.value, errors });
+      if (control instanceof FormGroup || control instanceof FormArray) {
+        Object.values(control.controls).forEach(capture);
+      }
+    };
+    capture(form);
+    this.saveValidationErrors.set({ controls, generation: this.formValueGeneration });
+    this.broadcastFormStatus(false);
   }
 
   /**
@@ -1179,17 +1306,28 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     // Raw references determine activation even if their selectors are disabled;
     // every submitted value still comes from Angular's legacy value view.
-    return optedIn ? projectRelatedDisplayMetadata(formValue,
-      this.formDefMap?.formConfig?.relatedRecords, this.form?.getRawValue() ?? {}) : formValue;
+    return optedIn
+      ? projectRelatedDisplayMetadata(
+          formValue,
+          this.formDefMap?.formConfig?.relatedRecords,
+          this.form?.getRawValue() ?? {}
+        )
+      : formValue;
   }
 
   /** Persistence activation changes cannot safely share a three-way merge contract. */
-  private planLocalConflictRebase(...args: Parameters<typeof planFormConflictRebase>): ReturnType<typeof planFormConflictRebase> {
+  private planLocalConflictRebase(
+    ...args: Parameters<typeof planFormConflictRebase>
+  ): ReturnType<typeof planFormConflictRebase> {
     const [baseline, conflict, local] = args;
     const contract = this.formDefMap?.formConfig?.relatedRecords;
-    if (contract?.displayTargets.length && baseline && conflict?.latest &&
+    if (
+      contract?.displayTargets.length &&
+      baseline &&
+      conflict?.latest &&
       (!relatedDisplayReferencesEqual(baseline.metadata, local, contract) ||
-       !relatedDisplayReferencesEqual(baseline.metadata, conflict.latest, contract))) {
+        !relatedDisplayReferencesEqual(baseline.metadata, conflict.latest, contract))
+    ) {
       return { eligible: false, reason: 'form-fingerprint-mismatch' };
     }
     return planFormConflictRebase(...args);
@@ -1207,7 +1345,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     let ancestor = false;
     for (const target of contract.displayTargets) {
       if (!relatedDisplayActive(metadata, contract, target.relationId)) continue;
-      const path = target.metadataPointer.slice(1).split('/').map(token => token.replace(/~1/g, '/').replace(/~0/g, '~'));
+      const path = target.metadataPointer
+        .slice(1)
+        .split('/')
+        .map(token => token.replace(/~1/g, '/').replace(/~0/g, '~'));
       const targetControl = this.form.get(path);
       for (let current: AbstractControl | null = control; current; current = current.parent) {
         if (current === targetControl) return 'display';
@@ -1230,8 +1371,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const children = (control as FormGroup).controls;
     if (!children) return control.dirty;
     const values = Object.values(children) as AbstractControl[];
-    return values.some(child => this.hasLocalDirtyControl(child)) ||
-      (control.dirty && values.every(child => child.pristine));
+    return (
+      values.some(child => this.hasLocalDirtyControl(child)) || (control.dirty && values.every(child => child.pristine))
+    );
+  }
+
+  public hasChangesToSave(form = this.form): boolean {
+    if (!form) return false;
+    return this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length
+      ? this.hasLocalDirtyControl(form)
+      : form.dirty;
   }
 
   private projectLocalMetadata(value: Record<string, unknown>): Record<string, unknown> {
@@ -1459,68 +1608,85 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const formName = this.trimmedParams.formName();
     // Awaited validation, transport and metadata work belongs to this exact form.
     // Neither a new OID nor a reload of the same OID may inherit its result or intent.
-    const ownsSave = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision &&
-      this.trimmedParams.oid() === saveOid && this.trimmedParams.recordType() === recordType &&
+    const ownsSave = () =>
+      !this.isDestroyed &&
+      this.form === form &&
+      this.formLoadRevision === loadRevision &&
+      this.trimmedParams.oid() === saveOid &&
+      this.trimmedParams.recordType() === recordType &&
       this.trimmedParams.formName() === formName;
-    if (!ownsSave()) return;
-    this.saveAttempted.set(true);
+    if (!ownsSave() || this.saveValidationScope || _isNull(this.saveResponse())) return;
     const conflict = this.formConflictState();
     if (conflict && this.saveBlockedByConflict()) {
-      this.eventBus.publish(createFormSaveFailureEvent({
-        error: conflict.status === 'deleted' ? '@form-conflict-deleted-message' : '@form-conflict-permission-lost-message',
-        formScopeId: this.eventScopeId,
-        requestId: conflict.requestId,
-      }));
+      this.eventBus.publish(
+        createFormSaveFailureEvent({
+          error:
+            conflict.status === 'deleted' ? '@form-conflict-deleted-message' : '@form-conflict-permission-lost-message',
+          formScopeId: this.eventScopeId,
+          requestId: conflict.requestId,
+        })
+      );
       return;
     }
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
-    const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
-    this.clearServerSaveProblems();
+    const enabledValidationGroups = options?.enabledValidationGroups ?? this.enabledValidationGroups;
+    const formIsModified = this.hasChangesToSave(form) || forceSave;
+    const saveOperation: 'create' | 'update' = _isEmpty(saveOid) ? 'create' : 'update';
 
-    if (this.form && options?.enabledValidationGroups) {
-      if (!this.resetTemporaryValidationGroupsOnNextChange) {
-        this.preTemporarySaveValidationGroups = [...this.enabledValidationGroups];
+    // Keep the action's validators in place through its check only. Restore
+    // the interactive groups before transport and before applying server errors.
+    const validation = form ? { interactiveGroups: [...this.enabledValidationGroups] } : undefined;
+    this.saveValidationScope = validation;
+    let formIsValid: boolean | undefined;
+    try {
+      this.clearServerSaveProblems();
+      if (form && options?.enabledValidationGroups) {
+        this.applyValidationGroups(enabledValidationGroups, false);
       }
-      this.enabledValidationGroups = enabledValidationGroups;
-      this.resetTemporaryValidationGroupsOnNextChange = !this.validationGroupNamesEqual(
-        enabledValidationGroups,
-        this.preTemporarySaveValidationGroups
-      );
-      const validationGroups = this.validationGroups;
-      this.componentDefArr?.forEach(mapEntry =>
-        this.formService.updateValidators(mapEntry, enabledValidationGroups, validationGroups)
-      );
-      this.form.updateValueAndValidity({ emitEvent: false });
-      this.broadcastFormStatus();
-    }
-
-    // Check if the form is ready, defined, modified OR forceSave is set
-    // Status check will ensure saves requests will not overlap within the Angular Form app context
-    const formIsModified = (this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length && this.form
-      ? this.hasLocalDirtyControl(this.form) : this.form?.dirty) || forceSave;
-    const saveOperation: 'create' | 'update' = _isEmpty(this.trimmedParams.oid()) ? 'create' : 'update';
-    if (this.form?.pending) {
-      const validationSettled = await this.waitForPendingValidation();
-      if (!ownsSave() || this.saveBlockedByConflict()) return;
-      if (!validationSettled) {
-        const message = '@dmpt-form-validation-timeout';
-        this.loggerService.warn(`${this.logName}: ${message}`);
-        this.eventBus.publish(createFormSaveFailureEvent({ error: message, formScopeId: this.eventScopeId }));
-        return;
+      if (this.formService.hasPendingValidation(form)) {
+        const validationSettled = await this.waitForPendingValidation();
+        if (!ownsSave() || this.saveBlockedByConflict()) return;
+        if (!validationSettled) {
+          const message = '@dmpt-form-validation-timeout';
+          this.loggerService.warn(`${this.logName}: ${message}`);
+          this.eventBus.publish(
+            createFormSaveFailureEvent({
+              kind: 'client-validation',
+              error: message,
+              formScopeId: this.eventScopeId,
+            })
+          );
+          return;
+        }
+        this.broadcastFormStatus(false);
+      }
+      formIsValid = form?.valid;
+      if (form?.invalid && formIsModified) {
+        this.revealSaveValidationErrors(form, validation?.interactiveGroups ?? this.enabledValidationGroups);
+      }
+    } finally {
+      if (validation && this.saveValidationScope === validation) {
+        this.saveValidationScope = undefined;
+        if (
+          !this.isDestroyed &&
+          this.form === form &&
+          this.formLoadRevision === loadRevision &&
+          !this.validationGroupNamesEqual(this.enabledValidationGroups, validation.interactiveGroups)
+        ) {
+          this.applyValidationGroups(validation.interactiveGroups);
+        }
       }
     }
-    // At this point, only the validators that we want to run will be set on the angular components.
-    const formIsValid = this.form?.valid;
-    const formIsSaving = _isNull(this.saveResponse());
 
     if (this.form && formIsModified) {
-      if (formIsValid && !formIsSaving) {
+      if (formIsValid) {
+        this.saveValidationErrors.set(undefined);
         this.saveResponse.set(null); // Indicate save in progress
         this.store.dispatch(FormActions.submitFormStarted());
         this.loggerService.info(
-          `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
+          `${this.logName}: Save validation passed, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
         );
         this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
 
@@ -1806,13 +1972,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
             // Retained conflict review state must not mask a different retry failure.
-            const failureMessage = this.formConflictState() && this.isRecordRevisionStaleConflict(response)
-              ? '@form-conflict-stale-title'
-              : response.outcome === 'unknown'
-                ? unknownMessageKey
-                : String(_get(response, 'message') ?? '').startsWith('@')
-                  ? String(_get(response, 'message'))
-                  : '@record-save-failed';
+            const failureMessage =
+              this.formConflictState() && this.isRecordRevisionStaleConflict(response)
+                ? '@form-conflict-stale-title'
+                : response.outcome === 'unknown'
+                  ? unknownMessageKey
+                  : String(_get(response, 'message') ?? '').startsWith('@')
+                    ? String(_get(response, 'message'))
+                    : '@record-save-failed';
             // Emit failure event
             this.eventBus.publish(
               createFormSaveFailureEvent({
@@ -1849,11 +2016,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
-        // TODO: Do we need to discriminate between invalid and save pending states?
         this.loggerService.warn(`${this.logName}: Form is invalid. Cannot submit.`);
         // Handle form errors, e.g., show a message to the user
         this.eventBus.publish(
           createFormSaveFailureEvent({
+            kind: 'client-validation',
             error: '@dmpt-form-invalid',
             formScopeId: this.eventScopeId,
           })
@@ -1971,8 +2138,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       throw new TypeError('A conflict retry cannot cross form or record identity.');
     }
 
-    if (!relatedDisplayReferencesEqual(expectedBaseline.metadata, candidateSnapshot.value, this.formDefMap.formConfig?.relatedRecords) ||
-      !relatedDisplayReferencesEqual(expectedBaseline.metadata, conflict.latest, this.formDefMap.formConfig?.relatedRecords)) {
+    if (
+      !relatedDisplayReferencesEqual(
+        expectedBaseline.metadata,
+        candidateSnapshot.value,
+        this.formDefMap.formConfig?.relatedRecords
+      ) ||
+      !relatedDisplayReferencesEqual(
+        expectedBaseline.metadata,
+        conflict.latest,
+        this.formDefMap.formConfig?.relatedRecords
+      )
+    ) {
       this.parkConflictForReview(conflict);
       return null;
     }
@@ -2235,7 +2412,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // fingerprint metadata. They also retain no server projection or current
     // coordinates in the form-scoped conflict state: the local values are all
     // that the presenter needs for its non-disclosing export action.
-    const latest = discloseLatest && response.metadata !== null ? immutableFormMetadata(this.projectLocalMetadata(response.metadata)) : null;
+    const latest =
+      discloseLatest && response.metadata !== null
+        ? immutableFormMetadata(this.projectLocalMetadata(response.metadata))
+        : null;
     let cause: FormConflictState['cause'] = 'record-stale';
     let status: FormConflictStatus =
       repeatedRace || (response.concurrencyOutcome === 'stale' && !revisionStale) ? 'reviewing' : 'stale';
@@ -2312,7 +2492,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const form = this.form;
     const loadRevision = this.formLoadRevision;
     const identity = this.currentFormRecordIdentity();
-    const ownsResolution = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision &&
+    const ownsResolution = () =>
+      !this.isDestroyed &&
+      this.form === form &&
+      this.formLoadRevision === loadRevision &&
       _isEqual(this.currentFormRecordIdentity(), identity);
     const conflict = this.formConflictState();
     const baseline = this.recordBaselineState();
@@ -2583,7 +2766,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return firstValueFrom(
       merge(form.statusChanges, form.valueChanges, this.destroy$, interval(0)).pipe(
         startWith(null),
-        filter(() => !form.pending || this.isDestroyed || this.formLoadRevision !== loadRevision),
+        filter(
+          () =>
+            !this.formService.hasPendingValidation(form) || this.isDestroyed || this.formLoadRevision !== loadRevision
+        ),
         take(1),
         map(() => true),
         timeout({ first: this.pendingValidationTimeoutMs }),
@@ -2633,11 +2819,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
     }
     this.form.markAsDirty();
-    this.broadcastFormStatus();
     if (Object.keys(formLevelErrors).length > 0) {
       this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
-      this.broadcastFormStatus(false);
     }
+    this.broadcastFormStatus(false);
     if (firstMappedCandidate) {
       const lineagePath = firstMappedCandidate.lineagePaths?.angularComponents ?? [];
       const focusOptions = {
@@ -2794,8 +2979,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public canRetryFormLevelServerErrors(): boolean {
     if (this.saveBlockedByConflict()) return false;
     const errors = Object.keys(this.form?.errors ?? {});
-    return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
-      Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);
+    return (
+      errors.length > 0 &&
+      errors.every(key => key.startsWith('server#')) &&
+      Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled)
+    );
   }
 
   private clearServerSaveProblems(): void {
@@ -2822,25 +3010,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.clearServerErrorsFromControl(child, true);
       }
     }
-  }
-
-  private resetTemporaryValidationGroups(): void {
-    if (
-      !this.form ||
-      this.validationGroupNamesEqual(this.enabledValidationGroups, this.preTemporarySaveValidationGroups)
-    ) {
-      this.resetTemporaryValidationGroupsOnNextChange = false;
-      return;
-    }
-    const enabledValidationGroups = [...this.preTemporarySaveValidationGroups];
-    this.enabledValidationGroups = enabledValidationGroups;
-    const validationGroups = this.validationGroups;
-    this.componentDefArr?.forEach(mapEntry =>
-      this.formService.updateValidators(mapEntry, enabledValidationGroups, validationGroups)
-    );
-    this.form.updateValueAndValidity({ emitEvent: false });
-    this.broadcastFormStatus();
-    this.resetTemporaryValidationGroupsOnNextChange = false;
   }
 
   private validationGroupNamesEqual(first: string[], second: string[]): boolean {
@@ -2978,19 +3147,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   // Expose the `form` status
   public get dataStatus(): FormGroupStatus {
+    const pending = !!this.form && this.formService.hasPendingValidation(this.form);
     return {
-      valid: this.form?.valid || false,
+      valid: !pending && this.form?.valid === true,
       dirty: this.form?.dirty || false,
       pristine: this.form?.pristine || false,
-      invalid: this.form?.invalid || false,
-      pending: this.form?.pending || false,
+      invalid: !pending && this.form?.invalid === true,
+      pending,
       disabled: this.form?.disabled || false,
       enabled: this.form?.enabled || false,
       touched: this.form?.touched || false,
       untouched: this.form?.untouched || false,
       value: this.form?.value || null,
       errors: this.form?.errors || null,
-      status: (this.form?.status as FormControlStatus) || 'DISABLED',
+      status: pending ? 'PENDING' : (this.form?.status ?? 'DISABLED'),
     } as FormGroupStatus;
   }
 
@@ -3029,6 +3199,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   override ngOnDestroy(): void {
     super.ngOnDestroy();
     this.isDestroyed = true;
+    this.formService.clearRootAsyncValidation(this.form);
     this.destroy$.next();
     this.destroy$.complete();
     // Clean up subscriptions
@@ -3152,6 +3323,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .replaceAll('@branding', String(contextVariables['@branding'] ?? '@branding'))
       .replaceAll('@portal', String(contextVariables['@portal'] ?? '@portal'));
   }
+}
+
+interface SaveValidationControlSnapshot {
+  value: unknown;
+  errors: (ControlValidationError & { saveOnly: boolean })[];
 }
 
 export interface FormGroupStatus {

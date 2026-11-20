@@ -1,8 +1,9 @@
-import { ChangeDetectorRef, Component, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectorRef, Component, ChangeDetectionStrategy, DestroyRef, inject, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { AbstractControl, TouchedChangeEvent } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from '@researchdatabox/portal-ng-common';
 import type { FormComponent } from '../form.component';
+import { TabComponent } from './tab.component';
 import {
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
@@ -10,6 +11,7 @@ import {
   GroupFieldModelName,
   isTypeFieldDefinitionName,
   RepeatableComponentName,
+  TabComponentName,
   TabContentComponentName,
   TabContentLayoutName,
   ValidationSummaryComponentName,
@@ -144,8 +146,6 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   /** True while a new record's valid-form message is held back. */
   public errorDisplayDeferred = false;
   public hasValidationErrors = false;
-  /** Save failures also reveal all errors even when no save-request event preceded them. */
-  private errorsRevealed = false;
   private validationRefreshQueued = false;
   private validationRefreshDeferred = false;
   private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
@@ -179,21 +179,13 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private shouldDeferErrorDisplay(hasTouchedControl = false): boolean {
-    if (this.errorsRevealed || !this.deferErrorsOnNewRecord) {
+    if (!this.deferErrorsOnNewRecord) {
       return false;
     }
     const formComponent = this.getFormComponent;
     const isNewRecord = (formComponent.trimmedParams.oid() ?? '') === '';
     const form = formComponent.form;
-    return isNewRecord && !form?.touched && !hasTouchedControl && !formComponent.saveAttempted();
-  }
-
-  private revealErrors(): void {
-    if (this.errorsRevealed) {
-      return;
-    }
-    this.errorsRevealed = true;
-    this.queueValidationErrorsRefresh();
+    return isNewRecord && !form?.touched && !hasTouchedControl;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
@@ -223,20 +215,6 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       .select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.queueValidationErrorsRefresh());
-
-    merge(
-      this.eventBus.select$(FormComponentEventType.FORM_SAVE_REQUESTED),
-      this.eventBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
-    )
-      .pipe(
-        filter(
-          event =>
-            this.deferErrorsOnNewRecord &&
-            (!event.formScopeId || event.formScopeId === this.getFormComponent.eventScopeId)
-        ),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => this.revealErrors());
   }
 
   private bindFormChangeStreamsIfReady(): void {
@@ -250,11 +228,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     }
 
     this.formChangesBound = true;
-    merge(
-      form.valueChanges,
-      form.statusChanges,
-      form.events.pipe(filter(event => this.deferErrorsOnNewRecord && event instanceof TouchedChangeEvent))
-    )
+    merge(form.valueChanges, form.statusChanges)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.queueValidationErrorsRefresh());
   }
@@ -283,48 +257,33 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return;
     }
 
-    const errors = await this.collectValidationErrors();
-    const controlsByPath = this.getValidationControls();
-    this.bindValidationControlTouchStreams(controlsByPath);
-    this.errorDisplayDeferred = this.shouldDeferErrorDisplay(
-      [...controlsByPath.values()].some(control => control.touched)
-    );
-    this.hasValidationErrors = errors.length > 0;
-    this.validationErrorsDisplay$.next(this.visibleValidationErrors(errors, controlsByPath));
+    const form = this.getFormComponent;
+    const controls = this.getValidationControls();
+    this.bindValidationControlTouchStreams(controls);
+    this.errorDisplayDeferred = this.shouldDeferErrorDisplay([...controls].some(control => control.touched));
+    const visibleErrors = form.getValidationErrors(true);
+    this.hasValidationErrors =
+      visibleErrors.length > 0 ||
+      !form.dataStatus.valid ||
+      (this.showWhenValid && form.getValidationErrors().length > 0);
+    this.validationErrorsDisplay$.next(visibleErrors);
     this.changeDetectorRef.markForCheck();
   }
 
-  protected async collectValidationErrors(): Promise<FormValidatorSummaryErrors[]> {
-    return this.getFormComponent.getValidationErrors() ?? [];
-  }
-
-  private getValidationControls(): Map<string, AbstractControl> {
+  private getValidationControls(): Set<AbstractControl> {
     const form = this.getFormComponent;
-    const controlsByPath = new Map<string, AbstractControl>();
-    if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() || this.errorsRevealed || form.saveAttempted()) {
-      return controlsByPath;
-    }
-
-    // Index the current component tree once per refresh. Rebuilding also handles
-    // repeatable additions, removals and moves without retaining stale controls.
-    // Untargeted form errors have an empty lineage: reveal them when the root
-    // is touched, while targeted errors continue to follow their own controls.
-    if (form.form) controlsByPath.set(JSON.stringify([]), form.form);
+    const controls = new Set<AbstractControl>();
+    if (form.form) controls.add(form.form);
     const entries = [...form.componentDefArr];
     for (const entry of entries) {
-      const path = entry.lineagePaths?.angularComponents;
       const control = entry.model?.formControl;
-      if (path && control) {
-        const key = JSON.stringify(path.map(String));
-        if (!controlsByPath.has(key)) controlsByPath.set(key, control);
-      }
+      if (control) controls.add(control);
       entries.push(...(entry.component?.formFieldCompMapEntries ?? []));
     }
-    return controlsByPath;
+    return controls;
   }
 
-  private bindValidationControlTouchStreams(controlsByPath: ReadonlyMap<string, AbstractControl>): void {
-    const controls = new Set(controlsByPath.values());
+  private bindValidationControlTouchStreams(controls: ReadonlySet<AbstractControl>): void {
     // Root touched events stop when the root is already touched. Observe each
     // control so onlySelf touches also update errors and the valid-form message.
     for (const [control, subscription] of this.validationControlSubscriptions) {
@@ -346,23 +305,6 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
         );
       }
     }
-  }
-
-  private visibleValidationErrors(
-    errors: FormValidatorSummaryErrors[],
-    controlsByPath: ReadonlyMap<string, AbstractControl>
-  ): FormValidatorSummaryErrors[] {
-    const form = this.getFormComponent;
-    if (!this.deferErrorsOnNewRecord || form.trimmedParams.oid() || this.errorsRevealed || form.saveAttempted()) {
-      return errors;
-    }
-    // Programmatic population can dirty the form without user interaction.
-    // Resolve the error's own control, including nested groups/repeatable rows;
-    // a touched sibling must never reveal an untouched field's errors.
-    return errors.filter(error => {
-      const path = error.lineagePaths?.angularComponents;
-      return path && controlsByPath.get(JSON.stringify(path.map(String)))?.touched === true;
-    });
   }
 
   private isValidationSnapshotReady(): boolean {
@@ -407,9 +349,8 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           sourceId: this.getFormComponent.eventScopeId,
         })
       );
-      return;
     }
-    void this.focusValidationTarget(summary.id);
+    void this.revealAndFocusValidationTarget(summary);
   }
 
   public getValidationSummaryLabel(summary: FormValidatorSummaryErrors): string {
@@ -425,13 +366,58 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return leafLabel;
   }
 
-  private async focusValidationTarget(elementId: string | null): Promise<void> {
+  private async revealAndFocusValidationTarget(summary: FormValidatorSummaryErrors): Promise<void> {
+    this.revealTabParents(summary.lineagePaths?.angularComponents ?? []);
     await new Promise(resolve => setTimeout(resolve, 0));
-    const linkedElement = elementId ? this.doc.getElementById(elementId) : null;
-    if (linkedElement instanceof HTMLElement) {
-      linkedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      linkedElement.focus({ preventScroll: true });
+    this.focusValidationTarget(summary);
+  }
+
+  private revealTabParents(angularPath: Array<string | number>): void {
+    if (angularPath.length < 2) {
+      return;
     }
+    for (let index = 0; index < angularPath.length - 1; index++) {
+      const containerName = String(angularPath[index]);
+      const targetTabId = String(angularPath[index + 1]);
+      const candidate = this.findComponentEntryByName(containerName);
+      const tabComponent = candidate?.component as Pick<TabComponent, 'selectTab'> | undefined;
+      if (
+        candidate?.compConfigJson?.component?.class === TabComponentName &&
+        typeof tabComponent?.selectTab === 'function'
+      ) {
+        tabComponent.selectTab(targetTabId);
+      }
+    }
+  }
+
+  private focusValidationTarget(summary: FormValidatorSummaryErrors): void {
+    const linkedElement = summary.id ? this.doc.getElementById(summary.id) : null;
+    if (linkedElement instanceof HTMLElement) {
+      this.scrollAndFocus(linkedElement);
+      return;
+    }
+
+    const entry = this.findComponentEntryFromLineage(summary.lineagePaths?.angularComponents ?? []);
+    const targetElement = entry?.componentRef?.location?.nativeElement ?? entry?.layoutRef?.location?.nativeElement;
+    if (targetElement instanceof HTMLElement) {
+      const focusable = this.findFocusableElement(targetElement) ?? targetElement;
+      this.scrollAndFocus(focusable);
+    }
+  }
+
+  private scrollAndFocus(element: HTMLElement): void {
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+    if (typeof element.focus === 'function') {
+      element.focus({ preventScroll: true });
+    }
+  }
+
+  private findFocusableElement(parent: HTMLElement): HTMLElement | null {
+    const focusable = parent.querySelector(this.focusableSelector);
+    return focusable instanceof HTMLElement ? focusable : null;
   }
 
   private getLineageLabels(summary: FormValidatorSummaryErrors): string[] {
@@ -603,6 +589,20 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return labelToPlainText(this.formService.translate(summary.id));
     }
     return labelToPlainText(this.formService.translate('@validator-label-default'));
+  }
+
+  private findComponentEntryFromLineage(
+    angularPath: Array<string | number>,
+    entries?: FormFieldCompMapEntry[]
+  ): FormFieldCompMapEntry | undefined {
+    return this.formService.getFormFieldCompMapEntry(
+      { angularComponents: angularPath },
+      entries ?? this.getFormComponent?.componentDefArr ?? []
+    );
+  }
+
+  private findComponentEntryByName(name: string, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
+    return this.formService.getFormFieldCompMapEntry(name, entries ?? this.getFormComponent?.componentDefArr ?? []);
   }
 
   private get getFormComponent(): FormComponent {

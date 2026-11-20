@@ -10,6 +10,8 @@ import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { formInitialState } from './form.state';
 import * as FormActions from './form.actions';
 
+const clearError = { error: null, errorSource: null };
+
 function isBusyStatus(status: FormStatus): boolean {
   return status === FormStatus.SAVING || status === FormStatus.DELETING;
 }
@@ -25,7 +27,7 @@ export const formReducer = createReducer(
     ...state,
     status: FormStatus.INIT,
     initialDataLoaded: false,
-    error: null,
+    ...clearError,
     pendingActions: [...state.pendingActions, 'loadInitialData'],
   })),
   
@@ -34,7 +36,7 @@ export const formReducer = createReducer(
     status: FormStatus.READY,
     initialDataLoaded: true,
     modelSnapshot: data,
-    error: null,
+    ...clearError,
     pendingActions: state.pendingActions.filter(a => a !== 'loadInitialData'),
   })),
   
@@ -42,6 +44,7 @@ export const formReducer = createReducer(
     ...state,
     status: FormStatus.LOAD_ERROR,
     error,
+    errorSource: null,
     pendingActions: state.pendingActions.filter(a => a !== 'loadInitialData'),
   })),
   
@@ -54,7 +57,7 @@ export const formReducer = createReducer(
       ...state,
       status: FormStatus.SAVING,
       submissionAttempt: state.submissionAttempt + 1,
-      error: null,
+      ...clearError,
       pendingActions: [...state.pendingActions, 'submitForm'],
     };
   }),
@@ -65,28 +68,18 @@ export const formReducer = createReducer(
     lastSavedAt,
     modelSnapshot: savedData,
     isDirty: false,
-    error: null,
+    ...clearError,
     pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
   })),
 
-  on(FormActions.submitFormFailure, (state, { error }) => {
-    // TODO: Condition is a bit loose here, defined a better way to communicate server-side validation failures 
-    if (error?.toLocaleLowerCase().includes("validation")) {
-      return {
-        ...state,
-        status: FormStatus.VALIDATION_ERROR,
-        error,
-        pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
-      };
-    } else {
-      return {
-        ...state,
-        status: FormStatus.READY,
-        error,
-        pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
-      };
-    }
-  }),
+  on(FormActions.submitFormFailure, (state, { error }) => ({
+    ...state,
+    // Preserve the existing status classification independently of the error source.
+    status: error?.toLocaleLowerCase().includes('validation') ? FormStatus.VALIDATION_ERROR : FormStatus.READY,
+    error,
+    errorSource: 'save',
+    pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
+  })),
 
   on(FormActions.deleteRecord, (state) => {
     if (isBusyStatus(state.status)) {
@@ -95,7 +88,7 @@ export const formReducer = createReducer(
     return {
       ...state,
       status: FormStatus.DELETING,
-      error: null,
+      ...clearError,
       pendingActions: [...state.pendingActions, 'deleteRecord'],
     };
   }),
@@ -103,7 +96,7 @@ export const formReducer = createReducer(
   on(FormActions.deleteRecordSuccess, (state) => ({
     ...state,
     status: FormStatus.READY,
-    error: null,
+    ...clearError,
     pendingActions: state.pendingActions.filter(a => a !== 'deleteRecord'),
   })),
 
@@ -111,6 +104,7 @@ export const formReducer = createReducer(
     ...state,
     status: FormStatus.READY,
     error,
+    errorSource: null,
     pendingActions: state.pendingActions.filter(a => a !== 'deleteRecord'),
   })),
   
@@ -130,7 +124,7 @@ export const formReducer = createReducer(
     ...state,
     status: FormStatus.READY,
     isDirty: false,
-    error: null,
+    ...clearError,
     pendingActions: state.pendingActions.filter(a => a !== 'resetAllFields'),
   })),
   
@@ -158,7 +152,7 @@ export const formReducer = createReducer(
       return { 
         ...state, 
         status: FormStatus.READY,
-        error: null,
+        error: state.errorSource === 'save' ? state.error : null,
         pendingActions: state.pendingActions.filter(a => a !== 'formValidationPending')
       };
     }
@@ -172,12 +166,12 @@ export const formReducer = createReducer(
     return { 
       ...state, 
       status: FormStatus.VALIDATION_ERROR,
-      error,
+      error: state.errorSource === 'save' ? state.error : error,
       pendingActions: state.pendingActions.filter(a => a !== 'formValidationPending')
     };
   }),
   
   // Utility actions
-  on(FormActions.ackError, (state) => ({ ...state, status: FormStatus.READY, error: null })),
+  on(FormActions.ackError, (state) => ({ ...state, status: FormStatus.READY, ...clearError })),
   on(FormActions.syncModelSnapshot, (state, { snapshot }) => ({ ...state, modelSnapshot: snapshot })),
 );

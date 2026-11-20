@@ -214,6 +214,27 @@ describe('formReducer', () => {
       expect(result.pendingActions).toEqual([]);
     });
 
+    it('keeps the save error through interactive validation and clears it on a save transition', () => {
+      const error = 'RDMP contributor validation failed';
+      const failed = formReducer(formInitialState, FormActions.submitFormFailure({ error }));
+      const invalid = formReducer(failed, FormActions.formValidationFailure({ error: 'Interactive validation failed' }));
+      expect(invalid.status).toBe(FormStatus.VALIDATION_ERROR);
+      expect(invalid.error).toBe(error);
+
+      const valid = formReducer(invalid, FormActions.formValidationSuccess());
+      expect(valid.status).toBe(FormStatus.READY);
+      expect(valid.error).toBe(error);
+
+      const retry = formReducer(valid, FormActions.submitForm({ force: true }));
+      expect(retry.error).toBeNull();
+
+      const saved = formReducer(valid, FormActions.submitFormSuccess({ savedData: {}, lastSavedAt: '2026-01-01T00:00:00Z' }));
+      expect(saved.error).toBeNull();
+      const invalidAfterSave = formReducer(saved, FormActions.formValidationFailure({ error: 'Invalid field values' }));
+      expect(invalidAfterSave.error).toBe('Invalid field values');
+      expect(formReducer(invalidAfterSave, FormActions.formValidationSuccess()).error).toBeNull();
+    });
+
     it('should preserve lastSavedAt timestamp on submitFormSuccess', () => {
       const savingState: FormFeatureState = {
         ...formInitialState,

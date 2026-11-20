@@ -46,6 +46,16 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
    */
   enabledValidationGroups?: string[];
   /**
+   * Disable the button when the current validation groups block saving. Default true.
+   * Set false to let the user attempt a save and see the errors for that action.
+   */
+  disableWhenInvalid?: boolean;
+  /**
+   * Set true to require unsaved changes, including for workflow transitions.
+   * Set false to skip the dirty check. By default only workflow transition buttons skip it.
+   */
+  disableWhenPristine?: boolean;
+  /**
    * Whether to 'close' the form by redirecting on a successful save. Default false.
    */
   closeOnSave?: boolean;

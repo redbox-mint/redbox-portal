@@ -105,7 +105,6 @@ describe('CheckboxInputComponent', () => {
     expect(target.value).toEqual([]);
     expect(target.invalid).toBeTrue();
     expect(sibling.untouched).toBeTrue();
-    expect(formComponent.saveAttempted()).toBeFalse();
     expect(element.querySelector('input:checked')).toBeNull();
     expect(element.querySelectorAll('.rb-form-field-error-summary').length).toBe(1);
     expect(Array.from(targetInputs).every(input => input.classList.contains('is-invalid'))).toBeTrue();

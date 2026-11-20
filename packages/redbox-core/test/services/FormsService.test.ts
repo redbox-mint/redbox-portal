@@ -656,6 +656,46 @@ describe('FormsService', function () {
   });
 
   describe('buildClientFormConfig', async function () {
+    it('serializes an explicit false for save-status client validation feedback', async function () {
+      const item: FormConfigFrame = {
+        name: 'save-status-config',
+        componentDefinitions: [
+          { name: 'quiet', component: { class: 'SaveStatusComponent', config: { showClientValidationFailure: false } } },
+          { name: 'default', component: { class: 'SaveStatusComponent' } },
+        ],
+      };
+      const form = await FormsService.buildClientFormConfig(item, 'edit');
+      const client: FormConfigFrame = JSON.parse(JSON.stringify(form));
+      const [quietStatus, defaultStatus] = client.componentDefinitions;
+      expect(quietStatus.component.config).to.have.property('showClientValidationFailure', false);
+      expect(defaultStatus.component.config).not.to.have.property('showClientValidationFailure');
+    });
+
+    it('serializes explicit save-button disable options and omits unconfigured values', async function () {
+      const item: FormConfigFrame = {
+        name: 'save-validation',
+        componentDefinitions: [
+          { name: 'draft', component: { class: 'SaveButtonComponent', config: { disableWhenInvalid: false } } },
+          { name: 'submit', component: { class: 'SaveButtonComponent', config: {
+            targetStep: 'submitted',
+            disableWhenPristine: true,
+          } } },
+          { name: 'force-draft', component: { class: 'SaveButtonComponent', config: {
+            forceSave: true,
+            disableWhenPristine: false,
+          } } },
+        ],
+      };
+
+      const form = await FormsService.buildClientFormConfig(item, 'edit');
+      const client: FormConfigFrame = JSON.parse(JSON.stringify(form));
+      const [draft, submit, forceDraft] = client.componentDefinitions;
+      expect(draft.component.config).to.have.property('disableWhenInvalid', false);
+      expect(draft.component.config).not.to.have.property('disableWhenPristine');
+      expect(submit.component.config).not.to.have.property('disableWhenInvalid');
+      expect(submit.component.config).to.have.property('disableWhenPristine', true);
+      expect(forceDraft.component.config).to.have.property('disableWhenPristine', false);
+    });
     for (const mode of ['edit', 'view'] as const) {
       for (const suppressResolution of [false, true]) {
         it(`tracks only surviving related sources in ${mode} mode (suppressed=${suppressResolution})`, async function () {
