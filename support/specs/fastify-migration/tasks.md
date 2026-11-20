@@ -361,7 +361,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     dependency paths contain no first-party Express usage outside justified Companion
     integration. No runtime host toggle or generic compatibility layer survives.
 
-- [ ] **FM-044 — Build and identify the immutable candidate.**
+- [x] **FM-044 — Build and identify the immutable candidate.**
   - Dependencies: FM-043.
   - Work: clean-build exact packages/runtime image; record SHA/tree state, locks,
     package hashes, image digest, toolchain and provider/configuration inputs.
