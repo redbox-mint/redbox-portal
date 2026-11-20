@@ -1133,6 +1133,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public getVisibleFieldValidationErrors(entry: FormFieldCompMapEntry | undefined): FormValidatorComponentErrors[] {
+    // Track broadcasts so OnPush fields refresh after silent validation changes.
+    this.formGroupStatus();
     const control = entry?.model?.formControl;
     if (!control) return [];
 
