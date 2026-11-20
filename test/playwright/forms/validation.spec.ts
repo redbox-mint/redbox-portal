@@ -139,12 +139,17 @@ test('F15 validation save-operations restore ordinary groups after success, reje
   const submit = field(adminPage, 'Submission value');
   const ordinarySave = adminPage.getByRole('button', { name: 'Save', exact: true });
   const saveUrl = new RegExp(`/recordmeta/${record.oid}(?:\\?|$)`);
-  const restored = async () => {
+  const restored = async (serverRejected = false) => {
     await ordinary.clear();
     await ordinary.blur();
     await expect(adminPage.locator('redbox-validation-summary-field')).toContainText('Ordinary validation restored');
     await expect(ordinarySave).toBeDisabled();
     await ordinary.fill('Ordinary restored');
+    if (serverRejected) {
+      await expect(ordinarySave).toBeDisabled();
+      await expect(adminPage.locator('redbox-validation-summary-field [data-validation-error-class="server"]')).toHaveCount(1);
+      await submit.fill('Submission recovered');
+    }
     await expect(ordinarySave).toBeEnabled();
   };
   await submit.clear();
@@ -157,7 +162,7 @@ test('F15 validation save-operations restore ordinary groups after success, reje
   await adminPage.getByRole('button', { name: 'Submit for validation', exact: true }).click();
   expect((await (await rejected).json()).meta.problems).toEqual([expect.objectContaining({ kind: 'validation', issues: [expect.objectContaining({ pointer: '/submitValue' })] })]);
   await expect(adminPage.locator('redbox-form-save-status [role="alert"]')).toBeVisible();
-  await restored();
+  await restored(true);
   const abortSave = async (route: import('@playwright/test').Route) => { await route.abort('failed'); };
   diagnostics.expectFailure({ kind: 'requestfailed', method: 'PUT', url: saveUrl, message: /net::ERR_FAILED/, count: 1, reason: 'Explicit pre-dispatch save fault verifies operation cleanup.' });
   diagnostics.expectFailure({ kind: 'console', url: saveUrl, message: /Failed to load resource.*ERR_FAILED/, count: 1, reason: 'Chromium reports the explicitly aborted save.' });
