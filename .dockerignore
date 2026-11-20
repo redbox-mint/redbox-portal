@@ -16,6 +16,7 @@ support/development
 support/integration-testing
 support/unit-testing
 support/docs
+support/specs/fastify-migration/evidence/FM-044.md
 docs
 test
 coverage

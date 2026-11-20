@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
-FROM node:26.12.1-bookworm@sha256:5c4012d11d9857c42713ba511fbc19645cac1706bb710d51d42b0d301dff7f88 AS base
+ARG REDBOX_BUILD_PLATFORM=$TARGETPLATFORM
+FROM --platform=$REDBOX_BUILD_PLATFORM node:26.12.1-bookworm@sha256:5c4012d11d9857c42713ba511fbc19645cac1706bb710d51d42b0d301dff7f88 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -80,24 +81,34 @@ RUN npm run webpack
 RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
  && support/build/api-descriptors/generateAPIDescriptors.sh
 
-# Keep the builder's dependency tree for the test target. Reinstall only the
-# production graph in a separate stage so required nested dependencies survive.
-FROM builder AS production_dependencies
-RUN rm -rf \
-    packages/agenda-sqs-backend/node_modules \
-    packages/redbox-core/node_modules \
-    packages/redbox-dev-tools/node_modules \
-    packages/sails-ng-common/node_modules \
-    packages/raido/node_modules \
-    packages/rva-registry/node_modules \
-    packages/redbox-hook-dev/node_modules \
-    packages/sails-hook-redbox-storage-mongo/node_modules \
-    packages/sails-hook-redbox-pdfgen/node_modules \
-    angular/node_modules \
-    angular-legacy/node_modules \
-    support/build/api-descriptors/node_modules \
- && npm ci --omit=dev --no-audit
-RUN node support/tooling/fastify-retirement/prune-runtime.cjs
+# Install native dependencies for the target even when the portable application
+# outputs were compiled on the worker's architecture. Start with a clean tree of
+# the six packages linked by the production lock and their shipped files.
+FROM node:26.12.1-bookworm@sha256:5c4012d11d9857c42713ba511fbc19645cac1706bb710d51d42b0d301dff7f88 AS production_dependencies
+WORKDIR /opt/redbox-portal
+COPY package*.json .npmrc ./
+COPY --parents --from=builder \
+    /opt/redbox-portal/./packages/agenda-sqs-backend/package.json \
+    /opt/redbox-portal/./packages/agenda-sqs-backend/dist \
+    /opt/redbox-portal/./packages/raido/package.json \
+    /opt/redbox-portal/./packages/raido/dist \
+    /opt/redbox-portal/./packages/redbox-core/package.json \
+    /opt/redbox-portal/./packages/redbox-core/dist \
+    /opt/redbox-portal/./packages/redbox-core/types \
+    /opt/redbox-portal/./packages/redbox-core/src \
+    /opt/redbox-portal/./packages/redbox-core/bin \
+    /opt/redbox-portal/./packages/redbox-core/logfmt-transport.cjs \
+    /opt/redbox-portal/./packages/rva-registry/package.json \
+    /opt/redbox-portal/./packages/rva-registry/dist \
+    /opt/redbox-portal/./packages/sails-hook-redbox-storage-mongo/package.json \
+    /opt/redbox-portal/./packages/sails-hook-redbox-storage-mongo/dist \
+    /opt/redbox-portal/./packages/sails-ng-common/package.json \
+    /opt/redbox-portal/./packages/sails-ng-common/dist/src \
+    /opt/redbox-portal/./packages/sails-ng-common/dist/esm \
+    ./
+RUN --mount=type=bind,source=support/tooling/fastify-retirement,target=/tmp/runtime-tools \
+    npm ci --omit=dev --no-audit \
+ && node /tmp/runtime-tools/prune-runtime.cjs
 
 FROM node:26.12.1-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS runtime
 
@@ -116,18 +127,16 @@ RUN apt-get update \
  && echo $TZ > /etc/timezone
 
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/package*.json ./
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.js ./app.js
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/portal.cjs ./portal.cjs
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/api ./api
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/assets ./assets
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/config ./config
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
+COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=builder --chown=node:node /opt/redbox-portal/portal.cjs ./portal.cjs
+COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
+COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
+COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
+COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
+COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
+COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages ./packages
-RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen \
-    packages/redbox-core/scripts packages/redbox-core/prisma.config.ts packages/redbox-core/prisma.storage.config.ts
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/views ./views
+COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
 EXPOSE 1500
@@ -193,9 +202,15 @@ ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
-RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --strict-peer-deps --legacy-peer-deps=false --no-audit \
-    ./packages/sails-hook-redbox-pdfgen
+COPY --parents --from=builder --chown=node:node \
+    /opt/redbox-portal/./packages/sails-hook-redbox-pdfgen/package.json \
+    /opt/redbox-portal/./packages/sails-hook-redbox-pdfgen/dist \
+    /opt/redbox-portal/./packages/sails-hook-redbox-pdfgen/src/api/configmodels \
+    ./
+RUN --mount=type=bind,source=support/tooling/fastify-retirement,target=/tmp/runtime-tools \
+    npm install --omit=dev --ignore-scripts --save --package-lock=true --strict-peer-deps --legacy-peer-deps=false --no-audit \
+    ./packages/sails-hook-redbox-pdfgen \
+ && node /tmp/runtime-tools/prune-runtime.cjs
 RUN node -e "require('@researchdatabox/redbox-core'); require('@researchdatabox/sails-hook-redbox-pdfgen')"
 USER root
 RUN apt-get purge -y --auto-remove git \
@@ -206,9 +221,14 @@ USER node
 # institution stand-in, installed in the production graph with the PDF hook.
 # It intentionally retains the runtime dependency tree, never the builder's dev tree.
 FROM runtime_pdfgen AS rehearsal
-COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
-RUN npm install --omit=dev --ignore-scripts --save-prod --strict-peer-deps --legacy-peer-deps=false --no-audit \
-    ./packages/redbox-hook-dev
+COPY --parents --from=builder --chown=node:node \
+    /opt/redbox-portal/./packages/redbox-hook-dev/package.json \
+    /opt/redbox-portal/./packages/redbox-hook-dev/dist \
+    ./
+RUN --mount=type=bind,source=support/tooling/fastify-retirement,target=/tmp/runtime-tools \
+    npm install --omit=dev --ignore-scripts --save-prod --strict-peer-deps --legacy-peer-deps=false --no-audit \
+    ./packages/redbox-hook-dev \
+ && node /tmp/runtime-tools/prune-runtime.cjs
 RUN node -e "require('@researchdatabox/redbox-core/portal'); require('redbox-hook-dev/extension'); require('@researchdatabox/sails-hook-redbox-pdfgen/extension')"
 
 # Development/test artifact. Reuse the clean builder's dependency layers instead

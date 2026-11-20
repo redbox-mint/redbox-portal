@@ -138,7 +138,7 @@
     },
     "@researchdatabox/redbox-core": {
       "@tus/server": {
-        "srvx": "0.11.13"
+        "srvx": "0.11.16"
       },
       "exceljs": {
         "uuid": "14.0.0"
@@ -161,11 +161,11 @@
       "express": "5.3.0",
       "express-session": "1.18.2",
       "fast-xml-parser": "5.10.1",
-      "morgan": "1.11.0",
-      "serialize-javascript": "7.0.5"
+      "morgan": "1.12.1",
+      "serialize-javascript@7.1.2": "7.1.2"
     },
     "@tus/server": {
-      "srvx": "0.11.13"
+      "srvx": "0.11.16"
     },
     "copy-webpack-plugin": {
       "serialize-javascript": "7.0.5"
@@ -193,9 +193,10 @@
       "on-headers": "1.1.0"
     },
     "postcss": "8.5.23",
-    "srvx": "0.11.13",
+    "srvx": "0.11.16",
     "socket.io-parser": "4.2.7",
     "svgo": "4.0.2",
+    "uuid@14.0.2": "14.0.2",
     "uuid": "14.0.0",
     "webdav": {
       "minimatch": "10.2.5"

@@ -1,7 +1,6 @@
 'use strict';
-// Vendor development artifacts are not part of the portal runtime. Keep the
-// physical image free of their unused Express examples and Passport adapter,
-// rather than exempting their require/type sites from the closure audit.
+// Strip the pinned vendor examples, tests, and authoring artifacts from the
+// installed image. The builder and published packages keep the full dependencies.
 const fs = require('node:fs');
 const path = require('node:path');
 const artifacts = new Map([
@@ -10,6 +9,16 @@ const artifacts = new Map([
   ['express-interceptor', { version: '1.2.0', paths: ['examples', 'test'] }],
   ['light-my-request', { version: '6.8.0', paths: ['test'] }],
   ['openid-client', { version: '6.8.8', paths: ['build/passport.js', 'build/passport.js.map', 'build/passport.d.ts'] }],
+  ['@prisma/orm-toolchain', { version: '8.0.0-rc.19', dependencies: ['prettier'], optionalPeers: ['vite'] }],
+  ['c12', { version: '3.3.4', optionalPeers: ['magicast'] }],
+  [
+    'language-data-commons-vocabs',
+    {
+      version: '1.0.1',
+      dependencies: ['mocha', 'chai'],
+      paths: ['lib/langs.spec.js', 'lib/profiles.spec.js', 'lib/vocab.spec.js'],
+    },
+  ],
 ]);
 function pruneRuntime(root) {
   const visited = new Set(),
@@ -34,9 +43,9 @@ function pruneRuntime(root) {
     if (policy) {
       if (metadata.version !== policy.version)
         throw new Error('Review runtime artifacts for ' + metadata.name + '@' + metadata.version);
-      for (const relative of policy.paths) {
+      for (const relative of policy.paths ?? []) {
         const file = path.join(directory, relative);
-        if (fs.existsSync(file)) {
+        if (fs.lstatSync(file, { throwIfNoEntry: false })) {
           fs.rmSync(file, { recursive: true });
           removed.push({ package: metadata.name, version: metadata.version, file });
         }
@@ -44,6 +53,14 @@ function pruneRuntime(root) {
       if (metadata.name === 'openid-client' && Object.hasOwn(metadata.exports, './passport')) {
         delete metadata.exports['./passport'];
         metadata.files = metadata.files.filter(file => !policy.paths.includes(file));
+        fs.writeFileSync(manifest, JSON.stringify(metadata, null, 2) + '\n');
+      }
+      if (policy.dependencies || policy.optionalPeers) {
+        for (const name of policy.dependencies ?? []) delete metadata.dependencies[name];
+        for (const name of policy.optionalPeers ?? []) {
+          delete metadata.peerDependencies[name];
+          delete metadata.peerDependenciesMeta[name];
+        }
         fs.writeFileSync(manifest, JSON.stringify(metadata, null, 2) + '\n');
       }
     }
@@ -56,4 +73,17 @@ function pruneRuntime(root) {
   return removed;
 }
 module.exports = { pruneRuntime };
-if (require.main === module) console.log(JSON.stringify({ removed: pruneRuntime(process.cwd()) }, null, 2));
+
+async function main() {
+  const { auditRuntimeDependencies, pruneDevelopmentDependencies } = require('./runtime-dependencies.cjs');
+  const root = process.cwd();
+  const pruning = await pruneDevelopmentDependencies(root, pruneRuntime);
+  const result = await auditRuntimeDependencies(root);
+  console.log(JSON.stringify({ ...pruning, ...result }, null, 2));
+  if (result.violations.length) process.exitCode = 1;
+}
+
+if (require.main === module) main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
