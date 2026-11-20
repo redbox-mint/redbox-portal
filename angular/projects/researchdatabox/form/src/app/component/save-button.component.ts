@@ -33,40 +33,38 @@ export class SaveButtonComponent extends ButtonBaseComponent {
   private readonly validationSignal = this.eventBus.selectSignal(FormComponentEventType.FORM_VALIDATION_BROADCAST);
 
   readonly disabled = computed(() => {
-    if (!this.getFormComponent.editMode() || this.configuredDisabled() || this.getFormComponent.saveBlockedByConflict()) return true;
+    const formComponent = this.getFormComponent;
+    if (!formComponent.editMode() || this.configuredDisabled() || formComponent.saveBlockedByConflict()) return true;
     const dataStatusEvent = this.validationSignal();
     // The event bus does not replay validation broadcasts to newly created buttons.
     // Track the initial snapshot even before the FormGroup exists, so loading
     // later fields invalidates the workflow button's cached fallback.
-    const initialStatus = this.getFormComponent.formGroupStatus();
-    const dataStatus = dataStatusEvent?.status ?? (this.getFormComponent.form ? initialStatus : undefined);
-    const isSaving = this.formStateFacade.isSaving();
-    const isValidationPending = this.formStateFacade.isValidationPending();
-    const hasTargetStep = this.hasTargetStep();
-    if (dataStatus) {
-      this.loggerService.debug(`SaveButtonComponent computed: validation or pristine signal event: `, dataStatus);
-      // Disable when any of the following is true:
-      // - form is invalid
-      // - form has NOT been modified (i.e., not dirty) and this is not a workflow transition button
-      // - async validation is pending
-      // - a save is currently in progress
-      // Form-level server failures can depend on the requested action (for
-      // example activation versus saving a draft). Submission clears these
-      // errors and validates again; local and field-level errors still block.
-      // An action may select a different validation group (for example a
-      // draft save with ["none"]). saveForm applies those validators before
-      // dispatching; the current group's failures cannot disable that action.
-      const requestedGroups = this.componentDefinition?.config?.enabledValidationGroups;
-      const currentGroups = this.getFormComponent.enabledValidationGroups;
-      const changesValidationGroups = requestedGroups !== undefined &&
-        (requestedGroups.length !== currentGroups.length || requestedGroups.some(group => !currentGroups.includes(group)));
-      const invalid = !changesValidationGroups && !dataStatus.valid && !this.getFormComponent.canRetryFormLevelServerErrors();
-      return invalid || (!dataStatus.dirty && !hasTargetStep) || isValidationPending || isSaving;
+    const initialStatus = formComponent.formGroupStatus();
+    const dataStatus = dataStatusEvent?.status ?? (formComponent.form ? initialStatus : undefined);
+    if (this.formStateFacade.isSaving() || this.formStateFacade.isValidationPending() || dataStatus?.pending) return true;
+
+    const config = this.componentDefinition?.config;
+    const needsChanges = config?.disableWhenPristine ?? !this.hasTargetStep();
+    if (!dataStatus) return needsChanges;
+
+    this.loggerService.debug(`SaveButtonComponent computed: validation or pristine signal event: `, dataStatus);
+    if (needsChanges) {
+      const dirty = config?.disableWhenPristine === true ? formComponent.hasChangesToSave() : dataStatus.dirty;
+      if (!dirty) return true;
     }
-    // When no form validation status is available yet, default to disabled for standard save, but enabled for
-    // target-step buttons so workflow transitions can proceed.
-    // Still respect pending/saving states.
-    return !hasTargetStep || isValidationPending || isSaving;
+
+    // Form-level server failures can depend on the requested action (for
+    // example activation versus saving a draft). Submission clears these
+    // errors and validates again; local and field-level errors still block.
+    // An action may select a different validation group (for example a
+    // draft save with ["none"]). saveForm applies those validators before
+    // dispatching; the current group's failures cannot disable that action.
+    const requestedGroups = config?.enabledValidationGroups;
+    const currentGroups = formComponent.enabledValidationGroups;
+    const changesValidationGroups = requestedGroups !== undefined &&
+      (requestedGroups.length !== currentGroups.length || requestedGroups.some(group => !currentGroups.includes(group)));
+    return config?.disableWhenInvalid !== false &&
+      !changesValidationGroups && !dataStatus.valid && !formComponent.canRetryFormLevelServerErrors();
   });
 
   protected override fallbackVariantClass: string = 'btn-primary';

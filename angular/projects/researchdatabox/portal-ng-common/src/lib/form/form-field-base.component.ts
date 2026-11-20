@@ -14,6 +14,7 @@ import type {
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline,
   FormFieldComponentOrLayoutDefinition,
+  FormValidatorComponentErrors,
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldComponentStatus } from '@researchdatabox/sails-ng-common/dist/src/status.model';
 import { toBoolean } from '@researchdatabox/sails-ng-common/dist/src/config/helpers';
@@ -301,13 +302,20 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return Object.keys(this.formControl?.errors ?? {}).length === 0;
   }
 
-  /** Validation stays active, but inline feedback waits for touch or a save attempt. */
+  protected get visibleValidationErrors(): FormValidatorComponentErrors[] | undefined {
+    const entry = this.formFieldCompMapEntry;
+    if (!entry?.model?.formControl) return undefined;
+    return this.formComponent?.getVisibleFieldValidationErrors?.(entry);
+  }
+
+  /** Inline feedback waits for touch or a revealed failure. */
   get showValidationErrors(): boolean {
-    return this.model?.formControl?.touched === true || this.formComponent?.saveAttempted?.() === true;
+    return this.model?.formControl?.touched === true || (this.visibleValidationErrors?.length ?? 0) > 0;
   }
 
   get showInvalidState(): boolean {
-    return this.showValidationErrors && !this.isValid;
+    const errors = this.visibleValidationErrors;
+    return errors ? errors.length > 0 : this.showValidationErrors && !this.isValid;
   }
 
   get showValidIndicator(): boolean {
@@ -315,7 +323,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get showValidState(): boolean {
-    return this.showValidIndicator && this.isValid;
+    return this.showValidIndicator && this.isValid && !this.showInvalidState;
   }
 
   // Use @HostBinding to bind to the host element's class attribute

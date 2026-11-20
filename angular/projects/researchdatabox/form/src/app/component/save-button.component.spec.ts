@@ -6,8 +6,8 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus } from '../form-state/events';
-import { TranslationService } from "@researchdatabox/portal-ng-common";
+import { createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state/events';
+import { RecordActionResult, TranslationService } from "@researchdatabox/portal-ng-common";
 
 let formConfig: FormConfigFrame;
 
@@ -59,8 +59,13 @@ describe('SaveButtonComponent', () => {
   });
 
 
-  for (const value of ['', 'ready']) {
-    it(`uses initial form validity when Save renders before a later ${value ? 'valid' : 'invalid'} field`, async () => {
+  for (const { value, disableWhenPristine, oid, description } of [
+    { value: '', description: 'the default workflow button with an invalid field' },
+    { value: 'ready', description: 'the default workflow button with a valid field' },
+    { value: 'ready', disableWhenPristine: true, oid: '', description: 'a new record that requires edits' },
+    { value: 'ready', disableWhenPristine: true, oid: 'saved-draft', description: 'a saved draft that requires edits' },
+  ]) {
+    it(`uses the initial validity and dirtiness for ${description}`, async () => {
       const initSave = SaveButtonComponent.prototype.initComponent;
       const initField = SimpleInputComponent.prototype.initComponent;
       let renderedSave!: SaveButtonComponent;
@@ -80,31 +85,149 @@ describe('SaveButtonComponent', () => {
       const creating = createFormAndWaitForReady({
         name: 'save-before-fields', enabledValidationGroups: ['all'],
         componentDefinitions: [
-          { name: 'save', component: { class: 'SaveButtonComponent', config: { targetStep: 'next', forceSave: true } } },
+          { name: 'save', component: { class: 'SaveButtonComponent', config: { targetStep: 'next', disableWhenPristine } } },
           { name: 'answer', model: { class: 'SimpleInputModel', config: {
             value, validators: [{ class: 'required' }],
           } }, component: { class: 'SimpleInputComponent' } },
         ],
-      }, { editMode: true });
+      }, oid === undefined ? { editMode: true } : { editMode: true, oid });
       await saveReady;
-      // A workflow button can render while a later field is still loading.
-      // Read its computed state before the FormGroup exists, without broadcasting.
-      expect(renderedSave.disabled()).toBeFalse();
+      // A workflow button can render before the FormGroup exists.
+      expect(renderedSave.disabled()).toBe(disableWhenPristine === true);
       releaseField();
       const { fixture, formComponent } = await creating;
       const valid = value !== '';
+      const initiallyDisabled = !valid || disableWhenPristine === true;
       const save = formComponent.componentDefArr[0].component as SaveButtonComponent;
-      const saveForm = spyOn(formComponent, 'saveForm');
+      const saveForm = spyOn(formComponent, 'saveForm').and.resolveTo();
       const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+      const saveRequests = () => publish.calls.allArgs().filter(([event]) => event.type === 'form.save.requested');
+      const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
       expect(formComponent.form!.valid).toBe(valid);
-      expect(save.disabled()).toBe(!valid);
-      expect((fixture.nativeElement.querySelector('button') as HTMLButtonElement).disabled).toBe(!valid);
+      expect(formComponent.form!.pristine).toBeTrue();
+      expect(save.disabled()).toBe(initiallyDisabled);
+      expect(button.disabled).toBe(initiallyDisabled);
       await save.save();
       await fixture.whenStable();
-      expect(publish.calls.allArgs().filter(([event]) => event.type === 'form.save.requested').length).toBe(valid ? 1 : 0);
-      if (!valid) expect(saveForm).not.toHaveBeenCalled();
+      expect(saveRequests()).toHaveSize(initiallyDisabled ? 0 : 1);
+      if (initiallyDisabled) expect(saveForm).not.toHaveBeenCalled();
+
+      if (disableWhenPristine) {
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'edited';
+        input.dispatchEvent(new Event('input'));
+        await fixture.whenStable();
+
+        expect(formComponent.form!.dirty).toBeTrue();
+        expect(save.disabled()).toBeFalse();
+        expect(button.disabled).toBeFalse();
+        await save.save();
+        await fixture.whenStable();
+        expect(saveRequests()).toHaveSize(1);
+      }
     });
   }
+
+  for (const missingField of ['title', 'contributor_ci', undefined] as const) {
+    const description = missingField
+      ? `reveals a missing ${missingField} without creating a pristine draft`
+      : 're-saves an existing pristine draft';
+    it(description, async () => {
+      const oid = missingField ? '' : 'saved-draft';
+      const draftFields = {
+        title: { value: 'Draft title', message: 'Enter a title' },
+        contributor_ci: { value: 'Alice Staffer', message: 'Choose a CI' },
+      };
+      const config: FormConfigFrame = {
+        name: 'forced-pristine-draft',
+        enabledValidationGroups: ['all'],
+        validationGroups: {
+          all: { description: '', initialMembership: 'all' },
+          'draft-minimum': { description: '', initialMembership: 'none' },
+        },
+        componentDefinitions: [
+          ...Object.entries(draftFields).map(([name, { value, message }]) => ({
+            name,
+            component: { class: 'SimpleInputComponent' as const },
+            layout: { class: 'DefaultLayout' as const },
+            model: { class: 'SimpleInputModel' as const, config: {
+              value: name === missingField ? '' : value,
+              validators: [{ class: 'required', message, groups: { include: ['draft-minimum'] } }],
+            } },
+          })),
+          { name: 'required_later', component: { class: 'SimpleInputComponent' },
+            model: { class: 'SimpleInputModel', config: { value: '', validators: [{ class: 'required' }] } } },
+          { name: 'save_draft', component: { class: 'SaveButtonComponent', config: {
+            disableWhenPristine: false,
+            forceSave: true,
+            enabledValidationGroups: ['draft-minimum'],
+          } } },
+        ],
+      };
+
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true, oid });
+      const root: HTMLElement = fixture.nativeElement;
+      const button = root.querySelector<HTMLButtonElement>('.rb-form-save-button button')!;
+      const form = formComponent.form!;
+      const value = form.getRawValue();
+      const create = spyOn(formComponent.recordService, 'create');
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo(RecordActionResult.fromResponse({
+        success: true, outcome: 'saved', message: '', oid,
+      }));
+
+      expect(form.pristine).toBeTrue();
+      expect(form.invalid).toBeTrue();
+      expect(button.disabled).toBeFalse();
+      expect(formComponent.getValidationErrors(true)).toEqual([]);
+      button.click();
+      await fixture.whenStable();
+
+      expect(create).not.toHaveBeenCalled();
+      const errors = formComponent.getValidationErrors(true);
+      if (missingField) {
+        expect(update).not.toHaveBeenCalled();
+        expect(formComponent.trimmedParams.oid()).toBe('');
+        expect(errors.map(entry => entry.lineagePaths.dataModel)).toEqual([[missingField]]);
+        expect(root.querySelector('.rb-form-field-error-summary')?.textContent).toContain(draftFields[missingField].message);
+      } else {
+        expect(update).toHaveBeenCalledOnceWith(oid, value, '', undefined, {});
+        expect(errors).toEqual([]);
+      }
+      expect(form.getRawValue()).toEqual(value);
+    });
+  }
+
+  it('requires a local edit when the form includes related-record display data', async () => {
+    const config: FormConfigFrame = {
+      ...formConfig,
+      relatedRecords: {
+        displayTargets: [{ metadataPointer: '/title', relationId: 'activity' }],
+        relations: [{ relationId: 'activity', referenceTokens: ['reference'] }],
+        sources: [],
+      },
+      componentDefinitions: [
+        formConfig.componentDefinitions[0],
+        { name: 'reference', component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { value: 'activity-oid' } } },
+        { name: 'title', component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { value: 'Related title' } } },
+        { name: 'submit', component: { class: 'SaveButtonComponent', config: {
+          disableWhenPristine: true,
+          targetStep: 'submitted',
+        } } },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, { editMode: true });
+    const form = formComponent.form!;
+    const save = formComponent.getComponentDefByName('submit')!.component as SaveButtonComponent;
+    form.get('title')!.markAsDirty();
+
+    expect(form.dirty).toBeTrue();
+    expect(save.disabled()).toBeTrue();
+
+    TestBed.inject(FormComponentEventBus).publish(createFormStatusDirtyRequestEvent({ fieldId: 'text_1_event' }));
+    expect(save.disabled()).toBeFalse();
+  });
 
   for (const scenario of ['server action', 'local form', 'server field']) {
     it(`permits a different save after an action rejection, but keeps ${scenario} validation scoped`, async () => {
@@ -173,7 +296,8 @@ describe('SaveButtonComponent', () => {
     await draft.save();
     await fixture.whenStable();
     expect(create).toHaveBeenCalledTimes(1);
-    expect(formComponent.form!.valid).toBeTrue();
+    expect(formComponent.form!.valid).toBeFalse();
+    expect(submit.disabled()).toBeTrue();
     // The save-event adapter deliberately throttles repeated clicks for 250ms.
     await new Promise<void>(resolve => setTimeout(resolve, 300));
     await submit.save();
@@ -184,6 +308,44 @@ describe('SaveButtonComponent', () => {
     expect(draft.disabled()).toBeTrue();
     fixture.destroy();
   });
+
+  for (const [reason, block] of [
+    ['pending validation', () => TestBed.inject(Store).dispatch(FormActions.formValidationPending())],
+    ['a save in progress', () => TestBed.inject(Store).dispatch(FormActions.submitForm({ force: false }))],
+  ] as const) {
+    it(`allows invalid saves when configured, while respecting pristine state and ${reason}`, async () => {
+      const config: FormConfigFrame = {
+        name: 'clickable-invalid-actions',
+        componentDefinitions: [
+          { name: 'title', component: { class: 'SimpleInputComponent' }, model: {
+            class: 'SimpleInputModel', config: { value: '', validators: [{ class: 'required' }] },
+          } },
+          { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenInvalid: false } } },
+          { name: 'transition', component: { class: 'SaveButtonComponent', config: {
+            disableWhenInvalid: false, targetStep: 'submitted',
+          } } },
+        ],
+      };
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true });
+      const save = formComponent.componentDefArr[1].component as SaveButtonComponent;
+      const transition = formComponent.componentDefArr[2].component as SaveButtonComponent;
+      const form = formComponent.form!;
+      expect(form.invalid).toBeTrue();
+      expect(save.disabled()).toBeTrue();
+      expect(transition.disabled()).toBeFalse();
+
+      form.markAsDirty();
+      expect(save.disabled()).toBeFalse();
+      expect(transition.disabled()).toBeFalse();
+
+      // Hold the Saving state while testing its effect on an invalid form.
+      spyOn(formComponent, 'saveForm').and.resolveTo();
+      block();
+      await fixture.whenStable();
+      expect(save.disabled()).toBeTrue();
+      expect(transition.disabled()).toBeTrue();
+    });
+  }
 
   it('should create SaveButtonComponent', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });

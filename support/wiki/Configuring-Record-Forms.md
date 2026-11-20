@@ -190,43 +190,58 @@ mode. Its `component.config` accepts these options:
 | --- | --- | --- |
 | `includeTabLabel` | `false` | Include tab labels in summary field labels. Group labels are always included. |
 | `showWhenValid` | `false` | Show an informational message when the form has no blocking validation errors. |
-| `deferErrorsOnNewRecord` | `false` | On a new record, show errors only for touched fields until a save is attempted or fails. Hide the informational message while untouched errors remain. |
+| `deferErrorsOnNewRecord` | `false` | On a new record, wait for a field touch before showing the valid-form message. |
 
-For example, to defer the summary on a new record:
+To defer the valid-form message on a new record, configure the summary as follows.
 
 ```ts
 {
   name: 'validation_summary',
   component: {
     class: 'ValidationSummaryComponent',
-    config: { deferErrorsOnNewRecord: true },
+    config: { showWhenValid: true, deferErrorsOnNewRecord: true },
   },
 }
 ```
 
-With `deferErrorsOnNewRecord: true`, a new record has no oid and the summary
-lists only errors belonging to touched controls. Touching one field does not
-reveal errors for untouched siblings, other tabs, or other repeatable rows.
-Programmatic population may make a control dirty; dirty state alone does not
-reveal its errors. Correcting a field removes its summary entry while other
-eligible errors remain visible. Resetting a control to untouched hides its errors
-again until a save is attempted.
+The summary displays errors on touched controls, along with errors from a failed
+save action and field errors returned by the server. A draft save checks the
+button's validation groups and exposes only failures from those groups. The
+interactive groups resume as soon as the action finishes checking its rules, so
+blurring a field shows its interactive errors right away. Correcting a field
+removes its error. Programmatic updates that mark a control dirty alone leave
+its errors hidden.
 
-Errors without a target field belong to the root form and become visible when
-that form is touched. An `onlySelf` touch shows the touched field's own errors
-without revealing root-form errors. For a valid form, `showWhenValid` becomes
-visible after any control is touched, including an `onlySelf` touch, and hides
-again if all touches are reset before a save attempt.
+Errors without a target field follow the root form's touched state or appear
+when a save checks and fails them. With `deferErrorsOnNewRecord: true`, any
+control touch, including an `onlySelf` touch, makes the valid-form message
+eligible on a new record. The message requires a valid form, even when the
+summary has no visible errors.
 
-A save attempt or save failure reveals the full validation summary, including
-untouched fields and form-level errors. Save events are scoped to their form;
-direct saves follow the same rule. `showWhenValid` never reports success merely
-because invalid untouched fields have been filtered out.
+## Save button validation
 
-Existing records show the summary from load as usual. After the first successful
-save assigns an oid to a new record, the same existing-record behaviour applies.
-Leaving the flag out or setting it to `false` keeps the current behaviour on all
-records. Validators and save eligibility remain active throughout.
+`SaveButtonComponent` accepts these options in `component.config`.
+
+| Key | Default | Behaviour |
+| --- | --- | --- |
+| `enabledValidationGroups` | The form's current groups | Choose the groups this button checks before submitting. |
+| `disableWhenInvalid` | `true` | Set to `false` to keep the button available on an invalid form. Clicking it validates the action's groups and shows their errors while leaving focus where it is. The save proceeds only if validation passes. |
+| `disableWhenPristine` | `true` for standard saves, `false` for buttons with a `targetStep` | Set to `true` to require unsaved changes, including for workflow transitions. Set to `false` to skip the button's dirty check. For a standard save to submit unchanged data, also set `forceSave: true`. |
+
+For a form configured with the full interactive validation groups, set
+`disableWhenInvalid: false` on both save actions. Set the draft button's
+`enabledValidationGroups` to the minimal draft group and the submit button's
+groups to the full set for that action. Set `disableWhenPristine: true` on the
+submit button if it should require an edit on new forms and saved drafts.
+
+## Save status messages
+
+Set `showClientValidationFailure: false` in `SaveStatusComponent`'s
+`component.config` to clear the save-status message when client validation
+blocks a save or times out. The validation summary and inline field messages
+still display applicable validation errors. The option defaults to `true`.
+Server failures, transport failures, and other save outcomes use the
+usual save-status messages.
 
 ## Authoritative server validation operations
 

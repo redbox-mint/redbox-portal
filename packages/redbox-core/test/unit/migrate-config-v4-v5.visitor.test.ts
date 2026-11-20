@@ -138,7 +138,9 @@ describe('Migrate v4 to v5 Visitor', async () => {
 
     expect(saveStatusIndex).to.be.greaterThan(-1);
     expect(validationSummaryIndex).to.equal(saveStatusIndex + 1);
-    expect(migrated.componentDefinitions[saveStatusIndex].component.class).to.equal('SaveStatusComponent');
+    const saveStatus = migrated.componentDefinitions[saveStatusIndex].component;
+    expect(saveStatus.class).to.equal('SaveStatusComponent');
+    expect(saveStatus.config ?? {}).not.to.have.property('showClientValidationFailure');
     expect(migrated.componentDefinitions[validationSummaryIndex].component.class).to.equal(
       'ValidationSummaryComponent'
     );
@@ -1525,7 +1527,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(modelConfig.disabled).to.be.true;
   });
 
-  it('migrates SaveButton operation intent without dropping legacy validation groups', async function () {
+  it('migrates SaveButton operation intent and validation options', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
       data: {
@@ -1538,8 +1540,11 @@ describe('Migrate v4 to v5 Visitor', async () => {
               operation: 'submit',
               targetStep: 'queued',
               enabledValidationGroups: ['all', 'transitionDraftToSubmitted'],
+              disableWhenInvalid: false,
+              disableWhenPristine: true,
             },
           },
+          { class: 'SaveButton', definition: { name: 'save-draft' } },
         ],
       },
     });
@@ -1551,6 +1556,9 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedConfig.operation).to.equal('submit');
     expect(migratedConfig.targetStep).to.equal('queued');
     expect(migratedConfig.enabledValidationGroups).to.deep.equal(['all', 'transitionDraftToSubmitted']);
+    expect(migratedConfig.disableWhenInvalid).to.equal(false);
+    expect(migratedConfig.disableWhenPristine).to.equal(true);
+    expect((migrated.componentDefinitions[1].component.config as Record<string, unknown>).disableWhenPristine).to.be.undefined;
   });
 
   it('migrates the legacy workspace selector and preserves its configuration', async function () {

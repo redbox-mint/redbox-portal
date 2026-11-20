@@ -1,5 +1,6 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
+import { filter, firstValueFrom, timeout } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
@@ -2426,10 +2427,46 @@ describe('FormComponent', () => {
 
       expect(updateSpy).not.toHaveBeenCalled();
       expect(failureEvents.length).toBe(1);
-      expect(failureEvents[0].error).toBe('@dmpt-form-validation-timeout');
+      expect(failureEvents[0]).toEqual(jasmine.objectContaining({
+        kind: 'client-validation',
+        error: '@dmpt-form-validation-timeout',
+      }));
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  it('restores interactive validators when a different save group times out', async () => {
+    const { formComponent } = await createFormAndWaitForReady({
+      name: 'timed-out-save-validation',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        slow: { description: '', initialMembership: 'none' },
+      },
+      validators: [{
+        class: 'jsonata-expression',
+        groups: { include: ['slow'], exclude: ['all'] },
+        config: { expression: 'true', evaluator: () => new Promise<boolean>(() => undefined) },
+      }],
+      componentDefinitions: [{
+        name: 'title',
+        component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel', config: { value: 'Draft title' } },
+      }],
+    });
+    (formComponent as any).pendingValidationTimeoutMs = 1;
+    const update = spyOn(formComponent.recordService, 'update');
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['slow'] });
+
+    expect(update).not.toHaveBeenCalled();
+    expect(formComponent.enabledValidationGroups).toEqual(['all']);
+    expect(formComponent.form!.valid).toBeTrue();
+    expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FORM_SAVE_FAILURE, error: '@dmpt-form-validation-timeout',
+    }));
   });
 
   it('does not save when destroyed while async validation is pending', async () => {
@@ -2599,9 +2636,10 @@ describe('FormComponent', () => {
       enabledValidationGroups: ['all', 'value-driven', 'submit-for-review'],
     });
 
-    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
-    expect(formComponent.form?.valid).toBeFalse();
-    expect(formComponent.form?.get('review_required')?.hasError('required')).toBeTrue();
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven']);
+    expect(formComponent.form?.valid).toBeTrue();
+    expect(formComponent.form?.get('review_required')?.hasError('required')).toBeFalse();
+    expect(formComponent.getValidationErrors(true)[0]?.errors[0]?.class).toBe('required');
     expect(updateSpy).not.toHaveBeenCalled();
 
     await formComponent.saveForm({
@@ -2609,8 +2647,9 @@ describe('FormComponent', () => {
       enabledValidationGroups: ['all', 'value-driven', 'submit-for-review'],
     });
 
-    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
-    expect(formComponent.form?.valid).toBeFalse();
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven']);
+    expect(formComponent.form?.valid).toBeTrue();
+    expect(formComponent.getValidationErrors(true)[0]?.errors[0]?.class).toBe('required');
     expect(updateSpy).not.toHaveBeenCalled();
 
     formComponent.form?.get('dirty_field')?.setValue('changed again');
@@ -2619,6 +2658,85 @@ describe('FormComponent', () => {
     expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven']);
     expect(formComponent.form?.get('review_required')?.hasError('required')).toBeFalse();
     expect(formComponent.form?.valid).toBeTrue();
+    expect(formComponent.getValidationErrors(true)[0]?.errors[0]?.class).toBe('required');
+
+    formComponent.form?.get('review_required')?.setValue('Reviewed');
+    await fixture.whenStable();
+    expect(formComponent.getValidationErrors(true)).toEqual([]);
+  });
+
+  it('switches root validators for drafts and full saves, revealing failures without moving focus', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'root-grouped-validation',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        'draft-minimum': { description: '', initialMembership: 'none' },
+        'interactive-extra': { description: '', initialMembership: 'none' },
+      },
+      validators: [{
+        class: 'jsonata-expression',
+        config: { expression: 'left != right' },
+        targetField: { angularComponents: ['left'] },
+      }],
+      componentDefinitions: ['left', 'right'].map(name => ({
+        name, component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel', config: { value: 'same' } },
+      })),
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const form = formComponent.form!;
+    const bus = TestBed.inject(FormComponentEventBus);
+    const publish = spyOn(bus, 'publish').and.callThrough();
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
+
+    if (formComponent.dataStatus.pending) {
+      await firstValueFrom(form.statusChanges.pipe(
+        filter(() => !formComponent.dataStatus.pending), timeout({ first: 1000 }),
+      ));
+    }
+    expect(form.hasError('jsonata-expression')).toBeTrue();
+    const settled = firstValueFrom(bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST).pipe(
+      filter(event => event.status?.pending === false && form.hasError('jsonata-expression')),
+      timeout({ first: 1000 }),
+    ));
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['draft-minimum'] });
+    expect(update).toHaveBeenCalledTimes(1);
+    await settled;
+    expect(formComponent.enabledValidationGroups).toEqual(['all']);
+    expect(form.hasError('jsonata-expression')).toBeTrue();
+    expect(formComponent.formGroupStatus().pending).toBeFalse();
+
+    bus.publish(createFormValidationGroupsChangeRequestEvent({ initial: 'none', groups: { include: ['draft-minimum'] } }));
+    expect(form.hasError('jsonata-expression')).toBeFalse();
+    const formElement: HTMLElement = fixture.nativeElement;
+    const [targetInput, currentInput] = Array.from(formElement.querySelectorAll<HTMLInputElement>('redbox-simpleinput input'));
+    const scroll = spyOn(targetInput, 'scrollIntoView');
+    currentInput.focus({ preventScroll: true });
+    expect(formElement.ownerDocument.activeElement).toBe(currentInput);
+    publish.calls.reset();
+
+    const fullSave = formComponent.saveForm({ force: true, enabledValidationGroups: ['all'] });
+    form.get('left')!.setValue('edited during validation');
+    form.get('right')!.setValue('edited during validation');
+    bus.publish(createFormValidationGroupsChangeRequestEvent({ groups: { include: ['interactive-extra'] } }));
+    expect(formComponent.enabledValidationGroups).toEqual(['all']);
+    await fullSave;
+    await fixture.whenStable();
+    expect(formComponent.enabledValidationGroups).toEqual(['draft-minimum', 'interactive-extra']);
+    expect(form.hasError('jsonata-expression')).toBeFalse();
+    expect(formComponent.getValidationErrors(true)[0]?.errors[0]?.class).toBe('jsonata-expression');
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FORM_SAVE_FAILURE,
+      kind: 'client-validation',
+      error: '@dmpt-form-invalid',
+    }));
+    expect(publish).not.toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FIELD_FOCUS_REQUEST,
+    }));
+    expect(formElement.ownerDocument.activeElement).toBe(currentInput);
+    expect(scroll).not.toHaveBeenCalled();
   });
 
   it('restores nested group validity after temporary save validation', async () => {
@@ -2670,7 +2788,7 @@ describe('FormComponent', () => {
       ],
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
     const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     expect(formComponent.form?.valid).toBeTrue();
@@ -2681,13 +2799,8 @@ describe('FormComponent', () => {
       enabledValidationGroups: ['activation'],
     });
 
-    expect(formComponent.form?.valid).toBeFalse();
-    expect(formComponent.form?.get('contributor_ci')?.valid).toBeFalse();
     expect(updateSpy).not.toHaveBeenCalled();
-
-    formComponent.form?.get('description')?.setValue('Changed description');
-    await fixture.whenStable();
-
+    expect(formComponent.getValidationErrors(true)[0]?.lineagePaths.angularComponents).toEqual(['contributor_ci', 'name']);
     expect(formComponent.enabledValidationGroups).toEqual(['none']);
     expect(formComponent.form?.get('contributor_ci.name')?.hasError('required')).toBeFalse();
     expect(formComponent.form?.get('contributor_ci')?.valid).toBeTrue();

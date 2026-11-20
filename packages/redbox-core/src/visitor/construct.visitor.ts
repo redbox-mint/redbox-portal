@@ -850,6 +850,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
     this.sharedProps.setPropOverride('successDisplayDurationMs', item.config, config);
+    this.sharedProps.setPropOverride('showClientValidationFailure', item.config, config);
     this.sharedProps.setPropOverride('warningMessageCreate', item.config, config);
     this.sharedProps.setPropOverride('warningMessageUpdate', item.config, config);
     this.sharedProps.setPropOverride('unknownMessageCreate', item.config, config);
@@ -1290,6 +1291,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
+    this.sharedProps.setPropOverride('disableWhenInvalid', item.config, config);
+    this.sharedProps.setPropOverride('disableWhenPristine', item.config, config);
     this.sharedProps.setPropOverride('closeOnSave', item.config, config);
     this.sharedProps.setPropOverride('redirectLocation', item.config, config);
     this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);

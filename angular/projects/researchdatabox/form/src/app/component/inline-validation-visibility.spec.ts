@@ -1,10 +1,9 @@
-import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DateInputFormComponentDefinitionFrame, FormConfigFrame, TypeaheadInputFormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
+import { filter, firstValueFrom, timeout } from 'rxjs';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
-import { FormComponentEventBus, createFormSaveRequestedEvent } from '../form-state';
 import { SimpleInputComponent } from './simple-input.component';
 import { DateInputComponent } from './date-input.component';
 import { TypeaheadInputComponent } from './typeahead-input.component';
@@ -67,8 +66,7 @@ describe('Inline validation visibility', () => {
         if (action === 'blur') {
           inputs[0].dispatchEvent(new Event('blur'));
         } else {
-          spyOn(formComponent, 'saveForm').and.resolveTo();
-          TestBed.inject(FormComponentEventBus).publish(createFormSaveRequestedEvent({ formScopeId: formComponent.eventScopeId }));
+          await formComponent.saveForm({ force: true });
         }
         await fixture.whenStable();
         fixture.detectChanges();
@@ -116,20 +114,58 @@ describe('Inline validation visibility', () => {
       expect(formComponent.form!.invalid).toBeTrue(); // CI still missing.
     });
 
-    it(`${layout} reveals untouched errors on a save request for this form only`, async () => {
+    it(`${layout} styles a touched field targeted by an interactive root validator`, async () => {
+      const { fixture, formComponent } = await createFormAndWaitForReady({
+        name: 'interactive-root-error',
+        enabledValidationGroups: ['all'],
+        validationGroups: { all: { description: '', initialMembership: 'all' } },
+        validators: [{
+          class: 'jsonata-expression',
+          config: { expression: 'contributor_ci != alternate_contact' },
+          targetField: { dataModel: ['contributor_ci'] },
+          message: 'Choose a different CI',
+        }],
+        componentDefinitions: ['contributor_ci', 'alternate_contact'].map(name => ({
+          name,
+          component: { class: 'SimpleInputComponent', config: { showValidIndicator: true } },
+          model: { class: 'SimpleInputModel', config: { value: 'same' } },
+          layout: { class: layout },
+        })),
+      }, { editMode: true });
+      const root: HTMLElement = fixture.nativeElement;
+      const fields = root.querySelectorAll<HTMLInputElement>('input');
+      const ci = fields[0];
+      const alternate = fields[1];
+      const form = formComponent.form!;
+      if (formComponent.dataStatus.pending) {
+        await firstValueFrom(form.statusChanges.pipe(
+          filter(() => !formComponent.dataStatus.pending), timeout({ first: 1000 }),
+        ));
+      }
+      expect(form.hasError('jsonata-expression')).toBeTrue();
+      expect(ci.classList.contains('is-valid')).toBeTrue();
+      expect(root.querySelector('.rb-form-field-error-summary, .is-invalid')).toBeNull();
+
+      ci.dispatchEvent(new Event('blur'));
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const control = formComponent.form!.get('contributor_ci')!;
+      expect(control.touched).toBeTrue();
+      expect(control.valid).toBeTrue();
+      expect(root.querySelector('.rb-form-field-error-summary')?.textContent).toContain('Choose a different CI');
+      expect(ci.classList.contains('is-invalid')).toBeTrue();
+      expect(ci.classList.contains('is-valid')).toBeFalse();
+      expect(alternate.classList.contains('is-invalid')).toBeFalse();
+      expect(alternate.classList.contains('is-valid')).toBeTrue();
+    });
+
+    it(`${layout} reveals untouched errors when a full save fails validation`, async () => {
       const { fixture, formComponent } = await createFormAndWaitForReady({ name: 'save-errors', componentDefinitions: [
         input('project', layout), input('ci', layout)
       ] }, { oid: '', editMode: true });
-      // Isolate display handling from the adapter that promotes requests to save commands.
-      spyOn(formComponent, 'saveForm').and.resolveTo();
-      const bus = TestBed.inject(FormComponentEventBus);
-      bus.publish(createFormSaveRequestedEvent({ formScopeId: 'another-form' }));
+      await formComponent.saveForm({ force: true });
       fixture.detectChanges();
-      expect(formComponent.saveAttempted()).toBeFalse();
-      expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).toBeNull();
-      bus.publish(createFormSaveRequestedEvent({ formScopeId: formComponent.eventScopeId }));
-      fixture.detectChanges();
-      expect(formComponent.saveAttempted()).toBeTrue();
       expect(formComponent.form!.untouched).toBeTrue();
       expect(fixture.nativeElement.querySelectorAll('.rb-form-field-error-summary').length).toBe(2);
       expect(fixture.nativeElement.querySelectorAll('.is-invalid').length).toBe(2);
@@ -148,7 +184,6 @@ describe('Inline validation visibility', () => {
     ] }, { oid: '', editMode: true });
     await formComponent.saveForm({ force: true });
     fixture.detectChanges();
-    expect(formComponent.saveAttempted()).toBeTrue();
     expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).not.toBeNull();
   });
 
@@ -156,17 +191,17 @@ describe('Inline validation visibility', () => {
     const config: FormConfigFrame = { name: 'reloaded-errors', componentDefinitions: [input('project', 'DefaultLayout')] };
     const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: '', editMode: true });
     await formComponent.saveForm({ force: true });
-    expect(formComponent.saveAttempted()).toBeTrue();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).not.toBeNull();
     formComponent.oid.set('another-record');
     await formComponent.downloadAndCreateFormComponents(config);
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(formComponent.saveAttempted()).toBeFalse();
     expect(formComponent.form!.invalid).toBeTrue();
     expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary, .is-invalid')).toBeNull();
   });
 
-  it('applies the rule to repeatable rows, including rows added after a save attempt', async () => {
+  it('reveals only the repeatable rows that failed the save attempt', async () => {
     const config: FormConfigFrame = { name: 'repeatable-errors', componentDefinitions: [{
       name: 'people', component: { class: 'RepeatableComponent', config: {
         elementTemplate: { ...input('', 'DefaultLayout'), layout: { class: 'RepeatableElementLayout' } }
@@ -174,13 +209,13 @@ describe('Inline validation visibility', () => {
     }] };
     const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: '', editMode: true });
     expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary, .is-invalid')).toBeNull();
-    TestBed.inject(FormComponentEventBus).publish(createFormSaveRequestedEvent({ formScopeId: formComponent.eventScopeId }));
+    await formComponent.saveForm({ force: true });
     fixture.detectChanges();
     const before = fixture.nativeElement.querySelectorAll('.rb-form-field-error-summary').length;
     expect(before).toBeGreaterThan(0);
     await (formComponent.componentDefArr[0].component as RepeatableComponent).appendNewElement();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('.rb-form-field-error-summary').length).toBeGreaterThan(before);
+    expect(fixture.nativeElement.querySelectorAll('.rb-form-field-error-summary').length).toBe(before);
   });
 });

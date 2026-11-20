@@ -413,9 +413,17 @@ module.exports = {
     return componentDefinition;
   },
   SaveButton: field => {
-    let componentDefinition = createBaseComponent({
+    const definition = field?.definition ?? {};
+    const componentConfig = {};
+    for (const key of ['disableWhenInvalid', 'disableWhenPristine']) {
+      if (definition[key] !== undefined) {
+        componentConfig[key] = definition[key];
+      }
+    }
+    const componentDefinition = createBaseComponent({
       field,
       componentClass: 'SaveButtonComponent',
+      componentConfig,
     });
     _.unset(componentDefinition, 'layout');
     return componentDefinition;

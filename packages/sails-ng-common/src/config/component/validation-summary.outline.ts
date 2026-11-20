@@ -28,12 +28,9 @@ export interface ValidationSummaryFieldComponentConfigFrame extends FieldCompone
      */
     showWhenValid?: boolean;
     /**
-     * On a new record (one with no oid), show errors only for touched fields
-     * until a save is attempted or fails. Programmatic dirty state does not
-     * reveal errors, and hidden errors do not count as a valid form.
-     * Untargeted form errors follow the root form's touched state; the valid-form
-     * message follows any control touch, including onlySelf touches.
-     * Existing records always show the summary from load.
+     * On a new record (one with no oid), wait until a field is touched before
+     * showing the valid-form message. Includes onlySelf touches.
+     * Summary errors follow field touch and save validation on all records.
      * Defaults to false.
      */
     deferErrorsOnNewRecord?: boolean;

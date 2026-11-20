@@ -290,6 +290,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.setDisplayValue(this.lastConfirmedDisplayValue);
       if (!this.lastConfirmedDisplayValue) {
         this.setModelValue(null);
+      } else {
+        this.formControl.markAsTouched();
       }
       return;
     }
