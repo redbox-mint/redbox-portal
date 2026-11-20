@@ -41,6 +41,37 @@ describe('SimpleInputComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
+    expect(inputElement?.hasAttribute('maxlength')).toBeFalse();
+  });
+
+  it('renders the input limit and preserves an overlong saved value for validation', async () => {
+    const savedValue = 'long activity name';
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      enabledValidationGroups: ['all'],
+      componentDefinitions: [
+        {
+          name: 'shortActivityName',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: savedValue,
+              validators: [{class: 'maxLength', config: {maxLength: 8}}]
+            }
+          },
+          component: {class: 'SimpleInputComponent', config: {maxLength: 8}}
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true});
+    const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input[type="text"]');
+    const control = formComponent.form?.get('shortActivityName');
+
+    expect(input?.getAttribute('maxlength')).toBe('8');
+    expect(input?.value).toBe(savedValue);
+    expect(control?.value).toBe(savedValue);
+    expect(control?.hasError('maxLength')).toBeTrue();
   });
 
   it('should not add is-valid class by default', async () => {

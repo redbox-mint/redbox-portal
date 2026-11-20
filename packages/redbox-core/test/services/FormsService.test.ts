@@ -656,6 +656,22 @@ describe('FormsService', function () {
   });
 
   describe('buildClientFormConfig', async function () {
+    it('serializes a configured SimpleInput maxLength and omits it otherwise', async function () {
+      const item: FormConfigFrame = {
+        name: 'input-length-config',
+        componentDefinitions: [
+          { name: 'shortName', component: { class: 'SimpleInputComponent', config: { maxLength: 8 } } },
+          { name: 'name', component: { class: 'SimpleInputComponent' } },
+        ],
+      };
+
+      const form = await FormsService.buildClientFormConfig(item, 'edit');
+      const client: FormConfigFrame = JSON.parse(JSON.stringify(form));
+      const [limited, unlimited] = client.componentDefinitions;
+      expect(limited.component.config).to.have.property('maxLength', 8);
+      expect(unlimited.component.config).not.to.have.property('maxLength');
+    });
+
     it('serializes an explicit false for save-status client validation feedback', async function () {
       const item: FormConfigFrame = {
         name: 'save-status-config',
