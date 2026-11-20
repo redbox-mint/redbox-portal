@@ -195,6 +195,12 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(summary()).toContain('Enter a title');
     expect(summary()).toContain('Title and notes must differ');
 
+    const value = form.getRawValue();
+    form.updateValueAndValidity();
+    await fixture.whenStable();
+    expect(form.getRawValue()).toEqual(value);
+    expect(summary()).toContain('Title and notes must differ');
+
     form.get('notes')!.setValue('Updated notes');
     await fixture.whenStable();
     expect(title.value).toBe('   ');
@@ -209,6 +215,68 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(root.querySelector('.validation-summary')).toBeNull();
     expect(root.querySelector('.rb-form-field-error-summary')).toBeNull();
     expect(titleInput.classList.contains('is-invalid')).toBeFalse();
+  });
+
+  it('keeps save-only group and repeatable errors until their own values change', async () => {
+    const groups = { include: ['draft-minimum'], exclude: ['all'] };
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'draft-composite-error-lifetime',
+      enabledValidationGroups: ['all'],
+      validationGroups: {
+        all: { description: '', initialMembership: 'all' },
+        'draft-minimum': { description: '', initialMembership: 'none' },
+      },
+      componentDefinitions: [
+        {
+          name: 'details',
+          model: { class: 'GroupModel', config: {
+            value: { title: '' },
+            validators: [{ class: 'required', config: { anyOfFields: ['title'] }, groups, message: 'Enter a title' }],
+          } },
+          component: { class: 'GroupComponent', config: { componentDefinitions: [
+            { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+          ] } },
+          layout: { class: 'DefaultLayout' },
+        },
+        {
+          name: 'tags',
+          model: { class: 'RepeatableModel', config: {
+            value: ['long tag'],
+            validators: [{ class: 'aggregateMaxLength', config: { maxLength: 3 }, groups, message: 'Shorten the tags' }],
+          } },
+          component: { class: 'RepeatableComponent', config: { elementTemplate: {
+            name: '', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' },
+          } } },
+          layout: { class: 'DefaultLayout' },
+        },
+        { name: 'notes', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent' } },
+      ],
+    }, { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const form = formComponent.form!;
+    const summary = () => root.querySelector('.validation-summary')?.textContent ?? '';
+
+    await formComponent.saveForm({ force: true, enabledValidationGroups: ['draft-minimum'] });
+    await fixture.whenStable();
+    expect(form.valid).toBeTrue();
+    expect(form.untouched).toBeTrue();
+    expect(summary()).toContain('Enter a title');
+    expect(summary()).toContain('Shorten the tags');
+
+    form.get('notes')!.setValue('Updated notes');
+    await fixture.whenStable();
+    expect(summary()).toContain('Enter a title');
+    expect(summary()).toContain('Shorten the tags');
+
+    form.get(['details', 'title'])!.setValue('Draft title');
+    await fixture.whenStable();
+    expect(summary()).not.toContain('Enter a title');
+    expect(summary()).toContain('Shorten the tags');
+
+    form.get(['tags', 0])!.setValue('tag');
+    await fixture.whenStable();
+    expect(root.querySelector('.validation-summary')).toBeNull();
   });
 
   it('keeps server save errors visible when restored interactive validation settles', async () => {
