@@ -370,7 +370,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     The FM-043 Express closure audit (including the runtime-image filesystem scan)
     passes against the exact candidate image digest.
 
-- [ ] **FM-045 — Run final functional and consumer gates.**
+- [x] **FM-045 — Run final functional and consumer gates.**
   - Dependencies: FM-044.
   - Work: execute mapped core/root/API/Playwright/real-service/upload/socket/
     Companion/generated/packed/WSU gates; reconcile all routes and policies.
