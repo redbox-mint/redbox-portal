@@ -19,6 +19,19 @@ const isDevelopmentAssetMode =
   process.env.REDBOX_ASSET_MODE === 'development' || process.env.NODE_ENV === 'development';
 const enableCssMinimizerPlugin = process.env.WEBPACK_ENABLE_CSS_MINI_PLUGIN === 'true';
 
+// Redoc 3.0.1 hard-codes both attribution images. Keep the badge and link while serving its images locally.
+function localizeRedocAttribution(bundle: Buffer): string {
+  let source = bundle.toString('utf8');
+  for (const logo of ['logo-mini.svg', 'logo-mini-full.svg']) {
+    const original = '`https://cdn.redoc.ly/redoc/' + logo + '`';
+    if (source.split(original).length !== 2) {
+      throw new Error(`Review Redoc's attribution image: expected exactly one ${logo} URL in the bundle.`);
+    }
+    source = source.replace(original, `new URL('../../../images/redoc/${logo}', import.meta.url).href`);
+  }
+  return source;
+}
+
 export interface WebpackConfig {
   config: Configuration[];
   watch: boolean;
@@ -78,6 +91,7 @@ export const webpack: WebpackConfig = {
             {
               from: './node_modules/redoc/bundles/redoc.standalone.js',
               to: './default/default/js/',
+              transform: localizeRedocAttribution,
             },
           ],
         }),

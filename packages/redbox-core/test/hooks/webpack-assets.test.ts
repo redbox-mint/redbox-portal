@@ -11,7 +11,9 @@ const webpack: typeof import('webpack') = createRequire(
 )('webpack');
 
 describe('production asset ownership', () => {
-  it('preserves Angular HTML while minifying shared JavaScript and CSS', async () => {
+  it('preserves Angular HTML while minifying shared JavaScript and CSS', async function () {
+    // This test runs a production Webpack compilation, including the minimizer workers.
+    this.timeout(30_000);
     const directory = await mkdtemp(join(tmpdir(), 'redbox-webpack-assets-'));
     const html = '<html><body onload="return false"><script>console.log(1 + 2);</script></body></html>';
     try {

@@ -90,7 +90,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'ejs',
     rootSelector: '#redoc',
-    requiredSelectors: ['#redoc'],
+    requiredSelectors: ['#redoc h1', '#redoc h2:has-text("Records")', '#redoc img[alt="redocly logo"]'],
     fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
     includeBaseAssets: false,
     requiredAssetIncludes: [

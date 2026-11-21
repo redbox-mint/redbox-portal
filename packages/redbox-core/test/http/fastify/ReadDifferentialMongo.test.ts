@@ -87,7 +87,7 @@ const snapshots = new Map<string, (Wire | undefined)[]>(),
   failures = new Map<string, string>(),
   calls = new Map<string, number[]>();
 const state = new Map<string, unknown[]>();
-const schemaDenialEffects = new Map<string, string[]>();
+const schemaEffects = new Map<string, string[]>();
 const scenarios: Scenario[] = [
   { name: 'v1' },
   { name: 'v2', headers: { 'X-ReDBox-API-Version': '2.0' } },
@@ -958,10 +958,15 @@ describe(readSuiteTitle, function () {
                 if (raw && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
                 const id = key(route, scenario),
                   values = snapshots.get(id) ?? [];
+                // The create route has no OID parameter. This case repeats the authorized schema read.
+                const expectedCreateSchemaGrantRefresh =
+                  route.action === 'create' && scenario.name === 'private-object'
+                    ? { digest, brand: 'default', portal: 'rdmp', recordType: 'dataRecord' }
+                    : undefined;
                 const observer =
                   route.controller.endsWith('RecordSchemaController') &&
                   ['private-object', 'unknown-brand', 'unknown-portal'].includes(scenario.name)
-                    ? await observeNoSideEffects(f)
+                    ? await observeNoSideEffects(f, { expectedCreateSchemaGrantRefresh })
                     : undefined;
                 let value;
                 try {
@@ -971,7 +976,7 @@ describe(readSuiteTitle, function () {
                       wire(f.url + target(route, scenario, runId, digest), method, headers, raw)
                     )
                   );
-                  if (observer) schemaDenialEffects.set(id, await observer.differences());
+                  if (observer) schemaEffects.set(id, await observer.differences());
                 } finally {
                   observer?.restore();
                 }
@@ -1021,7 +1026,7 @@ describe(readSuiteTitle, function () {
     for (const scenario of forRoute(route))
       it(readCaseTitle(route, scenario), () => {
         const values = snapshots.get(key(route, scenario));
-        const effects = schemaDenialEffects.get(key(route, scenario));
+        const effects = schemaEffects.get(key(route, scenario));
         if (effects) assertNoObservedEffects(effects);
         assert(values?.[0], JSON.stringify(modes.map(mode => [mode, failures.get(mode + ':' + key(route, scenario))])));
         assertProductionContract('read', key(route, scenario), values[0]);

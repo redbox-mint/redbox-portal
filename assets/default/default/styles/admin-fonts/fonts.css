@@ -1,0 +1,49 @@
+/* Google Fonts is the source of these font files. See the accompanying OFL notices. */
+@font-face {
+  font-family: "Titillium Web";
+  src: url("TitilliumWeb-ExtraLight.ttf") format("truetype");
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Titillium Web";
+  src: url("TitilliumWeb-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Titillium Web";
+  src: url("TitilliumWeb-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Titillium Web";
+  src: url("TitilliumWeb-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Titillium Web";
+  src: url("TitilliumWeb-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto Condensed";
+  src: url("RobotoCondensed.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Raleway";
+  src: url("Raleway.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}

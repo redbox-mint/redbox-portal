@@ -4,6 +4,7 @@ import { channel } from 'node:diagnostics_channel';
 import type { ClientRequest } from 'node:http';
 import sinon, { type SinonSpy } from 'sinon';
 import { drainHttpRequests } from '../../../src/middleware/requestLifetime';
+import type { RecordSchemaCreateGrantReferenceInput } from '../../../src/model/storage/record-schema';
 import { drainAcceptedPersistenceWork } from '../../../src/persistence/runtime';
 import { mutationCollections, settleMutationWork, type Fixture } from './mutationDifferentialSupport';
 
@@ -44,6 +45,10 @@ export async function observeNoSideEffects(
     expectedCalls?: Readonly<Record<string, number>>;
     concurrentWinner?: { collection: 'record' | 'deletedrecord'; oid: string };
     expectedStrictSchemaGrant?: string;
+    expectedCreateSchemaGrantRefresh?: Pick<
+      RecordSchemaCreateGrantReferenceInput,
+      'digest' | 'brand' | 'portal' | 'recordType'
+    >;
     expectedCredentialTimestamp?: string;
     expectedRemovedAccount?: string;
     expectedConsumedOidcState?: { sessionId: string; issuerHost: string };
@@ -71,6 +76,7 @@ export async function observeNoSideEffects(
     await drainRequestEffects();
   };
   const disk = data.disks.get().stagingDisk();
+  let previousGrantUpdate: Date | undefined;
   const snapshot = async (afterRequest = false) => {
     const db = fixture.client.db();
     const sessions = options.sessionCollection ?? 'referenceSessions';
@@ -117,6 +123,25 @@ export async function observeNoSideEffects(
               }
               return { ...rest, session: payload };
             })
+        );
+      } else if (name === 'recordschemareference' && options.expectedCreateSchemaGrantRefresh) {
+        const scope = options.expectedCreateSchemaGrantRefresh;
+        const grants = rows.filter(
+          row =>
+            row.kind === 'grant' &&
+            row.schemaKind === 'create' &&
+            Object.entries(scope).every(([field, value]) => row[field] === value)
+        );
+        assert.equal(grants.length, 1, 'Expected exactly one existing create-schema grant in scope');
+        const [grant] = grants;
+        const { updatedAt, ...identityAndContent } = grant;
+        assert(updatedAt instanceof Date, 'Expected a persisted grant update timestamp');
+        if (afterRequest) {
+          assert(previousGrantUpdate && updatedAt > previousGrantUpdate, 'Expected the grant timestamp to advance');
+        } else previousGrantUpdate = updatedAt;
+        result.set(
+          'mongo:' + name,
+          rows.map(row => (row === grant ? identityAndContent : row))
         );
       } else if (name === 'user' && options.expectedCredentialTimestamp) {
         result.set(

@@ -125,6 +125,7 @@ export async function browserPage(
   // Reduced policies must never turn a missing actor into a caught TypeError/500.
   if (oid && !actor) return { status: 403, headers: {} };
   const page = await preparePageRendering(request, input, applyHeaders);
+  page.locals.useAdminFonts = /^\/:branding\/:portal\/admin(?:\/|$)/.test(route.path);
   if (mode === 'edit') page.locals.oid = oid ?? '';
   try {
     if (mode === 'legacy')

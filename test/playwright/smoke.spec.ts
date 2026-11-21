@@ -6,7 +6,19 @@ import { baseAssetIncludes, smokeRoutes } from './routes';
 
 const recordSearchPath = '/default/rdmp/record/search';
 const anonymousRoutes = smokeRoutes.filter(route => route.auth === 'anonymous' && route.path !== recordSearchPath);
-const adminRoutes = smokeRoutes.filter(route => route.auth === 'admin' || route.path === recordSearchPath);
+const adminRoutes = smokeRoutes
+  .filter(route => route.auth === 'admin' || route.path === recordSearchPath)
+  .flatMap(route => {
+    const adminPath = /^\/default\/rdmp\/admin(?:\/|$)/.test(route.path);
+    const canonical = { ...route, adminPath };
+    if (route.path !== '/default/rdmp/admin/users') return [canonical];
+    const requiredAssetIncludes = [...route.requiredAssetIncludes, '/styles/admin-fonts/fonts.css'];
+    return [
+      canonical,
+      { ...canonical, path: '/def%61ult/rdmp/admin/users', requiredAssetIncludes },
+      { ...canonical, path: '/default/%72dmp/admin/users', requiredAssetIncludes },
+    ];
+  });
 
 test.describe('anonymous smoke routes', () => {
   for (const route of anonymousRoutes) {
@@ -42,7 +54,28 @@ test.describe('admin smoke routes', () => {
       const entry = applicationManifest.find(entry => entry.route === route.path);
       const preparedRoute = entry ? await routeForEntry(route.path, entry.id, adminPage, adminCsrfToken, resources) : route.path;
       const requiredSelectors = [...route.requiredSelectors, ...(entry?.usefulSelectors ?? [])];
+      const origin = new URL(adminPage.url()).origin;
+      const externalRequests: string[] = [];
+      if (route.adminPath) {
+        adminPage.on('request', request => {
+          const url = new URL(request.url());
+          if (/^https?:$/.test(url.protocol) && url.origin !== origin) externalRequests.push(url.href);
+        });
+      }
+
       await assertSmokeRoute(adminPage, { ...route, path: preparedRoute, requiredSelectors }, baseAssetIncludes);
+      if (route.rootSelector === '#redoc') {
+        const logo = adminPage.locator('#redoc img[alt="redocly logo"]').first();
+        await expect
+          .poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0))
+          .toBe(true);
+        const url = await logo.evaluate((image: HTMLImageElement) => image.currentSrc);
+        expect(new URL(url).origin).toBe(origin);
+      }
+      if (route.adminPath) {
+        await adminPage.evaluate(() => document.fonts.ready.then(() => undefined));
+        expect(externalRequests, `${route.path} made external requests`).toEqual([]);
+      }
     });
   }
 });

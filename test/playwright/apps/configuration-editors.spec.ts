@@ -93,8 +93,9 @@ test('A11 creates a parameterised query with nested filters and mappings, verifi
   await modal.locator('#nq-collection').selectOption('record');
   await modal.getByRole('tab', { name: /Mongo/ }).click();
   const mongo = modal.locator('mongo-query-editor');
+  const rawQuery = mongo.locator('textarea.nq-code-editor');
   await mongo.getByRole('checkbox').check();
-  await mongo.locator('textarea').fill(JSON.stringify(query));
+  await rawQuery.fill(JSON.stringify(query));
   await mongo.getByRole('button', { name: /Apply JSON/i }).click();
   await modal.getByRole('tab', { name: 'Parameters', exact: true }).click();
   const params = modal.locator('query-param-editor');
@@ -138,9 +139,10 @@ test('A11 creates a parameterised query with nested filters and mappings, verifi
   await expect(modal.locator('#nq-name')).toHaveAttribute('readonly', '');
   await modal.getByRole('tab', { name: /Mongo/ }).click();
   await mongo.getByRole('checkbox').check();
-  expect(JSON.parse(await mongo.locator('textarea').inputValue())).toEqual(query);
+  await expect(rawQuery).not.toHaveValue('');
+  expect(JSON.parse(await rawQuery.inputValue())).toEqual(query);
   query.$and[1]['metadata.title'] = { $ne: first.metadata.title as string };
-  await mongo.locator('textarea').fill(JSON.stringify(query));
+  await rawQuery.fill(JSON.stringify(query));
   await mongo.getByRole('button', { name: /Apply JSON/i }).click();
   await modal.getByRole('tab', { name: /Mappings/ }).click();
   await expect(mappings.locator('tbody input').nth(1)).toHaveValue('{{record.metadata.title}}');
