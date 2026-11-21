@@ -144,7 +144,11 @@ describe('generateHookArchetype standard template', () => {
     expect(readGenerated('support/development/docker-compose.yml')).to.contain('minio:');
     expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain('@researchdatabox/redbox-core');
     expect(readGenerated('support/integration-testing/run-mocha-hook.sh')).to.contain('RBPORTAL_MOCHA_TEST_PATHS');
-    expect(readGenerated('support/integration-testing/run-mocha-redbox.sh')).to.contain('generateAllShims');
+    const coreMochaRunner = readGenerated('support/integration-testing/run-mocha-redbox.sh');
+    expect(coreMochaRunner).to.contain('generateAllShims');
+    expect(coreMochaRunner).to.contain(
+      '--reporter xunit --reporter-option output=./.tmp/junit/backend-mocha/backend-mocha.xml',
+    );
     expect(readGenerated('language-defaults/en/translation.json')).to.contain('DemoClient hook ready');
     expect(fs.existsSync(path.join(tempRoot, 'support', 'bootstrap-data', 'namedqueries'))).to.equal(true);
     expect(fs.existsSync(path.join(tempRoot, 'assets', 'images'))).to.equal(true);

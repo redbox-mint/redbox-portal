@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ./node_modules/mocha/bin/_mocha --config .mocharc.js --exit test/**/*.test.ts"
+    "test": "TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types -r ts-node/register ./node_modules/mocha/bin/mocha.js --config .mocharc.js --exit"
   },
   "repository": {
     "type": "git",
@@ -56,7 +56,7 @@
     "commander": "15.0.0",
     "handlebars": "4.7.10",
     "lodash": "4.18.1",
-    "mocha": "11.7.6",
+    "mocha": "12.0.3",
     "rxjs": "7.8.2",
     "ts-node": "10.9.2",
     "ts-morph": "28.0.0",

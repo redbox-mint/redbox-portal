@@ -832,7 +832,7 @@ jobs:
               echo "----- support/junit/mocha.xml -----"
               cat support/junit/mocha.xml || true
               echo "----- re-running with spec reporter for diagnostics -----"
-              CI=false TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ./node_modules/mocha/bin/_mocha --exit test/**/*.test.ts || true
+              CI=false npm test || true
             fi
             exit "$status"
       - run:
