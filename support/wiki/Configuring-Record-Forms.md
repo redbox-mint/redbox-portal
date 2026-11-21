@@ -431,10 +431,23 @@ fields: [
   },
 ```
 
+## SimpleInput options
+
+Configure `SimpleInputComponent` through `component.config`. Set `type` to choose
+the HTML input type (default `text`) and `placeholder` to supply a hint. Set the
+optional `maxLength` to a positive integer, such as `8`, to limit typing and
+pasting in supported text-like inputs. The browser applies the limit, and loaded
+values remain visible in full.
+
+Use `component.config.maxLength` alongside the model's `maxLength` validator
+when the limit must also be enforced at save time. The validator can flag an
+overlong value loaded from an existing record or import.
+
 ## Aggregate maximum-length validation
 
-Use `maxLength` for a single text input. For a repeatable field whose values will
-be combined into one string, use `aggregateMaxLength` on the **repeatable model**.
+Use the `maxLength` validator for a single text input. For a repeatable field
+whose values will be combined into one string, use `aggregateMaxLength` on the
+**repeatable model**.
 `maxLength` on an array counts rows; `aggregateMaxLength` counts characters in the
 normalized, joined value, including separators.
 

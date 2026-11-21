@@ -114,6 +114,9 @@ module.exports = {
       modelClass: 'SimpleInputModel',
     });
 
+    if (Number.isInteger(fieldConfig.maxLength) && fieldConfig.maxLength > 0) {
+      componentDefinition.component.config.maxLength = fieldConfig.maxLength;
+    }
     if (fieldConfig.maxLength > 0) {
       _.set(componentDefinition, 'model.config.validators', [
         { name: 'maxLength', message: '', config: { maxLength: fieldConfig.maxLength } },
