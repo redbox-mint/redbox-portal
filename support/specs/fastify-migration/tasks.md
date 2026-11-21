@@ -379,7 +379,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     Includes the FM-043 authorization guard-mutation harness (CircleCI
     `authorization_guard_mutation: true`) with 0 survivors against the final source.
 
-- [ ] **FM-046 — Run final deployment/database/maintenance gates.**
+- [x] **FM-046 — Run final deployment/database/maintenance gates.**
   - Dependencies: FM-044.
   - Work: run supported database/process/proxy profiles, fresh/restart/stop,
     maintenance/index commands and initialization/stop failure controls.
