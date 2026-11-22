@@ -10,6 +10,14 @@ assert.equal('disableWhenInvalid' in submit.component.config, false);
 assert.equal(submit.component.config.disableWhenPristine, true);
 assert.equal(forceDraft.component.config.disableWhenPristine, false);
 
+const limitedInput = fieldComponentMap.TextField({ definition: { name: 'shortName', maxLength: 8 } });
+const unlimitedInput = fieldComponentMap.TextField({ definition: { name: 'name' } });
+assert.equal(limitedInput.component.config.maxLength, 8);
+assert.deepEqual(limitedInput.model.config.validators, [
+  { name: 'maxLength', message: '', config: { maxLength: 8 } },
+]);
+assert.equal('maxLength' in unlimitedInput.component.config, false);
+
 const definition = {
   name: 'workspace',
   open: '@open-workspace',

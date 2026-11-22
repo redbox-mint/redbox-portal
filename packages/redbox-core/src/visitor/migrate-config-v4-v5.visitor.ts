@@ -814,6 +814,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     if (field?.class === 'HiddenValue' || field?.compClass === 'HiddenValueComponent') {
       item.config.type = 'hidden';
+    } else {
+      const maxLength = field?.definition?.maxLength;
+      if (Number.isInteger(maxLength) && maxLength > 0) {
+        item.config.maxLength = maxLength;
+      }
     }
   }
 
