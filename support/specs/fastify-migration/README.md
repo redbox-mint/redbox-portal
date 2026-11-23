@@ -1,9 +1,10 @@
 # Fastify migration
 
-Revision 5 passed G7 local qualification. `node app.js` starts the selected
-Fastify runtime. The G8 maintenance-window rehearsal and institutional
-production acceptance remain pending.
-[G7 closure](evidence/FM-048.md) · [Upgrade and rollback tasks](tasks.md#p8--rehearsal-and-handoff)
+Revision 5 passed local qualification, and the WSU maintenance-window upgrade
+and both rollback paths passed the local rehearsal. `node app.js` starts the
+Fastify runtime. Production acceptance remains pending with the institution and
+its operators. [G7 closure](evidence/FM-048.md) · [G8 implementation report](evidence/FM-051.md) ·
+[Production acceptance checklist](production-acceptance-checklist.md)
 
 The design was agreed through the Grill Me discussion on 2026-11-04. Fastify will
 ship as part of v6. The release is planned for late 2027; that is planning context,

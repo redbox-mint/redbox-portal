@@ -92,17 +92,16 @@ From a clean shell or directory:
 
 > **WSU package provenance.** The pinned WSU package (SHA-256 `9248b56b…5ce27198`) was built from
 > `redbox-hook-wsu-api2` commit `58baba0` (branch `feature/v6-api2`) with the clean-install, build and
-> `npm pack` procedure in [FM-050 evidence](evidence/FM-050.md). The scratch path below is where this
-> rehearsal kept it; archive the package with the evidence, or rebuild it from that commit and confirm
-> the checksum before use.
+> `npm pack` procedure in FM-050. Use the archived tarball or rebuild from that commit
+> and verify the SHA-256 before use. [FM-050 evidence](evidence/FM-050.md#source-built-wsu-requalification)
 
 ```sh
 repo=/home/ubuntu/work/github/redbox-portal
 tool="$repo/support/integration-testing/upgrade-rehearsal"
 scratch=/home/ubuntu/work/fastify-orchestration/scratch/FM-050
-handoff=/home/ubuntu/work/fastify-orchestration/scratch/FM-049/rehearsal.l6imYYbj
+handoff=/home/ubuntu/work/evidence-archive/fastify-migration/FM-049/rehearsal.l6imYYbj
 manifest=20725999da37e7033ac4cd78f67ce31efbc6173ec057c2d508b6b2063337cad4
-wsu_pack="$scratch/final-round.cv2kjB4z/packs/redbox-hook-wsu-2.0.0-v6.0.tgz"
+wsu_pack="/home/ubuntu/work/evidence-archive/fastify-migration/FM-050/final-round.cv2kjB4z/packs/redbox-hook-wsu-2.0.0-v6.0.tgz"
 wsu_sha256=9248b56b997ca820a7958c323fbd943e11e0d52464b622a0e2acf8cd5ce27198
 mkdir -p "$scratch"
 live=$(mktemp -d -p "$scratch" live.XXXXXXXX)

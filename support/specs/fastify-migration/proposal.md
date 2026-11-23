@@ -53,12 +53,12 @@ describes a possible successor.
 
 - [Architecture overview](../../wiki/Architecture-Overview.md) and
   [HTTP handlers and routes](../../wiki/Controllers-Architecture.md).
-- [ExpressHost](../../../packages/redbox-core/src/http/express/ExpressHost.ts)
+- [ExpressHost](https://github.com/redbox-mint/redbox-portal/blob/f7ebc45fb5b7c837b66dd309e879f89b87065f7e/packages/redbox-core/src/http/express/ExpressHost.ts)
   owns the listener, health/readiness gates, request admission, signals, and host
   lifecycle.
 - [Portal host composition](../../../packages/redbox-core/src/application/portal/host.ts)
   adds the HTTP host to the existing application runtime.
-- [PortalHttp](../../../packages/redbox-core/src/application/portal/http.ts)
+- [PortalHttp](https://github.com/redbox-mint/redbox-portal/blob/f7ebc45fb5b7c837b66dd309e879f89b87065f7e/packages/redbox-core/src/application/portal/http.ts)
   binds selected domains, policies, authentication, pages, uploads, sockets, and
   extension contributions.
 - [Route contracts](../../../packages/redbox-core/src/api-routes/types.ts) already

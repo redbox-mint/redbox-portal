@@ -67,10 +67,10 @@ historical context, not a fixed implementation base or Fastify evidence.
 
 Relevant existing implementation:
 
-- [ExpressHost](../../../packages/redbox-core/src/http/express/ExpressHost.ts)
+- [ExpressHost](https://github.com/redbox-mint/redbox-portal/blob/f7ebc45fb5b7c837b66dd309e879f89b87065f7e/packages/redbox-core/src/http/express/ExpressHost.ts)
   listens before initialization/preparation. Health is available during startup;
   ordinary requests are gated. Deferred listening intentionally changes this.
-- [Portal HTTP composition](../../../packages/redbox-core/src/application/portal/http.ts)
+- [Portal HTTP composition](https://github.com/redbox-mint/redbox-portal/blob/f7ebc45fb5b7c837b66dd309e879f89b87065f7e/packages/redbox-core/src/application/portal/http.ts)
   binds selected domains, policies, authentication, pages, assets, and integrations.
 - [Application runtime](../../../packages/redbox-core/src/application/Application.ts)
   owns startup and retryable stop. A stop deadline retains cleanup ownership.
@@ -80,7 +80,7 @@ Relevant existing implementation:
   carry controller/action, validation, policies, and response documentation.
 - [Extension contracts](../../../packages/redbox-core/src/extensions/contract.ts),
   [resolution](../../../packages/redbox-core/src/extensions/resolution.ts), and
-  [composition](../../../packages/redbox-core/src/extensions/composition.ts)
+  [composition](https://github.com/redbox-mint/redbox-portal/blob/f7ebc45fb5b7c837b66dd309e879f89b87065f7e/packages/redbox-core/src/extensions/composition.ts)
   provide offline inspection, deterministic replacement, and concrete bindings.
 
 The [retirement evidence summary](../sails-retirement/evidence-summary.md)

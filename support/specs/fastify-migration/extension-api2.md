@@ -186,8 +186,9 @@ clean packed-consumer qualification is FM-039.
 
 ## Worked example: WSU (FM-040)
 
-The locally converted `redbox-hook-wsu` API2 source is branch `feature/v6-api2`
-at `37b64b9` (local qualification, not published production acceptance). Its
+The locally converted `redbox-hook-wsu` API2 source is branch `feature/v6-api2`.
+FM-040 qualified `37b64b9`. FM-050 qualified the source-built package with
+the brand-role correction, now committed locally at `58baba0`. Its
 `src/controllers.ts`, `src/routes.ts` and `src/deployment.ts` declare one controller,
 five named actions/routes and concrete production bindings. The two regeneration
 mutations retain API metadata, policy/actor checks and CSRF; verified bearer and
@@ -199,10 +200,11 @@ precedence preserves overlapping URLs without depending on import order.
 `createPortalFastifyHost` composition, and binds domain operations after their
 owners initialize. Progress, uploads, pages and persisted authentication-field
 configuration remain selected. No Sails global or Express request/response shim is
-required. See [FM-040 qualification](evidence/FM-040.md) for exact source/artifact
-identities, the existing 565-case hook suite, installed route/restart/drain procedure
-and separate pending institutional production acceptance. The legacy v5 checkout,
-recovery source and archived agentvm passes are not converted-source evidence.
+required. FM-050 passed 567 hook cases and replayed the installed route,
+restart and drain checks. The WSU owner still needs to publish or preserve the
+branch. [Original FM-040 qualification](evidence/FM-040.md) ·
+[FM-050 requalification](evidence/FM-050.md#source-built-wsu-requalification) ·
+[Production acceptance](production-acceptance-checklist.md)
 
 ## Verification and deployment
 

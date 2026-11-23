@@ -421,7 +421,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: tested rollback runbook exists; no claim of automatic v6-to-v5
     rollback or safe reversal of unrelated database migrations.
 
-- [ ] **FM-051 — Close G8 and hand off production acceptance.**
+- [x] **FM-051 — Close G8 and hand off production acceptance.**
   - Dependencies: FM-050.
   - Work: produce final implementation report and separate institution/operator
     acceptance checklist with responsible roles: deployed source DB/image/hook/
@@ -438,10 +438,10 @@ Populate only after execution:
 | Claim | Required identity/evidence | Status |
 | --- | --- | --- |
 | Agreed design | Interview decisions Q1–Q26 and design document | Agreed |
-| Implemented source | Final SHA, tree status, route/Express closure audit | Qualified at `4bf1fc75e`, frozen runtime tree `980c2f3a1e`. [G7 matrix](evidence/FM-048.md#g7-exit-matrix) |
+| Implemented source | Final SHA, tree status, route/Express closure audit | Qualified at `4bf1fc75e`, frozen runtime tree `980c2f3a1e`. Rehearsal and handoff changes preserve the frozen inputs. [G7 matrix](evidence/FM-048.md#g7-exit-matrix) · [Final source verification](evidence/FM-051.md#source-and-artifact-identity) |
 | Qualified packages | Pack hashes and clean installed consumer results | Qualified via retained packs and clean install receipts. r5 rebuilds core into its image and preserves the public contract verified by consumers. [Package evidence](evidence/FM-048.md#g7-exit-matrix) |
 | Qualified runtime | Immutable image digest and complete final gate results | Revision 5 qualified at `sha256:28898f254d52fcbcfc71ed1bebb0c39726ee089e992b643f7303ed1ca581080a`. [G7 matrix](evidence/FM-048.md#g7-exit-matrix) |
 | Performance | Baseline/candidate raw results and threshold evaluation | Qualified with owner acceptance of the ten documented revision 5 residuals. [FM-047 decision](evidence/FM-047.md#explicit-acceptance) |
-| Local institution | WSU hook/configuration/artifact identities and fresh results | WSU local qualification passed on r3 and carries forward to r5 within the recorded scope. [WSU evidence](evidence/FM-048.md#g7-exit-matrix) |
-| Upgrade/rollback | Rehearsal logs and runbooks | Pending |
-| Production institution acceptance | Institution/operator-owned evidence | Pending; separate from implementation completion |
+| Local institution | WSU hook/configuration/artifact identities and fresh results | Passed locally with the fixed source-built WSU API2 hook on r5. [WSU requalification](evidence/FM-050.md#source-built-wsu-requalification) · [Final replay](evidence/FM-050.md#final-review-replay) |
+| Upgrade/rollback | Rehearsal logs and runbooks | Complete locally. The maintenance-window upgrade, rollback keeping current state, and checkpoint restore passed. [Upgrade evidence](evidence/FM-049.md) · [Rollback evidence](evidence/FM-050.md) · [G8 verdict](evidence/FM-051.md#g8-verdict) |
+| Production institution acceptance | Institution/operator-owned evidence | Pending. The institution and operators own acceptance and its evidence. [Production acceptance checklist](production-acceptance-checklist.md) |

@@ -1,6 +1,8 @@
 # Fastify migration implementation plan
 
-Status: agreed scope; all implementation phases pending, 2026-11-04.
+Scope agreed on 2026-11-04. See the [implementation report](evidence/FM-051.md)
+for local gate results and the [production checklist](production-acceptance-checklist.md)
+for institution acceptance.
 
 The [design](design.md) is authoritative for behavior. The [task list](tasks.md)
 assigns work IDs and required evidence. This plan describes delivery order and

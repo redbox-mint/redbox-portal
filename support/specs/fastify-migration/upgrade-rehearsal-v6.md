@@ -23,9 +23,8 @@ belong to rollback.
 
 > **WSU package provenance.** The pinned WSU package (SHA-256 `9248b56b…5ce27198`) was built from
 > `redbox-hook-wsu-api2` commit `58baba0` (branch `feature/v6-api2`) with the clean-install, build and
-> `npm pack` procedure in [FM-050 evidence](evidence/FM-050.md). The scratch path below is where this
-> rehearsal kept it; archive the package with the evidence, or rebuild it from that commit and confirm
-> the checksum before use.
+> `npm pack` procedure in FM-050. Use the archived tarball or rebuild from that commit
+> and verify the SHA-256 before use. [FM-050 evidence](evidence/FM-050.md#source-built-wsu-requalification)
 
 ```sh
 fm049_tool="$PWD/support/integration-testing/upgrade-rehearsal"
@@ -36,7 +35,7 @@ python3 "$fm049_tool/settings.py" "$FM049_RUN" fm049-r1-259 49850
 
 timeout --kill-after=35s 5500s "$fm049_tool/prepare-deployments.sh" \
   /home/ubuntu/work/bitbucket/redbox-hook-wsu-v6 \
-  /home/ubuntu/work/fastify-orchestration/scratch/FM-050/final-round.cv2kjB4z/packs/redbox-hook-wsu-2.0.0-v6.0.tgz \
+  /home/ubuntu/work/evidence-archive/fastify-migration/FM-050/final-round.cv2kjB4z/packs/redbox-hook-wsu-2.0.0-v6.0.tgz \
   9248b56b997ca820a7958c323fbd943e11e0d52464b622a0e2acf8cd5ce27198
 
 timeout --kill-after=15s 1000s "$fm049_tool/rehearse.py" preload
