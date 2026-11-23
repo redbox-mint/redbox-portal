@@ -3,10 +3,20 @@ export class NamedQueryParameterError extends Error {
   readonly status = 400;
 }
 
+const comparisonAliases = ['>', '>=', '<', '<=', '!=', 'in', 'nin'];
 const literalOperandOperators = new Set([
-  '$eq', '$ne', '$gt', '$gte', '$lt', '$lte', '$in', '$nin',
-  '>', '>=', '<', '<=', '!=', 'in', 'nin',
+  '$eq', '$ne', '$gt', '$gte', '$lt', '$lte', '$in', '$nin', ...comparisonAliases,
 ]);
+const namedQueryModifiers = new Set([...comparisonAliases, 'contains', 'startsWith', 'endsWith', 'like']);
+
+// Waterline also accepts these aliases on paths that use its criteria directly.
+const legacyWaterlineModifiers = new Set([
+  'lessThan', 'lessThanOrEqual', 'greaterThan', 'greaterThanOrEqual', 'not', '!', '!==',
+]);
+
+export function isNamedQueryOperator(key: string): boolean {
+  return key.startsWith('$') || namedQueryModifiers.has(key);
+}
 
 export function assertNamedQueryParameterSafe(
   name: string,
@@ -23,7 +33,9 @@ export function assertNamedQueryParameterSafe(
     seen.add(input);
     if (!structured) throw new NamedQueryParameterError(`${name} contains an unsafe query parameter`);
     for (const [key, item] of Object.entries(input)) {
-      if (key.startsWith('$') || key.includes('.')) throw new NamedQueryParameterError(`${name} contains an unsafe query parameter`);
+      if (isNamedQueryOperator(key) || legacyWaterlineModifiers.has(key) || key.includes('.')) {
+        throw new NamedQueryParameterError(`${name} contains an unsafe query parameter`);
+      }
       pending.push(item);
     }
   }

@@ -30,7 +30,7 @@ import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
-import { assertNamedQueryParameterSafe, NamedQueryParameterError } from '../queries/namedQueryParameters';
+import { assertNamedQueryParameterSafe, isNamedQueryOperator, NamedQueryParameterError } from '../queries/namedQueryParameters';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -276,29 +276,13 @@ export namespace Services {
       }
     }
 
-    private isQueryOperatorObject(value: Record<string, unknown>): boolean {
-      return Object.keys(value).some((key) => key.startsWith('$') || [
-        'contains',
-        'startsWith',
-        'endsWith',
-        'like',
-        '>',
-        '>=',
-        '<',
-        '<=',
-        '!=',
-        'in',
-        'nin',
-      ].includes(key));
-    }
-
     private flattenDeepTargetCriteria(criteria: Record<string, unknown>, prefix = ''): Record<string, unknown> {
       const flattened: Record<string, unknown> = {};
 
       for (const [key, value] of Object.entries(criteria)) {
         const path = prefix ? `${prefix}.${key}` : key;
 
-        if (_.isPlainObject(value) && !this.isQueryOperatorObject(value as Record<string, unknown>)) {
+        if (_.isPlainObject(value) && !Object.keys(value as Record<string, unknown>).some(isNamedQueryOperator)) {
           Object.assign(flattened, this.flattenDeepTargetCriteria(value as Record<string, unknown>, path));
         } else {
           flattened[path] = value;

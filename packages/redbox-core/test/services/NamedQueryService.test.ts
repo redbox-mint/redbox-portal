@@ -439,7 +439,7 @@ describe('NamedQueryService', function() {
 
   describe('performNamedQuery', function() {
     it('preserves a document operand across the native MongoDB and Waterline query paths', async function() {
-      const operand = { $schema: 'catalogue', 'schema.name': 'Dataset' };
+      const operand = { $schema: 'catalogue', 'schema.name': 'Dataset', contains: 'example' };
       const brand = { id: 'brand-1' };
       const path = 'metadata.schema';
 
@@ -894,6 +894,22 @@ describe('NamedQueryService', function() {
       }, { status: 'published', selection: ['draft'] }))
         .to.throw(NamedQueryParameterError, 'status contains an unsafe query parameter');
       expect(mongoQuery).to.deep.equal({ status: 'existing' });
+    });
+
+    it('rejects query modifier keys in structured parameters before writing a filter', function() {
+      const mongoQuery = { metadata: 'existing' };
+      const queryParams = { filter: { path: 'metadata', type: 'object' } };
+      const modifiers = [
+        '>', '>=', '<', '<=', '!=', 'in', 'nin', 'like', 'contains', 'startsWith', 'endsWith',
+        'lessThan', 'lessThanOrEqual', 'greaterThan', 'greaterThanOrEqual', 'not', '!', '!==',
+      ];
+
+      for (const key of modifiers) {
+        const filter = JSON.stringify({ nested: [{ [key]: 'value' }] });
+        expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { filter }), key)
+          .to.throw(NamedQueryParameterError, 'filter contains an unsafe query parameter');
+      }
+      expect(mongoQuery).to.deep.equal({ metadata: 'existing' });
     });
 
     it('rejects operator and dotted keys in structured parameters while allowing literal operands', function() {
