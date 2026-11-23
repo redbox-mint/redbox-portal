@@ -431,6 +431,27 @@ fields: [
   },
 ```
 
+## Field help text
+
+`DefaultLayout` and `InlineLayout` show help text between a field's label and
+its control. Set the translation key or literal text in `layout.config.helpText`.
+Help starts collapsed, and users show or hide it with the ? button beside the
+label. To show the help when the form loads, set `helpTextVisibleOnInit: true`.
+The ? button can still hide it.
+
+```ts
+layout: {
+  class: 'DefaultLayout',
+  config: { label: '@title-label', helpText: '@title-help', helpTextVisibleOnInit: true }
+}
+```
+
+`helpTextVisibleOnInit` defaults to `false`, and it does nothing if the field
+has no help text. `InlineLayout` shows help only for fields with a `label`. In
+view mode, help text and its visibility options are removed from the client
+config. `helpTextVisible` is reserved for runtime state. The layouts do not
+read it, so use `helpTextVisibleOnInit` to set the initial state.
+
 ## SimpleInput options
 
 Configure `SimpleInputComponent` through `component.config`. Set `type` to choose
