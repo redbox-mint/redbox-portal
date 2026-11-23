@@ -740,10 +740,6 @@ export namespace Services {
           value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
         }
 
-        if (paramMap[queryParamKey] !== undefined || !_.isEmpty(queryParam.template)) {
-          assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
-        }
-
         if (queryParam.type == DataType.Number) {
           if (!_.isUndefined(value) && value !== null && value !== '') {
             value = _.toNumber(value)
@@ -780,6 +776,10 @@ export namespace Services {
 
         if (queryParam.type == DataType.Object && !_.isUndefined(value)) {
           value = parseObjectParamValue(queryParamKey, value);
+        }
+
+        if (paramMap[queryParamKey] !== undefined || !_.isEmpty(queryParam.template)) {
+          assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
         }
 
         if (

@@ -869,7 +869,11 @@ describe('NamedQueryService', function() {
       const queryParams = { filter: { path: 'metadata', type: 'object' } };
       expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { $ne: null } }))
         .to.throw('unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: '{"$ne":"archived"}' }))
+        .to.throw('unsafe query parameter');
       expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { nested: { 'a.b': 1 } } }))
+        .to.throw('unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: '{"nested":{"a.b":1}}' }))
         .to.throw('unsafe query parameter');
       const mongoQuery: any = {};
       NamedQueryService.setParamsInQuery(mongoQuery, {
