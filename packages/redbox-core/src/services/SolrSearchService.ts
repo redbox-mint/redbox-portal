@@ -361,6 +361,7 @@ export namespace Services {
       });
       if (facetSearches.length > 0) {
         allParams.push({ key: 'facet', value: 'true' });
+        allParams.push({ key: 'facet.mincount', value: '1' });
         _.forEach(facetSearches, (facetSearch: SearchField) => {
           allParams.push({ key: 'facet.field', value: facetSearch.name });
           if (!_.isEmpty(facetSearch.value)) {
