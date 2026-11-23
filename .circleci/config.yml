@@ -653,7 +653,9 @@ jobs:
       - run:
           name: Start MongoDB for Figshare worker tests
           command: |
-            docker run -d --name figshare-test-mongo -p 127.0.0.1:27028:27017 mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
+            # The core suite creates many disposable databases; WiredTiger aborts
+            # with "Too many open files" under a 1024 descriptor limit.
+            docker run -d --name figshare-test-mongo --ulimit nofile=64000:64000 -p 127.0.0.1:27028:27017 mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
             for attempt in $(seq 1 30); do
               if docker exec figshare-test-mongo mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'; then
                 exit 0
@@ -700,6 +702,12 @@ jobs:
             nvm install && timeout 5400s npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \
               npx mocha --config .mocharc.js --reporter ../../support/tooling/fastify-retirement/authorization-reporter.cjs \
                 --exit test/**/*.test.ts
+      - run:
+          name: Show test MongoDB state on failure
+          when: on_fail
+          command: |
+            docker ps -a --filter name=figshare-test-mongo
+            docker logs --tail 200 figshare-test-mongo 2>&1 | grep -E '"s":"(F|E|W)"' | tail -40 || true
       - run:
           name: Check production HTTP authorization decision coverage
           no_output_timeout: 30m

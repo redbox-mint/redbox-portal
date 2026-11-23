@@ -6,9 +6,10 @@ set -o xtrace
 cd /opt/redbox-portal
 
 bash /opt/redbox-portal/support/integration-testing/install-redbox-dependencies-if-writable.sh
-# Mounted sources use the normal TypeScript core build.
-# Runtime images already contain the compiled package and omit the build scripts.
-if [[ -f packages/redbox-core/scripts/prisma-contract.cjs ]]; then
+# A writable checkout mount uses the normal TypeScript core build. Built images
+# (including the CI test image, which keeps the build scripts) already contain
+# the compiled package; rebuilding there runs tsc under the 1 GiB portal heap.
+if [[ -d .git && -w .git ]]; then
   npm --prefix packages/redbox-core run build
 fi
 
