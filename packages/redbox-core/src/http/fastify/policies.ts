@@ -1,4 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
+// Loads the Session field augmentation for programs that do not reach authentication.ts.
+import type {} from './authentication';
 import type { BrandingRepository, BrandRow } from '../../persistence/branding/BrandingRepository';
 import type { PathRules, RuleRole } from '../../authorization/PathRules';
 import { schemaProblem } from '../../api-routes/schemaDelivery';

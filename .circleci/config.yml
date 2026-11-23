@@ -100,13 +100,6 @@ jobs:
             npm run compile:agenda-sqs
             npm run compile:core
       - run:
-          name: Enforce first-party Express retirement
-          command: |
-            # Standalone builds install package-local development trees. Restore
-            # the application lock layout before auditing its installed graph.
-            timeout 600s npm ci --ignore-scripts --strict-peer-deps --no-audit
-            timeout 300s npm run test:express-closure
-      - run:
           name: Validate API route contracts
           command: npm run validate:api-routes
       - run:
@@ -125,6 +118,16 @@ jobs:
       - store_artifacts:
           path: .tmp/documentation-health
           destination: documentation-health
+      - run:
+          name: Enforce first-party Express retirement
+          command: |
+            # The compile steps install package-local development trees, and the
+            # route/docs steps above use them. Root npm ci does not replace them,
+            # so remove them before restoring the application lock layout;
+            # otherwise npm ls reports Companion's root dependencies as extraneous.
+            rm -rf packages/*/node_modules
+            timeout 600s npm ci --ignore-scripts --strict-peer-deps --no-audit
+            timeout 300s npm run test:express-closure
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
