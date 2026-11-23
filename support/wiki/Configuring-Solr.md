@@ -206,6 +206,6 @@ flatten: {
 
 ## See Also
 
-- [Configuration Guide](Configuration-Guide)
-- [Configuring the search page for a record type](Configuring-the-search-page-for-a-record-type)
-- [ReDBox Portal API](ReDBox-Portal-API)
+- [Configuration Guide](Configuration-Guide.md)
+- [Configuring the search page for a record type](Configuring-the-search-page-for-a-record-type.md)
+- [ReDBox Portal API](ReDBox-Portal-API.md)

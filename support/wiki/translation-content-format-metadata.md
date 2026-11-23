@@ -1,5 +1,8 @@
 # Translation Content Format Metadata
 
+> Historical implementation plan. For current operations, see the
+> [translation updates runbook](Translation-Updates-Runbook.md).
+
 ## Summary
 
 Replace the translation editor’s HTML/plain-text guessing with explicit translation metadata. Each translation entry will carry `contentFormat: 'plain' | 'html'`, defaulting to `'plain'` when absent. The translation admin app will use that metadata to open the correct editor mode and save it with the value. Form rendering can then choose HTML-capable templates only for entries marked as HTML.
@@ -41,15 +44,15 @@ Default behavior:
 
 1. Declare `contentFormat` as an optional string in the Prisma core contract (`packages/redbox-core/src/persistence/prisma/contract.ts`) and the plain translation row interface, then regenerate and commit the contracts. Existing documents require no rewrite.
 
-2. Update [I18nEntriesService.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/services/I18nEntriesService.ts):
+2. Update `I18nEntriesService.ts`:
    - Extend `setEntry` options with `contentFormat?: 'plain' | 'html'`.
    - Persist `contentFormat` only when supplied.
    - During `syncEntriesFromBundle`, read `meta?.[key]?.contentFormat`.
    - Validate or normalize invalid metadata values to `undefined` or `'plain'`; do not persist arbitrary strings.
 
 3. Update both controllers:
-   - [webservice/TranslationController.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/controllers/webservice/TranslationController.ts)
-   - [TranslationController.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/controllers/TranslationController.ts)
+   - `webservice/TranslationController.ts`
+   - `TranslationController.ts`
 
    Each `setEntry` action should read `req.body?.contentFormat` and pass it through to `I18nEntriesService.setEntry`.
 
@@ -57,7 +60,7 @@ Default behavior:
 
 ## Angular Service Changes
 
-Update [translation.service.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts):
+Update `translation.service.ts`:
 
 - Extend `listEntries` return type with `contentFormat?: 'plain' | 'html'`.
 - Extend `setEntry` body type with `contentFormat?: 'plain' | 'html'`.
@@ -66,7 +69,7 @@ No URL or response wrapper changes.
 
 ## Translation App Changes
 
-Update [translation.component.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.ts):
+Update `translation.component.ts`:
 
 1. Add:
    ```ts
@@ -101,7 +104,7 @@ Update [translation.component.ts](/Users/andrewbrazzatti/source/github/worktrees
 
 ## Template / UX Changes
 
-Update [translation.component.html](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.html):
+Update `translation.component.html`:
 
 - Keep the existing editor mode buttons.
 - Treat the buttons as explicit content-format controls:
@@ -116,8 +119,8 @@ Update [translation.component.html](/Users/andrewbrazzatti/source/github/worktre
 Update content/form config support so rendering can respect metadata instead of value guessing:
 
 1. Extend `ContentFieldComponentConfig` in:
-   - [content.outline.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.outline.ts)
-   - [content.model.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.model.ts)
+   - `content.outline.ts`
+   - `content.model.ts`
 
    Add:
 <!-- docs-example:skip partial: Request-body interface member excerpt; enclosing type declaration is omitted. -->
@@ -125,9 +128,9 @@ Update content/form config support so rendering can respect metadata instead of 
    translationContentFormat?: 'plain' | 'html';
    ```
 
-2. Update [construct.visitor.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/visitor/construct.visitor.ts) to pass through `translationContentFormat`.
+2. Update `construct.visitor.ts` to pass through `translationContentFormat`.
 
-3. Update [content.component.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/form/src/app/component/content.component.ts):
+3. Update `content.component.ts`:
    - When `contentIsTranslationCode === true` and no explicit template is configured:
      - If `translationContentFormat === 'html'`, continue assigning translated content to `[innerHtml]`.
      - If `translationContentFormat !== 'html'`, escape translated text before assigning to `[innerHtml]`.
@@ -160,7 +163,7 @@ Update content/form config support so rendering can respect metadata instead of 
 
 ## Tests
 
-Add or update Angular translation app tests in [translation.component.spec.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.spec.ts):
+Add or update Angular translation app tests in `translation.component.spec.ts`:
 
 - Opens plain entry with `contentFormat: 'plain'` in plain-text mode even if value contains `<` or tag-like text.
 - Opens HTML entry with `contentFormat: 'html'` in rich mode.
@@ -174,7 +177,7 @@ Add or update backend tests for `I18nEntriesService`:
 - Invalid `contentFormat` is ignored or normalized to the default.
 - `syncEntriesFromBundle` copies `_meta[key].contentFormat` into entry rows.
 
-Add or update form content component tests in [content.component.spec.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/form/src/app/component/content.component.spec.ts):
+Add or update form content component tests in `content.component.spec.ts`:
 
 - A translated plain-text value containing `<strong>x</strong>` renders visibly as text, not as markup.
 - A translated HTML value with `translationContentFormat: 'html'` renders markup through `[innerHtml]`.

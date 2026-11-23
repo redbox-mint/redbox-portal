@@ -1,10 +1,12 @@
 # Installation Guide
 
 
-V6 runs the owned Fastify host (`app.js`) with Node 26.12.1 and
-MongoDB 8+. Select an immutable, qualified application image and exact converted
-hook artifacts. Internal-default promotion is not production release acceptance;
-see the current [retirement task status](../specs/sails-retirement/tasks.md).
+V6 starts the Fastify host with `node app.js` on Node 26.12.1. The qualified
+MongoDB floor is the 8.0 line at **8.0.38** with FCV 8.0. The other qualified
+version is **9.0.4** with FCV 9.0. Select an immutable, qualified image and exact
+API2 extension artifacts. G7 covers local qualification of candidate revision 5.
+The upgrade/rollback rehearsal and institutional production acceptance are pending.
+[G7 closure](../specs/fastify-migration/evidence/FM-048.md) · [Database matrix](../specs/fastify-migration/evidence/FM-046.md#deployment-matrix)
 
 ## Evaluation and development
 
@@ -19,20 +21,46 @@ export REDBOX_SESSION_SECRET="$(openssl rand -hex 32)"
 npm run dev:run:build
 ```
 
-The image's CMD starts Fastify; do not override it with a framework lift command.
+The image starts Fastify as the `node` user with its baked command.
 Use explicit deployment modules and real secrets as described in
 [Configuration](Configuration-Guide.md). Serve the configured public URL/root
 context through the approved reverse proxy and configure trusted proxies and
-browser origins explicitly. Readiness is `/readyz`; liveness is `/healthz`.
-Set `REDBOX_PORT` when selecting a nondefault container port; the image's native
-readiness check uses that value (default 1500).
+browser origins explicitly.
+
+## Qualified deployment scope
+
+Run one portal process using Docker or a single PM2 fork. The tested listener
+uses HTTP/1.1 directly or behind Nginx, which can terminate TLS and forward
+HTTP/1.1 upstream. MongoDB qualification covers standalone and independent
+core/storage servers or replica sets as listed in the matrix. Portal replica
+continuity, PM2 cluster mode, direct TLS or HTTP/2, and untested topologies are
+outside the qualified scope. [Deployment boundaries](../specs/fastify-migration/evidence/FM-046.md#qualification-boundaries)
+
+## Startup, probes, and shutdown
+
+Before Fastify binds its listener, connection attempts fail. Once bound,
+`GET /healthz` reports process liveness and `GET /readyz` reports traffic
+readiness. Both use exact, unprefixed paths, even with a configured root context.
+Readiness returns 503 until activation opens admission and during shutdown while
+the listener can still respond.
+
+The image probes `/readyz` on `REDBOX_PORT` (default 1500). It allows 180 seconds
+of startup grace, checks every 30 seconds with a five-second probe timeout, and
+marks the container unhealthy after five counted failures. Give separate startup
+probes their own budget. Allow stop grace beyond the host's `server.stopDeadlineMs`
+(30 seconds by default) and the configured queue drain timeout. The Docker and
+PM2 examples allow 45 seconds. Check for a successful drain before starting
+maintenance. Restart Companion in a fresh process after full stop.
 
 ## Existing installation upgrade
 
-Follow the complete [v6 upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md)
-and [operator/API-client changes](V6-Client-Compatibility.md). Stop every writer,
-checkpoint all databases, sessions, queues, byte stores, configuration and exact
-artifacts consistently, then prepare indexes with the installed application:
+Plan the maintenance window around the current client and session requirements.
+FM-049 and FM-050 track rehearsal from the preceding v6 image.
+[Client compatibility](V6-Client-Compatibility.md) · [Fastify rehearsal status](../specs/fastify-migration/tasks.md#p8--rehearsal-and-handoff)
+
+Stop every writer and take a consistent checkpoint of all databases, sessions,
+queues, byte stores, configuration and exact artifacts. Prepare indexes and run
+initialization using the selected Fastify build.
 
 ```sh
 REDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.js --maintenance=indexes:inspect
@@ -41,16 +69,19 @@ REDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.js --initialize-o
 ```
 
 Inspect exits 2 for required operator action and 1 for operational error. Ensure
-never silently drops conflicting indexes. Review duplicate records and the
-released-v5 nonunique OID index procedure in the runbook. MongoDB engine/FCV
+never silently drops conflicting indexes. Review duplicate records and reconcile
+any released-v5 nonunique OID index with all writers stopped. MongoDB engine/FCV
 upgrades are separate vendor-supported operations. Existing volumes never rerun
-empty-volume init scripts.
+empty-volume init scripts. [Index preparation](Persistence-Index-Preparation.md) · [Record OID index reconciliation](Concurrent-Record-Modifications.md#storage-adapters-and-hooks)
 
-Require a fresh login after cutover; retain unfinished transfer state for trusted
+Require a fresh login after cutover and rollback, using fresh session signing
+roots with no preceding-host verifier. Retain unfinished transfer state for trusted
 reconciliation. Mixed-version rolling operation and starting v5 against v6-written
 state are unsupported. Recovery restores the complete quiescent checkpoint and
 its matching image/hooks/configuration. Keep ingress closed until authentication,
 brand permissions, reads/writes, providers and successful drain are verified.
+Start the Fastify build with its baked command or `node app.js` under the
+selected supervisor. Wait for `GET /readyz` before restoring traffic.
 
 Persistent primary objects, GridFS, branding fonts, staging and Companion temporary
 files must outlive containers. Configure resource/stop limits for the deployment;
@@ -65,16 +96,4 @@ before starting the portal. The [PM2 template](../ecosystem.template) likewise
 selects `app.js`, an explicit configuration path and current environment
 inputs; it requires the same qualified Node26 runtime and index preparation.
 
-Prisma is the sole application persistence backend, including cache; GridFS bytes use the MongoDB driver. Remove retired backend selectors and Waterline settings before startup. See [persistence migration](Persistence-Migration.md) and [backup/recovery](Cache-Persistence-Recovery.md) alongside the v6 runbook.
-
-Fastify listens only after initialization and preparation. Before that, both
-`/healthz` and `/readyz` refuse connections. The image allows 180 seconds of
-startup grace, then five readiness failures at 30-second intervals (5-second
-probe timeout). Use `/healthz` for liveness and `/readyz` for traffic readiness;
-a deployment with separate probes must give startup its own budget. Stop grace
-must exceed `server.stopDeadlineMs` (default 30 seconds); PM2 and the deployment
-example allow 45 seconds. After full stop, start a fresh process for Companion.
-
-The Express executable and host selector were removed in FM-043. All active
-executables and harnesses use Fastify; rollback selects the preceding build. Final immutable
-artifact qualification remains FM-044–048.
+Prisma is the sole application persistence backend, including cache; GridFS bytes use the MongoDB driver. Remove retired backend selectors and Waterline settings before startup. [Persistence migration](Persistence-Migration.md) · [Backup and recovery](Cache-Persistence-Recovery.md)

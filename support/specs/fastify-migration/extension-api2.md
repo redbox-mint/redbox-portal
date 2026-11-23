@@ -1,9 +1,9 @@
 # Migrating hooks from API1 / Express to API2 / Fastify
 
-API2 is the supported v6 extension authoring contract. The production Fastify
-composition is qualified through generated, bundled, packed and local WSU consumers.
-The retained Express executable is a legacy development baseline pending FM-042;
-this guide does not claim executable cutover or institution production acceptance.
+API2 is the supported v6 extension authoring contract. `node app.js` starts
+the Fastify composition, with generated, bundled, packed and local WSU
+consumer qualification recorded for the release candidate. The institution
+production acceptance gate remains pending. [G7 evidence](evidence/FM-048.md)
 
 API1 is rejected by `loadInstalledExtensionProvidersV2` and `resolveExtensionsV2`,
 including data-only declarations. The refusal identifies the package and HTTP

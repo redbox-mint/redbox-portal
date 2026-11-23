@@ -31,7 +31,7 @@ before acquisition. Views/assets search highest precedence first. Only selected
 factories construct instances. The application owns migrations, activation,
 quiesce, drain and close.
 
-The old Sails loader and API1 handler/middleware composition are legacy. Remove
-generated model/controller/service shims when converting; do not recreate them.
-Use the [v6 generator](Redbox-Hook-Kit.md), [controllers](Controllers-Architecture.md)
+Remove generated model/controller/service shims when converting. Bind named
+Fastify actions and scoped hooks with the [API2 migration guide](../specs/fastify-migration/extension-api2.md)
+and [v6 generator](Redbox-Hook-Kit.md). See [controllers](Controllers-Architecture.md)
 and [services](Services-Architecture.md) for supported application wiring.

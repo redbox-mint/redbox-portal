@@ -34,7 +34,8 @@ explicitly. Both SIEM envelopes (`securityevent`) and attempts
 is rejected through the obsolete model-configuration/registration checks. Move
 both collections to that datastore before upgrading.
 
-Use the inspect-first [exact shim cleanup](Redbox-Loader.md) for unedited v5 output.
+Use inspect-first exact shim cleanup for unedited v5 output.
+[Hook migration and shim cleanup](Cache-Persistence-Hook-Migration.md)
 Edited/custom files require explicit review and conversion. No build or startup
 generates shims. The model generator is retired; use service/repository contracts.
 

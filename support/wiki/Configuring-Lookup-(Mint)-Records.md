@@ -29,7 +29,7 @@ by their name or directory.
 </ul>
 <hr>
 <h2>2. Define the Workflow for the Record Type</h2>
-<p>Update <code inline="">workflow section</code> to configure how records behave in the system. A custom form can be configured for a record if desired (see [Configuring Record Forms](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms)), however a default view only form that will display all the fields based on the record's schema has been provided. To use the generated form, set form to the value "generated-view-only"</p>
+<p>Update <code inline="">workflow section</code> to configure how records behave in the system. A custom form can be configured for a record if desired (see <a href="Configuring-Record-Forms.md">Configuring Record Forms</a>), however a default view only form that will display all the fields based on the record's schema has been provided. To use the generated form, set form to the value "generated-view-only"</p>
 <h3>Minimal View-Only Example:</h3>
 <pre><code class="language-js">"party": {
   "draft": {
@@ -226,4 +226,4 @@ by their name or directory.
 }
 </code></pre>
 <p>This endpoint transforms the payload internally and creates records using standard ReDBox logic.</p>
-<p>To migrate existing harvest clients onto the new compatibility and tracked harvest endpoints, see <strong><a href="https://github.com/redbox-mint/redbox-portal/wiki/Migrating-from-the-Legacy-Mint-Harvest-Endpoint">Migrating from the Legacy Mint Harvest Endpoint</a></strong>.</p>
+<p>To migrate existing harvest clients onto the new compatibility and tracked harvest endpoints, see <strong><a href="Migrating-from-the-Legacy-Mint-Harvest-Endpoint.md">Migrating from the Legacy Mint Harvest Endpoint</a></strong>.</p>

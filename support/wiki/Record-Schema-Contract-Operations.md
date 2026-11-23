@@ -15,7 +15,7 @@ observing, enforcing, retaining, and troubleshooting that feature.
 The feature is **disabled by default**. Its default unknown-property policy is
 **`allow`**, preserving metadata properties that the form contract does not
 declare. Enabling schema generation does not itself enable rejection: the
-existing [`recordValidation`](Server-Side-Form-Validation-Operations) rollout
+existing [`recordValidation`](Server-Side-Form-Validation-Operations.md) rollout
 policy supplies the effective `shadow` or `enforce` mode for each record type
 and validation operation.
 
@@ -42,7 +42,7 @@ recordSchema: {
 ```
 
 Override `recordSchema` through the explicit v6 configuration layers described
-in the [Configuration Guide](Configuration-Guide). All numeric values must be
+in the [Configuration Guide](Configuration-Guide.md). All numeric values must be
 positive integers. `recordSchema.enabled` must be a JavaScript boolean. If an
 institution-owned environment variable supplies it, convert the string in the
 selected data module before returning configuration; startup does not coerce it.
@@ -150,7 +150,7 @@ Before enforcing any operation:
 
 1. Run `npm run test:record-contracts` and resolve all coverage, deterministic
    output, meta-schema, and configured-limit failures.
-2. Lift one representative environment with `recordSchema.enabled: true` and
+2. Start one representative environment with `recordSchema.enabled: true` and
    global `recordValidation.mode: 'shadow'`. Confirm the startup lifecycle and
    integration-pin checks pass.
 3. Exercise representative create, partial update, and workflow-transition
@@ -331,7 +331,7 @@ configured form, then materializes pins.
 
 Hook authors should resolve contributor findings against the registration,
 ownership, output, and failure rules in
-[Record Schema Contract Contributors](Record-Schema-Contract-Contributors).
+[Record Schema Contract Contributors](Record-Schema-Contract-Contributors.md).
 
 An aggregated gate failure is a `RecordSchemaLifecycleError` with top-level
 code `record-schema.lifecycle-failed` and sorted `findings`:
@@ -499,9 +499,9 @@ state and rerun the same bounded page with the same `now`.
 
 ## See also
 
-- [Record Schema Contract API](Record-Schema-Contract-API)
-- [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
-- [Configuration and Customisation Guide](Configuration-Guide)
-- [Configuring Record Forms](Configuring-Record-Forms)
-- [Generated Reference Documentation](Generated-Reference-Documentation)
-- [ReDBox Automated Tests](ReDBox-Automated-Tests)
+- [Record Schema Contract API](Record-Schema-Contract-API.md)
+- [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations.md)
+- [Configuration and Customisation Guide](Configuration-Guide.md)
+- [Configuring Record Forms](Configuring-Record-Forms.md)
+- [Generated Reference Documentation](Generated-Reference-Documentation.md)
+- [ReDBox Automated Tests](ReDBox-Automated-Tests.md)

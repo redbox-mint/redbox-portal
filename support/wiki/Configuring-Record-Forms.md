@@ -154,14 +154,25 @@ export function registerRedboxExtension(): RedboxExtensionV2 {
     apiVersion: 2,
     forms: {
       'institution-1.0-draft': {
-        name: 'institution-1.0-draft', type: 'rdmp', fields: [],
+        name: 'institution-1.0-draft',
+        type: 'rdmp',
+        componentDefinitions: [
+          {
+            name: 'title',
+            component: { class: 'SimpleInputComponent', config: {} },
+            model: { class: 'SimpleInputModel', config: {} },
+          },
+        ],
       },
     },
   };
 }
 ```
 
-Add the field declarations below to that form's `fields` array and select its
+Each entry in `componentDefinitions` has a `name` and a `component.class`.
+`component.config` is optional. A `model` is also optional for components that
+hold a value: when it is omitted, the runtime supplies the component's default
+model (for example `SimpleInputModel` for `SimpleInputComponent`). The runtime ignores the legacy `fields` array. Select the form's
 logical name from the workflow step's `config.form`. Build and validate the
 installed extension before startup. See the [complete migration guide](../specs/sails-retirement/hook-migration-v6.md#configuration-forms-contributors-views-and-assets).
 
@@ -354,8 +365,8 @@ version/fingerprint. Candidate-sensitive question-tree configurations are
 reconstructed for each candidate, including when the question tree appears
 only after a reusable definition is expanded.
 
-See [Migrating Save Buttons to Validation Operations](Migrating-Save-Buttons-to-Validation-Operations)
-and [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations).
+See [Migrating Save Buttons to Validation Operations](Migrating-Save-Buttons-to-Validation-Operations.md)
+and [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations.md).
 
 ### Messages
 
@@ -370,15 +381,20 @@ messages: {
 
 ### Field configuration
 
+> **Legacy format.** The `fields`, `compClass` and `definition` table below
+> describes the pre-v5 form format. Current forms use `componentDefinitions`
+> as shown above. See the [Forms component catalogue](Generated-Reference-Documentation.md)
+> for the current component classes and their configuration.
+
 The fields section lays out the components to appear in the form.
 
 | Field      | Description                                                                                   | Required               | Example |
 |------------|-----------------------------------------------------------------------------------------------|------------------------|---------|
 | class      |                                                                                               | Yes                    |         |
-| compClass  | The component class name. See the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html) for a list of available components and how to configure them | Yes                    | TextBlockComponent      |
+| compClass  | The component class name. See the [Forms component catalogue](Generated-Reference-Documentation.md) for a list of available components and how to configure them | Yes                    | TextBlockComponent      |
 | viewOnly   | When set to true, this component will only appear in the view (details) rendition of the form | No (defaults to false) | true    |
 | editOnly   | When set to true, this component will only appear in the edit (details) rendition of the form | No (defaults to false) | true    |
-| definition | Configuration that is specific for the component being added. How to configure a component is described in the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html) | Yes                    | value: '@dmpt-data-collection-heading' |
+| definition | Configuration that is specific for the component being added. How to configure a component is described in the [Forms component catalogue](Generated-Reference-Documentation.md) | Yes                    | value: '@dmpt-data-collection-heading' |
 
 ### Example
 
@@ -550,7 +566,7 @@ This expression listens for value changes on `source_field` and updates `target_
 | `jsonata` | Complex conditions using JSONata expressions against form data |
 | `jsonata_query` | Conditions that need to query the form's component structure |
 
-For comprehensive documentation on configuring expressions, including all condition types, template syntax, and best practices, see **[Configuring Form Expressions](Configuring-Form-Expressions)**.
+For comprehensive documentation on configuring expressions, including all condition types, template syntax, and best practices, see **[Configuring Form Expressions](Configuring-Form-Expressions.md)**.
 
 ### Legacy Publish-Subscribe
 
@@ -585,4 +601,4 @@ Messages in the system can be configured using Language files. This allows for i
 
 The application uses [i18next](https://www.i18next.com/) to render the messages and the language files are kept in the `assets/locales/<language>` directories.
 
-Please see the [i18next documentation](https://www.i18next.com/essentials.html) for more information on how the language file is structured and its features.
+Please see the [i18next JSON format guide](https://www.i18next.com/misc/json-format) for more information on how the language file is structured and its features.

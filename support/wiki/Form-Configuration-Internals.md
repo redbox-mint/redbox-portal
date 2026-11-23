@@ -204,9 +204,9 @@ Enables queries like counting repeatable elements or checking form structure.
 For `jsonata_query` conditions, the `querySource` provides access to the form's component tree.
 This is automatically updated when the form structure changes (e.g., repeatable items added/removed).
 
-For user-facing configuration documentation, see [Configuring Form Expressions](Configuring-Form-Expressions).
+For user-facing configuration documentation, see [Configuring Form Expressions](Configuring-Form-Expressions.md).
 
-For detailed technical documentation of the event bus implementation, see [Form Event Bus Architecture](Form-Event-Bus-Architecture).
+For detailed technical documentation of the event bus implementation, see [Form Event Bus Architecture](Form-Event-Bus-Architecture.md).
 
 ## Constraints: restrict when components are included in the form config
 

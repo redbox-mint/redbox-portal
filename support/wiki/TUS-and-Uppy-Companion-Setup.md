@@ -1,6 +1,7 @@
 # TUS and Uppy Companion setup
 
-API2 uses the owned native TUS upload and isolated Companion adapters.
+The Fastify host uses native TUS upload handling and an isolated adapter for
+optional Companion imports.
 Browser integrations must follow [v6 client compatibility](V6-Client-Compatibility.md)
 and [upload ownership and maintenance](../specs/sails-retirement/maintenance-v6.md#uploadprogress-cutover-qualification).
 
@@ -13,6 +14,7 @@ configuration before enabling a real provider:
 
 ```js
 module.exports = {
+  server: { publicUrl: 'https://research.example.edu/research', rootContext: '/research' },
   companion: {
     enabled: true,
     secret: 'replace-this-with-a-private-secret-of-at-least-32-characters',
@@ -22,7 +24,7 @@ module.exports = {
     providerOptions: {
       drive: { key: 'replace-with-provider-client-id', secret: 'replace-with-provider-client-secret' },
     },
-    uploadUrls: ['https://research.example.edu/default/rdmp/companion/record/.+/attach'],
+    uploadUrls: ['https://research.example.edu/research/default/rdmp/companion/record/'],
     metrics: false,
   },
 };
@@ -30,28 +32,39 @@ module.exports = {
 
 Set `server.publicUrl` and `server.rootContext` consistently with the deployed
 origin/root. Keep `filePath` on persistent writable storage through drain and
-process exit. Configure only the selected providers and exact permitted upload
-URLs. Register provider callbacks under the selected public Companion path:
-`/companion/drive/redirect`, `/companion/onedrive/redirect`, or
-`/companion/dropbox/redirect` as applicable. Provider credentials and institutional
-OAuth acceptance need separate verification.
+process exit. For each allowed brand and portal, give `uploadUrls` a literal
+origin and path prefix ending in `/companion/record/`, including any deployment
+root. Companion 7.1.1 compares string entries by origin and literal path
+boundary, admitting the attachment creation and resume URLs under that prefix.
 
-The local development Compose workflow deliberately converts a **subset** of
-`UPPY_*` variables in `support/development/application.cjs`: enablement, secret,
-bearer/attachment credentials, upload URLs, Google/OneDrive keys and server
-host/protocol. These are inputs to that specific data module, not general v6
-host environment overrides. Other deployment settings, including `filePath`,
-belong in the explicit module. See [development](../development/README.md).
+The portal supports Google Drive and OneDrive. For the `/research` example, the
+OAuth redirect paths are `/research/companion/drive/redirect` and
+`/research/companion/onedrive/redirect`. Register the full HTTPS URL for each
+selected provider and verify institutional OAuth separately.
+
+The development data module maps selected `UPPY_*` values for enablement,
+the Companion application secret, Google Drive and OneDrive credentials,
+upload URLs, and server host/protocol. Its default allowlist uses the
+configured public origin and root context with the `default/rdmp` paths.
+Set `UPPY_COMPANION_UPLOAD_URLS` to comma-separated literal prefixes to override
+it. In other deployments, supply explicit `companion` configuration data.
+[Development module](../development/application.cjs)
 
 ## Authentication and client changes
 
-Every attachment request requires an authenticated actor with current brand and
-record edit permission. A configured shared attachment secret does not establish
-that actor. A remote transfer must supply the deployment's verified actor
-credential; configure provider upload headers through `companion.uploadHeaders`
-when needed. Keep browser CSRF tokens on applicable raw requests, including HEAD
-resume checks. Only the host's independently verified bearer identity receives
-the API CSRF exemption. Recheck current permissions when resuming.
+Both local TUS and Companion attachment creation and resume require an
+authenticated actor with membership in the target brand. The target determines
+which permission the server checks on both creation and resume.
+
+- For an existing record, the actor needs edit permission on that record and
+  the record must belong to the target brand.
+- For `pending-oid`, the actor needs create permission at the initial workflow
+  step of at least one eligible record type in the target brand. An eligible record type is any record type in the target brand that has a workflow step marked `starting: true`. Hidden starting steps count. Access is granted when the actor passes the create-access check for that record type's package type and starting step.
+
+A remote transfer supplies the actor credential through `companion.uploadHeaders`
+when needed. Keep browser CSRF tokens on applicable raw requests, including
+HEAD resume checks. Only the host's independently verified bearer identity
+receives the API CSRF exemption.
 
 The browser/local routes are `/:branding/:portal/record/:oid/attach` and its
 `/:attachId` resource. Remote routes add `/companion` before `/record`; they use
@@ -71,11 +84,15 @@ with the server. Do not reuse v5 virtual socket upload calls.
 
 ## Lifecycle and verification
 
-The host creates one pinned Companion 7.1.1 app during initialization. Metrics
-are explicit; Redis and periodic pings are unsupported. A second application or
-restart needs a fresh process. Stop fences new work, drains admitted transfers
-within the deadline and terminates remaining transports. Provider-internal I/O
-and cleanup cron have process lifetime; keep temporary bytes until process exit.
+When enabled, the host creates one pinned Companion 7.1.1 app during
+initialization. Let the host load it first so the version- and hash-checked
+loader can install bounded provider logging. Metrics are opt-in. Omit Redis
+and periodic pings. Socket grants and transfers are process-local. Restart in
+a fresh process, retaining temporary bytes until the previous process exits.
+Stop fences new work and drains admitted transfers within the deadline.
+Provider I/O and cleanup cron can outlive transport closure. Reconcile
+interrupted work against the provider and record before retrying.
+[Companion process limits](../specs/fastify-migration/companion.md#process-lifetime-and-limits)
 
 With the [development prerequisites](../development/README.md) met, test fresh
 login, local create/chunk/HEAD resume, remote provider authorization and actual

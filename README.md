@@ -90,6 +90,7 @@ a deployment with separate probes must give startup its own budget. Stop grace
 must exceed `server.stopDeadlineMs` (default 30 seconds); PM2 and the deployment
 example allow 45 seconds. After full stop, start a fresh process for Companion.
 
-`node app.express.cjs` is an explicit, temporary pre-removal migration oracle.
-The default executable and all active harnesses use Fastify. Final immutable
-artifact qualification remains FM-044–048.
+`npm start` and the production image run `node app.js` to start Fastify.
+Revision 5 passed local qualification. The maintenance-window rehearsal and
+institutional production acceptance remain pending.
+[Installation and probes](support/wiki/Installation-Guide.md) · [G7 evidence](support/specs/fastify-migration/evidence/FM-048.md)

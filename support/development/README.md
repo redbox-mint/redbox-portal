@@ -20,17 +20,21 @@ npm run dev:run:build
 ```
 
 The explicit [application.cjs](application.cjs) module supplies local deployment
-data. Compose passes canonical `REDBOX_*` inputs and requires a session secret;
-it does not forward the legacy `.env` file or `sails_*` aliases. Optional Companion
-provider variables are converted by that module; enabling it requires a complete
-Google or OneDrive credential pair. Institution settings belong in explicitly
-selected deployment modules as described in
-[configuration-v6.md](../specs/sails-retirement/configuration-v6.md).
+data. Compose passes canonical `REDBOX_*` inputs and requires a session secret.
+Optional Companion provider variables are converted by that module. Enabling
+it requires a complete Google Drive or OneDrive credential pair. The default
+upload allowlist uses the public origin and `REDBOX_ROOT_CONTEXT` for the
+`default/rdmp` attachment path. To override it, use comma-separated literal
+prefixes in `UPPY_COMPANION_UPLOAD_URLS`.
+[Companion setup](../wiki/TUS-and-Uppy-Companion-Setup.md) · [Fastify configuration](../wiki/Configuration-Guide.md)
 
 Default browser URL is `http://localhost:1500`, readiness is `/readyz` and health
 is `/healthz`. `APP_URL` (or `REDBOX_PUBLIC_URL`) selects the browser-facing URL;
-set it along with `RBPORTAL_HTTP_PORT` when changing the host port. Debugging uses
-`--inspect` on localhost:9876. Host ports are bound to loopback. Optional
+set it along with `RBPORTAL_HTTP_PORT` when changing the host port. The HTTP bind
+defaults to loopback. For remote development, set `RBPORTAL_HTTP_BIND_ADDRESS`
+to the Docker host's reachable interface address. On Tailscale, use the
+Tailscale IPv4 address for the bind and the MagicDNS name in `APP_URL`.
+MongoDB, Solr and the debug port stay on loopback. Optional
 `RBPORTAL_DEBUG_PORT`, `RBPORTAL_MONGO_PORT` and `RBPORTAL_SOLR_PORT` avoid conflicts.
 `RBPORTAL_IMAGE` selects an already built local image, otherwise Compose builds
 `redbox-portal:dev` from the repository Dockerfile.
@@ -45,7 +49,7 @@ second HTTP host. The config module is explicitly mounted in both modes because
 The Mongo init scripts prepare domain, separate Agenda and v6 session indexes on
 new volumes; Compose waits for the final Mongo server and Solr core to be healthy.
 Before using existing state, follow
-[the upgrade runbook](../specs/sails-retirement/upgrade-recovery-v6.md), including
+[the Fastify upgrade guidance](../wiki/Installation-Guide.md#existing-installation-upgrade), including
 quiescence, backup, reviewed indexes, migration and recovery. Engine/FCV changes
 are separate procedures. For explicit maintenance with this Compose deployment:
 
@@ -55,9 +59,8 @@ docker compose -f support/development/docker-compose.yml --profile build run --r
 ```
 
 Root `npm start` and `npm run debug` run Fastify; outside Compose provide
-`REDBOX_APPLICATION_CONFIG` and `REDBOX_SESSION_SECRET`. The comparison entrypoints
-were removed in P8. Released-v5 comparisons require a separate artifact and
-isolated data; never run the old host on data already modified by v6.
+`REDBOX_APPLICATION_CONFIG` and `REDBOX_SESSION_SECRET`. Run released-v5
+comparisons with the separate artifact and isolated pre-upgrade data.
 
 Fastify listens only after initialization and preparation. Before that, both
 `/healthz` and `/readyz` refuse connections. The image allows 180 seconds of
@@ -67,6 +70,6 @@ a deployment with separate probes must give startup its own budget. Stop grace
 must exceed `server.stopDeadlineMs` (default 30 seconds); PM2 and the deployment
 example allow 45 seconds. After full stop, start a fresh process for Companion.
 
-The Express executable and host selector were removed in FM-043. All active
-executables and harnesses use Fastify; rollback selects the preceding build. Final immutable
-artifact qualification remains FM-044–048.
+The baked Fastify runtime passed qualification on revision 5. The mounted
+development stack and the rehearsal image serve development workflows.
+[G7 evidence](../specs/fastify-migration/evidence/FM-048.md)

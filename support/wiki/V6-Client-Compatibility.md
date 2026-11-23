@@ -1,12 +1,34 @@
 # V6 operator and API-client compatibility changes
 
-Review this list before the maintenance window. It records the intentional public
-breaks in the [design, section 1.3](../specs/sails-retirement/design.md#13-recorded-http-compatibility-breaks)
-and the subsequent production-composition regressions/decisions. The usual URLs
-and envelopes remain unless the row below explicitly changes them. Complete the
-[v6 upgrade/recovery procedure](../specs/sails-retirement/upgrade-recovery-v6.md)
-with your exact clients, hooks, identity provider and topology. Internal test
-qualification does not designate a representative institution.
+Review this list before the maintenance window. It includes the earlier v6
+changes and the Fastify cutover contract. The selected runtime was qualified
+locally on revision 5. The maintenance-window upgrade and rollback rehearsal
+and institutional production acceptance are pending.
+[Earlier v6 HTTP changes](../specs/sails-retirement/design.md#13-recorded-http-compatibility-breaks) · [G7 evidence](../specs/fastify-migration/evidence/FM-048.md)
+
+## Fastify cutover
+
+- Require fresh login at cutover and rollback. Generate a fresh random session
+  signing root each time and remove prior-host verifiers. Fastify uses the
+  `redbox-fastify-v1:` session namespace. Have browser clients obtain new CSRF
+  tokens and progress grants after login. Preserve staging and transfer bytes
+  for operator reconciliation. [Session decision](../specs/fastify-migration/evidence/FM-022.md#accepted-deviations-and-documented-limitations-carried-forward)
+- Use exact `GET /healthz` and `GET /readyz` at the HTTP listener, outside the
+  deployment root. Give startup a separate probe budget for deferred listening
+  and route traffic only once readiness succeeds. [Startup and probes](Installation-Guide.md#startup-probes-and-shutdown)
+- Clients downloading exports receive a safe 500 for a source failure before
+  commitment on GET or HEAD. A failure during streaming after commitment
+  aborts the transfer. Verify completion before treating a response as an export.
+  [Export behavior](../specs/fastify-migration/pilot-pattern.md#deliberate-changes-and-qualification-limits)
+- Local login, bearer authentication, OIDC, and AAF have local protocol coverage.
+  Verify institutional federation and credentials during the institution's
+  acceptance process. [Functional evidence](../specs/fastify-migration/evidence/FM-048.md#g7-exit-matrix)
+
+## Hook and client changes
+
+Convert every installed hook to API2, including data-only packages. API2 uses
+`registerRedboxExtension()`, named Fastify controller actions and explicit
+bindings from the selected application. [API2 migration guide](../specs/fastify-migration/extension-api2.md)
 
 Hook authors should run `redbox-dev-tools check --v6` before an installed
 rehearsal. It rejects legacy discovery metadata, retired framework dependencies
@@ -57,14 +79,13 @@ WSU's mapping does not convert other institutions' expressions.
 | Local malformed credentials return **400**; provider denials/debug mode return safe **403** instead of provider-dependent redirects/error rendering. AAF assertions enforce the configured issuer. | Local login scripts, OIDC/AAF clients and IdP operators | Send scalar local credentials; handle a denial without expecting provider exception text. Configure the exact AAF issuer, validated local redirects and trusted IdP logout origin. |
 | Browser REST writes require session CSRF even where old route config said `csrf: false`. An Authorization header alone never exempts a request; only independently verified API bearer auth does. | Custom AJAX, forms and mixed cookie/bearer clients | Send `_csrf` or `X-CSRF-Token`; query-string tokens are rejected. Obtain a new token after session rotation. |
 | The CSRF token endpoint is the owned **GET `/csrfToken`** (under the deployment root), returning `{ _csrf }` with no-store headers. Framework-generated CSRF endpoints/helpers are retired. Token fetches and browser writes deny unconfigured origins and sibling sites. | Custom token fetchers, Angular integrations and reverse-proxy operators | Retain the supported JSON/header contract, configure canonical browser origins explicitly and include the session cookie. Do not derive trust from forwarded headers or cache tokens. Page rendering supplies `page._csrf` through the owned request-scoped context. |
-| Tus resumptions bind actor, brand and record and recheck current edit permission. Browser raw requests, including HEAD resume checks, require CSRF; callback/shared secrets cannot replace actor authentication. Locations are root-relative. | Uppy/tus uploaders, callback handlers and reverse proxies | Use a current authenticated actor and CSRF on every applicable raw request, or verified bearer exemption. Resolve returned Locations against the configured origin/root. |
+| Both local TUS and Companion upload creation and resume require an authenticated actor with target brand membership. Existing records require edit permission. For `pending-oid`, the actor needs create permission at the initial workflow step of at least one eligible record type in the target brand. An eligible record type is any record type in the target brand that has a workflow step marked `starting: true`. Hidden starting steps count. Access is granted when the actor passes the create-access check for that record type's package type and starting step. Resume state is bound to the actor, brand and target OID. | Uppy/TUS uploaders, Companion clients and reverse proxies | Use a current session with CSRF on applicable raw requests, including HEAD, or an independently verified bearer credential. Set provider-side credentials through `companion.uploadHeaders` when needed. Resolve returned root-relative Locations against the configured public origin. [Upload authorization](TUS-and-Uppy-Companion-Setup.md#authentication-and-client-changes) |
 | Unbound v5 staging objects cannot acquire ownership from client-supplied metadata; their bytes remain retained. | Operators and clients with unfinished transfers | Drain v5 uploads before cutover or reconcile ownership from trusted operator records. Do not delete staging during forced login or reassign it from untrusted input. |
 | Metadata saves and missing-primary read recovery verify persisted staging ownership before byte access. Read recovery requires the exact record binding; metadata promotion also requires a completed declared tus length/offset. Cancelled-save cleanup retains foreign/unbound staging and historical journal rows without trusted ownership. | Upload clients, attachment readers and storage operators | Finish the upload before saving its metadata. Use the owning actor and brand for recovery, and reconcile historical ownership from trusted records. Retained incomplete uploads can resume; a submitted file ID never authorizes adoption or deletion. |
-| Companion shared secrets supplement callback validation and never replace actor authentication, brand membership or edit grants. | Remote attachment/Companion clients | Authenticate the actor and target brand/record as well as supplying the configured secret. An anonymous request, even with a secret, fails authentication (401). |
 | Portal progress uses direct Socket.IO grants/events; virtual HTTP subscribe/unsubscribe returns **410**. Grants are one-use and reconnect needs fresh authorization. | Legacy `sails.io.js`/`io.socket` clients and progress widgets | Replace virtual socket HTTP with the v6 direct client. Acquire a fresh grant through CSRF-protected HTTP and rejoin authorized topics after reconnect. Deploy server and browser assets together. |
 | Companion **7.1.1** uses its separate WebSocket protocol, one application per process and explicit metrics. Restart needs a fresh process; Redis and periodic pings are unsupported. | Companion operators and custom realtime integrations | Keep its ws protocol separate from portal Socket.IO. Start one selected application per process, remove unsupported options and use a new process for restart. Let the host import Companion first: its version/hash-checked Node loader replaces the unsafe native logger with bounded messages. A preloaded or changed provider refuses startup. |
 | Companion remote provider I/O may outlive a stop deadline after transports terminate. Cleanup cron has process lifetime; remote completion, completed-event replay and cross-process transfer recovery are not guaranteed. | Remote-upload clients and shutdown/recovery operators | Keep the Companion temporary directory until process exit. Reconcile provider/record state after interrupted transfers; do not infer completion or replay from transport close. Respect the documented bounded-drain contract. |
-| Operational/backend errors are sanitized. Agenda registration logs include job names and omit configured payloads. Request chronicles retain safe operation failures without raw provider messages. Orphan/cyclic linked aliases fail authentication. | Error parsers, log processors, monitoring, linked-account administrators | Use status and safe typed fields; do not depend on raw datastore/provider exception strings or logged job payloads. Inspect selected job configuration directly. Repair primary-account linkage. Read committed state before retrying operations with partial external effects. |
+| Operational/backend errors are sanitized. Agenda registration logs include job names and omit configured payloads. Fastify forwards bounded HTTP diagnostics at `warn` through the supplied logger. Orphan/cyclic linked aliases fail authentication. | Error parsers, log processors, monitoring, linked-account administrators | Use status and safe typed fields. Inspect selected job configuration directly and repair primary-account linkage. Read committed state before retrying operations with partial external effects. |
 | Record hooks, notification callbacks, configured vocabulary imports and OCFL upload cleanup remain owned until their actual work settles. A timed-out Promise-backed Observable/Effect hook is not retried concurrently. A failed shutdown deadline retains dependencies and live completion permission for a later cleanup retry. | Hook authors, job operators and deployment supervisors | Treat timeout as an unknown in-flight outcome. Await successful stop before maintenance; release or reconcile the original work and retry cleanup. Configure supervisor grace for real job/upload durations. Preserve legacy first-value Observable semantics. |
 
 ## Deployment and extension behavior
@@ -73,16 +94,16 @@ V6 uses explicit, validated data modules and supported `REDBOX_*` inputs. Legacy
 configuration discovery, `.sailsrc`, `sails_*` environment overrides, generated
 shims and implicit service/controller registrations are retired. Ordinary arrays
 replace; Agenda jobs merge by name. Convert meaningful options and hooks using
-[configuration conversion](../specs/sails-retirement/configuration-v6.md) and
-[hook migration](../specs/sails-retirement/hook-migration-v6.md); unknown settings
+[historical configuration conversion](../specs/sails-retirement/configuration-v6.md) and
+[API2 hook migration](../specs/fastify-migration/extension-api2.md); unknown settings
 fail before effects. Published historical package names are retained.
 
 Prisma persistence and runtime retirement ship in the same major upgrade. Stop
 all writers during cutover. Mixed-version rolling operation and v5 restart over
 v6-written state are unsupported; recovery restores the complete consistent
 pre-upgrade checkpoint and matching artifacts. MongoDB engine/FCV transitions
-remain separate vendor-supported procedures. See the
-[upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md).
+remain separate vendor-supported procedures.
+[Fastify installation and upgrade guidance](Installation-Guide.md#existing-installation-upgrade)
 
 ## Configuration input dispositions
 
@@ -104,7 +125,7 @@ or stores are rejected in startup data. Use selected factories/named operations;
 the only startup function exceptions are the three documented DOMPurify hooks.
 URI patterns use `{ source, flags }` instead of a `RegExp` instance.
 
-The [complete conversion table](../specs/sails-retirement/configuration-v6.md#baseline-input-dispositions)
+The [historical conversion table](../specs/sails-retirement/configuration-v6.md#baseline-input-dispositions)
 covers every inventoried legacy family. Convert `form.forms/defaultForm/formConfigRegistry`
 and executable validator/workspace registries to neutral declarations; HTTP
 routes/controllers/policies/views/dynamic assets, CORS, `security`, middleware and
@@ -128,13 +149,10 @@ export function applicationLogging(log: PortalApplicationOptions['log']) {
 }
 ```
 
-Chronicle sampling settings such as `successSampleRate`, `slowThresholdMs` and
-`successSampleExcludePattern` belong to the **legacy Express host**. Its private
-`PortalHttpOptions.requestLogging` option is not part of the public Fastify portal
-API; `PortalApplicationOptions` has no `requestLogging` property. Fastify forwards
-bounded HTTP diagnostics through the supplied logger and has no public chronicle
-sampling option. See [Request Chronicle Logging](Request-Chronicle-Logging.md#retention-settings)
-for supported levels, retention behavior and the explicitly legacy settings.
+Fastify forwards bounded HTTP diagnostics through the supplied logger. Configure
+retention at the collector and remove the retired request chronicle sampling
+settings when converting a deployment. Logging degradation appears as a
+fault-only field on the health response. [Logging behavior](../specs/fastify-migration/logging.md)
 
 Convert `crontab` and bootstrap callbacks/timeouts/readiness polling to named
 schedules and awaited owned work.
@@ -150,22 +168,23 @@ illustrative/unimplemented wiki/spec keys are separately identified in the ledge
 Legacy top-level `raid` data must be converted to the brand's `raidPublishing`
 AppConfig or `brandingConfigurationDefaults.raidPublishing`; retain its credentials,
 connections and mappings. Baseline preferred the branded block and seeded core
-branded defaults before consulting its legacy fallback. Explicitly call
-`resolveCompanionConfiguration(selectedEnvironment)` in a selected data module for
-legacy `UPPY_*` environment parsing; ambient provider secrets are not auto-discovered.
+branded defaults before consulting its legacy fallback. Set Companion options
+in the selected deployment module's `companion` data. The development module
+maps its documented subset of `UPPY_*` variables.
+[Companion setup](TUS-and-Uppy-Companion-Setup.md#explicit-configuration) · [Development mapping](../development/application.cjs)
 
 Preserved inputs include the independent API limit (default **20**), public
 `api.additionalClientConfig` overrides, form prehydration, SVG byte limits,
-institution navigation flags, `angularDev`, native Mongo index declarations and
-`redboxSession.stringify`, sparse email templates, native transport objects and
+institution navigation flags, `angularDev`, native Mongo index declarations,
+sparse email templates, native transport objects and
 `smtp://`/`smtps://` URL strings, and uppercase record API method equivalents.
 Public client overrides merge last into the existing
 whitelist; the server/session/provider configuration is not serialized wholesale.
-Configured OIDC identifiers remain unrestricted strings.
+Configured OIDC identifiers remain unrestricted strings. The native Mongo
+session store serializes session payloads as JSON.
 
-The [source inventory](../specs/sails-retirement/evidence-summary.md)
-and [acceptance ledger](../specs/sails-retirement/evidence-summary.md)
-retain all paths/fixtures, unresolved expressions, environment reads and excluded
+The historical [retirement source inventory and acceptance ledger](../specs/sails-retirement/evidence-summary.md)
+retain paths/fixtures, unresolved expressions, environment reads and excluded
 files with their owner, disposition and provenance. These synthetic/source checks
 leave the representative institution acceptance gate outstanding.
 
@@ -198,7 +217,7 @@ to preserve malformed or unsafe historical acceptance:
 | Generic action/service expressions | Use registered named operations as described in the compatibility table above; expression dispatch is retired. |
 | Virtual socket HTTP and upload sockets | Legacy subscribe/unsubscribe returns 410. Use the direct Socket.IO grant protocol and the separate pinned Companion WebSocket protocol described above. |
 
-The [complete HTTP acceptance inventory](../specs/sails-retirement/evidence-summary.md)
+The [historical HTTP acceptance inventory](../specs/sails-retirement/evidence-summary.md)
 records route/source provenance, supported input regressions, deliberate breaks,
 schema comparison cells and focused native-handler cases separately. It does not
 replace institution/client acceptance during the upgrade rehearsal.
@@ -241,10 +260,9 @@ read their declared Fastify inputs; application startup failures use the owned
 runtime's cleanup. `AgendaQueue.registerOwnership`, an empty protected extension
 hook, is removed: queue resources belong to the selected application owner.
 
-Legacy deep callers of `BrandingDelivery` supplied the declared Express capture
-names: `token` for preview CSS and `sha256` for fonts. The old `tokenCss` and
-mangled `sha256*` parameter guesses are intentionally removed; the declared
-API2 asset controllers supply the supported names.
+The bound API2 asset controllers supply the declared `token` parameter for
+preview CSS and `sha256` for fonts. Remove the obsolete `tokenCss` and
+`sha256*` parameter guesses when converting custom asset code.
 
 Developer-tool helpers also drop unused typed inputs: `updateControllerIndex`
 and `updateServiceIndex` no longer take `root`/`className`, and `updateRoutes`

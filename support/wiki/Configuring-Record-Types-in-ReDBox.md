@@ -6,7 +6,7 @@ them in a neutral extension declaration's `config`. See the [Configuration Guide
 Section fragments below are merged into that object; files are never discovered
 by their name or directory.
 
-For the runtime behaviour of record relationships, including default expansion depth and supported `relatedTo` semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md).
+For the supported `relatedTo` settings, see [Configuring related records](Configuring-Related-Records.md).
 
 ## Overview of Record Types
 
@@ -44,9 +44,9 @@ module.exports.recordtype = {
 ### Steps for Customization:
 
 1. **Define New Record Types**: Add configurations for new types as necessary, following the structure outlined above.
-2. **[Implement Hooks and Logic](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Type-Hooks)**: Based on your workflows, customize the `hooks` to perform actions during record lifecycle events.
-3. **[Establish Relationships](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Related-Records)**: Use the `relatedTo` component to link related record types within your data ecosystem.
-4. **[Customize Search Capabilities](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-the-search-page-for-a-record-type)**: Tailor `searchFilters` to enhance the discoverability of records based on relevant criteria.
+2. **[Implement Hooks and Logic](Configuring-Record-Type-Hooks.md)**: Based on your workflows, customize the `hooks` to perform actions during record lifecycle events.
+3. **[Establish Relationships](Configuring-Related-Records.md)**: Use the `relatedTo` component to link related record types within your data ecosystem.
+4. **[Customize Search Capabilities](Configuring-the-search-page-for-a-record-type.md)**: Tailor `searchFilters` to enhance the discoverability of records based on relevant criteria.
 
 ## Further Information
 By correctly configuring record types, you ensure that the ReDBox platform aligns seamlessly with your institution's data management processes and meets your specific needs.

@@ -3,12 +3,12 @@
 The browser baseline runs Chromium with one worker, zero retries, locale
 `en-AU`, and timezone `Australia/Brisbane`. It covers all embedded Angular
 applications and the opt-in `e2e-` form scenario catalogue through the normal
-portal loader and bootstrap pipeline.
+Fastify production bootstrap.
 
 The implementation corrects one assumption in the design plan, as agreed during
 implementation: `fetchMetadata` reads an existing portal record through
-`RecordService.getRecordMeta`, `RecordController.getMeta` and the configured
-storage service. It has no external-provider URL setting. F06–F10 therefore use
+`RecordService.getRecordMeta`, the bound Fastify metadata action and the
+configured storage service. F06–F10 use
 test-owned portal records, record the actual metadata requests, and hold real
 portal responses for asynchronous cases. F09 uses a real missing-record response
 to exercise `onError`. External-service stubs remain applicable to the actual
@@ -209,8 +209,8 @@ qualification.
 | [F27](../../test/playwright/forms/lifecycle.spec.ts), [F30](../../test/playwright/forms/concurrency.spec.ts) | Failed saves remain retryable; dirty navigation and conflict outcomes retain the correct record identity. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form.component.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form.component.spec.ts) |
 | [F15](../../test/playwright/forms/validation.spec.ts), [F26, F29](../../test/playwright/forms/lifecycle.spec.ts) | Every save completion updates the state, including successive successes or failures inside 250 ms; the form does not remain busy after a completed request. | [Adapter](../../angular/projects/researchdatabox/form/src/app/form-state/effects/form-event-bus-adapter.effects.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/effects/form-event-bus-adapter.effects.spec.ts) |
 | [A06, A12](../../test/playwright/apps/users-and-roles.spec.ts) | New roles refresh the branding cache before assignment. | [Implementation](../../packages/redbox-core/src/services/RolesService.ts), [diagnostic](../../packages/redbox-core/test/services/RolesService.test.ts) |
-| [A10](../../test/playwright/apps/configuration-editors.spec.ts) | Workflow responses resolve saved dashboard table overrides consistently with compiled templates. | [Implementation](../../packages/redbox-core/src/controllers/RecordController.ts), [diagnostic](../../packages/redbox-core/test/controllers/RecordController.test.ts) |
-| [A10](../../test/playwright/apps/configuration-editors.spec.ts) | Dashboard CRUD routes use the existing Admin policy and missing types return 404. | [Controller](../../packages/redbox-core/src/controllers/webservice/DashboardConfigController.ts), [diagnostic](../../packages/redbox-core/test/controllers/webservice/DashboardConfigController.test.ts) |
+| [A10](../../test/playwright/apps/configuration-editors.spec.ts) | Workflow responses resolve saved dashboard table overrides consistently with compiled templates. | [Workflow dashboard action](../../packages/redbox-core/src/http/actions/metadataReads.ts), [reference diagnostics](../../packages/redbox-core/test/http/fastify/ReferenceDifferentialMongo.test.ts) |
+| [A10](../../test/playwright/apps/configuration-editors.spec.ts) | Dashboard configuration routes use the existing Admin policy and missing types return 404. | [Reads](../../packages/redbox-core/src/http/controllers/ReferenceControllers.ts), [mutations](../../packages/redbox-core/src/http/controllers/MutationControllers.ts), [mutation diagnostics](../../packages/redbox-core/test/http/fastify/MutationDifferentialMongo.test.ts) |
 | [A15](../../test/playwright/apps/deleted-records.spec.ts) | Deleted-record title filtering addresses stored metadata; purged records return 404. | [Implementation](../../angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts), [diagnostic](../../angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.spec.ts) |
 | [A18](../../test/playwright/apps/portal-settings.spec.ts) | The translation editor uses the shared HTTP backend and supplies TipTap with the page CSP nonce. | [Implementation](../../angular/projects/researchdatabox/translation/src/main.ts), [diagnostic](../../angular/projects/researchdatabox/translation/src/app/translation.component.spec.ts) |
 | [A19](../../test/playwright/apps/dashboard-and-search.spec.ts) | Applying a refiner returns to page one so a narrower result set remains visible. | [Implementation](../../angular/projects/researchdatabox/record-search/src/app/record-search.component.ts), [diagnostic](../../angular/projects/researchdatabox/record-search/src/app/record-search.component.spec.ts) |

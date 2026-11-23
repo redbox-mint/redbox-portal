@@ -97,14 +97,13 @@ conditional restore creation. A returned mutation state is mandatory:
 `applied`, certified `not-applied`, or `unknown`.
 
 The bundled Mongo adapter requires unique `redboxOid` indexes on the active
-record, tombstone, and `recordidentity` collections. It does not emit its ready
-event or advertise the concurrency capability if any required index cannot be
-created. Before rollout, inspect active records for duplicate OIDs and inspect
+record, tombstone, and `recordidentity` collections. Initialization verifies
+the required indexes before the application can activate storage with the
+concurrency capability. Before rollout, inspect active records for duplicate OIDs and inspect
 the existing active `redboxOid_1` index options. If an older non-unique index
 uses that key, back up and drain every writer, resolve any duplicates, remove
-only that verified non-unique index, and lift one new-version instance to create
-the required unique index. Do not attempt this index replacement while any
-application instance is serving writes.
+only that verified non-unique index, and prepare the required unique index
+with the application stopped. [Index preparation](Persistence-Index-Preparation.md)
 
 Pre-save hooks may validate or transform an in-memory candidate, but must not
 perform non-idempotent external effects. Post-commit work runs only after
@@ -182,12 +181,11 @@ the conflict UI.
 
 ## Coordinated deployment and rollback
 
-1. Back up the database and run the revision/tombstone migration with exactly
-   one lifting instance.
+1. Back up the database and run the revision/tombstone migration with a single
+   application owner during the maintenance window.
 2. Complete the unique-index preflight above, including replacement of an old
    non-unique active OID index while every writer remains drained.
-3. Deploy compatible code to every application instance with the default mode
-   unchanged.
+3. Start the selected application with the default mode.
 4. Verify the storage capability, permanent `recordidentity` index, lifecycle
    recovery, and absence of old-version traffic.
 5. Enable `observe` on selected record types and inventory tokenless callers.
@@ -196,8 +194,8 @@ the conflict UI.
    and unknown-outcome metrics before expanding.
 
 Before application rollback, return affected record types to a mode understood
-by the old release. Then drain all new instances before starting old code. A
-single mixed-version instance invalidates the strict guarantee.
+by the preceding release. Drain the current process before starting the
+preceding build. [Installation and recovery](Installation-Guide.md#existing-installation-upgrade)
 
 ## Release scope and deferred work
 

@@ -291,7 +291,7 @@ payload needs numeric ids, and any other output is rejected with a validation er
 Importing a Figshare taxonomy and building a crosswalk is normally done by hand in the
 Figshare Vocabularies admin screen. For a new environment you can instead declare the imports
 in `bootstrap-data/vocabularies/figshare-imports.json` and have them created during the application
-lift, in the same spirit as `rva-imports.json`:
+startup, in the same spirit as `rva-imports.json`:
 
 ```json
 {
@@ -318,7 +318,7 @@ lift, in the same spirit as `rva-imports.json`:
 Each entry produces three things: a read-only mirror vocabulary, an editable local clone, and
 an **approved** identity crosswalk between them. This saves the import and approval work; it
 does **not** configure publishing. Bootstrapping never writes to the application
-configuration, so a freshly lifted environment still resolves categories through the mapping
+configuration, so a freshly started environment still resolves categories through the mapping
 table until an administrator sets up a crosswalk binding.
 
 Behaviour to be aware of:
@@ -326,7 +326,7 @@ Behaviour to be aware of:
 - **Runs once.** An entry whose Figshare source already exists for the brand is skipped, so a
   restart never re-syncs the mirror or disturbs crosswalks an administrator has since edited.
   Use the admin screen to re-sync.
-- **Never fails the lift.** A malformed file, an unreachable Figshare, or one bad entry is
+- **Bootstrap errors.** A malformed file, an unreachable Figshare, or one bad entry is
   logged and skipped; the remaining entries still run.
 - **Skipped when Figshare is not configured** for the default brand, which is the normal case
   for most deployments.
@@ -490,6 +490,6 @@ After editing:
 
 ## Related Pages
 
-- [Figshare Service Technical Guide](Figshare-Service-Technical-Guide)
-- [Configuration Guide](Configuration-Guide)
-- [User Guide](User-Guide)
+- [Figshare Service Technical Guide](Figshare-Service-Technical-Guide.md)
+- [Configuration Guide](Configuration-Guide.md)
+- [User Guide](User-Guide.md)

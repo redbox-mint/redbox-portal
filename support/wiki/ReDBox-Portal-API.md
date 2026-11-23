@@ -19,11 +19,11 @@ The Manage Users feature now exposes a small set of brand-admin endpoints for ac
 - `POST /:branding/:portal/api/users/:id/disable`
 - `POST /:branding/:portal/api/users/:id/enable`
 
-These endpoints are intended for brand-admin user management rather than general end-user automation. For behavior details and UI context, see the **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** page.
+These endpoints are intended for brand-admin user management rather than general end-user automation. For behavior details and UI context, see the **[User Management](User-Management.md)** page.
 
 ### REST API Reference
 
-For the full REST API reference, see the [REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation) page.
+For the full REST API reference, see the [REST API Documentation](REST-API-Documentation.md) page.
 
 API endpoint response versions (`X-ReDBox-Api-Version`) are separate from extension
 API2. Hook authors use typed Fastify controllers and explicit route declarations;
@@ -38,7 +38,7 @@ caller-effective JSON Schema draft 2020-12 documents for create and partial
 update metadata, revalidate private caches with strong ETags, discover exact
 immutable schemas from record responses, and precondition updates against the
 current whole-document schema identity. See the
-[Record Schema Contract API](Record-Schema-Contract-API) for the exact routes,
+[Record Schema Contract API](Record-Schema-Contract-API.md) for the exact routes,
 headers, media types, statuses, diagnostics, and client workflow.
 
 ### Record save outcomes (API v2)
@@ -117,9 +117,9 @@ record values, request parameters, or exception text. API v1 retains its
 legacy body and status behavior.
 
 The generated OpenAPI product documents the operation query and additive issue
-schema. See [Generated Reference Documentation](Generated-Reference-Documentation)
+schema. See [Generated Reference Documentation](Generated-Reference-Documentation.md)
 for regeneration commands and
-[Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
+[Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations.md)
 for rollout and repair procedures.
 
 Global account mutations (profile/password, enable/disable and API token

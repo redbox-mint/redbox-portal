@@ -9,9 +9,9 @@ step, form, operation, caller access, unknown-property policy, and validation
 rollout mode before compiling a contract.
 
 This page describes the client contract. For deployment configuration and
-operations, see [Operating Record Schema Contracts](Record-Schema-Contract-Operations).
+operations, see [Operating Record Schema Contracts](Record-Schema-Contract-Operations.md).
 Hook authors extending persisted component or namespaced metadata shapes should
-follow [Record Schema Contract Contributors](Record-Schema-Contract-Contributors).
+follow [Record Schema Contract Contributors](Record-Schema-Contract-Contributors.md).
 
 ## Endpoints
 
@@ -202,7 +202,7 @@ X-ReDBox-Record-Schema-If-Match: "sha256:<64-lowercase-hex>"
 
 This deliberately is not the standard `If-Match` header. `If-Match` carries
 the record revision ETag documented in
-[Concurrent Record Modifications](Concurrent-Record-Modifications). A client
+[Concurrent Record Modifications](Concurrent-Record-Modifications.md). A client
 may send both headers to require both the expected record revision and the
 expected record schema.
 
@@ -378,8 +378,8 @@ strip a fetched schema and continue to label it with the server's ETag.
 
 ## See also
 
-- [ReDBox Portal API](ReDBox-Portal-API)
-- [REST API Documentation](REST-API-Documentation)
-- [Generated Reference Documentation](Generated-Reference-Documentation)
-- [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
-- [Concurrent Record Modifications](Concurrent-Record-Modifications)
+- [ReDBox Portal API](ReDBox-Portal-API.md)
+- [REST API Documentation](REST-API-Documentation.md)
+- [Generated Reference Documentation](Generated-Reference-Documentation.md)
+- [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations.md)
+- [Concurrent Record Modifications](Concurrent-Record-Modifications.md)

@@ -1,7 +1,8 @@
 # ReDBox Automated Tests
 
 
-This repository uses a mix of testing strategies including unit, integration, and API tests, largely orchestrated via Docker Compose.
+Source and image integration suites use the production Fastify composition.
+Docker Compose supplies disposable services for Mocha, Bruno and Playwright.
 
 ## Test Suites
 
@@ -149,7 +150,28 @@ When a test fails, inspect the generated `browser-diagnostics.json` and use
 `node_modules/.bin/playwright show-trace <trace.zip>` or
 `node_modules/.bin/playwright show-report .tmp/playwright/report`.
 
+## Fastify candidate qualification
+
+Qualify the baked production `runtime` target with `node app.js` and its
+production dependency graph and `node` user. The development `test` target
+reuses the builder toolchain for mounted CI workflows. The PDF rehearsal uses
+its explicit fixture configuration and optional renderer dependencies.
+
+Use `npm run test:packed:fastify` to generate a v6 API2 hook and controller
+with the packed CLI. The flow strictly compiles and packs the hook, installs it
+in a second isolated consumer, and verifies persisted writes, restart and drain
+through the production bootstrap.
+
+Use fresh disposable services, matching the engine/FCV and topology recorded by
+the relevant gate. MongoDB containers in the deployment matrix used
+`nofile=64000:64000`. The staging volume needs free space above the upload
+length plus `record.diskSpaceThreshold` (default 10 GiB). Run the provider
+profiles explicitly and account for every pending or skipped case.
+[Revision 5 gate matrix and receipts](../specs/fastify-migration/evidence/FM-048.md#g7-exit-matrix)
+
 ## Historical P8 and subsequent retirement qualification
+
+For the selected Fastify runtime, see [revision 5 qualification](../specs/fastify-migration/evidence/FM-048.md).
 
 P8 reran every existing core/root Mocha suite, full Playwright, general/OIDC/S3
 and native PDF Bruno, packed consumers and MongoDB 8/9 standalone and independent
@@ -181,18 +203,3 @@ is retained only as historical retirement evidence. The full current Playwright
 collection and assertions remain unchanged. PDF integration/development profiles
 load explicit fixture configuration and the locally built `rehearsal` image;
 they prepare disposable indexes before starting the default Fastify executable.
-
-The pre-cutover Express qualification below is archived evidence. FM-043 removed
-the legacy selector and commands; current runs use Fastify.
-Current generated/installed qualification uses `npm run test:packed:fastify`.
-The packed flow generates a v6 hook and public controller with the installed
-CLI, strictly compiles and packs it, installs it into a second isolated consumer,
-and exercises production composition, persisted writes, restart and owned drain.
-This synthetic consumer does not fill the representative-institution acceptance
-gap. Earlier generated-institution CJS probes belong to the archived retirement
-evidence and were removed with the first-party Express host in FM-043.
-
-The development `test` Docker target reuses the builder's complete toolchain and
-dependency layers and runs the existing mounted CI workflows as root. It is not a
-release target. The `runtime` target retains its separate strict production graph
-and node user; final startup/health/restart/stop checks exercise that artifact.

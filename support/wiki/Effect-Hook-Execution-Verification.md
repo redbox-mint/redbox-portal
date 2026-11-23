@@ -5,15 +5,14 @@ execution change. Commands are run from the repository root.
 
 ## Toolchains
 
-- Host smoke toolchain: Node 24 (`node --version`), npm, and the repository's
-  exact-pinned dependencies.
-- Container smoke toolchain: the development image's Node 26 runtime. Confirm
-  with `sudo -n docker exec development-rbportal-mount-1 node --version` while
-  `npm run dev:run` is running.
+- Use Node 26.12.1 and npm 11.20.0 on the host. Run `nvm use` from the
+  repository root and check `node --version` and `npm --version`.
+- Check that the mounted development image also runs Node 26.12.1 with
+  `docker compose -f support/development/docker-compose.yml --profile mount exec rbportal-mount node --version`.
 
 ## Effect 4 compatibility
 
-Core pins Effect to `4.0.2`. Native Effect hooks and custom publishing layers
+Core pins Effect to `4.0.5`. Native Effect hooks and custom publishing layers
 must use Effect 4 as well; Effect 3 values belong to a different runtime.
 Promise and plain-value results retain their existing values; Observables retain
 first-value semantics. Configured legacy Promise, Observable and Effect containers
@@ -29,7 +28,7 @@ A failed queue drain deadline retains those scoped completion permissions for
 cleanup retry; unrelated callers remain denied. The PDF hook still uses its own Effect 3 runtime internally and
 returns an Observable at the record-hook boundary.
 
-The migration follows the [upstream Effect 4 migration guide](https://github.com/Effect-TS/effect/blob/effect%404.0.2/MIGRATION.md).
+The migration follows the [upstream Effect 4 migration guide](https://github.com/Effect-TS/effect/blob/effect%404.0.5/MIGRATION.md).
 Service keys use `Context.Service`, timeout fallbacks use
 `Effect.timeoutOrElse`, and callback adapters use `Effect.callback`.
 Retry schedules retain bounded attempts and capped exponential delays, and
@@ -68,14 +67,19 @@ The Mongo suite covers bounded summary sanitization and persistence.
 
 ## Container smoke check
 
+Start the stack on the published Tailscale interface. Use the same
+`RBPORTAL_HTTP_PORT` and `REDBOX_ROOT_CONTEXT` for the smoke checks.
+[Development startup](Compiling-and-running-the-development-environment.md#running-the-application)
+
 ```sh
-APP_URL=http://<tailscale-ip>:1500 npm run dev:run
-curl -fsS -D - -o /tmp/redbox-home.html http://<tailscale-ip>:1500/
+portal_origin="http://$(tailscale status --json | jq -er '.Self.DNSName | rtrimstr(".")'):${RBPORTAL_HTTP_PORT:-1500}"
+curl -fsS "${portal_origin}/readyz"
+curl -fsSL -D - -o /dev/null "${portal_origin}${REDBOX_ROOT_CONTEXT:-}/"
 ```
 
-The Compose configuration maps `APP_URL` to the selected host public URL. A healthy stack
-redirects `/` to the branded home route and returns `200 OK` for the rendered
-ReDBox page. Container logs should include structured
+Readiness stays at the origin. The landing page includes the deployment root
+when configured and redirects to the branded page, which returns HTTP 200.
+After executing the relevant record hooks, check the container for structured
 `record_hook_action_completed`, `record_hook_operation_dispatched`, and one
 `record_hook_operation_completed` event per execution;
 raw hook arguments and execution summaries must not appear in business-record

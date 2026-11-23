@@ -17,9 +17,11 @@ retained for existing links.
 | `/record-types`, `/forms`, `/translations`, `/dashboards`, `/workspaces` | Concrete domains with explicit inputs |
 | `/queues`, `/maintenance` | Owned background work and inactive index operations |
 
-The root entry re-exports shared contracts and pure domain types. The old loader, Express entrypoints, wildcard deep imports and `compat/sails`
-comparison entrypoints are retired. Use the explicit `/http` and `/authentication`
-exports; private implementation files are not supported consumer imports. `Services` utility classes do not install or discover globals.
+The root entry re-exports shared contracts and pure domain types. Import
+transport types through `/http`, authentication contracts through
+`/authentication`, and the production bootstrap through `/portal`. Migrate code
+using old deep imports or compatibility entrypoints to current public API2
+exports. [API2 migration guide](../specs/fastify-migration/extension-api2.md)
 Use [generated references](Generated-Reference-Documentation.md) for classified
 extension contracts and [Services Architecture](Services-Architecture.md) for
 ownership and replacements.

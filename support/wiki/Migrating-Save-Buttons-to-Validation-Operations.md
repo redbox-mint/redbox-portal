@@ -114,7 +114,7 @@ requests movement and remains independent.
 - `saved-with-warnings` means primary persistence succeeded; clients must show
   it as a warning rather than a failed save.
 
-See [Configuring Record Forms](Configuring-Record-Forms#authoritative-server-validation-operations)
+See [Configuring Record Forms](Configuring-Record-Forms.md#authoritative-server-validation-operations)
 for exact form resolution and
-[Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
+[Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations.md)
 for shadow reporting, repairs, signoff, and rollback.

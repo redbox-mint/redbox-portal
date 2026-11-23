@@ -1,6 +1,6 @@
 # Fastify migration tasks
 
-Status: planned, 2026-11-04. No implementation task is complete.
+See the completion record and revision-specific evidence for qualification status.
 
 Use with the [design](design.md) and [implementation plan](implementation_plan.md).
 Task IDs are stable. Check a task only when its evidence exists and its dependencies
@@ -394,7 +394,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     investigation and explicit acceptance. Error/dropped-work differences cannot
     manufacture an apparent improvement.
 
-- [ ] **FM-048 — Update current wiki and close G7.**
+- [x] **FM-048 — Update current wiki and close G7.**
   - Dependencies: FM-045–FM-047.
   - Work: update architecture/controllers/services/configuration/development/
     installation/testing/generated-reference/client-compatibility pages, probes,
@@ -438,12 +438,10 @@ Populate only after execution:
 | Claim | Required identity/evidence | Status |
 | --- | --- | --- |
 | Agreed design | Interview decisions Q1–Q26 and design document | Agreed |
-| Implemented source | Final SHA, tree status, route/Express closure audit | Pending |
-| Qualified packages | Pack hashes and clean installed consumer results | Pending |
-| Qualified runtime | Immutable image digest and complete final gate results | Pending |
-| Performance | Baseline/candidate raw results and threshold evaluation | Pending |
-| Local institution | WSU hook/configuration/artifact identities and fresh results | Pending |
+| Implemented source | Final SHA, tree status, route/Express closure audit | Qualified at `4bf1fc75e`, frozen runtime tree `980c2f3a1e`. [G7 matrix](evidence/FM-048.md#g7-exit-matrix) |
+| Qualified packages | Pack hashes and clean installed consumer results | Qualified via retained packs and clean install receipts. r5 rebuilds core into its image and preserves the public contract verified by consumers. [Package evidence](evidence/FM-048.md#g7-exit-matrix) |
+| Qualified runtime | Immutable image digest and complete final gate results | Revision 5 qualified at `sha256:28898f254d52fcbcfc71ed1bebb0c39726ee089e992b643f7303ed1ca581080a`. [G7 matrix](evidence/FM-048.md#g7-exit-matrix) |
+| Performance | Baseline/candidate raw results and threshold evaluation | Qualified with owner acceptance of the ten documented revision 5 residuals. [FM-047 decision](evidence/FM-047.md#explicit-acceptance) |
+| Local institution | WSU hook/configuration/artifact identities and fresh results | WSU local qualification passed on r3 and carries forward to r5 within the recorded scope. [WSU evidence](evidence/FM-048.md#g7-exit-matrix) |
 | Upgrade/rollback | Rehearsal logs and runbooks | Pending |
 | Production institution acceptance | Institution/operator-owned evidence | Pending; separate from implementation completion |
-
-No runtime tests or Fastify qualification were performed to write these documents.

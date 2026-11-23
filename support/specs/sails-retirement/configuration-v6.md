@@ -1,12 +1,12 @@
 # V6 startup configuration
 
-> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+> Historical configuration ledger for the Sails retirement and the pre-Fastify
+> v6 Express artifact. The selected Fastify artifact starts with `node app.js`.
+> [Current configuration](../../wiki/Configuration-Guide.md) · [API2 conversion](../fastify-migration/extension-api2.md)
 
-Use the narrow `@researchdatabox/redbox-core/configuration` public entry. This
-contract serves the v6 Express host and maintenance. `npm start` and Docker run
-`app.express.cjs`. P8 removes the comparison scripts and adapters. Internal-default
-promotion does not establish production release acceptance; institution
-qualification and the final artifact evidence remain release gates.
+This ledger used the narrow `@researchdatabox/redbox-core/configuration` public
+entry for the earlier v6 host and maintenance. On the pre-Fastify artifact,
+`npm start` and Docker ran `app.express.cjs`.
 
 `loadStartupConfiguration` awaits explicitly selected application, environment and
 local data modules. An ESM module default-exports an object; CommonJS uses
@@ -221,7 +221,7 @@ Retained settings include `api.max_requests` (default **20**, independent of
 `record.search.maxRecordsPerPage`), `api.additionalClientConfig`,
 `form.prehydrate.enabled/maxVocabSelections`, `record.form.svgMaxBytes`, arbitrary
 JSON `appmode` navigation feature flags, `angularDev`, `storage.mongodb` index
-arrays and `redboxSession.stringify`. Record API method declarations accept their
+arrays. The pre-Fastify store honored `redboxSession.stringify`. Record API method declarations accept their
 existing lower-case methods and upper-case equivalents. Email templates may supply
 only a subject or template; native Nodemailer transport objects and `smtp://` or
 `smtps://` URL strings remain supported.
@@ -237,13 +237,13 @@ OIDC identifiers remain arbitrary strings, including dots, colons and Unicode.
 | Functions, constructors, registries, instances, `Map`, `Set`, `Date`, `RegExp`, client/store injection | Convert to plain data or a selected factory/named operation. The only startup executable exceptions are the three declared `dompurify.hooks` callbacks (`afterSanitizeAttributes`, `beforeSanitizeElements`, `afterSanitizeElements`). URI regular expressions use `{ source, flags }`; core defaults perform that conversion explicitly. Datastore/session pools remain runtime-owned. |
 | `form.forms`, `form.formConfigRegistry`, `form.defaultForm`, `validators`, `workspacetype_services` | Port generated registries and executable validators/workspace handlers to explicit extension forms, registered validators and selected factories. Form/workflow references and field-validator DSL data retain their domain meaning. `form.prehydrate` remains startup data. |
 | `routes`, `controllers`, `policies`, `views`, `dynamicasset`, `cors`, `security`, `http.middleware`, `services`, `queue.serviceName` | Convert executable/discovered HTTP and service wiring to owned API2 route/controller/policy declarations and selected factories; the earlier `PortalHttpOptions` contract is legacy Express-only. Keep `csp` data and supported `server` root/proxy settings. Dynamic page routes remain owned; add custom dynamic routes explicitly. Supply the Email domain's `disabled` input through its selected factory instead of `services.email.disabled`. |
-| `log`, `lognamespace`, `log.requestChronicle` | Use `logging.level` (or `REDBOX_LOG_LEVEL`), the supplied `PortalApplicationOptions.log` and explicit domain logger inputs. `PortalHttpOptions.requestLogging` and chronicle sampling are **legacy Express-only**, with no public Fastify counterpart; see [current logging configuration](../../wiki/Request-Chronicle-Logging.md#retention-settings). Logger destination/formatter objects and Sails namespace discovery are not startup domain data. |
+| `log`, `lognamespace`, `log.requestChronicle` | Set `logging.level` (or `REDBOX_LOG_LEVEL`) and supply `PortalApplicationOptions.log` and explicit domain logger inputs. The old per-request chronicle belonged to the pre-Fastify artifact. [Current logging configuration](../../wiki/Configuration-Guide.md#diagnostics-and-upgrade) |
 | `raid` | Convert legacy RAiD data to `brandingConfigurationDefaults.raidPublishing` and the brand's `raidPublishing` AppConfig. Baseline already seeded that branded block from core RAiD defaults and preferred it over the old top-level fallback. Convert the fallback explicitly for a legacy installation that omitted branded RAiD configuration; do not discard its credentials/mappings. |
 | `crontab`, `bootstrapTimeout`, `db.waitRetries/waitSleep`, bootstrap callbacks | Use named `schedules`, awaited bootstrap operations and explicit lifecycle/deadline/readiness handling. Sails hook timeouts and startup polling are retired. |
 | `dynamicconfig`, `brandingAware`, `passport`, `beforeShutdown`, `recordContractContributorState`, `configmodels`, `appPath`, `startupMinute` | These described discovery or generated runtime state. Use owned AppConfig hydration/brand resolution, authentication/lifecycle/record registries and host `appPath`; a generated startup timestamp is not operator configuration. |
 | `autoreload`, `blueprints`, `globals`, `hooks`, `pubsub`, `typescript`, `webpack`, `dontBackupCoreLanguageFilesWhenMerging` | Retired Sails/dev-loader machinery; use explicit extension selection and owned builds. No implicit copying, backup, auto-routing or global injection. |
-| `UPPY_*`/provider environment values | Explicitly call `resolveCompanionConfiguration(selectedEnvironment)` in the selected data module and contribute its returned `companion` data. Loading core defaults does not discover ambient provider secrets. This also preserves the documented boolean and upload-URL parsing performed by that helper. |
-| `redboxSession.host/port/db/pass/prefix` | Historical Redis comments; baseline selected Mongo and ignored those Redis fields. Redis session adapters are unsupported. Use Mongo URL/options/dbName and the supported native serialization setting. |
+| `UPPY_*`/provider environment values | Supply explicit `companion` data in the selected deployment module. The development module maps its documented environment subset. [Companion setup](../../wiki/TUS-and-Uppy-Companion-Setup.md#explicit-configuration) · [Development mapping](../../development/application.cjs) |
+| `redboxSession.host/port/db/pass/prefix` | Historical Redis settings. Use the native Mongo store and its URL/options/dbName. Fastify serializes session payloads as JSON. |
 | `redboxToCkan`, `enableNewForm`, `datapubs`, `api.endpoint`, `record.customFields`, `features`, separate `reusable*FormDefinitions` fragments | No bundled baseline startup consumer (some are examples, an unimplemented proposal, or build-time fragments included in `reusableFormDefinitions`). They are not silently accepted arbitrary extension namespaces. Move actual extension-owned data into an explicitly owned schema/selected factory. |
 
 The machine ledger's `strictShapes` rows associate scalar/container/function

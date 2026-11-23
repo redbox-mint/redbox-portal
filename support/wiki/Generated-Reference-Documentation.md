@@ -8,18 +8,29 @@ The generated site complements this wiki. Wiki pages explain architecture, workf
 
 ## Local commands
 
-Install the repository's pinned dependencies before generating documentation.
+From a clean checkout, use Node 26.12.1 and npm 11.20.0. Install the pinned
+root and Angular dependencies and build the packages that the documentation
+compiler imports. Generate both sets of reference files before running the
+checks.
 
 ```bash
 npm ci --ignore-scripts --strict-peer-deps
 npm --prefix angular ci --ignore-scripts --strict-peer-deps
+npm run compile:raido
+npm run compile:rva
+npm run compile:sails-ng-common
+npm run compile:agenda-sqs
+npm run compile:core
 npm run doc:api
 npm run docs:generate
 npm run docs:check
-npm run docs:serve
+npm run docs:test
 ```
 
-`docs:generate` writes the composed site to `.tmp/generated-docs-site`. If `npm run doc:api` has already populated `support/docs/generated/api`, those REST artifacts are copied beneath `.tmp/generated-docs-site/api`; otherwise the site contains a reminder page.
+`doc:api` writes the REST artefacts into `support/docs/generated/api`.
+`docs:generate` copies them into `.tmp/generated-docs-site/api` and writes the
+catalogue and schema alongside them. `docs:check` reads those generated outputs.
+Use `npm run docs:serve` to preview the generated site.
 
 Use `npm run docs:audit` when only the advisory health artifacts are required. It writes:
 
@@ -106,7 +117,10 @@ contracts, or generated OpenAPI differing from the executable declarations and
 normalized controller targets. It also checks local generated-site links. Protocol
 coverage includes every public export from the authoring contract files; adding one
 requires lifecycle documentation. See the [API2 migration guide](../specs/fastify-migration/extension-api2.md)
-and [G6 evidence](../specs/fastify-migration/evidence/FM-041.md).
+and [FM-041 compile-gate evidence](../specs/fastify-migration/evidence/FM-041.md#review-round-2--compatibility-logging-and-workspace-compilation).
+Run `npm run docs:examples` directly after updating wiki or migration-guide
+examples. The wiki and generated reference checks for the selected runtime are
+recorded in [G7 evidence](../specs/fastify-migration/evidence/FM-048.md).
 
 Operators/API clients must also review [all intentional v6 behavior changes](V6-Client-Compatibility.md).
 Generated extension references do not replace the upgrade and recovery runbook.

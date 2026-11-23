@@ -7,9 +7,9 @@ record contract; ReDBox alone renders that contract as JSON Schema draft
 
 This page is the hook-author contract. For deployment settings, limits, and
 startup troubleshooting, see
-[Operating Record Schema Contracts](Record-Schema-Contract-Operations). For
+[Operating Record Schema Contracts](Record-Schema-Contract-Operations.md). For
 the resulting client document, see
-[Record Schema Contract API](Record-Schema-Contract-API).
+[Record Schema Contract API](Record-Schema-Contract-API.md).
 
 ## Registration
 
@@ -152,7 +152,7 @@ to hide an unknown shape without a diagnostic and rollout review.
 
 The same immutable compile input and contributor version must produce the same
 contribution. Do not read the clock, randomness, environment, filesystem,
-network, database, mutable global state, or a lifted Sails application. Do not
+network, database, mutable global state, or a running portal. Do not
 derive output from caller identity, roles, request data, record values, or
 exceptions. Sort contributor-controlled collections when their order is not
 semantic; ReDBox sorts registry entries, object properties, diagnostics, and
@@ -175,7 +175,7 @@ A valid diagnostic does not excuse invalid IR.
 ## Limits and failure behavior
 
 Contributor work shares the configured bounds documented in
-[Operating Record Schema Contracts](Record-Schema-Contract-Operations#limits-and-bounded-work):
+[Operating Record Schema Contracts](Record-Schema-Contract-Operations.md#limits-and-bounded-work):
 
 - `maxDepth` bounds IR, conditions, and cloned contributor output;
 - `maxProperties` bounds the complete contract and nested contributor nodes;
@@ -191,13 +191,13 @@ cannot pre-empt a synchronous callback, so contributor code must avoid blocking
 work even though elapsed synchronous time is charged to the timeout.
 
 When `recordSchema.enabled` is `true`, invalid discovery and registration are
-fatal lift findings. Duplicate keys, component types, or namespaces map to
+fatal startup findings. Duplicate keys, component types, or namespaces map to
 `record-schema.contributor-duplicate`; malformed exports, names, pointers,
 overlapping roots, and form-path overwrites map to
 `record-schema.contributor-invalid`. The startup gate also fails for missing
 core contributor coverage or when a configured form triggers a contributor,
 contract, renderer, or limit failure. Findings are aggregated and sorted in
-`RecordSchemaLifecycleError`; fix all findings before retrying the lift.
+`RecordSchemaLifecycleError`. Fix all findings before retrying startup.
 
 An unregistered custom hook component is different: it produces a permissive
 partial contract and an `x-redbox-unsupported-component` diagnostic. It is not
@@ -206,7 +206,7 @@ persisted core component is a fatal coverage defect.
 
 ## Related documentation
 
-- [Operating Record Schema Contracts](Record-Schema-Contract-Operations)
-- [Record Schema Contract API](Record-Schema-Contract-API)
-- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox)
-- [Redbox Loader](Redbox-Loader)
+- [Operating Record Schema Contracts](Record-Schema-Contract-Operations.md)
+- [Record Schema Contract API](Record-Schema-Contract-API.md)
+- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox.md)
+- [Redbox Loader](Redbox-Loader.md)

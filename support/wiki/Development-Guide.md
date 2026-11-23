@@ -3,26 +3,26 @@ Welcome to our Development Guide! This resource aims to help developers effectiv
 
 ## Getting Started
 
-- **[Development Environment Setup](https://github.com/redbox-mint/redbox-portal/wiki/Development-Environment-Setup)**: Begin with setting up your development environment.
-- **[Compiling and Running the Development Environment](https://github.com/redbox-mint/redbox-portal/wiki/Compiling-and-running-the-development-environment)**: Learn how to compile and run the development setup.
-- **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Understand our automated testing framework.
+- **[Development Environment Setup](Development-Environment-Setup.md)**: Begin with setting up your development environment.
+- **[Compiling and Running the Development Environment](Compiling-and-running-the-development-environment.md)**: Learn how to compile and run the development setup.
+- **[ReDBox Automated Tests](ReDBox-Automated-Tests.md)**: Understand our automated testing framework.
 
 ## Architecture and Conventions
 
-- **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: Review the system structure and major components.
-- **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Follow shared language and style conventions.
+- **[Architecture Overview](Architecture-Overview.md)**: Review the system structure and major components.
+- **[Coding Standards and Conventions](Coding-Standards-and-Conventions.md)**: Follow shared language and style conventions.
 
 ## Core Packages
 
-- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Core-Types)**: Core type definitions, business logic services, models, policies, and config defaults.
-- **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Async v6 declarations and retired shim cleanup.
-- **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for developing ReDBox hooks.
-- **[Generated Reference Documentation](https://github.com/redbox-mint/redbox-portal/wiki/Generated-Reference-Documentation)**: Generate and audit hook extension and form contracts, compose the independent REST reference, and preview the complete site locally.
-- **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer and how to extend services.
+- **[Redbox Core Types](Redbox-Core-Types.md)**: Core type definitions, business logic services, models, policies, and config defaults.
+- [Extension loading](Redbox-Loader.md) covers async discovery and declaration resolution.
+- **[Redbox Dev Tools](Redbox-Hook-Kit.md)**: Shared tooling for developing ReDBox hooks.
+- **[Generated Reference Documentation](Generated-Reference-Documentation.md)**: Generate and audit hook extension and form contracts, compose the independent REST reference, and preview the complete site locally.
+- **[Services Architecture](Services-Architecture.md)**: Deep dive into the service layer and how to extend services.
 
 ## Customisation
 
-- **[Customising ReDBox with a v6 extension](https://github.com/redbox-mint/redbox-portal/wiki/Using-a-Sails-Hook-to-customise-ReDBox)**: Current v6 declarations, owned lifecycle and hook conversion; see [the full migration guide](../specs/sails-retirement/hook-migration-v6.md).
+- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox.md) covers API2 registration, controller bindings and owned lifecycle. [API2 migration guide](../specs/fastify-migration/extension-api2.md)
 
 Dive into each section for detailed instructions and best practices.
 
@@ -37,15 +37,16 @@ installs/builds all selected packages and browser assets; `npm run dev:run` moun
 and `npm run dev:run:build` exercises image mode. Export `REDBOX_SESSION_SECRET`
 (at least 32 characters) before either command; the complete sequence is in
 [the development workflow](../development/README.md). Core must finish its clean build
-before compiling dependents. `npm start` runs `app.js`.
+before compiling dependents. `npm start` runs the same Fastify executable
+(`node app.js`) as the production image.
 
 Startup reads explicit configuration modules and v6 declarations. It never
 creates service/controller/config shims. Run `redbox-dev-tools init NAME --template v6`
 for a new extension. Consult [Services Architecture](Services-Architecture.md),
 [Configuration](Configuration-Guide.md) and [client changes](V6-Client-Compatibility.md).
 
-Set the public URL to the actual development origin, including its protocol and
-port. Page and static responses enable opener isolation for configured HTTPS
-origins; plain HTTP omits that HTTPS-only header. Forwarded protocol headers do
-not select this policy. In containers, `REDBOX_PORT` also selects the port checked
-by the image's native readiness probe.
+Set the public URL to the actual browser-facing development origin, including
+its protocol and port. Page and static responses use the configured public URL
+to select the HTTPS-only opener-isolation header. In containers, `REDBOX_PORT`
+also selects the port checked by the image. Use `GET /readyz` before sending
+test traffic. [Startup and probes](Installation-Guide.md#startup-probes-and-shutdown)

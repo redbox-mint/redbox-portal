@@ -508,7 +508,7 @@ Operational guarantees:
 - Nothing throws. A missing file is a silent no-op, a malformed file is logged, and a failing
   entry is logged and skipped without affecting the remaining entries.
 - Each entry is wrapped in `promiseWithTimeout` (`packages/redbox-core/src/utilities/PromiseUtils.ts`,
-  shared with the RVA importer) so a hung catalogue request cannot stall the lift.
+  shared with the RVA importer) to bound catalogue requests during initialization.
 - `vocab.bootstrapFigshareImports: false` disables the feature; the actor recorded on all
   created records is `bootstrap-data`.
 
@@ -589,6 +589,6 @@ Recommended follow-up tests while refactoring:
 
 ## Related Pages
 
-- [Configuration Guide](Configuration-Guide)
-- [Services Architecture](Services-Architecture)
-- [Configuring Figshare Publishing](Configuring-Figshare-Publishing)
+- [Configuration Guide](Configuration-Guide.md)
+- [Services Architecture](Services-Architecture.md)
+- [Configuring Figshare Publishing](Configuring-Figshare-Publishing.md)

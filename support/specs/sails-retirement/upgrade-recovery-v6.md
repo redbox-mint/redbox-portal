@@ -1,8 +1,10 @@
 # v6 upgrade and recovery runbook
 
-> Historical transport guidance: Sails controllers, `_exportedMethods`, Express req/res and middleware examples in this plan describe the earlier implementation. For current v6 HTTP authoring use the [API2 migration guide](../fastify-migration/extension-api2.md). Feature requirements and recovery obligations remain applicable; this notice does not mark tasks complete.
+> Historical runbook for the pre-Fastify v6 Express artifact. Run the commands
+> below only with that artifact. The selected Fastify artifact uses `node app.js`.
+> [Fastify installation and upgrade guidance](../../wiki/Installation-Guide.md#existing-installation-upgrade)
 
-This runbook accompanies SR-048/SR-049. The production Express entrypoint is
+This runbook accompanies SR-048/SR-049. The preceding artifact's Express entrypoint is
 `app.express.cjs`; it composes the installed selected domains and bundled hooks.
 The final Sails-free P8 artifact passes installed fresh/restart/stop and complete
 released-v5 stand-in cutover/recovery; see [exact artifacts and results](evidence-summary.md).
@@ -177,10 +179,9 @@ curl --fail http://127.0.0.1:1500/healthz
 curl --fail http://127.0.0.1:1500/readyz
 ```
 
-The internal v6 `npm start` and Docker CMD select this same Express executable.
+The pre-Fastify v6 artifact's `npm start` and Docker CMD select this Express executable.
 The Docker health check uses `${REDBOX_PORT:-1500}/readyz`; set `REDBOX_PORT`
-when selecting a nondefault server port in the deployment module. Local development
-uses the explicit [Compose workflow](../../development/README.md).
+when selecting a nondefault server port in the deployment module.
 
 Use the configured port and root context for user routes; health/readiness paths
 are unprefixed. `/healthz` alone does not prove readiness. Route `/readyz`

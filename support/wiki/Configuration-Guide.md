@@ -8,7 +8,8 @@ See the sample customisation repository for an example.
 
 ## Explicit v6 startup configuration
 
-The v6 host awaits explicitly selected CommonJS/ESM data modules. Set
+The Fastify executable, `app.js`, awaits explicitly selected CommonJS/ESM data
+modules. Set
 `REDBOX_APPLICATION_CONFIG`, `REDBOX_ENVIRONMENT_CONFIG` and `REDBOX_LOCAL_CONFIG`
 to absolute filenames. `module.exports = { ... }` or an ESM default object is
 supported. Files must remain offline; initialization owns effects.
@@ -21,7 +22,11 @@ Schema validation rejects unsupported meaningful settings before acquisition.
 
 ```js
 module.exports = {
-  server: { publicUrl: 'https://research.example.invalid/research', rootContext: '/research' },
+  server: {
+    publicUrl: 'https://research.example.invalid/research',
+    rootContext: '/research',
+    trustProxy: ['192.0.2.10'],
+  },
   datastores: {
     mongodb: { url: process.env.INSTITUTION_CORE_MONGO_URL },
     redboxStorage: { url: process.env.INSTITUTION_STORAGE_MONGO_URL },
@@ -34,19 +39,24 @@ module.exports = {
 };
 ```
 
-The default cookie name is `redbox.sid`; the example deliberately selects a new
-`redbox.v6.sid` for cutover. Set a new name and rotate the secret so v5 sessions
-cannot be reused. Defaults are `Secure`, `HttpOnly`, `SameSite=Lax`, with path `/`;
-set `cookie.path` to the deployment root when appropriate. HTTPS termination must
-match the configured public URL and trusted proxy settings so secure cookies are
-issued. Custom browser clients must send that cookie, fetch a new root-scoped
-`/csrfToken`, and reacquire progress grants after login. Explicitly allow each
-canonical browser origin; a forwarded host does not establish trust. Preserve
-upload/staging bytes independently of session invalidation; see
-[v6 client compatibility](V6-Client-Compatibility.md).
+The default cookie name is `redbox.sid`. The example uses a distinct name for
+cutover. Supply a fresh signing root at cutover and rollback as described in
+[v6 client compatibility](V6-Client-Compatibility.md#fastify-cutover).
+Cookie defaults are `Secure`, `HttpOnly`, `SameSite=Lax`, and path `/`. Set
+`cookie.path` to the deployment root when appropriate.
+
+Set `server.publicUrl` (or `REDBOX_PUBLIC_URL`) to the canonical browser URL,
+including `server.rootContext` when set. For edge TLS, terminate TLS at the
+proxy and forward HTTP/1.1 to Fastify. `server.trustProxy` defaults to `false`.
+Replace the example IP with the actual trusted proxy peer or CIDR. Configure
+canonical browser origins explicitly. Forwarded host headers alone confer no
+origin trust. Custom browser clients must send the session cookie, fetch a new
+root-scoped `/csrfToken`, and reacquire progress grants after login.
+[Deployment profiles and probes](Installation-Guide.md#qualified-deployment-scope)
 
 Use `REDBOX_SESSION_SECRET` (at least 32 characters), `REDBOX_SESSION_MONGODB_URL`
-and other documented inputs in [configuration conversion](../specs/sails-retirement/configuration-v6.md).
+and other supported inputs. The historical ledger maps settings from earlier
+deployments. [Legacy configuration conversion](../specs/sails-retirement/configuration-v6.md)
 Legacy `sails_*`/`sails__*`, `.sailsrc`, generated config, arbitrary framework
 options and implicit hook registrations are unsupported. The offline converter
 accepts data, never imports old files, and reports unsupported keys without
@@ -117,13 +127,16 @@ For machine-specific fixtures, select a private local data module with `REDBOX_L
 ## Diagnostics and upgrade
 
 Startup errors report the input layer and safe setting path. Review configuration
-outside the process using the typed loader; never publish secrets or whole
-resolved snapshots. Follow [v6 upgrade/recovery](../specs/sails-retirement/upgrade-recovery-v6.md)
-and the [client compatibility list](V6-Client-Compatibility.md).
+outside the process using the typed loader. Keep secrets and resolved snapshots private.
+The host forwards bounded HTTP warnings, errors and fatal diagnostics at
+`warn`. Set `logging.level` or `REDBOX_LOG_LEVEL` and configure retention at
+the collector. A logging failure adds bounded counters to `GET /healthz` and
+degradation remains latched until restart.
+[Logging behavior](../specs/fastify-migration/logging.md) · [Startup and probes](Installation-Guide.md#startup-probes-and-shutdown)
 
 ## AppConfig secret storage
 
-[AppConfig secrets in AWS Secrets Manager](AppConfig-Secrets) describes optional AWS storage for branding-aware password and token fields, deployment setup, and migration behavior.
+[AppConfig secrets in AWS Secrets Manager](AppConfig-Secrets.md) describes optional AWS storage for branding-aware password and token fields, deployment setup, and migration behavior.
 
 
 ## Persistence configuration

@@ -54,9 +54,11 @@ uniqueness, retaining compatible constraints that operators already installed.
 Resolve the declaration/default mismatch as a separate decision. V startup only
 inspects; port institution fields and callbacks before upgrading.
 
-Current TX-PARITY-01 OCI qualification uses pinned MongoDB **9.0.4 / FCV 9.0**
-standalone; earlier MongoDB 8 evidence remains historical. This migration does
-not change the engine, FCV, topology or stored documents.
+TX-PARITY-01 qualified its persistence changes against MongoDB **9.0.4 / FCV 9.0**
+standalone. FM-046 later qualified Fastify deployment and maintenance on
+**8.0.38 / FCV 8.0** and **9.0.4 / FCV 9.0** for the recorded topologies.
+Prepare indexes with the deployment's engine, FCV and topology.
+[Fastify deployment matrix](../specs/fastify-migration/evidence/FM-046.md#deployment-matrix)
 
 After reviewing all reports, explicitly invoke:
 

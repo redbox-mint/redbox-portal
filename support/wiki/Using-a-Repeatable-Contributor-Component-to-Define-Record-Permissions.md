@@ -1,7 +1,7 @@
 ## Using a Repeatable Contributor Component to Define Record Permissions
 
 V6 configuration is explicit. The first exported array below is a field fragment:
-import it into a form's `fields` array and declare that form under the neutral
+adapt it into a form's `componentDefinitions` (see the legacy note below) and declare that form under the neutral
 extension's `forms` contribution. The later `module.exports.recordtype` sample
 contributes to the selected deployment module's `recordtype` section. A field
 array is not a complete module for `REDBOX_APPLICATION_CONFIG`. Files are never
@@ -11,7 +11,14 @@ See [Configuring Record Forms](Configuring-Record-Forms.md).
 Here is an example code block that will create a Repeatable Contributor component 
 that will allow the user to define what permissions the defined user has to the record.
 
-The component is [defined in in the shared form Angular module](https://github.com/redbox-mint/redbox-portal/blob/master/angular-legacy/shared/form/field-repeatable.component.ts#L472).
+> **Legacy example.** The `RepeatableContributorComponent` example below uses the
+> pre-v5 form format. Current forms should reuse the built-in
+> `contributor-permissions` reusable definition in
+> `packages/redbox-core/src/config/reusableContributorFormDefinitions.config.ts`,
+> which builds contributor lookup and View/Edit permission selection from
+> `RepeatableComponent` component definitions. Its `syncSources` entries have
+> blank field names, so copying the CI's details into the list requires
+> configuring the source field or adding a form expression.
 
 Included in the example is a subscription that will copy the CI's details into the list when it's entered.
 

@@ -1,29 +1,28 @@
 # Architecture Overview
 
-> API2 authoring and production composition use the migration qualification gates; consult revision-specific evidence for the verdict. The default executable is now Fastify (`app.js`); FM-048 records final runtime qualification. See the [migration guide](../specs/fastify-migration/extension-api2.md).
-
 ReDBox v6 uses a ReDBox-owned application runtime and Fastify HTTP composition on
-Node 26. Angular applications remain embedded in EJS pages. Prisma repositories
+Node 26.12.1. The source and production image both start with `node app.js`.
+Angular applications remain embedded in EJS pages. Prisma repositories
 provide MongoDB persistence; owned native pools serve GridFS, sessions and Agenda.
 Published package names such as `sails-ng-common` and the storage/PDF hooks are
 historical names and do not imply a framework dependency.
 
 ## Application composition
 
-The production `createPortalFastifyApplication` bootstrap loads the selected deployment modules, discovers installed v6
-extension declarations, resolves precedence and binds concrete factories before
-acquiring resources. `createPortalFastifyApplication` composes the actual domains;
-`createPortalFastifyHost` adds one HTTP listener and a process signal boundary.
+`createPortalFastifyApplication` loads the selected deployment modules, resolves
+installed API2 declarations and binds concrete factories before acquiring
+resources. `createPortalFastifyHost` serves the resulting application through
+one HTTP/1.1 listener. The executable owns process signals.
 
 Initialization validates configuration and capabilities, prepares selected
 repositories, runs named ledger migrations and awaited bootstrap, and then
-activates workers and ingress. Failed initialization never activates ordinary
-work. Health and readiness are separate endpoints: `/healthz` and `/readyz`.
+prepares the listener and activates modules before opening ordinary ingress.
+See [startup and probes](Installation-Guide.md#startup-probes-and-shutdown).
 
 Shutdown quiesces producers, drains admitted requests/jobs/sessions/streams and
 closes resources in dependency order. A deadline failure retains ownership for
-retry; a closed socket alone does not prove work has drained. Companion has a
-separate, documented process-lifetime limitation in [v6 client changes](V6-Client-Compatibility.md).
+retry. The optional Companion adapter shares the same listener and has
+[process-lifetime restrictions](TUS-and-Uppy-Companion-Setup.md#lifecycle-and-verification).
 
 ## Source layout
 
@@ -42,10 +41,12 @@ separate, documented process-lifetime limitation in [v6 client changes](V6-Clien
 
 ## Request flow
 
-1. Fastify resolves the root context, session and authenticated actor.
-2. Selected policies resolve brand/portal, membership, object grants and CSRF.
-3. Typed route adapters validate input and invoke explicitly supplied domains.
-4. Domains use owned repositories/providers; transport errors expose safe envelopes.
+1. The host checks admission and matches an explicit route.
+2. Route policies establish the session, actor and brand/portal context and
+   enforce the declared access and CSRF requirements.
+3. In-scope hooks run at their declared stages. The controller uses live request
+   values for validation and invokes its explicitly supplied operations.
+4. Domains enforce object authorization and use owned repositories and providers.
 5. Admitted asynchronous work remains owned through disconnect and shutdown.
 
 HTTP paths/envelopes remain compatible where specified. Review every intentional
@@ -55,10 +56,13 @@ HTTP paths/envelopes remain compatible where specified. Review every intentional
 
 Extensions export `registerRedboxExtension()` returning `apiVersion: 2`. Factories
 receive concrete inputs from the selected application; declarations never acquire
-resources. See [Services Architecture](Services-Architecture.md),
+resources. See the [API2 migration guide](../specs/fastify-migration/extension-api2.md),
+[Controllers](Controllers-Architecture.md), [Services](Services-Architecture.md),
 [extension loading](Redbox-Loader.md) and [core package](Redbox-Core-Types.md).
 
 Core builds clean `dist`, generate/verify Prisma contracts and compile TypeScript.
 Webpack packages browser assets; Docker assembles production dependencies and
 page artifacts. Install/build never generates service/controller/config shims.
 See [Development](Development-Guide.md) and [Testing](ReDBox-Automated-Tests.md).
+
+The qualified runtime and deployment profiles are recorded in [G7 evidence](../specs/fastify-migration/evidence/FM-048.md).

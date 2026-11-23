@@ -17,7 +17,10 @@ Use `requires` to declare module ordering. Supply explicit collaborators to each
 instance; construct a fresh instance for each application. `Services.Core.Service`
 is an optional utility for logging and Observable helpers, not a registration
 mechanism. Domain operations may return Promises or single-result Observables;
-HTTP adapters await them and map typed errors.
+Fastify controllers await them and map typed errors. An HTTP action supplies
+the resolved actor and brand where the domain contract requires them. The domain
+retains object authorization and keeps its input independent of Fastify
+request/reply objects.
 
 ## Domain boundaries
 
@@ -55,6 +58,8 @@ Configured actions and record hooks resolve registered operation names. They
 never evaluate service-path strings. Unknown actions return 404; unregistered
 record hooks fail validation before effects. The upgrade migration recognizes a
 finite list of historic built-in hook names solely to rewrite persisted data.
+See the [API2 migration guide](../specs/fastify-migration/extension-api2.md) for
+factory bindings and conversion of persisted institution operations.
 
 ## Persistence and important extension contracts
 

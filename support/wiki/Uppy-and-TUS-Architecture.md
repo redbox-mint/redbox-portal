@@ -8,14 +8,18 @@ for deployment data, client credentials and verification.
 
 1. Local uploads enter `/:branding/:portal/record/:oid/attach`; provider uploads
    enter `/:branding/:portal/companion/record/:oid/attach`. Resource requests add
-   `/:attachId`. Both require the current authenticated actor, brand and record
-   edit permission, with CSRF or independently verified bearer exemption.
+   `/:attachId`. Both require an authenticated brand member and use the same
+   authorization for existing records and `pending-oid`.
+   [Upload permissions and CSRF](TUS-and-Uppy-Companion-Setup.md#authentication-and-client-changes)
 2. The adapter binds staging and resume state to that actor/brand/record. Accepted
    chunk/finalization writes remain owned through connection loss and stop.
-3. Companion is initialized once per process behind a private Express provider
-   boundary attached to the Fastify-owned server. The host forwards canonical allowed provider socket paths and origins;
-   portal Socket.IO remains separate. Mutating Companion HTTP uses the bound
-   policies and CSRF. A shared upload secret alone cannot authenticate an actor.
+3. Companion is initialized once per process behind a private, unlistened
+   Express app on the Fastify-owned server. That app serves only the configured
+   provider namespace after native admission and security checks. Companion's
+   Express request types and middleware are private to the provider adapter.
+   Fastify verifies provider upgrade paths and canonical origins before dispatch.
+   Portal progress uses its own Socket.IO protocol.
+   [Audited Companion boundary](../specs/fastify-migration/evidence/FM-043.md#companion-express-boundary)
 4. Stop closes admission, joins accepted work and releases owned resources.
    Beyond-deadline provider I/O and cleanup cron retain their documented process
    lifetime; restarting Companion requires a fresh process.

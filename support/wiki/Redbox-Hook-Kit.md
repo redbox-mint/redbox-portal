@@ -40,15 +40,15 @@ packages through the core/toolchain contract. The generated minimal v6 scaffold
 instead has explicit compiler settings and its own pinned TypeScript compiler.
 The conservative Node 24 type base does not select the executing Node runtime.
 
-Registration returns declarations and named factories. The application binds
-each factory's concrete inputs, awaits initialization and migrations, activates
-workers and HTTP, then owns drain and close. EJS receives `page`; configuration
-and services are explicit inputs. Old `sails.hasControllers`,
-`registerRedboxControllers()` and `Core.Controller` examples are unsupported.
+Registration returns declarations and named factories. The Fastify application
+binds concrete inputs, awaits initialization and migrations, activates workers
+and HTTP, and owns drain and close. Use `generate controller` for named Fastify
+actions and explicit route declarations. EJS receives `page`. Supply
+configuration and services as explicit inputs.
 
 Follow the [complete conversion guide](../specs/fastify-migration/extension-api2.md)
 for compiler conversion, factory/work bindings, policies, persisted expressions,
-packaged pages and installed verification. The [extension contract](../specs/fastify-migration/extension-api2.md)
-and [loading guide](Redbox-Loader.md) define the supported runtime. CLI help and
+packaged pages and installed verification. The [loading guide](Redbox-Loader.md)
+describes startup discovery and precedence. CLI help and
 completion are available through the same built CLI; form migration tools have
 separate input-specific guidance.

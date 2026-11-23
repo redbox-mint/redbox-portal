@@ -1,7 +1,9 @@
 # Fastify migration
 
-Status: implementation through P6; see task evidence for qualified revisions.
-Executable cutover, final-artifact qualification and institutional production acceptance remain separate gates.
+Revision 5 passed G7 local qualification. `node app.js` starts the selected
+Fastify runtime. The G8 maintenance-window rehearsal and institutional
+production acceptance remain pending.
+[G7 closure](evidence/FM-048.md) · [Upgrade and rollback tasks](tasks.md#p8--rehearsal-and-handoff)
 
 The design was agreed through the Grill Me discussion on 2026-11-04. Fastify will
 ship as part of v6. The release is planned for late 2027; that is planning context,
@@ -17,9 +19,8 @@ Read these documents in order:
 
 [The original proposal](proposal.md) records the discussion input. Where it differs
 from the agreed design, the design takes precedence. The [API2 migration guide](extension-api2.md) documents current extension authoring,
-generators, bundled hooks and the local WSU conversion. The wiki labels retained
-Express executable instructions as legacy pre-cutover material; FM-042–048 own
-startup selection, source closure and final runtime qualification.
+generators, bundled hooks and the local WSU conversion. The wiki describes the
+selected Fastify runtime. [Installation and probes](../../wiki/Installation-Guide.md)
 
-Evidence is revision-specific. [FM-041](evidence/FM-041.md) records G6 reference
-and consumer qualification; it does not close G7/G8 or production acceptance.
+Evidence is revision-specific. [FM-041](evidence/FM-041.md) records the G6
+reference and consumer qualification.

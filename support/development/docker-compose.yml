@@ -5,6 +5,7 @@ x-rbportal-env: &rbportal-env
   REDBOX_PORT: 1500
   REDBOX_HOSTNAME: 0.0.0.0
   REDBOX_PUBLIC_URL: '${REDBOX_PUBLIC_URL:-${APP_URL:-http://localhost:1500}}'
+  REDBOX_ROOT_CONTEXT: '${REDBOX_ROOT_CONTEXT:-}'
   REDBOX_MONGODB_URL: mongodb://mongodb:27017/redbox-portal
   REDBOX_STORAGE_MONGODB_URL: mongodb://mongodb:27017/redbox-storage
   REDBOX_SESSION_MONGODB_URL: mongodb://mongodb:27017/sessions-v6
@@ -15,15 +16,14 @@ x-rbportal-env: &rbportal-env
   # Optional providers are converted by the explicit development config module.
   UPPY_COMPANION_ENABLED: '${UPPY_COMPANION_ENABLED:-false}'
   UPPY_COMPANION_SECRET: '${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}'
-  UPPY_COMPANION_BEARER_TOKEN: '${UPPY_COMPANION_BEARER_TOKEN:-}'
-  UPPY_COMPANION_ATTACHMENT_SECRET: '${UPPY_COMPANION_ATTACHMENT_SECRET:-${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}}'
-  UPPY_COMPANION_UPLOAD_URLS: '${UPPY_COMPANION_UPLOAD_URLS:-^https?://(localhost|127\\.0\\.0\\.1):1500(?:/[^/]+/[^/]+)?/companion/record/.+/attach$}'
+  # application.cjs derives the default literal prefix from the public origin and root.
+  UPPY_COMPANION_UPLOAD_URLS: '${UPPY_COMPANION_UPLOAD_URLS:-}'
   UPPY_GOOGLE_KEY: '${UPPY_GOOGLE_KEY:-}'
   UPPY_GOOGLE_SECRET: '${UPPY_GOOGLE_SECRET:-}'
   UPPY_ONEDRIVE_KEY: '${UPPY_ONEDRIVE_KEY:-}'
   UPPY_ONEDRIVE_SECRET: '${UPPY_ONEDRIVE_SECRET:-}'
-  UPPY_COMPANION_HOST: '${UPPY_COMPANION_HOST:-localhost:1500}'
-  UPPY_COMPANION_PROTOCOL: '${UPPY_COMPANION_PROTOCOL:-http}'
+  UPPY_COMPANION_HOST: '${UPPY_COMPANION_HOST:-}'
+  UPPY_COMPANION_PROTOCOL: '${UPPY_COMPANION_PROTOCOL:-}'
 
 x-rbportal-volumes: &rbportal-volumes
   - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/attachments:/attachments:delegated'
@@ -35,7 +35,7 @@ x-rbportal-volumes: &rbportal-volumes
 x-rbportal-service: &rbportal-service
   environment: *rbportal-env
   ports:
-    - '127.0.0.1:${RBPORTAL_HTTP_PORT:-1500}:1500'
+    - '${RBPORTAL_HTTP_BIND_ADDRESS:-127.0.0.1}:${RBPORTAL_HTTP_PORT:-1500}:1500'
     # Debugging port
     - '127.0.0.1:${RBPORTAL_DEBUG_PORT:-9876}:9876'
   depends_on:
@@ -113,7 +113,7 @@ services:
       retries: 60
       start_period: 30s
   solr:
-    image: solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
+    image: solr:10.0.0@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb
     expose:
       - '8983'
     ports:

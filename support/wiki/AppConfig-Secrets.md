@@ -25,7 +25,10 @@ The application role needs `secretsmanager:CreateSecret`, `secretsmanager:TagRes
 
 ## Storage and reads
 
-AWS-backed AppConfig storage requires MongoDB 5.0 or newer, which supports nested dollar-prefixed reference keys. The current Prisma persistence suite verifies structured references on MongoDB 9.0.4. Each nonempty registered secret field is replaced in MongoDB by a structured reference:
+AWS-backed AppConfig storage uses nested dollar-prefixed reference keys. The
+Prisma persistence suite verifies structured references on MongoDB 9.0.4.
+Each nonempty registered secret field is replaced in MongoDB by a structured
+reference. [Qualified MongoDB versions](Installation-Guide.md#qualified-deployment-scope)
 
 ```json
 {

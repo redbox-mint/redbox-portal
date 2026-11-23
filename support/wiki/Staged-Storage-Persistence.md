@@ -64,16 +64,16 @@ and [operations](../specs/waterline-retirement/p10-s-operations.md) describe the
 historical staged implementation. ADR 0004/TX-PARITY-01 supersede their transaction
 and campaign gates. No browser, prior-image or budget campaign is repeated here.
 
-GridFS permanently stays on the driver: retain MongoDB for GridFS in a PostgreSQL
-deployment, or choose another binary store. Agenda/history and sessions retain
-their independently qualified owners. All network pools are app-owned; native resources drain before Prisma clients and their borrowed pools close.
+GridFS bytes use the native MongoDB driver. Agenda and sessions retain their
+independently qualified owners. Native resources drain before Prisma clients
+and their borrowed pools close. [Qualified database profiles](Installation-Guide.md#qualified-deployment-scope)
 
 ## HTTP shutdown ownership
 
 The native session boundary and bound Fastify controller actions share request ownership.
 Socket closure alone does not finish accepted controller work. Shutdown waits for
 returned action promises, including writes after an early response, and for work
-registered with `recordBackgroundOperation`. Legacy Express callback actions were retained through their response handoff.
+registered with `recordBackgroundOperation`.
 API2 actions return a promise covering the complete operation, including after
 client disconnection. Qualified core adapters explicitly retain callback work. Return the existing promise when a
 synchronous action delegates to an async implementation.

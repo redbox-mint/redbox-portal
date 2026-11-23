@@ -8,7 +8,8 @@ by their name or directory.
 Place each relationship array at `recordtype.<type>.relatedTo`; it is not a
 top-level deployment setting.
 
-For details on recent runtime changes to related-record traversal, access filtering, and supported relationship semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md).
+Related-record graph reads check access to each object and both endpoints of
+each edge. [V6 client compatibility](V6-Client-Compatibility.md#hook-and-client-changes)
 
 ## Overview of `relatedTo`
 

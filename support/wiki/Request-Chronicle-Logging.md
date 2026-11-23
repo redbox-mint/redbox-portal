@@ -1,5 +1,8 @@
 # Request Chronicle Logging
 
+> Archived logging design. For the current runtime, use the [Fastify logging settings](Configuration-Guide.md#diagnostics-and-upgrade)
+> and [HTTP logging failure behavior](../specs/fastify-migration/logging.md).
+
 This page documents the **legacy Express request chronicle** and its service
 helpers. For the current Fastify logging configuration, see [Retention settings](#retention-settings).
 The chronicle lifecycle and event fields below describe the retained legacy host;

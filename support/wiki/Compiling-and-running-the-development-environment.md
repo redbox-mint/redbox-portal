@@ -12,16 +12,32 @@ For compiling Angular TypeScript files, use the command `npm run compile:ng`. Th
 
 ### Running the Application:
 1. **Set the session secret**: Run `export REDBOX_SESSION_SECRET="$(openssl rand -hex 32)"`. Keep that value in your local shell or private secret environment across restarts.
-2. **Start Services**: Utilize `npm run dev:run` to launch the Docker Compose stack. This command sets up all required services in containers.
-3. **Docker Commands**: For more control, use standard Docker Compose commands with `docker-compose -f support/development/docker-compose.yml` to manage individual services.
+2. Start the mounted Fastify stack with `npm run dev:run`, or use
+   `npm run dev:run:build` for image mode. Both start `node app.js`.
+3. Use `docker compose -f support/development/docker-compose.yml` to manage
+   individual services, and `npm run dev:run:clean` to stop the development stack.
 
-To access the development portal from another machine on the LAN, point a local DNS/hosts name at the VM's `192.168.20.x` address and pass the browser-facing URL at startup:
+Compose publishes the portal on the Docker host's loopback interface by default.
+To reach it over Tailscale, bind the HTTP port to the host's Tailscale IPv4
+address and set the browser-facing URL to the host's MagicDNS name.
 
 ```bash
-APP_URL=http://redbox-portal.local:1500 npm run dev:run
+export RBPORTAL_HTTP_BIND_ADDRESS="$(tailscale ip -4)"
+export RBPORTAL_HTTP_PORT=1500
+export REDBOX_ROOT_CONTEXT="${REDBOX_ROOT_CONTEXT:-}"
+portal_origin="http://$(tailscale status --json | jq -er '.Self.DNSName | rtrimstr(".")'):$RBPORTAL_HTTP_PORT"
+export APP_URL="${portal_origin}${REDBOX_ROOT_CONTEXT:-}"
+npm run dev:run
 ```
 
-`APP_URL` defaults to `http://localhost:1500`. The development CSP automatically leaves out `upgrade-insecure-requests` for an HTTP `APP_URL`, so the LAN URL is not rewritten to HTTPS. Use an HTTPS `APP_URL` when the VM is behind TLS.
+For LAN access, use the Docker host's LAN interface address for the bind and
+its reachable DNS name for `APP_URL`. A reverse proxy on the Docker host can
+instead forward to the default loopback port. Set `APP_URL` to the proxy's
+public URL, including the configured deployment root. MongoDB, Solr and the
+debug port stay on loopback. Check `GET /readyz` at the public origin before
+opening `APP_URL`. Readiness stays at the origin even when the landing page
+is under a deployment root such as `/research`.
+[Development Compose configuration](../development/docker-compose.yml)
 
 ### Running All Steps:
 
