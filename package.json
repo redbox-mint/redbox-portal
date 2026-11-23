@@ -15,7 +15,7 @@
     "bootstrap": "5.3.9",
     "compression": "1.8.2",
     "connect-mongo": "6.0.0",
-    "ejs": "5.0.2",
+    "ejs": "7.0.2",
     "express-session": "1.19.0",
     "fs-extra": "11.4.1",
     "handlebars": "4.7.10",
