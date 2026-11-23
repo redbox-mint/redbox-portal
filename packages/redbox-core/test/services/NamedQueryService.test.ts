@@ -865,6 +865,19 @@ describe('NamedQueryService', function() {
   });
 
   describe('setParamsInQuery', function() {
+    it('rejects operator and dotted keys in structured parameters while allowing literal operands', function() {
+      const queryParams = { filter: { path: 'metadata', type: 'object' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { $ne: null } }))
+        .to.throw('unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { nested: { 'a.b': 1 } } }))
+        .to.throw('unsafe query parameter');
+      const mongoQuery: any = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, {
+        tags: { path: 'tags', type: 'array', queryType: '$in' }
+      }, { tags: ['science', 'history'] });
+      expect(mongoQuery.tags).to.deep.equal({ $in: ['science', 'history'] });
+    });
+
     it('should replace parameters in query', function() {
       const mongoQuery = { status: 'param-status' };
       const queryParams = {

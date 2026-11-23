@@ -30,6 +30,7 @@ import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import { assertNamedQueryParameterSafe } from '../queries/namedQueryParameters';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -711,6 +712,9 @@ export namespace Services {
     }
 
     setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
+      for (const [name, definition] of Object.entries(queryParams)) {
+        assertNamedQueryParameterSafe(name, definition, paramMap[name]);
+      }
       for (const queryParamKey in queryParams) {
 
         let value = paramMap[queryParamKey];
@@ -734,6 +738,10 @@ export namespace Services {
 
         if (!_.isEmpty(queryParam.template)) {
           value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
+        }
+
+        if (paramMap[queryParamKey] !== undefined || !_.isEmpty(queryParam.template)) {
+          assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
         }
 
         if (queryParam.type == DataType.Number) {
