@@ -52,7 +52,7 @@ import { FormService } from "../form.service";
             </button>
           }
         </label>
-        @if (helpTextVisible) {
+        @if (hasHelpText && helpTextVisible) {
           <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
         }
       }
@@ -118,6 +118,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
       this.name = this.formFieldCompMapEntry?.compConfigJson?.layout?.name;
     }
 
+    this.helpTextVisibleOnInit = this.getBooleanProperty('helpTextVisibleOnInit', false);
     if (this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
