@@ -2,9 +2,11 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/FormVocabularyController';
+import { NamedQueryParameterError } from '../../src/queries/namedQueryParameters';
 
 describe('FormVocabularyController', () => {
   let controller: Controllers.FormVocabulary;
+  let findRecords: sinon.SinonStub;
 
   const makeReq = (params: Record<string, unknown> = {}, extras: Record<string, unknown> = {}): Sails.Req => {
     return {
@@ -16,6 +18,7 @@ describe('FormVocabularyController', () => {
   };
 
   beforeEach(() => {
+    findRecords = sinon.stub();
     (global as any).sails = {
       log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub() },
       services: {
@@ -25,7 +28,7 @@ describe('FormVocabularyController', () => {
           getChildren: sinon.stub(),
         },
         formvocabularyservice: {
-          findRecords: sinon.stub(),
+          findRecords,
           findInExternalService: sinon.stub(),
           findInServiceLookup: sinon.stub(),
         },
@@ -240,6 +243,19 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.status).to.equal(500);
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('query-vocab-failed');
+  });
+
+  it('returns 400 when the named query rejects a vocabulary parameter', async () => {
+    findRecords.rejects(new NamedQueryParameterError('filter must be a valid JSON object'));
+    const req = makeReq({ queryId: 'related', start: '0', rows: '10' });
+    const status = sinon.stub();
+    const json = sinon.stub();
+    const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+
+    await controller.getRecords(req, res);
+
+    sinon.assert.calledOnceWithExactly(status, 400);
+    expect(json.firstCall.args[0].message).to.equal('invalid-query-params');
   });
 
   it('returns 404 when getRecords query config is not found', async () => {

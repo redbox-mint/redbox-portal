@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { NamedQueryParameterError } from '../../src/queries/namedQueryParameters';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 
 describe('NamedQueryService', function() {
@@ -437,6 +438,23 @@ describe('NamedQueryService', function() {
   });
 
   describe('performNamedQuery', function() {
+    it('preserves a document operand across the native MongoDB and Waterline query paths', async function() {
+      const operand = { $schema: 'catalogue', 'schema.name': 'Dataset' };
+      const brand = { id: 'brand-1' };
+      const path = 'metadata.schema';
+
+      await NamedQueryService.performNamedQuery('', {}, 'record', {}, {
+        schema: { path, type: 'object', queryType: '!=' }
+      }, { schema: operand }, brand, 0, 10);
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0][path]).to.deep.equal({ $ne: operand });
+
+      await NamedQueryService.performNamedQuery('', {}, 'custommodel', {}, {
+        schema: { path, type: 'object', queryType: '!=' }
+      }, { schema: operand }, brand, 0, 10);
+      expect(mockSails.models.custommodel.count.firstCall.args[0][path]).to.deep.equal({ '!=': operand });
+      expect(mockSails.models.custommodel.find.firstCall.args[0].where[path]).to.deep.equal({ '!=': operand });
+    });
+
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
@@ -865,6 +883,19 @@ describe('NamedQueryService', function() {
   });
 
   describe('setParamsInQuery', function() {
+    it('rejects arrays in scalar parameters before writing a filter', function() {
+      const mongoQuery = { status: 'existing' };
+      const queryParams = { status: { path: 'status', type: 'string' } };
+
+      expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { status: ['published'] }))
+        .to.throw(NamedQueryParameterError, 'status contains an unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery(mongoQuery, {
+        status: { ...queryParams.status, template: 'paramMap.selection' }
+      }, { status: 'published', selection: ['draft'] }))
+        .to.throw(NamedQueryParameterError, 'status contains an unsafe query parameter');
+      expect(mongoQuery).to.deep.equal({ status: 'existing' });
+    });
+
     it('rejects operator and dotted keys in structured parameters while allowing literal operands', function() {
       const queryParams = { filter: { path: 'metadata', type: 'object' } };
       expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { $ne: null } }))
@@ -962,17 +993,15 @@ describe('NamedQueryService', function() {
       expect(mongoQuery.constraints).to.deep.equal({ status: 'active', limit: 5 });
     });
 
-    it('should reject invalid object parameters', function() {
-      const mongoQuery: any = {};
+    it('rejects malformed JSON and non-object JSON with a parameter error', function() {
       const queryParams = {
         'constraints': { path: 'constraints', type: 'object', whenUndefined: 'ignore' }
       };
 
-      expect(() => {
-        NamedQueryService.setParamsInQuery(mongoQuery, queryParams, {
-          constraints: 'not-json'
-        });
-      }).to.throw('constraints must be a valid JSON object');
+      for (const constraints of ['{"status":', '[]']) {
+        expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { constraints }))
+          .to.throw(NamedQueryParameterError, 'constraints must be a valid JSON object');
+      }
     });
   });
 });

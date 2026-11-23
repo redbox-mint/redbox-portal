@@ -21,7 +21,7 @@ export function assertNamedQueryParameterSafe(
     const input = pending.pop();
     if (input === null || typeof input !== 'object' || seen.has(input)) continue;
     seen.add(input);
-    if (!structured && !Array.isArray(input)) throw new NamedQueryParameterError(`${name} contains an unsafe query parameter`);
+    if (!structured) throw new NamedQueryParameterError(`${name} contains an unsafe query parameter`);
     for (const [key, item] of Object.entries(input)) {
       if (key.startsWith('$') || key.includes('.')) throw new NamedQueryParameterError(`${name} contains an unsafe query parameter`);
       pending.push(item);

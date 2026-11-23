@@ -30,7 +30,7 @@ import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
-import { assertNamedQueryParameterSafe } from '../queries/namedQueryParameters';
+import { assertNamedQueryParameterSafe, NamedQueryParameterError } from '../queries/namedQueryParameters';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -98,22 +98,11 @@ const parseSerializedValue = <T>(input: unknown, fallback: T): T => {
 };
 
 const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<string, unknown> => {
-  if (_.isPlainObject(value)) {
-    return value as Record<string, unknown>;
+  const parsed = parseSerializedValue<unknown>(value, undefined);
+  if (_.isPlainObject(parsed)) {
+    return parsed as Record<string, unknown>;
   }
-
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      if (_.isPlainObject(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch (_error) {
-      throw Error(`${queryParamKey} must be a valid JSON object`);
-    }
-  }
-
-  throw Error(`${queryParamKey} must be a valid JSON object`);
+  throw new NamedQueryParameterError(`${queryParamKey} must be a valid JSON object`);
 };
 
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
@@ -740,22 +729,6 @@ export namespace Services {
           value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
         }
 
-        if (queryParam.type == DataType.Number) {
-          if (!_.isUndefined(value) && value !== null && value !== '') {
-            value = _.toNumber(value)
-          }
-        }
-
-        if (queryParam.type == DataType.Boolean) {
-          if (!_.isUndefined(value)) {
-            if (typeof value === 'string') {
-              value = value.toLowerCase() === 'true';
-            } else {
-              value = Boolean(value);
-            }
-          }
-        }
-
         if (queryParam.type == DataType.Array) {
           if (!_.isUndefined(value) && !Array.isArray(value)) {
             if (typeof value === 'string') {
@@ -778,8 +751,23 @@ export namespace Services {
           value = parseObjectParamValue(queryParamKey, value);
         }
 
-        if (paramMap[queryParamKey] !== undefined || !_.isEmpty(queryParam.template)) {
-          assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
+        // Check decoded operands before scalar coercion or operator wrapping.
+        assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
+
+        if (queryParam.type == DataType.Number) {
+          if (!_.isUndefined(value) && value !== null && value !== '') {
+            value = _.toNumber(value)
+          }
+        }
+
+        if (queryParam.type == DataType.Boolean) {
+          if (!_.isUndefined(value)) {
+            if (typeof value === 'string') {
+              value = value.toLowerCase() === 'true';
+            } else {
+              value = Boolean(value);
+            }
+          }
         }
 
         if (
