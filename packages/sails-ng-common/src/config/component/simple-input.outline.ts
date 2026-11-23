@@ -30,6 +30,12 @@ export type SimpleInputFieldComponentConfigType = typeof SimpleInputFieldCompone
 export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
     type?: SimpleInputFieldComponentConfigType;
     placeholder?: string;
+    /**
+     * Maximum length for typing or pasting into a text-like input. Loaded values stay intact.
+     * @asType integer
+     * @minimum 1
+     */
+    maxLength?: number;
 }
 
 export interface SimpleInputFieldComponentConfigOutline extends SimpleInputFieldComponentConfigFrame, FieldComponentConfigOutline {

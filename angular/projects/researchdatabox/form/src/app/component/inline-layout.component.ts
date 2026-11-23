@@ -63,7 +63,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/
                 </button>
               }
             </label>
-            @if (helpTextVisible) {
+            @if (getStringProperty('helpText') && helpTextVisible) {
               <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
             }
           </div>
@@ -130,6 +130,7 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
       this.name = this.formFieldCompMapEntry?.compConfigJson?.layout?.name;
     }
 
+    this.helpTextVisibleOnInit = this.getBooleanProperty('helpTextVisibleOnInit', false);
     if (this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }

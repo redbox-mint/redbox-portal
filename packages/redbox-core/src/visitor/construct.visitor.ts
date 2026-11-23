@@ -575,6 +575,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.setPropOverride('type', item.config, config);
     this.sharedProps.setPropOverride('placeholder', item.config, config);
+    this.sharedProps.setPropOverride('maxLength', item.config, config);
   }
 
   async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {

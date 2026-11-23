@@ -26,6 +26,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
             [class.is-valid]="showValidState"
             [class.is-invalid]="showInvalidState"
             [readonly]="isReadonly"
+            [attr.maxlength]="maxLength"
             [title]="tooltip | i18next"
             [placeholder]="placeholder | i18next" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -39,6 +40,11 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   public tooltip:string = '';
   public inputType:string = 'text';
   public placeholder: string | undefined = '';
+
+  get maxLength(): number | null {
+    const maxLength = (this.componentDefinition?.config as SimpleInputFieldComponentConfig | undefined)?.maxLength;
+    return typeof maxLength === 'number' && Number.isInteger(maxLength) && maxLength > 0 ? maxLength : null;
+  }
 
   /**
    * Override to set additional properties required by the wrapper component.

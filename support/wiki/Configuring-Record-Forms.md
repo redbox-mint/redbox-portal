@@ -431,10 +431,44 @@ fields: [
   },
 ```
 
+## Field help text
+
+`DefaultLayout` and `InlineLayout` show help text between a field's label and
+its control. Set the translation key or literal text in `layout.config.helpText`.
+Help starts collapsed, and users show or hide it with the ? button beside the
+label. To show the help when the form loads, set `helpTextVisibleOnInit: true`.
+The ? button can still hide it.
+
+```ts
+layout: {
+  class: 'DefaultLayout',
+  config: { label: '@title-label', helpText: '@title-help', helpTextVisibleOnInit: true }
+}
+```
+
+`helpTextVisibleOnInit` defaults to `false`, and it does nothing if the field
+has no help text. `InlineLayout` shows help only for fields with a `label`. In
+view mode, help text and its visibility options are removed from the client
+config. `helpTextVisible` is reserved for runtime state. The layouts do not
+read it, so use `helpTextVisibleOnInit` to set the initial state.
+
+## SimpleInput options
+
+Configure `SimpleInputComponent` through `component.config`. Set `type` to choose
+the HTML input type (default `text`) and `placeholder` to supply a hint. Set the
+optional `maxLength` to a positive integer, such as `8`, to limit typing and
+pasting in supported text-like inputs. The browser applies the limit, and loaded
+values remain visible in full.
+
+Use `component.config.maxLength` alongside the model's `maxLength` validator
+when the limit must also be enforced at save time. The validator can flag an
+overlong value loaded from an existing record or import.
+
 ## Aggregate maximum-length validation
 
-Use `maxLength` for a single text input. For a repeatable field whose values will
-be combined into one string, use `aggregateMaxLength` on the **repeatable model**.
+Use the `maxLength` validator for a single text input. For a repeatable field
+whose values will be combined into one string, use `aggregateMaxLength` on the
+**repeatable model**.
 `maxLength` on an array counts rows; `aggregateMaxLength` counts characters in the
 normalized, joined value, including separators.
 

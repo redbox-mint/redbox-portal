@@ -79,6 +79,25 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
   });
 
+  it('preserves a legacy TextField maxLength as an input limit and validator', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'input-length-migration',
+        fields: [
+          { class: 'TextField', definition: { name: 'shortName', maxLength: 8 } },
+          { class: 'TextField', definition: { name: 'name' } },
+        ],
+      },
+    });
+
+    const [limited, unlimited] = migrated.componentDefinitions;
+    expect(limited.component.class).to.equal('SimpleInputComponent');
+    expect(limited.component.config).to.have.property('maxLength', 8);
+    expect(limited.model?.config?.validators).to.deep.include({ class: 'maxLength', config: { maxLength: 8 } });
+    expect(JSON.parse(JSON.stringify(unlimited.component.config))).not.to.have.property('maxLength');
+  });
+
   it('maps MarkdownTextArea to RichTextEditor with markdown output format', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
