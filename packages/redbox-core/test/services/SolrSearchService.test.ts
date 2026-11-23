@@ -274,6 +274,7 @@ describe('SolrSearchService', function() {
       const params: URLSearchParams = axiosGet.firstCall.args[1].params;
       expect(params).to.be.instanceOf(URLSearchParams);
       expect(params.getAll('facet.field')).to.deep.equal(['workflow_stage', 'metaMetadata_type']);
+      expect(params.get('facet.mincount')).to.equal('1');
       // Two exact searches, one facet value and the authorization filter.
       expect(params.getAll('fq')).to.have.lengthOf(4);
       expect(params.getAll('fq')[0]).to.equal('title:first');
