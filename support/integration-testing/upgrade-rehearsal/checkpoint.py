@@ -67,9 +67,11 @@ def verify_checkpoint():
     return sha_file(manifest)
 
 
-def verify_source_archive():
-    path = CHECKPOINT / ARCHIVE
-    installed = json.loads((RUN / 'components/express.json').read_text())[0]
+def verify_source_archive(path=None, installed=None):
+    if path is None:
+        path = CHECKPOINT / ARCHIVE
+    if installed is None:
+        installed = json.loads((RUN / 'components/express.json').read_text())[0]
     with tarfile.open(path) as archive:
         manifest = json.load(archive.extractfile('manifest.json'))
         assert len(manifest) == 1

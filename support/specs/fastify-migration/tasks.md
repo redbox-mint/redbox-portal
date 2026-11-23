@@ -413,7 +413,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: ordered runbook with measured timings and artifact identities
     succeeds; traffic is not restored before readiness and smoke gates.
 
-- [ ] **FM-050 — Rehearse rollback and recovery.**
+- [x] **FM-050 — Rehearse rollback and recovery.**
   - Dependencies: FM-049.
   - Work: restore the preceding build/configuration and verify login/revocation,
     restart/stop, persistent-state compatibility and external-effect reconciliation.

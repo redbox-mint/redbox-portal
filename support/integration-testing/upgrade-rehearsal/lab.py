@@ -13,9 +13,11 @@ RUN = Path(os.environ['FM049_RUN']).resolve()
 SETTINGS = json.loads((RUN / 'settings.json').read_text())
 NAMESPACE = SETTINGS['namespace']
 ATTEMPT = SETTINGS['attemptId']
-assert NAMESPACE.startswith('fm049-') and NAMESPACE != 'fm049-'
+assert NAMESPACE.startswith(('fm049-', 'fm050-')) and NAMESPACE not in ('fm049-', 'fm050-')
 CORE_PORT, STORAGE_PORT, SOLR_PORT, S3_PORT, PORTAL_PORT, PROXY_PORT = range(SETTINGS['basePort'], SETTINGS['basePort'] + 6)
-DB = 'sr_wsu_' + NAMESPACE.replace('-', '_')
+DATA_NAMESPACE = SETTINGS.get('dataNamespace', NAMESPACE)
+S3_BUCKET = SETTINGS.get('s3Bucket', DATA_NAMESPACE)
+DB = 'sr_wsu_' + DATA_NAMESPACE.replace('-', '_')
 OWNER_LABEL = f'fm049.attempt={ATTEMPT}'
 ORIGIN = SETTINGS['origin']
 URL = urllib.parse.urlsplit(ORIGIN)
@@ -187,7 +189,7 @@ def preload():
     receipt('preload', results)
 
 
-def services():
+def services(initialize_volumes=None):
     for image_ref in PROVIDER_IMAGES:
         assert provider_image_present(image_ref), f'Run preload before services to obtain {image_ref}'
     for port in range(CORE_PORT, PROXY_PORT + 1):
@@ -200,10 +202,13 @@ def services():
     for volume in VOLUMES.values():
         assert docker('volume', 'inspect', volume, validate=False).returncode != 0, volume
     for volume in VOLUMES.values():
-        docker('volume', 'create', '--label', 'rehearsal=FM-049', '--label', OWNER_LABEL, volume)
+        docker('volume', 'create', '--label', f'rehearsal=FM-{NAMESPACE[2:5]}', '--label', OWNER_LABEL, volume)
+    if initialize_volumes is not None:
+        initialize_volumes()
     for name, port in NODES:
         docker('run', '--pull=never', '-d', '--name', name, '-p', f'127.0.0.1:{port}:27017',
-               '--memory=1536m', '--mount', f'type=volume,src={VOLUMES[name]},dst=/data/db',
+               '--memory=1536m', '--ulimit', 'nofile=64000:64000',
+               '--mount', f'type=volume,src={VOLUMES[name]},dst=/data/db',
                MONGO, '--wiredTigerCacheSizeGB', '0.25', '--bind_ip_all')
     docker('run', '--pull=never', '-d', '--name', SOLR, '-p', f'127.0.0.1:{SOLR_PORT}:8983', '--memory=1280m', '-e', 'SOLR_HEAP=512m',
            '--mount', f'type=volume,src={VOLUMES[SOLR]},dst=/var/solr', SOLR_REF,
@@ -250,7 +255,7 @@ def config_args(variant):
 def set_env(variant, secret):
     values = {'REDBOX_PUBLIC_URL':ORIGIN, 'REDBOX_PORT':str(PORTAL_PORT),
               'REDBOX_SESSION_SECRET':secret, 'REDBOX_APPLICATION_CONFIG':'/fm049-config.cjs',
-              'HOOK_S3_BUCKET':NAMESPACE, 'HOOK_S3_REGION':'ap-southeast-2',
+              'HOOK_S3_BUCKET':S3_BUCKET, 'HOOK_S3_REGION':'ap-southeast-2',
               'HOOK_S3_ENDPOINT':f'http://127.0.0.1:{S3_PORT}', 'HOOK_S3_ACCESS_KEY':'seaweedadmin',
               'HOOK_S3_SECRET_KEY':'seaweedadmin', 'HOOK_S3_FORCE_PATH_STYLE':'true',
               'HOOK_S3_SUPPORTS_ACL':'false', 'HOOK_ATTACHMENTS_STAGE_DIR':'/fm049-state/staging'}
@@ -263,14 +268,21 @@ def image(variant):
     return (RUN / f'components/{variant}.iid').read_text().strip()
 
 
-def provider(mode):
+def provider(mode, *, input_file=None):
     name = f'{NAMESPACE}-provider-{mode}'
     assert container(name) is None
+    input_mount = ['--user', f'{os.getuid()}:{os.getgid()}', '--mount',
+                   mount(input_file, '/fm049-provider-input.json', True)] if input_file else []
     try:
         result = docker('run', '--pull=never', '--rm', '--name', name, '--network=host', '--no-healthcheck',
                         '--mount', f'type=bind,src={HERE / "providers.cjs"},dst=/fm049-providers.cjs,readonly',
-                        '-e','FM049_DISPOSABLE=true', '-e',f'FM049_BASE_PORT={CORE_PORT}', '-e',f'FM049_NAMESPACE={NAMESPACE}',
-                        '-e','FM049_BEARER=' + SETTINGS['bearer'], image('express'), 'node', '/fm049-providers.cjs', mode, seconds=120)
+                        *input_mount, '-e','FM049_DISPOSABLE=true', '-e',f'FM049_BASE_PORT={CORE_PORT}',
+                        '-e',f'FM049_NAMESPACE={DATA_NAMESPACE}', '-e',f'FM049_BUCKET={S3_BUCKET}',
+                        '-e','FM049_BEARER=' + SETTINGS['bearer'],
+                        image('express'), 'node', '/fm049-providers.cjs', mode, seconds=120, validate=False)
+        if result.returncode:
+            (RUN / f'provider-{mode}-error.log').write_bytes(result.stderr)
+            raise RuntimeError(f'provider {mode} exited {result.returncode}; see provider-{mode}-error.log')
         return json.loads(result.stdout) if result.stdout.strip() else None
     finally:
         remove_job(name)
@@ -331,7 +343,8 @@ def boot(variant, stage, gated=True):
     evidence = {'observations': observations, 'health': 200, 'dockerHealth': 'healthy', 'publicFence': pre_fence,
                 'image': status['Image'], 'owner': status['State']['Pid']}
     if gated:
-        evidence['candidate'] = candidate(status)
+        assert status['Image'] == image(variant)
+        evidence['candidate'] = launch_identity(status)
     return evidence
 
 

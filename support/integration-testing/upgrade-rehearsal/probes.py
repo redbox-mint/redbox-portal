@@ -7,8 +7,8 @@ import urllib.parse
 
 from lab import AUTH, LOGINS, ORIGIN, PREFIX, SOLR_PORT, URL, expect, provider, receipt, request, wait
 
-def login(username, variant):
-    cookie_name = f'wsu.{variant}.fm049.sid'
+def login(username, variant, *, cookie_name=None):
+    cookie_name = cookie_name or f'wsu.{variant}.fm049.sid'
     def cookie(headers):
         return next(value.split(';',1)[0] for value in headers.get_all('Set-Cookie', []) if value.startswith(cookie_name+'='))
     headers, data = expect('/csrfToken', 200)

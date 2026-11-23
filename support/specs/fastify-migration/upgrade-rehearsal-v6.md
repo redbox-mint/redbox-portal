@@ -6,6 +6,11 @@ This runbook replays the local WSU upgrade from pre-Fastify v6 Express
 Both installations use `node node_modules/redbox-hook-wsu/support/v6/app.cjs`
 with the WSU bindings and the production composition for that image. The
 [rehearsal evidence](evidence/FM-049.md) records the exact image and hook digests.
+The [rollback rehearsal](rollback-rehearsal-v6.md) covers keeping current data
+and restoring this checkpoint into clean targets.
+For a new WSU run, pass the fixed source-built API2 package and its recorded
+SHA-256 as the second and third arguments to `prepare-deployments.sh`.
+[Fixed package qualification](evidence/FM-050.md#source-built-wsu-requalification)
 
 ## Prepare a fresh deployment
 
@@ -16,6 +21,12 @@ another unique suffix if its image tags or resources already exist. The original
 `fm049-*` volumes listed in the [FM-050 handoff](evidence/FM-049.md#fm-050-handoff)
 belong to rollback.
 
+> **WSU package provenance.** The pinned WSU package (SHA-256 `9248b56b…5ce27198`) was built from
+> `redbox-hook-wsu-api2` commit `58baba0` (branch `feature/v6-api2`) with the clean-install, build and
+> `npm pack` procedure in [FM-050 evidence](evidence/FM-050.md). The scratch path below is where this
+> rehearsal kept it; archive the package with the evidence, or rebuild it from that commit and confirm
+> the checksum before use.
+
 ```sh
 fm049_tool="$PWD/support/integration-testing/upgrade-rehearsal"
 fm049_scratch=/home/ubuntu/work/fastify-orchestration/scratch/FM-049
@@ -25,7 +36,8 @@ python3 "$fm049_tool/settings.py" "$FM049_RUN" fm049-r1-259 49850
 
 timeout --kill-after=35s 5500s "$fm049_tool/prepare-deployments.sh" \
   /home/ubuntu/work/bitbucket/redbox-hook-wsu-v6 \
-  /home/ubuntu/work/fastify-orchestration/artifacts/FM-045-r1/wsu-packs/redbox-hook-wsu-2.0.0-v6.0.tgz
+  /home/ubuntu/work/fastify-orchestration/scratch/FM-050/final-round.cv2kjB4z/packs/redbox-hook-wsu-2.0.0-v6.0.tgz \
+  9248b56b997ca820a7958c323fbd943e11e0d52464b622a0e2acf8cd5ce27198
 
 timeout --kill-after=15s 1000s "$fm049_tool/rehearse.py" preload
 timeout --kill-after=20s 950s "$fm049_tool/rehearse.py" services source-start seed
@@ -53,9 +65,9 @@ attempt ID. The driver checks the ports and resource names before creating them.
 builds the Express `runtime` target from a clean archive of `f7ebc45fb` with
 that revision's pinned Dockerfile. It compiles API1 from the read-only clone
 archive at `764851e98cd2ae2d6938c41b18b8abcc081e0656` against that portal
-builder. Supply the FM-045 round 1 API2 pack from
-`redbox-hook-wsu-api2` commit `37b64b95946c99d2f2a97d485c01258024622099`,
-SHA-256 `fcf0087649d4cbe9e877b84037fa3421d423b4d94d79cded46f4cae92cc9ac4c`.
+builder. Supply the fixed FM-050 API2 pack built from WSU source tree
+`ba31914b4ff22f4688cf9517bd6ab68e3e20fd9f` over base `37b64b9`,
+with SHA-256 `9248b56b997ca820a7958c323fbd943e11e0d52464b622a0e2acf8cd5ce27198`.
 The script verifies the pack and both r5 digests, installs the hook and the
 lock-pinned `xmlbuilder@15.1.1` in each deployment, and records each image
 digest under `components/`. It verifies the parent image layers, health

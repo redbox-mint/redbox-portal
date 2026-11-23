@@ -11,19 +11,13 @@ import uuid
 from pathlib import Path
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('directory', type=Path, help='existing empty directory for this run')
-    parser.add_argument('namespace', help='unique Docker resource prefix starting with fm049-')
-    parser.add_argument('base_port', type=int, help='first of six consecutive local ports')
-    args = parser.parse_args()
-    run, prefix, base = args.directory.resolve(), args.namespace, args.base_port
-    if not re.fullmatch(r'fm049-[a-z][a-z0-9-]{0,19}', prefix):
-        parser.error('invalid namespace')
+def setup(run, prefix, base):
+    if not re.fullmatch(r'fm(?:049|050)-[a-z][a-z0-9-]{0,19}', prefix):
+        raise ValueError('invalid namespace')
     if not 1024 <= base <= 65530 or set(range(base, base+6)) & {1500, 49740, 49741, 49742, 49743, 49749}:
-        parser.error('base port conflicts with reserved ports or falls outside the allowed range')
+        raise ValueError('base port conflicts with reserved ports or falls outside the allowed range')
     if not run.is_dir() or any(run.iterdir()):
-        parser.error('select an existing empty run directory')
+        raise ValueError('select an existing empty run directory')
     run.chmod(0o700)
     os.umask(0o077)
     tailscale = json.loads(subprocess.check_output(['timeout', '10s', 'tailscale', 'status', '--json']))
@@ -106,6 +100,21 @@ http {
 '''.replace('OPERATOR', settings['operator']).replace('IP:PROXY_PORT', f'{ip}:{proxy}')
         .replace('DNS', dns).replace('PORTAL_PORT', str(portal)))
     print(f'{prefix} at {origin}')
+    return settings
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('directory', type=Path, help='existing empty directory for this run')
+    parser.add_argument('namespace', help='unique Docker resource prefix starting with fm049-')
+    parser.add_argument('base_port', type=int, help='first of six consecutive local ports')
+    args = parser.parse_args()
+    try:
+        if not args.namespace.startswith('fm049-'):
+            raise ValueError('namespace must start with fm049-')
+        setup(args.directory.resolve(), args.namespace, args.base_port)
+    except ValueError as error:
+        parser.error(str(error))
 
 
 if __name__ == '__main__':

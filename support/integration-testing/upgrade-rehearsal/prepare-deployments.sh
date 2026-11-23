@@ -12,7 +12,8 @@ namespace=$(jq -er '.namespace | select(test("^fm049-[a-z][a-z0-9-]{0,19}$"))' "
 
 express_commit=f7ebc45fb5b7c837b66dd309e879f89b87065f7e
 api1_commit=764851e98cd2ae2d6938c41b18b8abcc081e0656
-api2_sha=fcf0087649d4cbe9e877b84037fa3421d423b4d94d79cded46f4cae92cc9ac4c
+api2_sha=${3:?Supply the qualified WSU API2 tarball SHA-256}
+[[ $api2_sha =~ ^[0-9a-f]{64}$ ]]
 fastify_base=redbox-fm044:r5-980c2f3a1e
 fastify_index=sha256:28898f254d52fcbcfc71ed1bebb0c39726ee089e992b643f7303ed1ca581080a
 fastify_manifest=sha256:6ea446bc51e6aaab6bad0676934146c6b4fb77932b1448f7120130c1547d3d5b
