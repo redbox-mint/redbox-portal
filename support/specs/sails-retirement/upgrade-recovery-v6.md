@@ -2,6 +2,7 @@
 
 > Historical runbook for the pre-Fastify v6 Express artifact. Run the commands
 > below only with that artifact. The selected Fastify artifact uses `node app.js`.
+> [WSU v6 Express-to-Fastify maintenance rehearsal](../fastify-migration/upgrade-rehearsal-v6.md)
 > [Fastify installation and upgrade guidance](../../wiki/Installation-Guide.md#existing-installation-upgrade)
 
 This runbook accompanies SR-048/SR-049. The preceding artifact's Express entrypoint is

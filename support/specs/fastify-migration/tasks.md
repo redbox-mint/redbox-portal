@@ -405,7 +405,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P8 — Rehearsal and handoff
 
-- [ ] **FM-049 — Rehearse maintenance-window upgrade.**
+- [x] **FM-049 — Rehearse maintenance-window upgrade.**
   - Dependencies: G7.
   - Work: use preceding known-good v6 build and disposable representative state;
     quiesce/drain, checkpoint, deploy image/hooks/configuration, invalidate sessions,
