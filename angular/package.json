@@ -43,7 +43,7 @@
     "@uppy/google-drive": "6.0.2",
     "@uppy/onedrive": "6.0.1",
     "@uppy/tus": "6.0.1",
-    "dompurify": "3.4.17",
+    "dompurify": "3.4.18",
     "esbuild": "0.28.2",
     "handlebars": "4.7.10",
     "i18next": "27.1.1",
