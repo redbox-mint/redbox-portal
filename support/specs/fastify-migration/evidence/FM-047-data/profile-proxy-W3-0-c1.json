@@ -1,0 +1,840 @@
+{
+  "samples": 101238,
+  "durationSeconds": 120.698241,
+  "self": [
+    {
+      "frame": [
+        "(idle)",
+        "",
+        0
+      ],
+      "timeMs": 10073.457,
+      "percent": 8.345984926159778
+    },
+    {
+      "frame": [
+        "(garbage collector)",
+        "",
+        0
+      ],
+      "timeMs": 8446.818,
+      "percent": 6.998294200492946
+    },
+    {
+      "frame": [
+        "visit",
+        "packages/redbox-core/dist/persistence/cache/validation.js",
+        19
+      ],
+      "timeMs": 6561.456,
+      "percent": 5.436248238282114
+    },
+    {
+      "frame": [
+        "escape",
+        "node_modules/path-to-regexp/dist/index.js",
+        23
+      ],
+      "timeMs": 5087.595,
+      "percent": 4.215135993572599
+    },
+    {
+      "frame": [
+        "assignValue",
+        "node_modules/bson/lib/bson.cjs",
+        3323
+      ],
+      "timeMs": 4922.53,
+      "percent": 4.078377579669947
+    },
+    {
+      "frame": [
+        "writeBuffer",
+        "",
+        0
+      ],
+      "timeMs": 4823.467,
+      "percent": 3.996302647028634
+    },
+    {
+      "frame": [
+        "lstat",
+        "",
+        0
+      ],
+      "timeMs": 4038.978,
+      "percent": 3.346343713492892
+    },
+    {
+      "frame": [
+        "decodeValue",
+        "node_modules/@prisma/orm-target-mongo/dist/codecs-CylyDRI5-DdzCZHek.mjs",
+        118
+      ],
+      "timeMs": 3074.892,
+      "percent": 2.5475864225726372
+    },
+    {
+      "frame": [
+        "consumeUntil",
+        "node_modules/path-to-regexp/dist/index.js",
+        57
+      ],
+      "timeMs": 2646.97,
+      "percent": 2.1930477014988146
+    },
+    {
+      "frame": [
+        "decodeEntries",
+        "node_modules/@prisma/orm-target-mongo/dist/codecs-CylyDRI5-DdzCZHek.mjs",
+        106
+      ],
+      "timeMs": 2450.415,
+      "percent": 2.0301994293355112
+    },
+    {
+      "frame": [
+        "expand",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        115
+      ],
+      "timeMs": 2269.118,
+      "percent": 1.8799926007206684
+    },
+    {
+      "frame": [
+        "deserializeObject",
+        "node_modules/bson/lib/bson.cjs",
+        3343
+      ],
+      "timeMs": 1861.33,
+      "percent": 1.5421351500888898
+    },
+    {
+      "frame": [
+        "pathToRegexp",
+        "node_modules/path-to-regexp/dist/index.js",
+        252
+      ],
+      "timeMs": 1785.596,
+      "percent": 1.4793885852901534
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        123
+      ],
+      "timeMs": 1622.642,
+      "percent": 1.3443791612505769
+    },
+    {
+      "frame": [
+        "httpRoutePath",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        111
+      ],
+      "timeMs": 1509.968,
+      "percent": 1.2510273451292468
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        126
+      ],
+      "timeMs": 1508.054,
+      "percent": 1.2494415722263923
+    },
+    {
+      "frame": [
+        "routeCase",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        96
+      ],
+      "timeMs": 1397.45,
+      "percent": 1.1578047769561115
+    },
+    {
+      "frame": [
+        "parse",
+        "node_modules/path-to-regexp/dist/index.js",
+        53
+      ],
+      "timeMs": 1395.17,
+      "percent": 1.155915768482492
+    },
+    {
+      "frame": [
+        "existsSync",
+        "",
+        0
+      ],
+      "timeMs": 1355.06,
+      "percent": 1.1226841325715757
+    },
+    {
+      "frame": [
+        "toUTF8",
+        "node_modules/bson/lib/bson.cjs",
+        296
+      ],
+      "timeMs": 1252.874,
+      "percent": 1.0380217554288964
+    },
+    {
+      "frame": [
+        "utf8Slice",
+        "",
+        0
+      ],
+      "timeMs": 1171.904,
+      "percent": 0.970937099240742
+    },
+    {
+      "frame": [
+        "runMicrotasks",
+        "",
+        0
+      ],
+      "timeMs": 1103.452,
+      "percent": 0.9142237623827508
+    },
+    {
+      "frame": [
+        "scanLine",
+        "packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js",
+        718
+      ],
+      "timeMs": 1010.974,
+      "percent": 0.8376045844777473
+    },
+    {
+      "frame": [
+        "(program)",
+        "",
+        0
+      ],
+      "timeMs": 1000.605,
+      "percent": 0.8290137384852195
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        99
+      ],
+      "timeMs": 979.178,
+      "percent": 0.811261201395636
+    },
+    {
+      "frame": [
+        "Hash",
+        "",
+        0
+      ],
+      "timeMs": 893.632,
+      "percent": 0.7403852720604271
+    },
+    {
+      "frame": [
+        "validateSourcePath",
+        "packages/redbox-core/dist/http/fastify/routes.js",
+        98
+      ],
+      "timeMs": 858.938,
+      "percent": 0.7116408597868464
+    },
+    {
+      "frame": [
+        "compile",
+        "packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js",
+        491
+      ],
+      "timeMs": 829.628,
+      "percent": 0.6873571587509714
+    },
+    {
+      "frame": [
+        "toString",
+        "node:buffer",
+        975
+      ],
+      "timeMs": 812.76,
+      "percent": 0.6733818100961388
+    },
+    {
+      "frame": [
+        "isTTY",
+        "",
+        0
+      ],
+      "timeMs": 751.524,
+      "percent": 0.6226470193546565
+    },
+    {
+      "frame": [
+        "tryReadBasicLatin",
+        "node_modules/bson/lib/bson.cjs",
+        168
+      ],
+      "timeMs": 738.05,
+      "percent": 0.6114836420855545
+    },
+    {
+      "frame": [
+        "generateSource",
+        "packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js",
+        634
+      ],
+      "timeMs": 734.694,
+      "percent": 0.6087031541743844
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "node_modules/path-to-regexp/dist/index.js",
+        264
+      ],
+      "timeMs": 662.453,
+      "percent": 0.548850583497733
+    },
+    {
+      "frame": [
+        "readFileUtf8",
+        "",
+        0
+      ],
+      "timeMs": 658.61,
+      "percent": 0.5456666100046976
+    },
+    {
+      "frame": [
+        "digest",
+        "",
+        0
+      ],
+      "timeMs": 644.123,
+      "percent": 0.5336639495848162
+    },
+    {
+      "frame": [
+        "_addOutput",
+        "packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js",
+        695
+      ],
+      "timeMs": 582.2,
+      "percent": 0.48235997076378273
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        119
+      ],
+      "timeMs": 544.036,
+      "percent": 0.4507406201553509
+    },
+    {
+      "frame": [
+        "match",
+        "node_modules/path-to-regexp/dist/index.js",
+        233
+      ],
+      "timeMs": 544.017,
+      "percent": 0.45072487841807074
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js",
+        657
+      ],
+      "timeMs": 537.229,
+      "percent": 0.4451009356466098
+    },
+    {
+      "frame": [
+        "toRegExpSource",
+        "node_modules/path-to-regexp/dist/index.js",
+        300
+      ],
+      "timeMs": 511.484,
+      "percent": 0.4237708816319867
+    }
+  ],
+  "inclusiveSources": [
+    {
+      "frame": "node:internal/process/task_queues",
+      "timeMs": 94236.027,
+      "percent": 78.07572522950024
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+      "timeMs": 32422.195,
+      "percent": 26.86219345980361
+    },
+    {
+      "frame": "node_modules/fastify/lib/hooks.js",
+      "timeMs": 32229.242,
+      "percent": 26.70232948962363
+    },
+    {
+      "frame": "packages/redbox-core/dist/middleware/requestLifetime.js",
+      "timeMs": 31843.178,
+      "percent": 26.3824706442905
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/runtime.js",
+      "timeMs": 31494.396,
+      "percent": 26.093500401551005
+    },
+    {
+      "frame": "node:internal/async_local_storage/async_context_frame",
+      "timeMs": 31443.498,
+      "percent": 26.05133077291491
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/routes.js",
+      "timeMs": 29128.334,
+      "percent": 24.133188486152005
+    },
+    {
+      "frame": "packages/redbox-core/dist/application/portal/host.js",
+      "timeMs": 23953.97,
+      "percent": 19.846163292470848
+    },
+    {
+      "frame": "packages/redbox-core/dist/extensions/resolution.js",
+      "timeMs": 22976.852,
+      "percent": 19.036608826801377
+    },
+    {
+      "frame": "packages/redbox-core/dist/pages/rendering.js",
+      "timeMs": 18683.374,
+      "percent": 15.479408685003122
+    },
+    {
+      "frame": "packages/redbox-core/dist/pages/browser.js",
+      "timeMs": 16270.96,
+      "percent": 13.480693558740429
+    },
+    {
+      "frame": "packages/redbox-core/dist/pages/Artifacts.js",
+      "timeMs": 15929.87,
+      "percent": 13.198096234061936
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cursor/abstract_cursor.js",
+      "timeMs": 13627.281,
+      "percent": 11.290372491841037
+    },
+    {
+      "frame": "node_modules/path-to-regexp/dist/index.js",
+      "timeMs": 13315.021,
+      "percent": 11.031661182203973
+    },
+    {
+      "frame": "packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js",
+      "timeMs": 13286.615,
+      "percent": 11.008126456457639
+    },
+    {
+      "frame": "node_modules/bson/lib/bson.cjs",
+      "timeMs": 12853.021,
+      "percent": 10.648888412549443
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/wire_protocol/responses.js",
+      "timeMs": 12469.364,
+      "percent": 10.33102379677596
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/wire_protocol/on_demand/document.js",
+      "timeMs": 12173.807,
+      "percent": 10.086151131233139
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/dist/runtime.mjs",
+      "timeMs": 9630.834,
+      "percent": 7.97926624299355
+    },
+    {
+      "frame": "\"/tmp/redbox-page-views-6e8btV/default/default/layout.ejs\"",
+      "timeMs": 9551.526,
+      "percent": 7.913558574561165
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/connection.js",
+      "timeMs": 8878.154,
+      "percent": 7.355661463202268
+    },
+    {
+      "frame": "node:fs",
+      "timeMs": 8086.318,
+      "percent": 6.699615448414033
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/configuration/PrismaConfigurationRepositories.js",
+      "timeMs": 6821.596,
+      "percent": 5.651777477022221
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/configuration/physical.js",
+      "timeMs": 6795.246,
+      "percent": 5.629946172952098
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/cache/validation.js",
+      "timeMs": 6563.606,
+      "percent": 5.438029540132238
+    },
+    {
+      "frame": "node:internal/stream_base_commons",
+      "timeMs": 6514.45,
+      "percent": 5.3973031802509865
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/dist/dist-Bgk36iLI.mjs",
+      "timeMs": 6319.177,
+      "percent": 5.23551706109785
+    },
+    {
+      "frame": "node:internal/streams/writable",
+      "timeMs": 6013.147,
+      "percent": 4.981967384263703
+    },
+    {
+      "frame": "node_modules/@prisma/orm-target-mongo/dist/codecs-CylyDRI5-DdzCZHek.mjs",
+      "timeMs": 5866.828,
+      "percent": 4.860740265469155
+    },
+    {
+      "frame": "node:net",
+      "timeMs": 5463.515,
+      "percent": 4.526590408223099
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/hooks.js",
+      "timeMs": 5176.075,
+      "percent": 4.288442778548861
+    },
+    {
+      "frame": "node_modules/fastify/lib/handle-request.js",
+      "timeMs": 4648.462,
+      "percent": 3.851308818990991
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/controllers/PageController.js",
+      "timeMs": 4567.271,
+      "percent": 3.7840410615428937
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/controllers/BrowserControllers.js",
+      "timeMs": 4133.689,
+      "percent": 3.424812959784559
+    },
+    {
+      "frame": "node_modules/mongodb/lib/sdam/server.js",
+      "timeMs": 2972.431,
+      "percent": 2.4626962044956398
+    },
+    {
+      "frame": "packages/redbox-core/dist/application/portal/pageHttpPlan.js",
+      "timeMs": 2918.463,
+      "percent": 2.4179830425200644
+    },
+    {
+      "frame": "node:internal/crypto/hash",
+      "timeMs": 2764.071,
+      "percent": 2.2900673424064233
+    },
+    {
+      "frame": "packages/redbox-core/dist/translations/Translation.js",
+      "timeMs": 2755.28,
+      "percent": 2.282783889120638
+    },
+    {
+      "frame": "node_modules/i18next/dist/cjs/i18next.js",
+      "timeMs": 2533.805,
+      "percent": 2.0992890857456654
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/node_modules/@prisma/orm-framework/dist/runtime-DSYSc98Y.mjs",
+      "timeMs": 2497.272,
+      "percent": 2.0690210390058628
+    }
+  ],
+  "corePaths": [
+    {
+      "frame": [],
+      "timeMs": 57188.817,
+      "percent": 47.38164908302185
+    },
+    {
+      "frame": [
+        "args.<computed> (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "apply (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/runtime.js)",
+        "invoke (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "runHttpRequestWork (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "runHttpRequestContext (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "(anonymous) (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/application/portal/host.js)"
+      ],
+      "timeMs": 23776.348,
+      "percent": 19.699001247250987
+    },
+    {
+      "frame": [
+        "list (packages/redbox-core/dist/persistence/configuration/PrismaConfigurationRepositories.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/configuration/PrismaConfigurationRepositories.js)",
+        "decodeConfiguration (packages/redbox-core/dist/persistence/configuration/physical.js)",
+        "plain (packages/redbox-core/dist/persistence/configuration/physical.js)",
+        "assertJsonValue (packages/redbox-core/dist/persistence/cache/validation.js)",
+        "visit (packages/redbox-core/dist/persistence/cache/validation.js)"
+      ],
+      "timeMs": 6515.239,
+      "percent": 5.397956876604358
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/http/fastify/hooks.js)",
+        "args.<computed> (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "apply (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/runtime.js)",
+        "invoke (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "runHttpRequestWork (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "runHttpRequestContext (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "(anonymous) (packages/redbox-core/dist/http/fastify/requestOwnership.js)"
+      ],
+      "timeMs": 4979.882,
+      "percent": 4.125894427906369
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "anonymous (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "locals.superPartial (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "view (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 2398.628,
+      "percent": 1.9872932530972014
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "anonymous (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "include (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "includeFile (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)"
+      ],
+      "timeMs": 2175.258,
+      "percent": 1.8022284185566548
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "handleCache (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "compile (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "generateSource (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)"
+      ],
+      "timeMs": 1902.886,
+      "percent": 1.5765648150580753
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "anonymous (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "locals.superPartial (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "handleCache (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)"
+      ],
+      "timeMs": 1545.712,
+      "percent": 1.2806416955156787
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "anonymous (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "locals.superPartial (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "find (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 1420.93,
+      "percent": 1.1772582501844413
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "layout (packages/redbox-core/dist/pages/Artifacts.js)",
+        "(anonymous) (packages/redbox-core/dist/pages/Artifacts.js)",
+        "find (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 979.88,
+      "percent": 0.8118428171625136
+    },
+    {
+      "frame": [
+        "apply (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/runtime.js)",
+        "invoke (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "runHttpRequestWork (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "runHttpRequestContext (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "(anonymous) (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "app.route.preHandler (packages/redbox-core/dist/http/fastify/routes.js)",
+        "guard (packages/redbox-core/dist/http/fastify/composition.js)"
+      ],
+      "timeMs": 886.024,
+      "percent": 0.7340819490484538
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "anonymous (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "bundleHash (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 679.335,
+      "percent": 0.5628375313274036
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "view (packages/redbox-core/dist/pages/Artifacts.js)",
+        "(anonymous) (packages/redbox-core/dist/pages/Artifacts.js)",
+        "find (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 677.377,
+      "percent": 0.5612153038750581
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)",
+        "find (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 657.444,
+      "percent": 0.5447005644431885
+    },
+    {
+      "frame": [
+        "browserPage (packages/redbox-core/dist/pages/browser.js)",
+        "renderPageShell (packages/redbox-core/dist/pages/rendering.js)",
+        "ejs.render (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "anonymous (packages/redbox-core/node_modules/ejs/lib/cjs/ejs.js)",
+        "locals.superPartial (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/rendering.js)",
+        "render (packages/redbox-core/dist/pages/Artifacts.js)"
+      ],
+      "timeMs": 502.502,
+      "percent": 0.41632918246091094
+    }
+  ],
+  "routeNameCallers": [
+    {
+      "frame": [
+        [
+          "coreRouteName",
+          "packages/redbox-core/dist/http/fastify/routes.js",
+          114
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/application/portal/host.js",
+          231
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/application/portal/host.js",
+          221
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+          293
+        ]
+      ],
+      "timeMs": 23228.593,
+      "percent": 19.245179389151165
+    },
+    {
+      "frame": [
+        [
+          "coreRouteName",
+          "packages/redbox-core/dist/http/fastify/routes.js",
+          114
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/http/controllers/PageController.js",
+          15
+        ],
+        [
+          "runNativePage",
+          "packages/redbox-core/dist/http/controllers/PageController.js",
+          13
+        ],
+        [
+          "view",
+          "packages/redbox-core/dist/http/controllers/BrowserControllers.js",
+          61
+        ]
+      ],
+      "timeMs": 3790.728,
+      "percent": 3.140665488240214
+    },
+    {
+      "frame": [
+        [
+          "coreRouteName",
+          "packages/redbox-core/dist/http/fastify/routes.js",
+          114
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+          293
+        ],
+        [
+          "run",
+          "node:internal/async_local_storage/async_context_frame",
+          59
+        ],
+        [
+          "runHttpRequestContext",
+          "packages/redbox-core/dist/middleware/requestLifetime.js",
+          32
+        ]
+      ],
+      "timeMs": 2.146,
+      "percent": 0.0017779878001701781
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "containers": 0,
+  "volumesPreserved": 11,
+  "networks": [
+    "bridge",
+    "host",
+    "none"
+  ],
+  "portsReleased": [
+    18570,
+    18571,
+    18572,
+    18573,
+    18574,
+    19570,
+    19571,
+    49447
+  ],
+  "retainedImages": [
+    "redbox-fm044@sha256:530f75cd2da35d79a55d20fd15f9858a5f4ced26fabcc48d1ace83cc5140203f",
+    "redbox-fm044@sha256:28898f254d52fcbcfc71ed1bebb0c39726ee089e992b643f7303ed1ca581080a"
+  ],
+  "stageTagsRemoved": [
+    "redbox-fm044:r5-980c2f3a1e-arm64",
+    "redbox-fm044:r5-980c2f3a1e-amd64"
+  ],
+  "newCacheRecordsRemoved": 100,
+  "inheritedCacheRecordsPreserved": 1,
+  "scratchRemoved": true,
+  "qemuRegistrationRemoved": true
+}

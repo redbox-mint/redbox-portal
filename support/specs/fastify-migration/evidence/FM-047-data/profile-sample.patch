@@ -1,0 +1,6 @@
+--- sample.cjs
++++ profile-sample.cjs
+@@ -152 +152,2 @@
+-    '-e', 'NODE_OPTIONS=--max-old-space-size=1024 --require=/fm047-fixture/candidate-control.cjs',
++    '-e', 'NODE_OPTIONS=--max-old-space-size=1024 --require=/fm047-fixture/profile-control.cjs',
++    '-e', 'FM047_PROFILE_CPU=true',

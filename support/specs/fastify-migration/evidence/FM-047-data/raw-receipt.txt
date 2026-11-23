@@ -1,0 +1,6 @@
+c7ee8cd0e3c36a69a91c329c0c549e33aaafbe02d84625d8657a508b898b8602  raw-sha256.txt
+1565 raw-sha256.txt
+98022675	raw
+70866559	revision5
+8711273	diagnostics-r5
+1612983	rebuild

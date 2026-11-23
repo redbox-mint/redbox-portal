@@ -1,0 +1,14 @@
+✔ FM-005 cells independently cover both transports and every payload/concurrency (2.905296ms)
+✔ seed and alternating patches have exact UTF-8 lengths and independent identities (67.51111ms)
+✔ boundary completions count once and late/errors never improve timed throughput (7.122802ms)
+✔ nearest-rank p95, median, full range and variability retain every attempt (8.863811ms)
+✔ state guard rejects unsafe, unmarked and symlinked paths before cleanup or acquisition (323.789591ms)
+✔ report preserves completed timeout attempts, excludes their batch and works without raw logs (22.360009ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 610.524369

@@ -1,0 +1,763 @@
+{
+  "samples": 99820,
+  "durationSeconds": 120.476684,
+  "self": [
+    {
+      "frame": [
+        "(garbage collector)",
+        "",
+        0
+      ],
+      "timeMs": 9433.042,
+      "percent": 7.8297656333237065
+    },
+    {
+      "frame": [
+        "addNames",
+        "node_modules/ajv/dist/compile/codegen/index.js",
+        637
+      ],
+      "timeMs": 6239.611,
+      "percent": 5.179102539043987
+    },
+    {
+      "frame": [
+        "(idle)",
+        "",
+        0
+      ],
+      "timeMs": 6144.749,
+      "percent": 5.100363652107158
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "node_modules/lodash/lodash.js",
+        2732
+      ],
+      "timeMs": 5990.212,
+      "percent": 4.972092359381339
+    },
+    {
+      "frame": [
+        "cloneJsonSafe",
+        "packages/redbox-core/dist/record-contract/record-contract-compiler.js",
+        103
+      ],
+      "timeMs": 3649.613,
+      "percent": 3.029310634080865
+    },
+    {
+      "frame": [
+        "writeBuffer",
+        "",
+        0
+      ],
+      "timeMs": 3529.244,
+      "percent": 2.929400015691003
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "node_modules/ajv/dist/compile/codegen/code.js",
+        47
+      ],
+      "timeMs": 2958.503,
+      "percent": 2.455664367389129
+    },
+    {
+      "frame": [
+        "walk",
+        "packages/redbox-core/dist/RecordFormFingerprint.js",
+        30
+      ],
+      "timeMs": 2637.381,
+      "percent": 2.1891215066975116
+    },
+    {
+      "frame": [
+        "baseAssignValue",
+        "node_modules/lodash/lodash.js",
+        2597
+      ],
+      "timeMs": 2136.575,
+      "percent": 1.7734344348322204
+    },
+    {
+      "frame": [
+        "freezeDeep",
+        "packages/redbox-core/dist/record-contract/deep-freeze.js",
+        5
+      ],
+      "timeMs": 2119.75,
+      "percent": 1.7594690770207453
+    },
+    {
+      "frame": [
+        "normalizedObject",
+        "packages/redbox-core/dist/record-contract/canonical-json.js",
+        52
+      ],
+      "timeMs": 2083.741,
+      "percent": 1.7295803061777497
+    },
+    {
+      "frame": [
+        "escape",
+        "node_modules/path-to-regexp/dist/index.js",
+        23
+      ],
+      "timeMs": 1393.08,
+      "percent": 1.1563067257063615
+    },
+    {
+      "frame": [
+        "assignValue",
+        "node_modules/lodash/lodash.js",
+        2518
+      ],
+      "timeMs": 1373.039,
+      "percent": 1.1396719717152906
+    },
+    {
+      "frame": [
+        "baseClone",
+        "node_modules/lodash/lodash.js",
+        2667
+      ],
+      "timeMs": 1328.217,
+      "percent": 1.1024680924982961
+    },
+    {
+      "frame": [
+        "assocIndexOf",
+        "node_modules/lodash/lodash.js",
+        2534
+      ],
+      "timeMs": 1210.971,
+      "percent": 1.005149676928359
+    },
+    {
+      "frame": [
+        "safeStringify",
+        "node_modules/ajv/dist/compile/codegen/code.js",
+        134
+      ],
+      "timeMs": 1190.317,
+      "percent": 0.9880061107923588
+    },
+    {
+      "frame": [
+        "update",
+        "",
+        0
+      ],
+      "timeMs": 1189.447,
+      "percent": 0.987283979363177
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "node_modules/ajv/dist/compile/codegen/index.js",
+        181
+      ],
+      "timeMs": 1134.18,
+      "percent": 0.941410372815374
+    },
+    {
+      "frame": [
+        "runMicrotasks",
+        "",
+        0
+      ],
+      "timeMs": 1031.785,
+      "percent": 0.8564188237451821
+    },
+    {
+      "frame": [
+        "visit",
+        "packages/redbox-core/dist/persistence/cache/validation.js",
+        19
+      ],
+      "timeMs": 922.989,
+      "percent": 0.7661142134356885
+    },
+    {
+      "frame": [
+        "arrayEach",
+        "node_modules/lodash/lodash.js",
+        526
+      ],
+      "timeMs": 857.413,
+      "percent": 0.7116837644701443
+    },
+    {
+      "frame": [
+        "consumeUntil",
+        "node_modules/path-to-regexp/dist/index.js",
+        57
+      ],
+      "timeMs": 794.2,
+      "percent": 0.6592146908691477
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "node_modules/lodash/lodash.js",
+        1225
+      ],
+      "timeMs": 765.241,
+      "percent": 0.6351776747109009
+    },
+    {
+      "frame": [
+        "(program)",
+        "",
+        0
+      ],
+      "timeMs": 765.209,
+      "percent": 0.6351511135548851
+    },
+    {
+      "frame": [
+        "setPropOverride",
+        "packages/sails-ng-common/dist/src/config/visitor/common.model.js",
+        171
+      ],
+      "timeMs": 714.54,
+      "percent": 0.5930940131121138
+    },
+    {
+      "frame": [
+        "normalizedArray",
+        "packages/redbox-core/dist/record-contract/canonical-json.js",
+        29
+      ],
+      "timeMs": 697.276,
+      "percent": 0.578764269441546
+    },
+    {
+      "frame": [
+        "expand",
+        "packages/redbox-core/dist/extensions/resolution.js",
+        115
+      ],
+      "timeMs": 675.341,
+      "percent": 0.5605574270287851
+    },
+    {
+      "frame": [
+        "subschema",
+        "node_modules/ajv/dist/compile/validate/index.js",
+        433
+      ],
+      "timeMs": 651.332,
+      "percent": 0.5406290896917448
+    },
+    {
+      "frame": [
+        "normalizeValue",
+        "packages/redbox-core/dist/record-contract/canonical-json.js",
+        74
+      ],
+      "timeMs": 640.759,
+      "percent": 0.5318531177368726
+    },
+    {
+      "frame": [
+        "getSymbols",
+        "node_modules/lodash/lodash.js",
+        6106
+      ],
+      "timeMs": 626.016,
+      "percent": 0.5196158951386809
+    },
+    {
+      "frame": [
+        "shouldUseRule",
+        "node_modules/ajv/dist/compile/validate/applicability.js",
+        13
+      ],
+      "timeMs": 600.745,
+      "percent": 0.4986400522112644
+    },
+    {
+      "frame": [
+        "removePropsUndefined",
+        "packages/redbox-core/dist/visitor/client.visitor.js",
+        774
+      ],
+      "timeMs": 567.244,
+      "percent": 0.4708330119710134
+    },
+    {
+      "frame": [
+        "initCloneObject",
+        "node_modules/lodash/lodash.js",
+        6262
+      ],
+      "timeMs": 560.222,
+      "percent": 0.4650044982977785
+    },
+    {
+      "frame": [
+        "formatJsonPointer",
+        "packages/sails-ng-common/node_modules/@jsonjoy.com/json-pointer/lib/util.js",
+        46
+      ],
+      "timeMs": 549.564,
+      "percent": 0.4561579732722391
+    },
+    {
+      "frame": [
+        "isTTY",
+        "",
+        0
+      ],
+      "timeMs": 546.266,
+      "percent": 0.4534205141303524
+    },
+    {
+      "frame": [
+        "compileSchema",
+        "node_modules/ajv/dist/compile/index.js",
+        33
+      ],
+      "timeMs": 541.027,
+      "percent": 0.44907195486887735
+    },
+    {
+      "frame": [
+        "pathToRegexp",
+        "node_modules/path-to-regexp/dist/index.js",
+        252
+      ],
+      "timeMs": 538.161,
+      "percent": 0.446693071333205
+    },
+    {
+      "frame": [
+        "valueProtoInfo",
+        "packages/sails-ng-common/dist/src/config/helpers.js",
+        69
+      ],
+      "timeMs": 535.905,
+      "percent": 0.4448205098340854
+    },
+    {
+      "frame": [
+        "mapCacheSet",
+        "node_modules/lodash/lodash.js",
+        2250
+      ],
+      "timeMs": 509.067,
+      "percent": 0.4225440002980162
+    },
+    {
+      "frame": [
+        "acceptFormPath",
+        "packages/sails-ng-common/dist/src/config/visitor/common.model.js",
+        288
+      ],
+      "timeMs": 497.315,
+      "percent": 0.41278941575118383
+    }
+  ],
+  "inclusiveSources": [
+    {
+      "frame": "node:internal/process/task_queues",
+      "timeMs": 98371.278,
+      "percent": 81.65171445123772
+    },
+    {
+      "frame": "packages/redbox-core/dist/recordSchema/RecordSchema.js",
+      "timeMs": 36777.833,
+      "percent": 30.52693000746933
+    },
+    {
+      "frame": "packages/redbox-core/dist/record-contract/record-json-schema-artifact.js",
+      "timeMs": 31489.471,
+      "percent": 26.137398502767557
+    },
+    {
+      "frame": "node_modules/ajv/dist/core.js",
+      "timeMs": 27421.124,
+      "percent": 22.760523521713132
+    },
+    {
+      "frame": "node_modules/ajv/dist/compile/index.js",
+      "timeMs": 25245.371,
+      "percent": 20.954569931556218
+    },
+    {
+      "frame": "node_modules/ajv/dist/compile/codegen/index.js",
+      "timeMs": 24995.704,
+      "percent": 20.747337302211935
+    },
+    {
+      "frame": "packages/redbox-core/dist/visitor/construct.visitor.js",
+      "timeMs": 19662.842,
+      "percent": 16.320869189925578
+    },
+    {
+      "frame": "node_modules/ajv/dist/compile/validate/index.js",
+      "timeMs": 19657.455,
+      "percent": 16.31639778531753
+    },
+    {
+      "frame": "node_modules/lodash/lodash.js",
+      "timeMs": 18283.742,
+      "percent": 15.176166369253655
+    },
+    {
+      "frame": "node_modules/ajv/dist/vocabularies/core/ref.js",
+      "timeMs": 16071.185,
+      "percent": 13.339664129533977
+    },
+    {
+      "frame": "node_modules/ajv/dist/vocabularies/applicator/allOf.js",
+      "timeMs": 15839.819,
+      "percent": 13.147621991322405
+    },
+    {
+      "frame": "packages/redbox-core/dist/forms/RecordValidation.js",
+      "timeMs": 10843.651,
+      "percent": 9.000622062273893
+    },
+    {
+      "frame": "packages/sails-ng-common/dist/src/config/form-override.model.js",
+      "timeMs": 10108.541,
+      "percent": 8.390454206060319
+    },
+    {
+      "frame": "packages/sails-ng-common/dist/src/config/visitor/common.model.js",
+      "timeMs": 9740.609,
+      "percent": 8.085057354334221
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+      "timeMs": 9610.069,
+      "percent": 7.976704438511937
+    },
+    {
+      "frame": "node_modules/fastify/lib/hooks.js",
+      "timeMs": 9499.02,
+      "percent": 7.8845297568117
+    },
+    {
+      "frame": "packages/redbox-core/dist/middleware/requestLifetime.js",
+      "timeMs": 9399.006,
+      "percent": 7.801514523756315
+    },
+    {
+      "frame": "node_modules/ajv/dist/vocabularies/applicator/properties.js",
+      "timeMs": 9359.764,
+      "percent": 7.76894224611959
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/runtime.js",
+      "timeMs": 9237.634,
+      "percent": 7.667569934112729
+    },
+    {
+      "frame": "node:internal/async_local_storage/async_context_frame",
+      "timeMs": 9202.955,
+      "percent": 7.6387851113166425
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/routes.js",
+      "timeMs": 8364.385,
+      "percent": 6.942741717559225
+    },
+    {
+      "frame": "packages/redbox-core/dist/application/portal/host.js",
+      "timeMs": 7980.157,
+      "percent": 6.623818597132039
+    },
+    {
+      "frame": "node_modules/ajv/dist/compile/codegen/code.js",
+      "timeMs": 6603.174,
+      "percent": 5.4808729629377915
+    },
+    {
+      "frame": "packages/redbox-core/dist/extensions/resolution.js",
+      "timeMs": 6533.353,
+      "percent": 5.422919010619515
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/connection.js",
+      "timeMs": 6194.04,
+      "percent": 5.141276962768996
+    },
+    {
+      "frame": "packages/redbox-core/dist/record-contract/canonical-json.js",
+      "timeMs": 6047.76,
+      "percent": 5.019859278331399
+    },
+    {
+      "frame": "packages/redbox-core/dist/record-contract/record-contract-compiler.js",
+      "timeMs": 5898.496,
+      "percent": 4.895964766095322
+    },
+    {
+      "frame": "packages/redbox-core/dist/RecordFormFingerprint.js",
+      "timeMs": 4703.172,
+      "percent": 3.903802664422603
+    },
+    {
+      "frame": "node:internal/stream_base_commons",
+      "timeMs": 4447.432,
+      "percent": 3.6915292256881838
+    },
+    {
+      "frame": "node:internal/streams/writable",
+      "timeMs": 4170.776,
+      "percent": 3.4618947513528844
+    },
+    {
+      "frame": "node:net",
+      "timeMs": 3886.005,
+      "percent": 3.2255245338591823
+    },
+    {
+      "frame": "node_modules/path-to-regexp/dist/index.js",
+      "timeMs": 3770.606,
+      "percent": 3.1297391950130367
+    },
+    {
+      "frame": "packages/sails-hook-redbox-storage-mongo/dist/persistence/StorageProtocol.js",
+      "timeMs": 3288.304,
+      "percent": 2.7294111116139286
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/dist/runtime.mjs",
+      "timeMs": 3022.924,
+      "percent": 2.509136124629725
+    },
+    {
+      "frame": "packages/redbox-core/dist/forms/Forms.js",
+      "timeMs": 2743.542,
+      "percent": 2.2772389718163226
+    },
+    {
+      "frame": "packages/sails-ng-common/dist/src/config/form-types.outline.js",
+      "timeMs": 2691.033,
+      "percent": 2.2336546049026382
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cursor/abstract_cursor.js",
+      "timeMs": 2567.813,
+      "percent": 2.1313775535189863
+    },
+    {
+      "frame": "packages/redbox-core/dist/application/portal/reference.js",
+      "timeMs": 2547.951,
+      "percent": 2.1148913759943793
+    },
+    {
+      "frame": "packages/sails-ng-common/dist/src/config/helpers.js",
+      "timeMs": 2525.418,
+      "percent": 2.0961881719785715
+    },
+    {
+      "frame": "packages/sails-hook-redbox-storage-mongo/dist/persistence/recordSchemaCodec.js",
+      "timeMs": 2486.645,
+      "percent": 2.064005181284704
+    }
+  ],
+  "corePaths": [
+    {
+      "frame": [],
+      "timeMs": 34265.15,
+      "percent": 28.44131234554895
+    },
+    {
+      "frame": [
+        "compileContextUnobserved (packages/redbox-core/dist/recordSchema/RecordSchema.js)",
+        "compileRecordJsonSchemaArtifact (packages/redbox-core/dist/record-contract/record-json-schema-artifact.js)",
+        "compile (packages/redbox-core/dist/record-contract/record-json-schema-artifact.js)"
+      ],
+      "timeMs": 26796.692,
+      "percent": 22.242222403797236
+    },
+    {
+      "frame": [
+        "args.<computed> (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "apply (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/runtime.js)",
+        "invoke (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "runHttpRequestWork (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "runHttpRequestContext (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "(anonymous) (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/application/portal/host.js)"
+      ],
+      "timeMs": 7908.396,
+      "percent": 6.5642543747303
+    },
+    {
+      "frame": [
+        "visitFormConfig (packages/redbox-core/dist/visitor/construct.visitor.js)",
+        "applyConstructPhaseTransform (packages/redbox-core/dist/visitor/construct.visitor.js)"
+      ],
+      "timeMs": 3289.731,
+      "percent": 2.7305955731650116
+    },
+    {
+      "frame": [
+        "visitTabFieldComponentDefinition (packages/redbox-core/dist/visitor/construct.visitor.js)",
+        "applyConstructPhaseTransform (packages/redbox-core/dist/visitor/construct.visitor.js)"
+      ],
+      "timeMs": 2908.265,
+      "percent": 2.4139650125164467
+    },
+    {
+      "frame": [
+        "visitTabContentFieldComponentDefinition (packages/redbox-core/dist/visitor/construct.visitor.js)",
+        "applyConstructPhaseTransform (packages/redbox-core/dist/visitor/construct.visitor.js)"
+      ],
+      "timeMs": 2853.053,
+      "percent": 2.368137057955546
+    },
+    {
+      "frame": [
+        "resolveContractContextOrThrow (packages/redbox-core/dist/forms/RecordValidation.js)",
+        "recordContractPrivateResolution (packages/redbox-core/dist/forms/RecordValidation.js)",
+        "formatRecordFormFingerprint (packages/redbox-core/dist/RecordFormFingerprint.js)",
+        "walk (packages/redbox-core/dist/RecordFormFingerprint.js)"
+      ],
+      "timeMs": 2645.927,
+      "percent": 2.196214995426003
+    },
+    {
+      "frame": [
+        "resolveContractContextOrThrow (packages/redbox-core/dist/forms/RecordValidation.js)",
+        "recordContractPrivateResolution (packages/redbox-core/dist/forms/RecordValidation.js)",
+        "formatRecordFormFingerprint (packages/redbox-core/dist/RecordFormFingerprint.js)",
+        "walk (packages/redbox-core/dist/RecordFormFingerprint.js)",
+        "append (packages/redbox-core/dist/RecordFormFingerprint.js)"
+      ],
+      "timeMs": 1934.445,
+      "percent": 1.6056592327856567
+    },
+    {
+      "frame": [
+        "loadFormDefinition (packages/redbox-core/dist/forms/RecordValidation.js)"
+      ],
+      "timeMs": 1801.358,
+      "percent": 1.495192214951733
+    },
+    {
+      "frame": [
+        "resolveAuthoritativeContext (packages/redbox-core/dist/forms/RecordValidation.js)",
+        "constructForm (packages/redbox-core/dist/forms/RecordValidation.js)"
+      ],
+      "timeMs": 1622.682,
+      "percent": 1.3468846801925591
+    },
+    {
+      "frame": [
+        "resolveContractContextOrThrow (packages/redbox-core/dist/forms/RecordValidation.js)",
+        "recordContractPrivateResolution (packages/redbox-core/dist/forms/RecordValidation.js)"
+      ],
+      "timeMs": 1619.397,
+      "percent": 1.3441580115203038
+    },
+    {
+      "frame": [
+        "compileContextUnobserved (packages/redbox-core/dist/recordSchema/RecordSchema.js)",
+        "compile (packages/redbox-core/dist/record-contract/record-contract-compiler.js)",
+        "snapshotCompileRequest (packages/redbox-core/dist/record-contract/record-contract-compiler.js)",
+        "cloneCompilerInput (packages/redbox-core/dist/record-contract/record-contract-compiler.js)",
+        "(anonymous) (packages/redbox-core/dist/record-contract/record-contract-compiler.js)",
+        "cloneJsonSafe (packages/redbox-core/dist/record-contract/record-contract-compiler.js)"
+      ],
+      "timeMs": 1579.961,
+      "percent": 1.3114247068752325
+    },
+    {
+      "frame": [
+        "compileComponent (packages/redbox-core/dist/record-contract/record-contract-compiler.js)",
+        "(anonymous) (packages/redbox-core/dist/record-contract/record-contract-compiler.js)",
+        "cloneJsonSafe (packages/redbox-core/dist/record-contract/record-contract-compiler.js)"
+      ],
+      "timeMs": 1449.005,
+      "percent": 1.2027264960247412
+    },
+    {
+      "frame": [
+        "resolveUpdateInternal (packages/redbox-core/dist/recordSchema/RecordSchema.js)",
+        "compileContext (packages/redbox-core/dist/recordSchema/RecordSchema.js)",
+        "compileContextUnobserved (packages/redbox-core/dist/recordSchema/RecordSchema.js)",
+        "buildContractFormConfig (packages/redbox-core/dist/application/portal/reference.js)",
+        "buildContractFormConfig (packages/redbox-core/dist/forms/Forms.js)"
+      ],
+      "timeMs": 1276.972,
+      "percent": 1.0599328912472392
+    },
+    {
+      "frame": [
+        "one (packages/redbox-core/dist/persistence/reference/PrismaReferenceRepositories.js)",
+        "decodeReference (packages/redbox-core/dist/persistence/reference/physical.js)",
+        "assertPlainReferenceData (packages/redbox-core/dist/persistence/reference/physical.js)",
+        "assertJsonValue (packages/redbox-core/dist/persistence/cache/validation.js)",
+        "visit (packages/redbox-core/dist/persistence/cache/validation.js)"
+      ],
+      "timeMs": 896.921,
+      "percent": 0.7444768317162515
+    }
+  ],
+  "routeNameCallers": [
+    {
+      "frame": [
+        [
+          "coreRouteName",
+          "packages/redbox-core/dist/http/fastify/routes.js",
+          114
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/application/portal/host.js",
+          231
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/application/portal/host.js",
+          221
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+          293
+        ]
+      ],
+      "timeMs": 7669.195,
+      "percent": 6.365708903475464
+    },
+    {
+      "frame": [
+        [
+          "coreRouteName",
+          "packages/redbox-core/dist/http/fastify/routes.js",
+          114
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/application/portal/host.js",
+          221
+        ],
+        [
+          "(anonymous)",
+          "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+          293
+        ],
+        [
+          "run",
+          "node:internal/async_local_storage/async_context_frame",
+          59
+        ]
+      ],
+      "timeMs": 1.118,
+      "percent": 0.0009279803883048441
+    }
+  ]
+}

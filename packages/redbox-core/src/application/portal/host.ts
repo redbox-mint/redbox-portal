@@ -273,6 +273,14 @@ export async function createPortalFastifyHost(
             .map(route => route.declaration.name)
         );
         if (selectedReferenceNames.size) {
+          const sessionEndNames = new Set(
+            [
+              ...identityAdministrationDeclarations,
+              ...mutationDeclarations,
+              ...integrationDeclarations,
+              ...datastreamReadRoutes,
+            ].map(route => coreRouteName(route.method, route.path))
+          );
           const referenceRequest = (request: import('fastify').FastifyRequest) => {
             const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
             return !!binding && selectedReferenceNames.has(binding.route.declaration.name);
@@ -287,12 +295,7 @@ export async function createPortalFastifyHost(
             // save/touch. A fresh untouched session instead ends with length 0.
             const sessionEnd =
               binding &&
-              [
-                ...identityAdministrationDeclarations,
-                ...mutationDeclarations,
-                ...integrationDeclarations,
-                ...datastreamReadRoutes,
-              ].some(route => coreRouteName(route.method, route.path) === binding.route.declaration.name) &&
+              sessionEndNames.has(binding.route.declaration.name) &&
               request.session &&
               (request.session.isPersisted() || request.session.isModified() || settings.session.saveUninitialized);
             // Match production Express only for this conversion scope. The owned

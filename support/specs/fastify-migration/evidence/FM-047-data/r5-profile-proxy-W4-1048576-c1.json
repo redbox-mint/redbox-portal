@@ -1,0 +1,703 @@
+{
+  "samples": 100519,
+  "durationSeconds": 120.480775,
+  "self": [
+    {
+      "frame": [
+        "(idle)",
+        "",
+        0
+      ],
+      "timeMs": 32903.293,
+      "percent": 27.30999447837217
+    },
+    {
+      "frame": [
+        "writeBuffer",
+        "",
+        0
+      ],
+      "timeMs": 11336.169,
+      "percent": 9.409110291662715
+    },
+    {
+      "frame": [
+        "read",
+        "",
+        0
+      ],
+      "timeMs": 6834.226,
+      "percent": 5.672461851278762
+    },
+    {
+      "frame": [
+        "writev",
+        "",
+        0
+      ],
+      "timeMs": 5714.652,
+      "percent": 4.743206540628577
+    },
+    {
+      "frame": [
+        "(garbage collector)",
+        "",
+        0
+      ],
+      "timeMs": 4766.963,
+      "percent": 3.956617144934534
+    },
+    {
+      "frame": [
+        "(program)",
+        "",
+        0
+      ],
+      "timeMs": 3054.663,
+      "percent": 2.535394547387332
+    },
+    {
+      "frame": [
+        "runMicrotasks",
+        "",
+        0
+      ],
+      "timeMs": 2227.785,
+      "percent": 1.849079241065639
+    },
+    {
+      "frame": [
+        "serializeInto",
+        "node_modules/bson/lib/bson.cjs",
+        4089
+      ],
+      "timeMs": 1000.906,
+      "percent": 0.830759928295614
+    },
+    {
+      "frame": [
+        "assignValue",
+        "node_modules/bson/lib/bson.cjs",
+        3323
+      ],
+      "timeMs": 911.376,
+      "percent": 0.7564493173288436
+    },
+    {
+      "frame": [
+        "onStreamRead",
+        "node:internal/stream_base_commons",
+        171
+      ],
+      "timeMs": 880.95,
+      "percent": 0.7311954957129052
+    },
+    {
+      "frame": [
+        "decodeMongoRow",
+        "node_modules/@prisma/orm-family-mongo/dist/runtime.mjs",
+        120
+      ],
+      "timeMs": 822.371,
+      "percent": 0.6825744605311511
+    },
+    {
+      "frame": [
+        "deserializeObject",
+        "node_modules/bson/lib/bson.cjs",
+        3343
+      ],
+      "timeMs": 767.741,
+      "percent": 0.6372311267088048
+    },
+    {
+      "frame": [
+        "match",
+        "node_modules/path-to-regexp/dist/index.js",
+        233
+      ],
+      "timeMs": 671.173,
+      "percent": 0.5570789198525656
+    },
+    {
+      "frame": [
+        "readdirRecursive",
+        "",
+        0
+      ],
+      "timeMs": 647.439,
+      "percent": 0.5373795113784751
+    },
+    {
+      "frame": [
+        "isTTY",
+        "",
+        0
+      ],
+      "timeMs": 635.852,
+      "percent": 0.5277622093649381
+    },
+    {
+      "frame": [
+        "emit",
+        "node:events",
+        489
+      ],
+      "timeMs": 629.647,
+      "percent": 0.5226120100904066
+    },
+    {
+      "frame": [
+        "getElement",
+        "node_modules/mongodb/lib/cmap/wire_protocol/on_demand/document.js",
+        57
+      ],
+      "timeMs": 619.334,
+      "percent": 0.5140521381938322
+    },
+    {
+      "frame": [
+        "contractModelToMongoResultShape",
+        "node_modules/@prisma/orm-family-mongo/dist/dist-gmGbjhmk.mjs",
+        324
+      ],
+      "timeMs": 599.142,
+      "percent": 0.49729261784712125
+    },
+    {
+      "frame": [
+        "toUTF8",
+        "node_modules/bson/lib/bson.cjs",
+        296
+      ],
+      "timeMs": 578.862,
+      "percent": 0.4804600568015934
+    },
+    {
+      "frame": [
+        "rowOfStoredDocument",
+        "node_modules/@prisma/orm-family-mongo/dist/orm.mjs",
+        257
+      ],
+      "timeMs": 487.575,
+      "percent": 0.4046911218823086
+    },
+    {
+      "frame": [
+        "FastBuffer",
+        "node:internal/buffer",
+        962
+      ],
+      "timeMs": 473.94,
+      "percent": 0.3933739636053968
+    },
+    {
+      "frame": [
+        "stat",
+        "",
+        0
+      ],
+      "timeMs": 456.262,
+      "percent": 0.37870108322261375
+    },
+    {
+      "frame": [
+        "serialize",
+        "node_modules/bson/lib/bson.cjs",
+        4762
+      ],
+      "timeMs": 450.965,
+      "percent": 0.37430453115860185
+    },
+    {
+      "frame": [
+        "prismaRecordSnapshot",
+        "packages/redbox-core/dist/persistence/prisma/recordOperations.js",
+        46
+      ],
+      "timeMs": 439.31,
+      "percent": 0.36463078860507
+    },
+    {
+      "frame": [
+        "onData",
+        "node_modules/mongodb/lib/cmap/wire_protocol/on_data.js",
+        12
+      ],
+      "timeMs": 437.825,
+      "percent": 0.36339822681253503
+    },
+    {
+      "frame": [
+        "readableAddChunkPushByteMode",
+        "node:internal/streams/readable",
+        507
+      ],
+      "timeMs": 430.428,
+      "percent": 0.35725865807221113
+    },
+    {
+      "frame": [
+        "prepareCommand",
+        "node_modules/mongodb/lib/cmap/connection.js",
+        175
+      ],
+      "timeMs": 430.415,
+      "percent": 0.3572478679689768
+    },
+    {
+      "frame": [
+        "resolveOptions",
+        "node_modules/mongodb/lib/utils.js",
+        420
+      ],
+      "timeMs": 416.904,
+      "percent": 0.3460336306767615
+    },
+    {
+      "frame": [
+        "post",
+        "node:inspector",
+        115
+      ],
+      "timeMs": 410.156,
+      "percent": 0.3404327370902121
+    },
+    {
+      "frame": [
+        "buildOptions",
+        "node_modules/mongodb/lib/operations/command.js",
+        45
+      ],
+      "timeMs": 407.245,
+      "percent": 0.3380165839736672
+    },
+    {
+      "frame": [
+        "sendWire",
+        "node_modules/mongodb/lib/cmap/connection.js",
+        248
+      ],
+      "timeMs": 402.406,
+      "percent": 0.33400017554667955
+    },
+    {
+      "frame": [
+        "resolveDraftDoc",
+        "node_modules/@prisma/orm-target-mongo/dist/mongo-adapter-Bo6ciURK-Dvq-oZQ9.mjs",
+        99
+      ],
+      "timeMs": 387.056,
+      "percent": 0.3212595536507796
+    },
+    {
+      "frame": [
+        "selectServer",
+        "node_modules/mongodb/lib/sdam/topology.js",
+        273
+      ],
+      "timeMs": 381.68,
+      "percent": 0.3167974309594207
+    },
+    {
+      "frame": [
+        "(anonymous)",
+        "node_modules/@prisma/orm-family-mongo/dist/runtime.mjs",
+        196
+      ],
+      "timeMs": 352.032,
+      "percent": 0.292189355521659
+    },
+    {
+      "frame": [
+        "command",
+        "node_modules/mongodb/lib/sdam/server.js",
+        149
+      ],
+      "timeMs": 350.259,
+      "percent": 0.29071775144208695
+    },
+    {
+      "frame": [
+        "UrlPattern.match",
+        "node_modules/url-pattern/lib/url-pattern.js",
+        397
+      ],
+      "timeMs": 344.408,
+      "percent": 0.2858613749787051
+    },
+    {
+      "frame": [
+        "writeOrBuffer",
+        "node:internal/streams/writable",
+        550
+      ],
+      "timeMs": 343.363,
+      "percent": 0.2849940166802546
+    },
+    {
+      "frame": [
+        "ConnectionPoolMonitoringEvent",
+        "node_modules/mongodb/lib/cmap/connection_pool_events.js",
+        13
+      ],
+      "timeMs": 317.917,
+      "percent": 0.26387363461099916
+    },
+    {
+      "frame": [
+        "sendCommand",
+        "node_modules/mongodb/lib/cmap/connection.js",
+        284
+      ],
+      "timeMs": 307.74,
+      "percent": 0.2554266437944145
+    },
+    {
+      "frame": [
+        "executeOperationWithRetries",
+        "node_modules/mongodb/lib/operations/execute_operation.js",
+        165
+      ],
+      "timeMs": 303.498,
+      "percent": 0.25190575010826416
+    }
+  ],
+  "inclusiveSources": [
+    {
+      "frame": "node:internal/process/task_queues",
+      "timeMs": 65613.587,
+      "percent": 54.4597982541198
+    },
+    {
+      "frame": "node:internal/stream_base_commons",
+      "timeMs": 20724.317,
+      "percent": 17.201347683893967
+    },
+    {
+      "frame": "node:internal/streams/writable",
+      "timeMs": 20146.358,
+      "percent": 16.721637124263186
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/connection.js",
+      "timeMs": 19289.873,
+      "percent": 16.010747772829315
+    },
+    {
+      "frame": "node:net",
+      "timeMs": 18140.782,
+      "percent": 15.056993117781655
+    },
+    {
+      "frame": "node:internal/streams/readable",
+      "timeMs": 11924.604,
+      "percent": 9.897516014484468
+    },
+    {
+      "frame": "node:internal/fs/streams",
+      "timeMs": 9139.505,
+      "percent": 7.58586172773208
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/dist/runtime.mjs",
+      "timeMs": 8946.148,
+      "percent": 7.425373882264618
+    },
+    {
+      "frame": "node:fs",
+      "timeMs": 8882.64,
+      "percent": 7.372661737941177
+    },
+    {
+      "frame": "node:_http_outgoing",
+      "timeMs": 7129.289,
+      "percent": 5.917366484403839
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cursor/abstract_cursor.js",
+      "timeMs": 6633.027,
+      "percent": 5.505465083537187
+    },
+    {
+      "frame": "node_modules/mongodb/lib/sdam/server.js",
+      "timeMs": 6368.989,
+      "percent": 5.286311446784767
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/node_modules/@prisma/orm-framework/dist/runtime-DSYSc98Y.mjs",
+      "timeMs": 5960.515,
+      "percent": 4.947274783051487
+    },
+    {
+      "frame": "node_modules/bson/lib/bson.cjs",
+      "timeMs": 5839.167,
+      "percent": 4.8465549794147655
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/requestOwnership.js",
+      "timeMs": 5014.998,
+      "percent": 4.162488164605515
+    },
+    {
+      "frame": "node_modules/fastify/lib/hooks.js",
+      "timeMs": 4810.103,
+      "percent": 3.99242368751363
+    },
+    {
+      "frame": "packages/redbox-core/dist/middleware/requestLifetime.js",
+      "timeMs": 4662.097,
+      "percent": 3.869577532183039
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/runtime.js",
+      "timeMs": 4606.339,
+      "percent": 3.823297949403131
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/wire_protocol/responses.js",
+      "timeMs": 4565.858,
+      "percent": 3.7896983979394223
+    },
+    {
+      "frame": "node_modules/@prisma/orm-target-mongo/dist/mongo-driver-DMq2pcFr-CTF5aAz8.mjs",
+      "timeMs": 4549.453,
+      "percent": 3.776082117665661
+    },
+    {
+      "frame": "node:internal/async_local_storage/async_context_frame",
+      "timeMs": 4499.933,
+      "percent": 3.7349801244223406
+    },
+    {
+      "frame": "node:events",
+      "timeMs": 4219.33,
+      "percent": 3.5020774061255833
+    },
+    {
+      "frame": "node_modules/mongodb/lib/operations/execute_operation.js",
+      "timeMs": 4116.87,
+      "percent": 3.417034792480377
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/dist/orm.mjs",
+      "timeMs": 4053.197,
+      "percent": 3.3641856968466546
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/wire_protocol/on_demand/document.js",
+      "timeMs": 4025.145,
+      "percent": 3.34090231408289
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/storage/PrismaAttachments.js",
+      "timeMs": 3004.586,
+      "percent": 2.4938302397208187
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/groupRuntime.js",
+      "timeMs": 2535.103,
+      "percent": 2.104155621508909
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/routes.js",
+      "timeMs": 2483.323,
+      "percent": 2.0611778103187004
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/commands.js",
+      "timeMs": 2481.142,
+      "percent": 2.059367562999159
+    },
+    {
+      "frame": "node_modules/mongodb/lib/utils.js",
+      "timeMs": 2242.414,
+      "percent": 1.861221427236005
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cursor/aggregation_cursor.js",
+      "timeMs": 2045.621,
+      "percent": 1.6978816744829206
+    },
+    {
+      "frame": "node_modules/mongodb/lib/cmap/connection_pool.js",
+      "timeMs": 1933.033,
+      "percent": 1.6044327404102439
+    },
+    {
+      "frame": "packages/redbox-core/dist/storage/StandardDatastream.js",
+      "timeMs": 1909.016,
+      "percent": 1.5844984396888218
+    },
+    {
+      "frame": "node_modules/mongodb/lib/collection.js",
+      "timeMs": 1871.444,
+      "percent": 1.5533133813257758
+    },
+    {
+      "frame": "node_modules/mongodb/lib/sessions.js",
+      "timeMs": 1843.955,
+      "percent": 1.530497293032851
+    },
+    {
+      "frame": "node_modules/@prisma/orm-family-mongo/dist/dist-gmGbjhmk.mjs",
+      "timeMs": 1801.684,
+      "percent": 1.4954120273545717
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/actions/datastreamReads.js",
+      "timeMs": 1726.036,
+      "percent": 1.432623586626165
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/hooks.js",
+      "timeMs": 1640.589,
+      "percent": 1.3617018980829099
+    },
+    {
+      "frame": "packages/redbox-core/dist/http/fastify/session.js",
+      "timeMs": 1597.25,
+      "percent": 1.3257301839235347
+    },
+    {
+      "frame": "packages/redbox-core/dist/persistence/prisma/recordOperations.js",
+      "timeMs": 1591.435,
+      "percent": 1.3209036877460325
+    }
+  ],
+  "corePaths": [
+    {
+      "frame": [],
+      "timeMs": 102497.679,
+      "percent": 85.0738875144188
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/http/fastify/hooks.js)",
+        "args.<computed> (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "apply (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/runtime.js)",
+        "invoke (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "runHttpRequestWork (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "runHttpRequestContext (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "(anonymous) (packages/redbox-core/dist/http/fastify/requestOwnership.js)"
+      ],
+      "timeMs": 1372.453,
+      "percent": 1.1391468887878584
+    },
+    {
+      "frame": [
+        "apply (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "(anonymous) (packages/redbox-core/dist/persistence/runtime.js)",
+        "invoke (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "runHttpRequestWork (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "runHttpRequestContext (packages/redbox-core/dist/middleware/requestLifetime.js)",
+        "(anonymous) (packages/redbox-core/dist/http/fastify/requestOwnership.js)",
+        "app.route.preHandler (packages/redbox-core/dist/http/fastify/routes.js)",
+        "guard (packages/redbox-core/dist/http/fastify/composition.js)"
+      ],
+      "timeMs": 1050.976,
+      "percent": 0.8723184259065399
+    },
+    {
+      "frame": [
+        "prismaRecordSnapshot (packages/redbox-core/dist/persistence/storage/prismaAdapter.js)",
+        "prismaRecordSnapshot (packages/redbox-core/dist/persistence/prisma/recordOperations.js)"
+      ],
+      "timeMs": 889.237,
+      "percent": 0.738073771520809
+    },
+    {
+      "frame": [
+        "executeDatastreamRead (packages/redbox-core/dist/http/actions/datastreamReads.js)",
+        "getAttachments (packages/redbox-core/dist/records/Records.js)",
+        "listDatastreams (packages/redbox-core/dist/storage/StandardDatastream.js)"
+      ],
+      "timeMs": 758.46,
+      "percent": 0.6295278230074466
+    },
+    {
+      "frame": [
+        "prismaRecordSnapshot (packages/redbox-core/dist/persistence/prisma/recordOperations.js)"
+      ],
+      "timeMs": 616.927,
+      "percent": 0.5120543090796021
+    },
+    {
+      "frame": [
+        "executeDatastreamRead (packages/redbox-core/dist/http/actions/datastreamReads.js)",
+        "getDatastream (packages/redbox-core/dist/storage/StandardDatastream.js)"
+      ],
+      "timeMs": 586.918,
+      "percent": 0.4871466007751029
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/http/fastify/session.js)"
+      ],
+      "timeMs": 502.865,
+      "percent": 0.41738194330174255
+    },
+    {
+      "frame": [
+        "recordAccess (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)",
+        "patchMetadata (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)"
+      ],
+      "timeMs": 479.416,
+      "percent": 0.39791908709086576
+    },
+    {
+      "frame": [
+        "emitAcceptedAttachmentAudit (packages/redbox-core/dist/integrations/SecurityEvents.js)",
+        "emitAccepted (packages/redbox-core/dist/integrations/SecurityEvents.js)",
+        "getConfig (packages/redbox-core/dist/integrations/SecurityEvents.js)"
+      ],
+      "timeMs": 461.688,
+      "percent": 0.38320470631102765
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/http/fastify/policies.js)",
+        "getRulesFromPath (packages/redbox-core/dist/authorization/PathRules.js)",
+        "(anonymous) (packages/redbox-core/dist/authorization/PathRules.js)"
+      ],
+      "timeMs": 413.998,
+      "percent": 0.34362162759992204
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/persistence/groupRuntime.js)",
+        "recordAccess (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)",
+        "readMetadata (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)"
+      ],
+      "timeMs": 412.844,
+      "percent": 0.3426637984358915
+    },
+    {
+      "frame": [
+        "list (packages/redbox-core/dist/persistence/identity/PrismaIdentityRepositories.js)"
+      ],
+      "timeMs": 397.225,
+      "percent": 0.3296999044038354
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/persistence/groupRuntime.js)",
+        "findByOid (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)",
+        "metadataRows (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)"
+      ],
+      "timeMs": 332.332,
+      "percent": 0.2758381990819697
+    },
+    {
+      "frame": [
+        "(anonymous) (packages/redbox-core/dist/persistence/groupRuntime.js)",
+        "recordAccess (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)",
+        "appendAccessAudit (packages/redbox-core/dist/persistence/storage/PrismaAttachments.js)"
+      ],
+      "timeMs": 321.797,
+      "percent": 0.26709406542247094
+    }
+  ],
+  "routeNameCallers": []
+}

@@ -1,0 +1,14 @@
+/home/ubuntu/work/evidence-archive/fastify-migration/FM-007/raw-telemetry.tar.gz: OK
+/home/ubuntu/work/fastify-orchestration/artifacts/FM-044-r4/packages/redbox-hook-dev-1.0.0.tgz: OK
+patching file /home/ubuntu/work/fm047.LNTtRxSZ/replay/candidate-control.cjs (read from /home/ubuntu/work/fm047.LNTtRxSZ/replay/express-snapshot/owner.cjs)
+patching file /home/ubuntu/work/fm047.LNTtRxSZ/replay/sample.cjs (read from /home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs)
+patching file /home/ubuntu/work/fm047.LNTtRxSZ/replay/profile-control.cjs (read from /home/ubuntu/work/fm047.LNTtRxSZ/replay/candidate-control.cjs)
+patching file /home/ubuntu/work/fm047.LNTtRxSZ/replay/profile-sample.cjs (read from /home/ubuntu/work/fm047.LNTtRxSZ/replay/sample.cjs)
+client.cjs byte-for-byte match
+protocol.cjs byte-for-byte match
+application.cjs byte-for-byte match
+nginx.conf byte-for-byte match
+candidate-control.cjs byte-for-byte match
+sample.cjs byte-for-byte match
+profile-control.cjs byte-for-byte match
+profile-sample.cjs byte-for-byte match

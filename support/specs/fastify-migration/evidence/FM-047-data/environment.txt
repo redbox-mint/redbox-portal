@@ -1,0 +1,70 @@
+2026-11-22T09:55:07+10:30
+Linux nam-oci-agent-2 7.0.0-1016-oracle #18~24.04.1-Ubuntu SMP PREEMPT Thu Oct 29 18:52:11 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux
+Architecture:                            aarch64
+CPU op-mode(s):                          32-bit, 64-bit
+Byte Order:                              Little Endian
+CPU(s):                                  2
+On-line CPU(s) list:                     0,1
+Vendor ID:                               ARM
+Model name:                              Neoverse-N1
+Model:                                   1
+Thread(s) per core:                      1
+Core(s) per socket:                      2
+Socket(s):                               1
+Stepping:                                r3p1
+BogoMIPS:                                50.00
+Flags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0,1
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Not affected
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; CSV2, BHB
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+state filesystem=ext2/ext3
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb        118G   70G   43G  63% /home/ubuntu/work
+uid=1001(ubuntu) gid=1001(ubuntu) groups=1001(ubuntu),4(adm),24(cdrom),27(sudo),30(dip),104(lxd),111(docker)
+100
+Docker 29.1.3 / 29.1.3
+redbox-fm044 r4-527b83a875 sha256:530f75cd2da35d79a55d20fd15f9858a5f4ced26fabcc48d1ace83cc5140203f 530f75cd2da3
+solr 10.0.0 sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb b866a82ef3a0
+mongo 7.0.45-jammy sha256:94aea1479556ad4e5aba7a31a6d53eb7b0ae76741950da45a13d5df5cddf1b3b 94aea1479556
+quay.io/keycloak/keycloak 26.8.1-1 sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b a78d6b795721
+mcr.microsoft.com/playwright v1.64.1-noble sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea 47b510dd9230
+solr <none> sha256:1a712cae556d96883e032622692d2acfba7917d3b16c800deb4f8d2fbf0b77ea 1a712cae556d
+mongo <none> sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8 dc28ed5a9d0f
+axllent/mailpit <none> sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387 23fe39e81bde
+nginx 1.29.3-alpine sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14 b3c656d55d7a
+NETWORK ID     NAME      DRIVER    SCOPE
+89077583c7ce   bridge    bridge    local
+1b3466218da3   host      host      local
+acd0760c2f4c   none      null      local
+53fcf420e7f4448dcdf4285747a303ce92877050fa6da64db132348eafe66f43
+96419a59aeab14b3f78a77700cd80115971c79adaae4a06d7a8fb7308a804ea1
+bde0649a3357d68b025b7d357096bee282803cdbdcbb9b5b3f69ec759149d3fc
+redbox-reporting-demo_attachments
+redbox-reporting-demo_keycloak-data
+redbox-reporting-demo_mongo-data
+redbox-reporting-demo_mongo7-data
+redbox-reporting-demo_solr-data
+redbox4762-dev_mongo-data
+redbox4762-dev_solr-data
+sa09-uon_sa09-mongo
+sa09-uon_sa09-views
+sa09-uwa_sa09-mongo
+sa09-uwa_sa09-views

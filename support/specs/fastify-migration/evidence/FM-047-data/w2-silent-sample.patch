@@ -1,0 +1,6 @@
+--- sample.cjs
++++ sample.cjs
+@@ -151,2 +151,3 @@
+   const limitsAndFixture = candidate ? [
++    '-e', 'REDBOX_LOG_LEVEL=silent',
+     '-e', 'NODE_OPTIONS=--max-old-space-size=1024 --require=/fm047-fixture/candidate-control.cjs',

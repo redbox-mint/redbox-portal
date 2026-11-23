@@ -1,0 +1,335 @@
+{
+  "express02": {
+    "express-02-direct-W2-0-c1-1": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c1-2": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c1-3": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c1-4": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c1-5": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c4-1": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c4-2": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c4-3": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c4-4": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-direct-W2-0-c4-5": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c1-1": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c1-2": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c1-3": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c1-4": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c1-5": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c4-1": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c4-2": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c4-3": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c4-4": {
+      "ready": 1,
+      "other": 0
+    },
+    "express-02-proxy-W2-0-c4-5": {
+      "ready": 1,
+      "other": 0
+    }
+  },
+  "r5Warn": {
+    "r5-direct-W2-0-c1-1": {
+      "permissionWarningsInWallClockWindow": 812,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 813,
+      "measuredRequestRows": 813,
+      "permissionWarningsForWarmupRequests": 190,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c1-2": {
+      "permissionWarningsInWallClockWindow": 822,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 823,
+      "measuredRequestRows": 823,
+      "permissionWarningsForWarmupRequests": 195,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c1-3": {
+      "permissionWarningsInWallClockWindow": 830,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 831,
+      "measuredRequestRows": 831,
+      "permissionWarningsForWarmupRequests": 182,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c1-4": {
+      "permissionWarningsInWallClockWindow": 780,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 781,
+      "measuredRequestRows": 781,
+      "permissionWarningsForWarmupRequests": 175,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c1-5": {
+      "permissionWarningsInWallClockWindow": 812,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 813,
+      "measuredRequestRows": 813,
+      "permissionWarningsForWarmupRequests": 190,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c4-1": {
+      "permissionWarningsInWallClockWindow": 808,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 811,
+      "measuredRequestRows": 811,
+      "permissionWarningsForWarmupRequests": 181,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c4-2": {
+      "permissionWarningsInWallClockWindow": 823,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 826,
+      "measuredRequestRows": 826,
+      "permissionWarningsForWarmupRequests": 193,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c4-3": {
+      "permissionWarningsInWallClockWindow": 804,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 808,
+      "measuredRequestRows": 808,
+      "permissionWarningsForWarmupRequests": 174,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c4-4": {
+      "permissionWarningsInWallClockWindow": 867,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 871,
+      "measuredRequestRows": 871,
+      "permissionWarningsForWarmupRequests": 200,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-direct-W2-0-c4-5": {
+      "permissionWarningsInWallClockWindow": 846,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 849,
+      "measuredRequestRows": 849,
+      "permissionWarningsForWarmupRequests": 201,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c1-1": {
+      "permissionWarningsInWallClockWindow": 770,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 771,
+      "measuredRequestRows": 771,
+      "permissionWarningsForWarmupRequests": 177,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c1-2": {
+      "permissionWarningsInWallClockWindow": 806,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 806,
+      "measuredRequestRows": 806,
+      "permissionWarningsForWarmupRequests": 186,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c1-3": {
+      "permissionWarningsInWallClockWindow": 796,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 797,
+      "measuredRequestRows": 797,
+      "permissionWarningsForWarmupRequests": 183,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c1-4": {
+      "permissionWarningsInWallClockWindow": 778,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 778,
+      "measuredRequestRows": 778,
+      "permissionWarningsForWarmupRequests": 191,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c1-5": {
+      "permissionWarningsInWallClockWindow": 768,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 769,
+      "measuredRequestRows": 769,
+      "permissionWarningsForWarmupRequests": 184,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c4-1": {
+      "permissionWarningsInWallClockWindow": 857,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 859,
+      "measuredRequestRows": 859,
+      "permissionWarningsForWarmupRequests": 203,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c4-2": {
+      "permissionWarningsInWallClockWindow": 812,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 815,
+      "measuredRequestRows": 815,
+      "permissionWarningsForWarmupRequests": 183,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c4-3": {
+      "permissionWarningsInWallClockWindow": 847,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 850,
+      "measuredRequestRows": 850,
+      "permissionWarningsForWarmupRequests": 203,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c4-4": {
+      "permissionWarningsInWallClockWindow": 822,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 824,
+      "measuredRequestRows": 824,
+      "permissionWarningsForWarmupRequests": 193,
+      "preWarmupRecordConcurrencyWarnings": 1
+    },
+    "r5-proxy-W2-0-c4-5": {
+      "permissionWarningsInWallClockWindow": 861,
+      "permissionWarningsForMeasuredRequestsIncludingLate": 863,
+      "measuredRequestRows": 863,
+      "permissionWarningsForWarmupRequests": 207,
+      "preWarmupRecordConcurrencyWarnings": 1
+    }
+  },
+  "r5WarnTotals": {
+    "permissionWarningsInWallClockWindow": 16321,
+    "permissionWarningsForMeasuredRequestsIncludingLate": 16358,
+    "measuredRequestRows": 16358,
+    "permissionWarningsForWarmupRequests": 3791,
+    "preWarmupRecordConcurrencyWarnings": 20
+  },
+  "r5Silent": {
+    "r5-w2-silent-direct-W2-0-c1-1": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c1-2": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c1-3": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c1-4": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c1-5": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c4-1": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c4-2": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c4-3": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c4-4": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-direct-W2-0-c4-5": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c1-1": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c1-2": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c1-3": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c1-4": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c1-5": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c4-1": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c4-2": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c4-3": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c4-4": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    },
+    "r5-w2-silent-proxy-W2-0-c4-5": {
+      "ready": 1,
+      "other": 0,
+      "timed": 0
+    }
+  }
+}

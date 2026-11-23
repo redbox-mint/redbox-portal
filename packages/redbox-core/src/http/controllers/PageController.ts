@@ -8,6 +8,8 @@ import { pageRoutes } from '../pageRoutes';
 import { coreRouteName } from '../fastify/routes';
 import { requestPathname } from '../fastify/router';
 
+const namedPages = pageRoutes.map(route => ({ name: coreRouteName(route.method, route.path), route }));
+
 export interface PageControllerInput {
   readonly rendering: BrowserPageInput;
   csrfToken(request: FastifyRequest): string;
@@ -25,7 +27,7 @@ export async function runNativePage(
   mode: 'shell' | 'edit' | 'dashboard' | 'legacy' = 'shell'
 ) {
   const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
-  const route = pageRoutes.find(route => coreRouteName(route.method, route.path) === binding?.route.declaration.name);
+  const route = namedPages.find(page => page.name === binding?.route.declaration.name)?.route;
   if (!route) throw new Error('Page declaration unavailable.');
   let result;
   try {

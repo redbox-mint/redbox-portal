@@ -1,0 +1,121 @@
+{
+  "hostMetrics": {
+    "hostIdlePct": {
+      "median": 24.731360076973708,
+      "min": 18.10424938751373,
+      "max": 27.150446955641762
+    },
+    "hostIoWaitPct": {
+      "median": 6.369458764669247,
+      "min": 5.376162299239223,
+      "max": 8.902428704408903
+    },
+    "hostStealPct": {
+      "median": 3.674656687906097,
+      "min": 2.8497846829350673,
+      "max": 4.434683448071969
+    }
+  },
+  "attempts": {
+    "r5-w2-silent-direct-W2-0-c1-1": {
+      "hostIdlePct": 24.879492600422832,
+      "hostIoWaitPct": 8.346723044397462,
+      "hostStealPct": 3.9112050739957716
+    },
+    "r5-w2-silent-direct-W2-0-c1-2": {
+      "hostIdlePct": 18.10424938751373,
+      "hostIoWaitPct": 6.450114049167864,
+      "hostStealPct": 4.198698994677706
+    },
+    "r5-w2-silent-direct-W2-0-c1-3": {
+      "hostIdlePct": 24.492385786802032,
+      "hostIoWaitPct": 8.282571912013536,
+      "hostStealPct": 4.065143824027073
+    },
+    "r5-w2-silent-direct-W2-0-c1-4": {
+      "hostIdlePct": 24.36715547479187,
+      "hostIoWaitPct": 8.857710349490766,
+      "hostStealPct": 4.103452647593289
+    },
+    "r5-w2-silent-direct-W2-0-c1-5": {
+      "hostIdlePct": 24.583227553524583,
+      "hostIoWaitPct": 8.902428704408903,
+      "hostStealPct": 4.184649234154184
+    },
+    "r5-w2-silent-direct-W2-0-c4-1": {
+      "hostIdlePct": 26.526218019083004,
+      "hostIoWaitPct": 5.5475808494469305,
+      "hostStealPct": 2.854006586169045
+    },
+    "r5-w2-silent-direct-W2-0-c4-2": {
+      "hostIdlePct": 25.59652012331602,
+      "hostIoWaitPct": 5.8321719667215675,
+      "hostStealPct": 3.0111068879597958
+    },
+    "r5-w2-silent-direct-W2-0-c4-3": {
+      "hostIdlePct": 24.08743722834114,
+      "hostIoWaitPct": 6.464953369624847,
+      "hostStealPct": 3.527872726505465
+    },
+    "r5-w2-silent-direct-W2-0-c4-4": {
+      "hostIdlePct": 26.601859678782755,
+      "hostIoWaitPct": 5.376162299239223,
+      "hostStealPct": 2.9247675401521556
+    },
+    "r5-w2-silent-direct-W2-0-c4-5": {
+      "hostIdlePct": 25.95474730386974,
+      "hostIoWaitPct": 6.013956438993445,
+      "hostStealPct": 3.0492704588707973
+    },
+    "r5-w2-silent-proxy-W2-0-c1-1": {
+      "hostIdlePct": 18.127296532499894,
+      "hostIoWaitPct": 6.28880348017063,
+      "hostStealPct": 4.434683448071969
+    },
+    "r5-w2-silent-proxy-W2-0-c1-2": {
+      "hostIdlePct": 24.340547852553264,
+      "hostIoWaitPct": 7.435745688197497,
+      "hostStealPct": 3.8214406493067297
+    },
+    "r5-w2-silent-proxy-W2-0-c1-3": {
+      "hostIdlePct": 24.025231785275814,
+      "hostIoWaitPct": 8.289234156047584,
+      "hostStealPct": 4.1700182041403835
+    },
+    "r5-w2-silent-proxy-W2-0-c1-4": {
+      "hostIdlePct": 24.357456881974976,
+      "hostIoWaitPct": 8.167061210686507,
+      "hostStealPct": 4.024349002367265
+    },
+    "r5-w2-silent-proxy-W2-0-c1-5": {
+      "hostIdlePct": 24.287164734749133,
+      "hostIoWaitPct": 8.558253659362045,
+      "hostStealPct": 4.107792537439716
+    },
+    "r5-w2-silent-proxy-W2-0-c4-1": {
+      "hostIdlePct": 27.150446955641762,
+      "hostIoWaitPct": 5.679709900489121,
+      "hostStealPct": 2.884128858154832
+    },
+    "r5-w2-silent-proxy-W2-0-c4-2": {
+      "hostIdlePct": 26.421940928270043,
+      "hostIoWaitPct": 5.548523206751055,
+      "hostStealPct": 2.8776371308016877
+    },
+    "r5-w2-silent-proxy-W2-0-c4-3": {
+      "hostIdlePct": 25.55367709213863,
+      "hostIoWaitPct": 5.498732037193576,
+      "hostStealPct": 2.945900253592561
+    },
+    "r5-w2-silent-proxy-W2-0-c4-4": {
+      "hostIdlePct": 25.274632415075207,
+      "hostIoWaitPct": 5.809531857360149,
+      "hostStealPct": 2.995605881358797
+    },
+    "r5-w2-silent-proxy-W2-0-c4-5": {
+      "hostIdlePct": 26.53466182555096,
+      "hostIoWaitPct": 5.526471333277041,
+      "hostStealPct": 2.8497846829350673
+    }
+  }
+}

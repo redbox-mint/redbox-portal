@@ -1,0 +1,20 @@
+--- candidate-control.cjs
++++ profile-control.cjs
+@@ -6,0 +7 @@
++const { Session } = require('node:inspector/promises');
+@@ -21,0 +23 @@
++let profiler;
+@@ -276,0 +279,13 @@
++        if (process.env.FM047_PROFILE_CPU === 'true') {
++          if (phase === 'measurement') {
++            profiler = new Session();
++            profiler.connect();
++            await profiler.post('Profiler.enable');
++            await profiler.post('Profiler.start');
++          } else if (phase === 'drain' && profiler) {
++            const { profile } = await profiler.post('Profiler.stop');
++            profiler.disconnect();
++            profiler = undefined;
++            fs.writeFileSync('/fm007-output/v8.cpuprofile', JSON.stringify(profile));
++          }
++        }

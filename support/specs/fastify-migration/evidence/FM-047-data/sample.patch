@@ -1,0 +1,24 @@
+--- sample.cjs
++++ sample.cjs
+@@ -18 +18,2 @@
+-assert(image && image.startsWith('sha256:'), 'use an immutable local image ID');
++const candidate = process.env.FM047_CANDIDATE === 'true';
++assert(/^([a-z0-9-]+@)?sha256:[a-f0-9]{64}$/.test(image), 'use an immutable image digest');
+@@ -149,0 +151,10 @@
++  const limitsAndFixture = candidate ? [
++    '-e', 'NODE_OPTIONS=--max-old-space-size=1024 --require=/fm047-fixture/candidate-control.cjs',
++    '-e', 'REDBOX_APPLICATION_CONFIG=/fm047-fixture/application.cjs',
++    '-e', 'REDBOX_ADMIN_TOKEN=fm007-synthetic-bearer',
++    '-e', 'REDBOX_ADMIN_PASSWORD=fm007-synthetic-local-password',
++    '-e', 'REDBOX_SESSION_SECRET=fm007-only-synthetic-session-secret-at-least-32-characters',
++    '-v', `${__dirname}:/fm047-fixture:ro`,
++    '-v', `${path.join(__dirname, 'hook')}:/opt/redbox-portal/node_modules/redbox-hook-dev:ro`,
++    '-v', `${path.join(__dirname, 'express-snapshot/fixture-package.json')}:/opt/redbox-portal/package.json:ro`,
++  ] : ['-e', 'NODE_OPTIONS=--max-old-space-size=1024'];
+@@ -169,2 +180 @@
+-    '-e',
+-    'NODE_OPTIONS=--max-old-space-size=1024',
++    ...limitsAndFixture,
+@@ -268 +278 @@
+-      const result = spawnSync('timeout', ['10', 'docker', 'logs', name], { encoding: 'utf8' });
++      const result = spawnSync('timeout', ['10', 'docker', 'logs', name], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });

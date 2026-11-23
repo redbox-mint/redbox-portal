@@ -1,0 +1,17 @@
+{
+  "rawGuardSpans": 6453,
+  "requestRows": 5230,
+  "matchedGuardSpans": 5230,
+  "guard": {
+    "medianMs": 0.7349444925785065,
+    "p95Ms": 1.795050024986267
+  },
+  "ttfb": {
+    "medianMs": 14.549184501171112,
+    "p95Ms": 26.079591989517212
+  },
+  "ttfbOutsideGuard": {
+    "medianMs": 13.763400495052338,
+    "p95Ms": 24.658544063568115
+  }
+}

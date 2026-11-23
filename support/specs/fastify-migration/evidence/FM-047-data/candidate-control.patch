@@ -1,0 +1,113 @@
+--- owner.cjs
++++ candidate-control.cjs
+@@ -8,2 +8,5 @@
+-const { MongoClient } = require('mongodb');
+-const { firstValueFrom } = require('rxjs');
++const { createRequire } = require('node:module');
++const repository = '/opt/redbox-portal';
++const runtimeRequire = createRequire(repository + '/app.js');
++const { MongoClient } = runtimeRequire('mongodb');
++const { firstValueFrom } = runtimeRequire('rxjs');
+@@ -12 +14,0 @@
+-  createPortalHost,
+@@ -14 +15,0 @@
+-  cleanupPersistence,
+@@ -16,8 +17,5 @@
+-} = require('@researchdatabox/redbox-core/portal');
+-const { nothingLogger: log } = require('@researchdatabox/sails-ng-common');
+-const runtime = require('../../../packages/redbox-core/dist/persistence/runtime');
+-const { drainHttpRequests } = require('../../../packages/redbox-core/dist/middleware/requestLifetime');
+-const { Datastream } = require('@researchdatabox/redbox-core/extensions/storage');
+-const { SolrDocument } = require('../../../packages/redbox-core/dist/model/SolrDocument');
+-const repository = process.cwd();
+-const appPath = '/fm007-state/app';
++} = runtimeRequire('@researchdatabox/redbox-core/portal');
++const runtime = runtimeRequire('./packages/redbox-core/dist/persistence/runtime');
++const { drainHttpRequests } = runtimeRequire('./packages/redbox-core/dist/middleware/requestLifetime');
++const { Datastream } = runtimeRequire('@researchdatabox/redbox-core/extensions/storage');
++const { SolrDocument } = runtimeRequire('./packages/redbox-core/dist/model/SolrDocument');
+@@ -29 +26,0 @@
+-const credentials = { token: 'fm007-synthetic-bearer', password: 'fm007-synthetic-local-password' };
+@@ -240 +237 @@
+-async function main() {
++async function openNative() {
+@@ -242,4 +238,0 @@
+-  fs.mkdirSync(appPath, { recursive: true });
+-  fs.copyFileSync(path.join(__dirname, 'fixture-package.json'), path.join(appPath, 'package.json'));
+-  for (const name of ['node_modules', 'views', 'assets'])
+-    if (!fs.existsSync(path.join(appPath, name))) fs.symlinkSync(path.join(repository, name), path.join(appPath, name));
+@@ -253,34 +246,4 @@
+-  portal = await createPortalHost({
+-    appPath,
+-    environment: 'production',
+-    log,
+-    files: { application: path.join(__dirname, 'application.cjs') },
+-    localesDirectory: path.join(repository, 'language-defaults'),
+-    viewRoots: [path.join(repository, 'views')],
+-    assetRoots: [path.join(repository, '.tmp/public'), path.join(repository, 'assets')],
+-    env: {
+-      ...process.env,
+-      REDBOX_ADMIN_TOKEN: credentials.token,
+-      REDBOX_ADMIN_PASSWORD: credentials.password,
+-      REDBOX_SESSION_SECRET: 'fm007-only-synthetic-session-secret-at-least-32-characters',
+-    },
+-  });
+-  const maintenance = { config: portal.config, log };
+-  try {
+-    const ready = await prepareSelectedPersistenceIndexes(maintenance, 'ensure', {
+-      storage: portal.preflight,
+-      agenda: portal.config.agendaQueue.options,
+-      session: portal.config.redboxSession,
+-    });
+-    assert.equal(ready.ready, true);
+-  } finally {
+-    await cleanupPersistence(maintenance);
+-  }
+-  await portal.host.initialize();
+-  await portal.host.activate();
+-  portal.host.installSignalHandlers({
+-    onStopped: () => process.exit(0),
+-    onError: () => {
+-      process.exitCode = 1;
+-    },
+-  });
++  return { build, fcv };
++}
++
++async function startControl({ build, fcv }) {
+@@ -345 +308 @@
+-        selected: portal.resolved.providers?.map(item => item.name),
++        selected: portal.installation.providers?.map(item => item.name),
+@@ -353,2 +316,5 @@
+-main().catch(async error => {
+-  console.error(error.stack);
++// Preloaded before app.js so its own production host is also the measured host.
++const composition = runtimeRequire('./portal.cjs');
++const createProductionHost = composition.createHost;
++composition.createHost = async application => {
++  const mongoVersion = await openNative();
+@@ -356,5 +322,19 @@
+-    await portal?.host?.stop({ deadlineMs: 10000 });
+-    await native?.close();
+-  } catch {}
+-  process.exitCode = 1;
+-});
++    const ready = await prepareSelectedPersistenceIndexes(application.owner, 'ensure', {
++      storage: application.preflight,
++      agenda: application.config.agendaQueue.options,
++      session: application.config.redboxSession,
++    });
++    assert.equal(ready.ready, true);
++    const selected = await createProductionHost(application);
++    portal = { ...application, ...selected };
++    const activate = selected.host.activate.bind(selected.host);
++    selected.host.activate = async () => {
++      await activate();
++      await startControl(mongoVersion);
++    };
++    return selected;
++  } catch (error) {
++    await native.close();
++    throw error;
++  }
++};

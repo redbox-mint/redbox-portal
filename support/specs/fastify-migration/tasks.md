@@ -386,7 +386,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: final runtime artifact passes the agreed matrix; no new direct
     TLS/HTTP2, multi-replica or untested topology support is implied.
 
-- [ ] **FM-047 — Verify performance threshold.**
+- [x] **FM-047 — Verify performance threshold.**
   - Dependencies: FM-044, FM-007.
   - Work: repeat the P0 workloads under equivalent conditions, retain raw samples,
     variability, errors, p95, throughput and memory observations.

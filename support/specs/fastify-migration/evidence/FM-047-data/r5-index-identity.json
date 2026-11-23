@@ -1,0 +1,31 @@
+{
+  "tag": "redbox-fm044:r5-980c2f3a1e",
+  "digest": "sha256:28898f254d52fcbcfc71ed1bebb0c39726ee089e992b643f7303ed1ca581080a",
+  "digestReference": "redbox-fm044@sha256:28898f254d52fcbcfc71ed1bebb0c39726ee089e992b643f7303ed1ca581080a",
+  "mediaType": "application/vnd.oci.image.index.v1+json",
+  "platforms": [
+    {
+      "platform": "linux/amd64",
+      "manifestDigest": "sha256:5316070c205ac076add38a12b8ae0346f1e65d9a160ef688d5163703818e13c4",
+      "configDigest": "sha256:6a74500755a9dc4021fb09dc2cf6268a13e1db10dba64a59a92876852f3921f3",
+      "user": "node",
+      "command": [
+        "node",
+        "app.js"
+      ]
+    },
+    {
+      "platform": "linux/arm64",
+      "manifestDigest": "sha256:6ea446bc51e6aaab6bad0676934146c6b4fb77932b1448f7120130c1547d3d5b",
+      "configDigest": "sha256:b6e7f51ea2e0c4f8914c35601e4cc95223e555b599b1746943b08471a0fffc9a",
+      "user": "node",
+      "command": [
+        "node",
+        "app.js"
+      ]
+    }
+  ],
+  "target": "runtime",
+  "storage": "local Docker containerd image store",
+  "registryPublished": false
+}
