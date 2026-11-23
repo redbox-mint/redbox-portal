@@ -6,6 +6,7 @@ import {
   executeNamedQueryRoute,
 } from '../../index';
 import type { ReportConfigDto } from '../../services/ReportsService';
+import { NamedQueryParameterError } from '../../queries/namedQueryParameters';
 
 export namespace Controllers {
   /**
@@ -75,7 +76,7 @@ export namespace Controllers {
         sails.log.error(`executeNamedQuery error: ${error}`);
         const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
-          status: 500,
+          status: error instanceof NamedQueryParameterError ? 400 : 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });

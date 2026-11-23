@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel, ReportModel } from '../model';
+import { NamedQueryParameterError } from '../queries/namedQueryParameters';
 import { from } from 'rxjs';
 
 
@@ -63,10 +64,7 @@ export namespace Controllers {
           this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         }
       }, (error: unknown) => {
-        sails.log.error("Error updating meta:");
-        sails.log.error(error);
-        const message = error instanceof Error ? error.message : String(error);
-        this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
+        this.sendReportError(req, res, error, 200);
       });;
     }
 
@@ -82,9 +80,7 @@ export namespace Controllers {
         res.status(200).send(results);
         return res
       } catch (error: unknown) {
-        sails.log.error(error);
-        const message = error instanceof Error ? error.message : String(error);
-        return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
+        return this.sendReportError(req, res, error, 200);
       }
     }
 
@@ -150,10 +146,18 @@ export namespace Controllers {
     }
 
     private sendReportConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {
-      sails.log.error(error);
       const status = typeof error === 'object' && error !== null && 'status' in error ? Number((error as { status: number }).status) : 500;
+      return this.sendReportError(req, res, error, status);
+    }
+
+    private sendReportError(req: Sails.Req, res: Sails.Res, error: unknown, status: number) {
+      sails.log.error(error);
+      const headers = this.getNoCacheHeaders();
+      if (error instanceof NamedQueryParameterError) {
+        return this.sendResp(req, res, { status: error.status, displayErrors: [{ title: error.message }], headers });
+      }
       const message = error instanceof Error ? error.message : String(error);
-      return this.sendResp(req, res, { status, data: { status: false, message }, headers: this.getNoCacheHeaders() });
+      return this.sendResp(req, res, { status, data: { status: false, message }, headers });
     }
 
     /**

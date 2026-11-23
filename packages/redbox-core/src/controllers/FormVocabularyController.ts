@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
+import { NamedQueryParameterError } from '../queries/namedQueryParameters';
 import { toBoolean } from '@researchdatabox/sails-ng-common';
 
 type FormVocabularyUserContext = Record<string, unknown>;
@@ -266,6 +267,13 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {
+        if (error instanceof NamedQueryParameterError) {
+          return this.sendResp(req, res, {
+            status: error.status,
+            displayErrors: [{ code: 'invalid-query-params' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         const errorCode = String((error as { code?: string } | null)?.code ?? '');
         if (errorCode === 'query-vocab-not-configured') {
           return this.sendResp(req, res, {
