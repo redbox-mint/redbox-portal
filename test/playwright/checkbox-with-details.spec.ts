@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { MongoClient } from 'mongodb';
 import { adminStorageStatePath } from './helpers';
 
 test.use({ storageState: adminStorageStatePath });
@@ -6,11 +7,19 @@ test.use({ storageState: adminStorageStatePath });
 const prefix = '/default/rdmp';
 const newRecord = `${prefix}/record/checkbox-details-demo/edit`;
 const savePath = `${prefix}/recordmeta/`;
+const formatsLookupPath = `${prefix}/vocab/checkbox-details-formats/entries`;
 
-test('saves, validates, reopens and prints selected checkbox details', async ({ page }, testInfo) => {
+test('loads the demo vocabulary and saves, reopens, activates and prints selected details', async ({ page }, testInfo) => {
   const browserErrors: string[] = [];
   page.on('pageerror', error => browserErrors.push(error.message));
+  const entries = page.waitForResponse(response => new URL(response.url()).pathname === formatsLookupPath);
   await page.goto(newRecord);
+  const lookup = await entries;
+  expect(lookup.ok()).toBeTruthy();
+  const choices = await lookup.json();
+  expect(Array.isArray(choices) ? choices : choices.data).toEqual(expect.arrayContaining([
+    expect.objectContaining({ value: 'tabulated', label: 'Tabulated files' }),
+  ]));
   const title = page.getByRole('textbox', { name: 'Project title' });
   const openFormats = () => page.getByRole('tab', { name: 'Formats' }).click();
   const tabulated = page.getByRole('checkbox', { name: 'Tabulated files' });
@@ -205,29 +214,16 @@ test('preserves incomplete drafts during a pending and failed lookup and validat
   const incomplete = [{ value: 'tabulated', details: {} }];
   expect(draft.metadata.digitalFormatEstimates).toEqual(incomplete);
 
-  // Keep the demo's real write contract. Rewrite only the client config and
-  // control the vocabulary HTTP result to reproduce a slow then failed lookup.
-  let definitions: Array<{ value: string; label: string }> = [];
-  await page.route(url => url.pathname === `${prefix}/record/form/auto/${oid}`, async route => {
-    const response = await route.fetch();
-    const body = await response.json();
-    const sections = body.data.componentDefinitions.find((item: { name: string }) => item.name === 'sections');
-    const tab = sections.component.config.tabs.find((item: { name: string }) => item.name === 'formats');
-    const field = tab.component.config.componentDefinitions.find((item: { name: string }) => item.name === 'digitalFormatEstimates');
-    definitions = field.component.config.options;
-    delete field.component.config.options;
-    field.component.config.vocabRef = 'checkbox-details-test-formats';
-    await route.fulfill({ response, json: body });
-  });
+  // Delay and fail just the editor request. Writes use the configured server vocabulary.
   let failLookup!: () => void;
   const pendingLookup = new Promise<void>(resolve => { failLookup = resolve; });
   let attempts = 0;
-  await page.route(url => url.pathname === `${prefix}/vocab/checkbox-details-test-formats/entries`, async route => {
+  await page.route(url => url.pathname === formatsLookupPath, async route => {
     if (++attempts === 1) {
       await pendingLookup;
       await route.fulfill({ status: 503, json: { message: 'Synthetic unavailable vocabulary' } });
     } else {
-      await route.fulfill({ json: { data: definitions } });
+      await route.continue();
     }
   });
   let activationRequests = 0;
@@ -290,4 +286,52 @@ test('preserves incomplete drafts during a pending and failed lookup and validat
   expect(activationRequests).toBe(1);
   expect(active.workflow.stage).toBe('active');
   expect(active.metadata.digitalFormatEstimates).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);
+});
+
+
+test('shows obsolete details alongside surviving controls on historical choices', async ({ page }, testInfo) => {
+  const title = page.getByRole('textbox', { name: 'Project title' });
+  await page.goto(newRecord);
+  await title.fill('Synthetic archived details');
+  const draft = await save(page, 'Save draft', 'POST', demoType);
+  const oid: string = draft.redboxOid;
+  const saved = [{
+    value: 'legacy-media',
+    details: { volume: '1 TB', legacyNotes: 'Stored on tape', privateReference: 'Keep private' },
+  }];
+  // Seed a prior form version's metadata on this test's own record.
+  const mongo = await new MongoClient(process.env.CHECKBOX_DETAILS_MONGO_URL ?? 'mongodb://mongodb:27017', {
+    serverSelectionTimeoutMS: 5000,
+  }).connect();
+  try {
+    const seeded = await mongo.db('redbox-storage').collection('record').updateOne(
+      { redboxOid: oid },
+      { $set: { 'metadata.digitalFormatEstimates': saved } }
+    );
+    expect(seeded.modifiedCount).toBe(1);
+  } finally {
+    await mongo.close();
+  }
+
+  const historical = page.locator('.checkbox-details__row').filter({
+    has: page.getByRole('checkbox', { name: 'Legacy media', exact: true }),
+  });
+  const checkHistorical = async () => {
+    await openFormats(page);
+    await expect(historical.getByRole('checkbox')).toBeChecked();
+    await expect(historical.getByRole('textbox', { name: 'Estimated volume — Legacy media' })).toHaveValue('1 TB');
+    await expect(historical.locator('dt')).toHaveText(['legacyNotes']);
+    await expect(historical.locator('dd')).toHaveText(['Stored on tape']);
+    await expect(historical.getByText('Keep private')).toHaveCount(0);
+    await expect(historical.getByRole('textbox')).toHaveCount(1);
+  };
+  await page.goto(`${prefix}/record/edit/${oid}`);
+  await checkHistorical();
+  await historical.screenshot({ path: testInfo.outputPath('historical-details.png') });
+  await page.getByRole('tab', { name: 'Project' }).click();
+  await title.fill('Synthetic archived details (updated)');
+  const updated = await save(page, 'Save draft', 'PUT', oid);
+  expect(updated.metadata.digitalFormatEstimates).toEqual(saved);
+  await page.reload();
+  await checkHistorical();
 });

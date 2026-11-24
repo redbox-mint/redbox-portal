@@ -51,7 +51,11 @@ type ResolveVocabsOptions = {
   /** View, contract compilation and validated writes also resolve editor-loaded choices. */
   resolveDeferredCheckboxDetails?: boolean;
   checkboxDetailsOnly?: boolean;
+  /** Keep failed checkbox lookups unresolved so a preservation-only save can be validated. */
+  preserveOnCheckboxLookupFailure?: boolean;
 };
+
+class VocabularyEntriesReadError extends Error {}
 
 
 export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
@@ -63,6 +67,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   private includeHistoricalValues = false;
   private resolveDeferredCheckboxDetails = false;
   private checkboxDetailsOnly = false;
+  private preserveOnCheckboxLookupFailure = false;
   private pendingResolutions: Promise<void>[] = [];
 
   constructor(logger: ILogger) {
@@ -85,6 +90,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.resolveDeferredCheckboxDetails = options?.resolveDeferredCheckboxDetails === true;
     this.checkboxDetailsOnly = options?.checkboxDetailsOnly === true;
+    this.preserveOnCheckboxLookupFailure = options?.preserveOnCheckboxLookupFailure === true;
     this.pendingResolutions = [];
     await form.accept(this);
     await Promise.all(this.pendingResolutions);
@@ -141,7 +147,8 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     const config = item.component.config;
     if (this.validateLookupsOnly || !config?.vocabRef ||
         (!config.inlineVocab && !this.resolveDeferredCheckboxDetails)) return;
-    this.pendingResolutions.push(this.fetchAllEntries(this.branding, config.vocabRef, true).then(entries => {
+    const lookup = this.fetchAllEntries(this.branding, config.vocabRef, true, this.preserveOnCheckboxLookupFailure);
+    this.pendingResolutions.push(lookup.then(entries => {
       config.options = entries.map(entry => ({
         label: entry.label,
         value: entry.value,
@@ -153,6 +160,10 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       if (unmatched.length) {
         this.logger.warn(`CheckboxWithDetails '${item.name}': vocabulary '${config.vocabRef}' has no entries for detail mappings ${JSON.stringify(unmatched)}.`);
       }
+    }, error => {
+      if (!this.preserveOnCheckboxLookupFailure || !(error instanceof VocabularyEntriesReadError)) throw error;
+      this.logger.warn(error.message);
+      this.logger.debug(error.cause);
     }));
   }
 
@@ -262,19 +273,23 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   private async fetchAllEntries(
     branding: string,
     vocabRef: string,
-    includeHistoricalValues = this.includeHistoricalValues
+    includeHistoricalValues = this.includeHistoricalValues,
+    identifyReadFailures = false
   ): Promise<VocabularyEntryAttributes[]> {
     const allEntries: VocabularyEntryAttributes[] = [];
     const limit = 1000;
     let offset = 0;
     let total: number | null = null;
+    const getEntries = VocabularyService.getEntries.bind(VocabularyService);
 
     while (total === null || allEntries.length < total) {
-      const response = await VocabularyService.getEntries(branding, vocabRef, {
-        limit,
-        offset,
-        includeHistoricalValues
-      });
+      let response: Awaited<ReturnType<typeof VocabularyService.getEntries>>;
+      try {
+        response = await getEntries(branding, vocabRef, { limit, offset, includeHistoricalValues });
+      } catch (cause) {
+        if (!identifyReadFailures) throw cause;
+        throw new VocabularyEntriesReadError(`Could not read vocabulary '${vocabRef}' for branding '${branding}'.`, { cause });
+      }
       if (!response) {
         throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
       }

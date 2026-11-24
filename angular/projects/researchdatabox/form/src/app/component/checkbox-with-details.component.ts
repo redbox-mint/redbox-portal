@@ -338,7 +338,9 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
   }
 
   protected archiveDetails(row: EditorRow) {
-    return checkboxDetailsDisplayFields(this.config, row.control.getRawValue(), true);
+    const rendered = new Set(row.fields.map(field => field.compConfigJson.name));
+    return checkboxDetailsDisplayFields(this.config, row.control.getRawValue(), true)
+      .filter(detail => !rendered.has(detail.name));
   }
 
   private createRow(value: string, rowIndex: number, saved?: CheckboxWithDetailsRow): EditorRow {

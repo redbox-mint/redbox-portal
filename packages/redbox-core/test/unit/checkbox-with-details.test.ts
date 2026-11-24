@@ -224,27 +224,50 @@ describe('Checkbox with details form', () => {
         },
       ],
     };
-    const validate = async (projects: unknown[]) => {
+    const validate = async (projects: unknown[], prior = previousMetadata) => {
       const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data, record: { projects } });
       return new ValidatorFormConfigVisitor(consoleLogger).start({
         form,
-        previousMetadata,
+        previousMetadata: prior,
         enabledValidationGroups: ['none'],
       });
     };
     assert.deepEqual(await validate(previousMetadata.projects), []);
     assert.deepEqual(await validate([second, third]), []);
     assert.deepEqual(await validate([third, first, second]), []);
+    const renamed = { ...second, name: 'Renamed second' };
+    assert.deepEqual(await validate([renamed]), []);
+    assert.deepEqual(await validate([renamed, first]), []);
+    assert.deepEqual(await validate([{ ...first, name: 'Renamed ordinary row' }]), []);
     for (const projects of [
       [second, second],
+      [renamed, second],
+      [renamed, { ...renamed, name: 'Copy' }],
+      [{ ...renamed, formats: [row('archived', { volume: 'Changed while moving' })] }],
+      [{ ...renamed, formats: [], otherFormats: [archived] }],
       [{ ...first, formats: [archived] }, second],
       [first, { ...second, otherFormats: [archived] }, third],
       [first, { ...second, formats: [row('archived', { volume: '2 TB' })] }, third],
     ]) {
       const errors = await validate(projects);
-      assert.equal(errors.length, 1);
-      assert.match(errors[0].errors[0].message, /checkbox-details-(option|field)/);
+      assert.ok(errors.length > 0);
+      assert.ok(errors.every(error => /checkbox-details-(option|field)/.test(error.errors[0].message)));
     }
+    const ambiguous = await validate([renamed], {
+      projects: [{ ...first, formats: [archived] }, second, third],
+    });
+    assert.equal(ambiguous[0].errors[0].message, '@validator-error-checkbox-details-option');
+
+    const opaque = await validate([renamed], {
+      projects: [first, { ...second, formats: [], arbitrary: [archived] } as typeof second, third],
+    });
+    assert.equal(opaque[0].errors[0].message, '@validator-error-checkbox-details-option');
+
+    const currentChoice = row('table', { volume: '2 TB', oldNote: 'Older table estimate' });
+    const selectable = await validate([{ ...renamed, formats: [currentChoice] }], {
+      projects: [first, { ...second, formats: [currentChoice] }, third],
+    });
+    assert.equal(selectable[0].errors[0].message, '@validator-error-checkbox-details-field');
   });
 
   it('uses normal validation groups for selected details and points to the exact row', async () => {
@@ -265,6 +288,27 @@ describe('Checkbox with details form', () => {
     assert.equal(errors[0].message, 'Volume — Other files');
     assert.deepEqual(errors[0].lineagePaths?.dataModel, ['formats', 1, 'details', 'volume']);
     assert.equal(errors[0].lineagePaths?.angularComponentsJsonPointer, '/formats/option:other.~1~0:format/volume');
+  });
+
+  it('requires an unresolved lookup when only a named child validation group is active', async () => {
+    const field = definition();
+    delete field.component.config!.options;
+    field.component.config!.vocabRef = 'formats';
+    field.component.config!.detailFields![0].model!.config!.validators![0].groups = { include: ['release'] };
+    field.model!.config!.validators = [];
+    const data = frame(field);
+    data.validationGroups = { release: { description: 'Validate estimates', initialMembership: 'none' } };
+    const metadata = { formats: [row('table')] };
+    const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data, record: metadata });
+    const validate = (group: string) => new ValidatorFormConfigVisitor(consoleLogger).start({
+      form,
+      enabledValidationGroups: [group],
+      previousMetadata: metadata,
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    assert.deepEqual(await validate('none'), []);
+    const errors = await validate('release');
+    assert.equal(errors[0].errors[0].message, '@validator-error-checkbox-details-lookup-unavailable');
   });
 
   it('preserves retired data from the stored record and rejects new unavailable codes and duplicate rows', async () => {

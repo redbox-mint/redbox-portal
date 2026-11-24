@@ -32,7 +32,7 @@
             @for (field of row.fields; track field) {
               <ng-container [redboxCheckboxDetailField]="field" />
             }
-            @if (option.historical && !row.fields.length) {
+            @if (option.historical) {
               @let archived = archiveDetails(row);
               @if (archived.length) {
                 <dl class="mb-0">

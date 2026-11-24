@@ -1476,15 +1476,6 @@ export namespace Services {
           const validationForm = transformationApplication.applied.length > 0
             ? await this.constructForm(form, transformedCandidate.metadata, request.previousMetadata)
             : constructedForm;
-          if (schemaOwnedFormNodes(validationForm).some(({ value }) =>
-            isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
-            isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
-          )) {
-            await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
-              checkboxDetailsOnly: true,
-              resolveDeferredCheckboxDetails: true,
-            });
-          }
           const groupResolution = await this.resolveValidationGroups(
             validationForm,
             policy,
@@ -1500,6 +1491,16 @@ export namespace Services {
           );
           const validatorDefinitionsMap = this.validatorDefinitions(validationForm, diagnostics);
           if (!validatorDefinitionsMap) return undefined;
+          if (schemaOwnedFormNodes(validationForm).some(({ value }) =>
+            isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
+            isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
+          )) {
+            await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
+              checkboxDetailsOnly: true,
+              resolveDeferredCheckboxDetails: true,
+              preserveOnCheckboxLookupFailure: !!policy && !normalized.targetStep && request.writeKind !== 'transition',
+            });
+          }
           const validation = await this.executeValidators(
             validationForm,
             groupResolution.effectiveGroups,

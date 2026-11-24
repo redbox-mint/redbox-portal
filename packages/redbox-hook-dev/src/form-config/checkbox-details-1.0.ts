@@ -8,11 +8,7 @@ const formats: CheckboxWithDetailsFormComponentDefinitionFrame = {
   component: {
     class: 'CheckboxWithDetailsComponent',
     config: {
-      options: [
-        { value: 'tabulated', label: 'Tabulated files' },
-        { value: 'image', label: 'Image files' },
-        { value: 'other', label: 'Other' },
-      ],
+      vocabRef: 'checkbox-details-formats',
       detailFields: [
         {
           name: 'volume',
@@ -25,6 +21,12 @@ const formats: CheckboxWithDetailsFormComponentDefinitionFrame = {
         },
       ],
       detailFieldsByValue: {
+        'legacy-media': [
+          {
+            name: 'privateReference',
+            component: { class: 'SimpleInputComponent', config: { visible: false } },
+          },
+        ],
         other: [
           {
             name: 'description',
@@ -46,8 +48,11 @@ const config: FormConfigFrame = {
   domElementType: 'form',
   editCssClasses: 'redbox-form form',
   enabledValidationGroups: ['none'],
+  validationGroups: {
+    draft: { description: 'Check basic draft information', initialMembership: 'none' },
+  },
   validationOperations: {
-    draft: { enabledValidationGroups: ['none'] },
+    draft: { enabledValidationGroups: ['draft'] },
     activate: { enabledValidationGroups: ['all'], allowedTargetSteps: ['active'] },
   },
   componentDefinitions: [
@@ -67,6 +72,9 @@ const config: FormConfigFrame = {
                     {
                       name: 'title',
                       component: { class: 'SimpleInputComponent' },
+                      model: { class: 'SimpleInputModel', config: { validators: [
+                        { class: 'required', groups: { include: ['draft'] } },
+                      ] } },
                       layout: { class: 'DefaultLayout', config: { label: 'Project title' } },
                     },
                   ],
@@ -92,7 +100,7 @@ const config: FormConfigFrame = {
         config: {
           label: 'Save draft',
           operation: 'draft',
-          enabledValidationGroups: ['none'],
+          enabledValidationGroups: ['draft'],
         },
       },
     },

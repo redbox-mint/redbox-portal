@@ -1453,6 +1453,7 @@
   "checkbox-details-retry": "Try again",
   "@validator-error-checkbox-details-shape": "Each selected option must have a code and a details object.",
   "@validator-error-checkbox-details-option": "This selection is unavailable or appears more than once.",
+  "@validator-error-checkbox-details-lookup-unavailable": "Options could not be verified. Try again once the vocabulary is available.",
   "@validator-error-checkbox-details-field": "This detail is unavailable for the selected option or has an invalid value.",
   "@validator-error-required": "This field requires a value.",
   "@validator-error-required-true": "This field must be completed.",

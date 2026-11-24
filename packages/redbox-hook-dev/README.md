@@ -36,16 +36,20 @@ This package is wired into the portal as a **devDependency**
 
 On a running development portal, sign in as an administrator and open
 `/default/rdmp/record/checkbox-details-demo/edit`. In the Formats tab, each
-selected format starts with an example volume. Other also starts with an
+selected format comes from the development vocabulary and starts with an
+example volume. Other also starts with an
 example description. Clear an example value to try an incomplete draft.
-**Save draft** accepts incomplete details. **Activate** requires every selected
+**Save draft** requires a project title and accepts incomplete details. **Activate** requires every selected
 row to be complete. Reopen the record to verify the saved selections or open
 its View page to print the labelled answers.
 
-Run the browser acceptance test from the portal checkout.
+Run the browser acceptance test from the portal checkout against an isolated
+development stack. The test uses MongoDB to seed one synthetic record with
+metadata from a prior form version.
 
 ```sh
-PLAYWRIGHT_BASE_URL=http://localhost:1500 npx playwright test test/playwright/checkbox-with-details.spec.ts
+CHECKBOX_DETAILS_MONGO_URL=mongodb://localhost:27017 PLAYWRIGHT_BASE_URL=http://localhost:1500 \
+  npx playwright test test/playwright/checkbox-with-details.spec.ts
 ```
 
 ## Integration testing
