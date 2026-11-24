@@ -32,6 +32,7 @@ import {
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
   StorageService,
+  isRecordFilterFieldPath,
   type RecordQueryOptions,
   StorageServiceResponse,
   StorageMutationResponse,
@@ -3131,13 +3132,9 @@ export namespace Services {
       // Legacy callers pass a one-element array; never accept query operators as paths.
       const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
       if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
-      const validField = (field: unknown): field is string =>
-        typeof field === 'string' &&
-        /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
-        !field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment));
       if (
         filterFields != null &&
-        (!Array.isArray(filterFields) || filterFields.length > 20 || filterFields.some(field => !validField(field)))
+        (!Array.isArray(filterFields) || filterFields.length > 20 || !filterFields.every(isRecordFilterFieldPath))
       ) {
         throw new Error('Invalid filter fields');
       }
@@ -3160,7 +3157,7 @@ export namespace Services {
                   !term ||
                   typeof term !== 'object' ||
                   Object.keys(term).some(key => !['field', 'value', 'match'].includes(key)) ||
-                  !validField(term.field) ||
+                  !isRecordFilterFieldPath(term.field) ||
                   !['contains', 'exact'].includes(term.match) ||
                   typeof term.value !== 'string' ||
                   term.value.length > 1024

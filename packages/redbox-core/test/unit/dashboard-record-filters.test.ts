@@ -10,7 +10,12 @@ describe('dashboard record filter contract', () => {
     }
   });
 
-  it('accepts the hyphenated metadata key used by the RDMP ID filter', () => {
-    expect(dashboardRecordFilters.safeParse({ filterFields: 'metadata.rdmp-id', filter: '000000' }).success).to.equal(true);
+  it('accepts hyphenated field paths and rejects invalid path segments', () => {
+    for (const filterFields of ['metadata.rdmp-id', 'metadata.some-field.nested-key', 'metadata.title,metadata.rdmp-id']) {
+      expect(dashboardRecordFilters.safeParse({ filterFields, filter: '000000' }).success, filterFields).to.equal(true);
+    }
+    for (const filterFields of ['metadata.-id', 'metadata.$where', 'metadata.__proto__', 'metadata.constructor', 'metadata..title']) {
+      expect(dashboardRecordFilters.safeParse({ filterFields, filter: '000000' }).success, filterFields).to.equal(false);
+    }
   });
 });
