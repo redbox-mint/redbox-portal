@@ -101,6 +101,7 @@ export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   expressionContextUnsupported: 'record-validation-expression-context-unsupported',
   transformationInapplicable: 'record-validation-transformation-inapplicable',
   validationGroupUnknown: 'record-validation-group-unknown',
+  checkboxVocabularyMissing: 'record-validation-checkbox-vocabulary-missing',
   requestParameterDropped: 'record-validation-request-parameter-dropped',
   resolutionFailed: 'record-validation-resolution-failed',
   advisoryConfigurationMalformed: 'record-validation-advisory-configuration-malformed',
@@ -1495,10 +1496,22 @@ export namespace Services {
             isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
             isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
           )) {
+            // The validator owns all group and answer checks. Only an existing
+            // record with trusted prior metadata can tolerate a missing reference.
+            const canPreserve = !!policy && !normalized.targetStep && request.writeKind !== 'transition';
+            const canPreserveMissing = request.writeKind === 'update' && isRecord(request.previousMetadata);
             await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
               checkboxDetailsOnly: true,
               resolveDeferredCheckboxDetails: true,
-              preserveOnCheckboxLookupFailure: !!policy && !normalized.targetStep && request.writeKind !== 'transition',
+              checkboxLookupFallback: canPreserve ? {
+                onMissingVocabulary: canPreserveMissing ? field => {
+                  diagnostics.push(createDiagnostic(
+                    RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyMissing,
+                    'The checkbox vocabulary is missing. Retained answers must match the stored record.',
+                    { severity: 'warning', field }
+                  ));
+                } : undefined,
+              } : undefined,
             });
           }
           const validation = await this.executeValidators(
