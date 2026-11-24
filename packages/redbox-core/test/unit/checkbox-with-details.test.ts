@@ -84,7 +84,8 @@ describe('Checkbox with details form', () => {
       rendered,
       /Tabulated files.*Volume.*About 200 files.*Other files.*Volume.*3 TB.*Description.*second line/s
     );
-    assert.doesNotMatch(rendered, /<script>|other\.\//);
+    assert.ok(rendered.includes('<dd>&lt;script&gt;input&lt;/script&gt;<br>second line</dd>'));
+    assert.doesNotMatch(rendered, /other\.\//);
   });
 
   it('keeps Other-only rows, including inside repeated groups, in generated View', async () => {
