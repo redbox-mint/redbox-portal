@@ -143,6 +143,7 @@ export {
   StorageService,
   RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
   getMissingRecordSchemaStorageCapabilities,
+  isRecordFilterFieldPath,
 } from './StorageService';
 export type {
   RecordQueryOptions,
