@@ -53,7 +53,7 @@
     "packages/redbox-core/src/http/fastify/mutations.ts": "568cf80c87d4db26b97a0f6bd175f3953cc6ef47df9ef4152889afb89f54b350",
     "packages/redbox-core/src/http/fastify/pages.ts": "749b423f2c9651b39e4eebaeb6a7ef28d54ec14794b2a46aeb2e445660990c1f",
     "packages/redbox-core/src/http/fastify/parsers.ts": "2220870f08f2b639f05e3a049749ad1cf22876be8906c3245f30d7837f61d697",
-    "packages/redbox-core/src/http/fastify/policies.ts": "aba566cebbb20e10b99f55ee4cf240e7ca3a5b1556f9c1754670731efc0e435c",
+    "packages/redbox-core/src/http/fastify/policies.ts": "a6ec337ebe1862fcb976d3c0aa8ec05e7703172df471d55e82f6fac45f5b175c",
     "packages/redbox-core/src/http/fastify/precedence.ts": "b1a68cfe62b19f57aa59faf631b468349fb87b954814029a90f1a92a3c668239",
     "packages/redbox-core/src/http/fastify/preparation.ts": "457c503ccb7f1cdbf1cb687198ed19ecdd09136094d44ddd475da2cdfab1f560",
     "packages/redbox-core/src/http/fastify/rawMultipart.ts": "c6a21b64b63b66c8510563a20042bd2809e183ba761c5e911223504d2678fab4",
