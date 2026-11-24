@@ -275,7 +275,7 @@
     "oxlint": "1.93.0",
     "oxlint-tsgolint": "7.0.2007",
     "pino-test": "2.0.0",
-    "prettier": "3.8.3",
+    "prettier": "3.10.1",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
     "redoc": "3.1.0",
     "sass": "1.108.2",
