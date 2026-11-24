@@ -611,7 +611,13 @@ function typedProject(sources) {
       type: checker.typeToString(type),
       declarations: type
         .getSymbol()
-        .declarations.map(declaration => path.relative(root, declaration.getSourceFile().fileName)),
+        // Report dependency declarations independent of the install layout
+        // (hoisted root or package-local node_modules).
+        .declarations.map(declaration =>
+          path
+            .relative(root, declaration.getSourceFile().fileName)
+            .replace(/^(?:.*\/)?node_modules\//, 'node_modules/')
+        ),
     })),
   };
 }

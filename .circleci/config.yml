@@ -694,6 +694,7 @@ jobs:
             npm run compile:dev-tools
             npm run compile:storage-mongo
             npm run compile:dev-hook
+            npm run compile:pdfgen-hook
       - run:
           name: Type-check Effect integrations and tests
           command: nvm install && npm --prefix packages/redbox-core run typecheck:effect
