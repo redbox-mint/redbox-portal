@@ -7,7 +7,7 @@ export const dashboardRecordFilters = z.object({
   filter: z.string().max(1024).optional(),
   filterFields: z.string().max(2048).refine(value => value === '' ||
     (value.split(',').length <= 20 && value.split(',').every(field =>
-      /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
+      /^[A-Za-z_][A-Za-z0-9_-]*(\.[A-Za-z_][A-Za-z0-9_-]*)*$/.test(field) &&
       !field.split('.').some(part => ['__proto__', 'prototype', 'constructor'].includes(part)))), 'Invalid filter fields').optional(),
 });
 export const dashboardRecordsApiRoutes = [defineApiRoute({

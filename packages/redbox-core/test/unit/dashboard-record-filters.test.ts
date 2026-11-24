@@ -1,6 +1,5 @@
 import { expect } from 'chai';
-import { dashboardRecordFilters, dashboardRecordsApiRoutes } from '../../src/api-routes/groups/dashboard-records';
-import { validateApiRequest } from '../../src/api-routes';
+import { dashboardRecordFilters } from '../../src/api-routes/groups/dashboard-records';
 describe('dashboard record filter contract', () => {
   it('validates OR opt-in, legacy modes and literal search input', () => {
     for (const filterMode of [undefined, '', 'all', 'regex', 'equal', 'any']) {
@@ -9,5 +8,9 @@ describe('dashboard record filter contract', () => {
     for (const query of [{ filterMode: ['any'] }, { filterMode: 'or' }, { filterFields: '$where' }, { filterFields: 'metadata.__proto__' }, { filter: 'x'.repeat(1025) }]) {
       expect(dashboardRecordFilters.safeParse(query).success).to.equal(false);
     }
+  });
+
+  it('accepts the hyphenated metadata key used by the RDMP ID filter', () => {
+    expect(dashboardRecordFilters.safeParse({ filterFields: 'metadata.rdmp-id', filter: '000000' }).success).to.equal(true);
   });
 });
