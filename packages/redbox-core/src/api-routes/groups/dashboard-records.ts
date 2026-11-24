@@ -1,14 +1,13 @@
 import { defineApiRoute } from '../define';
 import { z } from '../zod-openapi';
 import { anyField, responseField, apiErrorResponseSchema } from '../schemas/common';
+import { isRecordFilterFieldPath } from '../../StorageService';
 
 export const dashboardRecordFilters = z.object({
   filterMode: z.enum(['', 'regex', 'equal', 'all', 'any']).optional(),
   filter: z.string().max(1024).optional(),
   filterFields: z.string().max(2048).refine(value => value === '' ||
-    (value.split(',').length <= 20 && value.split(',').every(field =>
-      /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
-      !field.split('.').some(part => ['__proto__', 'prototype', 'constructor'].includes(part)))), 'Invalid filter fields').optional(),
+    (value.split(',').length <= 20 && value.split(',').every(isRecordFilterFieldPath)), 'Invalid filter fields').optional(),
 });
 export const dashboardRecordsApiRoutes = [defineApiRoute({
   method: 'get', path: '/:branding/:portal/listRecords', controller: 'RecordController', action: 'getRecordList', csrf: true,

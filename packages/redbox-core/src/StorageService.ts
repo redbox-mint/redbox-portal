@@ -47,6 +47,15 @@ export interface RecordRelationQueryResult {
   overflow: boolean;
 }
 
+/** Validate a dotted field path before using it as a record filter key. */
+export function isRecordFilterFieldPath(field: unknown): field is string {
+  return (
+    typeof field === 'string' &&
+    /^[A-Za-z_][A-Za-z0-9_-]*(\.[A-Za-z_][A-Za-z0-9_-]*)*$/.test(field) &&
+    !field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment))
+  );
+}
+
 /** Opt-in record queries; omitted options preserve legacy filtering and pagination. */
 export interface RecordQueryOptions {
   /** Additional OR predicates, ANDed with brand, ACL, type and existing field filters. */
