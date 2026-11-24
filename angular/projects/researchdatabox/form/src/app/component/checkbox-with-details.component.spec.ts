@@ -140,11 +140,19 @@ describe('CheckboxWithDetailsComponent', () => {
 
   it('hydrates deferred vocabulary without reassigning saved rows and shows a removed choice', async () => {
     const fieldDefinition = field('formats', [
-      { value: 'removed', details: { volume: '1 TB' } },
+      { value: 'removed', details: { volume: '1 TB', retiredMemo: 'Original notes' } },
       { value: 'other./~', details: { volume: '3 TB', description: 'Instrument exports' } },
     ]);
     delete fieldDefinition.component.config!.options;
     fieldDefinition.component.config!.vocabRef = 'formats';
+    fieldDefinition.component.config!.storedMappingValues = ['removed'];
+    fieldDefinition.component.config!.detailFieldsByValue!['removed'] = [
+      {
+        name: 'retiredMemo',
+        layout: { class: 'DefaultLayout', config: { label: 'Original estimate notes' } },
+        component: { class: 'TextAreaComponent' },
+      },
+    ];
     let resolveOptions!: (options: TypeaheadOption[]) => void;
     const vocabulary = spyOn(TestBed.inject(TypeaheadDataService), 'searchVocabularyEntries').and.returnValue(
       new Promise(resolve => {
@@ -161,6 +169,10 @@ describe('CheckboxWithDetailsComponent', () => {
     expect(vocabulary).toHaveBeenCalledOnceWith('formats', '', 1000, 0, true);
     expect(formComponent.form?.value.formats).toEqual(fieldDefinition.model!.config!.value);
     expect(fixture.nativeElement.querySelector('redbox-checkbox-with-details').textContent).toContain('removed');
+    expect(fixture.nativeElement.querySelector('redbox-checkbox-with-details').textContent).toContain(
+      'Original estimate notes'
+    );
+    expect(fixture.nativeElement.querySelector('redbox-checkbox-with-details').textContent).toContain('Original notes');
     expect(fixture.nativeElement.querySelector('textarea').value).toBe('Instrument exports');
   });
 });

@@ -10,6 +10,7 @@ import {
   CheckboxDetailFieldFrame,
   CheckboxDetailFieldOutline,
   checkCheckboxWithDetailsConfig,
+  readCheckboxWithDetailsRows,
 } from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep, cloneDeepWith as _cloneDeepWith, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
 import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
@@ -408,6 +409,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private translate?: (key: string) => string;
 
   private constructingCheckboxDetail = false;
+  private checkboxArchiveRecord?: Readonly<Record<string, unknown>>;
+  private readonly repeatablePathDepths: number[] = [];
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
 
   private data: FormConfigFrame;
@@ -460,6 +463,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     reusableFormDefs?: ReusableFormDefinitions;
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
+    /** For write validation, use original metadata and pass null for creates. */
+    checkboxArchiveRecord?: Readonly<Record<string, unknown>> | null;
     removeOverrides?: boolean;
     preserveDefaultValues?: boolean;
     translate?: (key: string) => string;
@@ -479,6 +484,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
     // This allows for specifying an empty record '{}' and using that instead of the defaults.
     this.recordValues = options.record === null || options.record === undefined ? null : options.record;
+    this.checkboxArchiveRecord = (options.checkboxArchiveRecord === undefined ? this.recordValues : options.checkboxArchiveRecord) ?? undefined;
+    this.repeatablePathDepths.length = 0;
 
     this.removeOverrides = options.removeOverrides ?? false;
     this.preserveDefaultValues = options.preserveDefaultValues ?? false;
@@ -725,11 +732,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     const formComponent = this.constructFormComponent(frame.elementTemplate);
 
-    // Continue the construction
-    await this.formPathHelper.acceptFormPath(
-      formComponent,
-      this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
-    );
+    // This schema path marks where saved metadata branches into array rows.
+    this.repeatablePathDepths.push(this.formPathHelper.formPath.dataModel.length);
+    try {
+      await this.formPathHelper.acceptFormPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
+      );
+    } finally {
+      this.repeatablePathDepths.pop();
+    }
 
     // Repeatable elements must use RepeatableElementLayout so item rows render remove controls.
     if (formComponent.layout) {
@@ -1933,7 +1945,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (config.vocabRef !== undefined && (typeof config.vocabRef !== 'string' || !config.vocabRef.trim())) {
       throw new Error('CheckboxWithDetails requires a valid vocabulary reference.');
     }
-    checkCheckboxWithDetailsConfig(config, !config.vocabRef);
+    const mappingsInStorage = this.storedCheckboxMappings(Object.keys(config.detailFieldsByValue ?? {}));
+    checkCheckboxWithDetailsConfig(config, !config.vocabRef, mappingsInStorage);
+    if (mappingsInStorage.length > 0) constructed.storedMappingValues = mappingsInStorage;
 
     const constructFields = async (fields: CheckboxDetailFieldFrame[], path: LineagePath) => {
       const result: CheckboxDetailFieldOutline[] = [];
@@ -1957,6 +1971,30 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     } finally {
       this.constructingCheckboxDetail = false;
     }
+  }
+
+  private storedCheckboxMappings(mappingValues: string[]): string[] {
+    if (!this.checkboxArchiveRecord || mappingValues.length === 0) return [];
+    const path = this.formPathHelper.formPath.dataModel;
+    let instances: unknown[] = [this.checkboxArchiveRecord];
+    let offset = 0;
+    for (const depth of this.repeatablePathDepths) {
+      const tokens = path.slice(offset, depth);
+      instances = instances.flatMap(parent => {
+        const rows = tokens.length ? _get(parent, tokens) : parent;
+        return Array.isArray(rows) ? rows : [];
+      });
+      offset = depth;
+    }
+    const tokens = path.slice(offset);
+    const requested = new Set(mappingValues);
+    const stored = new Set<string>();
+    for (const parent of instances) {
+      for (const { value } of readCheckboxWithDetailsRows(tokens.length ? _get(parent, tokens) : parent)) {
+        if (requested.has(value)) stored.add(value);
+      }
+    }
+    return [...stored];
   }
 
   async visitCheckboxWithDetailsFieldModelDefinition(item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {

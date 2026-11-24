@@ -65,6 +65,10 @@ Store one array entry for each checked value. An empty selection is `[]`. A sele
 
 Key rows by option value internally. Removing a middle row, reordering the vocabulary, or translating the label must leave each answer attached to its option. Preserve loaded selected rows while vocabulary options resolve. Apply existing historical-vocabulary policy to retired options and retain their detail on an unrelated save. Unknown historical values need a readable fallback; reject newly submitted unsupported options under the normal validation policy.
 
+Mark an option historical in the vocabulary to retain its label. If an option is deleted outright, an existing record that holds the code can still open and save its archived answers. View and PDF show the code and any configured detail labels, with field names as the fallback for older details. A mapping for an unknown code still fails configuration checks when the corresponding stored field has never selected it. Retain the historical vocabulary entry or remove the obsolete mapping so new records can open the form.
+
+Reordering or removing repeatable rows preserves archival selections on a row that matches a stored row. Each stored row can be matched once within its repeatable field. Repeatable metadata has no persistent row ID, so a row edited and moved in the same submission may be ambiguous. Apply the move and the edit in separate saves for those rows.
+
 Group-level required means at least one selected row. Child validators run for selected rows in the enabled validation groups. Draft can therefore save a selected row with missing detail, and the same row can block activation. Use the same rules for editor validation and validated server writes. Report a specific option and field in each error. Ensure the record contract describes the array and per-option child types for API consumers. Store codes and user answers; resolve translated labels for Edit, View and PDF.
 
 ## Delivery sequence

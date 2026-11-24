@@ -123,6 +123,86 @@ describe('Checkbox with details form', () => {
     assert.match(rendered, /Tabulated files.*Other files.*Description.*Custom exports/s);
   });
 
+  it('renders a single selection from 2,400 options in standalone and repeated view templates', async () => {
+    const field = definition();
+    const config = field.component.config!;
+    config.options = Array.from({ length: 2400 }, (_, index) => ({ value: `code-${index}`, label: `Format ${index}` }));
+    delete config.detailFieldsByValue;
+    const formats = [row('code-2399', { volume: '3 TB' })];
+    const data = frame(field);
+    data.componentDefinitions.push({
+      name: 'projects',
+      component: {
+        class: 'RepeatableComponent',
+        config: {
+          elementTemplate: {
+            name: '',
+            component: { class: 'GroupComponent', config: { componentDefinitions: [field] } },
+          },
+        },
+      },
+    });
+    const form = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data,
+      formMode: 'view',
+      record: { formats, projects: [{ formats }] },
+    });
+    const view = await new ClientFormConfigVisitor(consoleLogger).start({ form, formMode: 'view' });
+    for (const definition of view!.componentDefinitions) {
+      const output = definition.component.config as { content: unknown; template: string };
+      assert.match(handlebarsCompile(output.template)({ content: output.content }), /Format 2399.*Volume.*3 TB/s);
+      assert.ok(output.template.length < 3000, 'template size should be independent of the number of options');
+    }
+  });
+
+  it('allows a retired selection to move with a repeatable row without giving another field or row a copy', async () => {
+    const archived = row('archived', { volume: '1 TB' });
+    const first = { name: 'First', formats: [], otherFormats: [] };
+    const second = { name: 'Second', formats: [archived], otherFormats: [] };
+    const third = { name: 'Third', formats: [], otherFormats: [] };
+    const previousMetadata = { projects: [first, second, third] };
+    const field = definition();
+    const sibling = { ...definition(), name: 'otherFormats' };
+    const data: FormConfigFrame = {
+      name: 'checkbox-details-repeatable-validation',
+      componentDefinitions: [
+        {
+          name: 'projects',
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                component: { class: 'GroupComponent', config: { componentDefinitions: [field, sibling] } },
+              },
+            },
+          },
+        },
+      ],
+    };
+    const validate = async (projects: unknown[]) => {
+      const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data, record: { projects } });
+      return new ValidatorFormConfigVisitor(consoleLogger).start({
+        form,
+        previousMetadata,
+        enabledValidationGroups: ['none'],
+      });
+    };
+    assert.deepEqual(await validate(previousMetadata.projects), []);
+    assert.deepEqual(await validate([second, third]), []);
+    assert.deepEqual(await validate([third, first, second]), []);
+    for (const projects of [
+      [second, second],
+      [{ ...first, formats: [archived] }, second],
+      [first, { ...second, otherFormats: [archived] }, third],
+      [first, { ...second, formats: [row('archived', { volume: '2 TB' })] }, third],
+    ]) {
+      const errors = await validate(projects);
+      assert.equal(errors.length, 1);
+      assert.match(errors[0].errors[0].message, /checkbox-details-(option|field)/);
+    }
+  });
+
   it('uses normal validation groups for selected details and points to the exact row', async () => {
     const metadata = {
       formats: [row('table', { volume: '2 CSV files' }), row(other, { description: 'Instrument bundles' })],
@@ -167,6 +247,77 @@ describe('Checkbox with details form', () => {
       (await validate([{ value: 'table' }]))[0].errors[0].message,
       '@validator-error-checkbox-details-shape'
     );
+  });
+
+  it('retains an authored mapping after vocabulary deletion only when the stored field contains the code', async () => {
+    const field = definition();
+    delete field.component.config!.options;
+    Object.assign(field.component.config!, { vocabRef: 'formats', inlineVocab: true });
+    const formats = [row(other, { volume: '3 TB', description: 'Instrument bundles', oldNote: 'Original notes' })];
+    const record = { formats };
+    const service = Object.getOwnPropertyDescriptor(globalThis, 'VocabularyService');
+    try {
+      Object.defineProperty(globalThis, 'VocabularyService', {
+        configurable: true,
+        value: {
+          getEntries: async () => ({ meta: { total: 1 }, entries: [{ label: 'Tabulated files', value: 'table' }] }),
+        },
+      });
+      const construct = (mode: 'edit' | 'view', checkboxArchiveRecord?: Record<string, unknown> | null) =>
+        new ConstructFormConfigVisitor(consoleLogger).start({
+          data: frame(field),
+          formMode: mode,
+          record,
+          checkboxArchiveRecord,
+        });
+      const resolve = (form: Awaited<ReturnType<typeof construct>>) =>
+        new VocabInlineFormConfigVisitor(consoleLogger).resolveVocabs(form, 'default');
+      await assert.rejects(resolve(await construct('edit', null)), /unknown option/);
+      await assert.rejects(resolve(await construct('edit', { otherFormats: formats })), /unknown option/);
+
+      const source = await construct('edit', record);
+      await resolve(source);
+      const validation = await new ValidatorFormConfigVisitor(consoleLogger).start({
+        form: source,
+        previousMetadata: record,
+        enabledValidationGroups: ['all'],
+        validatorDefinitions: formValidatorsSharedDefinitions,
+      });
+      assert.deepEqual(validation, []);
+      const edit = await new ClientFormConfigVisitor(consoleLogger).start({ form: source, formMode: 'edit' });
+      assert.deepEqual(edit!.componentDefinitions[0].model?.config?.value, formats);
+
+      const viewSource = await construct('view', record);
+      await resolve(viewSource);
+      const view = await new ClientFormConfigVisitor(consoleLogger).start({ form: viewSource, formMode: 'view' });
+      const output = view!.componentDefinitions[0].component.config as { content: unknown; template: string };
+      const rendered = handlebarsCompile(output.template)({ content: output.content });
+      assert.match(rendered, /other\.\/.*Volume.*3 TB.*Description.*Instrument bundles.*oldNote.*Original notes/s);
+    } finally {
+      if (service) Object.defineProperty(globalThis, 'VocabularyService', service);
+      else Reflect.deleteProperty(globalThis, 'VocabularyService');
+    }
+  });
+
+  it('uses the retired label when available and renders older detail keys without exposing hidden details', async () => {
+    const field = definition();
+    const config = field.component.config!;
+    config.options!.push({ value: 'retired', label: '@old-format', historical: true });
+    config.detailFields!.push({
+      name: 'hiddenNote',
+      component: { class: 'SimpleInputComponent', config: { visible: false } },
+    });
+    const form = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data: frame(field),
+      formMode: 'view',
+      record: { formats: [row('retired', { volume: '1 TB', oldNote: 'Original notes', hiddenNote: 'Hidden answer' })] },
+    });
+    const view = await new ClientFormConfigVisitor(consoleLogger).start({ form, formMode: 'view' });
+    const output = view!.componentDefinitions[0].component.config as { content: unknown; template: string };
+    const translationService = { t: (key: string) => (key === '@old-format' ? 'Retired format label' : key) };
+    const rendered = handlebarsCompile(output.template)({ content: output.content, translationService });
+    assert.match(rendered, /Retired format label.*Volume.*1 TB.*oldNote.*Original notes/s);
+    assert.doesNotMatch(rendered, /Hidden answer/);
   });
 
   it('checks duplicate names and option-specific mappings when vocabulary options resolve', async () => {

@@ -32,13 +32,16 @@
             @for (field of row.fields; track field) {
               <ng-container [redboxCheckboxDetailField]="field" />
             }
-            @if (option.historical && !row.fields.length && archiveDetails(row).length) {
-              <dl class="mb-0">
-                @for (detail of archiveDetails(row); track detail[0]) {
-                  <dt>{{ detail[0] }}</dt>
-                  <dd>{{ detail[1] }}</dd>
-                }
-              </dl>
+            @if (option.historical && !row.fields.length) {
+              @let archived = archiveDetails(row);
+              @if (archived.length) {
+                <dl class="mb-0">
+                  @for (detail of archived; track detail.name) {
+                    <dt>{{ detail.label | i18next }}</dt>
+                    <dd>{{ detail.answer }}</dd>
+                  }
+                </dl>
+              }
             }
           </div>
         }

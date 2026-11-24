@@ -41,8 +41,11 @@ selected format has its own volume field. Other also has a description.
 row to be complete. Reopen the record to verify the saved selections or open
 its View page to print the labelled answers.
 
-Run the browser acceptance test against that portal with
-`npx playwright test test/playwright/checkbox-with-details.spec.ts`.
+Run the browser acceptance test from the portal checkout.
+
+```sh
+PLAYWRIGHT_BASE_URL=http://localhost:1500 npx playwright test test/playwright/checkbox-with-details.spec.ts
+```
 
 ## Integration testing
 

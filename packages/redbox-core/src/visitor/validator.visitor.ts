@@ -119,7 +119,8 @@ import {
   JSONataEvaluate,
 } from '@researchdatabox/sails-ng-common';
 import { DataValueFormConfigVisitor } from './data-value.visitor';
-import { cloneDeep as _cloneDeep, get as _get } from 'lodash';
+import { cloneDeep as _cloneDeep, get as _get, isEqual as _isEqual } from 'lodash';
+import { serializeRedboxCanonicalJsonV1 } from '../record-contract/canonical-json';
 
 export interface RichHtmlSanitizedTransformation {
   readonly kind: 'rich-html-sanitized';
@@ -153,6 +154,68 @@ type ValidatorFormConfigOptions = {
   previousMetadata?: Readonly<Record<string, unknown>>;
 };
 
+/** Match surviving rows before falling back to the same slot for edits. */
+function priorRepeatableRows(
+  values: unknown[],
+  previous: unknown,
+  checkDeadline: () => void
+): Map<number, unknown> {
+  const matched = new Map<number, unknown>();
+  if (!Array.isArray(previous)) return matched;
+  const claimed = new Set<number>();
+  const claim = (current: number, prior: number) => {
+    matched.set(current, previous[prior]);
+    claimed.add(prior);
+  };
+  for (const [index, value] of values.entries()) {
+    checkDeadline();
+    if (index < previous.length && _isEqual(value, previous[index])) claim(index, index);
+  }
+  if (matched.size === values.length) return matched;
+
+  const fingerprint = (value: unknown): string | undefined => {
+    try {
+      return serializeRedboxCanonicalJsonV1(value);
+    } catch {
+      return undefined;
+    }
+  };
+  const unclaimedByValue = new Map<string, number[]>();
+  for (const [index, value] of previous.entries()) {
+    checkDeadline();
+    if (claimed.has(index)) continue;
+    const key = fingerprint(value);
+    if (key === undefined) continue;
+    const indices = unclaimedByValue.get(key);
+    if (indices) indices.push(index);
+    else unclaimedByValue.set(key, [index]);
+  }
+  for (const [index, value] of values.entries()) {
+    checkDeadline();
+    if (matched.has(index)) continue;
+    const key = fingerprint(value);
+    const prior = key === undefined ? undefined : unclaimedByValue.get(key)?.pop();
+    if (prior !== undefined) claim(index, prior);
+  }
+  for (let index = 0; index < Math.min(values.length, previous.length); index++) {
+    checkDeadline();
+    if (!matched.has(index) && !claimed.has(index)) claim(index, index);
+  }
+  return matched;
+}
+
+interface PriorRepeatableScope {
+  path: (string | number)[];
+  values: unknown[];
+  parent?: PriorRepeatableRow;
+  matched?: Map<number, unknown>;
+}
+
+interface PriorRepeatableRow {
+  scope: PriorRepeatableScope;
+  index: number;
+}
+
 declare const sails: Sails.Application;
 
 /**
@@ -175,6 +238,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   private checkDeadline: () => void;
   private transformationOnly: boolean;
   private previousMetadata?: Readonly<Record<string, unknown>>;
+  private priorRow?: PriorRepeatableRow;
 
   private validationErrors: FormValidatorSummaryErrors[];
   private transformations: FormValueTransformation[];
@@ -234,6 +298,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     this.checkDeadline = options.checkDeadline ?? (() => undefined);
     this.transformationOnly = options.transformationOnly === true;
     this.previousMetadata = options.previousMetadata;
+    this.priorRow = undefined;
 
     this.validationErrors = [];
     this.transformations = [];
@@ -317,20 +382,45 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     const values = item.model?.config?.value;
     const elementTemplate = item.component?.config?.elementTemplate;
     if (!Array.isArray(values) || !elementTemplate) return;
+    const priorScope: PriorRepeatableScope = {
+      path: this.formPathHelper.formPath.dataModel,
+      values,
+      parent: this.priorRow,
+    };
     for (const [index, rowValue] of values.entries()) {
       this.checkDeadline();
       const rowTemplate = _cloneDeep(elementTemplate);
       this.hydrateRepeatableRow(rowTemplate, rowValue);
       const templateLineage = this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(rowTemplate);
-      await this.formPathHelper.acceptFormPath(rowTemplate, {
-        ...templateLineage,
-        formConfig: ['component', ...(templateLineage.formConfig ?? [])],
-        dataModel: [...(templateLineage.dataModel ?? []), index],
-        angularComponents: [...(templateLineage.angularComponents ?? []), index],
-        layout: [...(templateLineage.layout ?? []), index],
-      });
+      this.priorRow = { scope: priorScope, index };
+      try {
+        await this.formPathHelper.acceptFormPath(rowTemplate, {
+          ...templateLineage,
+          formConfig: ['component', ...(templateLineage.formConfig ?? [])],
+          dataModel: [...(templateLineage.dataModel ?? []), index],
+          angularComponents: [...(templateLineage.angularComponents ?? []), index],
+          layout: [...(templateLineage.layout ?? []), index],
+        });
+      } finally {
+        this.priorRow = priorScope.parent;
+      }
       this.checkDeadline();
     }
+  }
+
+  private previousValue(dataPath: (string | number)[], prior = this.priorRow): unknown {
+    if (!prior) return _get(this.previousMetadata, dataPath);
+    const { scope, index } = prior;
+    // Only checkbox details need a prior row. Other repeatable fields keep
+    // their normal validation path without paying for a row comparison.
+    scope.matched ??= priorRepeatableRows(
+      scope.values,
+      scope.parent ? this.previousValue(scope.path, scope.parent) : _get(this.previousMetadata, scope.path),
+      this.checkDeadline
+    );
+    const value = scope.matched.get(index);
+    const relativePath = dataPath.slice(scope.path.length + 1);
+    return relativePath.length ? _get(value, relativePath) : value;
   }
 
   /** Populate only schema-owned row controls; submitted objects never become form definitions. */
@@ -567,7 +657,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     const value = model?.value === undefined ? [] : model.value;
     const path = this.formPathHelper.formPath;
-    const stored = new Map(readCheckboxWithDetailsRows(_get(this.previousMetadata, path.dataModel))
+    const stored = new Map(readCheckboxWithDetailsRows(this.previousValue(path.dataModel))
       .map(row => [row.value, row]));
     const groupLabel = layout?.label ?? item.name;
     const issue = (message: string, rowIndex?: number, option?: string, field?: string) => {

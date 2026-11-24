@@ -16,7 +16,8 @@ export function checkboxDetailFields<T>(config: DetailFields<T> | undefined, val
 
 export function checkCheckboxWithDetailsOptions(
   config: CheckboxWithDetailsFieldComponentConfigFrame,
-  checkOptionMappings = false
+  checkOptionMappings = false,
+  storedMappingValues: readonly string[] = []
 ): void {
   const options = config.options;
   const optionValues = new Set<string>();
@@ -35,16 +36,18 @@ export function checkCheckboxWithDetailsOptions(
   }
   if (!checkOptionMappings) return;
   for (const value of Object.keys(config.detailFieldsByValue ?? {})) {
-    if (!optionValues.has(value)) throw new Error(`Checkbox detail fields refer to unknown option '${value}'.`);
+    if (!optionValues.has(value) && !storedMappingValues.includes(value))
+      throw new Error(`Checkbox detail fields refer to unknown option '${value}'.`);
   }
 }
 
 /** Inspect authored templates separately from the submitted array. */
 export function checkCheckboxWithDetailsConfig(
   config: CheckboxWithDetailsFieldComponentConfigFrame,
-  checkOptionMappings = false
+  checkOptionMappings = false,
+  storedMappingValues: readonly string[] = []
 ): void {
-  checkCheckboxWithDetailsOptions(config, checkOptionMappings);
+  checkCheckboxWithDetailsOptions(config, checkOptionMappings, storedMappingValues);
 
   function checkFields(fields: readonly CheckboxDetailFieldFrame[] | undefined, names: Set<string>): void {
     if (fields === undefined) return;
@@ -106,6 +109,30 @@ export function readCheckboxWithDetailsRows(value: unknown): CheckboxWithDetails
     rows.set(row.value, { value: row.value, details });
   }
   return [...rows.values()];
+}
+
+/** Labels and populated answers for one selected row in Edit, View or PDF. */
+export function checkboxDetailsDisplayFields(
+  config: CheckboxWithDetailsFieldComponentConfigFrame | undefined,
+  row: CheckboxWithDetailsRow,
+  includeUnconfigured: boolean
+): Array<{ name: string; label: string; answer: string }> {
+  const schema = checkboxDetailFields(config, row.value);
+  const fields: Array<{ name: string; label: string; answer: string }> = [];
+  for (const field of schema) {
+    const name = field.name;
+    const answer = name && Object.hasOwn(row.details, name) ? row.details[name] : null;
+    if (!name || !answer || field.component.config?.visible === false || field.layout?.config?.visible === false)
+      continue;
+    fields.push({ name, label: field.layout?.config?.label || field.component.config?.label || name, answer });
+  }
+  if (includeUnconfigured) {
+    const known = new Set(schema.map(field => field.name));
+    for (const [name, answer] of Object.entries(row.details)) {
+      if (answer && !known.has(name)) fields.push({ name, label: name, answer });
+    }
+  }
+  return fields;
 }
 
 /** A stable, namespaced component path segment. The data path still uses the row index. */

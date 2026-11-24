@@ -4,6 +4,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from '@
 import {
   buildLineagePaths,
   checkboxDetailFields,
+  checkboxDetailsDisplayFields,
   checkboxDetailsOptionPath,
   CheckboxDetailFieldFrame,
   CheckboxWithDetailsComponentName,
@@ -156,7 +157,11 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
 
   protected override async initData(): Promise<void> {
     const config = this.config;
-    checkCheckboxWithDetailsOptions(config, !config.vocabRef || config.options !== undefined);
+    checkCheckboxWithDetailsOptions(
+      config,
+      !config.vocabRef || config.options !== undefined,
+      config.storedMappingValues
+    );
     const templates = [...(config.detailFields ?? []), ...Object.values(config.detailFieldsByValue ?? {}).flat()];
     const entries = await this.formService.resolveFormComponentClasses(templates, buildLineagePaths());
     templates.forEach((template, index) => this.templateEntries.set(template, entries[index]));
@@ -179,7 +184,7 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
         options.push(...page.map(({ label, value, historical }) => ({ label, value, historical })));
         if (page.length < limit) break;
       }
-      checkCheckboxWithDetailsOptions({ ...config, options }, true);
+      checkCheckboxWithDetailsOptions({ ...config, options }, true, config.storedMappingValues);
       const selected = readCheckboxWithDetailsRows(this.array.getRawValue());
       config.options = options;
       this.replaceSelection(selected, { emitEvent: false });
@@ -247,8 +252,8 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
     this.publishDefinitionChange();
   }
 
-  protected archiveDetails(row: EditorRow): [string, string | null][] {
-    return Object.entries(row.control.controls.details.getRawValue()).filter(([, answer]) => !!answer);
+  protected archiveDetails(row: EditorRow) {
+    return checkboxDetailsDisplayFields(this.config, row.control.getRawValue(), true);
   }
 
   private createRow(value: string, rowIndex: number, saved?: CheckboxWithDetailsRow): EditorRow {

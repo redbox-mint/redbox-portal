@@ -149,7 +149,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       }));
       // Keep retired entries available to nested repeatable instances. The editor
       // filters the options against the selected codes in each actual instance.
-      checkCheckboxWithDetailsOptions(config, true);
+      checkCheckboxWithDetailsOptions(config, true, config.storedMappingValues);
     }));
   }
 

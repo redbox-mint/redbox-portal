@@ -58,6 +58,8 @@ export interface CheckboxWithDetailsFieldComponentConfigFrame extends FieldCompo
   options?: CheckboxWithDetailsOption[];
   detailFields?: CheckboxDetailFieldFrame[];
   detailFieldsByValue?: Record<string, CheckboxDetailFieldFrame[]>;
+  /** Supplied by the server for option mappings backed by a stored record. */
+  storedMappingValues?: readonly string[];
   vocabRef?: string;
   inlineVocab?: boolean;
   /** When set, options whose value is not listed are disabled. */
