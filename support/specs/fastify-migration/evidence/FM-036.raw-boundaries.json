@@ -6116,7 +6116,7 @@
     "packages/redbox-core/src/application/portal/compositionInputs.ts": "bd847e1dc558a06da58149f0b266dbd280857b963387dd90dffb86fb8a411769",
     "packages/redbox-core/src/application/portal/data.ts": "1c483815d77e522a0154db5dae47746cdfd40ad9ebec9c21ac61069de17bbb82",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "d39259f3ca11b3ac61717c8c8d2ca75d8f40d649e9c8f4e5c10d91bbf7ac6c1c",
+    "packages/redbox-core/src/application/portal/host.ts": "288f06bb9f2d1d804a9edaadc11a1d6ca9fcec5ee0ec48bdd6fe25904a203cc9",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "27d1faf3294ec969b7cd890123addef1d98af5c54d055c29c2b875ec19b7ca0e",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
@@ -6302,7 +6302,7 @@
     "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts": "a2d9d270fc0ef06fcbf86c79aaae3f6893017cfaae2eab6983631f1857e2bae7",
     "packages/redbox-core/src/http/controllers/IntegrationControllers.ts": "ea19fed4d21607b901c50a356e3fcf3ba8d019ae49705e9282bbdde5d9091f15",
     "packages/redbox-core/src/http/controllers/MutationControllers.ts": "2987f75547193ab44331a05a8fac8438a9fbd499faabd34abebe54a7ca24e11f",
-    "packages/redbox-core/src/http/controllers/PageController.ts": "92f78401d724743933bf217adb1f459319a544e8db324bb2c2d35f8cb9c3d5e8",
+    "packages/redbox-core/src/http/controllers/PageController.ts": "9a7fa329044756987999b44ea365c325154e0615706c0708d1a18c8ae1d83288",
     "packages/redbox-core/src/http/controllers/ProgressController.ts": "b4426c9d0b06fadc26e1af04b3c9121c2f362374b090b9f49bf68e3482e89dea",
     "packages/redbox-core/src/http/controllers/ReadControllers.ts": "b5c8925e6dab7c4812e95f1d916be03c68f5e4ee0ae5e85843368d86f062ce0b",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "255932cbd0ea9a5ce089fd0226bde705b4c378dbfcc585132f86220c480e5cfa",
@@ -6331,7 +6331,7 @@
     "packages/redbox-core/src/http/fastify/mutations.ts": "568cf80c87d4db26b97a0f6bd175f3953cc6ef47df9ef4152889afb89f54b350",
     "packages/redbox-core/src/http/fastify/pages.ts": "749b423f2c9651b39e4eebaeb6a7ef28d54ec14794b2a46aeb2e445660990c1f",
     "packages/redbox-core/src/http/fastify/parsers.ts": "2220870f08f2b639f05e3a049749ad1cf22876be8906c3245f30d7837f61d697",
-    "packages/redbox-core/src/http/fastify/policies.ts": "aba566cebbb20e10b99f55ee4cf240e7ca3a5b1556f9c1754670731efc0e435c",
+    "packages/redbox-core/src/http/fastify/policies.ts": "a6ec337ebe1862fcb976d3c0aa8ec05e7703172df471d55e82f6fac45f5b175c",
     "packages/redbox-core/src/http/fastify/precedence.ts": "b1a68cfe62b19f57aa59faf631b468349fb87b954814029a90f1a92a3c668239",
     "packages/redbox-core/src/http/fastify/preparation.ts": "457c503ccb7f1cdbf1cb687198ed19ecdd09136094d44ddd475da2cdfab1f560",
     "packages/redbox-core/src/http/fastify/rawMultipart.ts": "c6a21b64b63b66c8510563a20042bd2809e183ba761c5e911223504d2678fab4",
@@ -38233,188 +38233,6 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 277,
-      "call": "request.routeOptions",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "5d73848afd315a427e9e6a618f17746872c642ff63a368ad09638d6761168f9d",
-      "operation": "routeOptions",
-      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
-      "receiver": "request",
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-return",
-      "line": 278,
-      "call": "return !!binding && selectedReferenceNames.has(binding.route.declaration.name);",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "a9d0cd0552f2f6e95d820b0b5a5930f94751b2b3d99068e80b7e23ee7488f037",
-      "operation": "return",
-      "receiverType": "boolean",
-      "receiver": "!!binding && selectedReferenceNames.has(binding.route.declaration.name)",
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-handoff",
-      "line": 278,
-      "call": "selectedReferenceNames.has(binding.route.declaration.name)",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "4f5b7a1631fa4d35e9d90608a460eb64e1a95f8e38480cff5be6ce93ad5f876a",
-      "operation": "has",
-      "receiverType": "string",
-      "receiver": "binding.route.declaration.name",
-      "argumentIndex": 0,
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-handoff",
-      "line": 282,
-      "call": "referenceRequest(request)",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "2a5691b85a188953d6795c1ab6ab56db9bfed12aceec1407bf0ed729bc5c7d55",
-      "operation": "referenceRequest",
-      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
-      "receiver": "request",
-      "argumentIndex": 0,
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-call",
-      "line": 282,
-      "call": "reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "a0bfccef6f638cdd3be45accadd29a481726341a19285caf45cd61fd6faced19",
-      "operation": "header",
-      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
-      "receiver": "reply",
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-reference",
-      "line": 282,
-      "call": "reply.header",
-      "scopes": [
-        "createPortalFastifyHost"
-      ],
-      "iterations": [],
-      "syntaxSha256": "f520d884901ccf24de5f54fac259e0bb79c67010c0664a0ec83bd3cffc8f0f83",
-      "operation": "header",
-      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
-      "receiver": "reply",
-      "profile": "native",
-      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
-      "bypassed": [],
-      "restoration": {
-        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
-        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
-        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
-        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
-        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
-        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
-      },
-      "tests": [
-        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
-        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
-        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
-      ]
-    },
-    {
-      "file": "packages/redbox-core/src/application/portal/host.ts",
-      "kind": "typed-reference",
       "line": 285,
       "call": "request.routeOptions",
       "scopes": [
@@ -38445,16 +38263,108 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 295,
-      "call": "coreRouteName(route.method, route.path) === binding.route.declaration.name",
+      "line": 286,
+      "call": "return !!binding && selectedReferenceNames.has(binding.route.declaration.name);",
       "scopes": [
         "createPortalFastifyHost"
       ],
       "iterations": [],
-      "syntaxSha256": "5f2954d7f70fd28c94d86d7db608fa7e782683e73dabd82f97bf2a012088f8a2",
-      "operation": "arrow-return",
+      "syntaxSha256": "a9d0cd0552f2f6e95d820b0b5a5930f94751b2b3d99068e80b7e23ee7488f037",
+      "operation": "return",
       "receiverType": "boolean",
-      "receiver": "coreRouteName(route.method, route.path) === binding.route.declaration.name",
+      "receiver": "!!binding && selectedReferenceNames.has(binding.route.declaration.name)",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-handoff",
+      "line": 286,
+      "call": "selectedReferenceNames.has(binding.route.declaration.name)",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "4f5b7a1631fa4d35e9d90608a460eb64e1a95f8e38480cff5be6ce93ad5f876a",
+      "operation": "has",
+      "receiverType": "string",
+      "receiver": "binding.route.declaration.name",
+      "argumentIndex": 0,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-handoff",
+      "line": 290,
+      "call": "referenceRequest(request)",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "2a5691b85a188953d6795c1ab6ab56db9bfed12aceec1407bf0ed729bc5c7d55",
+      "operation": "referenceRequest",
+      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
+      "receiver": "request",
+      "argumentIndex": 0,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-call",
+      "line": 290,
+      "call": "reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "a0bfccef6f638cdd3be45accadd29a481726341a19285caf45cd61fd6faced19",
+      "operation": "header",
+      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
+      "receiver": "reply",
       "profile": "native",
       "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
       "bypassed": [],
@@ -38475,7 +38385,98 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 296,
+      "line": 290,
+      "call": "reply.header",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "f520d884901ccf24de5f54fac259e0bb79c67010c0664a0ec83bd3cffc8f0f83",
+      "operation": "header",
+      "receiverType": "FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>",
+      "receiver": "reply",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-reference",
+      "line": 293,
+      "call": "request.routeOptions",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "5d73848afd315a427e9e6a618f17746872c642ff63a368ad09638d6761168f9d",
+      "operation": "routeOptions",
+      "receiverType": "FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>",
+      "receiver": "request",
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-handoff",
+      "line": 298,
+      "call": "sessionEndNames.has(binding.route.declaration.name)",
+      "scopes": [
+        "createPortalFastifyHost"
+      ],
+      "iterations": [],
+      "syntaxSha256": "ae534b255e48a6568f668d91996f82bae117391a9ffd3c9f530559b4c465c882",
+      "operation": "has",
+      "receiverType": "string",
+      "receiver": "binding.route.declaration.name",
+      "argumentIndex": 0,
+      "profile": "native",
+      "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
+      "bypassed": [],
+      "restoration": {
+        "hooks": "Request context access/delegation and facade end retain the ordinary native lifecycle. This conservative candidate is not a hijack.",
+        "session": "Native session send/save remains in its normal phase; request-derived facade data never becomes a second session store.",
+        "observation": "Native response/error observation once through the existing host boundary; facade delegation does not add a response writer.",
+        "drain": "Accepted action, callback and session work remains inside the host request lease through response completion or disconnect.",
+        "security": "Existing native route admission, policies, validation and prepared security headers remain in force.",
+        "upgrade": "No upgrade dispatch; protocol integrations have their separate explicit owner profiles."
+      },
+      "tests": [
+        "packages/redbox-core/test/http/fastify/FastifyHost.test.ts",
+        "packages/redbox-core/test/http/fastify/securityFailures.test.ts",
+        "packages/redbox-core/test/http/fastify/RawShutdownMongo.test.ts"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/host.ts",
+      "kind": "typed-reference",
+      "line": 299,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38505,7 +38506,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 297,
+      "line": 300,
       "call": "request.session.isPersisted()",
       "scopes": [
         "createPortalFastifyHost"
@@ -38535,7 +38536,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 297,
+      "line": 300,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38565,7 +38566,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 297,
+      "line": 300,
       "call": "request.session.isModified()",
       "scopes": [
         "createPortalFastifyHost"
@@ -38595,7 +38596,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 297,
+      "line": 300,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38625,7 +38626,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 302,
+      "line": 305,
       "call": "referenceRequest(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -38656,7 +38657,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 304,
+      "line": 307,
       "call": "request.method",
       "scopes": [
         "createPortalFastifyHost"
@@ -38686,7 +38687,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 305,
+      "line": 308,
       "call": "reply.statusCode",
       "scopes": [
         "createPortalFastifyHost"
@@ -38716,7 +38717,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 308,
+      "line": 311,
       "call": "reply.removeHeader('Transfer-Encoding')",
       "scopes": [
         "createPortalFastifyHost"
@@ -38746,7 +38747,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 308,
+      "line": 311,
       "call": "reply.removeHeader",
       "scopes": [
         "createPortalFastifyHost"
@@ -38776,7 +38777,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-call",
-      "line": 309,
+      "line": 312,
       "call": "reply.header('Content-Length', '0')",
       "scopes": [
         "createPortalFastifyHost"
@@ -38806,7 +38807,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 309,
+      "line": 312,
       "call": "reply.header",
       "scopes": [
         "createPortalFastifyHost"
@@ -38836,7 +38837,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 351,
+      "line": 354,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -38866,7 +38867,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-property-write",
-      "line": 352,
+      "line": 355,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -38896,7 +38897,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 352,
+      "line": 355,
       "call": "request.params",
       "scopes": [
         "createPortalFastifyHost"
@@ -38926,7 +38927,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-spread",
-      "line": 353,
+      "line": 356,
       "call": "...params",
       "scopes": [
         "createPortalFastifyHost"
@@ -38956,7 +38957,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 354,
+      "line": 357,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -38986,7 +38987,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-reference",
-      "line": 355,
+      "line": 358,
       "call": "request.session",
       "scopes": [
         "createPortalFastifyHost"
@@ -39016,7 +39017,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 357,
+      "line": 360,
       "call": "policies.brandingandportal!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39047,7 +39048,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 357,
+      "line": 360,
       "call": "policies.brandingandportal!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39078,7 +39079,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 358,
+      "line": 361,
       "call": "httpReplySubmitted(reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39109,7 +39110,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 359,
+      "line": 362,
       "call": "policies.browseractor!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39140,7 +39141,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 359,
+      "line": 362,
       "call": "policies.browseractor!(request, reply)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39171,7 +39172,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 360,
+      "line": 363,
       "call": "return sendPageError( request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 403, { message: 'error-auth', detailedMessage: reason === 'authorized-email-denied' ? reason : 'There was an issue with your user credentials, please try again.', } );",
       "scopes": [
         "createPortalFastifyHost"
@@ -39201,7 +39202,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 360,
+      "line": 363,
       "call": "sendPageError( request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 403, { message: 'error-auth', detailedMessage: reason === 'authorized-email-denied' ? reason : 'There was an issue with your user credentials, please try again.', } )",
       "scopes": [
         "createPortalFastifyHost"
@@ -39232,7 +39233,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 360,
+      "line": 363,
       "call": "sendPageError( request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 403, { message: 'error-auth', detailedMessage: reason === 'authorized-email-denied' ? reason : 'There was an issue with your user credentials, please try again.', } )",
       "scopes": [
         "createPortalFastifyHost"
@@ -39263,7 +39264,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-return",
-      "line": 364,
+      "line": 367,
       "call": "csrf.generateToken(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -39293,7 +39294,7 @@
     {
       "file": "packages/redbox-core/src/application/portal/host.ts",
       "kind": "typed-handoff",
-      "line": 364,
+      "line": 367,
       "call": "csrf.generateToken(request)",
       "scopes": [
         "createPortalFastifyHost"
@@ -85046,7 +85047,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 27,
+      "line": 29,
       "call": "request.routeOptions",
       "scopes": [
         "runNativePage"
@@ -85076,16 +85077,16 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 28,
-      "call": "coreRouteName(route.method, route.path) === binding?.route.declaration.name",
+      "line": 30,
+      "call": "page.name === binding?.route.declaration.name",
       "scopes": [
         "runNativePage"
       ],
       "iterations": [],
-      "syntaxSha256": "a588dccddbf85aed2b3dc50df56670d6f9d6460060e86a33c9cace5e84c58e06",
+      "syntaxSha256": "61d6addd9e114d3f9fd2b488d645c01ce9360168f29c7805fd45fc41c0d9b341",
       "operation": "arrow-return",
       "receiverType": "boolean",
-      "receiver": "coreRouteName(route.method, route.path) === binding?.route.declaration.name",
+      "receiver": "page.name === binding?.route.declaration.name",
       "profile": "native",
       "owner": "Native HTTP action/context facade; host owns accepted request and terminal publication",
       "bypassed": [],
@@ -85106,7 +85107,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 32,
+      "line": 34,
       "call": "browserPage( nativePageRenderingFacts(request, input.rendering, () => input.csrfToken(request)), input.rendering, route, operation, headers => reply.headers(headers), mode )",
       "scopes": [
         "runNativePage"
@@ -85137,7 +85138,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 33,
+      "line": 35,
       "call": "nativePageRenderingFacts(request, input.rendering, () => input.csrfToken(request))",
       "scopes": [
         "runNativePage"
@@ -85168,7 +85169,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 33,
+      "line": 35,
       "call": "input.csrfToken(request)",
       "scopes": [
         "runNativePage"
@@ -85198,7 +85199,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 33,
+      "line": 35,
       "call": "input.csrfToken(request)",
       "scopes": [
         "runNativePage"
@@ -85229,7 +85230,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 37,
+      "line": 39,
       "call": "reply.headers(headers)",
       "scopes": [
         "runNativePage"
@@ -85259,7 +85260,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-call",
-      "line": 37,
+      "line": 39,
       "call": "reply.headers(headers)",
       "scopes": [
         "runNativePage"
@@ -85289,7 +85290,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 37,
+      "line": 39,
       "call": "reply.headers",
       "scopes": [
         "runNativePage"
@@ -85319,7 +85320,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 41,
+      "line": 43,
       "call": "return pagePreparationFailure(request, reply, error);",
       "scopes": [
         "runNativePage"
@@ -85349,7 +85350,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-construction",
-      "line": 41,
+      "line": 43,
       "call": "pagePreparationFailure(request, reply, error)",
       "scopes": [
         "runNativePage"
@@ -85377,7 +85378,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 41,
+      "line": 43,
       "call": "pagePreparationFailure(request, reply, error)",
       "scopes": [
         "runNativePage"
@@ -85408,7 +85409,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 41,
+      "line": 43,
       "call": "pagePreparationFailure(request, reply, error)",
       "scopes": [
         "runNativePage"
@@ -85439,7 +85440,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-call",
-      "line": 44,
+      "line": 46,
       "call": "reply.headers(result.headers)",
       "scopes": [
         "runNativePage"
@@ -85469,7 +85470,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 44,
+      "line": 46,
       "call": "reply.headers",
       "scopes": [
         "runNativePage"
@@ -85499,7 +85500,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 45,
+      "line": 47,
       "call": "return sendLoginRedirect(request, reply, result.headers.Location);",
       "scopes": [
         "runNativePage"
@@ -85529,7 +85530,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-construction",
-      "line": 45,
+      "line": 47,
       "call": "sendLoginRedirect(request, reply, result.headers.Location)",
       "scopes": [
         "runNativePage"
@@ -85557,7 +85558,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 45,
+      "line": 47,
       "call": "sendLoginRedirect(request, reply, result.headers.Location)",
       "scopes": [
         "runNativePage"
@@ -85588,7 +85589,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 45,
+      "line": 47,
       "call": "sendLoginRedirect(request, reply, result.headers.Location)",
       "scopes": [
         "runNativePage"
@@ -85619,7 +85620,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 47,
+      "line": 49,
       "call": "return reply.code(result.status).send();",
       "scopes": [
         "runNativePage"
@@ -85649,7 +85650,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-call",
-      "line": 47,
+      "line": 49,
       "call": "reply.code(result.status).send()",
       "scopes": [
         "runNativePage"
@@ -85679,7 +85680,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 47,
+      "line": 49,
       "call": "reply.code(result.status).send",
       "scopes": [
         "runNativePage"
@@ -85709,7 +85710,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-call",
-      "line": 47,
+      "line": 49,
       "call": "reply.code(result.status)",
       "scopes": [
         "runNativePage"
@@ -85739,7 +85740,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 47,
+      "line": 49,
       "call": "reply.code",
       "scopes": [
         "runNativePage"
@@ -85769,7 +85770,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 48,
+      "line": 50,
       "call": "return sendPageResponse(request, reply, result);",
       "scopes": [
         "runNativePage"
@@ -85799,7 +85800,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-construction",
-      "line": 48,
+      "line": 50,
       "call": "sendPageResponse(request, reply, result)",
       "scopes": [
         "runNativePage"
@@ -85827,7 +85828,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 48,
+      "line": 50,
       "call": "sendPageResponse(request, reply, result)",
       "scopes": [
         "runNativePage"
@@ -85858,7 +85859,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 48,
+      "line": 50,
       "call": "sendPageResponse(request, reply, result)",
       "scopes": [
         "runNativePage"
@@ -85889,7 +85890,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 53,
+      "line": 55,
       "call": "return runNativePage(request, reply, this.input);",
       "scopes": [
         "PageController",
@@ -85920,7 +85921,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 53,
+      "line": 55,
       "call": "runNativePage(request, reply, this.input)",
       "scopes": [
         "PageController",
@@ -85952,7 +85953,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 53,
+      "line": 55,
       "call": "runNativePage(request, reply, this.input)",
       "scopes": [
         "PageController",
@@ -85984,7 +85985,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-call",
-      "line": 73,
+      "line": 75,
       "call": "requestPathname(request.raw.url ?? '/')?.startsWith('/')",
       "scopes": [
         "PageRootController",
@@ -86015,7 +86016,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 73,
+      "line": 75,
       "call": "requestPathname(request.raw.url ?? '/')",
       "scopes": [
         "PageRootController",
@@ -86047,7 +86048,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 73,
+      "line": 75,
       "call": "request.raw.url",
       "scopes": [
         "PageRootController",
@@ -86078,7 +86079,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 73,
+      "line": 75,
       "call": "request.raw",
       "scopes": [
         "PageRootController",
@@ -86109,7 +86110,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 74,
+      "line": 76,
       "call": "return pagePreparationFailure(request, reply, new Error('Page root requires a pathname.'));",
       "scopes": [
         "PageRootController",
@@ -86140,7 +86141,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-construction",
-      "line": 74,
+      "line": 76,
       "call": "pagePreparationFailure(request, reply, new Error('Page root requires a pathname.'))",
       "scopes": [
         "PageRootController",
@@ -86169,7 +86170,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 74,
+      "line": 76,
       "call": "pagePreparationFailure(request, reply, new Error('Page root requires a pathname.'))",
       "scopes": [
         "PageRootController",
@@ -86201,7 +86202,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 74,
+      "line": 76,
       "call": "pagePreparationFailure(request, reply, new Error('Page root requires a pathname.'))",
       "scopes": [
         "PageRootController",
@@ -86233,7 +86234,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-call",
-      "line": 75,
+      "line": 77,
       "call": "reply.headers({ 'Cache-Control': 'no-store, no-cache, must-revalidate', Pragma: 'no-cache', Expires: '0' })",
       "scopes": [
         "PageRootController",
@@ -86264,7 +86265,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-reference",
-      "line": 75,
+      "line": 77,
       "call": "reply.headers",
       "scopes": [
         "PageRootController",
@@ -86295,7 +86296,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-return",
-      "line": 76,
+      "line": 78,
       "call": "return sendLoginRedirect(request, reply, this.input.rootContext + this.input.landingPath);",
       "scopes": [
         "PageRootController",
@@ -86326,7 +86327,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-construction",
-      "line": 76,
+      "line": 78,
       "call": "sendLoginRedirect(request, reply, this.input.rootContext + this.input.landingPath)",
       "scopes": [
         "PageRootController",
@@ -86355,7 +86356,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 76,
+      "line": 78,
       "call": "sendLoginRedirect(request, reply, this.input.rootContext + this.input.landingPath)",
       "scopes": [
         "PageRootController",
@@ -86387,7 +86388,7 @@
     {
       "file": "packages/redbox-core/src/http/controllers/PageController.ts",
       "kind": "typed-handoff",
-      "line": 76,
+      "line": 78,
       "call": "sendLoginRedirect(request, reply, this.input.rootContext + this.input.landingPath)",
       "scopes": [
         "PageRootController",
@@ -140657,7 +140658,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 53,
+      "line": 55,
       "call": "(requestPathname(request.raw.url ?? '/') ?? '/').slice((input.rootContext ?? '').length) || '/'",
       "scopes": [
         "createNativePolicies"
@@ -140687,7 +140688,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 53,
+      "line": 55,
       "call": "(requestPathname(request.raw.url ?? '/') ?? '/').slice((input.rootContext ?? '').length)",
       "scopes": [
         "createNativePolicies"
@@ -140717,7 +140718,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 53,
+      "line": 55,
       "call": "requestPathname(request.raw.url ?? '/')",
       "scopes": [
         "createNativePolicies"
@@ -140748,7 +140749,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 53,
+      "line": 55,
       "call": "request.raw.url",
       "scopes": [
         "createNativePolicies"
@@ -140778,7 +140779,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 53,
+      "line": 55,
       "call": "request.raw",
       "scopes": [
         "createNativePolicies"
@@ -140808,7 +140809,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 54,
+      "line": 56,
       "call": "request.routeOptions.url?.includes('/api/records/schemas/') === true",
       "scopes": [
         "createNativePolicies"
@@ -140838,7 +140839,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 54,
+      "line": 56,
       "call": "request.routeOptions.url?.includes('/api/records/schemas/')",
       "scopes": [
         "createNativePolicies"
@@ -140868,7 +140869,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 54,
+      "line": 56,
       "call": "request.routeOptions",
       "scopes": [
         "createNativePolicies"
@@ -140898,7 +140899,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 56,
+      "line": 58,
       "call": "reply .headers({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY, }) .type(RECORD_SCHEMA_PROBLEM_MEDIA_TYPE)",
       "scopes": [
         "createNativePolicies"
@@ -140928,7 +140929,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 56,
+      "line": 58,
       "call": "reply .headers({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY, }) .type(RECORD_SCHEMA_PROBLEM_MEDIA_TYPE)",
       "scopes": [
         "createNativePolicies"
@@ -140958,7 +140959,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 56,
+      "line": 58,
       "call": "reply .headers({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY, }) .type",
       "scopes": [
         "createNativePolicies"
@@ -140988,7 +140989,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 56,
+      "line": 58,
       "call": "reply .headers({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY, })",
       "scopes": [
         "createNativePolicies"
@@ -141018,7 +141019,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 56,
+      "line": 58,
       "call": "reply .headers",
       "scopes": [
         "createNativePolicies"
@@ -141048,7 +141049,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 63,
+      "line": 65,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -141079,7 +141080,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 64,
+      "line": 66,
       "call": "request.session?.set('redirUrl', request.raw.url)",
       "scopes": [
         "createNativePolicies"
@@ -141109,7 +141110,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 64,
+      "line": 66,
       "call": "request.session?.set('redirUrl', request.raw.url)",
       "scopes": [
         "createNativePolicies"
@@ -141140,7 +141141,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 64,
+      "line": 66,
       "call": "request.session?.set",
       "scopes": [
         "createNativePolicies"
@@ -141170,7 +141171,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 64,
+      "line": 66,
       "call": "request.session",
       "scopes": [
         "createNativePolicies"
@@ -141200,7 +141201,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 64,
+      "line": 66,
       "call": "request.raw.url",
       "scopes": [
         "createNativePolicies"
@@ -141230,7 +141231,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 64,
+      "line": 66,
       "call": "request.raw",
       "scopes": [
         "createNativePolicies"
@@ -141260,7 +141261,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 65,
+      "line": 67,
       "call": "return sendLoginRedirect( request, reply, (input.rootContext ?? '') + '/' + brand.name + '/' + portal + '/' + (input.loginPath ?? 'user/login') );",
       "scopes": [
         "createNativePolicies"
@@ -141290,7 +141291,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 65,
+      "line": 67,
       "call": "sendLoginRedirect( request, reply, (input.rootContext ?? '') + '/' + brand.name + '/' + portal + '/' + (input.loginPath ?? 'user/login') )",
       "scopes": [
         "createNativePolicies"
@@ -141318,7 +141319,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 65,
+      "line": 67,
       "call": "sendLoginRedirect( request, reply, (input.rootContext ?? '') + '/' + brand.name + '/' + portal + '/' + (input.loginPath ?? 'user/login') )",
       "scopes": [
         "createNativePolicies"
@@ -141349,7 +141350,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 65,
+      "line": 67,
       "call": "sendLoginRedirect( request, reply, (input.rootContext ?? '') + '/' + brand.name + '/' + portal + '/' + (input.loginPath ?? 'user/login') )",
       "scopes": [
         "createNativePolicies"
@@ -141380,7 +141381,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 74,
+      "line": 76,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -141411,7 +141412,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 75,
+      "line": 77,
       "call": "input.authenticate(request)",
       "scopes": [
         "createNativePolicies"
@@ -141442,7 +141443,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 77,
+      "line": 79,
       "call": "resolveRequestActor(request, actor)",
       "scopes": [
         "createNativePolicies"
@@ -141473,7 +141474,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 77,
+      "line": 79,
       "call": "resolveRequestActor(request, actor)",
       "scopes": [
         "createNativePolicies"
@@ -141504,7 +141505,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 78,
+      "line": 80,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -141535,7 +141536,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 83,
+      "line": 85,
       "call": "input.pathRules.getRulesFromPath(path(request), brand)",
       "scopes": [
         "createNativePolicies"
@@ -141566,7 +141567,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 83,
+      "line": 85,
       "call": "path(request)",
       "scopes": [
         "createNativePolicies"
@@ -141597,7 +141598,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 84,
+      "line": 86,
       "call": "input.pathRules.canRead(rules, roles, brand.name ?? '')",
       "scopes": [
         "createNativePolicies"
@@ -141628,7 +141629,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 84,
+      "line": 86,
       "call": "input.pathRules.canRead(rules, roles, brand.name ?? '')",
       "scopes": [
         "createNativePolicies"
@@ -141659,7 +141660,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 85,
+      "line": 87,
       "call": "requestString(request.headers['content-type'])?.includes('application/json')",
       "scopes": [
         "createNativePolicies"
@@ -141689,7 +141690,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 85,
+      "line": 87,
       "call": "requestString(request.headers['content-type'])",
       "scopes": [
         "createNativePolicies"
@@ -141720,7 +141721,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 85,
+      "line": 87,
       "call": "request.headers",
       "scopes": [
         "createNativePolicies"
@@ -141750,7 +141751,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 88,
+      "line": 90,
       "call": "input.emitRequestFailure(request, 'authorization.failure', 'AuthorizationPolicy')",
       "scopes": [
         "createNativePolicies"
@@ -141781,7 +141782,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 94,
+      "line": 96,
       "call": "return problem(reply) .code(403) .send(buildRecordSchemaForbiddenProblem(path(request)));",
       "scopes": [
         "createNativePolicies"
@@ -141811,7 +141812,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply) .code(403) .send(buildRecordSchemaForbiddenProblem(path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -141841,7 +141842,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply) .code(403) .send(buildRecordSchemaForbiddenProblem(path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -141872,7 +141873,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply) .code(403) .send",
       "scopes": [
         "createNativePolicies"
@@ -141902,7 +141903,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply) .code(403)",
       "scopes": [
         "createNativePolicies"
@@ -141932,7 +141933,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply) .code",
       "scopes": [
         "createNativePolicies"
@@ -141962,7 +141963,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -141990,7 +141991,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 94,
+      "line": 96,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -142021,7 +142022,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 96,
+      "line": 98,
       "call": "buildRecordSchemaForbiddenProblem(path(request))",
       "scopes": [
         "createNativePolicies"
@@ -142052,7 +142053,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 96,
+      "line": 98,
       "call": "path(request)",
       "scopes": [
         "createNativePolicies"
@@ -142083,7 +142084,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 97,
+      "line": 99,
       "call": "return reply.code(403).send();",
       "scopes": [
         "createNativePolicies"
@@ -142113,7 +142114,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 97,
+      "line": 99,
       "call": "reply.code(403).send()",
       "scopes": [
         "createNativePolicies"
@@ -142143,7 +142144,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 97,
+      "line": 99,
       "call": "reply.code(403).send",
       "scopes": [
         "createNativePolicies"
@@ -142173,7 +142174,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 97,
+      "line": 99,
       "call": "reply.code(403)",
       "scopes": [
         "createNativePolicies"
@@ -142203,7 +142204,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 97,
+      "line": 99,
       "call": "reply.code",
       "scopes": [
         "createNativePolicies"
@@ -142233,7 +142234,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 98,
+      "line": 100,
       "call": "return reply.code(403).send({ message: 'Access Denied' });",
       "scopes": [
         "createNativePolicies"
@@ -142263,7 +142264,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 98,
+      "line": 100,
       "call": "reply.code(403).send({ message: 'Access Denied' })",
       "scopes": [
         "createNativePolicies"
@@ -142293,7 +142294,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 98,
+      "line": 100,
       "call": "reply.code(403).send",
       "scopes": [
         "createNativePolicies"
@@ -142323,7 +142324,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 98,
+      "line": 100,
       "call": "reply.code(403)",
       "scopes": [
         "createNativePolicies"
@@ -142353,7 +142354,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 98,
+      "line": 100,
       "call": "reply.code",
       "scopes": [
         "createNativePolicies"
@@ -142383,7 +142384,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 99,
+      "line": 101,
       "call": "return redirect(request, reply);",
       "scopes": [
         "createNativePolicies"
@@ -142413,7 +142414,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 99,
+      "line": 101,
       "call": "redirect(request, reply)",
       "scopes": [
         "createNativePolicies"
@@ -142441,7 +142442,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 99,
+      "line": 101,
       "call": "redirect(request, reply)",
       "scopes": [
         "createNativePolicies"
@@ -142472,7 +142473,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 99,
+      "line": 101,
       "call": "redirect(request, reply)",
       "scopes": [
         "createNativePolicies"
@@ -142503,7 +142504,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 103,
+      "line": 105,
       "call": "reply.headers({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', Pragma: 'no-cache', Expires: '0', 'Surrogate-Control': 'no-store', })",
       "scopes": [
         "createNativePolicies"
@@ -142533,7 +142534,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 103,
+      "line": 105,
       "call": "reply.headers",
       "scopes": [
         "createNativePolicies"
@@ -142563,7 +142564,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 111,
+      "line": 113,
       "call": "request.params",
       "scopes": [
         "createNativePolicies"
@@ -142593,7 +142594,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 113,
+      "line": 115,
       "call": "schema(request) ? problem(reply) .code(404) .send(schemaProblem('not-found', path(request))) : reply.code(404).send()",
       "scopes": [
         "createNativePolicies"
@@ -142623,7 +142624,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 113,
+      "line": 115,
       "call": "schema(request)",
       "scopes": [
         "createNativePolicies"
@@ -142654,7 +142655,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply) .code(404) .send(schemaProblem('not-found', path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -142684,7 +142685,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply) .code(404) .send(schemaProblem('not-found', path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -142715,7 +142716,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply) .code(404) .send",
       "scopes": [
         "createNativePolicies"
@@ -142745,7 +142746,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply) .code(404)",
       "scopes": [
         "createNativePolicies"
@@ -142775,7 +142776,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply) .code",
       "scopes": [
         "createNativePolicies"
@@ -142805,7 +142806,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -142833,7 +142834,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 114,
+      "line": 116,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -142864,7 +142865,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 116,
+      "line": 118,
       "call": "schemaProblem('not-found', path(request))",
       "scopes": [
         "createNativePolicies"
@@ -142895,7 +142896,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 116,
+      "line": 118,
       "call": "path(request)",
       "scopes": [
         "createNativePolicies"
@@ -142926,7 +142927,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 117,
+      "line": 119,
       "call": "reply.code(404).send()",
       "scopes": [
         "createNativePolicies"
@@ -142956,7 +142957,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 117,
+      "line": 119,
       "call": "reply.code(404).send",
       "scopes": [
         "createNativePolicies"
@@ -142986,7 +142987,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 117,
+      "line": 119,
       "call": "reply.code(404)",
       "scopes": [
         "createNativePolicies"
@@ -143016,7 +143017,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 117,
+      "line": 119,
       "call": "reply.code",
       "scopes": [
         "createNativePolicies"
@@ -143046,7 +143047,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 124,
+      "line": 126,
       "call": "return missing();",
       "scopes": [
         "createNativePolicies"
@@ -143076,7 +143077,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 124,
+      "line": 126,
       "call": "missing()",
       "scopes": [
         "createNativePolicies"
@@ -143104,7 +143105,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 126,
+      "line": 128,
       "call": "return missing();",
       "scopes": [
         "createNativePolicies"
@@ -143134,7 +143135,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 126,
+      "line": 128,
       "call": "missing()",
       "scopes": [
         "createNativePolicies"
@@ -143162,7 +143163,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 130,
+      "line": 132,
       "call": "branded.has(request)",
       "scopes": [
         "createNativePolicies"
@@ -143193,7 +143194,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 131,
+      "line": 133,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -143224,7 +143225,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 134,
+      "line": 136,
       "call": "clearRequestActor(request)",
       "scopes": [
         "createNativePolicies"
@@ -143255,7 +143256,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 137,
+      "line": 139,
       "call": "resolveRequestBrand(request, brand, portal)",
       "scopes": [
         "createNativePolicies"
@@ -143286,7 +143287,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 138,
+      "line": 140,
       "call": "branded.add(request)",
       "scopes": [
         "createNativePolicies"
@@ -143317,7 +143318,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 141,
+      "line": 143,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -143348,7 +143349,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 142,
+      "line": 144,
       "call": "input.authenticate(request)",
       "scopes": [
         "createNativePolicies"
@@ -143379,7 +143380,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 143,
+      "line": 145,
       "call": "resolveRequestActor(request, actor)",
       "scopes": [
         "createNativePolicies"
@@ -143410,7 +143411,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 143,
+      "line": 145,
       "call": "resolveRequestActor(request, actor)",
       "scopes": [
         "createNativePolicies"
@@ -143441,7 +143442,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 146,
+      "line": 148,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -143472,7 +143473,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 146,
+      "line": 148,
       "call": "return redirect(request, reply);",
       "scopes": [
         "createNativePolicies"
@@ -143502,7 +143503,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 146,
+      "line": 148,
       "call": "redirect(request, reply)",
       "scopes": [
         "createNativePolicies"
@@ -143530,7 +143531,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 146,
+      "line": 148,
       "call": "redirect(request, reply)",
       "scopes": [
         "createNativePolicies"
@@ -143561,7 +143562,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 146,
+      "line": 148,
       "call": "redirect(request, reply)",
       "scopes": [
         "createNativePolicies"
@@ -143592,7 +143593,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 150,
+      "line": 152,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -143623,7 +143624,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 151,
+      "line": 153,
       "call": "input.authenticate(request)",
       "scopes": [
         "createNativePolicies"
@@ -143654,7 +143655,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 153,
+      "line": 155,
       "call": "resolveRequestActor(request, actor)",
       "scopes": [
         "createNativePolicies"
@@ -143685,7 +143686,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 153,
+      "line": 155,
       "call": "resolveRequestActor(request, actor)",
       "scopes": [
         "createNativePolicies"
@@ -143716,7 +143717,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 156,
+      "line": 158,
       "call": "reply.header('WWW-Authenticate', 'Bearer')",
       "scopes": [
         "createNativePolicies"
@@ -143746,7 +143747,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 156,
+      "line": 158,
       "call": "reply.header",
       "scopes": [
         "createNativePolicies"
@@ -143776,7 +143777,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 157,
+      "line": 159,
       "call": "schema(request)",
       "scopes": [
         "createNativePolicies"
@@ -143807,7 +143808,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 158,
+      "line": 160,
       "call": "return problem(reply) .code(401) .send(schemaProblem('authentication-required', path(request)));",
       "scopes": [
         "createNativePolicies"
@@ -143837,7 +143838,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply) .code(401) .send(schemaProblem('authentication-required', path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -143867,7 +143868,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply) .code(401) .send(schemaProblem('authentication-required', path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -143898,7 +143899,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply) .code(401) .send",
       "scopes": [
         "createNativePolicies"
@@ -143928,7 +143929,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply) .code(401)",
       "scopes": [
         "createNativePolicies"
@@ -143958,7 +143959,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply) .code",
       "scopes": [
         "createNativePolicies"
@@ -143988,7 +143989,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -144016,7 +144017,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 158,
+      "line": 160,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -144047,7 +144048,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 160,
+      "line": 162,
       "call": "schemaProblem('authentication-required', path(request))",
       "scopes": [
         "createNativePolicies"
@@ -144078,7 +144079,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 160,
+      "line": 162,
       "call": "path(request)",
       "scopes": [
         "createNativePolicies"
@@ -144109,7 +144110,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 161,
+      "line": 163,
       "call": "return reply.code(401).send({ message: 'Authentication required', details: '' });",
       "scopes": [
         "createNativePolicies"
@@ -144139,7 +144140,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 161,
+      "line": 163,
       "call": "reply.code(401).send({ message: 'Authentication required', details: '' })",
       "scopes": [
         "createNativePolicies"
@@ -144169,7 +144170,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 161,
+      "line": 163,
       "call": "reply.code(401).send",
       "scopes": [
         "createNativePolicies"
@@ -144199,7 +144200,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 161,
+      "line": 163,
       "call": "reply.code(401)",
       "scopes": [
         "createNativePolicies"
@@ -144229,7 +144230,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 161,
+      "line": 163,
       "call": "reply.code",
       "scopes": [
         "createNativePolicies"
@@ -144259,7 +144260,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 164,
+      "line": 166,
       "call": "requestContext(request)",
       "scopes": [
         "createNativePolicies"
@@ -144290,7 +144291,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 166,
+      "line": 168,
       "call": "return schema(request) ? problem(reply) .code(403) .send(buildRecordSchemaForbiddenProblem(path(request))) : reply.code(403).send();",
       "scopes": [
         "createNativePolicies"
@@ -144320,7 +144321,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 166,
+      "line": 168,
       "call": "schema(request)",
       "scopes": [
         "createNativePolicies"
@@ -144351,7 +144352,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply) .code(403) .send(buildRecordSchemaForbiddenProblem(path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -144381,7 +144382,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply) .code(403) .send(buildRecordSchemaForbiddenProblem(path(request)))",
       "scopes": [
         "createNativePolicies"
@@ -144412,7 +144413,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply) .code(403) .send",
       "scopes": [
         "createNativePolicies"
@@ -144442,7 +144443,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply) .code(403)",
       "scopes": [
         "createNativePolicies"
@@ -144472,7 +144473,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply) .code",
       "scopes": [
         "createNativePolicies"
@@ -144502,7 +144503,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-construction",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -144530,7 +144531,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 167,
+      "line": 169,
       "call": "problem(reply)",
       "scopes": [
         "createNativePolicies"
@@ -144561,7 +144562,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 169,
+      "line": 171,
       "call": "buildRecordSchemaForbiddenProblem(path(request))",
       "scopes": [
         "createNativePolicies"
@@ -144592,7 +144593,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 169,
+      "line": 171,
       "call": "path(request)",
       "scopes": [
         "createNativePolicies"
@@ -144623,7 +144624,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 170,
+      "line": 172,
       "call": "reply.code(403).send()",
       "scopes": [
         "createNativePolicies"
@@ -144653,7 +144654,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 170,
+      "line": 172,
       "call": "reply.code(403).send",
       "scopes": [
         "createNativePolicies"
@@ -144683,7 +144684,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 170,
+      "line": 172,
       "call": "reply.code(403)",
       "scopes": [
         "createNativePolicies"
@@ -144713,7 +144714,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 170,
+      "line": 172,
       "call": "reply.code",
       "scopes": [
         "createNativePolicies"
@@ -144743,7 +144744,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 195,
+      "line": 197,
       "call": "return reply.code(403).send();",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144773,7 +144774,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 195,
+      "line": 197,
       "call": "reply.code(403).send()",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144803,7 +144804,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 195,
+      "line": 197,
       "call": "reply.code(403).send",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144833,7 +144834,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-call",
-      "line": 195,
+      "line": 197,
       "call": "reply.code(403)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144863,7 +144864,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 195,
+      "line": 197,
       "call": "reply.code",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144893,7 +144894,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 218,
+      "line": 220,
       "call": "['GET', 'HEAD', 'OPTIONS'].includes(request.method) ? undefined : csrf.protect(request, reply)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144923,7 +144924,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 218,
+      "line": 220,
       "call": "['GET', 'HEAD', 'OPTIONS'].includes(request.method)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144954,7 +144955,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-reference",
-      "line": 218,
+      "line": 220,
       "call": "request.method",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -144984,7 +144985,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 218,
+      "line": 220,
       "call": "csrf.protect(request, reply)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -145015,7 +145016,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 218,
+      "line": 220,
       "call": "csrf.protect(request, reply)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -145046,7 +145047,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 233,
+      "line": 235,
       "call": "policy(request, reply)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -145079,7 +145080,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 233,
+      "line": 235,
       "call": "policy(request, reply)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -145112,7 +145113,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-handoff",
-      "line": 234,
+      "line": 236,
       "call": "httpReplySubmitted(reply)",
       "scopes": [
         "bindNativeRouteSecurity"
@@ -145145,7 +145146,7 @@
     {
       "file": "packages/redbox-core/src/http/fastify/policies.ts",
       "kind": "typed-return",
-      "line": 234,
+      "line": 236,
       "call": "return reply;",
       "scopes": [
         "bindNativeRouteSecurity"

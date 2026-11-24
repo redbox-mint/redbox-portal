@@ -687,6 +687,14 @@ jobs:
             # Migration tests load api/migrations, which require the built package entry point.
             npm run build
       - run:
+          name: Build bundled storage and development hooks
+          command: |
+            # Production-host and bundled-extension suites load these packages' dist output.
+            nvm install
+            npm run compile:dev-tools
+            npm run compile:storage-mongo
+            npm run compile:dev-hook
+      - run:
           name: Type-check Effect integrations and tests
           command: nvm install && npm --prefix packages/redbox-core run typecheck:effect
       - run:

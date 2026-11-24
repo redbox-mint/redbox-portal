@@ -7,7 +7,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const root = path.resolve(__dirname, '../../../..');
-if (!require.extensions['.ts'])
+// Check for ts-node itself: coverage tools (nyc) install a plain-JS '.ts' hook.
+if (!process[Symbol.for('ts-node.register.instance')])
   require(path.join(root, 'node_modules/ts-node')).register({
     project: path.join(root, 'packages/redbox-core/test/tsconfig.json'),
     transpileOnly: true,
