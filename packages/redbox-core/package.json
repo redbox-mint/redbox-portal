@@ -140,7 +140,7 @@
     "@aws-sdk/credential-provider-node": "3.972.93",
     "ai": "7.0.68",
     "mammoth": "1.13.0",
-    "pdfjs-dist": "6.3.289"
+    "pdfjs-dist": "6.5.438"
   },
   "overrides": {
     "axios": "1.21.0",
