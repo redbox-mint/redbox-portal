@@ -16,19 +16,19 @@
     "maxReportBytes": 65536
   },
   "summary": {
-    "formsChecked": 12,
-    "schemasChecked": 24,
-    "completeSchemas": 18,
+    "formsChecked": 13,
+    "schemasChecked": 26,
+    "completeSchemas": 20,
     "partialSchemas": 6,
     "unsupportedComponents": 0,
-    "schemaWarnings": 24,
-    "unknownPropertyProbesAccepted": 24
+    "schemaWarnings": 26,
+    "unknownPropertyProbesAccepted": 26
   },
   "limitHeadroom": {
     "cacheEntries": {
       "limit": 128,
-      "observedMaximum": 24,
-      "remaining": 104
+      "observedMaximum": 26,
+      "remaining": 102
     },
     "maxDepth": {
       "limit": 64,
@@ -122,6 +122,32 @@
     }
   ],
   "schemas": [
+    {
+      "form": "dev-hook/checkbox-details-1.0",
+      "kind": "create",
+      "digest": "1a9122f67feeeee51f4ee49dc8c2ac116926da4a9429477fb637fb69fa38e086",
+      "completeness": "complete",
+      "byteLength": 1331,
+      "observedNodeDepth": 4,
+      "observedProperties": 6,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/checkbox-details-1.0",
+      "kind": "update",
+      "digest": "e61a179a4bc1f13df7267fc76d2f78e06e2c1396b5759ec70ed07fa753dd4165",
+      "completeness": "complete",
+      "byteLength": 1331,
+      "observedNodeDepth": 4,
+      "observedProperties": 6,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
     {
       "form": "dev-hook/dataPublication-1.0-draft",
       "kind": "create",

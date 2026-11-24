@@ -1,0 +1,49 @@
+@if (isVisible && model) {
+  <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+  <fieldset class="checkbox-details" [disabled]="isDisabled || isReadonly" [attr.aria-busy]="loadState() === 'loading'">
+    <legend class="form-label" [class.visually-hidden]="outerLabel" [innerHTML]="legend | i18next"></legend>
+    @if (loadState() === 'loading') {
+      <p role="status" class="text-body-secondary">{{ 'checkbox-details-loading' | i18next }}</p>
+    } @else if (loadState() === 'failed') {
+      <p role="status">{{ 'checkbox-details-load-failed' | i18next }}</p>
+      <button type="button" class="btn btn-outline-secondary btn-sm mb-2" (click)="loadOptions()">
+        {{ 'checkbox-details-retry' | i18next }}
+      </button>
+    }
+    @for (option of options; track option.value) {
+      @let row = selectedRow(option.value);
+      <div class="checkbox-details__row" [class.checkbox-details__row--selected]="row">
+        <div class="form-check">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            [id]="optionId(option)"
+            [name]="groupId"
+            [checked]="!!row"
+            [disabled]="optionDisabled(option)"
+            [attr.aria-invalid]="showInvalidState ? 'true' : null"
+            (change)="toggle(option, $any($event.target).checked)"
+            (blur)="model.formControl?.markAsTouched()"
+          />
+          <label class="form-check-label" [for]="optionId(option)">{{ option.label | i18next }}</label>
+        </div>
+        @if (row) {
+          <div class="checkbox-details__fields">
+            @for (field of row.fields; track field) {
+              <ng-container [redboxCheckboxDetailField]="field" />
+            }
+            @if (option.historical && !row.fields.length && archiveDetails(row).length) {
+              <dl class="mb-0">
+                @for (detail of archiveDetails(row); track detail[0]) {
+                  <dt>{{ detail[0] }}</dt>
+                  <dd>{{ detail[1] }}</dd>
+                }
+              </dl>
+            }
+          </div>
+        }
+      </div>
+    }
+  </fieldset>
+  <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+}

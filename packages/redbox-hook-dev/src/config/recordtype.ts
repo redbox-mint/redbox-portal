@@ -9,6 +9,11 @@ import { relatedPlanEmail, relatedPlanDoi } from './related-record-examples';
  * via redbox-hook-dev's registerRedboxConfig().
  */
 export const recordtype: RecordTypeConfig = {
+  'checkbox-details-demo': {
+    packageType: 'checkbox-details-demo',
+    labels: { name: 'Checkbox details demo', namePlural: 'Checkbox details demos' },
+    recordValidation: { mode: 'enforce' },
+  },
   researchActivity: {
     packageType: 'researchActivity',
     labels: { name: 'Research Activity', namePlural: 'Research Activities' },

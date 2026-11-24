@@ -32,6 +32,18 @@ This package is wired into the portal as a **devDependency**
 - **Published / client images**: `npm install --omit=dev` (and `npm prune --omit=dev`
   in the Dockerfile builder) excludes this hook, so those images stay pristine.
 
+## Checkbox details demo
+
+On a running development portal, sign in as an administrator and open
+`/default/rdmp/record/checkbox-details-demo/edit`. In the Formats tab, each
+selected format has its own volume field. Other also has a description.
+**Save draft** accepts incomplete details. **Activate** requires every selected
+row to be complete. Reopen the record to verify the saved selections or open
+its View page to print the labelled answers.
+
+Run the browser acceptance test against that portal with
+`npx playwright test test/playwright/checkbox-with-details.spec.ts`.
+
 ## Integration testing
 
 Integration tests can run in two modes:

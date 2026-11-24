@@ -28,12 +28,12 @@ describe('record-schema shadow-rollout evidence command', function () {
       enforcement: 'shadow',
       unknownProperties: 'allow',
     });
-    // Includes the research activity and RDMP generation demo forms.
+    // Includes the checkbox details, research activity and RDMP generation demo forms.
     expect(report.summary).to.deep.include({
-      formsChecked: 12,
-      schemasChecked: 24,
+      formsChecked: 13,
+      schemasChecked: 26,
       unsupportedComponents: 0,
-      unknownPropertyProbesAccepted: 24,
+      unknownPropertyProbesAccepted: 26,
     });
     expect(report.limitHeadroom.cacheEntries.remaining).to.be.greaterThan(0);
     expect(report.limitHeadroom.maxDepth.remaining).to.be.greaterThan(0);

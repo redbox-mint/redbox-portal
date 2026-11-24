@@ -1,3 +1,4 @@
+import { CheckboxWithDetailsComponent, CheckboxWithDetailsModel } from './component/checkbox-with-details.component';
 import { SimpleInputModel, SimpleInputComponent } from './component/simple-input.component';
 import {
   RepeatableComponent,
@@ -50,6 +51,7 @@ import {
   TextAreaModelName,
   SimpleInputModelName,
   CheckboxInputModelName,
+  CheckboxWithDetailsModelName,
   DropdownInputModelName,
   RadioInputModelName,
   DateInputModelName,
@@ -80,6 +82,7 @@ import {
   TabContentComponentName,
   TabComponentName,
   CheckboxInputComponentName,
+  CheckboxWithDetailsComponentName,
   DropdownInputComponentName,
   RadioInputComponentName,
   DateInputComponentName,
@@ -134,6 +137,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [AccordionComponentName]: AccordionComponent,
   [AccordionPanelComponentName]: AccordionPanelComponent,
   [CheckboxInputComponentName]: CheckboxInputComponent,
+  [CheckboxWithDetailsComponentName]: CheckboxWithDetailsComponent,
   [DropdownInputComponentName]: DropdownInputComponent,
   [RadioInputComponentName]: RadioInputComponent,
   [DateInputComponentName]: DateInputComponent,
@@ -168,6 +172,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [TextAreaModelName]: TextAreaModel,
   [SimpleInputModelName]: SimpleInputModel,
   [CheckboxInputModelName]: CheckboxInputModel,
+  [CheckboxWithDetailsModelName]: CheckboxWithDetailsModel,
   [DropdownInputModelName]: DropdownInputModel,
   [RadioInputModelName]: RadioInputModel,
   [DateInputModelName]: DateInputModel,
