@@ -1,3 +1,9 @@
+import {
+  CheckboxWithDetailsComponentName,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep } from 'lodash';
 import { projectViewMetadata } from '../ViewFormMetadata';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
@@ -367,7 +373,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const shouldTransform =
       !shouldSkipActionRowGroupTransform &&
       (hasDefaultViewTransform || hasExplicitViewTransform || shouldTransformInlineVocabOption);
-    const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
+    const shouldSkipViewTransform = className !== CheckboxWithDetailsComponentName && this.hasExplicitAllowedMode(item, 'view');
 
     if (shouldTransform) {
       if (shouldSkipViewTransform && !hasExplicitViewTransform) {
@@ -951,6 +957,27 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  async visitCheckboxWithDetailsFieldComponentDefinition(item: CheckboxWithDetailsFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+    for (const [index, child] of (item.config?.detailFields ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(child, { formConfig: ['config', 'detailFields', index] });
+    }
+    for (const [value, fields] of Object.entries(item.config?.detailFieldsByValue ?? {})) {
+      for (const [index, child] of fields.entries()) {
+        await this.formPathHelper.acceptFormPath(child, { formConfig: ['config', 'detailFieldsByValue', value, index] });
+      }
+    }
+  }
+
+  async visitCheckboxWithDetailsFieldModelDefinition(item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {
+    this.processFieldModelDefinition(item);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

@@ -1,3 +1,5 @@
+import { CheckboxWithDetailsComponentName } from '@researchdatabox/sails-ng-common';
+import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { firstValueFrom } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import _ from 'lodash';
@@ -148,6 +150,8 @@ export interface RecordValidationRequest {
   /** Server-owned effective source-read authority; roles alone never supply it. */
   readonly relatedReadContext?: RelatedRecordReadContext;
   readonly candidate: RecordValidationCandidate;
+  /** Authoritative pre-write metadata for preserving retired option values. */
+  readonly previousMetadata?: Readonly<Record<string, unknown>>;
   /** Process-local source-contract capability; never populated from request parameters. */
   readonly routeFormContract?: unknown;
   readonly writeKind: RecordValidationWriteKind;
@@ -399,7 +403,8 @@ export interface RecordValidationServiceDependencies {
     validatorDefinitionsMap: ReadonlyMap<string, FormValidatorDefinition>,
     jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate,
     excludedOnlyValidationGroups?: readonly string[],
-    checkDeadline?: () => void
+    checkDeadline?: () => void,
+    previousMetadata?: Readonly<Record<string, unknown>>
   ): Promise<ValidatorFormConfigResult>;
 }
 
@@ -1470,6 +1475,15 @@ export namespace Services {
           const validationForm = transformationApplication.applied.length > 0
             ? await this.constructForm(form, transformedCandidate.metadata)
             : constructedForm;
+          if (schemaOwnedFormNodes(validationForm).some(({ value }) =>
+            isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
+            isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
+          )) {
+            await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
+              checkboxDetailsOnly: true,
+              resolveDeferredCheckboxDetails: true,
+            });
+          }
           const groupResolution = await this.resolveValidationGroups(
             validationForm,
             policy,
@@ -1491,7 +1505,8 @@ export namespace Services {
             validatorDefinitionsMap,
             advisoryGroups,
             deadline,
-            relatedMetadata
+            relatedMetadata,
+            request.previousMetadata
           );
           const validatorTransformationApplication = this.applyCandidateTransformations(
             transformedCandidate,
@@ -1582,7 +1597,8 @@ export namespace Services {
             validatorDefinitionsMap,
             [],
             deadline,
-            relatedMetadata
+            relatedMetadata,
+            request.previousMetadata
           );
           const advisoryTransformationApplication = this.applyCandidateTransformations(
             transformedCandidate,
@@ -1809,7 +1825,8 @@ export namespace Services {
           validatorDefinitionsMap,
           evaluatorFactory,
           excludedOnlyValidationGroups,
-          checkDeadline
+          checkDeadline,
+          previousMetadata
         ) =>
           await new ValidatorFormConfigVisitor(this.logger).startWithResult({
             form,
@@ -1818,6 +1835,7 @@ export namespace Services {
             jsonataEvaluatorFactory: evaluatorFactory,
             excludedOnlyValidationGroups: [...(excludedOnlyValidationGroups ?? [])],
             checkDeadline,
+            previousMetadata,
           }),
       };
       this.resolvedDependencies = { ...defaults, ...this.dependencyOverrides };
@@ -2530,7 +2548,8 @@ export namespace Services {
       mapping: ReadonlyMap<string, FormValidatorDefinition>,
       excludedOnlyGroups: readonly string[],
       deadline: ValidationDeadline,
-      relatedMetadata?: ReadonlyRelatedMetadata
+      relatedMetadata?: ReadonlyRelatedMetadata,
+      previousMetadata?: Readonly<Record<string, unknown>>
     ): Promise<ValidatorFormConfigResult> {
       const execute = this.dependencies().executeValidators;
       if (!execute) throw new Error('Record validation executor is unavailable.');
@@ -2541,7 +2560,8 @@ export namespace Services {
         mapping,
         expression => this.jsonataEvaluator(expression, deadline, relatedMetadata),
         excludedOnlyGroups,
-        () => this.checkDeadline(deadline)
+        () => this.checkDeadline(deadline),
+        previousMetadata
       );
       return result;
     }

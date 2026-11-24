@@ -1,4 +1,10 @@
 import {
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  checkboxDetailFields,
+  checkboxDetailsOptionPath,
+  readCheckboxWithDetailsRows,
+} from '@researchdatabox/sails-ng-common';
+import {
   FormConfigVisitor,
   FormValidatorConfig,
   FormValidatorControl,
@@ -113,7 +119,7 @@ import {
   JSONataEvaluate,
 } from '@researchdatabox/sails-ng-common';
 import { DataValueFormConfigVisitor } from './data-value.visitor';
-import { cloneDeep as _cloneDeep } from 'lodash';
+import { cloneDeep as _cloneDeep, get as _get } from 'lodash';
 
 export interface RichHtmlSanitizedTransformation {
   readonly kind: 'rich-html-sanitized';
@@ -144,6 +150,7 @@ type ValidatorFormConfigOptions = {
   checkDeadline?: () => void;
   /** Traverse schema-owned values for transformations without executing validators. */
   transformationOnly?: boolean;
+  previousMetadata?: Readonly<Record<string, unknown>>;
 };
 
 declare const sails: Sails.Application;
@@ -167,6 +174,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   private jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate;
   private checkDeadline: () => void;
   private transformationOnly: boolean;
+  private previousMetadata?: Readonly<Record<string, unknown>>;
 
   private validationErrors: FormValidatorSummaryErrors[];
   private transformations: FormValueTransformation[];
@@ -225,6 +233,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     this.jsonataEvaluatorFactory = options.jsonataEvaluatorFactory ?? jsonataEvaluateFunc;
     this.checkDeadline = options.checkDeadline ?? (() => undefined);
     this.transformationOnly = options.transformationOnly === true;
+    this.previousMetadata = options.previousMetadata;
 
     this.validationErrors = [];
     this.transformations = [];
@@ -546,6 +555,94 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(
+    item: CheckboxWithDetailsFormComponentDefinitionOutline
+  ): Promise<void> {
+    const config = item.component.config;
+    const model = item.model?.config;
+    const layout = item.layout?.config;
+    if (this.transformationOnly || model?.disabled || config?.disabled || layout?.disabled) return;
+
+    const value = model?.value === undefined ? [] : model.value;
+    const path = this.formPathHelper.formPath;
+    const stored = new Map(readCheckboxWithDetailsRows(_get(this.previousMetadata, path.dataModel))
+      .map(row => [row.value, row]));
+    const groupLabel = layout?.label ?? item.name;
+    const issue = (message: string, rowIndex?: number, option?: string, field?: string) => {
+      const suffix = option === undefined ? [] : [checkboxDetailsOptionPath(option), ...(field ? [field] : [])];
+      this.validationErrors.push({
+        id: field ?? item.name,
+        message: groupLabel,
+        lineagePaths: buildLineagePaths(path, {
+          angularComponents: field ? suffix : [],
+          dataModel: rowIndex === undefined ? [] : [rowIndex, ...(field ? ['details', field] : ['value'])],
+        }),
+        errors: [{ class: 'checkboxWithDetails', message, params: { option, field } }],
+      });
+    };
+
+    this.validationErrors.push(...await this.validateFormComponent(item.name, value, model?.validators, layout?.label));
+    if (!Array.isArray(value)) {
+      issue('@validator-error-checkbox-details-shape');
+      return;
+    }
+
+    const options = new Map((config?.options ?? []).map(option => [option.value, option]));
+    const selected = new Set<string>();
+    for (const [index, row] of value.entries()) {
+      this.checkDeadline();
+      if (
+        !row || typeof row.value !== 'string' || !row.value.trim() ||
+        !row.details || typeof row.details !== 'object' || Array.isArray(row.details) ||
+        Object.keys(row).some(key => key !== 'value' && key !== 'details')
+      ) {
+        issue('@validator-error-checkbox-details-shape', index);
+        continue;
+      }
+      const option = options.get(row.value);
+      const previous = stored.get(row.value);
+      const selectable = option && !option.disabled && !option.historical &&
+        (!Array.isArray(config?.enabledOptionValues) || config.enabledOptionValues.includes(row.value));
+      if (selected.has(row.value) || (!selectable && !previous)) {
+        issue('@validator-error-checkbox-details-option', index, row.value);
+        continue;
+      }
+      selected.add(row.value);
+
+      const fields = checkboxDetailFields(config, row.value);
+      const names = new Set(fields.map(field => field.name));
+      for (const [name, answer] of Object.entries(row.details)) {
+        if (
+          (answer !== null && typeof answer !== 'string') ||
+          ((!names.has(name) || !option) &&
+            !(previous && Object.hasOwn(previous.details, name) && previous.details[name] === answer))
+        ) {
+          issue('@validator-error-checkbox-details-field', index, row.value, name);
+        }
+      }
+      // A removed option is retained as archival data. It has no editable controls.
+      if (!option) continue;
+      for (const field of fields) {
+        const name = field.name;
+        const fieldModel = field.model?.config;
+        if (!name || !fieldModel || fieldModel.disabled || field.component.config?.disabled || field.layout?.config?.disabled) {
+          continue;
+        }
+        const optionPath = checkboxDetailsOptionPath(row.value);
+        const lineage = buildLineagePaths(path, {
+          dataModel: [index, 'details', name],
+          angularComponents: [optionPath, name],
+          layout: [optionPath, `${name}-layout`],
+        });
+        const label = field.layout?.config?.label || field.component.config?.label || name;
+        const answer = Object.hasOwn(row.details, name) ? row.details[name] : null;
+        this.validationErrors.push(...await this.validateFormComponent(
+          name, answer, fieldModel.validators, `${label} — ${option.label}`, lineage
+        ));
+      }
+    }
   }
 
   /* Question Tree */
@@ -914,7 +1011,8 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     itemName: string,
     value: unknown,
     validators?: FormValidatorConfig[],
-    message?: string
+    message?: string,
+    lineage = this.formPathHelper.formPath
   ): Promise<FormValidatorSummaryErrors[]> {
     const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
 
@@ -943,7 +1041,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         id: typeof itemName === 'string' && itemName.length > 0 ? itemName : null,
         message: typeof message === 'string' && message.length > 0 ? message : null,
         errors: [],
-        lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
+        lineagePaths: buildLineagePaths(lineage),
       };
 
       // async

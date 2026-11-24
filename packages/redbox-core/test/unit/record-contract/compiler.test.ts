@@ -17,6 +17,7 @@ import {
   RECORD_SCHEMA_PROBLEM_CODES,
   recordContractPointer,
   renderRecordJsonSchema,
+  compileRecordJsonSchemaArtifact,
   recordSchema,
 } from '../../../src';
 import type {
@@ -153,6 +154,34 @@ function containsAnyNode(node: ContractNode): boolean {
 }
 
 describe('RecordContractCompiler and core contributors', function () {
+  it('documents checkbox row identity and the detail types for each option', async function () {
+    const result = await compiler().compile({
+      form: form([field('formats', 'CheckboxWithDetailsComponent', {
+        options: [{ value: 'open', label: 'Open' }, { value: 'other', label: 'Other' }],
+        detailFieldsByValue: {
+          other: [{ name: 'description', component: { class: 'TextAreaComponent' } }],
+        },
+      })]),
+      context: publicContext,
+    });
+    const schema = renderRecordJsonSchema(expectCompiled(result));
+    const formats = schema.properties?.formats;
+    expect(formats?.items?.required).to.deep.equal(['details', 'value']);
+    expect(formats?.items?.properties?.value?.type).to.equal('string');
+    expect(formats?.items?.properties?.details?.properties?.description?.type).to.deep.equal(['string', 'null']);
+    expect(formats?.['x-redbox-checkbox-details']).to.deep.equal({
+      shared: {},
+      byValue: { open: {}, other: { description: ['string', 'null'] } },
+    });
+    const { validator } = compileRecordJsonSchemaArtifact(schema, {
+      maxDocumentBytes: recordSchema.limits.maxDocumentBytes,
+      maxValidationErrors: recordSchema.limits.maxDiagnostics,
+    });
+    expect(validator.validate({ formats: [{ value: 'other', details: {} }] }).valid).to.equal(true);
+    expect(validator.validate({ formats: [{ value: 'other' }] }).valid).to.equal(false);
+    expect(validator.validate({ formats: [{ value: 'other', details: { description: 42 } }] }).valid).to.equal(false);
+  });
+
   it('keeps a closed classification and contributor for every currently registered core form component', async function () {
     const registeredCoreTypes = AllDefs.filter(definition => definition.kind === FormComponentDefinitionKind)
       .map(definition => definition.class)

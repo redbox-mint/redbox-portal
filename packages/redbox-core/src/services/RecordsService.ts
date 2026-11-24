@@ -2805,6 +2805,7 @@ export namespace Services {
         }
         const request: RecordValidationRequest = {
           routeFormContract: options.routeFormContract,
+          previousMetadata: original?.metadata as AnyRecord | undefined,
           candidate: {
             ..._.cloneDeep(candidateToValidate),
             ...(typeof candidateToValidate.redboxOid === 'string' ? { redboxOid: candidateToValidate.redboxOid } : {}),

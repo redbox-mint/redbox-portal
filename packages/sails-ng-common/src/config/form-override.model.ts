@@ -1,3 +1,9 @@
+import { checkboxDetailFields, readCheckboxWithDetailsRows } from './component/checkbox-with-details.helper';
+import {
+  CheckboxWithDetailsComponentName,
+  CheckboxWithDetailsFieldComponentConfigOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+} from './component/checkbox-with-details.outline';
 import { SimpleInputComponentName, SimpleInputFormComponentDefinitionOutline } from './component/simple-input.outline';
 import {
   ContentComponentName,
@@ -162,6 +168,9 @@ export class FormOverride {
     [DropdownInputComponentName]: {
       [ContentComponentName]: this.sourceDropdownInputComponentTargetContentComponent,
     },
+    [CheckboxWithDetailsComponentName]: {
+      [ContentComponentName]: this.sourceCheckboxWithDetailsTargetContent,
+    },
     [CheckboxInputComponentName]: {
       [ContentComponentName]: this.sourceCheckboxInputComponentTargetContentComponent,
     },
@@ -223,6 +232,11 @@ export class FormOverride {
       },
     },
     [DropdownInputComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [CheckboxWithDetailsComponentName]: {
       view: {
         component: ContentComponentName,
       },
@@ -826,6 +840,40 @@ export class FormOverride {
     }
 
     return target;
+  }
+
+  private sourceCheckboxWithDetailsTargetContent(
+    source: CheckboxWithDetailsFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source, formMode);
+    if (target.component.config) {
+      target.component.config.content = readCheckboxWithDetailsRows(source.model?.config?.value);
+      target.component.config.template = this.renderCheckboxDetailsView('content', source.component.config);
+    }
+    return target;
+  }
+
+  private renderCheckboxDetailsView(expression: string, config?: CheckboxWithDetailsFieldComponentConfigOutline): string {
+    const quote = (value: string) => `"${this.escapeForHandlebarsLiteral(value)}"`;
+    const renderDetails = (value: string) => checkboxDetailFields(config, value)
+      .filter(field => field.component.config?.visible !== false && field.layout?.config?.visible !== false)
+      .map(field => {
+        const name = field.name ?? '';
+        const answer = `(lookup details ${quote(name)})`;
+        const label = field.layout?.config?.label || field.component.config?.label || name;
+        return `{{#if ${answer}}}<dt>{{t ${quote(label)}}}</dt><dd>{{{plaintextToHtml ${answer}}}}</dd>{{/if}}`;
+      }).join('');
+    const options = new Map((config?.options ?? []).map(option => [option.value, option.label]));
+    // A removed code can still have an authored template after a vocabulary change.
+    for (const code of Object.keys(config?.detailFieldsByValue ?? {})) {
+      if (!options.has(code)) options.set(code, code);
+    }
+    const fallback = '<strong>{{value}}</strong><dl>{{#each details}}{{#if this}}<dt>{{@key}}</dt><dd>{{{plaintextToHtml this}}}</dd>{{/if}}{{/each}}</dl>';
+    const row = [...options].reverse().reduce((otherwise, [code, label]) =>
+      `{{#if (eq value ${quote(code)})}}<strong>{{t ${quote(label)}}}</strong><dl>${renderDetails(code)}</dl>{{else}}${otherwise}{{/if}}`,
+    fallback);
+    return `{{#if ${expression}}}<ul class="rb-view-checkbox-details">{{#each ${expression}}}{{#if value}}<li>${row}</li>{{/if}}{{/each}}</ul>{{/if}}`;
   }
 
   private sourceRadioInputComponentTargetContentComponent(
@@ -1603,6 +1651,9 @@ export class FormOverride {
         return this.renderDisplayValue(expression);
       }
       return `{{#with ${expression} includeZero=true as |content|}}{{#with @root as |__root__|}}${trimmedTemplate}{{/with}}{{/with}}`;
+    }
+    if (className === CheckboxWithDetailsComponentName) {
+      return this.renderCheckboxDetailsView(expression, component.component.config as CheckboxWithDetailsFieldComponentConfigOutline);
     }
     if (className === CheckboxTreeComponentName) {
       const template = this.resolveReusableViewTemplate(

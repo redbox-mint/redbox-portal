@@ -33,6 +33,19 @@ const PersistedCoreContributorCoverageForm = {
   type: 'contract-coverage',
   componentDefinitions: [
     {
+      name: 'checkboxDetails',
+      component: {
+        class: 'CheckboxWithDetailsComponent',
+        config: {
+          options: [{ value: 'other', label: 'Other' }],
+          detailFieldsByValue: {
+            other: [{ name: 'description', component: { class: 'TextAreaComponent' } }],
+          },
+        },
+      },
+      model: { class: 'CheckboxWithDetailsModel', config: {} },
+    },
+    {
       name: 'checkboxTree',
       component: { class: 'CheckboxTreeComponent', config: {} },
       model: { class: 'CheckboxTreeModel', config: {} },

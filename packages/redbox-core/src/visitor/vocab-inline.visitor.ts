@@ -4,6 +4,8 @@ import {
   AccordionPanelFieldComponentDefinitionOutline,
   AccordionPanelFormComponentDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  checkCheckboxWithDetailsOptions,
   CheckboxOption,
   CheckboxTreeFormComponentDefinitionOutline,
   CheckboxTreeNode,
@@ -46,6 +48,9 @@ type ResolveVocabsOptions = {
   portal?: string;
   /** Config-tooling pass: inspect lookups without fetching inline vocabulary entries. */
   validateLookupsOnly?: boolean;
+  /** View, contract compilation and validated writes also resolve editor-loaded choices. */
+  resolveDeferredCheckboxDetails?: boolean;
+  checkboxDetailsOnly?: boolean;
 };
 
 
@@ -56,6 +61,8 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   private portal = '';
   private validateLookupsOnly = false;
   private includeHistoricalValues = false;
+  private resolveDeferredCheckboxDetails = false;
+  private checkboxDetailsOnly = false;
   private pendingResolutions: Promise<void>[] = [];
 
   constructor(logger: ILogger) {
@@ -76,6 +83,8 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       (typeof sails === 'undefined' ? '' : sails?.config?.auth?.defaultPortal ?? '');
     this.validateLookupsOnly = options?.validateLookupsOnly === true;
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
+    this.resolveDeferredCheckboxDetails = options?.resolveDeferredCheckboxDetails === true;
+    this.checkboxDetailsOnly = options?.checkboxDetailsOnly === true;
     this.pendingResolutions = [];
     await form.accept(this);
     await Promise.all(this.pendingResolutions);
@@ -93,7 +102,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
   async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
     const config = item.component.config;
-    if (config?.sourceType !== 'namedQuery') return;
+    if (this.checkboxDetailsOnly || config?.sourceType !== 'namedQuery') return;
     // This includes JSON-authored and reusable/migrated forms after construction.
     // Author-provided diagnostics are never trusted or copied.
     try {
@@ -126,6 +135,22 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await this.enqueueIfInlineVocab(item, item.component?.config, false);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    const config = item.component.config;
+    if (this.validateLookupsOnly || !config?.vocabRef ||
+        (!config.inlineVocab && !this.resolveDeferredCheckboxDetails)) return;
+    this.pendingResolutions.push(this.fetchAllEntries(this.branding, config.vocabRef, true).then(entries => {
+      config.options = entries.map(entry => ({
+        label: entry.label,
+        value: entry.value,
+        ...(entry.historical ? { historical: true } : {}),
+      }));
+      // Keep retired entries available to nested repeatable instances. The editor
+      // filters the options against the selected codes in each actual instance.
+      checkCheckboxWithDetailsOptions(config, true);
+    }));
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
@@ -195,7 +220,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     componentConfig: ComponentConfigWithInlineVocab | undefined,
     treeMode: boolean
   ): Promise<void> {
-    if (this.validateLookupsOnly || !componentConfig?.inlineVocab || !componentConfig.vocabRef) {
+    if (this.checkboxDetailsOnly || this.validateLookupsOnly || !componentConfig?.inlineVocab || !componentConfig.vocabRef) {
       return;
     }
 
@@ -233,7 +258,8 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
   private async fetchAllEntries(
     branding: string,
-    vocabRef: string
+    vocabRef: string,
+    includeHistoricalValues = this.includeHistoricalValues
   ): Promise<VocabularyEntryAttributes[]> {
     const allEntries: VocabularyEntryAttributes[] = [];
     const limit = 1000;
@@ -244,7 +270,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       const response = await VocabularyService.getEntries(branding, vocabRef, {
         limit,
         offset,
-        includeHistoricalValues: this.includeHistoricalValues
+        includeHistoricalValues
       });
       if (!response) {
         throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);

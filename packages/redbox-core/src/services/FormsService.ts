@@ -954,6 +954,7 @@ export namespace Services {
         const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
         await vocabVisitor.resolveVocabs(constructed, branding, {
           includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
+          resolveDeferredCheckboxDetails: formMode === 'view' || suppressRelatedResolution,
           lookupCaller: recordAccessContext ? { ...recordAccessContext, roles: recordAccessContext.user.roles,
             portal: recordAccessContext.portal ?? sails.config.auth.defaultPortal } : undefined,
         });

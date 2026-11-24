@@ -5,6 +5,7 @@ import {
   AccordionPanelFormComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
   RelatedObjectDataFieldComponentDefinitionOutline,
@@ -77,6 +78,13 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await item.model?.accept(this);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    const config = item.component.config;
+    for (const field of [...(config?.detailFields ?? []), ...Object.values(config?.detailFieldsByValue ?? {}).flat()]) {
+      await field.accept(this);
+    }
   }
 
   async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {

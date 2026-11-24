@@ -18,15 +18,15 @@
     {
       "form": "core/persisted-contributors",
       "kind": "create",
-      "digest": "8185755caeb146751b20df63a9468a558adcff0ec54aee49d2479be4e5389a21",
-      "byteLength": 2444,
+      "digest": "856ab1f0daf60c2b76978feab4430d33c05876f962bffc72f45707d37f0b0d52",
+      "byteLength": 2814,
       "completeness": "complete"
     },
     {
       "form": "core/persisted-contributors",
       "kind": "update",
-      "digest": "92199af94434c26eb0d54aab3d02db8cd2a165d51ca094eebec451835faba942",
-      "byteLength": 2444,
+      "digest": "5fc308b6a8ea9b846f9f9875019ce7d5f22ebbfbf09df13448ec37ba49ef5761",
+      "byteLength": 2814,
       "completeness": "complete"
     },
     {

@@ -1,3 +1,7 @@
+import {
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { set as _set } from 'lodash';
@@ -482,6 +486,16 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
+
+  async visitCheckboxWithDetailsFieldModelDefinition(_item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {
+    // Details are keyed by option. Preserve them during legacy repeatable projection.
+    _set(this.jsonTypeDef, this.jsonTypeDefPath, { elements: { properties: { value: { type: 'string' }, details: {} } } });
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
 
   /* Checkbox Tree */
 

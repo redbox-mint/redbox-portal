@@ -1,3 +1,16 @@
+import {
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionFrame,
+  CheckboxWithDetailsFieldModelDefinitionFrame,
+  CheckboxWithDetailsFieldComponentConfig,
+  CheckboxWithDetailsFieldModelConfig,
+  CheckboxWithDetailsComponentName,
+  CheckboxDetailFieldFrame,
+  CheckboxDetailFieldOutline,
+  checkCheckboxWithDetailsConfig,
+} from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep, cloneDeepWith as _cloneDeepWith, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
 import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
@@ -394,6 +407,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private extractedDefaultValues: Record<string, unknown>;
   private translate?: (key: string) => string;
 
+  private constructingCheckboxDetail = false;
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
 
   private data: FormConfigFrame;
@@ -1905,6 +1919,57 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
+  async visitCheckboxWithDetailsFieldComponentDefinition(item: CheckboxWithDetailsFieldComponentDefinitionOutline): Promise<void> {
+    const frame = this.getData() as CheckboxWithDetailsFieldComponentDefinitionFrame;
+    const config = frame.config ?? {};
+    const constructed = item.config = new CheckboxWithDetailsFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(constructed, config);
+    for (const key of ['options', 'vocabRef', 'inlineVocab', 'historicalVocabMode', 'enabledOptionValues'] as const) {
+      this.sharedProps.setPropOverride(key, constructed, config);
+    }
+    if (config.options !== undefined && config.vocabRef) {
+      throw new Error('CheckboxWithDetails requires either options or a vocabulary.');
+    }
+    if (config.vocabRef !== undefined && (typeof config.vocabRef !== 'string' || !config.vocabRef.trim())) {
+      throw new Error('CheckboxWithDetails requires a valid vocabulary reference.');
+    }
+    checkCheckboxWithDetailsConfig(config, !config.vocabRef);
+
+    const constructFields = async (fields: CheckboxDetailFieldFrame[], path: LineagePath) => {
+      const result: CheckboxDetailFieldOutline[] = [];
+      for (const [index, frame] of fields.entries()) {
+        frame.layout ??= { class: DefaultLayoutName };
+        const child = this.constructFormComponent(frame) as CheckboxDetailFieldOutline;
+        await this.formPathHelper.acceptFormPath(child, { formConfig: ['config', ...path, index] });
+        result.push(child);
+      }
+      return result;
+    };
+
+    this.constructingCheckboxDetail = true;
+    try {
+      constructed.detailFields = await constructFields(config.detailFields ?? [], ['detailFields']);
+      const mappings: Array<[string, CheckboxDetailFieldOutline[]]> = [];
+      for (const [value, fields] of Object.entries(config.detailFieldsByValue ?? {})) {
+        mappings.push([value, await constructFields(fields, ['detailFieldsByValue', value])]);
+      }
+      constructed.detailFieldsByValue = Object.fromEntries(mappings);
+    } finally {
+      this.constructingCheckboxDetail = false;
+    }
+  }
+
+  async visitCheckboxWithDetailsFieldModelDefinition(item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {
+    const frame = this.getData() as CheckboxWithDetailsFieldModelDefinitionFrame;
+    item.config = new CheckboxWithDetailsFieldModelConfig();
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, frame.config);
+    this.setModelValue(item, frame.config);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
   /* Checkbox Tree */
 
   async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
@@ -2336,7 +2401,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // Repeatable elementTemplate and descendants cannot declare a defaultValue.
     const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
     const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
-    if (!isElementTemplate && !isElementTemplateDescendant) {
+    if (!this.constructingCheckboxDetail && !isElementTemplate && !isElementTemplateDescendant) {
       await this.mergeDefaultValues(itemName, itemDefaultValue);
     }
 
@@ -2352,6 +2417,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       const componentConfig = formComponent?.component?.config as { inlineVocab?: boolean } | undefined;
       const shouldDeferToClientViewTransform =
         className === QuestionTreeComponentName ||
+        className === CheckboxWithDetailsComponentName ||
         className === RepeatableComponentName ||
         (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
 this.mostRecentRepeatableElementTemplatePath !== null ||
