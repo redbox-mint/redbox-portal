@@ -718,55 +718,15 @@ jobs:
             docker ps -a --filter name=figshare-test-mongo
             docker logs --tail 200 figshare-test-mongo 2>&1 | grep -E '"s":"(F|E|W)"' | tail -40 || true
       - run:
-          name: Check production HTTP authorization decision coverage
-          no_output_timeout: 30m
+          name: Hand the core authorization report to the coverage audit
           command: |
-            nvm use
-            audit=support/tooling/fastify-retirement/authorization-coverage.cjs
-            core_report="$PWD/packages/redbox-core/.tmp/authorization-passes.json"
-            witnesses="$(timeout 300s node "$audit" --missing-test-files --mocha-report="$core_report")"
-            reports=("--mocha-report=$core_report")
-            run_witnesses() {
-              local label="$1"
-              shift
-              # This is the disposable Solr container created by this job.
-              # Each batch starts with an empty index; the search contract
-              # asserts the exact records in its own fixture.
-              curl -fsS --max-time 15 -H 'Content-Type: application/json' \
-                --data '{"delete":{"query":"*:*"}}' 'http://127.0.0.1:28983/solr/redbox/update?commit=true'
-              (
-                cd packages/redbox-core
-                export TS_NODE_PROJECT=test/tsconfig.json
-                export FM043_AUTHORIZATION_REPORT="$PWD/.tmp/authorization-$label.json"
-                timeout 5400s node --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js \
-                  --no-config --require ts-node/register/transpile-only --require chai --require test/setup.ts \
-                  --reporter ../../support/tooling/fastify-retirement/authorization-reporter.cjs \
-                  --reporter-option "mochaFile=support/junit/authorization-$label.xml" --exit --timeout 120000 "$@"
-              )
-              reports+=("--mocha-report=$PWD/packages/redbox-core/.tmp/authorization-$label.json")
-            }
-            if [[ -n "$witnesses" ]]; then
-              search_file=test/http/fastify/ReadDifferentialMongo.test.ts
-              raw_file=test/http/fastify/rawSocketMongo.test.ts
-              companion_file=test/http/fastify/CompanionRetirementPolicyMongo.test.ts
-              mapfile -t files < <(printf '%s\n' "$witnesses")
-              remaining=()
-              for file in "${files[@]}"; do
-                if [[ "$file" == "$search_file" ]]; then
-                  run_witnesses read "$file"
-                elif [[ "$file" == "$raw_file" ]]; then
-                  run_witnesses raw "$file"
-                elif [[ "$file" == "$companion_file" ]]; then
-                  run_witnesses companion-policy "$file"
-                else
-                  remaining+=("$file")
-                fi
-              done
-              if (( ${#remaining[@]} )); then
-                run_witnesses affected "${remaining[@]}"
-              fi
-            fi
-            timeout 300s node "$audit" "${reports[@]}"
+            # check-authorization-coverage combines this report with the witness jobs' reports.
+            mkdir -p /tmp/authorization-reports
+            cp packages/redbox-core/.tmp/authorization-passes.json /tmp/authorization-reports/core.json
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - authorization-reports/core.json
       - when:
           condition: << pipeline.parameters.authorization_guard_mutation >>
           steps:
@@ -798,6 +758,116 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core/support/junit
+  test-redbox-core-authorization-witnesses:
+    # Real-service authorization witnesses that the core Mocha config always skips.
+    # They run in parallel with test-redbox-core; check-authorization-coverage
+    # verifies that the groups below cover every witness the core run misses.
+    parameters:
+      group:
+        type: string
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
+    environment:
+      HTTP_PILOT_TEST_MONGO_URL: mongodb://127.0.0.1:27028/sr_p4_http
+      HTTP_READ_SOLR_PORT: "28983"
+      # Leave SIEM_TEST_MONGO_URL unset: the read differential's SIEM golden
+      # contract needs the suite's own database.
+    steps:
+      - checkout
+      - run:
+          <<: *selectPatchedNode
+      - run:
+          name: Start MongoDB and Solr for the witness suites
+          command: |
+            docker run -d --name witness-test-mongo --ulimit nofile=64000:64000 -p 127.0.0.1:27028:27017 mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
+            docker run -d --name witness-test-solr -p 127.0.0.1:28983:8983 -e SOLR_HEAP=512m \
+              solr@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb solr-precreate redbox
+            timeout 90s bash -c 'until docker exec witness-test-mongo mongosh --quiet --eval "quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)"; do sleep 2; done'
+            timeout 90s bash -c 'until curl -fsS http://127.0.0.1:28983/solr/redbox/admin/ping; do sleep 1; done'
+      - run:
+          name: Install and build ReDBox packages
+          command: |
+            nvm install
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
+            (cd packages/redbox-core && npm ci --include=dev --ignore-scripts --strict-peer-deps && npm run build)
+            npm run compile:dev-tools
+            npm run compile:storage-mongo
+            npm run compile:dev-hook
+            npm run compile:pdfgen-hook
+      - run:
+          name: Run authorization witness suites (<< parameters.group >>)
+          no_output_timeout: 30m
+          command: |
+            nvm use
+            case "<< parameters.group >>" in
+              # Balanced from local timings: about 18-20 minutes of suites per group.
+              assets-identity)
+                files=(AssetDifferentialMongo IdentityAdministrationDifferentialMongo ReferenceDifferentialMongo CompanionRetirementPolicyMongo) ;;
+              integrations-datastreams)
+                files=(IntegrationDifferentialMongo DatastreamDifferentialMongo UploadDifferentialMongo BrowserDifferentialMongo ProgressDifferentialMongo) ;;
+              mutations-reads)
+                files=(MutationDifferentialMongo MetadataDifferentialMongo ReadDifferentialMongo rawSocketMongo) ;;
+              *) echo "Unknown witness group << parameters.group >>" >&2; exit 1 ;;
+            esac
+            mkdir -p /tmp/authorization-reports packages/redbox-core/support/junit
+            cd packages/redbox-core
+            export TS_NODE_PROJECT=test/tsconfig.json
+            for name in "${files[@]}"; do
+              # Each suite starts with an empty disposable Solr index; the search
+              # contract asserts the exact records in its own fixture.
+              curl -fsS --max-time 15 -H 'Content-Type: application/json' \
+                --data '{"delete":{"query":"*:*"}}' 'http://127.0.0.1:28983/solr/redbox/update?commit=true'
+              FM043_AUTHORIZATION_REPORT="/tmp/authorization-reports/$name.json" \
+                timeout 2700s node --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js \
+                  --no-config --require ts-node/register/transpile-only --require chai --require test/setup.ts \
+                  --reporter ../../support/tooling/fastify-retirement/authorization-reporter.cjs \
+                  --reporter-option "mochaFile=support/junit/authorization-$name.xml" --exit --timeout 120000 \
+                  "test/http/fastify/$name.test.ts"
+            done
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - authorization-reports/*Mongo.json
+      - store_test_results:
+          path: packages/redbox-core/support/junit
+  check-authorization-coverage:
+    docker:
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Install audit dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps --no-audit
+      - run:
+          name: Check production HTTP authorization decision coverage
+          command: |
+            audit=support/tooling/fastify-retirement/authorization-coverage.cjs
+            core_report=/tmp/authorization-reports/core.json
+            # Every witness file the core run misses must have come from a witness group.
+            missing=0
+            while read -r file; do
+              [[ -z "$file" ]] && continue
+              name="$(basename "$file" .test.ts)"
+              if [[ ! -f "/tmp/authorization-reports/$name.json" ]]; then
+                echo "No witness group ran $file; add it to test-redbox-core-authorization-witnesses." >&2
+                missing=1
+              fi
+            done < <(timeout 300s node "$audit" --missing-test-files --mocha-report="$core_report")
+            (( missing == 0 ))
+            reports=()
+            for report in /tmp/authorization-reports/*.json; do reports+=("--mocha-report=$report"); done
+            timeout 300s node "$audit" "${reports[@]}"
   test-agenda-sqs-backend:
     docker:
       - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
@@ -1493,6 +1563,16 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-redbox-core-authorization-witnesses:
+          matrix:
+            parameters:
+              group: [assets-identity, integrations-datastreams, mutations-reads]
+          requires:
+            - build
+      - check-authorization-coverage:
+          requires:
+            - test-redbox-core
+            - test-redbox-core-authorization-witnesses
       - test-agenda-sqs-backend:
           requires:
             - build
@@ -1514,6 +1594,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
@@ -1536,6 +1617,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
@@ -1552,6 +1634,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
@@ -1568,6 +1651,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
@@ -1658,6 +1742,16 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-redbox-core-authorization-witnesses:
+          matrix:
+            parameters:
+              group: [assets-identity, integrations-datastreams, mutations-reads]
+          requires:
+            - build
+      - check-authorization-coverage:
+          requires:
+            - test-redbox-core
+            - test-redbox-core-authorization-witnesses
       - test-agenda-sqs-backend:
           requires:
             - build
@@ -1679,6 +1773,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
@@ -1694,6 +1789,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
@@ -1809,6 +1905,26 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-redbox-core-authorization-witnesses:
+          matrix:
+            parameters:
+              group: [assets-identity, integrations-datastreams, mutations-reads]
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - check-authorization-coverage:
+          requires:
+            - test-redbox-core
+            - test-redbox-core-authorization-witnesses
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-agenda-sqs-backend:
           requires:
             - build
@@ -1850,6 +1966,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
@@ -1866,6 +1983,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
@@ -1892,6 +2010,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
@@ -1909,6 +2028,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
@@ -1939,6 +2059,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-rva-registry
             - test-redbox-dev-tools-cli
@@ -1963,6 +2084,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - check-authorization-coverage
             - test-agenda-sqs-backend
             - test-rva-registry
             - test-redbox-dev-tools-cli
