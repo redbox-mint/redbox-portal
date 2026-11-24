@@ -75,7 +75,7 @@ services:
       - './solr-multi-core-example.js:/opt/redbox-portal/config/solr.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   mongodb:
-    image: mongo:latest@sha256:452bdaf2127b8ff851e31410a267809b9829eded219979f2210e7c7efb85a058
+    image: mongo:latest@sha256:b0c835c26e5997413e985000f1013c275377cd9607761c1784d486f6dd620b7f
     pull_policy: 'always'
     networks:
       main:
