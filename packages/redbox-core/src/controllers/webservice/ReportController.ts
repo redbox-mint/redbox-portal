@@ -18,6 +18,7 @@ import {
   NamedQueryAssistanceError,
 } from '../../utilities/NamedQueryPreview';
 import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
+import { NamedQueryParameterError } from '../../queries/namedQueryParameters';
 
 export namespace Controllers {
   /**
@@ -100,7 +101,7 @@ export namespace Controllers {
           });
         }
         return this.sendResp(req, res, {
-          status: 500,
+          status: error instanceof NamedQueryParameterError ? error.status : 500,
           // Retain the existing client-facing message; the full error is recorded in the request chronicle.
           displayErrors: [{ title: error instanceof Error ? error.message : String(error) }],
           errors: [error],

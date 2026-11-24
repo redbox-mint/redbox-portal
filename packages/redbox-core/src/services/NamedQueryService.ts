@@ -43,6 +43,7 @@ import type { ReadCaller } from '../record-graphql/read-record';
 import { inspectGraphqlNamedQuery, validateGraphqlNamedQuery, graphqlDiagnostic, GraphqlNamedQueryValidationError } from './named-query/graphql-validation';
 import { executeGraphqlNamedQuery, type GraphqlNamedQueryRecord } from './named-query/graphql-execution';
 import { NamedQueryPreviewOutputLimitError, renderNamedQueryPreviewTemplate } from '../utilities/NamedQueryPreviewTemplate';
+import { assertNamedQueryParameterSafe, isNamedQueryOperator, NamedQueryParameterError } from '../queries/namedQueryParameters';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -110,22 +111,11 @@ const parseSerializedValue = <T>(input: unknown, fallback: T): T => {
 };
 
 const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<string, unknown> => {
-  if (_.isPlainObject(value)) {
-    return value as Record<string, unknown>;
+  const parsed = parseSerializedValue<unknown>(value, undefined);
+  if (_.isPlainObject(parsed)) {
+    return parsed as Record<string, unknown>;
   }
-
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      if (_.isPlainObject(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch (_error) {
-      throw Error(`${queryParamKey} must be a valid JSON object`);
-    }
-  }
-
-  throw Error(`${queryParamKey} must be a valid JSON object`);
+  throw new NamedQueryParameterError(`${queryParamKey} must be a valid JSON object`);
 };
 
 const containsOperatorKey = (value: unknown): boolean =>
@@ -133,14 +123,6 @@ const containsOperatorKey = (value: unknown): boolean =>
     ? value.some(containsOperatorKey)
     : _.isPlainObject(value) &&
       Object.entries(value as Record<string, unknown>).some(([key, item]) => key.startsWith('$') || containsOperatorKey(item));
-
-/**
- * A request-supplied value for a non-object parameter is placed directly at a
- * Mongo path, so a plain object would be interpreted as an operator document
- * (e.g. `{ $ne: true }`). Only parameters declared as `object` may carry objects.
- */
-const isUnsafeParameterValue = (value: unknown): boolean =>
-  _.isPlainObject(value) || (Array.isArray(value) && value.some(containsOperatorKey));
 
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
@@ -365,29 +347,13 @@ export namespace Services {
       this.unsetMongoQueryValue(mongoQuery, queryParam.path);
     }
 
-    private isQueryOperatorObject(value: Record<string, unknown>): boolean {
-      return Object.keys(value).some((key) => key.startsWith('$') || [
-        'contains',
-        'startsWith',
-        'endsWith',
-        'like',
-        '>',
-        '>=',
-        '<',
-        '<=',
-        '!=',
-        'in',
-        'nin',
-      ].includes(key));
-    }
-
     private flattenDeepTargetCriteria(criteria: Record<string, unknown>, prefix = ''): Record<string, unknown> {
       const flattened: Record<string, unknown> = {};
 
       for (const [key, value] of Object.entries(criteria)) {
         const path = prefix ? `${prefix}.${key}` : key;
 
-        if (_.isPlainObject(value) && !this.isQueryOperatorObject(value as Record<string, unknown>)) {
+        if (_.isPlainObject(value) && !Object.keys(value as Record<string, unknown>).some(isNamedQueryOperator)) {
           Object.assign(flattened, this.flattenDeepTargetCriteria(value as Record<string, unknown>, path));
         } else {
           flattened[path] = value;
@@ -1086,6 +1052,9 @@ export namespace Services {
     }
 
     setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>, budget?: NamedQueryExecutionBudget, literalParameters = false) {
+      for (const [name, definition] of Object.entries(queryParams)) {
+        assertNamedQueryParameterSafe(name, definition, paramMap[name]);
+      }
       for (const queryParamKey in queryParams) {
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
@@ -1119,22 +1088,6 @@ export namespace Services {
           throw new Error('Relation parameters must be literal values of the declared type');
         }
 
-        if (queryParam.type == DataType.Number) {
-          if (!_.isUndefined(value) && value !== null && value !== '') {
-            value = _.toNumber(value)
-          }
-        }
-
-        if (queryParam.type == DataType.Boolean) {
-          if (!_.isUndefined(value)) {
-            if (typeof value === 'string') {
-              value = value.toLowerCase() === 'true';
-            } else {
-              value = Boolean(value);
-            }
-          }
-        }
-
         if (queryParam.type == DataType.Array) {
           if (!_.isUndefined(value) && !Array.isArray(value)) {
             if (typeof value === 'string') {
@@ -1157,11 +1110,27 @@ export namespace Services {
           value = parseObjectParamValue(queryParamKey, value);
         }
 
-        // Checked after templates have selected the final value, so neither direct
-        // request values nor template-selected undeclared parameters can inject
-        // query operators. Relation-filter queries apply a stricter check below.
-        if (!literalParameters && queryParam.type != DataType.Object && isUnsafeParameterValue(value)) {
-          throw new Error(`${queryParamKey} must be a literal value of the declared type`);
+        // Check decoded operands before scalar coercion or operator wrapping.
+        assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
+        // Keep rejecting Mongo operator documents even in configured array operands.
+        if (Array.isArray(value) && value.some(containsOperatorKey)) {
+          throw new NamedQueryParameterError(`${queryParamKey} contains an unsafe query parameter`);
+        }
+
+        if (queryParam.type == DataType.Number) {
+          if (!_.isUndefined(value) && value !== null && value !== '') {
+            value = _.toNumber(value)
+          }
+        }
+
+        if (queryParam.type == DataType.Boolean) {
+          if (!_.isUndefined(value)) {
+            if (typeof value === 'string') {
+              value = value.toLowerCase() === 'true';
+            } else {
+              value = Boolean(value);
+            }
+          }
         }
 
         if (literalParameters && value != null) {
