@@ -392,8 +392,7 @@ export interface RecordValidationServiceDependencies {
   constructForm(
     form: FormConfigFrame,
     metadata: Readonly<Record<string, unknown>>,
-    reusableFormDefinitions: ReusableFormDefinitions,
-    previousMetadata?: Readonly<Record<string, unknown>>
+    reusableFormDefinitions: ReusableFormDefinitions
   ): Promise<FormConfigOutline>;
   collectTransformations?(
     form: FormConfigOutline,
@@ -1148,7 +1147,7 @@ export namespace Services {
         try {
           const form = await this.loadFormDefinition(formName, brand);
           if (form?.form.configuration) {
-            constructed = await this.constructForm(form, request.candidate.metadata, request.candidate.metadata);
+            constructed = await this.constructForm(form, request.candidate.metadata);
           }
         } catch (error: unknown) {
           const errorType = safeLogReference(error instanceof Error ? error.name : typeof error);
@@ -1333,7 +1332,7 @@ export namespace Services {
 
       let constructedForm: FormConfigOutline;
       try {
-        constructedForm = await this.constructForm(form, request.candidate.metadata, request.previousMetadata);
+        constructedForm = await this.constructForm(form, request.candidate.metadata);
       } catch {
         diagnostics.push(
           createDiagnostic(
@@ -1475,7 +1474,7 @@ export namespace Services {
           if (!context) return undefined;
           const validatorContext = relatedMetadata === undefined ? context : { ...context, relatedMetadata };
           const validationForm = transformationApplication.applied.length > 0
-            ? await this.constructForm(form, transformedCandidate.metadata, request.previousMetadata)
+            ? await this.constructForm(form, transformedCandidate.metadata)
             : constructedForm;
           const groupResolution = await this.resolveValidationGroups(
             validationForm,
@@ -1821,12 +1820,11 @@ export namespace Services {
             WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType)
           )) as WorkflowStepLike[],
         loadForm: async (formName, brand) => await firstValueFrom(FormsService.getFormByName(formName, true, brand)),
-        constructForm: async (form, metadata, reusableFormDefinitions, previousMetadata) =>
+        constructForm: async (form, metadata, reusableFormDefinitions) =>
           await new ConstructFormConfigVisitor(this.logger).start({
             data: form,
             formMode: 'edit',
             record: metadata,
-            checkboxArchiveRecord: previousMetadata ?? null,
             reusableFormDefs: reusableFormDefinitions,
           }),
         collectTransformations: async (form, checkDeadline) =>
@@ -2465,15 +2463,13 @@ export namespace Services {
 
     private async constructForm(
       entry: LoadedFormDefinition,
-      metadata: Readonly<Record<string, unknown>>,
-      previousMetadata?: Readonly<Record<string, unknown>>
+      metadata: Readonly<Record<string, unknown>>
     ): Promise<FormConfigOutline> {
       if (!entry.form.configuration) throw new Error('Form configuration is unavailable.');
       return await this.dependencies().constructForm(
         _.cloneDeep(entry.form.configuration as FormConfigFrame),
         metadata,
-        _.cloneDeep(entry.reusableFormDefinitions),
-        previousMetadata
+        _.cloneDeep(entry.reusableFormDefinitions)
       );
     }
 

@@ -274,6 +274,32 @@ describe('Checkbox with details form', () => {
     assert.equal(selectable[0].errors[0].message, '@validator-error-checkbox-details-field');
   });
 
+  it('keeps archived selections scoped to the matched parent in nested repeatables', async () => {
+    const repeatable = (name: string, children: FormConfigFrame['componentDefinitions']): FormConfigFrame['componentDefinitions'][number] => ({
+      name,
+      component: { class: 'RepeatableComponent', config: { elementTemplate: {
+        name: '', component: { class: 'GroupComponent', config: { componentDefinitions: children } },
+      } } },
+    });
+    const data: FormConfigFrame = {
+      name: 'nested-formats',
+      componentDefinitions: [repeatable('projects', [repeatable('collections', [definition()])])],
+    };
+    const saved = { formats: [row('removed', { notes: 'Original' })] };
+    const empty = { formats: [] };
+    const first = { name: 'First', collections: [empty] };
+    const second = { name: 'Second', collections: [empty, saved] };
+    const validate = async (projects: typeof second[]) => {
+      const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data, record: { projects } });
+      return new ValidatorFormConfigVisitor(consoleLogger).start({
+        form, previousMetadata: { projects: [first, second] }, enabledValidationGroups: ['none'],
+      });
+    };
+    assert.deepEqual(await validate([first, { ...second, collections: [saved] }]), []);
+    const copied = await validate([{ ...first, collections: [saved] }, second]);
+    assert.deepEqual(copied[0].lineagePaths?.dataModel, ['projects', 0, 'collections', 0, 'formats', 0, 'value']);
+  });
+
   it('uses normal validation groups for selected details and points to the exact row', async () => {
     const metadata = {
       formats: [row('table', { volume: '2 CSV files' }), row(other, { description: 'Instrument bundles' })],
@@ -315,6 +341,23 @@ describe('Checkbox with details form', () => {
     assert.equal(errors[0].errors[0].message, '@validator-error-checkbox-details-lookup-unavailable');
   });
 
+  it('preserves stored answers independently for two groups sharing an unavailable vocabulary', async () => {
+    const field = definition();
+    delete field.component.config!.options;
+    field.component.config!.vocabRef = 'formats';
+    const data = frame(field);
+    data.componentDefinitions.push({ ...structuredClone(field), name: 'otherFormats' });
+    const previousMetadata = { formats: [row('table', { volume: '2 TB' })], otherFormats: [row(other)] };
+    const validate = async (otherFormats: typeof previousMetadata.otherFormats) => {
+      const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data, record: { formats: [], otherFormats } });
+      return new ValidatorFormConfigVisitor(consoleLogger).start({ form, previousMetadata, enabledValidationGroups: ['none'] });
+    };
+    assert.deepEqual(await validate(previousMetadata.otherFormats), []);
+    const borrowed = await validate(previousMetadata.formats);
+    assert.equal(borrowed[0].errors[0].message, '@validator-error-checkbox-details-option');
+    assert.deepEqual(borrowed[0].lineagePaths?.dataModel, ['otherFormats', 0, 'value']);
+  });
+
   it('preserves retired data from the stored record and rejects new unavailable codes and duplicate rows', async () => {
     const archival = row('removed', { volume: '1 TB', notes: 'Before retirement', blank: null });
     const validate = async (formats: unknown, previousMetadata?: Record<string, unknown>) => {
@@ -352,6 +395,25 @@ describe('Checkbox with details form', () => {
       (await validate([{ value: 'table' }]))[0].errors[0].message,
       '@validator-error-checkbox-details-shape'
     );
+  });
+
+  it('protects obsolete details while allowing configured details and whole selections to be removed', async () => {
+    for (const historical of [false, true]) {
+      const field = definition();
+      field.component.config!.options![0].historical = historical;
+      const previousMetadata = { formats: [row('table', { volume: '1 TB', originalNote: null })] };
+      const validate = async (formats: ReturnType<typeof row>[]) => {
+        const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data: frame(field), record: { formats } });
+        return new ValidatorFormConfigVisitor(consoleLogger).start({ form, previousMetadata, enabledValidationGroups: ['none'] });
+      };
+      assert.deepEqual(await validate([row('table', { originalNote: null })]), []);
+      assert.deepEqual(await validate([]), []);
+      for (const submitted of [row('table', { volume: '2 TB' }), row('table', { volume: '2 TB', originalNote: 'Changed' })]) {
+        const issues = await validate([submitted]);
+        assert.equal(issues.length, 1);
+        assert.deepEqual(issues[0].lineagePaths?.dataModel, ['formats', 0, 'details', 'originalNote']);
+      }
+    }
   });
 
   it('warns about a stale external mapping, keeps unrelated forms usable and preserves archival details', async () => {
@@ -446,7 +508,11 @@ describe('Checkbox with details form', () => {
     await assert.rejects(construct(field), /duplicate checkbox detail field name/);
     const staleStaticMapping = definition();
     staleStaticMapping.component.config!.options!.pop();
-    await assert.rejects(construct(staleStaticMapping), /unknown option/);
+    const warnings: unknown[] = [];
+    const logger = { ...consoleLogger, warn: (message: unknown) => warnings.push(message) };
+    await new ConstructFormConfigVisitor(logger).start({ data: frame(staleStaticMapping) });
+    assert.equal(warnings.length, 1);
+    assert.ok(String(warnings[0]).includes(other));
 
     const vocabularyField = definition();
     delete vocabularyField.component.config!.options;

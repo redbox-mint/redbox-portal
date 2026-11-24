@@ -2168,11 +2168,31 @@ describe('RecordValidationService', function () {
             config: { validators: [{ class: 'required', groups: { include: ['advisory'] } }] },
           },
         } as never,
+        {
+          name: 'formats',
+          component: {
+            class: 'CheckboxWithDetailsComponent',
+            config: {
+              options: [{ value: 'image', label: 'Images' }],
+              detailFields: [{
+                name: 'volume',
+                component: { class: 'SimpleInputComponent' },
+                model: {
+                  class: 'SimpleInputModel',
+                  config: { validators: [{ class: 'required', groups: { include: ['advisory'] } }] },
+                },
+              }],
+            },
+          },
+        },
         suggestedSummary(['advisory']) as never,
       ],
       validationOperations: { submit: { enabledValidationGroups: ['base'] } },
     });
-    const fixture = createRecordValidationFixture({ form, candidate: { metadata: {} } });
+    const fixture = createRecordValidationFixture({
+      form,
+      candidate: { metadata: { formats: [{ value: 'image', details: {} }] } },
+    });
     const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
     const result = requireResolved(
       await new Services.RecordValidation(productionDependencies).resolve({
@@ -2182,9 +2202,11 @@ describe('RecordValidationService', function () {
     );
 
     expect(result.blockingErrors.map(issue => issue.field)).to.deep.equal(['blockingTitle']);
-    expect(result.advisoryErrors.map(issue => issue.field)).to.deep.equal(['advisoryDescription']);
+    expect(result.advisoryErrors[0].field).to.equal('advisoryDescription');
+    expect(result.advisoryErrors.map(issue => issue.pointer)).to.deep.equal([
+      '/advisoryDescription', '/formats/option:image/volume',
+    ]);
     expect(result.blockingErrors[0].pointer).to.equal('/blockingTitle');
-    expect(result.advisoryErrors[0].pointer).to.equal('/advisoryDescription');
   });
 
   it('returns an immutable sanitized candidate and treats htmlSanitized as nonblocking in every rollout mode', async function () {

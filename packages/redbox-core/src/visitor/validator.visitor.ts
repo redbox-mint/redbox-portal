@@ -835,11 +835,10 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
           issue('@validator-error-checkbox-details-field', index, row.value, name);
         }
       }
-      // Deleted choices are archival. A retained row must keep all of its
-      // stored details, even if the current form no longer defines some keys.
-      if (!option && previous) {
+      // A retained selection must carry forward every answer the current form can no longer edit.
+      if (previous) {
         for (const name of Object.keys(previous)) {
-          if (!Object.hasOwn(row.details, name)) {
+          if ((!option || !names.has(name)) && !Object.hasOwn(row.details, name)) {
             issue('@validator-error-checkbox-details-field', index, row.value, name);
           }
         }

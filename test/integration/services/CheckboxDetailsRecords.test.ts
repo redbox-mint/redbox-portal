@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { map } from 'rxjs';
 import type { Response } from 'supertest';
 import { csrfToken, loginSession } from '../helpers/admin-session';
 
-describe('Vocabulary-backed checkbox details writes', function () {
+describe('Checkbox details records', function () {
   this.timeout(60_000);
 
   const savePath = '/default/rdmp/recordmeta';
@@ -133,6 +134,69 @@ describe('Vocabulary-backed checkbox details writes', function () {
       return ref === vocabulary && result ? { ...result, entries: [...result.entries, result.entries[0]] } : result;
     });
     expectRejected(await amend(existingOid, { title: 'Malformed vocabulary' }), 'record-validation-configuration-failed');
+  });
+
+  it('preserves obsolete answers and reopens a record after removing its last retired static choice', async function () {
+    const session = await loginSession();
+    const headers = {
+      'X-Source': 'jsclient',
+      'X-ReDBox-Api-Version': '2.0',
+      'X-CSRF-Token': await csrfToken(session),
+    };
+    const formatsField = (form: any) => {
+      const root = form.componentDefinitions[0].component.config;
+      return (root.tabs ?? root.panels)[1].component.config.componentDefinitions[0];
+    };
+    const getForm = FormsService.getFormByName.bind(FormsService);
+    let choice: 'active' | 'historical' | 'deleted' = 'active';
+    let includesDescription = true;
+    sinon.stub(FormsService, 'getFormByName').callsFake((...args) => getForm(...args).pipe(map(form => {
+      if (form?.name !== 'checkbox-details-1.0') return form;
+      const copy = structuredClone(form);
+      const config = formatsField(copy.configuration).component.config;
+      delete config.vocabRef;
+      delete config.detailFieldsByValue['legacy-media'];
+      config.options = [{ value: 'image', label: 'Images' }];
+      if (choice !== 'deleted') {
+        config.options.push({ value: 'other', label: 'Other', historical: choice === 'historical' });
+      }
+      if (!includesDescription) config.detailFieldsByValue.other[0].name = 'currentNotes';
+      return copy;
+    })));
+
+    const title = 'Static option retirement';
+    const original = { value: 'other', details: { volume: '3 TB', description: 'Original notes' } };
+    const created = await session.post(`${savePath}/checkbox-details-demo`).set(headers).query({ operation: 'draft' })
+      .send({ title, digitalFormatEstimates: [original] });
+    expectSaved(created);
+    const oid = created.body.data.redboxOid;
+    oids.push(oid);
+    const update = (formats: unknown[]) => session.put(`${savePath}/${oid}`).set(headers).query({ operation: 'draft' })
+      .send({ title, digitalFormatEstimates: formats });
+    const read = async () => (await sails.services.recordsservice.getMeta(oid)).metadata.digitalFormatEstimates;
+
+    includesDescription = false;
+    for (const state of ['active', 'historical'] as const) {
+      choice = state;
+      const before = await read();
+      for (const details of [{ volume: '4 TB' }, { volume: '4 TB', description: 'Changed' }]) {
+        expectRejected(await update([{ value: 'other', details }]), '@validator-error-checkbox-details-field');
+      }
+      expect(await read()).to.deep.equal(before);
+      const amended = { value: 'other', details: { ...original.details, volume: state === 'active' ? '4 TB' : '5 TB' } };
+      expectSaved(await update([amended]));
+      expect(await read()).to.deep.equal([amended]);
+    }
+
+    choice = 'deleted';
+    expectSaved(await update([]));
+    expect(await read()).to.deep.equal([]);
+    const route = `/default/rdmp/record/form/auto/${oid}`;
+    const edit = await session.get(route).set(headers).query({ edit: 'true' }).expect(200);
+    expect(formatsField(edit.body.data).model.config.value).to.deep.equal([]);
+    const view = await session.get(route).set(headers).query({ edit: 'false' }).expect(200);
+    expect(formatsField(view.body.data).component.config.content).to.deep.equal([]);
+    expectRejected(await update([original]), '@validator-error-checkbox-details-option');
   });
 
   it('shows stored checkbox details on authorized inline Edit and deferred View when the lookup fails', async function () {

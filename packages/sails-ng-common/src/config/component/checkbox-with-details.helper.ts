@@ -36,15 +36,9 @@ export function checkCheckboxWithDetailsOptions(config: CheckboxWithDetailsField
 
 /** Inspect authored templates separately from the submitted array. */
 export function checkCheckboxWithDetailsConfig(
-  config: CheckboxWithDetailsFieldComponentConfigFrame,
-  checkOptionMappings = false,
-  storedMappingValues: readonly string[] = []
-): void {
+  config: CheckboxWithDetailsFieldComponentConfigFrame
+): string[] {
   const unmatched = checkCheckboxWithDetailsOptions(config);
-  if (checkOptionMappings) {
-    const unknown = unmatched.find(value => !storedMappingValues.includes(value));
-    if (unknown !== undefined) throw new Error(`Checkbox detail fields refer to unknown option '${unknown}'.`);
-  }
 
   function checkFields(fields: readonly CheckboxDetailFieldFrame[] | undefined, names: Set<string>): void {
     if (fields === undefined) return;
@@ -89,6 +83,7 @@ export function checkCheckboxWithDetailsConfig(
     }
     checkFields(fields, new Set(sharedNames));
   }
+  return unmatched;
 }
 
 /** Tolerant reader for display and editor hydration. Validated writes inspect the original value. */
