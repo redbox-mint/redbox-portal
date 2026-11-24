@@ -3,6 +3,7 @@ import { GraphqlNamedQueryInputError } from '../services/named-query/graphql-inp
 import { GraphqlNamedQueryValidationError } from '../services/named-query/graphql-validation';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
+import { NamedQueryParameterError } from '../queries/namedQueryParameters';
 import { toBoolean } from '@researchdatabox/sails-ng-common';
 
 type FormVocabularyUserContext = Record<string, unknown>;
@@ -292,6 +293,13 @@ export namespace Controllers {
           chronicle: {formVocabularyRetrieveSuccess: true},
         });
       } catch (error) {
+        if (error instanceof NamedQueryParameterError) {
+          return this.sendResp(req, res, {
+            status: error.status,
+            displayErrors: [{ code: 'invalid-query-params' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         if (error instanceof GraphqlNamedQueryExecutionError || error instanceof GraphqlNamedQueryValidationError || error instanceof GraphqlNamedQueryInputError) {
           return this.sendResp(req, res, {
             status: error instanceof GraphqlNamedQueryExecutionError ? error.status : error instanceof GraphqlNamedQueryInputError ? 400 : 422,

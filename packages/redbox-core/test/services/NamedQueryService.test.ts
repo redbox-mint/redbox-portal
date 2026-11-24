@@ -5,6 +5,7 @@ import { runWithRequestChronicle } from '../../src/utilities/RequestChronicleCon
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { NamedQueryParameterError } from '../../src/queries/namedQueryParameters';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 
 describe('NamedQueryService', function() {
@@ -610,6 +611,23 @@ describe('NamedQueryService', function() {
       expect(mockRecordNativeCollection.cursor.skip.notCalled).to.equal(true);
     });
 
+    it('preserves a document operand across the native MongoDB and Waterline query paths', async function() {
+      const operand = { $schema: 'catalogue', 'schema.name': 'Dataset', contains: 'example' };
+      const brand = { id: 'brand-1' };
+      const path = 'metadata.schema';
+
+      await NamedQueryService.performNamedQuery('', {}, 'record', {}, {
+        schema: { path, type: 'object', queryType: '!=' }
+      }, { schema: operand }, brand, 0, 10);
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0][path]).to.deep.equal({ $ne: operand });
+
+      await NamedQueryService.performNamedQuery('', {}, 'custommodel', {}, {
+        schema: { path, type: 'object', queryType: '!=' }
+      }, { schema: operand }, brand, 0, 10);
+      expect(mockSails.models.custommodel.count.firstCall.args[0][path]).to.deep.equal({ '!=': operand });
+      expect(mockSails.models.custommodel.find.firstCall.args[0].where[path]).to.deep.equal({ '!=': operand });
+    });
+
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
@@ -1053,6 +1071,52 @@ describe('NamedQueryService', function() {
   });
 
   describe('setParamsInQuery', function() {
+    it('rejects arrays in scalar parameters before writing a filter', function() {
+      const mongoQuery = { status: 'existing' };
+      const queryParams = { status: { path: 'status', type: 'string' } };
+
+      expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { status: ['published'] }))
+        .to.throw(NamedQueryParameterError, 'status contains an unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery(mongoQuery, {
+        status: { ...queryParams.status, template: 'paramMap.selection' }
+      }, { status: 'published', selection: ['draft'] }))
+        .to.throw(NamedQueryParameterError, 'status contains an unsafe query parameter');
+      expect(mongoQuery).to.deep.equal({ status: 'existing' });
+    });
+
+    it('rejects query modifier keys in structured parameters before writing a filter', function() {
+      const mongoQuery = { metadata: 'existing' };
+      const queryParams = { filter: { path: 'metadata', type: 'object' } };
+      const modifiers = [
+        '>', '>=', '<', '<=', '!=', 'in', 'nin', 'like', 'contains', 'startsWith', 'endsWith',
+        'lessThan', 'lessThanOrEqual', 'greaterThan', 'greaterThanOrEqual', 'not', '!', '!==',
+      ];
+
+      for (const key of modifiers) {
+        const filter = JSON.stringify({ nested: [{ [key]: 'value' }] });
+        expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { filter }), key)
+          .to.throw(NamedQueryParameterError, 'filter contains an unsafe query parameter');
+      }
+      expect(mongoQuery).to.deep.equal({ metadata: 'existing' });
+    });
+
+    it('rejects operator and dotted keys in structured parameters while allowing literal operands', function() {
+      const queryParams = { filter: { path: 'metadata', type: 'object' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { $ne: null } }))
+        .to.throw('unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: '{"$ne":"archived"}' }))
+        .to.throw('unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: { nested: { 'a.b': 1 } } }))
+        .to.throw('unsafe query parameter');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { filter: '{"nested":{"a.b":1}}' }))
+        .to.throw('unsafe query parameter');
+      const mongoQuery: any = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, {
+        tags: { path: 'tags', type: 'array', queryType: '$in' }
+      }, { tags: ['science', 'history'] });
+      expect(mongoQuery.tags).to.deep.equal({ $in: ['science', 'history'] });
+    });
+
     it('should replace parameters in query', function() {
       const mongoQuery = { status: 'param-status' };
       const queryParams = {
@@ -1136,29 +1200,29 @@ describe('NamedQueryService', function() {
     it('should reject operator objects supplied directly for non-object parameters', function() {
       const queryParams = { 'title': { path: 'metadata.title', type: 'string' } };
       expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { title: { $ne: 'x' } }))
-        .to.throw('title must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
       const untyped = { 'title': { path: 'metadata.title' } };
       expect(() => NamedQueryService.setParamsInQuery({}, untyped, { title: { $regex: '.*' } }))
-        .to.throw('title must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
       const dated = { 'from': { path: 'lastSaveDate', type: 'date', queryType: '>=' } };
       expect(() => NamedQueryService.setParamsInQuery({}, dated, { from: { $where: 'sleep(1)' } }))
-        .to.throw('from must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
     });
 
     it('should reject template-selected operators from undeclared request parameters', function() {
       const mongoQuery: any = { 'metaMetadata.type': 'activity', 'metadata.active': null };
       const queryParams = { 'flag': { path: 'metadata.active', type: 'string', template: 'paramMap.payload' } };
       expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { flag: 'unused', payload: { $ne: true } }))
-        .to.throw('flag must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
       expect(mongoQuery['metadata.active']).to.equal(null);
     });
 
     it('should reject operator documents nested in array parameters but keep literal arrays', function() {
       const queryParams = { 'tags': { path: 'tags', type: 'array', queryType: '$in' } };
       expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { tags: [{ $gt: '' }] }))
-        .to.throw('tags must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
       expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { tags: '[{"$ne":null}]' }))
-        .to.throw('tags must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
       const mongoQuery: any = {};
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { tags: '["a","b"]' });
       expect(mongoQuery.tags).to.deep.equal({ $in: ['a', 'b'] });
@@ -1167,17 +1231,21 @@ describe('NamedQueryService', function() {
     it('should guard defaults and day offsets while coercing numbers and booleans to literals', function() {
       const defaulted = { 'title': { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: { $ne: null } } };
       expect(() => NamedQueryService.setParamsInQuery({}, defaulted, {}))
-        .to.throw('title must be a literal value of the declared type');
+        .to.throw(NamedQueryParameterError);
       const days = { 'age': { path: 'lastSaveDate', type: 'date', format: 'days', queryType: '>=' } };
       expect(() => NamedQueryService.setParamsInQuery({}, days, { age: { $gt: 0 } }))
-        .to.throw('age must be a literal value of the declared type');
-      const mongoQuery: any = {};
-      NamedQueryService.setParamsInQuery(mongoQuery, {
+        .to.throw(NamedQueryParameterError);
+      const queryParams = {
         'count': { path: 'count', type: 'number' },
         'active': { path: 'active', type: 'boolean' }
-      }, { count: { $gt: 1 }, active: { $ne: false } });
-      expect(mongoQuery.active).to.equal(true);
-      expect(Number.isNaN(mongoQuery.count)).to.equal(true);
+      };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { count: { $gt: 1 } }))
+        .to.throw(NamedQueryParameterError);
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { active: { $ne: false } }))
+        .to.throw(NamedQueryParameterError);
+      const mongoQuery = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { count: '1', active: 'true' });
+      expect(mongoQuery).to.deep.equal({ count: 1, active: true });
     });
 
     it('should keep template strings and declared object parameters working', function() {
@@ -1191,17 +1259,15 @@ describe('NamedQueryService', function() {
       expect(mongoQuery.constraints).to.deep.equal({ status: 'active' });
     });
 
-    it('should reject invalid object parameters', function() {
-      const mongoQuery: any = {};
+    it('rejects malformed JSON and non-object JSON with a parameter error', function() {
       const queryParams = {
         'constraints': { path: 'constraints', type: 'object', whenUndefined: 'ignore' }
       };
 
-      expect(() => {
-        NamedQueryService.setParamsInQuery(mongoQuery, queryParams, {
-          constraints: 'not-json'
-        });
-      }).to.throw('constraints must be a valid JSON object');
+      for (const constraints of ['{"status":', '[]']) {
+        expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { constraints }))
+          .to.throw(NamedQueryParameterError, 'constraints must be a valid JSON object');
+      }
     });
   });
 });
