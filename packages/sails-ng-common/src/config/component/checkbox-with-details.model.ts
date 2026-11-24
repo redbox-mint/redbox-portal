@@ -33,8 +33,6 @@ export class CheckboxWithDetailsFieldComponentConfig
   options?: CheckboxWithDetailsOption[];
   detailFields?: CheckboxDetailFieldOutline[];
   detailFieldsByValue?: Record<string, CheckboxDetailFieldOutline[]>;
-  /** Supplied by the server for option mappings backed by a stored record. */
-  storedMappingValues?: readonly string[];
   vocabRef?: string;
   inlineVocab?: boolean;
   /** When set, options whose value is not listed are disabled. */

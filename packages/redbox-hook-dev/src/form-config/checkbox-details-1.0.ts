@@ -17,7 +17,7 @@ const formats: CheckboxWithDetailsFormComponentDefinitionFrame = {
         {
           name: 'volume',
           component: { class: 'SimpleInputComponent', config: { type: 'text', placeholder: 'e.g. 3 TB' } },
-          model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } },
+          model: { class: 'SimpleInputModel', config: { defaultValue: '10 GB', validators: [{ class: 'required' }] } },
           layout: {
             class: 'DefaultLayout',
             config: { label: 'Estimated volume', helpText: 'Include a unit or approximate file count.' },
@@ -29,7 +29,7 @@ const formats: CheckboxWithDetailsFormComponentDefinitionFrame = {
           {
             name: 'description',
             component: { class: 'TextAreaComponent', config: { rows: 2 } },
-            model: { class: 'TextAreaModel', config: { validators: [{ class: 'required' }] } },
+            model: { class: 'TextAreaModel', config: { defaultValue: 'Custom exports', validators: [{ class: 'required' }] } },
             layout: { class: 'DefaultLayout', config: { label: 'Describe the format' } },
           },
         ],

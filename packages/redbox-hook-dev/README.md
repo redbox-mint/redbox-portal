@@ -36,7 +36,8 @@ This package is wired into the portal as a **devDependency**
 
 On a running development portal, sign in as an administrator and open
 `/default/rdmp/record/checkbox-details-demo/edit`. In the Formats tab, each
-selected format has its own volume field. Other also has a description.
+selected format starts with an example volume. Other also starts with an
+example description. Clear an example value to try an incomplete draft.
 **Save draft** accepts incomplete details. **Activate** requires every selected
 row to be complete. Reopen the record to verify the saved selections or open
 its View page to print the labelled answers.

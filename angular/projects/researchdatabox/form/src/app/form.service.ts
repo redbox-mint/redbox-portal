@@ -1,4 +1,4 @@
-import { CheckboxWithDetailsModel } from './component/checkbox-with-details.component';
+import { CheckboxWithDetailsComponent, CheckboxWithDetailsModel } from './component/checkbox-with-details.component';
 // Copyright (c) 2023 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -844,6 +844,11 @@ export class FormService extends HttpClientService {
     const validatorFns = this.getValidatorInstances(enabledValidators, (key, validator) => {
       configsByKey.set(key, originalByPrepared.get(validator)!);
     });
+    if (mapEntry?.component instanceof CheckboxWithDetailsComponent) {
+      validatorFns.syncDefs.push(mapEntry.component.deferredOptionsValidator(
+        enabledValidationGroups ?? [], validationGroups ?? {}, enabledValidators.length > 0
+      ));
+    }
     this.validatorConfigsByErrorKey.set(formControl, configsByKey);
 
     // For debugging:

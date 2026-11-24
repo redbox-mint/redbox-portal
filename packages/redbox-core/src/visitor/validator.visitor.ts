@@ -2,7 +2,6 @@ import {
   CheckboxWithDetailsFormComponentDefinitionOutline,
   checkboxDetailFields,
   checkboxDetailsOptionPath,
-  readCheckboxWithDetailsRows,
 } from '@researchdatabox/sails-ng-common';
 import {
   FormConfigVisitor,
@@ -657,8 +656,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     const value = model?.value === undefined ? [] : model.value;
     const path = this.formPathHelper.formPath;
-    const stored = new Map(readCheckboxWithDetailsRows(this.previousValue(path.dataModel))
-      .map(row => [row.value, row]));
+    const stored = new Map<string, Record<string, unknown>>();
+    const previousRows = this.previousValue(path.dataModel);
+    if (Array.isArray(previousRows)) {
+      for (const row of previousRows) {
+        if (typeof row?.value === 'string' && row.details && typeof row.details === 'object' &&
+            !Array.isArray(row.details) && !stored.has(row.value)) {
+          stored.set(row.value, row.details);
+        }
+      }
+    }
     const groupLabel = layout?.label ?? item.name;
     const issue = (message: string, rowIndex?: number, option?: string, field?: string) => {
       const suffix = option === undefined ? [] : [checkboxDetailsOptionPath(option), ...(field ? [field] : [])];
@@ -707,12 +714,20 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         if (
           (answer !== null && typeof answer !== 'string') ||
           ((!names.has(name) || !option) &&
-            !(previous && Object.hasOwn(previous.details, name) && previous.details[name] === answer))
+            !(previous && Object.hasOwn(previous, name) && previous[name] === answer))
         ) {
           issue('@validator-error-checkbox-details-field', index, row.value, name);
         }
       }
-      // A removed option is retained as archival data. It has no editable controls.
+      // Deleted choices are archival. A retained row must keep all of its
+      // stored details, even if the current form no longer defines some keys.
+      if (!option && previous) {
+        for (const name of Object.keys(previous)) {
+          if (!Object.hasOwn(row.details, name)) {
+            issue('@validator-error-checkbox-details-field', index, row.value, name);
+          }
+        }
+      }
       if (!option) continue;
       for (const field of fields) {
         const name = field.name;

@@ -13,6 +13,8 @@ import {
   CheckboxWithDetailsOption,
   CheckboxWithDetailsRow,
   checkCheckboxWithDetailsOptions,
+  FormValidationGroups,
+  FormValidatorFn,
   readCheckboxWithDetailsRows,
 } from '@researchdatabox/sails-ng-common';
 import { cloneDeep } from 'lodash-es';
@@ -26,20 +28,57 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
 type DetailsControl = FormRecord<FormControl<string | null>>;
 type RowControl = FormGroup<{ value: FormControl<string>; details: DetailsControl }>;
 
+const optionsReadyRule = { class: 'checkboxDetailsOptions' };
+
 interface EditorRow {
   control: RowControl;
   fields: FormFieldCompMapEntry[];
 }
 
+function createRowControl(value: string, details: Record<string, FormControl<string | null>>): RowControl {
+  return new FormGroup({
+    value: new FormControl(value, { nonNullable: true }),
+    details: new FormRecord(details),
+  });
+}
+
+function savedDetailControls(row?: CheckboxWithDetailsRow): Record<string, FormControl<string | null>> {
+  return Object.fromEntries(Object.entries(row?.details ?? {}).map(([name, answer]) => [name, new FormControl(answer)]));
+}
+
 class CheckboxWithDetailsFormArray extends FormArray<AbstractControl<unknown>> implements CustomSetValueControl {
-  replaceSelection?: (value: unknown, options?: ControlSetValueOptions) => void;
+  replaceSelection?: (value: CheckboxWithDetailsRow[], options?: ControlSetValueOptions) => void;
   private changingRows = false;
 
   setCustomValue(value: unknown, options?: ControlSetValueOptions): void {
-    if (options?.isCurrent?.() !== false) this.replaceSelection?.(value, options);
+    if (options?.isCurrent?.() === false) return;
+    const rows = readCheckboxWithDetailsRows(value);
+    if (this.replaceSelection) {
+      this.replaceSelection(rows, options);
+    } else {
+      this.replaceRows(rows.map(row => createRowControl(row.value, savedDetailControls(row))), options);
+    }
   }
 
-  replaceRows(rows: readonly RowControl[], options: ControlSetValueOptions): void {
+  override setValue(value: unknown[], options?: ControlSetValueOptions): void {
+    this.setCustomValue(value, options);
+  }
+
+  // Array values replace the selection by code, even when patched through a parent group.
+  override patchValue(value: unknown[], options?: ControlSetValueOptions): void {
+    if (value != null) this.setCustomValue(value, options);
+  }
+
+  override reset(value?: unknown[], options?: ControlSetValueOptions): void {
+    if (options?.isCurrent?.() === false) return;
+    this.setCustomValue(value, { onlySelf: true, emitEvent: false });
+    super.reset(this.getRawValue(), options);
+  }
+
+  replaceRows(rows: readonly RowControl[], options?: ControlSetValueOptions): void {
+    if (this.disabled) {
+      for (const row of rows) row.disable({ onlySelf: true, emitEvent: false });
+    }
     this.changingRows = true;
     try {
       this.controls.forEach(control => control.setParent(null));
@@ -72,7 +111,13 @@ export class CheckboxWithDetailsModel extends FormFieldModel<unknown[]> {
   }
 
   protected override postCreateGetFormControl(): CheckboxWithDetailsFormArray {
-    return new CheckboxWithDetailsFormArray([]);
+    const control = new CheckboxWithDetailsFormArray([]);
+    control.setValue(this.initValue ?? [], { emitEvent: false });
+    return control;
+  }
+
+  public override setValue(value: unknown[], options?: ControlSetValueOptions): void {
+    this.formControl?.setValue(value, options);
   }
 }
 
@@ -157,24 +202,26 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
 
   protected override async initData(): Promise<void> {
     const config = this.config;
-    checkCheckboxWithDetailsOptions(
-      config,
-      !config.vocabRef || config.options !== undefined,
-      config.storedMappingValues
-    );
+    checkCheckboxWithDetailsOptions(config);
     const templates = [...(config.detailFields ?? []), ...Object.values(config.detailFieldsByValue ?? {}).flat()];
     const entries = await this.formService.resolveFormComponentClasses(templates, buildLineagePaths());
     templates.forEach((template, index) => this.templateEntries.set(template, entries[index]));
-    this.array.replaceSelection = (value, options) =>
-      this.replaceSelection(readCheckboxWithDetailsRows(value), options);
-    this.replaceSelection(readCheckboxWithDetailsRows(this.model?.initValue), { emitEvent: false });
-    if (config.vocabRef && config.options === undefined) await this.loadOptions();
+    this.array.replaceSelection = (value, options) => {
+      this.replaceSelection(value, options);
+      this.publishDefinitionChange();
+    };
+    this.replaceSelection(readCheckboxWithDetailsRows(this.array.getRawValue()), { emitEvent: false });
+    if (config.vocabRef && config.options === undefined) {
+      this.formService.updateValidators(this.formFieldCompMapEntry!, this.root.enabledValidationGroups, this.root.validationGroups);
+      void this.loadOptions();
+    }
   }
 
   protected async loadOptions(): Promise<void> {
     const config = this.config;
     if (!config.vocabRef || this.loadState() === 'loading') return;
     this.loadState.set('loading');
+    this.refreshLookupStatus();
     const options: CheckboxWithDetailsOption[] = [];
     const limit = 1000;
     try {
@@ -184,18 +231,56 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
         options.push(...page.map(({ label, value, historical }) => ({ label, value, historical })));
         if (page.length < limit) break;
       }
-      checkCheckboxWithDetailsOptions({ ...config, options }, true, config.storedMappingValues);
+      const unmatched = checkCheckboxWithDetailsOptions({ ...config, options });
+      if (unmatched.length) {
+        this.loggerService.warn(`${this.logName}: '${this.name}' vocabulary '${config.vocabRef}' has no entries for detail mappings ${JSON.stringify(unmatched)}.`);
+      }
       const selected = readCheckboxWithDetailsRows(this.array.getRawValue());
       config.options = options;
-      this.replaceSelection(selected, { emitEvent: false });
       this.loadState.set('ready');
+      this.replaceSelection(selected, { emitEvent: false });
       this.publishDefinitionChange();
-      this.root.broadcastFormStatus();
+      this.root.broadcastFormStatus(false);
     } catch (error) {
       if (this.destroyRef.destroyed) return;
       this.loggerService.error(`${this.logName}: could not load options for '${this.name}'.`, error);
       this.loadState.set('failed');
+      this.refreshLookupStatus();
     }
+  }
+
+  public deferredOptionsValidator(
+    groups: string[],
+    validationGroups: FormValidationGroups,
+    hasEnabledParentValidator: boolean
+  ): FormValidatorFn {
+    const validateChoices = hasEnabledParentValidator ||
+      this.formService.isValidatorEnabled(optionsReadyRule, groups, validationGroups);
+    return control => {
+      const state = this.loadState();
+      if (state === 'ready') return null;
+      // The raw rows have no child controls until the lookup resolves. A draft
+      // with child rules disabled can still save those rows as received.
+      if (!validateChoices) {
+        const rows = readCheckboxWithDetailsRows(control.value);
+        const validateDetails = rows.some(row => checkboxDetailFields(this.config, row.value).some(field =>
+          !field.model?.config?.disabled && !field.component.config?.disabled && !field.layout?.config?.disabled &&
+          field.model?.config?.validators?.some(rule => this.formService.isValidatorEnabled(rule, groups, validationGroups))
+        ));
+        if (!validateDetails) return null;
+      }
+      return {
+        [optionsReadyRule.class]: {
+          message: state === 'loading' ? 'checkbox-details-loading' : 'checkbox-details-load-failed',
+          params: {},
+        },
+      };
+    };
+  }
+
+  private refreshLookupStatus(): void {
+    this.array.updateValueAndValidity({ emitEvent: false });
+    this.root.broadcastFormStatus(false);
   }
 
   protected optionId(option: CheckboxWithDetailsOption): string {
@@ -259,9 +344,7 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
   private createRow(value: string, rowIndex: number, saved?: CheckboxWithDetailsRow): EditorRow {
     const option = this.config.options?.find(candidate => candidate.value === value);
     const templates = option ? checkboxDetailFields(this.config, value) : [];
-    const controls: Record<string, FormControl<string | null>> = Object.fromEntries(
-      Object.entries(saved?.details ?? {}).map(([name, answer]) => [name, new FormControl(answer)])
-    );
+    const controls = savedDetailControls(saved);
     const fields = templates.map(template => {
       const source = this.templateEntries.get(template)!;
       const child: FormFieldCompMapEntry = {
@@ -290,7 +373,11 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
         componentConfig.readonly = true;
         if (layoutConfig) layoutConfig.disabled = false;
       }
-      if (saved) model.config.value = Object.hasOwn(saved.details, name) ? saved.details[name] : null;
+      if (saved) {
+        model.config.value = Object.hasOwn(saved.details, name) ? saved.details[name] : null;
+      } else {
+        model.config.value = typeof model.config.value === 'string' ? model.config.value : null;
+      }
       this.setFieldPaths(child, value, rowIndex);
       const field = this.formService.createFormFieldModelInstance(
         child,
@@ -301,26 +388,19 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
       return child;
     });
 
-    return {
-      control: new FormGroup({
-        value: new FormControl(value, { nonNullable: true }),
-        details: new FormRecord(controls),
-      }),
-      fields,
-    };
+    return { control: createRowControl(value, controls), fields };
   }
 
   private replaceSelection(values: CheckboxWithDetailsRow[], options: ControlSetValueOptions = {}): void {
-    const disabled = this.array.disabled;
+    this.rows.clear();
+    this.initiallySelected.clear();
     const selected = values.map((value, index) => {
       this.initiallySelected.add(value.value);
       const row = this.createRow(value.value, index, value);
-      if (disabled) row.control.disable({ emitEvent: false, onlySelf: true });
       this.rows.set(value.value, row);
       return row.control;
     });
     this.array.replaceRows(selected, options);
-    if (options.emitEvent !== false) this.publishDefinitionChange();
   }
 
   private updateFieldPaths(rows: readonly RowControl[]): void {

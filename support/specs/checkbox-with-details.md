@@ -8,7 +8,7 @@ Use a labelled fieldset containing one row per vocabulary option. Within each ro
 
 Checking a box reveals its controls and leaves focus on the checkbox. Tab reaches those controls before the next checkbox. Give each input a distinct accessible name, e.g. “Estimated volume — Image files”. A validation-summary link opens the right tab and focuses the actual input. Do not move focus on form load.
 
-Working default: unchecking removes that row from the submitted answer and validation immediately. Keep its typed details in memory for undo while the editor stays open. Reloading restores only what was saved. A read-only or PDF view lists each selected label followed by its populated, labelled details. Honour the portal’s existing empty-field display convention.
+Working default: unchecking removes that row from the submitted answer and validation immediately. Keep its typed details in memory for undo while the editor stays open. Reloading or replacing the selection through the form model clears that undo history. A newly checked row can start with authored text defaults. Reloading a saved row preserves its answers, including missing details. A read-only or PDF view lists each selected label followed by its populated, labelled details. Honour the portal’s existing empty-field display convention.
 
 ## Authoring contract
 
@@ -16,7 +16,7 @@ Proposed names: `CheckboxWithDetailsComponent` and `CheckboxWithDetailsModel`. R
 
 - `detailFields` is an optional ordered list of standard child field definitions shared by every selected option.
 - `detailFieldsByValue` is an optional mapping from option value to extra ordered child definitions for that choice. Shared fields render first. Specify only the mapping for an Other-only follow-up.
-- Each child has a unique name within its option, a component, a model with the normal validators/groups, and the normal layout label/help. Fail configuration checks on duplicate field names in the effective row, duplicate options, or unsupported child types. Validate option-specific configuration once the vocabulary has resolved.
+- Each child has a unique name within its option, a component, a model with the normal validators/groups, and the normal layout label/help. Fail configuration checks on duplicate field names in the effective row, duplicate options, or unsupported child types. Check that static option mappings use configured codes. For an external vocabulary, log a warning for mappings whose codes are missing after resolution and continue loading the form.
 - First release supports `SimpleInputComponent` for text and `TextAreaComponent`. This covers the UON question without committing the first release to repeatable groups, arbitrary nested branching or async lookups. Reuse the existing child renderers, models and validator configuration.
 
 Example proposed TypeScript form definition (literal labels below stand in for normal translation keys).
@@ -65,11 +65,13 @@ Store one array entry for each checked value. An empty selection is `[]`. A sele
 
 Key rows by option value internally. Removing a middle row, reordering the vocabulary, or translating the label must leave each answer attached to its option. Preserve loaded selected rows while vocabulary options resolve. Apply existing historical-vocabulary policy to retired options and retain their detail on an unrelated save. Unknown historical values need a readable fallback; reject newly submitted unsupported options under the normal validation policy.
 
-Mark an option historical in the vocabulary to retain its label. If an option is deleted outright, an existing record that holds the code can still open and save its archived answers. View and PDF show the code and any configured detail labels, with field names as the fallback for older details. A mapping for an unknown code still fails configuration checks when the corresponding stored field has never selected it. Retain the historical vocabulary entry or remove the obsolete mapping so new records can open the form.
+Mark an option historical in the vocabulary to retain its label. If an option is deleted outright, an existing record that holds the code can still open and save its archived answers. View and PDF show the code and any configured detail labels, with field names as the fallback for older details. Validated writes require every detail on a retained deleted choice to match the stored row, including keys no longer declared in the form. Users can remove the entire selection. A stale external vocabulary mapping does not block unrelated records or make that code available for new selections. A missing static option is a configuration error unless the mapping belongs to an archived selection in the record.
 
 Reordering or removing repeatable rows preserves archival selections on a row that matches a stored row. Each stored row can be matched once within its repeatable field. Repeatable metadata has no persistent row ID, so a row edited and moved in the same submission may be ambiguous. Apply the move and the edit in separate saves for those rows.
 
-Group-level required means at least one selected row. Child validators run for selected rows in the enabled validation groups. Draft can therefore save a selected row with missing detail, and the same row can block activation. Use the same rules for editor validation and validated server writes. Report a specific option and field in each error. Ensure the record contract describes the array and per-option child types for API consumers. Store codes and user answers; resolve translated labels for Edit, View and PDF.
+Group-level required means at least one selected row. Child validators run for selected rows in the enabled validation groups. Draft can therefore save a selected row with missing detail, and the same row can block activation. Use the same rules for editor validation and validated server writes. Report a specific option and field in each error. An unresolved editor lookup blocks full validation and any enabled rules that depend on its options or details. A draft with those rules disabled can preserve the selected rows as loaded. Retry loads the choices and reinstates normal child validation.
+
+The record contract JSON Schema checks the array and row shape and the types of declared detail fields. The `x-redbox-checkbox-details` annotation describes the shared and per-option fields. Server validation applies current option availability, rejects duplicate codes and out-of-scope details, checks retained deleted rows against stored metadata, and applies the operation's validation groups. Store codes and user answers in metadata and resolve translated labels for Edit, View and PDF.
 
 ## Delivery sequence
 

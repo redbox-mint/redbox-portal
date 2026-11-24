@@ -14,11 +14,8 @@ export function checkboxDetailFields<T>(config: DetailFields<T> | undefined, val
   return [...(config?.detailFields ?? []), ...(byValue && Object.hasOwn(byValue, value) ? byValue[value] : [])];
 }
 
-export function checkCheckboxWithDetailsOptions(
-  config: CheckboxWithDetailsFieldComponentConfigFrame,
-  checkOptionMappings = false,
-  storedMappingValues: readonly string[] = []
-): void {
+/** Validate the choices and report mappings for codes outside that option list. */
+export function checkCheckboxWithDetailsOptions(config: CheckboxWithDetailsFieldComponentConfigFrame): string[] {
   const options = config.options;
   const optionValues = new Set<string>();
   if (options !== undefined && !Array.isArray(options)) throw new Error('Expected a checkbox options array.');
@@ -34,11 +31,7 @@ export function checkCheckboxWithDetailsOptions(
     }
     optionValues.add(option.value);
   }
-  if (!checkOptionMappings) return;
-  for (const value of Object.keys(config.detailFieldsByValue ?? {})) {
-    if (!optionValues.has(value) && !storedMappingValues.includes(value))
-      throw new Error(`Checkbox detail fields refer to unknown option '${value}'.`);
-  }
+  return Object.keys(config.detailFieldsByValue ?? {}).filter(value => !optionValues.has(value));
 }
 
 /** Inspect authored templates separately from the submitted array. */
@@ -47,7 +40,11 @@ export function checkCheckboxWithDetailsConfig(
   checkOptionMappings = false,
   storedMappingValues: readonly string[] = []
 ): void {
-  checkCheckboxWithDetailsOptions(config, checkOptionMappings, storedMappingValues);
+  const unmatched = checkCheckboxWithDetailsOptions(config);
+  if (checkOptionMappings) {
+    const unknown = unmatched.find(value => !storedMappingValues.includes(value));
+    if (unknown !== undefined) throw new Error(`Checkbox detail fields refer to unknown option '${unknown}'.`);
+  }
 
   function checkFields(fields: readonly CheckboxDetailFieldFrame[] | undefined, names: Set<string>): void {
     if (fields === undefined) return;

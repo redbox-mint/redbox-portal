@@ -149,7 +149,10 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       }));
       // Keep retired entries available to nested repeatable instances. The editor
       // filters the options against the selected codes in each actual instance.
-      checkCheckboxWithDetailsOptions(config, true, config.storedMappingValues);
+      const unmatched = checkCheckboxWithDetailsOptions(config);
+      if (unmatched.length) {
+        this.logger.warn(`CheckboxWithDetails '${item.name}': vocabulary '${config.vocabRef}' has no entries for detail mappings ${JSON.stringify(unmatched)}.`);
+      }
     }));
   }
 

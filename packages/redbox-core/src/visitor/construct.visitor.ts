@@ -1945,9 +1945,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (config.vocabRef !== undefined && (typeof config.vocabRef !== 'string' || !config.vocabRef.trim())) {
       throw new Error('CheckboxWithDetails requires a valid vocabulary reference.');
     }
-    const mappingsInStorage = this.storedCheckboxMappings(Object.keys(config.detailFieldsByValue ?? {}));
+    const mappingsInStorage = config.vocabRef ? [] : this.storedCheckboxMappings(Object.keys(config.detailFieldsByValue ?? {}));
     checkCheckboxWithDetailsConfig(config, !config.vocabRef, mappingsInStorage);
-    if (mappingsInStorage.length > 0) constructed.storedMappingValues = mappingsInStorage;
 
     const constructFields = async (fields: CheckboxDetailFieldFrame[], path: LineagePath) => {
       const result: CheckboxDetailFieldOutline[] = [];
@@ -2523,12 +2522,22 @@ this.mostRecentRepeatableElementTemplatePath !== null ||
     const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
 
     // Only elementTemplates can use newEntryValue.
-    if (!isElementTemplate && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
+    if ((!isElementTemplate || this.constructingCheckboxDetail) && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
       throw new Error(
         `${this.logName}: Only repeatable elementTemplates can define 'model.config.newEntryValue', ` +
           `use 'model.config.defaultValue' in other places ` +
           `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
+    }
+
+    // Checkbox detail definitions are templates for new selections. Their
+    // metadata belongs to a selected row, which the editor hydrates separately.
+    if (this.constructingCheckboxDetail) {
+      item.config.value = typeof config?.defaultValue === 'string'
+        ? this.translateConfigDefault(config.defaultValue)
+        : null;
+      if (!this.preserveDefaultValues) delete item.config.defaultValue;
+      return;
     }
 
     // The elementTemplate definitions cannot have a defaultValue.

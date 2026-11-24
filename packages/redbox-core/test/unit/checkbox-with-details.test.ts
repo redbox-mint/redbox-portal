@@ -88,6 +88,49 @@ describe('Checkbox with details form', () => {
     assert.doesNotMatch(rendered, /other\.\//);
   });
 
+  it('constructs checkbox detail templates from authored defaults even when the parent has saved rows', async () => {
+    const field = definition();
+    const fieldConfig = field.component.config!;
+    fieldConfig.detailFields![0].model!.config!.defaultValue = '@volume-default';
+    fieldConfig.detailFieldsByValue![other][0].model!.config!.defaultValue = 'Format notes';
+    fieldConfig.detailFields!.push({
+      name: 'optional',
+      component: { class: 'SimpleInputComponent' },
+    });
+    const data = frame(field);
+    data.componentDefinitions.push({
+      name: 'projects',
+      component: {
+        class: 'RepeatableComponent',
+        config: {
+          elementTemplate: {
+            name: '',
+            component: { class: 'GroupComponent', config: { componentDefinitions: [field] } },
+          },
+        },
+      },
+    });
+    const formats = [row('table', { volume: 'Saved estimate' }), row(other)];
+    const form = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data,
+      formMode: 'edit',
+      record: { formats, projects: [{ formats }] },
+      translate: key => key === '@volume-default' ? '10 GB' : key,
+    });
+    const edit = await new ClientFormConfigVisitor(consoleLogger).start({ form, formMode: 'edit' });
+    const [top, repeated] = edit!.componentDefinitions;
+    assert.deepEqual(top.model?.config?.value, formats);
+    assert.deepEqual(repeated.model?.config?.value, [{ formats }]);
+    const repeatedField = (repeated as {
+      component: { config: { elementTemplate: { component: { config: { componentDefinitions: typeof top[] } } } } };
+    }).component.config.elementTemplate.component.config.componentDefinitions[0];
+    for (const item of [top, repeatedField]) {
+      const config = item.component.config as typeof fieldConfig;
+      assert.deepEqual(config.detailFields!.map(child => child.model?.config?.value), ['10 GB', null]);
+      assert.equal(config.detailFieldsByValue![other][0].model?.config?.value, 'Format notes');
+    }
+  });
+
   it('keeps Other-only rows, including inside repeated groups, in generated View', async () => {
     const field = definition();
     delete field.component.config!.detailFields;
@@ -225,7 +268,7 @@ describe('Checkbox with details form', () => {
   });
 
   it('preserves retired data from the stored record and rejects new unavailable codes and duplicate rows', async () => {
-    const archival = row('removed', { volume: '1 TB', notes: 'Before retirement' });
+    const archival = row('removed', { volume: '1 TB', notes: 'Before retirement', blank: null });
     const validate = async (formats: unknown, previousMetadata?: Record<string, unknown>) => {
       const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data: frame(), record: { formats } });
       return new ValidatorFormConfigVisitor(consoleLogger).start({
@@ -234,7 +277,20 @@ describe('Checkbox with details form', () => {
         previousMetadata,
       });
     };
-    assert.deepEqual(await validate([archival], { formats: [archival] }), []);
+    const stored = { formats: [archival] };
+    assert.deepEqual(await validate([archival], stored), []);
+    assert.deepEqual(await validate([], stored), []);
+    for (const [details, field] of [
+      [{ volume: '1 TB', blank: null }, 'notes'],
+      [{ volume: '1 TB', notes: 'Before retirement' }, 'blank'],
+      [{ ...archival.details, volume: '2 TB' }, 'volume'],
+      [{ ...archival.details, another: 'New answer' }, 'another'],
+    ] as const) {
+      const errors = await validate([row('removed', details)], stored);
+      assert.equal(errors.length, 1);
+      assert.equal(errors[0].errors[0].message, '@validator-error-checkbox-details-field');
+      assert.deepEqual(errors[0].lineagePaths?.dataModel, ['formats', 0, 'details', field]);
+    }
     assert.equal((await validate([archival]))[0].errors[0].message, '@validator-error-checkbox-details-option');
     assert.equal(
       (await validate([row('table'), row('table')]))[0].errors[0].message,
@@ -250,7 +306,7 @@ describe('Checkbox with details form', () => {
     );
   });
 
-  it('retains an authored mapping after vocabulary deletion only when the stored field contains the code', async () => {
+  it('warns about a stale external mapping, keeps unrelated forms usable and preserves archival details', async () => {
     const field = definition();
     delete field.component.config!.options;
     Object.assign(field.component.config!, { vocabRef: 'formats', inlineVocab: true });
@@ -264,17 +320,25 @@ describe('Checkbox with details form', () => {
           getEntries: async () => ({ meta: { total: 1 }, entries: [{ label: 'Tabulated files', value: 'table' }] }),
         },
       });
-      const construct = (mode: 'edit' | 'view', checkboxArchiveRecord?: Record<string, unknown> | null) =>
-        new ConstructFormConfigVisitor(consoleLogger).start({
-          data: frame(field),
-          formMode: mode,
-          record,
-          checkboxArchiveRecord,
-        });
+      const construct = (formMode: 'edit' | 'view', metadata: Record<string, unknown> | null) =>
+        new ConstructFormConfigVisitor(consoleLogger).start({ data: frame(field), formMode, record: metadata });
+      const warnings: unknown[] = [];
       const resolve = (form: Awaited<ReturnType<typeof construct>>) =>
-        new VocabInlineFormConfigVisitor(consoleLogger).resolveVocabs(form, 'default');
-      await assert.rejects(resolve(await construct('edit', null)), /unknown option/);
-      await assert.rejects(resolve(await construct('edit', { otherFormats: formats })), /unknown option/);
+        new VocabInlineFormConfigVisitor({ ...consoleLogger, warn: message => warnings.push(message) })
+          .resolveVocabs(form, 'default');
+      for (const metadata of [null, { otherFormats: formats }, { formats: [row('table', { volume: '2 TB' })] }]) {
+        const unrelated = await construct('edit', metadata);
+        await resolve(unrelated);
+        assert.deepEqual(
+          await new ValidatorFormConfigVisitor(consoleLogger).start({
+            form: unrelated,
+            enabledValidationGroups: ['none'],
+          }),
+          []
+        );
+      }
+      assert.equal(warnings.length, 3);
+      assert.match(String(warnings[0]), /vocabulary 'formats' has no entries for detail mappings/);
 
       const source = await construct('edit', record);
       await resolve(source);
@@ -285,6 +349,11 @@ describe('Checkbox with details form', () => {
         validatorDefinitions: formValidatorsSharedDefinitions,
       });
       assert.deepEqual(validation, []);
+      const untrusted = await new ValidatorFormConfigVisitor(consoleLogger).start({
+        form: source,
+        enabledValidationGroups: ['none'],
+      });
+      assert.equal(untrusted[0].errors[0].message, '@validator-error-checkbox-details-option');
       const edit = await new ClientFormConfigVisitor(consoleLogger).start({ form: source, formMode: 'edit' });
       assert.deepEqual(edit!.componentDefinitions[0].model?.config?.value, formats);
 
@@ -321,12 +390,15 @@ describe('Checkbox with details form', () => {
     assert.doesNotMatch(rendered, /Hidden answer/);
   });
 
-  it('checks duplicate names and option-specific mappings when vocabulary options resolve', async () => {
+  it('checks static mappings and validates the option list from a deferred vocabulary', async () => {
     const construct = (field: CheckboxWithDetailsFormComponentDefinitionFrame) =>
       new ConstructFormConfigVisitor(consoleLogger).start({ data: frame(field) });
     const field = definition();
     field.component.config!.detailFieldsByValue![other][0].name = 'volume';
     await assert.rejects(construct(field), /duplicate checkbox detail field name/);
+    const staleStaticMapping = definition();
+    staleStaticMapping.component.config!.options!.pop();
+    await assert.rejects(construct(staleStaticMapping), /unknown option/);
 
     const vocabularyField = definition();
     delete vocabularyField.component.config!.options;
@@ -346,12 +418,12 @@ describe('Checkbox with details form', () => {
         (form.componentDefinitions[0].component.config as typeof vocabularyField.component.config)?.options,
         [{ label: 'Other files', value: other, historical: true }]
       );
-      mockEntries.splice(0);
+      mockEntries.push({ ...mockEntries[0] });
       await assert.rejects(
         new VocabInlineFormConfigVisitor(consoleLogger).resolveVocabs(form, 'default', {
           resolveDeferredCheckboxDetails: true,
         }),
-        /unknown option/
+        /unique nonempty string values/
       );
     } finally {
       if (service) Object.defineProperty(globalThis, 'VocabularyService', service);

@@ -7,6 +7,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { createFormValidationGroupsChangeRequestEvent, FormComponentEventBus } from '../form-state';
+import { setControlValue } from '../form-state/custom-set-value.control';
 import { TypeaheadDataService } from '../service/typeahead-data.service';
 import { CheckboxDetailFieldDirective, CheckboxWithDetailsComponent } from './checkbox-with-details.component';
 import { SimpleInputComponent } from './simple-input.component';
@@ -138,6 +139,69 @@ describe('CheckboxWithDetailsComponent', () => {
     expect(form.value.additional).toEqual([]);
   });
 
+  it('initializes newly selected text fields from defaults without backfilling saved rows', async () => {
+    const definition = field('formats', [{ value: 'tabulated', details: {} }]);
+    definition.component.config!.detailFields![0].model!.config!.value = '10 GB';
+    definition.component.config!.detailFieldsByValue!['other./~'][0].model!.config!.value = 'Default notes';
+    const { fixture, formComponent } = await createFormAndWaitForReady(config([definition]), { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const checkboxes = root.querySelectorAll<HTMLInputElement>('input[type=checkbox]');
+    expect(formComponent.form?.value.formats).toEqual([{ value: 'tabulated', details: { volume: null } }]);
+    checkboxes[2].click();
+    expect(formComponent.form?.value.formats).toEqual([
+      { value: 'tabulated', details: { volume: null } },
+      { value: 'other./~', details: { volume: '10 GB', description: 'Default notes' } },
+    ]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
+
+  it('discards cached undo answers after authoritative array, model and parent form writes', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(
+      config([field('formats', [{ value: 'tabulated', details: { volume: 'Old estimate' } }])]),
+      { editMode: true }
+    );
+    const form = formComponent.form!;
+    const model = formComponent.getComponentDefByName('formats')!.model!;
+    const control = model.formControl!;
+    const checkboxes = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLInputElement>('input[type=checkbox]');
+    const table = checkboxes[0];
+
+    table.click();
+    table.click();
+    expect(control.value).toEqual([{ value: 'tabulated', details: { volume: 'Old estimate' } }]);
+    const image = { value: 'img', details: { volume: 'New estimate' } };
+
+    for (const [replace, expected] of [
+      [() => setControlValue(control, []), []],
+      [() => form.setValue({ formats: [] }), []],
+      [() => form.patchValue({ formats: [image] }), [image]],
+      [() => form.reset({ formats: [image] }), [image]],
+    ] as const) {
+      control.setValue([{ value: 'tabulated', details: { volume: 'Old estimate' } }]);
+      fixture.detectChanges();
+      table.click();
+      await replace();
+      fixture.detectChanges();
+      expect(table.checked).toBeFalse();
+      expect(form.value.formats).toEqual([...expected]);
+      table.click();
+      expect(form.value.formats).toEqual([...expected, { value: 'tabulated', details: { volume: null } }]);
+    }
+
+    form.reset();
+    expect(control.value).toEqual([]);
+    expect(control.pristine).toBeTrue();
+    expect(control.untouched).toBeTrue();
+    expect(form.pristine).toBeTrue();
+    expect(form.untouched).toBeTrue();
+    const emitted = jasmine.createSpy('valueChanges');
+    control.valueChanges.subscribe(emitted);
+    model.setValue([image], { emitEvent: false });
+    expect(control.value).toEqual([image]);
+    expect(emitted).not.toHaveBeenCalled();
+  });
+
   it('hydrates deferred vocabulary without reassigning saved rows and shows a removed choice', async () => {
     const fieldDefinition = field('formats', [
       { value: 'removed', details: { volume: '1 TB', retiredMemo: 'Original notes' } },
@@ -145,7 +209,6 @@ describe('CheckboxWithDetailsComponent', () => {
     ]);
     delete fieldDefinition.component.config!.options;
     fieldDefinition.component.config!.vocabRef = 'formats';
-    fieldDefinition.component.config!.storedMappingValues = ['removed'];
     fieldDefinition.component.config!.detailFieldsByValue!['removed'] = [
       {
         name: 'retiredMemo',
@@ -159,12 +222,15 @@ describe('CheckboxWithDetailsComponent', () => {
         resolveOptions = resolve;
       })
     );
-    const mounted = createFormAndWaitForReady(config([fieldDefinition]), { editMode: true });
+    const { fixture, formComponent } = await createFormAndWaitForReady(config([fieldDefinition]), { editMode: true });
     resolveOptions([
       { label: 'Other', value: 'other./~' },
       { label: 'Tabulated', value: 'tabulated' },
     ]);
-    const { fixture, formComponent } = await mounted;
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     expect(vocabulary).toHaveBeenCalledOnceWith('formats', '', 1000, 0, true);
     expect(formComponent.form?.value.formats).toEqual(fieldDefinition.model!.config!.value);
@@ -174,5 +240,59 @@ describe('CheckboxWithDetailsComponent', () => {
     );
     expect(fixture.nativeElement.querySelector('redbox-checkbox-with-details').textContent).toContain('Original notes');
     expect(fixture.nativeElement.querySelector('textarea').value).toBe('Instrument exports');
+  });
+
+  it('blocks enabled child validation while lookup is pending or failed and validates the latest rows after retry', async () => {
+    const saved = { value: 'other./~', details: { volume: '3 TB' } };
+    const definition = field('formats', [saved]);
+    const fieldConfig = definition.component.config!;
+    fieldConfig.vocabRef = 'formats';
+    delete fieldConfig.options;
+    fieldConfig.detailFieldsByValue!['other./~'][0].model!.config!.validators![0].groups = { include: ['release'] };
+    const formConfig = config([definition]);
+    formConfig.validationGroups!['release'] = { description: 'Release details', initialMembership: 'none' };
+    let reject!: (reason: Error) => void;
+    let resolve!: (options: TypeaheadOption[]) => void;
+    const vocabulary = spyOn(TestBed.inject(TypeaheadDataService), 'searchVocabularyEntries').and.returnValues(
+      new Promise((_, rejectRequest) => { reject = rejectRequest; }),
+      new Promise(resolveRequest => { resolve = resolveRequest; })
+    );
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const form = formComponent.form!;
+    const selection = form.get('formats')!;
+    const changeGroups = (group: string) => TestBed.inject(FormComponentEventBus).publish(
+      createFormValidationGroupsChangeRequestEvent({ initial: 'none', groups: { include: [group] } })
+    );
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelector('fieldset')?.getAttribute('aria-busy')).toBe('true');
+    expect(form.valid).toBeTrue();
+    expect(selection.value).toEqual([saved]);
+    changeGroups('release');
+    expect(selection.getError('checkboxDetailsOptions')?.message).toBe('checkbox-details-loading');
+    expect(form.invalid).toBeTrue();
+
+    reject(new Error('Synthetic lookup failure'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(selection.getError('checkboxDetailsOptions')?.message).toBe('checkbox-details-load-failed');
+    changeGroups('none');
+    expect(form.valid).toBeTrue();
+
+    root.querySelector<HTMLButtonElement>('redbox-checkbox-with-details button')!.click();
+    expect(vocabulary).toHaveBeenCalledTimes(2);
+    const updated = { value: 'other./~', details: { volume: '5 TB' } };
+    form.patchValue({ formats: [updated] });
+    changeGroups('release');
+    expect(form.invalid).toBeTrue();
+    resolve([{ label: 'Other', value: 'other./~' }]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(selection.errors).toBeNull();
+    expect(selection.value).toEqual([{ ...updated, details: { volume: '5 TB', description: null } }]);
+    const description = form.get(['formats', 0, 'details', 'description'])!;
+    expect(description.hasError('required')).toBeTrue();
+    expect(form.invalid).toBeTrue();
+    description.setValue('Instrument exports');
+    expect(form.valid).toBeTrue();
   });
 });
