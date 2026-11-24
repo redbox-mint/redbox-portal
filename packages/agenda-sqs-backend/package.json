@@ -33,7 +33,7 @@
     "debug": "4.4.3"
   },
   "peerDependencies": {
-    "agenda": "6.2.7"
+    "agenda": "6.2.8"
   },
   "devDependencies": {
     "@tsconfig/node24": "24.0.6",
@@ -42,6 +42,6 @@
     "@vitest/coverage-v8": "5.1.0",
     "typescript": "5.9.3",
     "vitest": "5.1.0",
-    "agenda": "6.2.7"
+    "agenda": "6.2.8"
   }
 }
