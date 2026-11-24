@@ -1,6 +1,6 @@
 @if (isVisible && model) {
   <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-  <fieldset class="checkbox-details" [disabled]="isDisabled || isReadonly" [attr.aria-busy]="loadState() === 'loading'">
+  <fieldset class="checkbox-details" [disabled]="selectionLocked" [attr.aria-busy]="loadState() === 'loading'">
     <legend class="form-label" [class.visually-hidden]="outerLabel" [innerHTML]="legend | i18next"></legend>
     @if (loadState() === 'loading') {
       <p role="status" class="text-body-secondary">{{ 'checkbox-details-loading' | i18next }}</p>

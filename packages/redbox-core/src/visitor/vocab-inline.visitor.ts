@@ -58,6 +58,13 @@ type ResolveVocabsOptions = {
 class VocabularyEntriesReadError extends Error {}
 class VocabularyNotFoundError extends Error {}
 
+export function checkboxPresentationLookupFallback(logger: ILogger): ResolveVocabsOptions['checkboxLookupFallback'] {
+  return {
+    onMissingVocabulary: field => logger.warn(
+      `The checkbox vocabulary for '${field}' is missing. Showing stored answers for this record.`
+    ),
+  };
+}
 
 export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'VocabInlineFormConfigVisitor';

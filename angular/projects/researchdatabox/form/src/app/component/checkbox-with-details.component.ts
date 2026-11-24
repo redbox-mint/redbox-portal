@@ -297,12 +297,15 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
     return row && this.array.controls.includes(row.control) ? row : undefined;
   }
 
+  protected get selectionLocked(): boolean {
+    return this.isReadonly || this.isDisabled || this.formFieldCompMapEntry?.compConfigJson.layout?.config?.disabled === true;
+  }
+
   protected optionDisabled(option: CheckboxWithDetailsOption): boolean {
     const enabled = this.config.enabledOptionValues;
     return (
-      this.isReadonly ||
-      this.isDisabled ||
-      this.loadState() !== 'ready' ||
+      this.selectionLocked ||
+      (this.loadState() !== 'ready' && !this.selectedRow(option.value)) ||
       !!option.disabled ||
       (option.historical === true && this.config.historicalVocabMode === 'disable') ||
       (Array.isArray(enabled) && !enabled.includes(option.value))

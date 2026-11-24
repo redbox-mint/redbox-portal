@@ -35,7 +35,7 @@ import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { projectViewMetadata } from '../ViewFormMetadata';
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
-import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
+import { checkboxPresentationLookupFallback, VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
 const isPermittedChangesSchemaObject = (value: unknown): value is Record<string, unknown> =>
@@ -574,12 +574,14 @@ export namespace Services {
           reusableFormDefs?: ReusableFormDefinitions,
           recordAccessContext?: FormRecordAccessContext
         ): Promise<TemplateCompileInput[]> {
+          const existingRecordPresentation = !!recordAccessContext?.record?.redboxOid && recordMetadata != null;
+          const branding = recordAccessContext?.brand.name;
           // Compile the same authorized, hydrated view returned by getForm.
           // Selection-dependent templates (for example empty vs selected options)
           // must use current source values, not an unresolved placeholder.
           if (formMode === 'view' && recordAccessContext && compileRelatedDisplayContract(item, reusableFormDefs)) {
             const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata,
-              reusableFormDefs, undefined, undefined, recordAccessContext);
+              reusableFormDefs, branding, undefined, recordAccessContext, false, false, { existingRecordPresentation });
             // The client carrier strips behaviour templates; compile their raw definitions.
             form.behaviours = _.cloneDeep(item.behaviours);
             return await new TemplateFormConfigVisitor(this.logger).start({ form });
@@ -587,8 +589,9 @@ export namespace Services {
           const constructor = new ConstructFormConfigVisitor(this.logger);
           const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
           const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-          await vocabVisitor.resolveVocabs(constructedForm, undefined, {
-            includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+          await vocabVisitor.resolveVocabs(constructedForm, branding, {
+            includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
+            checkboxLookupFallback: existingRecordPresentation ? checkboxPresentationLookupFallback(this.logger) : undefined,
           });
           const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
           await contextVariablesVisitor.applyContextVariables(constructedForm);

@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import type { Response } from 'supertest';
@@ -132,5 +133,109 @@ describe('Vocabulary-backed checkbox details writes', function () {
       return ref === vocabulary && result ? { ...result, entries: [...result.entries, result.entries[0]] } : result;
     });
     expectRejected(await amend(existingOid, { title: 'Malformed vocabulary' }), 'record-validation-configuration-failed');
+  });
+
+  it('shows stored checkbox details on authorized inline Edit and deferred View when the lookup fails', async function () {
+    const session = await loginSession();
+    const headers = {
+      'X-Source': 'jsclient',
+      'X-ReDBox-Api-Version': '2.0',
+      'X-CSRF-Token': await csrfToken(session),
+    };
+    const created = await session.post(`${savePath}/checkbox-details-demo`)
+      .set(headers).query({ operation: 'draft' })
+      .send({ title: 'Read without the checkbox vocabulary', digitalFormatEstimates: storedFormats });
+    expectSaved(created);
+    const oid: string = created.body.data.redboxOid;
+    oids.push(oid);
+    const saved = [{
+      value: 'legacy-media',
+      details: { volume: '1 TB', legacyNotes: 'Archival notes', privateReference: 'Hidden answer' },
+    }];
+    await Record.updateOne({ redboxOid: oid }).set({
+      metadata: {
+        ...created.body.data.metadata,
+        digitalFormatEstimates: saved,
+        restrictedFormats: [{ value: 'image', details: { volume: 'Role restricted answer' } }],
+      },
+    });
+
+    const findFormats = (form: any) => {
+      const root = form.componentDefinitions[0].component.config;
+      return (root.tabs ?? root.panels)[1].component.config.componentDefinitions;
+    };
+    const getForm = FormsService.getForm.bind(FormsService);
+    let authored: Awaited<ReturnType<typeof FormsService.getForm>>;
+    let addStrictDropdown = false;
+    sinon.stub(FormsService, 'getForm').callsFake(async (...args) => {
+      const form = await getForm(...args);
+      if (args[4]?.redboxOid !== oid || !form?.configuration) return form;
+      authored = structuredClone(form);
+      const fields = findFormats(authored.configuration);
+      fields[0].component.config.inlineVocab = args[2];
+      fields.push({
+        ...structuredClone(fields[0]), name: 'restrictedFormats',
+        constraints: { authorization: { allowRoles: ['RoleAbsentFromThisSession'] } },
+      });
+      if (addStrictDropdown) {
+        fields.push({
+          name: 'strictVocabulary',
+          component: { class: 'DropdownInputComponent', config: { inlineVocab: true, vocabRef: vocabulary } },
+        });
+      }
+      return authored;
+    });
+
+    const route = `/default/rdmp/record/form/auto/${oid}`;
+    const compiledItems = `/default/rdmp/dynamicAsset/formCompiledItems/checkbox-details-demo/${oid}`;
+    const getEntries = VocabularyService.getEntries.bind(VocabularyService);
+    const lookup = sinon.stub(VocabularyService, 'getEntries');
+    for (const fail of [
+      () => Promise.reject(new Error('Synthetic rejected vocabulary lookup')),
+      () => Promise.resolve(null),
+    ]) {
+      lookup.callsFake((branding, ref, options) => ref === vocabulary ? fail() : getEntries(branding, ref, options));
+      const edit = await session.get(route).set(headers).query({ edit: 'true' }).expect(200);
+      const editFields = findFormats(edit.body.data);
+      expect(editFields).to.have.length(1);
+      expect(editFields[0].component.config).to.include({ inlineVocab: true, vocabRef: vocabulary });
+      expect(editFields[0].component.config).not.to.have.property('options');
+      expect(editFields[0].model.config.value).to.deep.equal(saved);
+      await session.get(compiledItems).set(headers).query({ edit: 'true' }).expect(200);
+
+      const view = await session.get(route).set(headers).query({ edit: 'false' }).expect(200);
+      const viewFields = findFormats(view.body.data);
+      expect(viewFields).to.have.length(1);
+      expect(viewFields[0].component.class).to.equal('ContentComponent');
+      expect(viewFields[0].component.config.content[0]).to.deep.include({
+        label: 'legacy-media',
+        displayDetails: [
+          { name: 'volume', label: 'Estimated volume', answer: '1 TB' },
+          { name: 'legacyNotes', label: 'legacyNotes', answer: 'Archival notes' },
+        ],
+      });
+      await session.get(compiledItems).set(headers).expect(200);
+    }
+
+    const viewFrame = authored!.configuration!;
+    await assert.rejects(FormsService.buildClientFormConfig(viewFrame, 'view', ['Admin'],
+      { digitalFormatEstimates: saved }, {}, 'default', {}, {
+        brand: BrandingService.getDefault(),
+        user: { roles: [] },
+        record: await sails.services.recordsservice.getMeta(oid),
+      }, true), /was not found/);
+    const newFrame = structuredClone(viewFrame);
+    findFormats(newFrame)[0].component.config.inlineVocab = true;
+    await assert.rejects(FormsService.buildClientFormConfig(newFrame, 'edit', ['Admin'], null, {}, 'default'),
+      /was not found/);
+
+    addStrictDropdown = true;
+    await session.get(route).set(headers).query({ edit: 'false' }).expect(500);
+    addStrictDropdown = false;
+    lookup.callsFake(async (branding, ref, options) => {
+      const result = await getEntries(branding, ref, options);
+      return ref === vocabulary && result ? { ...result, entries: [...result.entries, result.entries[0]] } : result;
+    });
+    await session.get(route).set(headers).query({ edit: 'false' }).expect(500);
   });
 });

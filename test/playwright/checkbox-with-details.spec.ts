@@ -1,5 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { MongoClient } from 'mongodb';
+import { chromium, expect, test, type Page } from '@playwright/test';
+import { MongoClient, ObjectId } from 'mongodb';
+import { writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { adminStorageStatePath } from './helpers';
 
 test.use({ storageState: adminStorageStatePath });
@@ -194,7 +197,7 @@ test('initializes a newly selected row after reopening a saved record', async ({
   ]);
 });
 
-test('preserves incomplete drafts during a pending and failed lookup and validates after retry', async ({ page }, testInfo) => {
+test('saves removals during a pending and failed lookup and validates retained rows after retry', async ({ page }, testInfo) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
   const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
   const activate = page.getByRole('button', { name: 'Activate', exact: true });
@@ -209,10 +212,15 @@ test('preserves incomplete drafts during a pending and failed lookup and validat
   await title.fill('Synthetic deferred checkbox details');
   await openFormats(page);
   await page.getByRole('checkbox', { name: 'Tabulated files' }).check();
+  await page.getByRole('checkbox', { name: 'Image files' }).check();
+  await page.getByRole('checkbox', { name: 'Other' }).check();
   const draft = await save(page, 'Save draft', 'POST', demoType);
   const oid: string = draft.redboxOid;
   const incomplete = [{ value: 'tabulated', details: {} }];
-  expect(draft.metadata.digitalFormatEstimates).toEqual(incomplete);
+  const otherRow = { value: 'other', details: { volume: '10 GB', description: 'Custom exports' } };
+  expect(draft.metadata.digitalFormatEstimates).toEqual([
+    ...incomplete, { value: 'image', details: { volume: '10 GB' } }, otherRow,
+  ]);
 
   // Delay and fail just the editor request. Writes use the configured server vocabulary.
   let failLookup!: () => void;
@@ -245,20 +253,27 @@ test('preserves incomplete drafts during a pending and failed lookup and validat
     await page.goto(`${prefix}/record/edit/${oid}`);
     await amendTitle('Synthetic deferred checkbox details (pending)');
     await expect(formats).toHaveAttribute('aria-busy', 'true');
+    const image = formats.getByRole('checkbox', { name: 'image', exact: true });
+    await expect(image).toBeEnabled();
     await formats.screenshot({ path: testInfo.outputPath('lookup-pending.png') });
+    await image.uncheck();
+    await expect(image).toBeDisabled();
     await activate.click();
     await expect(invalid).toBeVisible();
     expect(activationRequests).toBe(0);
     await waitForSaveThrottle();
     const pendingDraft = await save(page, 'Save draft', 'PUT', oid);
     expect(pendingDraft.workflow.stage).toBe('draft');
-    expect(pendingDraft.metadata.digitalFormatEstimates).toEqual(incomplete);
+    expect(pendingDraft.metadata.digitalFormatEstimates).toEqual([...incomplete, otherRow]);
   } finally {
     failLookup();
   }
   await waitForSaveThrottle();
   await expect(formats.getByText('Options could not be loaded.')).toBeVisible();
   await formats.screenshot({ path: testInfo.outputPath('lookup-failed.png') });
+  const otherBeforeRetry = formats.getByRole('checkbox', { name: 'other', exact: true });
+  await otherBeforeRetry.uncheck();
+  await expect(otherBeforeRetry).toBeDisabled();
   await amendTitle('Synthetic deferred checkbox details (failed)');
   await activate.click();
   await expect(invalid).toBeVisible();
@@ -273,6 +288,8 @@ test('preserves incomplete drafts during a pending and failed lookup and validat
   await expect(volume).toBeVisible();
   await expect(volume).toHaveValue('');
   expect(attempts).toBe(2);
+  await expect(formats.getByRole('checkbox', { name: 'Other', exact: true })).not.toBeChecked();
+  await expect(formats.getByRole('checkbox', { name: 'Image files' })).not.toBeChecked();
   await amendTitle('Synthetic deferred checkbox details (retried)');
   await activate.click();
   await page.getByRole('link', { name: 'Estimated volume — Tabulated files' }).click();
@@ -286,6 +303,11 @@ test('preserves incomplete drafts during a pending and failed lookup and validat
   expect(activationRequests).toBe(1);
   expect(active.workflow.stage).toBe('active');
   expect(active.metadata.digitalFormatEstimates).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);
+  await page.goto(`${prefix}/record/edit/${oid}`);
+  await openFormats(page);
+  await expect(formats.getByRole('checkbox', { name: 'Tabulated files' })).toBeChecked();
+  await expect(formats.getByRole('checkbox', { name: 'Image files' })).not.toBeChecked();
+  await expect(formats.getByRole('checkbox', { name: 'Other', exact: true })).not.toBeChecked();
 });
 
 
@@ -334,4 +356,139 @@ test('shows obsolete details alongside surviving controls on historical choices'
   expect(updated.metadata.digitalFormatEstimates).toEqual(saved);
   await page.reload();
   await checkHistorical();
+});
+
+
+/** Render the real PDF service against the authorized portal page. Capture its staging-disk output. */
+async function renderCheckboxPdf(page: Page, baseURL: string, oid: string, output: string): Promise<string> {
+  const pdfRequire = createRequire(path.resolve('packages/sails-hook-redbox-pdfgen/package.json'));
+  const { Effect } = pdfRequire('effect');
+  const { installPdfgenTestGlobals, clearPdfgenTestGlobals } =
+    require('../../packages/sails-hook-redbox-pdfgen/test/support/globals');
+  const cookies = await page.context().cookies(baseURL);
+  installPdfgenTestGlobals({ appUrl: baseURL });
+  try {
+    const { Services } = pdfRequire('./dist/api/services/PDFService.js');
+    const service = new Services.PDF();
+    const globals = globalThis as any;
+    service.DatastreamService = globals.sails.services.standarddatastreamservice;
+    const staged = globals.StorageManagerService.stagingDisk().put;
+    const launch = service.launchBrowser.bind(service);
+    service.launchBrowser = async (options: object) => {
+      const browser = await launch({ ...options, executablePath: chromium.executablePath() });
+      const newPage = browser.newPage.bind(browser);
+      browser.newPage = async () => {
+        const pdfPage = await newPage();
+        await pdfPage.setCookie(...cookies.map(({ name, value, domain, path, httpOnly, secure, sameSite }) =>
+          ({ name, value, domain, path, httpOnly, secure, sameSite })));
+        return pdfPage;
+      };
+      return browser;
+    };
+    const exit = await Effect.runPromiseExit(service.attemptPDFGeneration(oid, {}, {
+      token: 'session-authenticated-pdf-test',
+      readinessStrategy: 'selector',
+      waitForSelector: '.rb-view-checkbox-details li',
+      readinessTimeout: 15000,
+    }, { name: 'default' }, 1));
+    expect(exit._tag, JSON.stringify(exit)).toBe('Success');
+    expect(staged.calledOnce).toBe(true);
+    const buffer = staged.firstCall.args[1] as Uint8Array;
+    await writeFile(output, buffer);
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const pdf = getDocument({ data: new Uint8Array(buffer) });
+    try {
+      const doc = await pdf.promise;
+      const pages: string[] = [];
+      for (let number = 1; number <= doc.numPages; number++) {
+        const content = await (await doc.getPage(number)).getTextContent();
+        pages.push(content.items.map(item => 'str' in item ? item.str : '').join(' '));
+      }
+      return pages.join(' ');
+    } finally {
+      await pdf.destroy();
+    }
+  } finally {
+    clearPdfgenTestGlobals();
+  }
+}
+
+test('recovers an inline lookup and prints the saved details while its vocabulary is missing', async ({ page, baseURL }, testInfo) => {
+  await page.goto(newRecord);
+  await page.getByRole('textbox', { name: 'Project title' }).fill('Synthetic inline vocabulary recovery');
+  const draft = await save(page, 'Save draft', 'POST', demoType);
+  const oid: string = draft.redboxOid;
+  const originalForm = draft.metaMetadata.form;
+  const formName = `checkbox-details-inline-${oid}`;
+  const vocabId = new ObjectId();
+  const saved = [{
+    value: 'legacy-media',
+    details: { volume: '1 TB', legacyNotes: 'Stored on tape', privateReference: 'Hidden fixture value' },
+  }];
+  const mongo = await new MongoClient(process.env.CHECKBOX_DETAILS_MONGO_URL ?? 'mongodb://mongodb:27017', {
+    serverSelectionTimeoutMS: 5000,
+  }).connect();
+  const portal = mongo.db('redbox-portal');
+  const forms = portal.collection('form');
+  const vocabs = portal.collection('vocabulary');
+  const entries = portal.collection('vocabularyentry');
+  const records = mongo.db('redbox-storage').collection('record');
+  try {
+    // The copied form and vocabulary apply only to this synthetic record.
+    const source = await forms.findOne({ name: originalForm });
+    expect(source).toBeTruthy();
+    const { _id: _formId, ...form } = source!;
+    form.name = formName;
+    form.configuration.name = formName;
+    const formatsTab = form.configuration.componentDefinitions[0].component.config.tabs[1];
+    Object.assign(formatsTab.component.config.componentDefinitions[0].component.config, {
+      vocabRef: formName, inlineVocab: true,
+    });
+    await forms.insertOne(form);
+    await records.updateOne({ redboxOid: oid }, {
+      $set: { 'metaMetadata.form': formName, 'metadata.digitalFormatEstimates': saved },
+    });
+
+    const openEdit = async () => {
+      await page.goto(`${prefix}/record/edit/${oid}`);
+      await openFormats(page);
+      await expect(page.getByText('Options could not be loaded.')).toBeVisible();
+    };
+    await openEdit();
+    const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
+    await expect(formats.getByRole('checkbox', { name: 'legacy-media', exact: true })).toBeChecked();
+    await expect(formats.locator('dt')).toHaveText(['Estimated volume', 'legacyNotes']);
+    await expect(formats.locator('dd')).toHaveText(['1 TB', 'Stored on tape']);
+    await expect(formats.getByRole('textbox')).toHaveCount(0);
+    await formats.screenshot({ path: testInfo.outputPath('inline-missing-edit.png') });
+
+    await page.goto(`${prefix}/record/view/${oid}`);
+    const view = page.locator('.rb-view-checkbox-details');
+    await expect(view).toContainText('legacy-media');
+    await expect(view).toContainText('Stored on tape');
+    await view.screenshot({ path: testInfo.outputPath('inline-missing-view.png') });
+    const pdfText = await renderCheckboxPdf(page, baseURL!, oid, testInfo.outputPath('missing-vocabulary.pdf'));
+    for (const text of ['legacy-media', 'Estimated volume', '1 TB', 'legacyNotes', 'Stored on tape']) {
+      expect(pdfText).toContain(text);
+    }
+    expect(pdfText).not.toContain('Hidden fixture value');
+
+    await openEdit();
+    const sourceVocab = await vocabs.findOne({ slug: 'checkbox-details-formats' });
+    expect(sourceVocab).toBeTruthy();
+    const sourceEntries = await entries.find({ vocabulary: sourceVocab!._id }).toArray();
+    await vocabs.insertOne({ ...sourceVocab!, _id: vocabId, slug: formName, name: formName });
+    await entries.insertMany(sourceEntries.map(({ _id, ...entry }) => ({ ...entry, vocabulary: vocabId })));
+    await formats.getByRole('button', { name: 'Try again' }).click();
+    await expect(formats.getByRole('checkbox', { name: 'Legacy media', exact: true })).toBeChecked();
+    await expect(formats.getByRole('textbox', { name: 'Estimated volume — Legacy media' })).toHaveValue('1 TB');
+    await expect(formats.locator('dd')).toHaveText(['Stored on tape']);
+    await formats.screenshot({ path: testInfo.outputPath('inline-recovered-edit.png') });
+  } finally {
+    await records.updateOne({ redboxOid: oid }, { $set: { 'metaMetadata.form': originalForm } });
+    await forms.deleteOne({ name: formName });
+    await entries.deleteMany({ vocabulary: vocabId });
+    await vocabs.deleteOne({ _id: vocabId });
+    await mongo.close();
+  }
 });

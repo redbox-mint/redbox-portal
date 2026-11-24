@@ -242,6 +242,74 @@ describe('CheckboxWithDetailsComponent', () => {
     expect(fixture.nativeElement.querySelector('textarea').value).toBe('Instrument exports');
   });
 
+  it('allows only removals during a lookup, including retry, and respects locked selections', async () => {
+    const stored = ['tabulated', 'img', 'other./~', 'locked'].map(value => ({ value, details: { volume: '1 TB' } }));
+    const editable = field('formats', stored);
+    const readOnly = field('readonlyFormats', [stored[0]]);
+    const historicalLocked = field('retiredFormats', [stored[0]]);
+    const disabled = field('disabledFormats', [stored[0]]);
+    for (const definition of [editable, readOnly, historicalLocked, disabled]) {
+      const definitionConfig = definition.component.config!;
+      delete definitionConfig.options;
+      definitionConfig.vocabRef = definition.name!;
+    }
+    editable.component.config!.enabledOptionValues = ['tabulated', 'img', 'other./~'];
+    readOnly.component.config!.readonly = true;
+    disabled.layout!.config!.disabled = true;
+    historicalLocked.component.config!.historicalVocabMode = 'disable';
+    let reject!: (reason: Error) => void;
+    let resolve!: (options: TypeaheadOption[]) => void;
+    const initialLookup = new Promise<TypeaheadOption[]>((_, rejectRequest) => { reject = rejectRequest; });
+    const retryLookup = new Promise<TypeaheadOption[]>(resolveRequest => { resolve = resolveRequest; });
+    let attempts = 0;
+    spyOn(TestBed.inject(TypeaheadDataService), 'searchVocabularyEntries').and.callFake(ref =>
+      ref === 'formats' && ++attempts > 1 ? retryLookup : initialLookup
+    );
+    const { fixture, formComponent } = await createFormAndWaitForReady(
+      config([editable, readOnly, historicalLocked, disabled]), { editMode: true }
+    );
+    const root: HTMLElement = fixture.nativeElement;
+    const [editableSection, readOnlySection, historicalSection, disabledSection] =
+      Array.from(root.querySelectorAll('redbox-checkbox-with-details'));
+    const [first, second, third, locked] =
+      Array.from(editableSection.querySelectorAll<HTMLInputElement>('input[type=checkbox]'));
+    const selection = formComponent.form!.get('formats')!;
+
+    expect(editableSection.querySelector('dl')?.textContent).toContain('1 TB');
+    expect(editableSection.querySelector('input[type=text], textarea')).toBeNull();
+    expect(first.disabled).toBeFalse();
+    expect(locked.disabled).toBeTrue();
+    expect(readOnlySection.querySelector('fieldset')?.disabled).toBeTrue();
+    expect(historicalSection.querySelector<HTMLInputElement>('input')?.disabled).toBeTrue();
+    expect(disabledSection.querySelector('fieldset')?.disabled).toBeTrue();
+    first.click();
+    fixture.detectChanges();
+    expect(first.disabled).toBeTrue();
+    first.click();
+    expect(selection.value).toEqual(stored.slice(1));
+
+    reject(new Error('Synthetic missing lookup'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(second.disabled).toBeFalse();
+    second.click();
+    fixture.detectChanges();
+    expect(second.disabled).toBeTrue();
+
+    editableSection.querySelector('button')!.click();
+    third.click();
+    expect(selection.value).toEqual(stored.slice(3));
+    resolve(stored.map(({ value }) => ({ value, label: value })));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(selection.value).toEqual(stored.slice(3));
+    expect(formComponent.form!.get('readonlyFormats')!.getRawValue()).toEqual([stored[0]]);
+    expect(formComponent.form!.get('retiredFormats')!.getRawValue()).toEqual([stored[0]]);
+    expect(Array.from(editableSection.querySelectorAll<HTMLInputElement>('input[type=checkbox]'))
+      .map(option => option.checked)).toEqual([false, false, false, true]);
+  });
+
   it('blocks enabled child validation while lookup is pending or failed and validates the latest rows after retry', async () => {
     const saved = { value: 'other./~', details: { volume: '3 TB' } };
     const definition = field('formats', [saved]);
