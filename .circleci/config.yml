@@ -839,16 +839,16 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
-            - v1-npm-cache-{{ arch }}-{{ .Branch }}
-            - v1-npm-cache-
       - attach_workspace:
           at: /tmp
       - run:
-          name: Install audit dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps --no-audit
+          name: Install the audit's TypeScript dependency
+          command: |
+            # The audit only parses sources with TypeScript; a full root install
+            # exceeds this executor's memory.
+            version="$(node -p "require('./package-lock.json').packages['node_modules/typescript'].version")"
+            npm install --prefix /tmp/audit-deps --no-audit --no-fund --ignore-scripts "typescript@$version"
+            echo 'export NODE_PATH=/tmp/audit-deps/node_modules' >> "$BASH_ENV"
       - run:
           name: Check production HTTP authorization decision coverage
           command: |
