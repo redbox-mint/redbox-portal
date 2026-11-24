@@ -244,7 +244,12 @@ function priorRepeatableRows(
       if (priors?.length === 1 && indices.length === 1) {
         claim(indices[0], priors[0]);
       } else if (priors?.length) {
-        indices.forEach(index => ambiguous.add(index));
+        // Equal archived answers can stay in their original slots when other fields change.
+        // A different slot still needs a unique match to move an archived answer.
+        const priorSlots = new Set(priors);
+        for (const index of indices) {
+          if (!priorSlots.has(index)) ambiguous.add(index);
+        }
       }
     }
   }

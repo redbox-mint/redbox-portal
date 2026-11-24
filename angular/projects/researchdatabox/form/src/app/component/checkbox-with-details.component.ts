@@ -25,6 +25,8 @@ import { ControlSetValueOptions, CustomSetValueControl } from '../form-state/cus
 import { TypeaheadDataService } from '../service/typeahead-data.service';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 
+type EditorOption = CheckboxWithDetailsOption & { storedOnly?: true };
+
 type DetailsControl = FormRecord<FormControl<string | null>>;
 type RowControl = FormGroup<{ value: FormControl<string>; details: DetailsControl }>;
 
@@ -175,15 +177,15 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
     return this.outerLabel || this.label || 'checkbox-details-label';
   }
 
-  protected get options(): CheckboxWithDetailsOption[] {
+  protected get options(): EditorOption[] {
     const options = this.config.options ?? [];
-    const result = options.filter(
+    const result: EditorOption[] = options.filter(
       option =>
         !option.historical || this.config.historicalVocabMode === 'disable' || this.initiallySelected.has(option.value)
     );
     const known = new Set(options.map(option => option.value));
     for (const value of this.initiallySelected) {
-      if (!known.has(value)) result.push({ value, label: value, historical: true });
+      if (!known.has(value)) result.push({ value, label: value, historical: true, storedOnly: true });
     }
     return result;
   }
@@ -301,18 +303,20 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
     return this.isReadonly || this.isDisabled || this.formFieldCompMapEntry?.compConfigJson.layout?.config?.disabled === true;
   }
 
-  protected optionDisabled(option: CheckboxWithDetailsOption): boolean {
+  protected optionDisabled(option: EditorOption): boolean {
+    if (this.selectionLocked || option.disabled) return true;
+    // A stored-only label provides no vocabulary policy. The editor can always
+    // remove that answer; reselecting it must pass the usual choice checks.
+    if (option.storedOnly && this.selectedRow(option.value)) return false;
     const enabled = this.config.enabledOptionValues;
     return (
-      this.selectionLocked ||
-      (this.loadState() !== 'ready' && !this.selectedRow(option.value)) ||
-      !!option.disabled ||
+      this.loadState() !== 'ready' ||
       (option.historical === true && this.config.historicalVocabMode === 'disable') ||
       (Array.isArray(enabled) && !enabled.includes(option.value))
     );
   }
 
-  protected toggle(option: CheckboxWithDetailsOption, checked: boolean): void {
+  protected toggle(option: EditorOption, checked: boolean): void {
     if (this.optionDisabled(option) || !!this.selectedRow(option.value) === checked) return;
     if (checked) {
       const cached = this.rows.get(option.value);

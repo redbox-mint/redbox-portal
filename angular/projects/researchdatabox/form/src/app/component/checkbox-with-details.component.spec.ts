@@ -257,6 +257,9 @@ describe('CheckboxWithDetailsComponent', () => {
     readOnly.component.config!.readonly = true;
     disabled.layout!.config!.disabled = true;
     historicalLocked.component.config!.historicalVocabMode = 'disable';
+    const confirmed = field('confirmedFormats', [stored[0]]);
+    confirmed.component.config!.options = [{ value: 'tabulated', label: 'Retired tables', historical: true }];
+    confirmed.component.config!.historicalVocabMode = 'disable';
     let reject!: (reason: Error) => void;
     let resolve!: (options: TypeaheadOption[]) => void;
     const initialLookup = new Promise<TypeaheadOption[]>((_, rejectRequest) => { reject = rejectRequest; });
@@ -266,10 +269,10 @@ describe('CheckboxWithDetailsComponent', () => {
       ref === 'formats' && ++attempts > 1 ? retryLookup : initialLookup
     );
     const { fixture, formComponent } = await createFormAndWaitForReady(
-      config([editable, readOnly, historicalLocked, disabled]), { editMode: true }
+      config([editable, readOnly, historicalLocked, disabled, confirmed]), { editMode: true }
     );
     const root: HTMLElement = fixture.nativeElement;
-    const [editableSection, readOnlySection, historicalSection, disabledSection] =
+    const [editableSection, readOnlySection, historicalSection, disabledSection, confirmedSection] =
       Array.from(root.querySelectorAll('redbox-checkbox-with-details'));
     const [first, second, third, locked] =
       Array.from(editableSection.querySelectorAll<HTMLInputElement>('input[type=checkbox]'));
@@ -278,9 +281,11 @@ describe('CheckboxWithDetailsComponent', () => {
     expect(editableSection.querySelector('dl')?.textContent).toContain('1 TB');
     expect(editableSection.querySelector('input[type=text], textarea')).toBeNull();
     expect(first.disabled).toBeFalse();
-    expect(locked.disabled).toBeTrue();
+    expect(locked.disabled).toBeFalse();
     expect(readOnlySection.querySelector('fieldset')?.disabled).toBeTrue();
-    expect(historicalSection.querySelector<HTMLInputElement>('input')?.disabled).toBeTrue();
+    const unresolved = historicalSection.querySelector<HTMLInputElement>('input')!;
+    expect(unresolved.disabled).toBeFalse();
+    expect(confirmedSection.querySelector<HTMLInputElement>('input')!.disabled).toBeTrue();
     expect(disabledSection.querySelector('fieldset')?.disabled).toBeTrue();
     first.click();
     fixture.detectChanges();
@@ -291,6 +296,10 @@ describe('CheckboxWithDetailsComponent', () => {
     reject(new Error('Synthetic missing lookup'));
     await fixture.whenStable();
     fixture.detectChanges();
+    unresolved.click();
+    fixture.detectChanges();
+    expect(unresolved.checked).toBeFalse();
+    expect(unresolved.disabled).toBeTrue();
     expect(second.disabled).toBeFalse();
     second.click();
     fixture.detectChanges();
@@ -299,15 +308,22 @@ describe('CheckboxWithDetailsComponent', () => {
     editableSection.querySelector('button')!.click();
     third.click();
     expect(selection.value).toEqual(stored.slice(3));
-    resolve(stored.map(({ value }) => ({ value, label: value })));
+    // The last stored code was deleted and is also excluded by enabledOptionValues.
+    resolve(stored.slice(0, 3).map(({ value }) => ({ value, label: value })));
     await fixture.whenStable();
     fixture.detectChanges();
     await fixture.whenStable();
     expect(selection.value).toEqual(stored.slice(3));
     expect(formComponent.form!.get('readonlyFormats')!.getRawValue()).toEqual([stored[0]]);
-    expect(formComponent.form!.get('retiredFormats')!.getRawValue()).toEqual([stored[0]]);
+    expect(formComponent.form!.get('retiredFormats')!.getRawValue()).toEqual([]);
     expect(Array.from(editableSection.querySelectorAll<HTMLInputElement>('input[type=checkbox]'))
       .map(option => option.checked)).toEqual([false, false, false, true]);
+    const deleted = editableSection.querySelectorAll<HTMLInputElement>('input[type=checkbox]')[3];
+    expect(deleted.disabled).toBeFalse();
+    deleted.click();
+    fixture.detectChanges();
+    expect(selection.value).toEqual([]);
+    expect(deleted.disabled).toBeTrue();
   });
 
   it('blocks enabled child validation while lookup is pending or failed and validates the latest rows after retry', async () => {

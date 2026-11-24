@@ -253,8 +253,12 @@ describe('Checkbox with details form', () => {
       assert.ok(errors.length > 0);
       assert.ok(errors.every(error => /checkbox-details-(option|field)/.test(error.errors[0].message)));
     }
+    const sharedArchives = { projects: [{ ...first, formats: [archived] }, second] };
+    const editedInPlace = sharedArchives.projects.map(project => ({ ...project, name: project.name + ' updated' }));
+    assert.deepEqual(await validate(editedInPlace, sharedArchives), []);
+    assert.ok((await validate([...editedInPlace, { ...renamed, name: 'Extra' }], sharedArchives)).length > 0);
     const ambiguous = await validate([renamed], {
-      projects: [{ ...first, formats: [archived] }, second, third],
+      projects: [first, second, { ...third, formats: [archived] }],
     });
     assert.equal(ambiguous[0].errors[0].message, '@validator-error-checkbox-details-option');
 
