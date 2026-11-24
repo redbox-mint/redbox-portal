@@ -1,6 +1,8 @@
+import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'chai';
 import { MongoClient, Collection } from 'mongodb';
+import { NamedQueryParameterError } from '../../src/queries/namedQueryParameters';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from '../services/testHelper';
 
 describe('declared named-query relations', function () {
@@ -91,8 +93,8 @@ describe('declared named-query relations', function () {
     expect((await run()).summary.numFound).to.equal(2);
   });
   it('rejects operator injection through a request parameter', async () => {
-    await rejects(run([filter({ 'metadata.active': null })], { value: { $ne: false } }, { value: { path: 'metadata.active', type: 'string' } }), 'literal values');
-    await rejects(run([filter({ 'metadata.active': null })], { value: '[{"$ne":false}]' }, { value: { path: 'metadata.active', type: 'array' } }), 'literal values');
+    await assert.rejects(run([filter({ 'metadata.active': null })], { value: { $ne: false } }, { value: { path: 'metadata.active', type: 'string' } }), NamedQueryParameterError);
+    await assert.rejects(run([filter({ 'metadata.active': null })], { value: '[{"$ne":false}]' }, { value: { path: 'metadata.active', type: 'array' } }), NamedQueryParameterError);
   });
   it('rejects template-selected operators from undeclared request parameters in source predicates', async () => {
     const params = { flag: 'unused', payload: { $ne: true } };
@@ -116,12 +118,12 @@ describe('declared named-query relations', function () {
       mongoQuery: { 'metaMetadata.type': 'activity', 'metadata.active': null },
       queryParams: { flag: { path: 'metadata.active', type: 'string', template: 'paramMap.payload' } }
     } as any, params, brand, 0, 10, user);
-    await rejects(legacy({ flag: 'unused', payload: { $ne: true } }), 'literal value');
+    await assert.rejects(legacy({ flag: 'unused', payload: { $ne: true } }), NamedQueryParameterError);
     const direct = service.performNamedQueryFromConfig({
       collectionName: 'record', resultObjectMapping: {}, mongoQuery: { 'metaMetadata.type': 'activity' },
       queryParams: { title: { path: 'metadata.title', type: 'string' } }
     } as any, { title: { $exists: false } }, brand, 0, 10, user);
-    await rejects(direct, 'literal value');
+    await assert.rejects(direct, NamedQueryParameterError);
     // A literal template-selected value still matches as before.
     expect((await legacy({ flag: 'unused', payload: 'nothing' })).summary.numFound).to.equal(0);
   });
