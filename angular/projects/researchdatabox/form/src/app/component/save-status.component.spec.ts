@@ -1,6 +1,8 @@
+import { HttpTestingController } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { Store } from '@ngrx/store';
 import { FormConfigFrame, FormStatus } from '@researchdatabox/sails-ng-common';
+import english from '../../../../../../../language-defaults/en/translation.json';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import * as FormActions from '../form-state/state/form.actions';
 import {
@@ -11,6 +13,7 @@ import {
   FormComponentEventBus,
   FormStateFacade,
 } from '../form-state';
+import { SaveButtonComponent } from './save-button.component';
 import { SaveStatusComponent } from './save-status.component';
 import { SimpleInputComponent } from './simple-input.component';
 
@@ -21,6 +24,7 @@ describe('SaveStatusComponent', () => {
     const { translationService } = await createTestbedModule({
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
+        "SaveButtonComponent": SaveButtonComponent,
         "SaveStatusComponent": SaveStatusComponent,
       }
     });
@@ -31,9 +35,12 @@ describe('SaveStatusComponent', () => {
       '@dmpt-form-save-warning-update': 'Your changes were saved, but some follow-up processing could not be completed.',
       '@dmpt-form-save-schema-warning': 'Saved, but the record schema check reported a problem.',
       '@dmpt-form-save-advisory': 'Saved. The server reported these suggestions or adjustments:',
+      '@dmpt-form-save-unknown-create': english['@dmpt-form-save-unknown-create'],
       '@dmpt-form-save-unknown-update': 'We couldn’t confirm whether your changes were saved. Reference: {{requestId}}.',
       '@storage-workspace-save-warning': 'The storage request could not be completed. Request ID: {{requestId}}. Please contact support for help.',
       '@record-save-save-not-applied': 'The changes were not saved.',
+      '@record-save-failed': english['@record-save-failed'],
+      '@record-save-record-validation-timeout': english['@record-save-record-validation-timeout'],
     });
     formConfig = {
       name: 'testing',
@@ -143,6 +150,144 @@ describe('SaveStatusComponent', () => {
     expect(error?.textContent).toContain('Error while saving:');
     expect(error?.textContent).toContain('The form is invalid.');
   });
+
+  for (const { label, status, statusText, validationPhase, hasOtherProblem, hasOtherIssue, primaryMessage, unconfirmedCreate } of [
+    {
+      label: 'shows the post-save validation timeout and permits retry after HTTP 200',
+      status: 200,
+      statusText: 'OK',
+      validationPhase: 'post-save',
+    },
+    { label: 'shows the validation timeout and permits retry after HTTP 500', status: 500, statusText: 'Internal Server Error' },
+    {
+      label: 'keeps the primary save error when another problem reports a validation timeout',
+      status: 500,
+      statusText: 'Internal Server Error',
+      hasOtherProblem: true,
+      primaryMessage: '@record-save-save-not-applied',
+    },
+    {
+      label: 'keeps the generic save error when a timeout accompanies another problem',
+      status: 500,
+      statusText: 'Internal Server Error',
+      hasOtherProblem: true,
+    },
+    {
+      label: 'keeps the generic save error when the top-level timeout accompanies another problem',
+      status: 500,
+      statusText: 'Internal Server Error',
+      hasOtherProblem: true,
+      primaryMessage: '@record-save-record-validation-timeout',
+    },
+    {
+      label: 'keeps the generic save error when a timeout shares its problem with another issue',
+      status: 500,
+      statusText: 'Internal Server Error',
+      hasOtherIssue: true,
+    },
+    {
+      label: 'keeps the unconfirmed-create message when the response also reports a timeout',
+      status: 500,
+      statusText: 'Internal Server Error',
+      primaryMessage: '@record-save-record-validation-timeout',
+      unconfirmedCreate: true,
+    },
+  ]) {
+    it(label, fakeAsync(() => {
+      const config: FormConfigFrame = {
+        ...formConfig,
+        componentDefinitions: [
+          ...formConfig.componentDefinitions!,
+          { name: 'save_button', component: { class: 'SaveButtonComponent' } },
+        ],
+      };
+      let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+      const formProps = unconfirmedCreate ? { editMode: true, oid: '' } : { editMode: true };
+      void createFormAndWaitForReady(config, formProps).then(result => { mounted = result; });
+      tick(250);
+
+      const { fixture, formComponent } = mounted;
+      const root: HTMLElement = fixture.nativeElement;
+      const input = root.querySelector<HTMLInputElement>('redbox-simpleinput input')!;
+      const button = root.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
+      const errorBanner = () => root.querySelector('.rb-form-save-status.alert-danger');
+      const http = TestBed.inject(HttpTestingController);
+      const target = unconfirmedCreate ? formComponent.recordType() : formComponent.oid();
+      const url = `${formComponent.recordService.brandingAndPortalUrl}/recordmeta/${target}`;
+      const saveRequest = { method: unconfirmedCreate ? 'POST' : 'PUT', url };
+      const issue = { code: 'record-validation-timeout', message: '@record-save-record-validation-timeout' };
+      const otherIssue = { code: 'save-not-applied', message: '@record-save-save-not-applied' };
+      const timeoutProblem = {
+        kind: 'system',
+        phase: validationPhase ?? 'pre-save',
+        issues: hasOtherIssue ? [issue, otherIssue] : [issue],
+      };
+      const timeoutResult = {
+        success: false,
+        outcome: unconfirmedCreate ? 'unknown' : 'not-saved',
+        message: primaryMessage ?? '@record-save-failed',
+        problems: hasOtherProblem ? [
+          { kind: 'system', phase: 'persistence', issues: [otherIssue] },
+          timeoutProblem,
+        ] : [timeoutProblem],
+      };
+
+      input.value = 'My unsaved edits';
+      input.dispatchEvent(new Event('input'));
+      tick();
+      fixture.detectChanges();
+      expect(button.disabled).toBeFalse();
+
+      button.click();
+      tick();
+      fixture.detectChanges();
+      const request = http.expectOne(saveRequest);
+      expect(request.request.body).toEqual({ text_1_event: 'My unsaved edits' });
+      request.flush(status === 500
+        ? { meta: timeoutResult, errors: [{ code: issue.code, title: issue.message }] }
+        : timeoutResult, { status, statusText });
+      tick();
+      fixture.detectChanges();
+
+      const visibleMessage = errorBanner()?.textContent?.replace(/\s+/g, ' ').trim();
+      expect(input.value).toBe('My unsaved edits');
+      expect(formComponent.hasChangesToSave()).toBeTrue();
+      http.expectNone(saveRequest);
+      if (unconfirmedCreate) {
+        const warning = root.querySelector('.rb-form-save-status.alert-warning');
+        expect(warning?.textContent).toContain('We couldn’t confirm whether the record was created.');
+        expect(visibleMessage).toBeUndefined();
+        return;
+      }
+
+      const otherMessage = primaryMessage === '@record-save-save-not-applied'
+        ? 'The changes were not saved.'
+        : english['@record-save-failed'];
+      expect(visibleMessage).toBe(hasOtherProblem || hasOtherIssue
+        ? `Error while saving: ${otherMessage}`
+        : 'Validation timed out. Please try again.');
+      expect(button.disabled).toBeFalse();
+
+      // Let the duplicate-click throttle expire before the user retries.
+      tick(250);
+      button.click();
+      tick();
+      fixture.detectChanges();
+      expect(errorBanner()).toBeNull();
+      const retry = http.expectOne(saveRequest);
+      expect(retry.request.body).toEqual({ text_1_event: 'My unsaved edits' });
+      retry.flush({
+        outcome: 'saved',
+        oid: formComponent.oid(),
+        completion: { attachments: { status: 'not-required', items: [] } },
+      });
+      tick();
+      fixture.detectChanges();
+      expect(root.querySelector('.rb-form-save-status.alert-success')).not.toBeNull();
+      expect(formComponent.hasChangesToSave()).toBeFalse();
+      tick(3000);
+    }));
+  }
 
   it('keeps a server validation failure visible when interactive validation settles', fakeAsync(() => {
     let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
