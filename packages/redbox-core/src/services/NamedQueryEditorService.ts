@@ -33,6 +33,7 @@ import { GRID_LIMITS } from '../record-graphql/grid-types';
 import type { ReadCaller } from '../record-graphql/read-record';
 import { Services as CoreServices } from '../CoreService';
 import type { BrandingModel } from '../model';
+import { NamedQueryParameterError } from '../queries/namedQueryParameters';
 import type { FormRecordAccessContext } from './FormsService';
 import { Services as FieldServices } from './FieldDescriptionsService';
 import { NamedQueryResponseRecord } from './NamedQueryService';
@@ -766,7 +767,12 @@ export namespace Services {
           caller.user,
           budget
         )
-      );
+      ).catch((error: unknown) => {
+        if (error instanceof NamedQueryParameterError) {
+          throw new NamedQueryAssistanceError('PREVIEW_UNSAFE_QUERY', 422);
+        }
+        throw error;
+      });
       if (result.source === 'graphql') throw new NamedQueryAssistanceError('UNSUPPORTED_QUERY_SOURCE', 422);
       response.summary = { numFound: result.summary.numFound, start: 0, page: 1 };
       if (result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows) response.truncationReasons.push('rows');
