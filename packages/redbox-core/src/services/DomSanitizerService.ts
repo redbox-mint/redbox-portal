@@ -152,11 +152,63 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
   throw new Error('DomSanitizerService: Failed to initialise DOMPurify with hook support');
 };
 
+// Mounted hooks can load core through a second package path. Share the state of
+// the warm-up of the common DOM window while keeping each module's hooks local.
+const warmUpKey = Symbol.for(`@researchdatabox/redbox-core/domSanitizerWarmUp/${domPurify.version}`);
+const state = globalThis as typeof globalThis & {
+  [warmUpKey]?: { attempted: boolean; ready: boolean };
+};
+const warmUpState = (state[warmUpKey] ??= { attempted: false, ready: false });
 let purifier: DomPurifyInstance | undefined;
-/** Cache the purifier on first use, leaving failed initialisation available for retry. */
-const getDOMPurify = (): DomPurifyInstance => (purifier ??= initialiseDOMPurify());
 
-// Preserve the global export for hooks while avoiding a browser DOM at lift.
+/** Cache the purifier on first use, leaving failed initialisation available for retry. */
+const getDOMPurify = (): DomPurifyInstance => {
+  if (!purifier) {
+    purifier = initialiseDOMPurify();
+    warmUpState.ready = true;
+  }
+  return purifier;
+};
+
+/**
+ * Report readiness of the shared DOM window for this DOMPurify version.
+ * Another module copy can still initialise its own purifier on first use.
+ */
+export function getSanitizerState(): 'cold' | 'warm' {
+  return warmUpState.ready ? 'warm' : 'cold';
+}
+
+/**
+ * Initialise the common JSDOM window and this module's purifier at startup.
+ * Attempt warm-up once per DOMPurify version and leave lazy initialisation
+ * available if the attempt fails.
+ */
+export function warmSanitizer(): 'cold' | 'warm' {
+  if (warmUpState.ready || warmUpState.attempted) {
+    return getSanitizerState();
+  }
+  warmUpState.attempted = true;
+  const started = process.hrtime.bigint();
+  try {
+    getDOMPurify();
+  } catch (error) {
+    try {
+      sails.log.warn('DomSanitizerService:: sanitizer warm-up failed; falling back to lazy initialisation', error);
+    } catch {
+      // Leave the lazy fallback available even if the logger is unavailable.
+    }
+    return 'cold';
+  }
+  const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
+  try {
+    sails.log.verbose(`DomSanitizerService:: sanitizer warmed in ${elapsedMs.toFixed(1)}ms`);
+  } catch {
+    // Diagnostics must not prevent startup.
+  }
+  return 'warm';
+}
+
+// Preserve the global export for hooks without creating a DOM on module import.
 Object.defineProperty(globalThis, 'DOMPurify', {
   configurable: true,
   enumerable: true,
