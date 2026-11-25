@@ -205,6 +205,36 @@ test('initializes a newly selected row after reopening a saved record', async ({
   ]);
 });
 
+test('restores saved details when a researcher reselects a choice after its vocabulary loads', async ({ page }) => {
+  await page.goto(newRecord);
+  await page.getByRole('textbox', { name: 'Project title' }).fill('Undo while loading formats');
+  await openFormats(page);
+  const other = page.getByRole('checkbox', { name: 'Other', exact: true });
+  const description = page.getByRole('textbox', { name: 'Describe the format — Other' });
+  await other.check();
+  await description.fill('Instrument output saved before this session');
+  const draft = await save(page, 'Save draft', 'POST', demoType);
+
+  let resumeLookup!: () => void;
+  const paused = new Promise<void>(resolve => { resumeLookup = resolve; });
+  await page.route(url => url.pathname === formatsLookupPath, async route => {
+    await paused;
+    await route.continue();
+  }, { times: 1 });
+  try {
+    await page.goto(`${prefix}/record/edit/${draft.redboxOid}`);
+    await openFormats(page);
+    const pending = page.getByRole('checkbox', { name: 'other', exact: true });
+    await expect(pending).toBeChecked();
+    await pending.uncheck();
+  } finally {
+    resumeLookup();
+  }
+  await expect(other).not.toBeChecked();
+  await other.check();
+  await expect(description).toHaveValue('Instrument output saved before this session');
+});
+
 test('saves removals during a pending and failed lookup and validates retained rows after retry', async ({ page }, testInfo) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
   const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
