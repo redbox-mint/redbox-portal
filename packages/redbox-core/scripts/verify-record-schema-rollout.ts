@@ -151,6 +151,7 @@ export interface RecordSchemaRolloutEvidenceOptions {
 // fixtures are added to the development hook's form registry.
 const DEFAULT_FORMS: readonly RecordSchemaRolloutEvidenceForm[] = Object.freeze(
   [
+    'checkbox-details-1.0',
     'dataPublication-1.0-draft',
     'dataPublication-1.0-embargoed',
     'dataPublication-1.0-published',
