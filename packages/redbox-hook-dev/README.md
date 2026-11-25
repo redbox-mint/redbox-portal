@@ -44,8 +44,11 @@ row to be complete. Reopen the record to verify the saved selections or open
 its View page to print the labelled answers.
 
 Run the browser acceptance test from the portal checkout against an isolated
-development stack. The test uses MongoDB to seed one synthetic record with
-metadata from a prior form version.
+development stack. The test runner needs read and write access to both MongoDB
+databases on that stack. Two scenarios seed synthetic records in `redbox-storage`.
+The inline-vocabulary scenario also creates a temporary form, vocabulary, and
+vocabulary entries in `redbox-portal`. Set `CHECKBOX_DETAILS_MONGO_URL` to the
+MongoDB instance used by the portal at `PLAYWRIGHT_BASE_URL`.
 
 ```sh
 CHECKBOX_DETAILS_MONGO_URL=mongodb://localhost:27017 PLAYWRIGHT_BASE_URL=http://localhost:1500 \

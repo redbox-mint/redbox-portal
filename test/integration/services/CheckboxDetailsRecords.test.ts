@@ -11,14 +11,21 @@ describe('Checkbox details records', function () {
   const savePath = '/default/rdmp/recordmeta';
   const vocabulary = 'checkbox-details-formats';
   const storedFormats = [{ value: 'tabulated', details: { volume: '1 TB' } }];
-  const oids: string[] = [];
+  const oids = new Set<string>();
 
   afterEach(async function () {
     sinon.restore();
-    for (const redboxOid of oids.splice(0)) {
-      await RecordAudit.destroy({ redboxOid });
-      await Record.destroy({ redboxOid });
+    const errors: unknown[] = [];
+    for (const redboxOid of oids) {
+      const results = await Promise.allSettled([
+        RecordAudit.destroy({ redboxOid }),
+        Record.destroy({ redboxOid }),
+      ]);
+      const failed = results.filter(result => result.status === 'rejected');
+      if (failed.length) errors.push(...failed.map(result => result.reason));
+      else oids.delete(redboxOid);
     }
+    if (errors.length) throw new AggregateError(errors, 'Could not remove all checkbox test records');
   });
 
   function expectSaved(response: Response): void {
@@ -42,7 +49,7 @@ describe('Checkbox details records', function () {
     const create = async (metadata: Record<string, unknown>): Promise<Response> => {
       const response = await session.post(`${savePath}/checkbox-details-demo`)
         .set(headers).query({ operation: 'draft' }).send(metadata);
-      if (response.body.data?.redboxOid) oids.push(response.body.data.redboxOid);
+      if (response.body.data?.redboxOid) oids.add(response.body.data.redboxOid);
       return response;
     };
     const update = (oid: string, metadata: Record<string, unknown>, query: Record<string, string> = { operation: 'draft' }) =>
@@ -133,7 +140,9 @@ describe('Checkbox details records', function () {
       const result = await getEntries(branding, ref, options);
       return ref === vocabulary && result ? { ...result, entries: [...result.entries, result.entries[0]] } : result;
     });
+    const beforeMalformedWrite = (await read(existingOid)).metadata;
     expectRejected(await amend(existingOid, { title: 'Malformed vocabulary' }), 'record-validation-configuration-failed');
+    expect((await read(existingOid)).metadata).to.deep.equal(beforeMalformedWrite);
   });
 
   it('preserves obsolete answers and reopens a record after removing its last retired static choice', async function () {
@@ -170,7 +179,7 @@ describe('Checkbox details records', function () {
       .send({ title, digitalFormatEstimates: [original] });
     expectSaved(created);
     const oid = created.body.data.redboxOid;
-    oids.push(oid);
+    oids.add(oid);
     const update = (formats: unknown[]) => session.put(`${savePath}/${oid}`).set(headers).query({ operation: 'draft' })
       .send({ title, digitalFormatEstimates: formats });
     const read = async () => (await sails.services.recordsservice.getMeta(oid)).metadata.digitalFormatEstimates;
@@ -211,7 +220,7 @@ describe('Checkbox details records', function () {
       .send({ title: 'Read without the checkbox vocabulary', digitalFormatEstimates: storedFormats });
     expectSaved(created);
     const oid: string = created.body.data.redboxOid;
-    oids.push(oid);
+    oids.add(oid);
     const saved = [{
       value: 'legacy-media',
       details: { volume: '1 TB', legacyNotes: 'Archival notes', privateReference: 'Hidden answer' },

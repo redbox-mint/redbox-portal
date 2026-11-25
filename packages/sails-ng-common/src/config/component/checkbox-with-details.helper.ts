@@ -92,8 +92,10 @@ export function readCheckboxWithDetailsRows(value: unknown): CheckboxWithDetails
   if (!Array.isArray(value)) return [];
   for (const row of value) {
     if (!row || typeof row.value !== 'string' || !row.value.trim() || rows.has(row.value)) continue;
+    const source = row.details;
+    const entries = source && typeof source === 'object' && !Array.isArray(source) ? Object.entries(source) : [];
     const details: CheckboxWithDetailsRow['details'] = Object.fromEntries(
-      Object.entries(row.details ?? {}).filter((entry): entry is [string, string | null] => {
+      entries.filter((entry): entry is [string, string | null] => {
         const [key, answer] = entry;
         return !Object.hasOwn(Object.prototype, key) && (answer === null || typeof answer === 'string');
       })

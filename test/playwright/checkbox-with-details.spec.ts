@@ -97,10 +97,18 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
     const checkbox = await tabulated.boundingBox();
     const input = await tableVolume.boundingBox();
     expect(checkbox && input).toBeTruthy();
-    if (stacked) expect(input!.x - checkbox!.x).toBeLessThan(70);
-    else expect(input!.x - checkbox!.x).toBeGreaterThan(150);
     expect(input!.x).toBeGreaterThan(checkbox!.x);
-    if (stacked) expect(input!.y).toBeGreaterThan(checkbox!.y + 30);
+    if (stacked) {
+      expect(input!.x - checkbox!.x).toBeLessThan(70);
+      expect(input!.y).toBeGreaterThan(checkbox!.y + 30);
+    } else {
+      expect(input!.x - checkbox!.x).toBeGreaterThan(150);
+      const row = page.locator('.checkbox-details__row').filter({ has: tabulated });
+      const choiceColumn = await row.locator('.form-check').boundingBox();
+      const detailsColumn = await row.locator('.checkbox-details__fields').boundingBox();
+      expect(choiceColumn && detailsColumn).toBeTruthy();
+      expect(Math.abs(choiceColumn!.y - detailsColumn!.y)).toBeLessThanOrEqual(1);
+    }
   };
   await checkLayout(false);
   await page
@@ -485,10 +493,13 @@ test('recovers an inline lookup and prints the saved details while its vocabular
     await expect(formats.locator('dd')).toHaveText(['Stored on tape']);
     await formats.screenshot({ path: testInfo.outputPath('inline-recovered-edit.png') });
   } finally {
-    await records.updateOne({ redboxOid: oid }, { $set: { 'metaMetadata.form': originalForm } });
-    await forms.deleteOne({ name: formName });
-    await entries.deleteMany({ vocabulary: vocabId });
-    await vocabs.deleteOne({ _id: vocabId });
-    await mongo.close();
+    try {
+      await records.updateOne({ redboxOid: oid }, { $set: { 'metaMetadata.form': originalForm } });
+      await forms.deleteOne({ name: formName });
+      await entries.deleteMany({ vocabulary: vocabId });
+      await vocabs.deleteOne({ _id: vocabId });
+    } finally {
+      await mongo.close();
+    }
   }
 });

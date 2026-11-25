@@ -62,6 +62,7 @@ describe('Checkbox with details form', () => {
       row('table', { volume: 'About 200 files' }),
       row(other, { volume: '3 TB', description: '<script>input</script>\nsecond line' }),
     ];
+    const expectedRows = structuredClone(saved);
     const record = { formats: saved };
     const construct = (formMode: 'edit' | 'view') =>
       new ConstructFormConfigVisitor(consoleLogger).start({ data: frame(field), record, formMode });
@@ -71,7 +72,7 @@ describe('Checkbox with details form', () => {
       formMode: 'edit',
     });
     const leaf = edit!.componentDefinitions[0];
-    assert.deepEqual(leaf.model?.config?.value, saved);
+    assert.deepEqual(leaf.model?.config?.value, expectedRows);
     const view = await new ClientFormConfigVisitor(consoleLogger).start({
       form: await construct('view'),
       formMode: 'view',
