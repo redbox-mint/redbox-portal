@@ -11,6 +11,12 @@ import { relatedPlanEmail, relatedPlanDoi } from './related-record-examples';
  */
 export const recordtype: RecordTypeConfig = {
   ...manualRecordTypes,
+  'checkbox-details-demo': {
+    packageType: 'checkbox-details-demo',
+    labels: { name: 'Checkbox details demo', namePlural: 'Checkbox details demos' },
+    recordValidation: { mode: 'enforce' },
+  },
+
 
   'pw-12-conflict-resolution': {
     packageType: 'pw-12-conflict-resolution',

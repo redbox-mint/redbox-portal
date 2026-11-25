@@ -4,6 +4,8 @@ import {
   AccordionPanelFieldComponentDefinitionOutline,
   AccordionPanelFormComponentDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  checkCheckboxWithDetailsOptions,
   CheckboxOption,
   CheckboxTreeFormComponentDefinitionOutline,
   CheckboxTreeNode,
@@ -15,6 +17,8 @@ import {
   HistoricalVocabMode,
   GroupFieldComponentDefinitionOutline,
   GroupFormComponentDefinitionOutline,
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
   RadioOption,
   RepeatableFieldComponentDefinitionOutline,
@@ -46,8 +50,28 @@ type ResolveVocabsOptions = {
   portal?: string;
   /** Config-tooling pass: inspect lookups without fetching inline vocabulary entries. */
   validateLookupsOnly?: boolean;
+  /** View, contract compilation and validated writes also resolve editor-loaded choices. */
+  resolveDeferredCheckboxDetails?: boolean;
+  checkboxDetailsOnly?: boolean;
+  /** Limit checkbox resolution to the requested vocabulary references. */
+  checkboxVocabFilter?: (vocabRef: string) => boolean;
+  /** Leave failed checkbox reads to normal validation or to stored-answer presentation. */
+  checkboxLookupFallback?: {
+    onMissingVocabulary?: (field: string) => void;
+    onReadFailure?: (field: string) => void;
+  };
 };
 
+class VocabularyEntriesReadError extends Error {}
+class VocabularyNotFoundError extends Error {}
+
+export function checkboxPresentationLookupFallback(logger: ILogger): ResolveVocabsOptions['checkboxLookupFallback'] {
+  return {
+    onMissingVocabulary: field => logger.warn(
+      `The checkbox vocabulary for '${field}' is missing. Showing stored answers for this record.`
+    ),
+  };
+}
 
 export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'VocabInlineFormConfigVisitor';
@@ -56,6 +80,10 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   private portal = '';
   private validateLookupsOnly = false;
   private includeHistoricalValues = false;
+  private resolveDeferredCheckboxDetails = false;
+  private checkboxDetailsOnly = false;
+  private checkboxVocabFilter?: ResolveVocabsOptions['checkboxVocabFilter'];
+  private checkboxLookupFallback?: ResolveVocabsOptions['checkboxLookupFallback'];
   private pendingResolutions: Promise<void>[] = [];
 
   constructor(logger: ILogger) {
@@ -76,6 +104,10 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       (typeof sails === 'undefined' ? '' : sails?.config?.auth?.defaultPortal ?? '');
     this.validateLookupsOnly = options?.validateLookupsOnly === true;
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
+    this.resolveDeferredCheckboxDetails = options?.resolveDeferredCheckboxDetails === true;
+    this.checkboxDetailsOnly = options?.checkboxDetailsOnly === true;
+    this.checkboxVocabFilter = options?.checkboxVocabFilter;
+    this.checkboxLookupFallback = options?.checkboxLookupFallback;
     this.pendingResolutions = [];
     await form.accept(this);
     await Promise.all(this.pendingResolutions);
@@ -93,7 +125,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
   async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
     const config = item.component.config;
-    if (config?.sourceType !== 'namedQuery') return;
+    if (this.checkboxDetailsOnly || config?.sourceType !== 'namedQuery') return;
     // This includes JSON-authored and reusable/migrated forms after construction.
     // Author-provided diagnostics are never trusted or copied.
     try {
@@ -126,6 +158,51 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await this.enqueueIfInlineVocab(item, item.component?.config, false);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    const config = item.component.config;
+    if (this.validateLookupsOnly || !config?.vocabRef ||
+        (!config.inlineVocab && !this.resolveDeferredCheckboxDetails) ||
+        this.checkboxVocabFilter?.(config.vocabRef) === false) return;
+    const fallback = this.checkboxLookupFallback;
+    const lookup = this.fetchAllEntries(this.branding, config.vocabRef, true, fallback !== undefined);
+    this.enqueueResolution(lookup.then(entries => {
+      config.options = entries.map(entry => ({
+        label: entry.label,
+        value: entry.value,
+        ...(entry.historical ? { historical: true } : {}),
+      }));
+      // Keep retired entries available to nested repeatable instances. The editor
+      // filters the options against the selected codes in each actual instance.
+      const unmatched = checkCheckboxWithDetailsOptions(config);
+      if (unmatched.length) {
+        this.logger.warn(`CheckboxWithDetails '${item.name}': vocabulary '${config.vocabRef}' has no entries for detail mappings ${JSON.stringify(unmatched)}.`);
+      }
+    }, error => {
+      if (error instanceof VocabularyNotFoundError && fallback?.onMissingVocabulary) {
+        fallback.onMissingVocabulary(item.name);
+        return;
+      }
+      if (!fallback || !(error instanceof VocabularyEntriesReadError)) throw error;
+      fallback.onReadFailure?.(item.name);
+      this.logger.warn(error.message);
+      this.logger.debug(error.cause);
+    }));
+  }
+
+  async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
+  }
+
+  async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
+    const previous = this.checkboxDetailsOnly;
+    this.checkboxDetailsOnly = true;
+    try {
+      for (const def of item.config?.componentDefinitions ?? []) await def.accept(this);
+    } finally {
+      this.checkboxDetailsOnly = previous;
+    }
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
@@ -195,13 +272,17 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     componentConfig: ComponentConfigWithInlineVocab | undefined,
     treeMode: boolean
   ): Promise<void> {
-    if (this.validateLookupsOnly || !componentConfig?.inlineVocab || !componentConfig.vocabRef) {
+    if (this.checkboxDetailsOnly || this.validateLookupsOnly || !componentConfig?.inlineVocab || !componentConfig.vocabRef) {
       return;
     }
 
-    this.pendingResolutions.push(
-      this.resolveInlineVocab(definition, componentConfig, treeMode)
-    );
+    this.enqueueResolution(this.resolveInlineVocab(definition, componentConfig, treeMode));
+  }
+
+  private enqueueResolution(resolution: Promise<void>): void {
+    // Traversal can await another field before Promise.all observes this result.
+    void resolution.catch(() => undefined);
+    this.pendingResolutions.push(resolution);
   }
 
   private async resolveInlineVocab(
@@ -233,21 +314,26 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
   private async fetchAllEntries(
     branding: string,
-    vocabRef: string
+    vocabRef: string,
+    includeHistoricalValues = this.includeHistoricalValues,
+    identifyReadFailures = false
   ): Promise<VocabularyEntryAttributes[]> {
     const allEntries: VocabularyEntryAttributes[] = [];
     const limit = 1000;
     let offset = 0;
     let total: number | null = null;
+    const getEntries = VocabularyService.getEntries.bind(VocabularyService);
 
     while (total === null || allEntries.length < total) {
-      const response = await VocabularyService.getEntries(branding, vocabRef, {
-        limit,
-        offset,
-        includeHistoricalValues: this.includeHistoricalValues
-      });
-      if (!response) {
-        throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
+      let response: Awaited<ReturnType<typeof VocabularyService.getEntries>>;
+      try {
+        response = await getEntries(branding, vocabRef, { limit, offset, includeHistoricalValues });
+      } catch (cause) {
+        if (!identifyReadFailures) throw cause;
+        throw new VocabularyEntriesReadError(`Could not read vocabulary '${vocabRef}' for branding '${branding}'.`, { cause });
+      }
+      if (response === null) {
+        throw new VocabularyNotFoundError(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
       }
       const pageEntries = response.entries ?? [];
       allEntries.push(...pageEntries);

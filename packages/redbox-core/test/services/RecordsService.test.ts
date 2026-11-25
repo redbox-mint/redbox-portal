@@ -59,6 +59,7 @@ import type {
   PersistRecordSchemaSaveUsageResult,
 } from '../../src/services/RecordSchemaService';
 import { isInternalRecordSchemaAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
+import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
   createCoreRecordContractContributors,
@@ -12172,8 +12173,9 @@ describe('RecordsService', function () {
         metadata: { title: string; hookSaved?: boolean; concurrent?: boolean; laterHook?: boolean };
       };
 
-      const installStorage = (legacy = false) => {
-        let current: Snapshot = { ...baseRecord(), revision: 1 };
+      const installStorage = (legacy = false, metadata: Record<string, unknown> = {}) => {
+        const initial = baseRecord();
+        let current: Snapshot = { ...initial, metadata: { ...initial.metadata, ...metadata }, revision: 1 };
         if (!legacy) {
           mockStorageService.getCapabilities = sinon.stub().returns({
             recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
@@ -12481,6 +12483,76 @@ describe('RecordsService', function () {
           }
         }
         expect(storedSections[1]).to.deep.equal(storedSections[0]);
+      });
+
+      it('rejects a chained write that restores an archived selection removed at the verified revision', async function () {
+        const formats = [{ value: 'archived', details: { volume: '1 TB' } }];
+        const storage = installStorage(false, { formats });
+        const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+        types.get.returns(of({
+          name: 'rdmp', searchable: false,
+          hooks: { onUpdate: { postSync: [
+            { function: '(oid, record) => globalThis.__removeArchivedFormat(oid, record)' },
+            { function: '(oid, record) => globalThis.__restoreArchivedFormat(oid, record)' },
+          ] } },
+        }));
+        Reflect.set(globalThis, '__removeArchivedFormat', async (oid: string) => {
+          const removed = await RecordsService.mutateMetaInternal({
+            actor: { kind: 'service', id: 'RecordsServiceTest.archive' },
+            authorization: { kind: 'service' },
+            oid,
+            user: actor,
+            brand: { id: 'brand-1' },
+            triggerPreSaveTriggers: false,
+            triggerPostSaveTriggers: false,
+            mutate: (snapshot: Snapshot) => ({ ...snapshot, metadata: { ...snapshot.metadata, formats: [] } }),
+          });
+          expect(removed.outcome).to.equal('saved');
+          return storage.snapshot();
+        });
+        Reflect.set(globalThis, '__restoreArchivedFormat', (_oid: string, snapshot: Snapshot) => ({
+          metadata: { ...snapshot.metadata, formats },
+        }));
+        const data: FormConfigFrame = {
+          name: 'default-form',
+          componentDefinitions: [{
+            name: 'formats', component: { class: 'CheckboxWithDetailsComponent',
+              config: { options: [{ value: 'current', label: 'Current' }] } },
+          }],
+        };
+        mockRecordValidationService.resolve.callsFake(async (request: RecordValidationRequest) => {
+          if (request.phase !== 'post-save' || !request.evaluateFormValidators) return allowResult();
+          const form = await new ConstructFormConfigVisitor(mockSails.log).start({ data, record: request.candidate.metadata });
+          const summaries = await new ValidatorFormConfigVisitor(mockSails.log).start({
+            form, previousMetadata: request.previousMetadata,
+          });
+          return summaries.length ? blockingResult({
+            blockingErrors: summaries.flatMap(summary => summary.errors.map(error => ({
+              field: summary.id ?? undefined, class: error.class, message: error.message,
+            }))),
+          }) : allowResult();
+        });
+        try {
+          const record = baseRecord('Primary save');
+          const result = await RecordsService.updateMeta(
+            { id: 'brand-1' }, 'record-123', { ...record, metadata: { ...record.metadata, formats } },
+            actor, true, true
+          );
+          expect(result.outcome, JSON.stringify(result)).to.equal('saved-with-warnings');
+          const postSave = mockRecordValidationService.resolve.getCalls()
+            .map(call => call.args[0] as RecordValidationRequest).find(request => request.phase === 'post-save');
+          expect(postSave, JSON.stringify(result)).to.exist;
+          expect(postSave?.evaluateFormValidators).to.equal(true);
+          expect(postSave?.previousMetadata?.formats).to.deep.equal([]);
+          expect(postSave?.candidate.metadata.formats).to.deep.equal(formats);
+          expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'post-save' });
+          expect(result.problems[0].issues[0].message).to.equal('@validator-error-checkbox-details-option');
+          expect(storage.snapshot().metadata).to.have.property('formats').that.deep.equals([]);
+          expect(mockStorageService.updateMeta.callCount).to.equal(2);
+        } finally {
+          Reflect.deleteProperty(globalThis, '__removeArchivedFormat');
+          Reflect.deleteProperty(globalThis, '__restoreArchivedFormat');
+        }
       });
 
       for (const operation of ['create', 'update'] as const) {

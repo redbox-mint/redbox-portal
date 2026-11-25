@@ -1,0 +1,41 @@
+:host {
+  display: block;
+  min-inline-size: 0;
+}
+
+.checkbox-details {
+  container-type: inline-size;
+  min-inline-size: 0;
+}
+
+.checkbox-details__row {
+  padding-block: 0.4rem;
+}
+
+.checkbox-details__row--selected {
+  border-block-start: 1px solid var(--bs-border-color);
+  padding-block: 0.65rem;
+}
+
+.checkbox-details__fields:not(:empty) {
+  display: grid;
+  row-gap: 0.65rem;
+  margin-inline-start: 1.5rem;
+  padding-block-start: 0.35rem;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+@container (min-width: 40rem) {
+  .checkbox-details__row {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr);
+    align-items: start;
+    column-gap: 1rem;
+  }
+
+  .checkbox-details__fields:not(:empty) {
+    margin-inline-start: 0;
+    padding-block-start: 0;
+  }
+}

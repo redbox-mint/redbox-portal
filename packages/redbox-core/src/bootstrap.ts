@@ -16,6 +16,7 @@ import { BrandingAwareFunction, isPinoLogger } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
 import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
+import { warmSanitizer } from './services/DomSanitizerService';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
@@ -239,6 +240,10 @@ export async function preLiftSetup(): Promise<void> {
 
   sails.log.debug('Starting bootstrap process with bootstrapAlways set to: ' + sails.config.appmode.bootstrapAlways);
   void getMergedApiRoutes();
+
+  // Config is settled; warm the shared sanitizer before service init, migrations and record
+  // writes so the first save does not absorb the JSDOM load. Failure falls back to lazy init.
+  warmSanitizer();
 
   // Initialize all services that have an init() method
   // This allows services registered via redbox-loader shims to perform

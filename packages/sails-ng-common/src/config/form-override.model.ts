@@ -1,3 +1,9 @@
+import { checkboxDetailsDisplayFields, readCheckboxWithDetailsRows } from './component/checkbox-with-details.helper';
+import {
+  CheckboxWithDetailsComponentName,
+  CheckboxWithDetailsFieldComponentConfigOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+} from './component/checkbox-with-details.outline';
 import { SimpleInputComponentName, SimpleInputFormComponentDefinitionOutline } from './component/simple-input.outline';
 import {
   ContentComponentName,
@@ -162,6 +168,9 @@ export class FormOverride {
     [DropdownInputComponentName]: {
       [ContentComponentName]: this.sourceDropdownInputComponentTargetContentComponent,
     },
+    [CheckboxWithDetailsComponentName]: {
+      [ContentComponentName]: this.sourceCheckboxWithDetailsTargetContent,
+    },
     [CheckboxInputComponentName]: {
       [ContentComponentName]: this.sourceCheckboxInputComponentTargetContentComponent,
     },
@@ -223,6 +232,11 @@ export class FormOverride {
       },
     },
     [DropdownInputComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [CheckboxWithDetailsComponentName]: {
       view: {
         component: ContentComponentName,
       },
@@ -509,6 +523,7 @@ export class FormOverride {
     const skipAutomaticViewTransform =
       formMode === 'view' &&
       !shouldForceViewTransform &&
+      originalComponentClassName !== CheckboxWithDetailsComponentName &&
       this.hasExplicitAllowedMode(original?.constraints, 'view');
 
     const hasExplicitTemplate = typeof transforms.template === 'string' && transforms.template.trim().length > 0;
@@ -826,6 +841,78 @@ export class FormOverride {
     }
 
     return target;
+  }
+
+  private sourceCheckboxWithDetailsTargetContent(
+    source: CheckboxWithDetailsFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source, formMode);
+    if (target.component.config) {
+      const saved = readCheckboxWithDetailsRows(source.model?.config?.value);
+      const project = this.checkboxDetailsViewProjection(source);
+      target.component.config.content = project ? project(saved) : saved;
+      target.component.config.template = this.renderCheckboxDetailsView('content');
+    }
+    return target;
+  }
+
+  /**
+   * Keep the saved row shape available in the template context and attach
+   * presentation only to selected rows. Build the lookup once per field,
+   * including fields rendered many times through a repeatable template.
+   */
+  private checkboxDetailsViewProjection(
+    component: AllFormComponentDefinitionOutlines
+  ): ((value: unknown) => unknown) | undefined {
+    const className = component.component.class;
+    const override = component.overrides?.formModeClasses?.view;
+    if (override?.component !== className && override?.template?.trim() &&
+        this.effectiveViewTargetsContentComponent(className, override)) return undefined;
+
+    if (className === CheckboxWithDetailsComponentName) {
+      const config = component.component.config as CheckboxWithDetailsFieldComponentConfigOutline | undefined;
+      const options = new Map((config?.options ?? []).map(option => [option.value, option]));
+      return value => readCheckboxWithDetailsRows(value).map(row => {
+        const option = options.get(row.value);
+        return {
+          ...row,
+          label: option?.label ?? row.value,
+          displayDetails: checkboxDetailsDisplayFields(config, row),
+        };
+      });
+    }
+    if (className === RepeatableComponentName) {
+      const template = (component as RepeatableFormComponentDefinitionOutline).component.config?.elementTemplate;
+      const project = template && this.checkboxDetailsViewProjection(template);
+      return project && (value => Array.isArray(value) ? value.map(project) : value);
+    }
+    if (className === GroupFieldComponentName) {
+      const fields = new Map<string, (value: unknown) => unknown>();
+      for (const child of this.getRenderableGroupChildren(component) ?? []) {
+        const project = this.checkboxDetailsViewProjection(child);
+        if (child.name && project) fields.set(child.name, project);
+      }
+      if (fields.size > 0) {
+        return value => _isPlainObject(value) ? Object.fromEntries(
+          Object.entries(value as Record<string, unknown>).map(([name, entry]) => {
+            const project = fields.get(name);
+            return [name, project ? project(entry) : entry];
+          })
+        ) : value;
+      }
+    }
+    return undefined;
+  }
+
+  private renderCheckboxDetailsView(expression: string): string {
+    return [
+      `{{#if ${expression}}}<ul class="rb-view-checkbox-details">`,
+      `{{#each ${expression} as |row|}}<li><strong>{{#with @root}}{{t row.label}}{{/with}}</strong>`,
+      '{{#if row.displayDetails}}<dl>{{#each row.displayDetails as |detail|}}',
+      '<dt>{{#with @root}}{{t detail.label}}{{/with}}</dt><dd>{{{plaintextToHtml detail.answer}}}</dd>',
+      '{{/each}}</dl>{{/if}}</li>{{/each}}</ul>{{/if}}',
+    ].join('');
   }
 
   private sourceRadioInputComponentTargetContentComponent(
@@ -1277,7 +1364,9 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
     if (target.component.config) {
       const rawArray = Array.isArray(source.model?.config?.value) ? source.model?.config?.value : [];
-      target.component.config.content = rawArray.filter(item => !this.isDeepEmpty(item));
+      const rows = rawArray.filter(item => !this.isDeepEmpty(item));
+      const project = this.checkboxDetailsViewProjection(source);
+      target.component.config.content = project ? project(rows) : rows;
       target.component.config.template = this.generateTemplateForComponent(source, 'content');
     }
     return target;
@@ -1389,11 +1478,13 @@ export class FormOverride {
       const contentValue = source.model?.config?.value;
       const children = source?.component?.config?.componentDefinitions ?? [];
       const prunedValue = this.pruneGroupValue(contentValue, children);
-      target.component.config.content =
+      const displayValue =
         prunedValue && !this.isDeepEmpty(prunedValue)
           ? prunedValue
           : // Empty permitted fields still describe the shape used by repeatable templates.
             this.pruneGroupValue(this.extractDescendantValues(source), children, true) ?? {};
+      const project = this.checkboxDetailsViewProjection(source);
+      target.component.config.content = project ? project(displayValue) : displayValue;
       target.component.config.template = this.generateTemplateForComponent(source, 'content');
     }
     return target;
@@ -1603,6 +1694,9 @@ export class FormOverride {
         return this.renderDisplayValue(expression);
       }
       return `{{#with ${expression} includeZero=true as |content|}}{{#with @root as |__root__|}}${trimmedTemplate}{{/with}}{{/with}}`;
+    }
+    if (className === CheckboxWithDetailsComponentName) {
+      return this.renderCheckboxDetailsView(expression);
     }
     if (className === CheckboxTreeComponentName) {
       const template = this.resolveReusableViewTemplate(

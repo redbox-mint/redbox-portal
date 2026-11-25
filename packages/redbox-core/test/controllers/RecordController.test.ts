@@ -2120,6 +2120,8 @@ describe('RecordController getWorkflowSteps', () => {
         expect(result.meta.formFingerprint).to.match(/^route:sha256:[0-9a-f]{64}$/);
         expect(result.headers.ETag).to.equal(formatRecordEntityTag('oid-1', 3));
         expect((global as any).FormsService.getForm.firstCall.args[1]).to.equal(formName);
+        expect((FormsService.buildClientFormConfig as sinon.SinonStub).lastCall.args[10])
+          .to.deep.equal({ existingRecordPresentation: true });
         expect(record.metaMetadata.form).to.equal('rdmp-draft');
         expect(record.workflow.stage).to.equal(stage);
         expect(

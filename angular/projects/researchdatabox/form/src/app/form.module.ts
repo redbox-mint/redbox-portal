@@ -1,3 +1,4 @@
+import { CheckboxDetailFieldDirective, CheckboxWithDetailsComponent } from './component/checkbox-with-details.component';
 // Copyright (c) 2023 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -128,6 +129,8 @@ declare const ngDevMode: boolean;
     AccordionPanelComponent,
     DropdownInputComponent,
     CheckboxInputComponent,
+    CheckboxWithDetailsComponent,
+    CheckboxDetailFieldDirective,
     RadioInputComponent,
     DateInputComponent,
     QuestionTreeComponent,

@@ -7,6 +7,24 @@ import type { WorkflowConfig } from '@researchdatabox/redbox-core';
  */
 export const workflow: WorkflowConfig = {
   ...manualWorkflows,
+    'checkbox-details-demo': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'checkbox-details-1.0',
+            },
+        },
+        active: {
+            config: {
+                workflow: { stage: 'active', stageLabel: 'Active' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'checkbox-details-1.0',
+            },
+        },
+    },
+
 
   'pw-12-conflict-resolution': {
     draft: {

@@ -1,4 +1,13 @@
 import {
+  CheckboxWithDetailsComponentName,
+  CheckboxDetailFieldOutline,
+  CheckboxWithDetailsFieldComponentConfigOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsOption,
+  checkboxDetailFields,
+  checkboxDetailsOptionPath,
+} from '@researchdatabox/sails-ng-common';
+import {
   FormConfigVisitor,
   FormValidatorConfig,
   FormValidatorControl,
@@ -113,7 +122,8 @@ import {
   JSONataEvaluate,
 } from '@researchdatabox/sails-ng-common';
 import { DataValueFormConfigVisitor } from './data-value.visitor';
-import { cloneDeep as _cloneDeep } from 'lodash';
+import { cloneDeep as _cloneDeep, get as _get, isEqual as _isEqual } from 'lodash';
+import { serializeRedboxCanonicalJsonV1 } from '../record-contract/canonical-json';
 
 export interface RichHtmlSanitizedTransformation {
   readonly kind: 'rich-html-sanitized';
@@ -144,7 +154,150 @@ type ValidatorFormConfigOptions = {
   checkDeadline?: () => void;
   /** Traverse schema-owned values for transformations without executing validators. */
   transformationOnly?: boolean;
+  previousMetadata?: Readonly<Record<string, unknown>>;
 };
+
+type CheckboxVocabularyInspectionOptions = Pick<ValidatorFormConfigOptions,
+  'form' | 'enabledValidationGroups' | 'excludedOnlyValidationGroups' | 'previousMetadata' | 'checkDeadline'
+>;
+
+type CheckboxArchiveField = {
+  readonly path: string[];
+} & (
+  { readonly selectable: ReadonlySet<string> } |
+  { readonly nested: readonly CheckboxArchiveField[] }
+);
+
+function isSelectableCheckboxOption(option: CheckboxWithDetailsOption, enabled?: string[] | null): boolean {
+  return !option.disabled && !option.historical && (!Array.isArray(enabled) || enabled.includes(option.value));
+}
+
+function editableCheckboxDetail(field: CheckboxDetailFieldOutline): boolean {
+  const model = field.model?.config;
+  return !!field.name && !!model && !model.disabled && !field.component.config?.disabled && !field.layout?.config?.disabled;
+}
+
+function rowFingerprint(value: unknown): string | undefined {
+  try {
+    return serializeRedboxCanonicalJsonV1(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function archiveFingerprint(
+  value: unknown,
+  fields: readonly CheckboxArchiveField[],
+  checkDeadline: () => void
+): string | undefined {
+  const archived = fields.flatMap(field => {
+    checkDeadline();
+    const { path } = field;
+    const rows: unknown = path.length ? _get(value, path) : value;
+    if (!Array.isArray(rows)) return [];
+    if ('nested' in field) {
+      // Keep each nested row's evidence together, independently of its index.
+      // The inner validator still claims and validates those rows individually.
+      const nested = rows.map(row => archiveFingerprint(row, field.nested, checkDeadline))
+        .filter(fingerprint => fingerprint !== undefined)
+        .sort();
+      return nested.length > 0 ? [{ path, evidence: nested }] : [];
+    }
+    const selections = rows.filter(row => typeof row?.value === 'string' && !field.selectable.has(row.value))
+      .sort((a, b) => a.value < b.value ? -1 : a.value > b.value ? 1 : 0);
+    return selections.length > 0 ? [{ path, evidence: selections }] : [];
+  });
+  return archived.length > 0 ? rowFingerprint(archived) : undefined;
+}
+
+/** Claim exact rows first, then unique archival evidence, before matching edits by index. */
+function priorRepeatableRows(
+  values: unknown[],
+  previous: unknown,
+  getArchiveFields: () => CheckboxArchiveField[],
+  checkDeadline: () => void
+): Map<number, unknown> {
+  const matched = new Map<number, unknown>();
+  if (!Array.isArray(previous)) return matched;
+  const claimed = new Set<number>();
+  const claim = (current: number, prior: number) => {
+    matched.set(current, previous[prior]);
+    claimed.add(prior);
+  };
+  const indexUnclaimed = (
+    rows: unknown[],
+    isClaimed: (index: number) => boolean,
+    fingerprint: (row: unknown) => string | undefined
+  ): Map<string, number[]> => {
+    const indexed = new Map<string, number[]>();
+    for (const [index, value] of rows.entries()) {
+      checkDeadline();
+      if (isClaimed(index)) continue;
+      const key = fingerprint(value);
+      if (key === undefined) continue;
+      const indices = indexed.get(key);
+      if (indices) indices.push(index);
+      else indexed.set(key, [index]);
+    }
+    return indexed;
+  };
+
+  for (const [index, value] of values.entries()) {
+    checkDeadline();
+    if (index < previous.length && _isEqual(value, previous[index])) claim(index, index);
+  }
+  if (matched.size === values.length) return matched;
+
+  const unclaimedByValue = indexUnclaimed(previous, index => claimed.has(index), rowFingerprint);
+  for (const [index, value] of values.entries()) {
+    checkDeadline();
+    if (matched.has(index)) continue;
+    const key = rowFingerprint(value);
+    const prior = key === undefined ? undefined : unclaimedByValue.get(key)?.pop();
+    if (prior !== undefined) claim(index, prior);
+  }
+  if (matched.size === values.length) return matched;
+
+  const ambiguous = new Set<number>();
+  const fields = getArchiveFields();
+  if (fields.length > 0) {
+    const fingerprint = (row: unknown) => archiveFingerprint(row, fields, checkDeadline);
+    const previousArchives = indexUnclaimed(previous, index => claimed.has(index), fingerprint);
+    const submittedArchives = indexUnclaimed(values, index => matched.has(index), fingerprint);
+    for (const [key, indices] of submittedArchives) {
+      checkDeadline();
+      const priors = previousArchives.get(key);
+      if (priors?.length === 1 && indices.length === 1) {
+        claim(indices[0], priors[0]);
+      } else if (priors?.length) {
+        // Equal archived answers can stay in their original slots when other fields change.
+        // A different slot still needs a unique match to move an archived answer.
+        const priorSlots = new Set(priors);
+        for (const index of indices) {
+          if (!priorSlots.has(index)) ambiguous.add(index);
+        }
+      }
+    }
+  }
+  for (let index = 0; index < Math.min(values.length, previous.length); index++) {
+    checkDeadline();
+    if (!matched.has(index) && !claimed.has(index) && !ambiguous.has(index)) claim(index, index);
+  }
+  return matched;
+}
+
+interface PriorRepeatableScope {
+  path: (string | number)[];
+  values: unknown[];
+  template: FormComponentDefinitionOutline;
+  parent?: PriorRepeatableRow;
+  matched?: Map<number, unknown>;
+}
+
+interface PriorRepeatableRow {
+  scope: PriorRepeatableScope;
+  index: number;
+}
 
 declare const sails: Sails.Application;
 
@@ -167,6 +320,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   private jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate;
   private checkDeadline: () => void;
   private transformationOnly: boolean;
+  private requiredCheckboxVocabs?: Set<string>;
+  private previousMetadata?: Readonly<Record<string, unknown>>;
+  private priorRow?: PriorRepeatableRow;
 
   private validationErrors: FormValidatorSummaryErrors[];
   private transformations: FormValueTransformation[];
@@ -207,6 +363,18 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     ];
   }
 
+  /** Identify the lookups the blocking pass needs using the same groups and row scopes. */
+  async requiredCheckboxVocabularies(options: CheckboxVocabularyInspectionOptions): Promise<ReadonlySet<string>> {
+    const required = new Set<string>();
+    this.requiredCheckboxVocabs = required;
+    try {
+      await this.startWithResult({ ...options, transformationOnly: true });
+      return required;
+    } finally {
+      this.requiredCheckboxVocabs = undefined;
+    }
+  }
+
   /**
    * Run validation and return schema-owned value transformations separately
    * from validator summaries so save boundaries can apply them immutably.
@@ -225,6 +393,8 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     this.jsonataEvaluatorFactory = options.jsonataEvaluatorFactory ?? jsonataEvaluateFunc;
     this.checkDeadline = options.checkDeadline ?? (() => undefined);
     this.transformationOnly = options.transformationOnly === true;
+    this.previousMetadata = options.previousMetadata;
+    this.priorRow = undefined;
 
     this.validationErrors = [];
     this.transformations = [];
@@ -252,14 +422,14 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
       );
     }
 
+    if (this.transformationOnly) return;
+
     // Run form-level validators using the full form data model.
     // There are various reasons a validator is at form level, e.g. they involve more than one field.
     const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
     const value = await dataValueVisitor.start({ form: item });
     const itemName = item?.name ?? '';
-    if (!this.transformationOnly) {
-      this.validationErrors.push(...(await this.validateFormComponent(itemName, value, item?.validators)));
-    }
+    this.validationErrors.push(...(await this.validateFormComponent(itemName, value, item?.validators)));
   }
 
   /* SimpleInput */
@@ -308,19 +478,88 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     const values = item.model?.config?.value;
     const elementTemplate = item.component?.config?.elementTemplate;
     if (!Array.isArray(values) || !elementTemplate) return;
+    const priorScope: PriorRepeatableScope = {
+      path: this.formPathHelper.formPath.dataModel,
+      values,
+      template: elementTemplate,
+      parent: this.priorRow,
+    };
     for (const [index, rowValue] of values.entries()) {
       this.checkDeadline();
       const rowTemplate = _cloneDeep(elementTemplate);
       this.hydrateRepeatableRow(rowTemplate, rowValue);
       const templateLineage = this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(rowTemplate);
-      await this.formPathHelper.acceptFormPath(rowTemplate, {
-        ...templateLineage,
-        formConfig: ['component', ...(templateLineage.formConfig ?? [])],
-        dataModel: [...(templateLineage.dataModel ?? []), index],
-        angularComponents: [...(templateLineage.angularComponents ?? []), index],
-        layout: [...(templateLineage.layout ?? []), index],
-      });
+      this.priorRow = { scope: priorScope, index };
+      try {
+        await this.formPathHelper.acceptFormPath(rowTemplate, {
+          ...templateLineage,
+          formConfig: ['component', ...(templateLineage.formConfig ?? [])],
+          dataModel: [...(templateLineage.dataModel ?? []), index],
+          angularComponents: [...(templateLineage.angularComponents ?? []), index],
+          layout: [...(templateLineage.layout ?? []), index],
+        });
+      } finally {
+        this.priorRow = priorScope.parent;
+      }
       this.checkDeadline();
+    }
+  }
+
+  private previousValue(dataPath: (string | number)[], prior = this.priorRow): unknown {
+    if (!prior) return _get(this.previousMetadata, dataPath);
+    const { scope, index } = prior;
+    // Only checkbox details need a prior row. Other repeatable fields keep
+    // their normal validation path without paying for a row comparison.
+    scope.matched ??= priorRepeatableRows(
+      scope.values,
+      scope.parent ? this.previousValue(scope.path, scope.parent) : _get(this.previousMetadata, scope.path),
+      () => this.repeatableCheckboxArchiveFields(scope.template),
+      this.checkDeadline
+    );
+    const value = scope.matched.get(index);
+    const relativePath = dataPath.slice(scope.path.length + 1);
+    return relativePath.length ? _get(value, relativePath) : value;
+  }
+
+  private repeatableCheckboxArchiveFields(
+    definition: FormComponentDefinitionOutline,
+    parent: string[] = []
+  ): CheckboxArchiveField[] {
+    const path = [...parent, ...FormPathHelper.metadataTokensForComponent(definition)];
+    const component = definition.component;
+    if (component.class === CheckboxWithDetailsComponentName) {
+      const config = component.config as CheckboxWithDetailsFieldComponentConfigOutline | undefined;
+      // A failed lookup cannot supply evidence that a particular code is archival.
+      if (definition.model?.config?.disabled || definition.layout?.config?.disabled ||
+          config?.disabled || (config?.vocabRef && config.options === undefined)) return [];
+      const selectable = new Set((config?.options ?? [])
+        .filter(option => isSelectableCheckboxOption(option, config?.enabledOptionValues))
+        .map(option => option.value));
+      return [{ path, selectable }];
+    }
+    // Recurse only through schema-owned fields. Other metadata is opaque.
+    const config = component.config as {
+      componentDefinitions?: FormComponentDefinitionOutline[];
+      tabs?: FormComponentDefinitionOutline[];
+      panels?: FormComponentDefinitionOutline[];
+      elementTemplate?: FormComponentDefinitionOutline;
+    } | undefined;
+    switch (component.class) {
+      case 'RepeatableComponent': {
+        const nested = config?.elementTemplate ? this.repeatableCheckboxArchiveFields(config.elementTemplate) : [];
+        return nested.length ? [{ path, nested }] : [];
+      }
+      case 'GroupComponent':
+      case 'QuestionTreeComponent':
+      case 'TabContentComponent':
+      case 'AccordionPanelComponent':
+        return (config?.componentDefinitions ?? []).flatMap(child => this.repeatableCheckboxArchiveFields(child, path));
+      case 'TabComponent':
+        return (config?.tabs ?? []).flatMap(child => this.repeatableCheckboxArchiveFields(child, path));
+      case 'AccordionComponent':
+        return (config?.panels ?? []).flatMap(child => this.repeatableCheckboxArchiveFields(child, path));
+      default:
+        return [];
     }
   }
 
@@ -548,6 +787,142 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     await this.acceptFormComponentDefinition(item);
   }
 
+  async visitCheckboxWithDetailsFormComponentDefinition(
+    item: CheckboxWithDetailsFormComponentDefinitionOutline
+  ): Promise<void> {
+    const config = item.component.config;
+    const model = item.model?.config;
+    const layout = item.layout?.config;
+    if (model?.disabled || config?.disabled || layout?.disabled) return;
+    if (this.transformationOnly && (!this.requiredCheckboxVocabs || !config?.vocabRef)) return;
+
+    const value = model?.value === undefined ? [] : model.value;
+    const path = this.formPathHelper.formPath;
+    const stored = new Map<string, Record<string, unknown>>();
+    const previousRows = this.previousValue(path.dataModel);
+    if (Array.isArray(previousRows)) {
+      for (const row of previousRows) {
+        if (typeof row?.value === 'string' && row.details && typeof row.details === 'object' &&
+            !Array.isArray(row.details) && !stored.has(row.value)) {
+          stored.set(row.value, row.details);
+        }
+      }
+    }
+    if (this.requiredCheckboxVocabs) {
+      if (config?.vocabRef && Array.isArray(value) &&
+          (this.checkboxLookupHasValidators(item, value) || value.some(row =>
+            typeof row?.value === 'string' && (!_isEqual(row.details, stored.get(row.value)))
+          ))) {
+        this.requiredCheckboxVocabs.add(config.vocabRef);
+      }
+      return;
+    }
+    const groupLabel = layout?.label ?? item.name;
+    const issue = (message: string, rowIndex?: number, option?: string, field?: string) => {
+      const suffix = option === undefined ? [] : [checkboxDetailsOptionPath(option), ...(field ? [field] : [])];
+      this.validationErrors.push({
+        id: field ?? item.name,
+        message: groupLabel,
+        lineagePaths: buildLineagePaths(path, {
+          angularComponents: field ? suffix : [],
+          dataModel: rowIndex === undefined ? [] : [rowIndex, ...(field ? ['details', field] : ['value'])],
+        }),
+        errors: [{ class: 'checkboxWithDetails', message, params: { option, field } }],
+      });
+    };
+
+    this.validationErrors.push(...await this.validateFormComponent(item.name, value, model?.validators, layout?.label));
+    if (!Array.isArray(value)) {
+      issue('@validator-error-checkbox-details-shape');
+      return;
+    }
+
+    const vocabularyUnresolved = !!config?.vocabRef && config.options === undefined;
+    if (vocabularyUnresolved) {
+      if (this.checkboxLookupHasValidators(item, value)) {
+        issue('@validator-error-checkbox-details-lookup-unavailable');
+        return;
+      }
+      // Validation below treats each submitted code as unavailable, so only
+      // removals or exact preservation of previously persisted details pass.
+    }
+
+    const options = new Map((config?.options ?? []).map(option => [option.value, option]));
+    const selected = new Set<string>();
+    for (const [index, row] of value.entries()) {
+      this.checkDeadline();
+      if (
+        !row || typeof row.value !== 'string' || !row.value.trim() ||
+        !row.details || typeof row.details !== 'object' || Array.isArray(row.details) ||
+        Object.keys(row).some(key => key !== 'value' && key !== 'details')
+      ) {
+        issue('@validator-error-checkbox-details-shape', index);
+        continue;
+      }
+      const option = options.get(row.value);
+      const previous = stored.get(row.value);
+      const selectable = option && isSelectableCheckboxOption(option, config?.enabledOptionValues);
+      if (selected.has(row.value) || (!selectable && !previous)) {
+        issue('@validator-error-checkbox-details-option', index, row.value);
+        continue;
+      }
+      selected.add(row.value);
+
+      const fields = checkboxDetailFields(config, row.value);
+      const configured = new Set(fields.map(field => field.name));
+      const editable = new Set(fields.filter(editableCheckboxDetail).map(field => field.name));
+      for (const [name, answer] of Object.entries(row.details)) {
+        if (
+          (answer !== null && typeof answer !== 'string') ||
+          ((!option || !configured.has(name) || (previous && !editable.has(name))) &&
+            !(previous && Object.hasOwn(previous, name) && previous[name] === answer) &&
+            // The editor may hydrate a configured disabled field with an empty placeholder.
+            !(option && configured.has(name) && previous && !Object.hasOwn(previous, name) && answer === null))
+        ) {
+          issue('@validator-error-checkbox-details-field', index, row.value, name);
+        }
+      }
+      // A retained selection must carry forward every answer the current form can no longer edit.
+      if (previous) {
+        for (const name of Object.keys(previous)) {
+          if ((!option || !editable.has(name)) && !Object.hasOwn(row.details, name)) {
+            issue('@validator-error-checkbox-details-field', index, row.value, name);
+          }
+        }
+      }
+      if (!option) continue;
+      for (const field of fields) {
+        if (!editableCheckboxDetail(field)) continue;
+        const name = field.name;
+        const optionPath = checkboxDetailsOptionPath(row.value);
+        const lineage = buildLineagePaths(path, {
+          dataModel: [index, 'details', name],
+          angularComponents: [optionPath, name],
+          layout: [optionPath, `${name}-layout`],
+        });
+        const label = field.layout?.config?.label || field.component.config?.label || name;
+        const answer = Object.hasOwn(row.details, name) ? row.details[name] : null;
+        this.validationErrors.push(...await this.validateFormComponent(
+          name, answer, field.model?.config?.validators, `${label} — ${option.label}`, lineage
+        ));
+      }
+    }
+  }
+
+  private checkboxLookupHasValidators(
+    item: CheckboxWithDetailsFormComponentDefinitionOutline,
+    rows: readonly { value?: unknown }[]
+  ): boolean {
+    return this.validatorSupport.isValidatorEnabled(
+      this.form.validationGroups ?? {}, this.enabledValidationGroups, { class: 'checkboxWithDetails' }
+    ) || this.enabledValidators(item.model?.config?.validators).length > 0 ||
+      rows.some(row => typeof row?.value === 'string' &&
+        checkboxDetailFields(item.component.config, row.value).some(field =>
+          editableCheckboxDetail(field) && this.enabledValidators(field.model?.config?.validators).length > 0
+        )
+      );
+  }
+
   /* Question Tree */
 
   async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
@@ -602,6 +977,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   async visitTypeaheadInputFieldComponentDefinition(
     item: TypeaheadInputFieldComponentDefinitionOutline
   ): Promise<void> {
+    if (this.requiredCheckboxVocabs) return;
     const configErrors: FormValidatorSummaryErrors['errors'] = [];
     const config = item.config as TypeaheadInputPermissiveFieldComponentConfigOutline | undefined;
     const sourceType = String(config?.sourceType ?? '');
@@ -686,6 +1062,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   async visitRichTextEditorFieldModelDefinition(_item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {}
 
   private sanitizeRichTextValue(item: RichTextEditorFormComponentDefinitionOutline): void {
+    if (this.requiredCheckboxVocabs) return;
     const value = item.model?.config?.value;
     if (typeof value !== 'string' || !value) {
       return;
@@ -914,19 +1291,17 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     itemName: string,
     value: unknown,
     validators?: FormValidatorConfig[],
-    message?: string
+    message?: string,
+    lineage = this.formPathHelper.formPath
   ): Promise<FormValidatorSummaryErrors[]> {
     const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
 
-    const availableValidatorGroups = this.form?.validationGroups ?? {};
     const result: FormValidatorSummaryErrors[] = [];
     if (Array.isArray(validators) && validators.length > 0) {
       // Select the validators for this pass before preparing executable
       // configuration. In particular, an advisory-only JSONata expression
       // must not compile or execute during the blocking pass.
-      const filteredValidators = this.validatorSupport
-        .enabledValidators(availableValidatorGroups, this.enabledValidationGroups, validators)
-        .filter(validator => !this.isValidatorExclusiveToGroups(availableValidatorGroups, validator));
+      const filteredValidators = this.enabledValidators(validators);
 
       // ensure jsonata-expression validators can be evaluated
       this.validatorSupport.assignJsonataEvaluators(
@@ -943,7 +1318,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         id: typeof itemName === 'string' && itemName.length > 0 ? itemName : null,
         message: typeof message === 'string' && message.length > 0 ? message : null,
         errors: [],
-        lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
+        lineagePaths: buildLineagePaths(lineage),
       };
 
       // async
@@ -971,6 +1346,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     return result;
+  }
+
+  private enabledValidators(validators: FormValidatorConfig[] = []): FormValidatorConfig[] {
+    const groups = this.form.validationGroups ?? {};
+    return this.validatorSupport.enabledValidators(groups, this.enabledValidationGroups, validators)
+      .filter(validator => !this.isValidatorExclusiveToGroups(groups, validator));
   }
 
   private isValidatorExclusiveToGroups(

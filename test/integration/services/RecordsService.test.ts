@@ -1,7 +1,7 @@
 import type { Agenda, Job } from 'agenda';
 import { randomBytes } from 'node:crypto';
 import { createServer, connect, Socket } from 'node:net';
-import { StorageServiceResponse, UserModel } from '@researchdatabox/redbox-core';
+import { createCoreRecordContractContributors, StorageServiceResponse, UserModel } from '@researchdatabox/redbox-core';
 import { AuditWriter, AuditWriteTimeout } from '../../../packages/redbox-core/src/services/record-audit/writer';
 
 // Mongo's repository exposes these lifecycle methods in addition to Agenda's generic contract.
@@ -382,7 +382,9 @@ describe('The RecordsService', function () {
   it('wires loader-discovered contributors into the lifted RecordSchemaService export', async function () {
     sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
     const contributorState = sails.config.recordContractContributorState;
-    expect(contributorState?.registrations).to.have.length(36);
+    expect(contributorState?.registrations.map(registration => registration.contributor.key)).to.have.members(
+      createCoreRecordContractContributors().map(contributor => contributor.key)
+    );
     expect(
       contributorState?.registrations.every(registration => typeof registration.contributor.compile === 'function')
     ).to.equal(true);

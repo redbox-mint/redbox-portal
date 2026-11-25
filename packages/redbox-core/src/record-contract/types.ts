@@ -50,6 +50,7 @@ export interface ContractScalarNode extends ContractNodeBase {
 export interface ContractObjectNode extends ContractNodeBase {
   readonly kind: 'object';
   readonly properties: Readonly<Record<string, ContractNode>>;
+  readonly required?: readonly string[];
   readonly unknownProperties: 'allow' | 'declared';
 }
 

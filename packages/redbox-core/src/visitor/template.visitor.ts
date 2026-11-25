@@ -1,3 +1,8 @@
+import {
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { FormConfigVisitor, FormValidatorConfig } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
@@ -497,6 +502,25 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  async visitCheckboxWithDetailsFieldComponentDefinition(item: CheckboxWithDetailsFieldComponentDefinitionOutline): Promise<void> {
+    for (const [index, child] of (item.config?.detailFields ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(child, { formConfig: ['config', 'detailFields', index] });
+    }
+    for (const [value, fields] of Object.entries(item.config?.detailFieldsByValue ?? {})) {
+      for (const [index, child] of fields.entries()) {
+        await this.formPathHelper.acceptFormPath(child, { formConfig: ['config', 'detailFieldsByValue', value, index] });
+      }
+    }
+  }
+
+  async visitCheckboxWithDetailsFieldModelDefinition(item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {
+    await this.extractValidators(item.config?.validators);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

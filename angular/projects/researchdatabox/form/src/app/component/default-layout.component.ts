@@ -35,31 +35,45 @@ import { FormService } from "../form.service";
   selector: 'redbox-form-default-component-layout',
   template: `
   @if (componentDefinition) {
-    <div class="rb-form-field-layout">
+    <div class="rb-form-field-layout" [class.rb-checkbox-detail-layout]="formFieldCompMapEntry?.labelSuffix">
       @if ((getStringProperty('label') || hasHelpText) && isVisible) {
         <label class="form-label rb-form-field-label" [attr.for]="labelableControlId">
           @if (getStringProperty('label')) {
             <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next" [ngClass]="labelCssClasses"></span>
+          }
+          @if (formFieldCompMapEntry?.labelSuffix; as suffix) {
+            <span> — {{ suffix | i18next }}</span>
           }
           @if (isRequired) {
             <span
               class="form-field-required-indicator"
             [innerHTML]="getStringProperty('labelRequiredStr')"></span>
           }
-          @if (hasHelpText) {
-            <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </button>
+          @if (hasHelpText && !formFieldCompMapEntry?.labelSuffix) {
+            <ng-container *ngTemplateOutlet="helpButton" />
           }
         </label>
-        @if (hasHelpText && helpTextVisible) {
+        @if (hasHelpText && helpTextVisible && !formFieldCompMapEntry?.labelSuffix) {
           <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
         }
       }
       <div class="rb-form-field-control">
         <ng-container #componentContainer  ></ng-container>
       </div>
+      @if (formFieldCompMapEntry?.labelSuffix && hasHelpText && isVisible) {
+        <ng-container *ngTemplateOutlet="helpButton" />
+        @if (helpTextVisible) {
+          <span class="help-block rb-checkbox-detail-help" [innerHtml]="getStringProperty('helpText') | i18next"></span>
+        }
+      }
     </div>
+    <ng-template #helpButton>
+      <button type="button" class="btn btn-default" [class.rb-checkbox-detail-help-button]="formFieldCompMapEntry?.labelSuffix"
+        (click)="toggleHelpTextVisibility()"
+        [attr.aria-label]="'help' | i18next" [attr.aria-expanded]="helpTextVisible">
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+      </button>
+    </ng-template>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
     </ng-template>
@@ -71,6 +85,20 @@ import { FormService } from "../form.service";
   }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    .rb-form-field-layout.rb-checkbox-detail-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: 0.5rem;
+      row-gap: 0.35rem;
+      margin-bottom: 0;
+    }
+    .rb-checkbox-detail-layout .form-label { grid-column: 1; grid-row: 1; }
+    .rb-checkbox-detail-help-button { grid-column: 2; grid-row: 1; padding: 0.1rem 0.35rem; }
+    .rb-checkbox-detail-layout .rb-form-field-control { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+    .rb-checkbox-detail-help { grid-column: 1 / -1; grid-row: 3; }
+  `],
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })

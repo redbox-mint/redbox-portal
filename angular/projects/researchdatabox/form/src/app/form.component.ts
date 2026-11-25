@@ -1973,15 +1973,31 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
+            const messageKey = typeof response.message === 'string' && response.message.startsWith('@')
+              ? response.message
+              : undefined;
+            const validationTimeoutMessageKey = '@record-save-record-validation-timeout';
+            const problem = Array.isArray(response.problems) && response.problems.length === 1
+              ? response.problems[0]
+              : undefined;
             // Retained conflict review state must not mask a different retry failure.
-            const failureMessage =
-              this.formConflictState() && this.isRecordRevisionStaleConflict(response)
-                ? '@form-conflict-stale-title'
-                : response.outcome === 'unknown'
-                  ? unknownMessageKey
-                  : String(_get(response, 'message') ?? '').startsWith('@')
-                    ? String(_get(response, 'message'))
-                    : '@record-save-failed';
+            let failureMessage = '@record-save-failed';
+            if (this.formConflictState() && this.isRecordRevisionStaleConflict(response)) {
+              failureMessage = '@form-conflict-stale-title';
+            } else if (response.outcome === 'unknown') {
+              failureMessage = unknownMessageKey;
+            } else if (messageKey && messageKey !== '@record-save-failed' && messageKey !== validationTimeoutMessageKey) {
+              failureMessage = messageKey;
+            } else if (
+              response.outcome === 'not-saved' &&
+              problem?.kind === 'system' &&
+              (problem.phase === 'pre-save' || problem.phase === 'post-save') &&
+              Array.isArray(problem.issues) &&
+              problem.issues.length === 1 &&
+              problem.issues[0]?.code === 'record-validation-timeout'
+            ) {
+              failureMessage = validationTimeoutMessageKey;
+            }
             // Emit failure event
             this.eventBus.publish(
               createFormSaveFailureEvent({

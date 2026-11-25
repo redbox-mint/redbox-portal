@@ -478,6 +478,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
  * @interface FormFieldCompMapEntry
  */
 export interface FormFieldCompMapEntry {
+  labelSuffix?: string;
   /** Runtime DOM identity only; never part of form config or record metadata. */
   labelableControlId?: string;
   name?: string;

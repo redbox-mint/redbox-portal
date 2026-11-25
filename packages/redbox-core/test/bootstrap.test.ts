@@ -5,6 +5,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { bootstrapRecordSchema, coreBootstrap, preLiftSetup } from '../src/bootstrap';
+import * as domSanitizerService from '../src/services/DomSanitizerService';
 import { ApiRouteDefinition, resetResolvedApiRouteCache, resolveApiRouteForRequest } from '../src/api-routes';
 import {
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
@@ -105,6 +106,33 @@ describe('bootstrap pre-lift setup', function () {
     expect(resolvedRoute?.path).to.equal(lateHookRoute.path);
     expect(resolvedRoute?.controller).to.equal(lateHookRoute.controller);
     expect(resolvedRoute?.action).to.equal(lateHookRoute.action);
+  });
+
+  it('warms the shared sanitizer once, before service initialisation', async function () {
+    const warm = sinon.stub(domSanitizerService, 'warmSanitizer').returns('warm');
+    const init = sinon.stub().callsFake(async () => {
+      expect(warm.calledOnce).to.equal(true);
+    });
+    (global as Record<string, unknown>).sails = {
+      config: {
+        security: { csrf: true },
+        bootstrap: {},
+        environment: 'development',
+        ng2: { force_bundle: false, use_bundled: false },
+        log: { customLogger: { level: 'info' }, level: 'info' },
+        appmode: { bootstrapAlways: false },
+        apiRoutesHooks: [],
+      },
+      log: createSinonStubLogger(sinon),
+      services: { firstservice: { init } },
+      _actions: {},
+    };
+    (global as Record<string, unknown>)._ = require('lodash');
+
+    await preLiftSetup();
+
+    expect(warm.calledOnce).to.equal(true);
+    expect(init.calledOnce).to.equal(true);
   });
 
   it('defers record-schema validation to the post-storage readiness gate', async function () {

@@ -358,6 +358,11 @@ function validateContractNode(node: ContractNode, baseDepth: number, maxDepth: n
         ) {
           throw new Error('Object node properties must be a plain object.');
         }
+        if (currentNode.required !== undefined && (!Array.isArray(currentNode.required) ||
+            currentNode.required.some(key => typeof key !== 'string' || !Object.hasOwn(currentNode.properties, key)) ||
+            new Set(currentNode.required).size !== currentNode.required.length)) {
+          throw new Error('Object node required properties must be unique and declared.');
+        }
         const children = Object.values(currentNode.properties);
         propertyCount += children.length;
         if (propertyCount > maxProperties) {

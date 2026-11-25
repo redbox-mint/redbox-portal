@@ -259,12 +259,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.isOpen = false;
     this.searchState = 'idle';
     this.statusMessage = '';
-    this.setDisplayValue(selected.label);
+    const config = this.componentDefinition?.config as TypeaheadInputFieldComponentConfig;
+    this.setDisplayValue(this.valueMode === 'value' && config?.displayValueOnSelect ? selected.value : selected.label);
     this.setModelFromOption(selected);
     this.selectedItem.set(selected);
     if (
       this.readOnlyAfterSelectLocked ||
-      (this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.readOnlyAfterSelect
+      config?.readOnlyAfterSelect
     ) {
       this.readOnlyAfterSelectLocked = true;
     }
@@ -284,12 +285,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.statusMessage = '';
     }
     const text = String(this.displayControl.value ?? '').trim();
-    if (!text) {
-      this.setModelValue(null);
-      this.lastConfirmedDisplayValue = '';
-      return;
-    }
-    if (!this.allowFreeText) {
+    if (text && !this.allowFreeText) {
       // requireSelection: free text is not permitted. Discard whatever was typed
       // and restore the last confirmed lookup selection, clearing the model when
       // no selection has ever been made.
@@ -301,10 +297,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       }
       return;
     }
-    // An unchanged label still represents the selected or loaded model value,
-    // including identifiers and other fields that free text cannot reconstruct.
-    if (text === this.lastConfirmedDisplayValue.trim()) {
+    // A confirmed display can consist entirely of spaces. Explicitly clearing the
+    // input already resets the confirmation in onInputTextChanged.
+    if (this.lastConfirmedDisplayValue && text === this.lastConfirmedDisplayValue.trim()) {
       this.formControl.markAsTouched();
+      return;
+    }
+    if (!text) {
+      this.setModelValue(null);
       return;
     }
     this.setModelFromFreeText(text);

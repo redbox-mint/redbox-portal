@@ -455,6 +455,8 @@ export namespace Services {
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
     readonly original?: AnyRecord;
+    /** Trusted metadata at the CAS revision, when it differs from the authority context. */
+    readonly previousMetadata?: Readonly<Record<string, unknown>>;
     /** Storage snapshot that authorized this save before its own hooks changed the ACL. */
     readonly editAuthorizationRecord?: AnyRecord;
     readonly user: AnyRecord;
@@ -470,10 +472,11 @@ export namespace Services {
     readonly phase?: Extract<RecordSavePhase, 'pre-save' | 'post-save'>;
     readonly brand: BrandingModel;
   };
-  type PersistPostSyncCandidateOptions = Omit<ValidateCandidateOptions, 'candidate' | 'original' | 'phase'> & {
+  type PersistPostSyncCandidateOptions = Omit<ValidateCandidateOptions, 'candidate' | 'original' | 'phase' | 'previousMetadata'> & {
     readonly brand: BrandingModel;
     readonly oid: string;
     readonly beforeCandidate: AnyRecord;
+    readonly previousCandidate: AnyRecord;
     readonly candidate: AnyRecord;
     readonly expectedRevision: number;
     readonly revisionVerificationFailed?: boolean;
@@ -1480,15 +1483,16 @@ export namespace Services {
       currentRevision: number | undefined
     ): Promise<{
       candidate: RecordWithMeta;
+      previousCandidate: AnyRecord;
       adoptedRevision?: number;
       revisionVerificationFailed?: boolean;
     }> {
       const candidate = this.mergeValidationCandidate(beforeCandidate, outcome.record);
       const adoptedRevision = this.adoptHookCommittedRevision(candidate, currentRevision, outcome.committedRevision);
       if (currentRevision === undefined || adoptedRevision === undefined || adoptedRevision <= currentRevision) {
-        return { candidate };
+        return { candidate, previousCandidate: beforeCandidate };
       }
-      if (adoptedRevision !== outcome.committedRevision) return { candidate, adoptedRevision };
+      if (adoptedRevision !== outcome.committedRevision) return { candidate, previousCandidate: beforeCandidate, adoptedRevision };
 
       try {
         const stored = await this.getMeta(oid);
@@ -1497,14 +1501,18 @@ export namespace Services {
           // the committed base; the coordinator retains the returned keys.
           const base = this.mergeValidationCandidate(beforeCandidate, stored);
           const overlaid = this.mergeValidationCandidate(base, outcome.committedRecord ?? {});
-          return { candidate: this.mergeValidationCandidate(overlaid, outcome.record), adoptedRevision };
+          return {
+            candidate: this.mergeValidationCandidate(overlaid, outcome.record),
+            previousCandidate: stored,
+            adoptedRevision,
+          };
         }
       } catch {
         // An unverifiable revision cannot authorize a chained write.
       }
       // Keep the original candidate and revision. A bogus claimed revision can
       // leave storage at currentRevision, so ordinary fallback CAS could succeed.
-      return { candidate, revisionVerificationFailed: true };
+      return { candidate, previousCandidate: beforeCandidate, revisionVerificationFailed: true };
     }
 
     private recordMutationOptions(
@@ -2807,6 +2815,7 @@ export namespace Services {
         }
         const request: RecordValidationRequest = {
           routeFormContract: options.routeFormContract,
+          previousMetadata: options.previousMetadata ?? (original?.metadata as AnyRecord | undefined),
           candidate: {
             ..._.cloneDeep(candidateToValidate),
             ...(typeof candidateToValidate.redboxOid === 'string' ? { redboxOid: candidateToValidate.redboxOid } : {}),
@@ -3772,6 +3781,7 @@ export namespace Services {
         brand,
         oid,
         beforeCandidate,
+        previousCandidate,
         candidate,
         user,
         context,
@@ -3868,7 +3878,11 @@ export namespace Services {
         brand, undefined, 'post-save', targetStep, undefined, false, displayContext);
       if (displayProblem) return { status: 'validation-failed', problem: displayProblem };
       const classification = classifyRecordWrite(beforeCandidate, authoritativeCandidate);
-      const requiresFormValidation = recordWriteRequiresFormValidation(classification);
+      // Retain validation of hook changes and also catch a change that would
+      // reverse a verified commit, even when it matches the pre-hook record.
+      const requiresFormValidation = recordWriteRequiresFormValidation(classification) ||
+        (previousCandidate !== beforeCandidate &&
+          recordWriteRequiresFormValidation(classifyRecordWrite(previousCandidate, authoritativeCandidate)));
       if (
         requiresFormValidation ||
         context.validationBypass !== undefined ||
@@ -3878,6 +3892,7 @@ export namespace Services {
           displayContext,
           candidate: authoritativeCandidate,
           original: beforeCandidate,
+          previousMetadata: previousCandidate.metadata as AnyRecord | undefined,
           editAuthorizationRecord,
           user,
           context,
@@ -4941,6 +4956,7 @@ export namespace Services {
             });
             const {
               candidate: postSyncCandidate,
+              previousCandidate,
               adoptedRevision,
               revisionVerificationFailed,
             } = await this.resolvePostSyncCandidate(oid, beforePostSync, hookOutcome, currentRevision);
@@ -4973,6 +4989,7 @@ export namespace Services {
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSync,
+                previousCandidate,
                 candidate: postSyncCandidate,
                 revisionVerificationFailed,
                 user: userObj,
@@ -5056,6 +5073,7 @@ export namespace Services {
               });
               const {
                 candidate: transitionCandidate,
+                previousCandidate,
                 adoptedRevision,
                 revisionVerificationFailed,
               } = await this.resolvePostSyncCandidate(
@@ -5075,6 +5093,7 @@ export namespace Services {
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionPostSync,
+                    previousCandidate,
                     candidate: transitionCandidate,
                     revisionVerificationFailed,
                     user: userObj,
@@ -6330,6 +6349,7 @@ export namespace Services {
             if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
               const {
                 candidate: postSyncCandidate,
+                previousCandidate,
                 adoptedRevision,
                 revisionVerificationFailed,
               } = await this.resolvePostSyncCandidate(oid, beforePostSyncCandidate, hookOutcome, currentRevision);
@@ -6340,6 +6360,7 @@ export namespace Services {
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSyncCandidate,
+                previousCandidate,
                 candidate: postSyncCandidate,
                 revisionVerificationFailed,
                 // All chained writes belong to the save authorized against
@@ -6437,6 +6458,7 @@ export namespace Services {
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
                   const {
                     candidate: transitionCandidate,
+                    previousCandidate,
                     adoptedRevision,
                     revisionVerificationFailed,
                   } = await this.resolvePostSyncCandidate(
@@ -6452,6 +6474,7 @@ export namespace Services {
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionCandidate,
+                    previousCandidate,
                     candidate: transitionCandidate,
                     revisionVerificationFailed,
                     editAuthorizationRecord: originalRecord,
