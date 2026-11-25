@@ -305,13 +305,12 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
 
   protected optionDisabled(option: EditorOption): boolean {
     if (this.selectionLocked || option.disabled) return true;
-    // A stored-only label provides no vocabulary policy. The editor can always
-    // remove that answer; reselecting it must pass the usual choice checks.
-    if (option.storedOnly && this.selectedRow(option.value)) return false;
+    // A code missing from the option list is available only for removal.
+    if (option.storedOnly) return !this.selectedRow(option.value);
     const enabled = this.config.enabledOptionValues;
     return (
       this.loadState() !== 'ready' ||
-      (option.historical === true && this.config.historicalVocabMode === 'disable') ||
+      (option.historical === true && (this.config.historicalVocabMode === 'disable' || !this.selectedRow(option.value))) ||
       (Array.isArray(enabled) && !enabled.includes(option.value))
     );
   }
@@ -346,7 +345,7 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
 
   protected archiveDetails(row: EditorRow) {
     const rendered = new Set(row.fields.map(field => field.compConfigJson.name));
-    return checkboxDetailsDisplayFields(this.config, row.control.getRawValue(), true)
+    return checkboxDetailsDisplayFields(this.config, row.control.getRawValue())
       .filter(detail => !rendered.has(detail.name));
   }
 

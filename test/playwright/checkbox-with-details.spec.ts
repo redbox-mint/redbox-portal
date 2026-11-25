@@ -349,16 +349,19 @@ test('saves removals during a pending and failed lookup and validates retained r
 });
 
 
-test('shows obsolete details alongside surviving controls on historical choices', async ({ page }, testInfo) => {
+test('shows obsolete answers for current and historical choices and saves removal of a deleted choice', async ({ page, baseURL }, testInfo) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
   await page.goto(newRecord);
   await title.fill('Synthetic archived details');
   const draft = await save(page, 'Save draft', 'POST', demoType);
   const oid: string = draft.redboxOid;
-  const saved = [{
+  const current = { value: 'tabulated', details: { volume: '2 TB', olderNotes: 'Original table exports' } };
+  const retired = {
     value: 'legacy-media',
     details: { volume: '1 TB', legacyNotes: 'Stored on tape', privateReference: 'Keep private' },
-  }];
+  };
+  const deleted = { value: 'deleted-format', details: { volume: '4 TB' } };
+  const saved = [current, retired, deleted];
   // Seed a prior form version's metadata on this test's own record.
   const mongo = await new MongoClient(process.env.CHECKBOX_DETAILS_MONGO_URL ?? 'mongodb://mongodb:27017', {
     serverSelectionTimeoutMS: 5000,
@@ -387,13 +390,32 @@ test('shows obsolete details alongside surviving controls on historical choices'
   };
   await page.goto(`${prefix}/record/edit/${oid}`);
   await checkHistorical();
+  const removed = page.getByRole('checkbox', { name: deleted.value, exact: true });
+  await removed.uncheck();
   await historical.screenshot({ path: testInfo.outputPath('historical-details.png') });
   await page.getByRole('tab', { name: 'Project' }).click();
   await title.fill('Synthetic archived details (updated)');
   const updated = await save(page, 'Save draft', 'PUT', oid);
-  expect(updated.metadata.digitalFormatEstimates).toEqual(saved);
+  expect(updated.metadata.digitalFormatEstimates).toEqual([current, retired]);
+  await openFormats(page);
+  await expect(removed.and(page.locator(':enabled'))).toHaveCount(0);
   await page.reload();
   await checkHistorical();
+  await expect(removed).toHaveCount(0);
+  const currentRow = page.locator('.checkbox-details__row').filter({
+    has: page.getByRole('checkbox', { name: 'Tabulated files', exact: true }),
+  });
+  await expect(currentRow.locator('dt')).toHaveText(['olderNotes']);
+  await expect(currentRow.locator('dd')).toHaveText(['Original table exports']);
+  await expect(currentRow.getByRole('textbox')).toHaveCount(1);
+
+  await page.goto(`${prefix}/record/view/${oid}`);
+  const view = page.locator('.rb-view-checkbox-details');
+  await expect(view).toContainText('Original table exports');
+  await expect(view).not.toContainText('Keep private');
+  const pdf = await renderCheckboxPdf(page, baseURL!, oid, testInfo.outputPath('obsolete-details.pdf'));
+  for (const text of ['olderNotes', 'Original table exports', 'Stored on tape']) expect(pdf).toContain(text);
+  expect(pdf).not.toContain('Keep private');
 });
 
 

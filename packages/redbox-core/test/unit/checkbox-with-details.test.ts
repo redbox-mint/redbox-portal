@@ -578,14 +578,18 @@ describe('Checkbox with details form', () => {
     const form = await new ConstructFormConfigVisitor(consoleLogger).start({
       data: frame(field),
       formMode: 'view',
-      record: { formats: [row('retired', { volume: '1 TB', oldNote: 'Original notes', hiddenNote: 'Hidden answer' })] },
+      record: { formats: [
+        row('retired', { volume: '1 TB', oldNote: 'Original notes', hiddenNote: 'Hidden answer' }),
+        row('table', { volume: '2 TB', oldNote: 'Previous estimate', hiddenNote: 'Hidden current answer' }),
+      ] },
     });
     const view = await new ClientFormConfigVisitor(consoleLogger).start({ form, formMode: 'view' });
     const output = view!.componentDefinitions[0].component.config as { content: unknown; template: string };
     const translationService = { t: (key: string) => (key === '@old-format' ? 'Retired format label' : key) };
     const rendered = handlebarsCompile(output.template)({ content: output.content, translationService });
     assert.match(rendered, /Retired format label.*Volume.*1 TB.*oldNote.*Original notes/s);
-    assert.doesNotMatch(rendered, /Hidden answer/);
+    assert.match(rendered, /Tabulated files.*Volume.*2 TB.*oldNote.*Previous estimate/s);
+    assert.doesNotMatch(rendered, /Hidden (?:current )?answer/);
   });
 
   it('checks static mappings and validates the option list from a deferred vocabulary', async () => {

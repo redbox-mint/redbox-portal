@@ -205,7 +205,8 @@ describe('CheckboxWithDetailsComponent', () => {
   it('hydrates deferred vocabulary without reassigning saved rows and shows a removed choice', async () => {
     const fieldDefinition = field('formats', [
       { value: 'removed', details: { volume: '1 TB', retiredMemo: 'Original notes' } },
-      { value: 'other./~', details: { volume: '3 TB', description: 'Instrument exports' } },
+      { value: 'other./~', details: { volume: '3 TB', description: 'Instrument exports', oldNote: 'Original measurement' } },
+      { value: 'historical', details: { volume: '2 TB' } },
     ]);
     delete fieldDefinition.component.config!.options;
     fieldDefinition.component.config!.vocabRef = 'formats';
@@ -226,6 +227,7 @@ describe('CheckboxWithDetailsComponent', () => {
     resolveOptions([
       { label: 'Other', value: 'other./~' },
       { label: 'Tabulated', value: 'tabulated' },
+      { label: 'Retired format', value: 'historical', historical: true },
     ]);
     await fixture.whenStable();
     fixture.detectChanges();
@@ -239,6 +241,19 @@ describe('CheckboxWithDetailsComponent', () => {
       'Original estimate notes'
     );
     expect(fixture.nativeElement.querySelector('redbox-checkbox-with-details').textContent).toContain('Original notes');
+    const rows = Array.from<Element>(fixture.nativeElement.querySelectorAll('.checkbox-details__row'));
+    const other = rows.find(row => row.querySelector('label')?.textContent?.trim() === 'Other')!;
+    expect(other.querySelector('dd')?.textContent).toBe('Original measurement');
+    for (const label of ['removed', 'Retired format']) {
+      const checkbox = rows.find(row => row.querySelector('label')?.textContent?.trim() === label)!
+        .querySelector<HTMLInputElement>('input[type=checkbox]')!;
+      expect(checkbox.checked).toBeTrue();
+      checkbox.click();
+      fixture.detectChanges();
+      expect(checkbox.disabled).toBeTrue();
+      checkbox.click();
+      expect(checkbox.checked).toBeFalse();
+    }
     expect(fixture.nativeElement.querySelector('textarea').value).toBe('Instrument exports');
   });
 

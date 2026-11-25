@@ -108,8 +108,7 @@ export function readCheckboxWithDetailsRows(value: unknown): CheckboxWithDetails
 /** Labels and populated answers for one selected row in Edit, View or PDF. */
 export function checkboxDetailsDisplayFields(
   config: CheckboxWithDetailsFieldComponentConfigFrame | undefined,
-  row: CheckboxWithDetailsRow,
-  includeUnconfigured: boolean
+  row: CheckboxWithDetailsRow
 ): Array<{ name: string; label: string; answer: string }> {
   const schema = checkboxDetailFields(config, row.value);
   const fields: Array<{ name: string; label: string; answer: string }> = [];
@@ -120,11 +119,9 @@ export function checkboxDetailsDisplayFields(
       continue;
     fields.push({ name, label: field.layout?.config?.label || field.component.config?.label || name, answer });
   }
-  if (includeUnconfigured) {
-    const known = new Set(schema.map(field => field.name));
-    for (const [name, answer] of Object.entries(row.details)) {
-      if (answer && !known.has(name)) fields.push({ name, label: name, answer });
-    }
+  const known = new Set(schema.map(field => field.name));
+  for (const [name, answer] of Object.entries(row.details)) {
+    if (answer && !known.has(name)) fields.push({ name, label: name, answer });
   }
   return fields;
 }

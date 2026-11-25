@@ -878,7 +878,7 @@ export class FormOverride {
         return {
           ...row,
           label: option?.label ?? row.value,
-          displayDetails: checkboxDetailsDisplayFields(config, row, !option || option.historical === true),
+          displayDetails: checkboxDetailsDisplayFields(config, row),
         };
       });
     }
