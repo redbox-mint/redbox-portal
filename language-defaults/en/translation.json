@@ -722,7 +722,7 @@
   "@record-save-record-validation-failed": "The record contains validation errors.",
   "@record-save-record-validation-form-resolution-failed": "The record form could not be resolved for validation.",
   "@record-save-record-validation-configuration-failed": "The record validation configuration is invalid.",
-  "@record-save-record-validation-timeout": "Record validation timed out. Please try again.",
+  "@record-save-record-validation-timeout": "Validation timed out. Please try again.",
   "@record-save-record-validation-operation-invalid": "The requested validation operation is invalid.",
   "@record-save-record-validation-operation-unauthorized": "You are not authorized to use this validation operation.",
   "@record-save-record-validation-transition-unauthorized": "You are not authorized to perform this workflow transition.",
