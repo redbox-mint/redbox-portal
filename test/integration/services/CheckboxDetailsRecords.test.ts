@@ -134,14 +134,17 @@ describe('Checkbox details records', function () {
     expectSaved(await amend(existingOid, { digitalFormatEstimates: [] }));
     expect((await read(existingOid)).metadata.digitalFormatEstimates).to.deep.equal([]);
 
-    expectRejected(await create({ title: 'Missing reference on create' }), 'record-validation-configuration-failed');
+    expectSaved(await create({ title: 'Missing reference on create without a selection' }));
+    expectSaved(await create({ title: 'Missing reference on create with an empty selection', digitalFormatEstimates: [] }));
+    expectRejected(await create({ title: 'Missing reference with a selection', digitalFormatEstimates: storedFormats }),
+      'record-validation-configuration-failed');
     missing.restore();
     sinon.stub(VocabularyService, 'getEntries').callsFake(async (branding, ref, options) => {
       const result = await getEntries(branding, ref, options);
       return ref === vocabulary && result ? { ...result, entries: [...result.entries, result.entries[0]] } : result;
     });
     const beforeMalformedWrite = (await read(existingOid)).metadata;
-    expectRejected(await amend(existingOid, { title: 'Malformed vocabulary' }), 'record-validation-configuration-failed');
+    expectRejected(await amend(existingOid, { title: 'Malformed vocabulary', digitalFormatEstimates: storedFormats }), 'record-validation-configuration-failed');
     expect((await read(existingOid)).metadata).to.deep.equal(beforeMalformedWrite);
   });
 

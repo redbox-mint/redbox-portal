@@ -965,7 +965,7 @@ export namespace Services {
         });
       }
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
-      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
+      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap, recordMetadata == null);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs,

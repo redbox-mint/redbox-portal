@@ -17,6 +17,8 @@ import {
   HistoricalVocabMode,
   GroupFieldComponentDefinitionOutline,
   GroupFormComponentDefinitionOutline,
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
   RadioOption,
   RepeatableFieldComponentDefinitionOutline,
@@ -51,8 +53,13 @@ type ResolveVocabsOptions = {
   /** View, contract compilation and validated writes also resolve editor-loaded choices. */
   resolveDeferredCheckboxDetails?: boolean;
   checkboxDetailsOnly?: boolean;
-  /** Leave failed checkbox reads to normal validation. Missing vocabularies require an existing record. */
-  checkboxLookupFallback?: { onMissingVocabulary?: (field: string) => void };
+  /** Limit checkbox resolution to the requested vocabulary references. */
+  checkboxVocabFilter?: (vocabRef: string) => boolean;
+  /** Leave failed checkbox reads to normal validation or to stored-answer presentation. */
+  checkboxLookupFallback?: {
+    onMissingVocabulary?: (field: string) => void;
+    onReadFailure?: (field: string) => void;
+  };
 };
 
 class VocabularyEntriesReadError extends Error {}
@@ -75,6 +82,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   private includeHistoricalValues = false;
   private resolveDeferredCheckboxDetails = false;
   private checkboxDetailsOnly = false;
+  private checkboxVocabFilter?: ResolveVocabsOptions['checkboxVocabFilter'];
   private checkboxLookupFallback?: ResolveVocabsOptions['checkboxLookupFallback'];
   private pendingResolutions: Promise<void>[] = [];
 
@@ -98,6 +106,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.resolveDeferredCheckboxDetails = options?.resolveDeferredCheckboxDetails === true;
     this.checkboxDetailsOnly = options?.checkboxDetailsOnly === true;
+    this.checkboxVocabFilter = options?.checkboxVocabFilter;
     this.checkboxLookupFallback = options?.checkboxLookupFallback;
     this.pendingResolutions = [];
     await form.accept(this);
@@ -154,10 +163,11 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
     const config = item.component.config;
     if (this.validateLookupsOnly || !config?.vocabRef ||
-        (!config.inlineVocab && !this.resolveDeferredCheckboxDetails)) return;
+        (!config.inlineVocab && !this.resolveDeferredCheckboxDetails) ||
+        this.checkboxVocabFilter?.(config.vocabRef) === false) return;
     const fallback = this.checkboxLookupFallback;
     const lookup = this.fetchAllEntries(this.branding, config.vocabRef, true, fallback !== undefined);
-    this.pendingResolutions.push(lookup.then(entries => {
+    this.enqueueResolution(lookup.then(entries => {
       config.options = entries.map(entry => ({
         label: entry.label,
         value: entry.value,
@@ -175,9 +185,24 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
         return;
       }
       if (!fallback || !(error instanceof VocabularyEntriesReadError)) throw error;
+      fallback.onReadFailure?.(item.name);
       this.logger.warn(error.message);
       this.logger.debug(error.cause);
     }));
+  }
+
+  async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
+  }
+
+  async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
+    const previous = this.checkboxDetailsOnly;
+    this.checkboxDetailsOnly = true;
+    try {
+      for (const def of item.config?.componentDefinitions ?? []) await def.accept(this);
+    } finally {
+      this.checkboxDetailsOnly = previous;
+    }
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
@@ -251,9 +276,13 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       return;
     }
 
-    this.pendingResolutions.push(
-      this.resolveInlineVocab(definition, componentConfig, treeMode)
-    );
+    this.enqueueResolution(this.resolveInlineVocab(definition, componentConfig, treeMode));
+  }
+
+  private enqueueResolution(resolution: Promise<void>): void {
+    // Traversal can await another field before Promise.all observes this result.
+    void resolution.catch(() => undefined);
+    this.pendingResolutions.push(resolution);
   }
 
   private async resolveInlineVocab(

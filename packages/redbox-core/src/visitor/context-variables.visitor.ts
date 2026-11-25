@@ -5,6 +5,7 @@ import {
   AccordionPanelFormComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
+  CheckboxWithDetailsComponentName,
   CheckboxWithDetailsFormComponentDefinitionOutline,
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
@@ -13,15 +14,15 @@ import {
   DateInputFormComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
+  FormComponentDefinitionOutline,
   FormConfigOutline,
   FormConfigVisitor,
+  FormPathHelper,
   GroupFieldComponentDefinitionOutline,
-  GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
-  RepeatableFieldModelDefinitionOutline,
   RepeatableFormComponentDefinitionOutline,
   RichTextEditorFieldModelDefinitionOutline,
   RichTextEditorFormComponentDefinitionOutline,
@@ -43,12 +44,18 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
 
   private contextVariablesMap: Record<string, string> = {};
   private replacementRegex: RegExp | null = null;
+  private useAuthoredValues = true;
 
   constructor(logger: ILogger) {
     super(logger);
   }
 
-  public async applyContextVariables(form: FormConfigOutline, contextVariablesMap?: Record<string, unknown>): Promise<void> {
+  public async applyContextVariables(
+    form: FormConfigOutline,
+    contextVariablesMap?: Record<string, unknown>,
+    useAuthoredValues = true
+  ): Promise<void> {
+    this.useAuthoredValues = useAuthoredValues;
     const normalizedMap = this.normalizeContextVariablesMap(contextVariablesMap);
     this.contextVariablesMap = normalizedMap;
     this.replacementRegex = this.buildReplacementRegex(Object.keys(normalizedMap));
@@ -81,6 +88,12 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    const model = item.model?.config;
+    if (model) {
+      model.defaultValue = this.replaceCheckboxDefaults(model.defaultValue) as typeof model.defaultValue;
+      model.newEntryValue = this.replaceCheckboxDefaults(model.newEntryValue) as typeof model.newEntryValue;
+      if (this.useAuthoredValues) model.value = this.replaceCheckboxDefaults(model.value) as typeof model.value;
+    }
     const config = item.component.config;
     for (const field of [...(config?.detailFields ?? []), ...Object.values(config?.detailFieldsByValue ?? {}).flat()]) {
       await field.accept(this);
@@ -115,7 +128,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   }
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
-    await item.model?.accept(this);
+    this.replaceAggregateDefaults(item);
   }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
@@ -136,15 +149,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
-    await item.model?.accept(this);
-  }
-
-  async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
-    await this.replaceModelConfigDeepValues(item.config);
-  }
-
-  async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
-    await this.replaceModelConfigDeepValues(item.config);
+    this.replaceAggregateDefaults(item);
   }
 
   async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
@@ -222,7 +227,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
-    await super.visitRepeatableFieldComponentDefinition(item);
+    await item.config?.elementTemplate?.accept(this);
   }
   private replaceTokens(value: unknown): unknown {
     if (typeof value !== 'string' || !this.replacementRegex) {
@@ -241,23 +246,67 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     config.value = this.replaceTokens(config.value);
   }
 
-  private async replaceModelConfigDeepValues(config?: { defaultValue?: unknown; value?: unknown }): Promise<void> {
-    if (!config) {
-      return;
-    }
-    config.defaultValue = this.replaceTokensDeep(config.defaultValue);
-    config.value = this.replaceTokensDeep(config.value);
+  private replaceCheckboxDefaults(value: unknown): unknown {
+    if (!Array.isArray(value)) return value;
+    return value.map(row => row && typeof row === 'object' && row.details && typeof row.details === 'object'
+      ? { ...row, details: this.replaceTokensDeep(row.details) }
+      : row);
   }
 
-  private replaceTokensDeep(value: unknown): unknown {
+  private replaceAggregateDefaults(item: GroupFormComponentDefinitionOutline | RepeatableFormComponentDefinitionOutline): void {
+    const model = item.model?.config;
+    if (!model) return;
+    const replace = (value: unknown, authored: boolean) => {
+      const checkboxValues = new Map<unknown, unknown>();
+      this.collectCheckboxValues(item, value, authored, checkboxValues);
+      return this.replaceTokensDeep(value, checkboxValues);
+    };
+    const config: { defaultValue?: unknown; value?: unknown; newEntryValue?: unknown } = model;
+    config.defaultValue = replace(config.defaultValue, true);
+    config.newEntryValue = replace(config.newEntryValue, true);
+    config.value = replace(config.value, this.useAuthoredValues);
+  }
+
+  // Aggregate values are populated by the outer group or repeatable. Use its
+  // schema to identify checkbox answers before replacing ordinary strings.
+  private collectCheckboxValues(
+    item: FormComponentDefinitionOutline,
+    value: unknown,
+    authored: boolean,
+    checkboxValues: Map<unknown, unknown>
+  ): void {
+    if (!value || typeof value !== 'object') return;
+    if (item.component.class === CheckboxWithDetailsComponentName) {
+      checkboxValues.set(value, authored ? this.replaceCheckboxDefaults(value) : value);
+      return;
+    }
+    const config = item.component.config as {
+      elementTemplate?: FormComponentDefinitionOutline;
+      componentDefinitions?: FormComponentDefinitionOutline[];
+      panels?: FormComponentDefinitionOutline[];
+      tabs?: FormComponentDefinitionOutline[];
+    } | undefined;
+    if (item.component.class === 'RepeatableComponent' && config?.elementTemplate && Array.isArray(value)) {
+      for (const row of value) this.collectCheckboxValues(config.elementTemplate, row, authored, checkboxValues);
+      return;
+    }
+    for (const child of config?.componentDefinitions ?? config?.panels ?? config?.tabs ?? []) {
+      const [name] = FormPathHelper.metadataTokensForComponent(child);
+      const childValue = name ? (value as Record<string, unknown>)[name] : value;
+      this.collectCheckboxValues(child, childValue, authored, checkboxValues);
+    }
+  }
+
+  private replaceTokensDeep(value: unknown, checkboxValues?: ReadonlyMap<unknown, unknown>): unknown {
+    if (checkboxValues?.has(value)) return checkboxValues.get(value);
     if (typeof value === 'string') {
       return this.replaceTokens(value);
     }
     if (Array.isArray(value)) {
-      return value.map(item => this.replaceTokensDeep(item));
+      return value.map(item => this.replaceTokensDeep(item, checkboxValues));
     }
     if (value && typeof value === 'object') {
-      const replacedEntries = Object.entries(value).map(([key, item]) => [key, this.replaceTokensDeep(item)]);
+      const replacedEntries = Object.entries(value).map(([key, item]) => [key, this.replaceTokensDeep(item, checkboxValues)]);
       return Object.fromEntries(replacedEntries);
     }
     return value;

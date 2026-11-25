@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {
   CheckboxWithDetailsFormComponentDefinitionFrame,
+  RepeatableFormComponentDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
   consoleLogger,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
@@ -9,6 +12,7 @@ import {
 import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
+  ContextVariablesFormConfigVisitor,
   ValidatorFormConfigVisitor,
   VocabInlineFormConfigVisitor,
 } from '../../src';
@@ -58,6 +62,7 @@ describe('Checkbox with details form', () => {
   it('preserves stable codes in edit mode and builds labelled, escaped view content', async () => {
     const field = definition();
     field.component.config!.options!.reverse();
+    field.constraints = { allowModes: ['edit', 'view'] };
     const saved = [
       row('table', { volume: 'About 200 files' }),
       row(other, { volume: '3 TB', description: '<script>input</script>\nsecond line' }),
@@ -290,13 +295,30 @@ describe('Checkbox with details form', () => {
     const empty = { formats: [] };
     const first = { name: 'First', collections: [empty] };
     const second = { name: 'Second', collections: [empty, saved] };
-    const validate = async (projects: typeof second[]) => {
+    const validate = async (
+      projects: readonly (typeof second)[],
+      previousMetadata: { projects: readonly (typeof second)[] } = { projects: [first, second] }
+    ) => {
       const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data, record: { projects } });
       return new ValidatorFormConfigVisitor(consoleLogger).start({
-        form, previousMetadata: { projects: [first, second] }, enabledValidationGroups: ['none'],
+        form, previousMetadata, enabledValidationGroups: ['none'],
       });
     };
     assert.deepEqual(await validate([first, { ...second, collections: [saved] }]), []);
+    const moved = { ...second, name: 'Second renamed', collections: [saved] };
+    assert.deepEqual(await validate([moved]), []);
+    assert.deepEqual(await validate([moved, first]), []);
+    const rejected: [(typeof second)[], { projects: (typeof second)[] }?][] = [
+      [[{ ...first, collections: [saved] }, second]],
+      [[{ ...moved, collections: [{ formats: [row('removed', { notes: 'Changed' })] }] }]],
+      [[moved, { ...moved, name: 'Copied' }]],
+      [[{ ...moved, collections: [saved, saved] }]],
+      [[moved], { projects: [first, second, { ...second, name: 'Third' }] }],
+    ];
+    for (const [projects, prior] of rejected) {
+      assert.ok((await validate(projects, prior)).some(error =>
+        error.errors[0].message === '@validator-error-checkbox-details-option'));
+    }
     const copied = await validate([{ ...first, collections: [saved] }, second]);
     assert.deepEqual(copied[0].lineagePaths?.dataModel, ['projects', 0, 'collections', 0, 'formats', 0, 'value']);
   });
@@ -414,6 +436,71 @@ describe('Checkbox with details form', () => {
         assert.equal(issues.length, 1);
         assert.deepEqual(issues[0].lineagePaths?.dataModel, ['formats', 0, 'details', 'originalNote']);
       }
+    }
+  });
+
+  it('preserves disabled detail answers on retained rows while allowing edits and removals', async () => {
+    for (const disabledOn of ['model', 'component', 'layout'] as const) {
+      const field = definition();
+      const detail = field.component.config!.detailFields![0];
+      detail[disabledOn]!.config = { ...detail[disabledOn]!.config, disabled: true };
+      const validate = async (formats: ReturnType<typeof row>[], previous = { volume: 'Saved' } as Record<string, string | null>) => {
+        const form = await new ConstructFormConfigVisitor(consoleLogger).start({ data: frame(field), record: { formats } });
+        return new ValidatorFormConfigVisitor(consoleLogger).start({
+          form, previousMetadata: { formats: [row(other, previous)] }, enabledValidationGroups: ['none'],
+        });
+      };
+      assert.deepEqual(await validate([row(other, { volume: 'Saved', description: 'Updated' })]), []);
+      assert.deepEqual(await validate([]), []);
+      assert.deepEqual(await validate([row('table', { volume: 'New selection default' })]), []);
+      assert.deepEqual(await validate([row(other, { volume: null })], {}), []);
+      for (const submitted of [
+        row(other, { description: 'Omitted' }), row(other, { volume: 'Changed' }), row(other, { volume: null }),
+      ]) {
+        const errors = await validate([submitted]);
+        assert.deepEqual(errors.map(issue => issue.lineagePaths?.dataModel), [['formats', 0, 'details', 'volume']]);
+      }
+      assert.equal((await validate([row(other)], { volume: null })).length, 1);
+      assert.equal((await validate([row(other, { volume: 'Added' })], {})).length, 1);
+    }
+  });
+
+  it('expands context in default details while preserving codes and stored data at each scope', async () => {
+    const code = 'CURRENT_ACTOR';
+    const formats = [row(code, { volume: code })];
+    const expected = [row(code, { volume: 'Alice' })];
+    const field = definition();
+    field.component.config!.options = [{ value: code, label: 'Other' }];
+    field.component.config!.detailFieldsByValue = {};
+    field.component.config!.detailFields![0].model!.config!.defaultValue = code;
+    field.model!.config!.defaultValue = formats;
+    const groupField: FormConfigFrame['componentDefinitions'][number] = { name: 'group', component: { class: 'GroupComponent',
+      config: { componentDefinitions: [structuredClone(field)] } } };
+    const repeatableField: FormConfigFrame['componentDefinitions'][number] = {
+      name: 'projects', component: { class: 'RepeatableComponent', config: { elementTemplate: {
+        name: '', component: { class: 'GroupComponent', config: { componentDefinitions: [
+          { ...structuredClone(field), model: { class: 'CheckboxWithDetailsModel' } },
+        ] } }, model: { class: 'GroupModel', config: { newEntryValue: { formats } } },
+      } } }, model: { class: 'RepeatableModel', config: { defaultValue: [{ formats }] } },
+    };
+    const data: FormConfigFrame = { name: 'context-defaults', componentDefinitions: [
+      field, groupField, repeatableField,
+    ] };
+    const record = { formats, group: { formats }, projects: [{ formats }] };
+    for (const saved of [false, true]) {
+      const form = await new ConstructFormConfigVisitor(consoleLogger).start({
+        data, record: saved ? record : null, formMode: 'edit',
+      });
+      await new ContextVariablesFormConfigVisitor(consoleLogger).applyContextVariables(form, { [code]: 'Alice' }, !saved);
+      const [root, group, projects] = form.componentDefinitions;
+      const rootConfig = root.component.config as typeof field.component.config;
+      const nested = (group.component.config as { componentDefinitions: typeof form.componentDefinitions }).componentDefinitions[0];
+      assert.deepEqual(root.model?.config?.value, saved ? formats : expected);
+      assert.deepEqual(nested.model?.config?.value, saved ? formats : expected);
+      assert.deepEqual(projects.model?.config?.value, [{ formats: saved ? formats : expected }]);
+      const template = (projects as RepeatableFormComponentDefinitionOutline).component.config?.elementTemplate;
+      assert.deepEqual(template?.model?.config?.newEntryValue, { formats: expected });
+      assert.equal(rootConfig?.detailFields?.[0].model?.config?.value, 'Alice');
     }
   });
 
@@ -541,6 +628,82 @@ describe('Checkbox with details form', () => {
         /unique nonempty string values/
       );
     } finally {
+      if (service) Object.defineProperty(globalThis, 'VocabularyService', service);
+      else Reflect.deleteProperty(globalThis, 'VocabularyService');
+    }
+  });
+  it('resolves deferred checkbox choices inside a QuestionTree without inlining sibling lookups', async () => {
+    const field = definition();
+    delete field.component.config!.options;
+    field.component.config!.vocabRef = 'formats';
+    const record = { tree: { formats: [row('table', { volume: '1 TB' })] } };
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const form = await constructor.start({ data: {
+      name: 'tree-with-formats',
+      componentDefinitions: [{ name: 'tree', component: { class: 'QuestionTreeComponent' } }],
+    }, record, formMode: 'edit' });
+    const children = (form.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline)
+      .component.config!.componentDefinitions!;
+    // QuestionTree emits its own constructed definitions; exercise its normal visitor dispatch.
+    const nested = await constructor.start({ data: { name: 'tree-child', componentDefinitions: [field, {
+      name: 'legacy', component: { class: 'DropdownInputComponent', config: { vocabRef: 'unrelated', inlineVocab: true } },
+    }] }, record: record.tree, formMode: 'edit' });
+    children.push(...nested.componentDefinitions);
+
+    const service = Object.getOwnPropertyDescriptor(globalThis, 'VocabularyService');
+    const reads: string[] = [];
+    try {
+      Object.defineProperty(globalThis, 'VocabularyService', { configurable: true, value: {
+        getEntries: async (_brand: string, ref: string) => {
+          reads.push(ref);
+          return { entries: [{ value: 'table', label: 'Tabulated files' }, { value: other, label: 'Other' }] };
+        },
+      } });
+      await new VocabInlineFormConfigVisitor(consoleLogger).resolveVocabs(form, 'default', {
+        resolveDeferredCheckboxDetails: true,
+      });
+      assert.deepEqual(reads, ['formats']);
+      assert.deepEqual(await new ValidatorFormConfigVisitor(consoleLogger).start({
+        form, validatorDefinitions: formValidatorsSharedDefinitions,
+      }), []);
+    } finally {
+      if (service) Object.defineProperty(globalThis, 'VocabularyService', service);
+      else Reflect.deleteProperty(globalThis, 'VocabularyService');
+    }
+  });
+
+  it('observes a queued lookup rejection before traversal finishes and propagates the failure', async () => {
+    const field = definition();
+    delete field.component.config!.options;
+    field.component.config!.vocabRef = 'formats';
+    const form = await new ConstructFormConfigVisitor(consoleLogger).start({ formMode: 'edit', data: {
+      name: 'parallel-lookups',
+      componentDefinitions: [field, { name: 'later', component: { class: 'TypeaheadInputComponent',
+        config: { sourceType: 'namedQuery', queryId: 'later' } } }],
+    } });
+    let paused = false;
+    class PausedTraversal extends VocabInlineFormConfigVisitor {
+      override async visitTypeaheadInputFormComponentDefinition(_item: TypeaheadInputFormComponentDefinitionOutline) {
+        await new Promise<void>(resolve => setImmediate(() => setImmediate(resolve)));
+        paused = true;
+      }
+    }
+    const failure = new Error('Vocabulary read failed');
+    const service = Object.getOwnPropertyDescriptor(globalThis, 'VocabularyService');
+    const unexpected: unknown[] = [];
+    const observe = (error: unknown) => unexpected.push(error);
+    process.on('unhandledRejection', observe);
+    try {
+      Object.defineProperty(globalThis, 'VocabularyService', { configurable: true, value: {
+        getEntries: async () => { throw failure; },
+      } });
+      await assert.rejects(new PausedTraversal(consoleLogger).resolveVocabs(form, 'default', {
+        resolveDeferredCheckboxDetails: true,
+      }), error => error === failure);
+      assert.equal(paused, true);
+      assert.deepEqual(unexpected, []);
+    } finally {
+      process.removeListener('unhandledRejection', observe);
       if (service) Object.defineProperty(globalThis, 'VocabularyService', service);
       else Reflect.deleteProperty(globalThis, 'VocabularyService');
     }

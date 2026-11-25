@@ -240,7 +240,7 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
       const selected = readCheckboxWithDetailsRows(this.array.getRawValue());
       config.options = options;
       this.loadState.set('ready');
-      this.replaceSelection(selected, { emitEvent: false });
+      this.replaceSelection(selected, { emitEvent: false }, true);
       this.publishDefinitionChange();
       this.root.broadcastFormStatus(false);
     } catch (error) {
@@ -400,15 +400,26 @@ export class CheckboxWithDetailsComponent extends FormFieldBaseComponent<unknown
     return { control: createRowControl(value, controls), fields };
   }
 
-  private replaceSelection(values: CheckboxWithDetailsRow[], options: ControlSetValueOptions = {}): void {
+  private replaceSelection(
+    values: CheckboxWithDetailsRow[],
+    options: ControlSetValueOptions = {},
+    hydrate = false
+  ): void {
+    const deselected = hydrate
+      ? [...this.rows.values()].filter(row => !this.array.controls.includes(row.control))
+      : [];
     this.rows.clear();
-    this.initiallySelected.clear();
+    if (!hydrate) this.initiallySelected.clear();
     const selected = values.map((value, index) => {
-      this.initiallySelected.add(value.value);
+      if (!hydrate) this.initiallySelected.add(value.value);
       const row = this.createRow(value.value, index, value);
       this.rows.set(value.value, row);
       return row.control;
     });
+    for (const cached of deselected) {
+      const saved = cached.control.getRawValue();
+      this.rows.set(saved.value, this.createRow(saved.value, selected.length, saved));
+    }
     this.array.replaceRows(selected, options);
   }
 

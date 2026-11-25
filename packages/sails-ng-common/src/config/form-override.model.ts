@@ -523,6 +523,7 @@ export class FormOverride {
     const skipAutomaticViewTransform =
       formMode === 'view' &&
       !shouldForceViewTransform &&
+      originalComponentClassName !== CheckboxWithDetailsComponentName &&
       this.hasExplicitAllowedMode(original?.constraints, 'view');
 
     const hasExplicitTemplate = typeof transforms.template === 'string' && transforms.template.trim().length > 0;

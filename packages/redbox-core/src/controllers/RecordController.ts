@@ -1228,7 +1228,7 @@ export namespace Controllers {
           { user: req.user as UserModel, brand, record: recordData as RecordModel, ...(typeof req.session?.portal === 'string' ? { portal: req.session.portal } : {}) },
           false,
           false,
-          { existingRecordPresentation: !!currentRec && !routeForm }
+          { existingRecordPresentation: !!currentRec }
         );
         const viewMetadata = formMode === 'view' && recordData?.metadata
           ? FormRecordConsistencyService.metadataForViewForm(recordData.metadata as AnyRecord, mergedForm)

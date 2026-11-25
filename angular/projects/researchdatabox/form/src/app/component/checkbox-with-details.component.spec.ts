@@ -326,6 +326,38 @@ describe('CheckboxWithDetailsComponent', () => {
     expect(deleted.disabled).toBeTrue();
   });
 
+  it('hydrates manual undo after lookup and clears it on authoritative replacement during lookup', async () => {
+    const saved = [{ value: 'tabulated', details: { volume: 'Original estimate' } }];
+    for (const replace of [false, true]) {
+      const definition = field('formats', saved);
+      delete definition.component.config!.options;
+      definition.component.config!.vocabRef = 'formats';
+      let resolve!: (options: TypeaheadOption[]) => void;
+      const lookup = new Promise<TypeaheadOption[]>(done => { resolve = done; });
+      const service = TestBed.inject(TypeaheadDataService);
+      const search = jasmine.isSpy(service.searchVocabularyEntries)
+        ? service.searchVocabularyEntries as jasmine.Spy
+        : spyOn(service, 'searchVocabularyEntries');
+      search.and.returnValue(lookup);
+      const { fixture, formComponent } = await createFormAndWaitForReady(config([definition]), { editMode: true });
+      const root: HTMLElement = fixture.nativeElement;
+      const checkbox = () => root.querySelector<HTMLInputElement>('input[type=checkbox]')!;
+      const control = formComponent.form!.get('formats')!;
+      checkbox().click();
+      if (replace) formComponent.form!.patchValue({ formats: [] });
+      expect(control.getRawValue()).toEqual([]);
+
+      resolve([{ value: 'tabulated', label: 'Tabulated files' }]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(checkbox().checked).toBeFalse();
+      checkbox().click();
+      expect(control.getRawValue()).toEqual(replace ? [{ value: 'tabulated', details: { volume: null } }] : saved);
+      fixture.destroy();
+    }
+  });
+
   it('blocks enabled child validation while lookup is pending or failed and validates the latest rows after retry', async () => {
     const saved = { value: 'other./~', details: { volume: '3 TB' } };
     const definition = field('formats', [saved]);

@@ -102,6 +102,7 @@ export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   transformationInapplicable: 'record-validation-transformation-inapplicable',
   validationGroupUnknown: 'record-validation-group-unknown',
   checkboxVocabularyMissing: 'record-validation-checkbox-vocabulary-missing',
+  checkboxVocabularyUnavailable: 'record-validation-checkbox-vocabulary-unavailable',
   requestParameterDropped: 'record-validation-request-parameter-dropped',
   resolutionFailed: 'record-validation-resolution-failed',
   advisoryConfigurationMalformed: 'record-validation-advisory-configuration-malformed',
@@ -1491,27 +1492,38 @@ export namespace Services {
           );
           const validatorDefinitionsMap = this.validatorDefinitions(validationForm, diagnostics);
           if (!validatorDefinitionsMap) return undefined;
-          if (schemaOwnedFormNodes(validationForm).some(({ value }) =>
+          const checkboxVocabularies = new Set(schemaOwnedFormNodes(validationForm).flatMap(({ value }) =>
             isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
             isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
-          )) {
-            // The validator owns all group and answer checks. Only an existing
-            // record with trusted prior metadata can tolerate a missing reference.
+              ? [value.component.config.vocabRef]
+              : []
+          ));
+          let advisoryCheckboxVocabularies = new Set<string>();
+          if (checkboxVocabularies.size > 0) {
             const canPreserve = !!policy && !normalized.targetStep && request.writeKind !== 'transition';
-            const canPreserveMissing = request.writeKind === 'update' && isRecord(request.previousMetadata);
-            await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
-              checkboxDetailsOnly: true,
-              resolveDeferredCheckboxDetails: true,
-              checkboxLookupFallback: canPreserve ? {
-                onMissingVocabulary: canPreserveMissing ? field => {
-                  diagnostics.push(createDiagnostic(
-                    RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyMissing,
-                    'The checkbox vocabulary is missing. Retained answers must match the stored record.',
-                    { severity: 'warning', field }
-                  ));
+            const required = canPreserve
+              ? await new ValidatorFormConfigVisitor(this.logger).requiredCheckboxVocabularies({
+                form: validationForm,
+                enabledValidationGroups: [...groupResolution.effectiveGroups],
+                excludedOnlyValidationGroups: [...advisoryGroups],
+                checkDeadline: () => this.checkDeadline(deadline),
+                previousMetadata: request.previousMetadata,
+              })
+              : checkboxVocabularies;
+            advisoryCheckboxVocabularies = new Set([...checkboxVocabularies].filter(ref => !required.has(ref)));
+            if (required.size > 0) {
+              const canPreserveMissing = request.writeKind === 'update' && isRecord(request.previousMetadata);
+              await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
+                checkboxDetailsOnly: true,
+                resolveDeferredCheckboxDetails: true,
+                checkboxVocabFilter: ref => required.has(ref),
+                checkboxLookupFallback: canPreserve ? {
+                  onMissingVocabulary: canPreserveMissing ? field => {
+                    diagnostics.push(this.checkboxVocabularyMissing(field));
+                  } : undefined,
                 } : undefined,
-              } : undefined,
-            });
+              });
+            }
           }
           const validation = await this.executeValidators(
             validationForm,
@@ -1543,6 +1555,7 @@ export namespace Services {
             validationForm,
             groupResolution,
             advisoryGroups,
+            advisoryCheckboxVocabularies,
             validatorDefinitionsMap,
             mappedIssues,
             transformationAdvisories,
@@ -1592,15 +1605,46 @@ export namespace Services {
       }
       const {
         context,
-        validationForm,
         groupResolution,
         advisoryGroups,
+        advisoryCheckboxVocabularies,
         validatorDefinitionsMap,
         mappedIssues,
         transformationAdvisories,
         transformedCandidate: blockingTransformedCandidate,
       } = blockingRun.value;
+      let validationForm = blockingRun.value.validationForm;
       const blockingErrors = mappedIssues.blocking;
+      if (advisoryCheckboxVocabularies.size > 0) {
+        // A delayed lookup must not mutate the validated form or diagnostics
+        // after its time budget expires.
+        const advisoryForm = _.cloneDeep(validationForm);
+        const lookupDiagnostics: RecordValidationDiagnostic[] = [];
+        const lookup = await this.withDeadline(async () => {
+          await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(advisoryForm, brand, {
+            checkboxDetailsOnly: true,
+            resolveDeferredCheckboxDetails: true,
+            checkboxVocabFilter: ref => advisoryCheckboxVocabularies.has(ref),
+            checkboxLookupFallback: {
+              onMissingVocabulary: field => lookupDiagnostics.push(this.checkboxVocabularyMissing(field)),
+              onReadFailure: field => lookupDiagnostics.push(this.checkboxVocabularyUnavailable(field)),
+            },
+          });
+        }, deadline);
+        if (lookup.status === 'completed') {
+          validationForm = advisoryForm;
+          diagnostics.push(...lookupDiagnostics);
+        } else if (lookup.status === 'timed-out') {
+          diagnostics.push(this.checkboxVocabularyUnavailable());
+        } else {
+          // Only missing references and backend read failures are advisory.
+          // A vocabulary that resolves to malformed options is still a configuration error.
+          diagnostics.push(createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingExecutionFailed,
+            'Blocking record validation could not be completed.'
+          ));
+        }
+      }
       let advisoryErrors: RecordSaveIssue[] = [...transformationAdvisories];
       let transformedCandidate = blockingTransformedCandidate;
       if (advisoryGroups.length > 0) {
@@ -1686,6 +1730,22 @@ export namespace Services {
         advisoryGroups,
         transformedCandidate,
       });
+    }
+
+    private checkboxVocabularyMissing(field: string): RecordValidationDiagnostic {
+      return createDiagnostic(
+        RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyMissing,
+        'The checkbox vocabulary is missing. Retained answers must match the stored record.',
+        { severity: 'warning', field }
+      );
+    }
+
+    private checkboxVocabularyUnavailable(field?: string): RecordValidationDiagnostic {
+      return createDiagnostic(
+        RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyUnavailable,
+        'The checkbox vocabulary could not be read. Retained answers must match the stored record.',
+        field === undefined ? { severity: 'warning' } : { severity: 'warning', field }
+      );
     }
 
     private contractReference(value: string, _kind: 'brand' | 'portal' | 'oid'): string {
