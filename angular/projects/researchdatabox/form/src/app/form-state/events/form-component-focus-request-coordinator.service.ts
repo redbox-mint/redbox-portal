@@ -158,7 +158,24 @@ export class FormComponentFocusRequestCoordinator implements OnDestroy {
   }
 
   private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {
-    let currentEntries = this.formComponent?.componentDefArr ?? [];
+    const entries = this.formComponent?.componentDefArr ?? [];
+    // Composite fields can flatten rendered entries while retaining virtual
+    // segments (such as option:other) in each child's full lineage.
+    const findExactLineage = (candidates: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined => {
+      for (const entry of candidates) {
+        const path = entry.lineagePaths?.angularComponents;
+        if (path?.length === angularPath.length && path.every((segment, index) => String(segment) === String(angularPath[index]))) {
+          return entry;
+        }
+        const child = findExactLineage(entry.component?.formFieldCompMapEntries ?? []);
+        if (child) return child;
+      }
+      return undefined;
+    };
+    const exactEntry = findExactLineage(entries);
+    if (exactEntry) return exactEntry;
+
+    let currentEntries = entries;
     let currentEntry: FormFieldCompMapEntry | undefined;
 
     for (const segment of angularPath) {

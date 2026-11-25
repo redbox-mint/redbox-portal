@@ -1,5 +1,6 @@
 import { chromium, type Page } from '@playwright/test';
 import { expect, test } from './fixtures/test';
+import type { BrowserDiagnostics } from './fixtures/diagnostics';
 import { MongoClient, ObjectId } from 'mongodb';
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -234,7 +235,8 @@ test('restores saved details when a researcher reselects a choice after its voca
   await expect(description).toHaveValue('Instrument output saved before this session');
 });
 
-test('saves removals during a pending and failed lookup and validates retained rows after retry', async ({ adminPage: page }, testInfo) => {
+test('saves removals during a pending and failed lookup and validates retained rows after retry', async ({ adminPage: page, baseURL, diagnostics }, testInfo) => {
+  expectVocabularyFailure(diagnostics, new URL(`${formatsLookupPath}?search=&limit=1000&offset=0&includeHistoricalValues=true`, baseURL).href, 503, 1);
   const title = page.getByRole('textbox', { name: 'Project title' });
   const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
   const activate = page.getByRole('button', { name: 'Activate', exact: true });
@@ -472,13 +474,14 @@ async function renderCheckboxPdf(page: Page, baseURL: string, oid: string, outpu
   }
 }
 
-test('recovers an inline lookup and prints the saved details while its vocabulary is missing', async ({ adminPage: page, baseURL }, testInfo) => {
+test('recovers an inline lookup and prints the saved details while its vocabulary is missing', async ({ adminPage: page, baseURL, diagnostics }, testInfo) => {
   await page.goto(newRecord);
   await page.getByRole('textbox', { name: 'Project title' }).fill('Synthetic inline vocabulary recovery');
   const draft = await save(page, 'Save draft', 'POST', demoType);
   const oid: string = draft.redboxOid;
   const originalForm = draft.metaMetadata.form;
   const formName = `checkbox-details-inline-${oid}`;
+  expectVocabularyFailure(diagnostics, new URL(`${prefix}/vocab/${formName}/entries?search=&limit=1000&offset=0&includeHistoricalValues=true`, baseURL).href, 404, 2);
   const vocabId = new ObjectId();
   const saved = [{
     value: 'legacy-media',
@@ -554,3 +557,13 @@ test('recovers an inline lookup and prints the saved details while its vocabular
     }
   }
 });
+
+function expectVocabularyFailure(diagnostics: BrowserDiagnostics, url: string, status: number, count: number): void {
+  const reason = 'This recovery scenario deliberately makes the checkbox vocabulary unavailable.';
+  diagnostics.expectFailure({ kind: 'response', method: 'GET', url, status, count, reason });
+  diagnostics.expectFailure({ kind: 'console', url, message: new RegExp(`Failed to load resource.*${status}`), count, reason });
+  diagnostics.expectFailure({
+    kind: 'console', url: /\/angular\/form\/browser\/(?:main|chunk)(?:-[\w-]+)?\.js$/,
+    message: /CheckboxWithDetailsComponent: could not load options for 'digitalFormatEstimates'/, count, reason,
+  });
+}
