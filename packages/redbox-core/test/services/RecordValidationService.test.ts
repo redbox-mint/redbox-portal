@@ -5,6 +5,9 @@ import {
   type FormValidatorSummaryErrors,
 } from '@researchdatabox/sails-ng-common';
 import { performance } from 'node:perf_hooks';
+import { Writable } from 'node:stream';
+import * as sinon from 'sinon';
+import { log } from '../../src/config/log.config';
 import { issueRouteFormContract } from '../../src/RecordRouteForm';
 import type {
   RecordValidationRequest,
@@ -26,8 +29,9 @@ const {
 const { createRecordValidationFixture, validationForm } = require('../fixtures/record-validation.fixtures') as
   typeof import('../fixtures/record-validation.fixtures');
 const { createMockSails } = require('./testHelper') as typeof import('./testHelper');
-const { Services: DomSanitizerServices } = require('../../src/services/DomSanitizerService') as
+const domSanitizerModule = require('../../src/services/DomSanitizerService') as
   typeof import('../../src/services/DomSanitizerService');
+const { Services: DomSanitizerServices } = domSanitizerModule;
 
 let expect: Chai.ExpectStatic;
 
@@ -78,6 +82,14 @@ function resolutionEvents(): Record<string, unknown>[] {
 
 function latestResolutionEvent(): Record<string, unknown> {
   return resolutionEvents().at(-1) ?? {};
+}
+
+function performanceEvents(): Record<string, unknown>[] {
+  const verbose = sails.log.verbose as sinon.SinonStub<unknown[], void>;
+  return verbose.args.flatMap(([, payload]) => {
+    const event = payload as Record<string, unknown> | undefined;
+    return event?.event === 'record_validation_performance' ? [event] : [];
+  });
 }
 
 function suggestedSummary(groups: unknown): Record<string, unknown> {
@@ -1982,6 +1994,206 @@ describe('RecordValidationService', function () {
     expect(latestResolutionEvent().configurationDiagnosticCount).to.equal(1);
   });
 
+  it('logs one value-free performance event for a resolved validation', async function () {
+    sails.log.level = 'verbose';
+    sails.config.recordValidation.timeoutMs = 0;
+    const form = validationForm({
+      validationGroups: {
+        ...validationForm().validationGroups,
+        advisory: { description: 'advisory', initialMembership: 'none' },
+      },
+      componentDefinitions: [suggestedSummary(['advisory']) as never],
+    });
+    const fixture = createRecordValidationFixture({
+      form,
+      candidate: { metadata: { title: 'private-record-content' } },
+    });
+    fixture.dependencies.executeValidators = async (_form, groups) =>
+      validatorExecution(groups.includes('submit')
+        ? [validatorSummary({ id: 'private-field-name', message: 'private-validator-message' })]
+        : []);
+    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve({
+      ...fixture.request,
+      validationOperation: 'submit',
+      phase: 'post-save',
+      requestParameters: { locale: 'private-request-parameter' },
+      runtimeContext: { token: 'private-runtime-context' },
+    }));
+    expect(result.blockingErrors).to.have.length(1);
+    expect(result.blockingErrors[0].field).to.equal('private-field-name');
+    expect(performanceEvents()).to.have.length(1);
+    expect(resolutionEvents()).to.have.length(1);
+    const [event] = performanceEvents();
+    expect(event).to.include({
+      request_id: 'request-1',
+      record_type: 'dataset',
+      form: 'dataset-2.4-draft',
+      validation_operation: 'submit',
+      write_kind: 'update',
+      mode: 'shadow',
+      blocking_error_count: 1,
+      validation_budget_ms: 5_000,
+      deadline_overrun_ms: 0,
+    });
+    expect(event).to.have.all.keys(
+      'event', 'request_id', 'record_type', 'form', 'validation_operation', 'write_kind', 'mode',
+      'blocking_error_count', 'advisory_error_count', 'duration_ms', 'step_durations_ms',
+      'validation_budget_ms', 'deadline_overrun_ms'
+    );
+    expect(event.duration_ms).to.be.a('number').and.at.least(0);
+    const durations = event.step_durations_ms as Record<string, unknown>;
+    for (const step of [
+      'authoritative_context',
+      'form_definition_clone',
+      'form_construction',
+      'transformation_form_clone',
+      'transformation_collection',
+      'transformation_application',
+      'group_resolution',
+      'blocking_validators',
+      'advisory_validators',
+    ]) {
+      expect(durations[step], step).to.be.a('number').and.at.least(0);
+    }
+    expect(event).not.to.have.property('sanitizer_state_at_start');
+    expect(JSON.stringify(event)).not.to.include('private-');
+    expect(JSON.stringify(event)).not.to.include('raw-value');
+  });
+
+  it('captures a shadow timeout before transformations make the candidate safe', async function () {
+    sails.log.level = 'verbose';
+    sails.config.recordValidation.timeoutMs = 30;
+    let sanitizerState: 'cold' | 'warm' = 'cold';
+    const sanitizerSnapshot = sinon.stub(domSanitizerModule, 'getSanitizerState').callsFake(() => sanitizerState);
+    let now = 100;
+    const clock = sinon.stub(performance, 'now').callsFake(() => now);
+    const timers = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let markCollectionStarted: () => void;
+    const collectionStarted = new Promise<void>(resolve => { markCollectionStarted = resolve; });
+    let releaseCollection: (() => void) | undefined;
+    const fixture = createRecordValidationFixture();
+    fixture.dependencies.collectTransformations = async () => {
+      sanitizerState = 'warm';
+      markCollectionStarted();
+      await new Promise<void>(resolve => { releaseCollection = resolve; });
+      return [];
+    };
+    try {
+      const validation = new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+      await collectionStarted;
+      now += 30;
+      await timers.tickAsync(30);
+      const result = await validation;
+      expect(result).to.deep.include({ status: 'unresolved', shouldBlock: true });
+      expect(result.transformedCandidate).to.equal(undefined);
+      expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
+      expect(performanceEvents()).to.have.length(1);
+      const [event] = performanceEvents();
+      expect(event).to.include({
+        validation_budget_ms: 30,
+        last_completed_step: 'transformation_form_clone',
+        safe_persistence_candidate: false,
+        sanitizer_state_at_start: 'cold',
+      });
+      expect(sanitizerSnapshot.callCount).to.equal(1);
+      expect(sanitizerState).to.equal('warm');
+      expect(event.event_loop_delay_estimate_ms).to.be.a('number').and.at.least(0);
+      expect(event.deadline_overrun_ms).to.be.a('number').and.at.least(0);
+      expect(event.step_durations_ms).to.have.property('transformation_collection');
+      expect(event.step_durations_ms).not.to.have.property('transformation_application');
+
+      releaseCollection?.();
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(event.step_durations_ms).not.to.have.property('transformation_application');
+      expect(performanceEvents()).to.have.length(1);
+    } finally {
+      releaseCollection?.();
+      timers.restore();
+      clock.restore();
+      sanitizerSnapshot.restore();
+    }
+  });
+
+  for (const stallDuring of ['transformation_collection', 'blocking_validators'] as const) {
+    it(`reports a shadow timeout and measures timer drift after ${stallDuring} overruns`, async function () {
+      sails.log.level = 'verbose';
+      sails.config.recordValidation.timeoutMs = 50;
+      const dirtyHtml = '<p>private-html-content</p><script>alert(1)</script>';
+      const cleanHtml = DomSanitizerService.sanitizeWithProfile(dirtyHtml, 'html');
+      const fixture = createRecordValidationFixture({ candidate: { metadata: { description: dirtyHtml } } });
+      let now = 100;
+      const afterTransformations = stallDuring === 'blocking_validators';
+      fixture.dependencies.collectTransformations = async (_form, checkDeadline) => {
+        if (!afterTransformations) now += 70;
+        checkDeadline?.();
+        return [richHtmlTransformation(dirtyHtml, cleanHtml)];
+      };
+      fixture.dependencies.executeValidators = async () => {
+        if (afterTransformations) now += 70;
+        return validatorExecution();
+      };
+      const clock = sinon.stub(performance, 'now').callsFake(() => now);
+      const timers = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+
+        expect(result).to.deep.include({ status: 'unresolved', shouldBlock: !afterTransformations });
+        expect(result.transformedCandidate?.metadata.description).to.equal(afterTransformations ? cleanHtml : undefined);
+        expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
+        expect(resolutionEvents()).to.have.length(1);
+        expect(performanceEvents()).to.have.length(0);
+
+        now += 5;
+        await timers.tickAsync(50);
+        expect(performanceEvents()).to.have.length(1);
+        const [event] = performanceEvents();
+        expect(event).to.include({
+          validation_budget_ms: 50,
+          last_completed_step: afterTransformations ? 'group_resolution' : 'transformation_form_clone',
+          safe_persistence_candidate: afterTransformations,
+          sanitizer_state_at_start: 'warm',
+          deadline_overrun_ms: 20,
+          event_loop_delay_estimate_ms: 25,
+        });
+        expect(event.step_durations_ms).to.have.property(stallDuring, 70);
+        expect(JSON.stringify(event)).not.to.include('private-html-content');
+        expect(JSON.stringify(event)).not.to.include('<script>');
+      } finally {
+        timers.restore();
+        clock.restore();
+      }
+    });
+  }
+
+  it('skips performance collection when the service namespace overrides verbose with info', async function () {
+    const lines: Record<string, unknown>[] = [];
+    const destination = new Writable({
+      write(chunk, _encoding, done) {
+        lines.push(JSON.parse(chunk.toString()));
+        done();
+      },
+    });
+    sails.config.log = { ...log, customLogger: log.createPinoLogger('verbose', destination) };
+    sails.config.lognamespace = { RecordValidationService: 'info' };
+    const sanitizerSnapshot = sinon.spy(domSanitizerModule, 'getSanitizerState');
+    try {
+      const fixture = createRecordValidationFixture();
+      requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+      expect(lines.filter(line => line.name === 'RecordValidationService').map(line => line.event)).to.deep.equal([
+        'record_validation_completed',
+      ]);
+      expect(sanitizerSnapshot.callCount).to.equal(0);
+
+      sails.config.lognamespace = { RecordValidationService: 'verbose' };
+      requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+      const [event] = lines.filter(line => line.event === 'record_validation_performance');
+      expect(event).to.include({ name: 'RecordValidationService', level: 'verbose' });
+      expect(sanitizerSnapshot.callCount).to.equal(1);
+    } finally {
+      sanitizerSnapshot.restore();
+    }
+  });
+
   it('bounds actual OpenTelemetry attributes across hostile unresolved references and diagnostic identities', async function () {
     const hostileValues: string[] = [];
     for (let index = 0; index < 16; index += 1) {
@@ -2403,22 +2615,23 @@ describe('RecordValidationService', function () {
 
   it('retains validator-pass sanitation when a synchronous overrun becomes a shadow timeout', async function () {
     configure('shadow');
-    (global as any).sails.config.recordValidation.timeoutMs = 5;
+    sails.config.recordValidation.timeoutMs = 5;
     const dirtyHtml = '<p>Safe</p><script>alert(1)</script>';
     const fixture = createRecordValidationFixture({ candidate: { metadata: { description: dirtyHtml } } });
     fixture.dependencies.collectTransformations = async () => [];
+    let now = 100;
+    const clock = sinon.stub(performance, 'now').callsFake(() => now);
     fixture.dependencies.executeValidators = async () => {
-      const stopAt = performance.now() + 20;
-      while (performance.now() < stopAt) {
-        // Force the shared deadline check to classify the completed pass as timed out.
-      }
+      now += 20;
       return {
         summaries: [],
         transformations: [richHtmlTransformation(dirtyHtml, '<p>Safe</p>')],
       };
     };
 
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await new Services.RecordValidation(fixture.dependencies)
+      .resolve(fixture.request)
+      .finally(() => clock.restore());
 
     expect(result).to.deep.include({ status: 'unresolved', shouldBlock: false });
     expect(result.transformedCandidate?.metadata.description).to.equal('<p>Safe</p>');
@@ -2935,6 +3148,7 @@ describe('RecordValidationService', function () {
 
   it('keeps advisory timeout diagnostic-only and absorbs a late rejection', async function () {
     configure('enforce');
+    sails.log.level = 'verbose';
     (
       global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
     ).sails.config.recordValidation.timeoutMs = 10;
@@ -2947,8 +3161,17 @@ describe('RecordValidationService', function () {
       validationOperations: { submit: { enabledValidationGroups: ['base'] } },
     });
     const fixture = createRecordValidationFixture({ form });
+    let now = 100;
+    const clock = sinon.stub(performance, 'now').callsFake(() => now);
+    const timers = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let markAdvisoryStarted: () => void;
+    const advisoryStarted = new Promise<void>(resolve => { markAdvisoryStarted = resolve; });
     fixture.dependencies.executeValidators = async (_form, groups) => {
-      if (!groups.includes('advisory')) return validatorExecution();
+      if (!groups.includes('advisory')) {
+        now += 4;
+        return validatorExecution();
+      }
+      markAdvisoryStarted();
       return await new Promise<ReturnType<typeof validatorExecution>>((_resolve, reject) =>
         setTimeout(() => reject(new Error('late private advisory failure')), 25)
       );
@@ -2957,12 +3180,14 @@ describe('RecordValidationService', function () {
     const listener = (reason: unknown) => unhandled.push(reason);
     process.on('unhandledRejection', listener);
     try {
-      const result = requireResolved(
-        await new Services.RecordValidation(fixture.dependencies).resolve({
-          ...fixture.request,
-          validationOperation: 'submit',
-        })
-      );
+      const validation = new Services.RecordValidation(fixture.dependencies).resolve({
+        ...fixture.request,
+        validationOperation: 'submit',
+      });
+      await advisoryStarted;
+      now += 8;
+      await timers.tickAsync(6);
+      const result = requireResolved(await validation);
       expect(result.shouldBlock).to.equal(false);
       expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout);
       expect(result.diagnostics.find(diagnostic =>
@@ -2973,10 +3198,22 @@ describe('RecordValidationService', function () {
         timeoutKind: 'advisory',
         wouldBlock: false,
       });
-      await new Promise(resolve => setTimeout(resolve, 35));
+      expect(performanceEvents()).to.have.length(1);
+      const [event] = performanceEvents();
+      expect(event).to.include({
+        validation_budget_ms: 10,
+        last_completed_step: 'blocking_issue_mapping',
+        safe_persistence_candidate: true,
+        deadline_overrun_ms: 2,
+        event_loop_delay_estimate_ms: 2,
+      });
+      expect(event.step_durations_ms).to.have.property('advisory_validators', 8);
+      await timers.tickAsync(35);
       expect(unhandled).to.deep.equal([]);
     } finally {
       process.off('unhandledRejection', listener);
+      timers.restore();
+      clock.restore();
     }
   });
 

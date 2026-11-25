@@ -55,6 +55,7 @@ import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
 import { freezeDeep } from '../record-contract/deep-freeze';
 import { RecordContractContextResolutionError } from '../record-contract/record-contract-context';
 import { resolvePersistedWorkflowStep, routeFormContractName } from '../RecordRouteForm';
+import { isPinoLogger } from '../utilities/PinoLoggerUtils';
 import type {
   RecordContractContext,
   RecordContractContextActor,
@@ -72,6 +73,7 @@ import {
   type FormValueTransformation,
   type ValidatorFormConfigResult,
 } from '../visitor/validator.visitor';
+import { getSanitizerState } from './DomSanitizerService';
 
 export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   formReferenceMissing: 'record-validation-form-reference-missing',
@@ -567,6 +569,87 @@ interface ValidationDeadline {
   readonly expiresAt: number;
 }
 
+type ValidationPerformanceStep =
+  | 'authoritative_context'
+  | 'form_definition_clone'
+  | 'form_construction'
+  | 'transformation_form_clone'
+  | 'transformation_collection'
+  | 'transformation_application'
+  | 'related_metadata_resolution'
+  | 'expression_context'
+  | 'transformed_form_construction'
+  | 'group_resolution'
+  | 'blocking_validators'
+  | 'blocking_validator_transformations'
+  | 'blocking_issue_mapping'
+  | 'advisory_validators'
+  | 'advisory_validator_transformations'
+  | 'advisory_issue_mapping';
+
+/** Created only when the validation namespace emits verbose logs. */
+class ValidationPerformance {
+  readonly stepDurationsMs: Partial<Record<ValidationPerformanceStep, number>> = {};
+  budgetMs?: number;
+  deadlineOverrunMs = 0;
+  timeout?: {
+    readonly lastCompletedStep?: ValidationPerformanceStep;
+    readonly safePersistenceCandidate: boolean;
+    readonly timerDriftMs: number | Promise<number> | null;
+  };
+
+  private deadline?: ValidationDeadline;
+  private activeStep?: ValidationPerformanceStep;
+  private activeSince = 0;
+  private lastCompletedStep?: ValidationPerformanceStep;
+
+  constructor(readonly sanitizerStateAtStart: ReturnType<typeof getSanitizerState>) {}
+
+  setDeadline(deadline: ValidationDeadline, budgetMs: number): void {
+    this.deadline = deadline;
+    this.budgetMs = budgetMs;
+  }
+
+  begin(step: ValidationPerformanceStep): void {
+    if (this.timeout) return;
+    const now = performance.now();
+    this.recordStep(now);
+    this.activeStep = step;
+    this.activeSince = now;
+  }
+
+  complete(): void {
+    if (this.timeout || !this.activeStep) return;
+    const now = performance.now();
+    if (!this.deadline || now < this.deadline.expiresAt) {
+      this.lastCompletedStep = this.activeStep;
+    }
+    this.recordStep(now);
+  }
+
+  recordTimeout(timerDriftMs: number | Promise<number> | null, safePersistenceCandidate: boolean): void {
+    if (this.timeout) return;
+    this.recordStep(performance.now());
+    this.timeout = {
+      lastCompletedStep: this.lastCompletedStep,
+      safePersistenceCandidate,
+      timerDriftMs,
+    };
+  }
+
+  finish(now: number): void {
+    this.recordStep(now);
+    if (this.deadline) this.deadlineOverrunMs = Math.max(0, now - this.deadline.expiresAt);
+  }
+
+  private recordStep(now: number): void {
+    if (!this.activeStep) return;
+    this.stepDurationsMs[this.activeStep] =
+      (this.stepDurationsMs[this.activeStep] ?? 0) + (now - this.activeSince);
+    this.activeStep = undefined;
+  }
+}
+
 interface CandidateTransformationApplication {
   readonly candidate: RecordValidationCandidate;
   readonly applied: readonly FormValueTransformation[];
@@ -850,11 +933,12 @@ export namespace Services {
      */
     public async resolve(request: RecordValidationRequest): Promise<RecordValidationResult> {
       const startedAt = performance.now();
+      const timing = this.startPerformanceDiagnostics();
       const diagnostics: RecordValidationDiagnostic[] = [];
       const progress: ResolutionProgress = { mode: 'shadow' };
       let result: RecordValidationResult;
       try {
-        result = await this.resolveRequest(request, diagnostics, progress);
+        result = await this.resolveRequest(request, diagnostics, progress, timing);
       } catch (error: unknown) {
         this.logger.warn(
           `Record validation resolution could not be completed` +
@@ -876,7 +960,9 @@ export namespace Services {
         });
       }
       try {
-        this.observeResolution(request, result, progress, performance.now() - startedAt);
+        const finishedAt = performance.now();
+        timing?.finish(finishedAt);
+        this.observeResolution(request, result, progress, finishedAt - startedAt, timing);
       } catch {
         // Observability must never change the validation decision or save path.
         try {
@@ -1236,7 +1322,8 @@ export namespace Services {
       request: RecordValidationRequest,
       diagnostics: RecordValidationDiagnostic[],
       progress: ResolutionProgress,
-      validateCandidateFormReference: boolean
+      validateCandidateFormReference: boolean,
+      timing?: ValidationPerformance
     ): Promise<AuthoritativeValidationContextResolution> {
       const globalConfig = sails.config.recordValidation;
       const normalized = this.normalizeRequest(request, diagnostics);
@@ -1309,7 +1396,7 @@ export namespace Services {
         }
       }
 
-      const form = await this.loadFormDefinition(selection.formName, brand);
+      const form = await this.loadFormDefinition(selection.formName, brand, timing);
       if (!form) {
         diagnostics.push(
           createDiagnostic(
@@ -1333,7 +1420,9 @@ export namespace Services {
 
       let constructedForm: FormConfigOutline;
       try {
+        timing?.begin('form_construction');
         constructedForm = await this.constructForm(form, request.candidate.metadata);
+        timing?.complete();
       } catch {
         diagnostics.push(
           createDiagnostic(
@@ -1345,6 +1434,7 @@ export namespace Services {
         return { status: 'unresolved', mode };
       }
 
+      timing?.begin('authoritative_context');
       const operationPolicy = this.resolveOperationPolicy(
         operation,
         constructedForm.validationOperations,
@@ -1356,6 +1446,7 @@ export namespace Services {
       if (operationPolicy && !this.authorizeOperation(operationPolicy, normalized, diagnostics)) {
         return { status: 'unresolved', mode, contractFailure: true };
       }
+      timing?.complete();
 
       return {
         status: 'resolved',
@@ -1375,9 +1466,11 @@ export namespace Services {
     private async resolveRequest(
       request: RecordValidationRequest,
       diagnostics: RecordValidationDiagnostic[],
-      progress: ResolutionProgress
+      progress: ResolutionProgress,
+      timing?: ValidationPerformance
     ): Promise<RecordValidationResult> {
-      const authoritative = await this.resolveAuthoritativeContext(request, diagnostics, progress, true);
+      timing?.begin('authoritative_context');
+      const authoritative = await this.resolveAuthoritativeContext(request, diagnostics, progress, true, timing);
       if (authoritative.status !== 'resolved') {
         return this.buildResult(authoritative.mode, diagnostics, {
           outcome: 'unresolved',
@@ -1424,6 +1517,7 @@ export namespace Services {
       }
       const timeoutMs = this.timeoutMs(globalConfig?.timeoutMs);
       const deadline = this.createDeadline(timeoutMs);
+      timing?.setDeadline(deadline, timeoutMs);
       let relatedMetadata: ReadonlyRelatedMetadata | undefined;
       // Opted-in operations must finish their selected validation even in shadow mode.
       const requiresRelatedValidation = policy?.relatedMetadata !== undefined;
@@ -1431,12 +1525,24 @@ export namespace Services {
       // Until the schema-owned transformation pass completes, shadow mode must
       // not treat the raw submitted candidate as safe for persistence.
       let transformationContractFailed = true;
+      const observeTimeout = timing
+        ? (timerDriftMs: number | Promise<number> | null) => {
+            try {
+              timing.recordTimeout(timerDriftMs, !transformationContractFailed && persistenceCandidate !== undefined);
+            } catch {
+              this.warnObservabilityFailure('Record validation timeout diagnostics could not be captured.');
+            }
+          }
+        : undefined;
       const blockingRun = await this.withDeadline(
         async () => {
-          const transformations = await this.collectCandidateTransformations(
-            _.cloneDeep(constructedForm),
-            deadline
-          );
+          timing?.begin('transformation_form_clone');
+          const formForTransformations = _.cloneDeep(constructedForm);
+          timing?.complete();
+          timing?.begin('transformation_collection');
+          const transformations = await this.collectCandidateTransformations(formForTransformations, deadline);
+          timing?.complete();
+          timing?.begin('transformation_application');
           const transformationApplication = this.applyCandidateTransformations(
             request.candidate,
             transformations,
@@ -1445,12 +1551,14 @@ export namespace Services {
           let transformedCandidate = transformationApplication.candidate;
           const appliedTransformations = [...transformationApplication.applied];
           persistenceCandidate = transformedCandidate;
+          timing?.complete();
           if (transformationApplication.inapplicable) {
             return undefined;
           }
           transformationContractFailed = false;
           this.checkDeadline(deadline);
           if (policy?.relatedMetadata !== undefined) {
+            timing?.begin('related_metadata_resolution');
             const readContext = request.relatedReadContext;
             const resolve = this.dependencies().resolveRelatedMetadata;
             if (!readContext || !resolve || String(readContext.brand.id) !== brand) {
@@ -1459,7 +1567,9 @@ export namespace Services {
             const resolved = await resolve(transformedCandidate, readContext, policy.relatedMetadata);
             // Freeze a detached runtime view; never attach it to the candidate.
             relatedMetadata = freezeDeep(_.cloneDeep(resolved));
+            timing?.complete();
           }
+          timing?.begin('expression_context');
           const normalizedForContext: NormalizedRecordValidationRequest = {
             ...normalized,
             source: { ...normalized.source, candidate: transformedCandidate },
@@ -1474,9 +1584,14 @@ export namespace Services {
           );
           if (!context) return undefined;
           const validatorContext = relatedMetadata === undefined ? context : { ...context, relatedMetadata };
-          const validationForm = transformationApplication.applied.length > 0
-            ? await this.constructForm(form, transformedCandidate.metadata)
-            : constructedForm;
+          timing?.complete();
+          let validationForm = constructedForm;
+          if (transformationApplication.applied.length > 0) {
+            timing?.begin('transformed_form_construction');
+            validationForm = await this.constructForm(form, transformedCandidate.metadata);
+            timing?.complete();
+          }
+          timing?.begin('group_resolution');
           const groupResolution = await this.resolveValidationGroups(
             validationForm,
             policy,
@@ -1491,7 +1606,9 @@ export namespace Services {
             diagnostics
           );
           const validatorDefinitionsMap = this.validatorDefinitions(validationForm, diagnostics);
+          timing?.complete();
           if (!validatorDefinitionsMap) return undefined;
+          timing?.begin('blocking_validators');
           const checkboxVocabularies = new Set(schemaOwnedFormNodes(validationForm).flatMap(({ value }) =>
             isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
             isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
@@ -1534,6 +1651,8 @@ export namespace Services {
             relatedMetadata,
             request.previousMetadata
           );
+          timing?.complete();
+          timing?.begin('blocking_validator_transformations');
           const validatorTransformationApplication = this.applyCandidateTransformations(
             transformedCandidate,
             validation.transformations,
@@ -1542,13 +1661,16 @@ export namespace Services {
           transformedCandidate = validatorTransformationApplication.candidate;
           persistenceCandidate = transformedCandidate;
           appliedTransformations.push(...validatorTransformationApplication.applied);
+          timing?.complete();
           if (validatorTransformationApplication.inapplicable) {
             transformationContractFailed = true;
             return undefined;
           }
           this.checkDeadline(deadline);
+          timing?.begin('blocking_issue_mapping');
           const mappedIssues = this.mapValidatorSummaries(validation.summaries);
           const transformationAdvisories = this.mapTransformationAdvisories(appliedTransformations);
+          timing?.complete();
           this.checkDeadline(deadline);
           return {
             context: validatorContext,
@@ -1562,7 +1684,8 @@ export namespace Services {
             transformedCandidate,
           };
         },
-        deadline
+        deadline,
+        observeTimeout
       );
       if (blockingRun.status === 'timed-out') {
         diagnostics.push(
@@ -1649,6 +1772,7 @@ export namespace Services {
       let transformedCandidate = blockingTransformedCandidate;
       if (advisoryGroups.length > 0) {
         const advisoryRun = await this.withDeadline(async () => {
+          timing?.begin('advisory_validators');
           const validation = await this.executeValidators(
             validationForm,
             advisoryGroups,
@@ -1658,6 +1782,8 @@ export namespace Services {
             relatedMetadata,
             request.previousMetadata
           );
+          timing?.complete();
+          timing?.begin('advisory_validator_transformations');
           const advisoryTransformationApplication = this.applyCandidateTransformations(
             transformedCandidate,
             validation.transformations,
@@ -1665,21 +1791,24 @@ export namespace Services {
           );
           transformedCandidate = advisoryTransformationApplication.candidate;
           persistenceCandidate = transformedCandidate;
+          timing?.complete();
           if (advisoryTransformationApplication.inapplicable) {
             transformationContractFailed = true;
             return undefined;
           }
+          timing?.begin('advisory_issue_mapping');
           advisoryErrors = [
             ...advisoryErrors,
             ...this.mapTransformationAdvisories(advisoryTransformationApplication.applied),
           ];
           this.checkDeadline(deadline);
           const issues = this.mapValidatorSummaries(validation.summaries);
+          timing?.complete();
           this.checkDeadline(deadline);
           return {
             issues: issues.blocking,
           };
-        }, deadline);
+        }, deadline, observeTimeout);
         if (advisoryRun.status === 'timed-out') {
           diagnostics.push(
             createDiagnostic(
@@ -2511,14 +2640,23 @@ export namespace Services {
       }
     }
 
-    private async loadFormDefinition(formName: string, brand: string): Promise<LoadedFormDefinition | null> {
+    private async loadFormDefinition(
+      formName: string,
+      brand: string,
+      timing?: ValidationPerformance
+    ): Promise<LoadedFormDefinition | null> {
       const form = await this.dependencies().loadForm(formName, brand);
-      return form ? {
+      if (!form) return null;
+      timing?.begin('form_definition_clone');
+      const definition = {
         form: _.cloneDeep(form),
         reusableFormDefinitions: _.cloneDeep(
           sails.config.reusableFormDefinitions ?? {}
         ) as ReusableFormDefinitions,
-      } : null;
+      };
+      timing?.complete();
+      timing?.begin('authoritative_context');
+      return definition;
     }
 
     private async constructForm(
@@ -2818,10 +2956,19 @@ export namespace Services {
       return Math.max(0, deadline.expiresAt - performance.now());
     }
 
-    private async withDeadline<T>(work: () => Promise<T>, deadline: ValidationDeadline): Promise<TimeoutResult<T>> {
+    private async withDeadline<T>(
+      work: () => Promise<T>,
+      deadline: ValidationDeadline,
+      observeTimeout?: (timerDriftMs: number | Promise<number> | null) => void
+    ): Promise<TimeoutResult<T>> {
       const remainingBudgetMs = this.remainingBudgetMs(deadline);
-      if (remainingBudgetMs <= 0) return { status: 'timed-out' };
+      if (remainingBudgetMs <= 0) {
+        observeTimeout?.(null);
+        return { status: 'timed-out' };
+      }
       let timer: ReturnType<typeof setTimeout> | undefined;
+      let timerDriftMs: number | undefined;
+      let resolveTimerDrift: ((value: number) => void) | undefined;
       // Install the timer before invoking work. Promise.resolve() defers the
       // first unit until after the timer exists, and explicit elapsed checks
       // still classify synchronous event-loop blocking as a timeout.
@@ -2833,18 +2980,32 @@ export namespace Services {
           this.checkDeadline(deadline);
           return { status: 'completed', value };
         } catch (error) {
-          return error instanceof ValidationDeadlineExceeded
-            ? { status: 'timed-out' }
-            : { status: 'failed' };
+          if (error instanceof ValidationDeadlineExceeded) {
+            if (observeTimeout) {
+              // The elapsed check can win while the event loop is still blocked.
+              // Let the scheduled timer measure its drift for the log.
+              const drift = timerDriftMs ?? new Promise<number>(resolve => { resolveTimerDrift = resolve; });
+              observeTimeout(drift);
+            }
+            return { status: 'timed-out' };
+          }
+          return { status: 'failed' };
         }
       })();
       const timeout = new Promise<TimedOut>(resolve => {
-        timer = setTimeout(() => resolve({ status: 'timed-out' }), remainingBudgetMs);
+        timer = setTimeout(() => {
+          if (observeTimeout) {
+            timerDriftMs = Math.max(0, performance.now() - deadline.expiresAt);
+            resolveTimerDrift?.(timerDriftMs);
+            observeTimeout(timerDriftMs);
+          }
+          resolve({ status: 'timed-out' });
+        }, remainingBudgetMs);
       });
       try {
         return await Promise.race([settledWork, timeout]);
       } finally {
-        if (timer) clearTimeout(timer);
+        if (timer && !resolveTimerDrift) clearTimeout(timer);
       }
     }
 
@@ -2945,7 +3106,8 @@ export namespace Services {
       request: RecordValidationRequest,
       result: RecordValidationResult,
       progress: ResolutionProgress,
-      rawDurationMs: number
+      rawDurationMs: number,
+      timing?: ValidationPerformance
     ): void {
       const requestId = safeRequestId(request.requestId);
       const diagnosticCodes = result.diagnostics
@@ -3038,6 +3200,7 @@ export namespace Services {
         diagnosticIdentities: Object.freeze(diagnosticIdentities.map(identity => Object.freeze(identity))),
       });
       this.emitOpenTelemetry(metric);
+      if (timing) this.emitPerformanceDiagnostics(metric, timing);
       this.logger.info('record_validation_completed', {
         event: 'record_validation_completed',
         request_id: metric.requestId ?? 'unavailable',
@@ -3059,6 +3222,58 @@ export namespace Services {
         diagnostic_identities: metric.diagnosticIdentities,
         duration_ms: metric.durationMs,
       });
+    }
+
+    private startPerformanceDiagnostics(): ValidationPerformance | undefined {
+      try {
+        const logger = this.logger;
+        const level = logger.level ?? sails.config?.log?.level;
+        const verboseEnabled = isPinoLogger(logger) && typeof logger.isLevelEnabled === 'function'
+          ? logger.isLevelEnabled('verbose')
+          : level === 'verbose' || level === 'trace' || level === 'silly';
+        if (verboseEnabled) return new ValidationPerformance(getSanitizerState());
+      } catch {
+        // Diagnostic setup must never affect validation.
+      }
+      return undefined;
+    }
+
+    private emitPerformanceDiagnostics(metric: RecordValidationResolutionMetric, timing: ValidationPerformance): void {
+      const timeout = timing.timeout;
+      const emit = (timerDriftMs: number | null): void => {
+        try {
+          this.logger.verbose('record_validation_performance', {
+            event: 'record_validation_performance',
+            request_id: metric.requestId ?? 'unavailable',
+            record_type: metric.recordType ?? UNRESOLVED_DIMENSION,
+            form: metric.formName ?? UNRESOLVED_DIMENSION,
+            validation_operation: metric.operation ?? STRICT_ALL_OPERATION,
+            write_kind: metric.writeKind,
+            mode: metric.mode,
+            blocking_error_count: metric.blockingErrorCount,
+            advisory_error_count: metric.advisoryErrorCount,
+            duration_ms: metric.durationMs,
+            step_durations_ms: timing.stepDurationsMs,
+            validation_budget_ms: timing.budgetMs ?? null,
+            deadline_overrun_ms: timing.deadlineOverrunMs,
+            ...(timeout ? {
+              last_completed_step: timeout.lastCompletedStep ?? 'none',
+              safe_persistence_candidate: timeout.safePersistenceCandidate,
+              // The shared DOM window can be ready before a module creates its local purifier.
+              sanitizer_state_at_start: timing.sanitizerStateAtStart,
+              event_loop_delay_estimate_ms: timerDriftMs,
+            } : {}),
+          });
+        } catch {
+          this.warnObservabilityFailure('Record validation performance logging failed.');
+        }
+      };
+      const timerDrift = timeout?.timerDriftMs;
+      if (timerDrift instanceof Promise) {
+        void timerDrift.then(emit);
+      } else {
+        emit(timerDrift ?? null);
+      }
     }
 
     private warnObservabilityFailure(message: string): void {

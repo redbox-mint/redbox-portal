@@ -41,7 +41,10 @@ type SaveStatusMessageConfigProperty =
         </div>
       } @else if (messageType() === 'error') {
         <div class="rb-form-save-status alert alert-danger" role="alert" aria-atomic="true">
-          {{ errorPrefix() | i18next }} {{ errorMessage() | i18next }}
+          @if (errorPrefix(); as prefix) {
+            {{ prefix | i18next }}
+          }
+          {{ errorMessage() | i18next }}
         </div>
       } @else if (messageType() === 'warning') {
         <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
@@ -234,7 +237,10 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   protected readonly messageType = computed<SaveStatusMessageType>(() =>
     this.messageState() === 'error' && !this.errorMessage() ? null : this.messageState()
   );
-  protected readonly errorPrefix = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-error' : '@dmpt-form-save-error');
+  protected readonly errorPrefix = computed(() => {
+    if (this.lastOperation() === 'delete') return '@dmpt-form-delete-error';
+    return this.errorMessage() === '@record-save-record-validation-timeout' ? null : '@dmpt-form-save-error';
+  });
   protected readonly successMessage = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-success' : '@dmpt-form-save-success');
   protected readonly warningMessage = computed(() => {
     const isCreate = this.isCreateSave();

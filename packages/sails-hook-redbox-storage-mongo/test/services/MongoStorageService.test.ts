@@ -2843,6 +2843,23 @@ describe('MongoStorageService', function () {
     expect(service.recordCol.count.callCount).to.equal(3);
   });
 
+  it('queries hyphenated dashboard filter fields and rejects invalid paths before querying MongoDB', async function () {
+    const find = sandbox.stub().returns({ toArray: sandbox.stub().resolves([]) });
+    service.recordCol = { find, count: sandbox.stub().resolves(0) };
+    const args = ['draft', 'rdmp', 0, 10, 'user', [], { id: 'brand-a' }, undefined, undefined, undefined];
+
+    for (const fields of [['metadata.rdmp-id'], ['metadata.some-field.nested-key'], ['metadata.title', 'metadata.rdmp-id']]) {
+      await service.getRecords(...args, fields, '000000');
+      expect(find.lastCall.args[0].$and.slice(1)).to.deep.equal(fields.map(field => ({ [field]: /000000/i })));
+    }
+
+    find.resetHistory();
+    for (const field of ['metadata.-id', 'metadata.$where', 'metadata.__proto__', 'metadata.constructor', 'metadata..title']) {
+      await expectRejects(() => service.getRecords(...args, [field], '000000'), 'Invalid filter fields');
+    }
+    expect(find.called).to.equal(false);
+  });
+
   it('combines opt-in mixed literal predicates with existing scope and filters, skipping only the requested count', async function () {
     service.recordCol = {
       find: sandbox.stub().returns({ toArray: sandbox.stub().resolves([]) }),

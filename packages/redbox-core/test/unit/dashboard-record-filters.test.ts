@@ -1,6 +1,5 @@
 import { expect } from 'chai';
-import { dashboardRecordFilters, dashboardRecordsApiRoutes } from '../../src/api-routes/groups/dashboard-records';
-import { validateApiRequest } from '../../src/api-routes';
+import { dashboardRecordFilters } from '../../src/api-routes/groups/dashboard-records';
 describe('dashboard record filter contract', () => {
   it('validates OR opt-in, legacy modes and literal search input', () => {
     for (const filterMode of [undefined, '', 'all', 'regex', 'equal', 'any']) {
@@ -8,6 +7,15 @@ describe('dashboard record filter contract', () => {
     }
     for (const query of [{ filterMode: ['any'] }, { filterMode: 'or' }, { filterFields: '$where' }, { filterFields: 'metadata.__proto__' }, { filter: 'x'.repeat(1025) }]) {
       expect(dashboardRecordFilters.safeParse(query).success).to.equal(false);
+    }
+  });
+
+  it('accepts hyphenated field paths and rejects invalid path segments', () => {
+    for (const filterFields of ['metadata.rdmp-id', 'metadata.some-field.nested-key', 'metadata.title,metadata.rdmp-id']) {
+      expect(dashboardRecordFilters.safeParse({ filterFields, filter: '000000' }).success, filterFields).to.equal(true);
+    }
+    for (const filterFields of ['metadata.-id', 'metadata.$where', 'metadata.__proto__', 'metadata.constructor', 'metadata..title']) {
+      expect(dashboardRecordFilters.safeParse({ filterFields, filter: '000000' }).success, filterFields).to.equal(false);
     }
   });
 });
