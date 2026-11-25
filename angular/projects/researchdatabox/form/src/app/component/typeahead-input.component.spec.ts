@@ -1320,6 +1320,35 @@ describe("TypeaheadInputComponent", () => {
         expect(component.selectedItem()?.raw).toEqual(option.raw);
     });
 
+    for (const requireSelection of [false, true]) {
+        it(`preserves a whitespace-only selection on blur and allows clearing it (requireSelection=${requireSelection})`, async () => {
+            const option: TypeaheadOption = { label: "Unspecified", value: "   ", sourceType: "static" };
+            const { fixture } = await createFormAndWaitForReady({
+                name: "testing",
+                componentDefinitions: [{
+                    name: "status",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: { sourceType: "static", staticOptions: [option], valueMode: "value", displayValueOnSelect: true, requireSelection }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }]
+            });
+            const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+            const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+            component.onSelect({ item: option } as TypeaheadMatch);
+            expect(input.value).toBe(option.value);
+            input.dispatchEvent(new Event("blur"));
+            expect(component.model!.getValue()).toBe(option.value);
+
+            input.value = "";
+            input.dispatchEvent(new Event("input"));
+            input.dispatchEvent(new Event("blur"));
+            expect(component.model!.getValue()).toBeNull();
+        });
+    }
+
     it("renders external provider suggestions", async () => {
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchExternal").and.resolveTo([
