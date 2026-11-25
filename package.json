@@ -20,7 +20,7 @@
     "fs-extra": "11.4.1",
     "handlebars": "4.7.10",
     "include-all": "4.0.3",
-    "jquery": "4.0.0",
+    "jquery": "4.1.0",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
     "lucene-escape-query": "1.0.1",
