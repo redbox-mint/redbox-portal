@@ -1,18 +1,17 @@
-import { chromium, expect, test, type Page } from '@playwright/test';
+import { chromium, type Page } from '@playwright/test';
+import { expect, test } from './fixtures/test';
 import { MongoClient, ObjectId } from 'mongodb';
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { adminStorageStatePath } from './helpers';
 
-test.use({ storageState: adminStorageStatePath });
 
 const prefix = '/default/rdmp';
 const newRecord = `${prefix}/record/checkbox-details-demo/edit`;
 const savePath = `${prefix}/recordmeta/`;
 const formatsLookupPath = `${prefix}/vocab/checkbox-details-formats/entries`;
 
-test('loads the demo vocabulary and saves, reopens, activates and prints selected details', async ({ page }, testInfo) => {
+test('loads the demo vocabulary and saves, reopens, activates and prints selected details', async ({ adminPage: page }, testInfo) => {
   const browserErrors: string[] = [];
   page.on('pageerror', error => browserErrors.push(error.message));
   const entries = page.waitForResponse(response => new URL(response.url()).pathname === formatsLookupPath);
@@ -178,7 +177,7 @@ const save = (page: Page, label: string, method: 'POST' | 'PUT', id: string) => 
   return body.data;
 });
 
-test('initializes a newly selected row after reopening a saved record', async ({ page }) => {
+test('initializes a newly selected row after reopening a saved record', async ({ adminPage: page }) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
   const tableVolume = page.getByRole('textbox', { name: 'Estimated volume — Tabulated files' });
   const otherVolume = page.getByRole('textbox', { name: 'Estimated volume — Other' });
@@ -205,7 +204,7 @@ test('initializes a newly selected row after reopening a saved record', async ({
   ]);
 });
 
-test('restores saved details when a researcher reselects a choice after its vocabulary loads', async ({ page }) => {
+test('restores saved details when a researcher reselects a choice after its vocabulary loads', async ({ adminPage: page }) => {
   await page.goto(newRecord);
   await page.getByRole('textbox', { name: 'Project title' }).fill('Undo while loading formats');
   await openFormats(page);
@@ -235,7 +234,7 @@ test('restores saved details when a researcher reselects a choice after its voca
   await expect(description).toHaveValue('Instrument output saved before this session');
 });
 
-test('saves removals during a pending and failed lookup and validates retained rows after retry', async ({ page }, testInfo) => {
+test('saves removals during a pending and failed lookup and validates retained rows after retry', async ({ adminPage: page }, testInfo) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
   const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
   const activate = page.getByRole('button', { name: 'Activate', exact: true });
@@ -349,7 +348,7 @@ test('saves removals during a pending and failed lookup and validates retained r
 });
 
 
-test('shows obsolete answers for current and historical choices and saves removal of a deleted choice', async ({ page, baseURL }, testInfo) => {
+test('shows obsolete answers for current and historical choices and saves removal of a deleted choice', async ({ adminPage: page, baseURL }, testInfo) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
   await page.goto(newRecord);
   await title.fill('Synthetic archived details');
@@ -473,7 +472,7 @@ async function renderCheckboxPdf(page: Page, baseURL: string, oid: string, outpu
   }
 }
 
-test('recovers an inline lookup and prints the saved details while its vocabulary is missing', async ({ page, baseURL }, testInfo) => {
+test('recovers an inline lookup and prints the saved details while its vocabulary is missing', async ({ adminPage: page, baseURL }, testInfo) => {
   await page.goto(newRecord);
   await page.getByRole('textbox', { name: 'Project title' }).fill('Synthetic inline vocabulary recovery');
   const draft = await save(page, 'Save draft', 'POST', demoType);
