@@ -41,6 +41,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;
+    displayValueOnSelect?: boolean;
     minChars = 2;
     debounceMs = 250;
     maxResults = 25;

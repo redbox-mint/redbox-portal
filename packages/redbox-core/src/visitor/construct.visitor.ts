@@ -2140,6 +2140,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('labelField', itemConfig, config);
     this.sharedProps.setPropOverride('labelTemplate', itemConfig, config);
     this.sharedProps.setPropOverride('valueField', itemConfig, config);
+    this.sharedProps.setPropOverride('displayValueOnSelect', itemConfig, config);
     this.sharedProps.setPropOverride('minChars', itemConfig, config);
     this.sharedProps.setPropOverride('debounceMs', itemConfig, config);
     this.sharedProps.setPropOverride('maxResults', itemConfig, config);
