@@ -1,4 +1,8 @@
-import type { FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
+import {
+  checkboxDetailFields,
+  type CheckboxWithDetailsFieldComponentConfigFrame,
+  type FormComponentDefinitionFrame,
+} from '@researchdatabox/sails-ng-common';
 
 import type {
   ContractArrayNode,
@@ -32,6 +36,7 @@ export const CORE_RECORD_CONTRACT_COMPONENT_INVENTORY = {
   AccordionPanelComponent: 'container',
   CancelButtonComponent: 'non-persisting',
   CheckboxInputComponent: 'scalar',
+  CheckboxWithDetailsComponent: 'array',
   CheckboxTreeComponent: 'specialized',
   ContentComponent: 'non-persisting',
   DataLocationComponent: 'specialized',
@@ -220,6 +225,39 @@ function choiceContribution(
     return { kind: 'node', node: array(scalar('string', false, values), nullable) };
   }
   return { kind: 'node', node: scalar('string', nullable, values) };
+}
+
+function checkboxWithDetailsContribution(context: RecordContractContributorCompileContext): RecordContractComponentContribution {
+  const config = componentConfig(context.component) as CheckboxWithDetailsFieldComponentConfigFrame;
+  const fields = [...(config.detailFields ?? []), ...Object.values(config.detailFieldsByValue ?? {}).flat()];
+  const fieldTypes = Object.fromEntries(fields.map(field => [field.name, scalar('string', true)]));
+  const options = new Set([
+    ...(config.options ?? []).map(option => option.value),
+    ...Object.keys(config.detailFieldsByValue ?? {}),
+  ]);
+  const typesFor = (fields: readonly FormComponentDefinitionFrame[]) =>
+    Object.fromEntries(fields.map(field => [field.name, ['string', 'null']]));
+  return {
+    kind: 'node',
+    node: {
+      ...array({
+        ...object({
+          value: scalar('string', false),
+          // Archived selections can carry details from older form definitions.
+          details: object(fieldTypes, context, false, 'allow'),
+        }, context, false, 'declared'),
+        required: ['value', 'details'],
+      }),
+      annotations: {
+        extensions: {
+          'x-redbox-checkbox-details': {
+            shared: typesFor(config.detailFields ?? []),
+            byValue: Object.fromEntries([...options].map(value => [value, typesFor(checkboxDetailFields(config, value))])),
+          },
+        },
+      },
+    },
+  };
 }
 
 function checkboxContribution(context: RecordContractContributorCompileContext): RecordContractComponentContribution {
@@ -475,6 +513,7 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     ),
     nonPersisting('CancelButtonComponent'),
     componentContributor('CheckboxInputComponent', 'configuration', checkboxContribution),
+    componentContributor('CheckboxWithDetailsComponent', 'non-null', checkboxWithDetailsContribution),
     componentContributor('CheckboxTreeComponent', 'configuration', checkboxTreeContribution),
     nonPersisting('ContentComponent'),
     componentContributor('DataLocationComponent', 'configuration', dataLocationContribution),

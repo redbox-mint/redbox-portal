@@ -1,3 +1,5 @@
+import { CheckboxWithDetailsComponentName } from '@researchdatabox/sails-ng-common';
+import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { firstValueFrom } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import _ from 'lodash';
@@ -101,6 +103,8 @@ export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   expressionContextUnsupported: 'record-validation-expression-context-unsupported',
   transformationInapplicable: 'record-validation-transformation-inapplicable',
   validationGroupUnknown: 'record-validation-group-unknown',
+  checkboxVocabularyMissing: 'record-validation-checkbox-vocabulary-missing',
+  checkboxVocabularyUnavailable: 'record-validation-checkbox-vocabulary-unavailable',
   requestParameterDropped: 'record-validation-request-parameter-dropped',
   resolutionFailed: 'record-validation-resolution-failed',
   advisoryConfigurationMalformed: 'record-validation-advisory-configuration-malformed',
@@ -150,6 +154,8 @@ export interface RecordValidationRequest {
   /** Server-owned effective source-read authority; roles alone never supply it. */
   readonly relatedReadContext?: RelatedRecordReadContext;
   readonly candidate: RecordValidationCandidate;
+  /** Authoritative pre-write metadata for preserving retired option values. */
+  readonly previousMetadata?: Readonly<Record<string, unknown>>;
   /** Process-local source-contract capability; never populated from request parameters. */
   readonly routeFormContract?: unknown;
   readonly writeKind: RecordValidationWriteKind;
@@ -401,7 +407,8 @@ export interface RecordValidationServiceDependencies {
     validatorDefinitionsMap: ReadonlyMap<string, FormValidatorDefinition>,
     jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate,
     excludedOnlyValidationGroups?: readonly string[],
-    checkDeadline?: () => void
+    checkDeadline?: () => void,
+    previousMetadata?: Readonly<Record<string, unknown>>
   ): Promise<ValidatorFormConfigResult>;
 }
 
@@ -1602,13 +1609,47 @@ export namespace Services {
           timing?.complete();
           if (!validatorDefinitionsMap) return undefined;
           timing?.begin('blocking_validators');
+          const checkboxVocabularies = new Set(schemaOwnedFormNodes(validationForm).flatMap(({ value }) =>
+            isRecord(value.component) && value.component.class === CheckboxWithDetailsComponentName &&
+            isRecord(value.component.config) && typeof value.component.config.vocabRef === 'string'
+              ? [value.component.config.vocabRef]
+              : []
+          ));
+          let advisoryCheckboxVocabularies = new Set<string>();
+          if (checkboxVocabularies.size > 0) {
+            const canPreserve = !!policy && !normalized.targetStep && request.writeKind !== 'transition';
+            const required = canPreserve
+              ? await new ValidatorFormConfigVisitor(this.logger).requiredCheckboxVocabularies({
+                form: validationForm,
+                enabledValidationGroups: [...groupResolution.effectiveGroups],
+                excludedOnlyValidationGroups: [...advisoryGroups],
+                checkDeadline: () => this.checkDeadline(deadline),
+                previousMetadata: request.previousMetadata,
+              })
+              : checkboxVocabularies;
+            advisoryCheckboxVocabularies = new Set([...checkboxVocabularies].filter(ref => !required.has(ref)));
+            if (required.size > 0) {
+              const canPreserveMissing = request.writeKind === 'update' && isRecord(request.previousMetadata);
+              await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(validationForm, brand, {
+                checkboxDetailsOnly: true,
+                resolveDeferredCheckboxDetails: true,
+                checkboxVocabFilter: ref => required.has(ref),
+                checkboxLookupFallback: canPreserve ? {
+                  onMissingVocabulary: canPreserveMissing ? field => {
+                    diagnostics.push(this.checkboxVocabularyMissing(field));
+                  } : undefined,
+                } : undefined,
+              });
+            }
+          }
           const validation = await this.executeValidators(
             validationForm,
             groupResolution.effectiveGroups,
             validatorDefinitionsMap,
             advisoryGroups,
             deadline,
-            relatedMetadata
+            relatedMetadata,
+            request.previousMetadata
           );
           timing?.complete();
           timing?.begin('blocking_validator_transformations');
@@ -1636,6 +1677,7 @@ export namespace Services {
             validationForm,
             groupResolution,
             advisoryGroups,
+            advisoryCheckboxVocabularies,
             validatorDefinitionsMap,
             mappedIssues,
             transformationAdvisories,
@@ -1686,15 +1728,46 @@ export namespace Services {
       }
       const {
         context,
-        validationForm,
         groupResolution,
         advisoryGroups,
+        advisoryCheckboxVocabularies,
         validatorDefinitionsMap,
         mappedIssues,
         transformationAdvisories,
         transformedCandidate: blockingTransformedCandidate,
       } = blockingRun.value;
+      let validationForm = blockingRun.value.validationForm;
       const blockingErrors = mappedIssues.blocking;
+      if (advisoryCheckboxVocabularies.size > 0) {
+        // A delayed lookup must not mutate the validated form or diagnostics
+        // after its time budget expires.
+        const advisoryForm = _.cloneDeep(validationForm);
+        const lookupDiagnostics: RecordValidationDiagnostic[] = [];
+        const lookup = await this.withDeadline(async () => {
+          await new VocabInlineFormConfigVisitor(this.logger).resolveVocabs(advisoryForm, brand, {
+            checkboxDetailsOnly: true,
+            resolveDeferredCheckboxDetails: true,
+            checkboxVocabFilter: ref => advisoryCheckboxVocabularies.has(ref),
+            checkboxLookupFallback: {
+              onMissingVocabulary: field => lookupDiagnostics.push(this.checkboxVocabularyMissing(field)),
+              onReadFailure: field => lookupDiagnostics.push(this.checkboxVocabularyUnavailable(field)),
+            },
+          });
+        }, deadline);
+        if (lookup.status === 'completed') {
+          validationForm = advisoryForm;
+          diagnostics.push(...lookupDiagnostics);
+        } else if (lookup.status === 'timed-out') {
+          diagnostics.push(this.checkboxVocabularyUnavailable());
+        } else {
+          // Only missing references and backend read failures are advisory.
+          // A vocabulary that resolves to malformed options is still a configuration error.
+          diagnostics.push(createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingExecutionFailed,
+            'Blocking record validation could not be completed.'
+          ));
+        }
+      }
       let advisoryErrors: RecordSaveIssue[] = [...transformationAdvisories];
       let transformedCandidate = blockingTransformedCandidate;
       if (advisoryGroups.length > 0) {
@@ -1706,7 +1779,8 @@ export namespace Services {
             validatorDefinitionsMap,
             [],
             deadline,
-            relatedMetadata
+            relatedMetadata,
+            request.previousMetadata
           );
           timing?.complete();
           timing?.begin('advisory_validator_transformations');
@@ -1785,6 +1859,22 @@ export namespace Services {
         advisoryGroups,
         transformedCandidate,
       });
+    }
+
+    private checkboxVocabularyMissing(field: string): RecordValidationDiagnostic {
+      return createDiagnostic(
+        RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyMissing,
+        'The checkbox vocabulary is missing. Retained answers must match the stored record.',
+        { severity: 'warning', field }
+      );
+    }
+
+    private checkboxVocabularyUnavailable(field?: string): RecordValidationDiagnostic {
+      return createDiagnostic(
+        RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyUnavailable,
+        'The checkbox vocabulary could not be read. Retained answers must match the stored record.',
+        field === undefined ? { severity: 'warning' } : { severity: 'warning', field }
+      );
     }
 
     private contractReference(value: string, _kind: 'brand' | 'portal' | 'oid'): string {
@@ -1938,7 +2028,8 @@ export namespace Services {
           validatorDefinitionsMap,
           evaluatorFactory,
           excludedOnlyValidationGroups,
-          checkDeadline
+          checkDeadline,
+          previousMetadata
         ) =>
           await new ValidatorFormConfigVisitor(this.logger).startWithResult({
             form,
@@ -1947,6 +2038,7 @@ export namespace Services {
             jsonataEvaluatorFactory: evaluatorFactory,
             excludedOnlyValidationGroups: [...(excludedOnlyValidationGroups ?? [])],
             checkDeadline,
+            previousMetadata,
           }),
       };
       this.resolvedDependencies = { ...defaults, ...this.dependencyOverrides };
@@ -2668,7 +2760,8 @@ export namespace Services {
       mapping: ReadonlyMap<string, FormValidatorDefinition>,
       excludedOnlyGroups: readonly string[],
       deadline: ValidationDeadline,
-      relatedMetadata?: ReadonlyRelatedMetadata
+      relatedMetadata?: ReadonlyRelatedMetadata,
+      previousMetadata?: Readonly<Record<string, unknown>>
     ): Promise<ValidatorFormConfigResult> {
       const execute = this.dependencies().executeValidators;
       if (!execute) throw new Error('Record validation executor is unavailable.');
@@ -2679,7 +2772,8 @@ export namespace Services {
         mapping,
         expression => this.jsonataEvaluator(expression, deadline, relatedMetadata),
         excludedOnlyGroups,
-        () => this.checkDeadline(deadline)
+        () => this.checkDeadline(deadline),
+        previousMetadata
       );
       return result;
     }

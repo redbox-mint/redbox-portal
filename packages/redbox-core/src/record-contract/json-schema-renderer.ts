@@ -441,6 +441,7 @@ function renderNode(node: ContractNode, pointer: RecordContractPointer, state: R
         {
           type: structuredTypes('object', node.nullable),
           properties,
+          ...(node.required?.length ? { required: [...node.required].sort() } : {}),
           additionalProperties: node.unknownProperties === 'allow',
         },
         node.annotations

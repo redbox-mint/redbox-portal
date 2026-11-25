@@ -28,7 +28,7 @@ import { UserModel } from '../model/storage/UserModel';
 import { FormAttributes } from '../waterline-models/Form';
 import { createSchema } from 'genson-js';
 import * as path from 'path';
-import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
+import { checkboxPresentationLookupFallback, VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
   FormConfigFrame,
   FormConfigOutline,
@@ -911,6 +911,7 @@ export namespace Services {
      * @param reusableFormDefs The reusable form definitions.
      * @param branding The branding override.
      * @param contextVariablesMap A mapping of context variable name to value.
+     * @param options Set existingRecordPresentation only for authorized record pages, including PDF rendering.
      */
     public async buildClientFormConfig(
       item: FormConfigFrame,
@@ -924,7 +925,7 @@ export namespace Services {
       preserveDefaultValues = false,
       // Projection reads must not resolve another level of related source data.
       suppressRelatedResolution = false,
-      options: { hydrateVocabulary?: boolean } = {}
+      options: { hydrateVocabulary?: boolean; existingRecordPresentation?: boolean } = {}
     ): Promise<FormConfigOutline> {
       // Compile canonical persistence declarations before construction transforms/pruning.
       const declarations = compileRelatedDisplayContract(item, reusableFormDefs);
@@ -951,15 +952,20 @@ export namespace Services {
       // Schema assistance needs effective names and nesting, without reading
       // vocabulary pages. Normal record/client and contract builds still hydrate.
       if (options.hydrateVocabulary !== false) {
+        const existingRecordPresentation = options.existingRecordPresentation &&
+          recordAccessContext?.record?.redboxOid && recordMetadata != null &&
+          (formMode === 'edit' || formMode === 'view');
         const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
         await vocabVisitor.resolveVocabs(constructed, branding, {
           includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
+          resolveDeferredCheckboxDetails: formMode === 'view' || suppressRelatedResolution,
+          checkboxLookupFallback: existingRecordPresentation ? checkboxPresentationLookupFallback(this.logger) : undefined,
           lookupCaller: recordAccessContext ? { ...recordAccessContext, roles: recordAccessContext.user.roles,
             portal: recordAccessContext.portal ?? sails.config.auth.defaultPortal } : undefined,
         });
       }
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
-      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
+      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap, recordMetadata == null);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs,

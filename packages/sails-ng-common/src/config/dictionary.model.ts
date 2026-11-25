@@ -27,6 +27,7 @@ import { TabContentDefaults, TabContentMap } from './component/tab-content.model
 import { TabDefaults, TabMap } from './component/tab.model';
 import { AccordionDefaults, AccordionMap } from './component/accordion.model';
 import { CheckboxInputDefaults, CheckboxInputMap } from './component/checkbox-input.model';
+import { CheckboxWithDetailsDefaults, CheckboxWithDetailsMap } from './component/checkbox-with-details.model';
 import { DropdownInputDefaults, DropdownInputMap } from './component/dropdown-input.model';
 import { RadioInputDefaults, RadioInputMap } from './component/radio-input.model';
 import { DateInputDefaults, DateInputMap } from './component/date-input.model';
@@ -84,6 +85,7 @@ export const AllDefs = [
   ...TabMap,
   ...AccordionMap,
   ...CheckboxInputMap,
+  ...CheckboxWithDetailsMap,
   ...DropdownInputMap,
   ...RadioInputMap,
   ...DateInputMap,
@@ -129,6 +131,7 @@ const RawDefaults = [
   TabDefaults,
   AccordionDefaults,
   CheckboxInputDefaults,
+  CheckboxWithDetailsDefaults,
   DropdownInputDefaults,
   RadioInputDefaults,
   DateInputDefaults,

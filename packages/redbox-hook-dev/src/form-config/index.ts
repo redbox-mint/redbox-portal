@@ -1,3 +1,4 @@
+import checkboxDetails from './checkbox-details-1.0';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import defaultDraft from './default-1.0-draft';
 import relatedPlan from './related-plan-1.0-draft';
@@ -20,6 +21,7 @@ import demoRdmpDraft from './demoRdmp-1.0-draft';
  * here is supplied to the portal via redbox-hook-dev's registerRedboxFormConfigs().
  */
 export const FormConfigExports: Record<string, FormConfigFrame> = {
+  'checkbox-details-1.0': checkboxDetails,
   'default-1.0-draft': defaultDraft,
   'related-plan-1.0-draft': relatedPlan,
   'related-activity-1.0-draft': relatedActivity,

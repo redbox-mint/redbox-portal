@@ -1,3 +1,8 @@
+import {
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { set as _set } from 'lodash';
@@ -468,6 +473,18 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  async visitCheckboxWithDetailsFieldComponentDefinition(
+    _item: CheckboxWithDetailsFieldComponentDefinitionOutline
+  ): Promise<void> {}
+
+  async visitCheckboxWithDetailsFieldModelDefinition(item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {
+    this.setFromModelDefinition(item);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

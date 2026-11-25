@@ -1,0 +1,11 @@
+{
+  "name": "Checkbox details demo formats",
+  "slug": "checkbox-details-formats",
+  "type": "flat",
+  "entries": [
+    { "value": "tabulated", "label": "Tabulated files", "order": 0 },
+    { "value": "image", "label": "Image files", "order": 1 },
+    { "value": "other", "label": "Other", "order": 2 },
+    { "value": "legacy-media", "label": "Legacy media", "order": 3, "historical": true }
+  ]
+}

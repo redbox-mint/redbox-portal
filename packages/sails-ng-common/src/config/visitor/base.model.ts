@@ -88,6 +88,11 @@ import {
   CheckboxInputFormComponentDefinitionOutline,
 } from '../component/checkbox-input.outline';
 import {
+  CheckboxWithDetailsFieldComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+} from '../component/checkbox-with-details.outline';
+import {
   DropdownInputFieldComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
@@ -445,6 +450,12 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await this.notImplemented();
   }
+
+  async visitCheckboxWithDetailsFieldComponentDefinition(_item: CheckboxWithDetailsFieldComponentDefinitionOutline): Promise<void> {}
+
+  async visitCheckboxWithDetailsFieldModelDefinition(_item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {}
+
+  async visitCheckboxWithDetailsFormComponentDefinition(_item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {}
 
   /* Dropdown Input */
 

@@ -32,6 +32,7 @@ import {
   FormComponentDefinitionKindType,
 } from './shared.outline';
 import { CheckboxInputTypes } from './component/checkbox-input.outline';
+import { CheckboxWithDetailsTypes } from './component/checkbox-with-details.outline';
 import { DropdownInputTypes } from './component/dropdown-input.outline';
 import { RadioInputTypes } from './component/radio-input.outline';
 import { DateInputTypes } from './component/date-input.outline';
@@ -81,6 +82,7 @@ export type AllTypes =
   | TabTypes
   | AccordionTypes
   | CheckboxInputTypes
+  | CheckboxWithDetailsTypes
   | DropdownInputTypes
   | RadioInputTypes
   | DateInputTypes

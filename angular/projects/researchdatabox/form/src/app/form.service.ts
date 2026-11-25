@@ -1,3 +1,4 @@
+import { CheckboxWithDetailsComponent, CheckboxWithDetailsModel } from './component/checkbox-with-details.component';
 // Copyright (c) 2023 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -573,7 +574,12 @@ export class FormService extends HttpClientService {
     if (formControl && lineagePaths) {
       const errors = getErrors(formControl);
       if (errors.length > 0) {
-        result.push({ id, message: labelMessage, errors, lineagePaths });
+        result.push({
+          id: mapEntry.labelSuffix ? lineagePaths.angularComponentsJsonPointer ?? id : id,
+          message: this.validationLabel(labelMessage, mapEntry.labelSuffix),
+          errors,
+          lineagePaths,
+        });
       }
     }
 
@@ -629,7 +635,12 @@ export class FormService extends HttpClientService {
       );
       if (errors.length > 0) {
         const { id, labelMessage } = this.componentIdLabel(mapEntry.compConfigJson);
-        result.push({ id, message: labelMessage, errors, lineagePaths });
+        result.push({
+          id: mapEntry.labelSuffix ? lineagePaths.angularComponentsJsonPointer ?? id : id,
+          message: this.validationLabel(labelMessage, mapEntry.labelSuffix),
+          errors,
+          lineagePaths,
+        });
       }
     }
 
@@ -754,6 +765,11 @@ export class FormService extends HttpClientService {
     return { id: id, labelMessage: labelMessage };
   }
 
+  private validationLabel(label: string | null, suffix?: string): string | null {
+    if (!suffix) return label;
+    return label ? `${this.translationService.t(label)} — ${this.translationService.t(suffix)}` : this.translationService.t(suffix);
+  }
+
   /**
    * Notification hook for when components are ready.
    */
@@ -828,6 +844,11 @@ export class FormService extends HttpClientService {
     const validatorFns = this.getValidatorInstances(enabledValidators, (key, validator) => {
       configsByKey.set(key, originalByPrepared.get(validator)!);
     });
+    if (mapEntry?.component instanceof CheckboxWithDetailsComponent) {
+      validatorFns.syncDefs.push(mapEntry.component.deferredOptionsValidator(
+        enabledValidationGroups ?? [], validationGroups ?? {}, enabledValidators.length > 0
+      ));
+    }
     this.validatorConfigsByErrorKey.set(formControl, configsByKey);
 
     // For debugging:
@@ -922,6 +943,7 @@ export class FormService extends HttpClientService {
 
     // Set the validators for the form control.
     if (mapEntry?.model?.formControl) {
+      if (mapEntry.model instanceof CheckboxWithDetailsModel) mapEntry.model.formControl?.refreshRowStatuses();
       const formControl = mapEntry?.model?.formControl;
       const validators = mapEntry?.model?.validators;
       const updateValueAndValidityOpts = { doUpdate: true, onlySelf: true, emitEvent: false };

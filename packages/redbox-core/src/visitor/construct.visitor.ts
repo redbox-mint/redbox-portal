@@ -1,3 +1,16 @@
+import {
+  CheckboxWithDetailsFormComponentDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionOutline,
+  CheckboxWithDetailsFieldModelDefinitionOutline,
+  CheckboxWithDetailsFieldComponentDefinitionFrame,
+  CheckboxWithDetailsFieldModelDefinitionFrame,
+  CheckboxWithDetailsFieldComponentConfig,
+  CheckboxWithDetailsFieldModelConfig,
+  CheckboxWithDetailsComponentName,
+  CheckboxDetailFieldFrame,
+  CheckboxDetailFieldOutline,
+  checkCheckboxWithDetailsConfig,
+} from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep, cloneDeepWith as _cloneDeepWith, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
 import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
@@ -394,6 +407,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private extractedDefaultValues: Record<string, unknown>;
   private translate?: (key: string) => string;
 
+  private constructingCheckboxDetail = false;
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
 
   private data: FormConfigFrame;
@@ -711,7 +725,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     const formComponent = this.constructFormComponent(frame.elementTemplate);
 
-    // Continue the construction
     await this.formPathHelper.acceptFormPath(
       formComponent,
       this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
@@ -1905,6 +1918,62 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
+  async visitCheckboxWithDetailsFieldComponentDefinition(item: CheckboxWithDetailsFieldComponentDefinitionOutline): Promise<void> {
+    const frame = this.getData() as CheckboxWithDetailsFieldComponentDefinitionFrame;
+    const config = frame.config ?? {};
+    const constructed = item.config = new CheckboxWithDetailsFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(constructed, config);
+    for (const key of ['options', 'vocabRef', 'inlineVocab', 'historicalVocabMode', 'enabledOptionValues'] as const) {
+      this.sharedProps.setPropOverride(key, constructed, config);
+    }
+    if (config.options !== undefined && config.vocabRef) {
+      throw new Error('CheckboxWithDetails requires either options or a vocabulary.');
+    }
+    if (config.vocabRef !== undefined && (typeof config.vocabRef !== 'string' || !config.vocabRef.trim())) {
+      throw new Error('CheckboxWithDetails requires a valid vocabulary reference.');
+    }
+    const unmatched = checkCheckboxWithDetailsConfig(config);
+    if (!config.vocabRef && unmatched.length) {
+      this.logger.warn(
+        `CheckboxWithDetails '${this.formPathHelper.formPath.dataModel.join('.')}': no static options for detail mappings ${JSON.stringify(unmatched)}.`
+      );
+    }
+
+    const constructFields = async (fields: CheckboxDetailFieldFrame[], path: LineagePath) => {
+      const result: CheckboxDetailFieldOutline[] = [];
+      for (const [index, frame] of fields.entries()) {
+        frame.layout ??= { class: DefaultLayoutName };
+        const child = this.constructFormComponent(frame) as CheckboxDetailFieldOutline;
+        await this.formPathHelper.acceptFormPath(child, { formConfig: ['config', ...path, index] });
+        result.push(child);
+      }
+      return result;
+    };
+
+    this.constructingCheckboxDetail = true;
+    try {
+      constructed.detailFields = await constructFields(config.detailFields ?? [], ['detailFields']);
+      const mappings: Array<[string, CheckboxDetailFieldOutline[]]> = [];
+      for (const [value, fields] of Object.entries(config.detailFieldsByValue ?? {})) {
+        mappings.push([value, await constructFields(fields, ['detailFieldsByValue', value])]);
+      }
+      constructed.detailFieldsByValue = Object.fromEntries(mappings);
+    } finally {
+      this.constructingCheckboxDetail = false;
+    }
+  }
+
+  async visitCheckboxWithDetailsFieldModelDefinition(item: CheckboxWithDetailsFieldModelDefinitionOutline): Promise<void> {
+    const frame = this.getData() as CheckboxWithDetailsFieldModelDefinitionFrame;
+    item.config = new CheckboxWithDetailsFieldModelConfig();
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, frame.config);
+    this.setModelValue(item, frame.config);
+  }
+
+  async visitCheckboxWithDetailsFormComponentDefinition(item: CheckboxWithDetailsFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
   /* Checkbox Tree */
 
   async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
@@ -2336,7 +2405,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // Repeatable elementTemplate and descendants cannot declare a defaultValue.
     const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
     const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
-    if (!isElementTemplate && !isElementTemplateDescendant) {
+    if (!this.constructingCheckboxDetail && !isElementTemplate && !isElementTemplateDescendant) {
       await this.mergeDefaultValues(itemName, itemDefaultValue);
     }
 
@@ -2352,6 +2421,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       const componentConfig = formComponent?.component?.config as { inlineVocab?: boolean } | undefined;
       const shouldDeferToClientViewTransform =
         className === QuestionTreeComponentName ||
+        className === CheckboxWithDetailsComponentName ||
         className === RepeatableComponentName ||
         (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
 this.mostRecentRepeatableElementTemplatePath !== null ||
@@ -2419,12 +2489,22 @@ this.mostRecentRepeatableElementTemplatePath !== null ||
     const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
 
     // Only elementTemplates can use newEntryValue.
-    if (!isElementTemplate && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
+    if ((!isElementTemplate || this.constructingCheckboxDetail) && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
       throw new Error(
         `${this.logName}: Only repeatable elementTemplates can define 'model.config.newEntryValue', ` +
           `use 'model.config.defaultValue' in other places ` +
           `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
+    }
+
+    // Checkbox detail definitions are templates for new selections. Their
+    // metadata belongs to a selected row, which the editor hydrates separately.
+    if (this.constructingCheckboxDetail) {
+      item.config.value = typeof config?.defaultValue === 'string'
+        ? this.translateConfigDefault(config.defaultValue)
+        : null;
+      if (!this.preserveDefaultValues) delete item.config.defaultValue;
+      return;
     }
 
     // The elementTemplate definitions cannot have a defaultValue.

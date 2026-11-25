@@ -2380,11 +2380,31 @@ describe('RecordValidationService', function () {
             config: { validators: [{ class: 'required', groups: { include: ['advisory'] } }] },
           },
         } as never,
+        {
+          name: 'formats',
+          component: {
+            class: 'CheckboxWithDetailsComponent',
+            config: {
+              options: [{ value: 'image', label: 'Images' }],
+              detailFields: [{
+                name: 'volume',
+                component: { class: 'SimpleInputComponent' },
+                model: {
+                  class: 'SimpleInputModel',
+                  config: { validators: [{ class: 'required', groups: { include: ['advisory'] } }] },
+                },
+              }],
+            },
+          },
+        },
         suggestedSummary(['advisory']) as never,
       ],
       validationOperations: { submit: { enabledValidationGroups: ['base'] } },
     });
-    const fixture = createRecordValidationFixture({ form, candidate: { metadata: {} } });
+    const fixture = createRecordValidationFixture({
+      form,
+      candidate: { metadata: { formats: [{ value: 'image', details: {} }] } },
+    });
     const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
     const result = requireResolved(
       await new Services.RecordValidation(productionDependencies).resolve({
@@ -2394,9 +2414,11 @@ describe('RecordValidationService', function () {
     );
 
     expect(result.blockingErrors.map(issue => issue.field)).to.deep.equal(['blockingTitle']);
-    expect(result.advisoryErrors.map(issue => issue.field)).to.deep.equal(['advisoryDescription']);
+    expect(result.advisoryErrors[0].field).to.equal('advisoryDescription');
+    expect(result.advisoryErrors.map(issue => issue.pointer)).to.deep.equal([
+      '/advisoryDescription', '/formats/option:image/volume',
+    ]);
     expect(result.blockingErrors[0].pointer).to.equal('/blockingTitle');
-    expect(result.advisoryErrors[0].pointer).to.equal('/advisoryDescription');
   });
 
   it('returns an immutable sanitized candidate and treats htmlSanitized as nonblocking in every rollout mode', async function () {
@@ -3005,6 +3027,104 @@ describe('RecordValidationService', function () {
       timeoutKind: 'blocking',
       wouldBlock: true,
     });
+  });
+
+  it('keeps an unnecessary checkbox lookup outside the blocking deadline', async function () {
+    configure('enforce');
+    (global as any).sails.config.recordValidation.timeoutMs = 120;
+    (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+    const base = validationForm();
+    const form = validationForm({
+      validationGroups: {
+        ...base.validationGroups,
+        draft: { description: 'draft', initialMembership: 'none' },
+        active: { description: 'active', initialMembership: 'none' },
+      },
+      validationOperations: {
+        draft: { enabledValidationGroups: ['draft'] },
+        activate: { enabledValidationGroups: ['active'] },
+      },
+      componentDefinitions: [
+        {
+          name: 'title', component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required', groups: { include: ['draft'] } }] } },
+        },
+        {
+          name: 'formats', component: { class: 'CheckboxWithDetailsComponent', config: {
+            vocabRef: 'formats', detailFields: [{
+              name: 'volume', component: { class: 'SimpleInputComponent' },
+              model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required', groups: { include: ['active'] } }] } },
+            }],
+          } },
+          model: { class: 'CheckboxWithDetailsModel', config: { validators: [{ class: 'required', groups: { include: ['active'] } }] } },
+        },
+      ],
+    });
+    const fixture = createRecordValidationFixture({ form });
+    const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
+    const service = new Services.RecordValidation(productionDependencies);
+    const resolve = (
+      metadata: Record<string, unknown>,
+      previousMetadata?: Record<string, unknown>,
+      validationOperation = 'draft'
+    ) => service.resolve({
+      ...fixture.request,
+      candidate: { ...fixture.request.candidate, metadata },
+      previousMetadata,
+      validationOperation,
+      writeKind: previousMetadata ? 'update' : 'create',
+    });
+    const formats = [{ value: 'image', details: {} }];
+    const prior = Object.getOwnPropertyDescriptor(globalThis, 'VocabularyService');
+    let lookups = 0;
+    let available = false;
+    try {
+      Object.defineProperty(globalThis, 'VocabularyService', { configurable: true, value: {
+        getEntries: () => {
+          lookups++;
+          return available
+            ? Promise.resolve({ entries: [{ value: 'image', label: 'Images' }] })
+            : new Promise(() => undefined);
+        },
+      } });
+      for (const [metadata, previous] of [
+        [{ title: 'Omitted' }, undefined],
+        [{ title: 'Empty', formats: [] }, undefined],
+        [{ title: 'Preserved', formats }, { formats }],
+        [{ title: 'Removed', formats: [] }, { formats }],
+      ] as const) {
+        const result = requireResolved(await resolve(metadata, previous));
+        expect(result.shouldBlock).to.equal(false);
+        expect(result.diagnostics).to.deep.include({
+          code: RECORD_VALIDATION_DIAGNOSTIC_CODES.checkboxVocabularyUnavailable,
+          severity: 'warning',
+          message: 'The checkbox vocabulary could not be read. Retained answers must match the stored record.',
+        });
+      }
+      const otherField = requireResolved(await resolve({ title: '' }));
+      expect(otherField.blockingErrors.map(issue => issue.field)).to.deep.equal(['title']);
+      expect(otherField.shouldBlock).to.equal(true);
+      for (const result of [
+        await resolve({ title: 'New selection', formats }),
+        await resolve({ title: 'Changed details', formats: [{ value: 'image', details: { volume: '2 TB' } }] }, { formats }),
+        await resolve({ title: 'Active group', formats }, { formats }, 'activate'),
+      ]) {
+        expect(result.shouldBlock).to.equal(true);
+        expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
+      }
+      expect(lookups).to.equal(8);
+      available = true;
+      const missingDetail = requireResolved(await resolve({ title: 'Active group', formats }, { formats }, 'activate'));
+      expect(missingDetail.shouldBlock).to.equal(true);
+      expect(missingDetail.blockingErrors.map(issue => issue.field)).to.deep.equal(['volume']);
+      const completed = requireResolved(await resolve({
+        title: 'Active group', formats: [{ value: 'image', details: { volume: '2 TB' } }],
+      }, { formats }, 'activate'));
+      expect(completed.shouldBlock).to.equal(false);
+    } finally {
+      if (prior) Object.defineProperty(globalThis, 'VocabularyService', prior);
+      else Reflect.deleteProperty(globalThis, 'VocabularyService');
+    }
   });
 
   it('classifies synchronous event-loop overruns against the shared wall-clock deadline', async function () {

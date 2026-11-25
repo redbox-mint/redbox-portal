@@ -5,6 +5,23 @@ import type { WorkflowConfig } from '@researchdatabox/redbox-core';
  * Moved out of @researchdatabox/redbox-core; supplied via redbox-hook-dev.
  */
 export const workflow: WorkflowConfig = {
+    'checkbox-details-demo': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'checkbox-details-1.0',
+            },
+        },
+        active: {
+            config: {
+                workflow: { stage: 'active', stageLabel: 'Active' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'checkbox-details-1.0',
+            },
+        },
+    },
     "researchActivity": {
         "draft": {
             config: {

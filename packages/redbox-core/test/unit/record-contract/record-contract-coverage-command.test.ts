@@ -43,7 +43,7 @@ describe('record-contract CI coverage command', function () {
     expect(report).to.deep.equal({
       formsChecked: 3,
       schemasChecked: 6,
-      persistedCoreComponentsCovered: 18,
+      persistedCoreComponentsCovered: 19,
     });
   });
 

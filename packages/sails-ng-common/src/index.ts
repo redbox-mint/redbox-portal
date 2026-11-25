@@ -53,6 +53,9 @@ export * from './logger.model';
 // config/component
 export * from './config/component/checkbox-input.model';
 export * from './config/component/checkbox-input.outline';
+export * from './config/component/checkbox-with-details.outline';
+export * from './config/component/checkbox-with-details.model';
+export * from './config/component/checkbox-with-details.helper';
 export * from './config/component/default-layout.model';
 export * from './config/component/default-layout.outline';
 export * from './config/component/action-row-layout.model';
