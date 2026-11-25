@@ -71,6 +71,8 @@ export interface TypeaheadInputFieldComponentConfigCommonFrame extends FieldComp
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;
+    /** In scalar value mode, display the option value in the input after selection. */
+    displayValueOnSelect?: boolean;
     minChars?: number;
     debounceMs?: number;
     maxResults?: number;

@@ -1276,6 +1276,50 @@ describe("TypeaheadInputComponent", () => {
         expect(options[0]?.label).toBe("Project Atlas (ABC-001)");
     });
 
+    it("displays the scalar value after selection while keeping the full suggestion and raw row", async () => {
+        const option: TypeaheadOption = {
+            label: "Tom O'Connor — School of Engineering",
+            value: "Tom O'Connor",
+            sourceType: "namedQuery",
+            raw: { email: "tom@example.edu" }
+        };
+        spyOn(TestBed.inject(TypeaheadDataService), "searchNamedQueryLookup")
+            .and.resolveTo({ options: [option] });
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [{
+                name: "person",
+                component: {
+                    class: "TypeaheadInputComponent",
+                    config: {
+                        sourceType: "namedQuery",
+                        queryId: "party",
+                        valueMode: "value",
+                        displayValueOnSelect: true,
+                        requireSelection: false,
+                        minChars: 1
+                    }
+                },
+                model: { class: "TypeaheadInputModel", config: {} }
+            }]
+        };
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        component.displayControl.setValue("Tom");
+        const [suggestion] = await firstValueFrom(component.suggestions$);
+        expect(suggestion.label).toBe(option.label);
+
+        component.onSelect({ item: suggestion } as TypeaheadMatch);
+        expect(input.value).toBe(option.value);
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+
+        expect(input.value).toBe(option.value);
+        expect(component.model!.getValue()).toBe(option.value);
+        expect(component.selectedItem()?.raw).toEqual(option.raw);
+    });
+
     it("renders external provider suggestions", async () => {
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchExternal").and.resolveTo([

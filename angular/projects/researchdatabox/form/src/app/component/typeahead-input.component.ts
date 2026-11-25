@@ -253,12 +253,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.isOpen = false;
     this.searchState = 'idle';
     this.statusMessage = '';
-    this.setDisplayValue(selected.label);
+    const config = this.componentDefinition?.config as TypeaheadInputFieldComponentConfig;
+    this.setDisplayValue(this.valueMode === 'value' && config?.displayValueOnSelect ? selected.value : selected.label);
     this.setModelFromOption(selected);
     this.selectedItem.set(selected);
     if (
       this.readOnlyAfterSelectLocked ||
-      (this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.readOnlyAfterSelect
+      config?.readOnlyAfterSelect
     ) {
       this.readOnlyAfterSelectLocked = true;
     }
