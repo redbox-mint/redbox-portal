@@ -49,7 +49,7 @@ import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../co
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
 import type { FormSaveState } from '@researchdatabox/sails-ng-common';
-import { authorizeNamedEditForm, FormSaveConflict, formRowRevision, formRowRevisions, verifyNamedEditForm } from '../utilities/FormSaveContext';
+import { authorizeNamedEditForm, formAttachmentRevision, FormSaveConflict, formRowRevision, formRowRevisions, verifyNamedEditForm } from '../utilities/FormSaveContext';
 import { RecordWriteConflict } from '../RecordWriteOptions';
 
 type AnyRecord = Record<string, unknown>;
@@ -650,6 +650,9 @@ export namespace Controllers {
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
+          const rowRevisions = prepareSave && recordData && form
+            ? formRowRevisions(req, recordData, recordData.metadata, await this.getFormSaveAttachmentFields(recordData, form))
+            : undefined;
           return this.sendResp(req, res, {
             data: mergedForm,
             meta: {
@@ -658,7 +661,7 @@ export namespace Controllers {
               oid: oid,
               workflow: recordData?.workflow,
               contextVariables: contextVariablesMap,
-              ...(prepareSave && recordData ? { rowRevisions: formRowRevisions(req, recordData, recordData.metadata) } : {}),
+              ...(rowRevisions ? { rowRevisions } : {}),
             },
             prehydrate,
           });
@@ -893,10 +896,11 @@ export namespace Controllers {
           if (!_.isPlainObject(submitted) || (hasFormState && !_.isPlainObject(state))) {
             return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid form save payload.' }] });
           }
-          metadata = await this.mergeFormSaveMetadata(req, brand, currentRec, submitted, state);
+          const saved = await this.mergeFormSaveMetadata(req, brand, currentRec, submitted, state);
+          metadata = saved.metadata;
           // Bind the browser's next set of row origins to the submitted order. If a hook
           // changes that order, the next save will require a reload before applying origins.
-          rowRevisions = hasFormState ? formRowRevisions(req, currentRec, metadata) : undefined;
+          rowRevisions = hasFormState ? formRowRevisions(req, currentRec, metadata, saved.attachmentFields) : undefined;
         } else if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
@@ -947,7 +951,18 @@ export namespace Controllers {
       return form;
     }
 
-    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, state?: FormSaveState): Promise<AnyRecord> {
+    private async getFormSaveAttachmentFields(record: RecordModel, form: FormAttributes): Promise<string[]> {
+      const sourceForm = form.name === record.metaMetadata.form
+        ? form
+        : await firstValueFrom(FormsService.getFormByName(record.metaMetadata.form, true, record.metaMetadata.brandId));
+      return [...new Set([
+        ...(record.metaMetadata.attachmentFields ?? []),
+        ...(form.configuration?.attachmentFields ?? form.attachmentFields ?? []),
+        ...(sourceForm?.configuration?.attachmentFields ?? sourceForm?.attachmentFields ?? []),
+      ])];
+    }
+
+    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, state?: FormSaveState) {
       const formName = typeof state?.formName === 'string' ? state.formName : '';
       const form = await this.getAuthorizedEditForm(req, brand, record, formName);
       if (!form?.configuration) {
@@ -967,7 +982,15 @@ export namespace Controllers {
           origins: state?.rowOrigins,
         }
       );
-      return merged.metadata;
+      const attachmentFields = await this.getFormSaveAttachmentFields(record, form);
+      for (const field of attachmentFields) {
+        const originalValue = record.metadata?.[field];
+        if (!_.isEqual(originalValue, merged.metadata[field]) &&
+          !revisions.has(formAttachmentRevision(req, record, field, originalValue))) {
+          throw new FormSaveConflict('The attachments changed while this form was open. Reload the form before saving.');
+        }
+      }
+      return { metadata: merged.metadata, attachmentFields };
     }
 
     //TODO: check if this deprecated?

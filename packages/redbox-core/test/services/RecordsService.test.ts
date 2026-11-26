@@ -335,6 +335,8 @@ describe('RecordsService', function () {
 
   describe('conditional form saves with attachments', () => {
     const brand = { id: 'brand-1', name: 'default' };
+    let commitUpload: sinon.SinonStub;
+    let discardUpload: sinon.SinonStub;
     const record = () => ({
       recordVersion: 7,
       metaMetadata: { type: 'rdmp', brandId: 'brand-1', attachmentFields: ['files'] },
@@ -342,34 +344,54 @@ describe('RecordsService', function () {
     });
 
     beforeEach(() => {
+      commitUpload = sinon.stub().resolves();
+      discardUpload = sinon.stub().resolves();
       const prepare = sinon.stub(RecordsService, 'handleUpdateDataStream');
-      prepare.callsFake((_oid, _previous, _metadata, deferred) => {
-        assert.ok(Array.isArray(deferred));
-        deferred.push(new Datastream({ fileId: 'removed' }));
+      prepare.callsFake((_oid, _previous, _metadata, save) => {
+        const prepared = save as import('../../src/DatastreamService').DatastreamSave;
+        prepared.removals.push(new Datastream({ fileId: 'removed' }));
+        prepared.additions.push({ fileId: 'upload', commit: commitUpload, discard: discardUpload });
         return of(null);
       });
       sinon.stub(RecordsService, 'auditRecord').resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
     });
 
-    it('keeps existing attachments on a failed conditional write', async () => {
+    it('discards an unreferenced promotion and keeps existing attachments on a failed write', async () => {
+      mockStorageService.getMeta.resolves(record());
       mockStorageService.updateMeta.rejects(new RecordWriteConflict());
 
-      await assert.rejects(RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files: [] },
+      await assert.rejects(RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files: [{ fileId: 'upload' }] },
         { expectedVersion: 7, sourceSave: true }), RecordWriteConflict);
 
       expect(mockStorageService.updateMeta.firstCall.args[4].expectedVersion).to.equal(7);
+      sinon.assert.callOrder(mockStorageService.updateMeta, mockStorageService.getMeta, discardUpload);
+      sinon.assert.notCalled(mockDatastreamService.removeDatastream);
+      sinon.assert.notCalled(commitUpload);
+    });
+
+    it('keeps an upload referenced by the winning save', async () => {
+      const files = [{ fileId: 'upload' }];
+      mockStorageService.getMeta.resolves({ ...record(), recordVersion: 8, metadata: { files } });
+      mockStorageService.updateMeta.rejects(new RecordWriteConflict());
+
+      await assert.rejects(RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files },
+        { expectedVersion: 7, sourceSave: true }), RecordWriteConflict);
+
+      sinon.assert.calledOnce(commitUpload);
+      sinon.assert.notCalled(discardUpload);
       sinon.assert.notCalled(mockDatastreamService.removeDatastream);
     });
 
     it('removes detached files only after the conditional write succeeds', async () => {
-      mockStorageService.getMeta.resolves({ ...record(), recordVersion: 8, metadata: { files: [] } });
+      const files = [{ fileId: 'upload' }];
+      mockStorageService.getMeta.resolves({ ...record(), recordVersion: 8, metadata: { files } });
 
-      const response = await RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files: [] },
+      const response = await RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files },
         { expectedVersion: 7, sourceSave: true });
 
       expect(response.isSuccessful()).to.be.true;
-      sinon.assert.callOrder(RecordsService.handleUpdateDataStream, mockStorageService.updateMeta, mockDatastreamService.removeDatastream);
+      sinon.assert.callOrder(RecordsService.handleUpdateDataStream, mockStorageService.updateMeta, commitUpload, mockDatastreamService.removeDatastream);
       sinon.assert.calledOnceWithMatch(mockDatastreamService.removeDatastream, 'record-123', { fileId: 'removed' });
     });
   });

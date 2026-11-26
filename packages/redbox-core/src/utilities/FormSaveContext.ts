@@ -41,8 +41,18 @@ export function formRowRevision(req: Sails.Req, record: RecordModel, path: (stri
   return sign(req, ['rows', record.redboxOid, record.metaMetadata.brandId, path, content]);
 }
 
-export function formRowRevisions(req: Sails.Req, record: RecordModel, metadata: Record<string, unknown>): string[] {
-  const revisions: string[] = [];
+export function formAttachmentRevision(req: Sails.Req, record: RecordModel, field: string, value: unknown): string {
+  // Upload promotion can rewrite URLs. Use the stored file identities to detect membership changes.
+  const identities = Array.isArray(value) ? value.flatMap((item: unknown) => {
+    if (!item || typeof item !== 'object') return [];
+    const { fileId, type } = item as Record<string, unknown>;
+    return typeof fileId === 'string' ? [JSON.stringify([fileId, type])] : [];
+  }).sort() : [];
+  return sign(req, ['attachments', record.redboxOid, record.metaMetadata.brandId, field, identities]);
+}
+
+export function formRowRevisions(req: Sails.Req, record: RecordModel, metadata: Record<string, unknown>, attachmentFields: string[] = []): string[] {
+  const revisions = attachmentFields.map(field => formAttachmentRevision(req, record, field, metadata?.[field]));
   function collect(value: unknown, path: (string | number)[]) {
     if (Array.isArray(value)) {
       revisions.push(formRowRevision(req, record, path, value));

@@ -240,6 +240,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
+  protected readonly creatingRecord = signal(false);
   readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
 
@@ -1210,6 +1211,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
+            this.creatingRecord.set(true);
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
@@ -1233,7 +1235,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
-              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              const editPath = this.buildEditRecordPath(createdOid);
+              this.locationService.replaceState(editPath);
+              this.refreshRequestParamsFromUrl(editPath);
               if (!options?.closeOnSave) {
                 this.formName.set('');
                 this.editMode.set(true);
@@ -1290,6 +1294,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form?.markAllAsDirty();
           // emit failure event
           this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
+        } finally {
+          this.creatingRecord.set(false);
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response

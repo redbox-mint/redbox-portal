@@ -12,6 +12,15 @@ export type DatastreamRequestContext = {
   username?: string;
 };
 
+export interface DatastreamSave {
+  removals: Datastream[];
+  additions: {
+    fileId: string;
+    commit?: () => Promise<void>;
+    discard?: () => Promise<void>;
+  }[];
+}
+
 export interface DatastreamService {
   addDatastreams(oid: string, datastreams: Datastream[]): Promise<DatastreamServiceResponse>;
   updateDatastream(
@@ -20,7 +29,7 @@ export interface DatastreamService {
     newMetadata: unknown,
     stagingDisk: StorageManagerServices.IDisk,
     fileIdsAdded: Datastream[],
-    deferredRemovals?: Datastream[]
+    save?: DatastreamSave
   ): Observable<Promise<unknown>[]>;
   removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
   addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>;

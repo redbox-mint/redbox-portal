@@ -65,6 +65,7 @@ describe('RecordController update', () => {
   const formConfig: FormConfigFrame = {
     name: 'publication-draft',
     type: 'dataPublication',
+    attachmentFields: ['files'],
     componentDefinitions: [
       input('title'),
       input('description'),
@@ -221,7 +222,11 @@ describe('RecordController update', () => {
       emptied: [],
       files,
       option: { label: 'New', value: 'new' },
-    }, { formSave: 'true', targetStep: 'review', formName: 'other-form', apiVersion: '2.0' });
+    }, { formSave: 'true', formSaveState: 'true', targetStep: 'review', formName: 'other-form', apiVersion: '2.0' });
+    req.body = {
+      metadata: req.body,
+      formSaveState: { rowRevisions: formRowRevisions(req, currentRecord as unknown as RecordModel, currentRecord.metadata, ['files']) },
+    };
 
     await controller.update(req, res);
 
@@ -386,12 +391,69 @@ describe('RecordController update', () => {
       return { isSuccessful: () => true };
     });
     const responses = [makeResponse(), makeResponse()];
-    await Promise.all(responses.map(({ res }, index) => controller.update(makeRequest({
-      files: [{ fileId: `file-${index}`, name: 'new.txt' }],
-    }, { formSave: 'true' }), res)));
+    await Promise.all(responses.map(({ res }, index) => {
+      const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
+      req.body = {
+        metadata: { files: [{ fileId: `file-${index}`, name: 'new.txt' }] },
+        formSaveState: { rowRevisions: formRowRevisions(req, currentRecord as unknown as RecordModel, currentRecord.metadata, ['files']) },
+      };
+      return controller.update(req, res);
+    }));
 
     expect(responses.map(({ status }) => status.firstCall.args[0]).sort()).to.deep.equal([200, 409]);
     expect(updateMeta.getCalls().map(call => call.args[8].expectedVersion)).to.deep.equal([7, 7]);
+  });
+
+  it('rejects a stale title save that would remove another editor’s attachment', async () => {
+    const load = makeRequest({}, { name: 'auto', edit: 'true', formSave: 'true', apiVersion: '2.0' });
+    const loaded = makeResponse();
+    await controller.getForm(load, loaded.res);
+    const rowRevisions = loaded.json.firstCall.args[0].meta.rowRevisions;
+    const files = [...currentRecord.metadata.files, { fileId: 'concurrent', name: 'other.txt' }];
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord,
+      recordVersion: 8,
+      metadata: { ...currentRecord.metadata, files },
+    });
+    const save = makeRequest({
+      metadata: { title: 'Edited from a stale form', files: currentRecord.metadata.files },
+      formSaveState: { rowRevisions, rowOrigins: {} },
+    }, { formSave: 'true', formSaveState: 'true' });
+    save.session = load.session;
+    const stale = makeResponse();
+    await controller.update(save, stale.res);
+
+    sinon.assert.calledOnceWithExactly(stale.status, 409);
+    sinon.assert.notCalled(updateMeta);
+
+    delete save.body.metadata.files;
+    const titleOnly = makeResponse();
+    await controller.update(save, titleOnly.res);
+    sinon.assert.calledOnceWithExactly(titleOnly.status, 200);
+    expect(updateMeta.firstCall.args[7].files).to.deep.equal(files);
+  });
+
+  it('accepts an intentional removal after the save rewrites a pending upload URL', async () => {
+    const file = { fileId: 'upload', type: 'attachment', location: '/record/pending-oid/attach/upload' };
+    const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
+    req.body = {
+      metadata: { files: [file] },
+      formSaveState: { rowRevisions: formRowRevisions(req, currentRecord as unknown as RecordModel, currentRecord.metadata, ['files']) },
+    };
+    const first = makeResponse();
+    await controller.update(req, first.res);
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord,
+      recordVersion: 8,
+      metadata: { ...currentRecord.metadata, files: [{ ...file, location: '/record/oid-1/attach/upload' }] },
+    });
+    req.body.metadata.files = [];
+    req.body.formSaveState.rowRevisions = first.json.firstCall.args[0].rowRevisions;
+    const second = makeResponse();
+    await controller.update(req, second.res);
+
+    sinon.assert.calledOnceWithExactly(second.status, 200);
+    expect(updateMeta.secondCall.args[7].files).to.deep.equal([]);
   });
 });
 

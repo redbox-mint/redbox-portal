@@ -1019,6 +1019,7 @@ describe('FormComponent', () => {
   });
 
   it('hydrates the created record before a second save and reuses its stored row origins', async () => {
+    setWindowSearch('?dataRecordOid=linked-data-record');
     const beforeCreate: FormConfigFrame = { name: 'create', componentDefinitions: [contributorList([{ name: 'Original' }])] };
     const { formComponent } = await createFormAndWaitForReady(beforeCreate, {
       oid: '', editMode: true, formName: 'create', recordType: 'rdmp', downloadAndCreateOnInit: false,
@@ -1028,8 +1029,17 @@ describe('FormComponent', () => {
       name: 'draft', componentDefinitions: [contributorList([{ name: 'Normalized by hook' }])],
     }, ['stored-creator-revision']);
     const update = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true, oid: 'created', message: '', data: null });
+    const linkedRecordOnReady: unknown[] = [];
+    const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_DEFINITION_READY)
+      .subscribe(() => linkedRecordOnReady.push(formComponent.getRequestParam('dataRecordOid')));
 
-    await formComponent.saveForm({ force: true });
+    try {
+      expect(formComponent.getRequestParam('dataRecordOid')).toBe('linked-data-record');
+      await formComponent.saveForm({ force: true });
+      expect(linkedRecordOnReady).toEqual([undefined]);
+    } finally {
+      subscription.unsubscribe();
+    }
 
     expect(download).toHaveBeenCalledWith('created', 'rdmp', true, '', jasmine.any(Array));
     const creator = formComponent.form!.get(['creators', 0, 'name'])!;
@@ -1041,6 +1051,35 @@ describe('FormComponent', () => {
       formSave: true,
       formSaveState: { formName: '', rowRevisions: ['stored-creator-revision'], rowOrigins: { '["creators"]': [0] } },
     });
+  });
+
+  it('locks editing during a pending create and unlocks the same form on failure', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'create',
+      componentDefinitions: [{
+        name: 'title',
+        model: { class: 'SimpleInputModel', config: { value: 'Submitted title' } },
+        component: { class: 'SimpleInputComponent' },
+      }],
+    }, { oid: '', editMode: true, formName: '', recordType: 'rdmp', downloadAndCreateOnInit: false });
+    const submittedForm = formComponent.form;
+    const editor = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.rb-form-components')!;
+    let rejectCreate!: (error: Error) => void;
+    const pending = new Promise<never>((_resolve, reject) => { rejectCreate = reject; });
+    const create = spyOn(formComponent.recordService, 'create').and.returnValue(pending);
+
+    const saving = formComponent.saveForm({ force: true });
+    fixture.detectChanges();
+    expect(create).toHaveBeenCalledOnceWith({ title: 'Submitted title' }, 'rdmp', '');
+    expect(editor.inert).toBeTrue();
+
+    rejectCreate(new Error('Create failed'));
+    await saving;
+    fixture.detectChanges();
+    expect(editor.inert).toBeFalse();
+    expect(formComponent.form).toBe(submittedForm);
+    expect(submittedForm?.get('title')?.value).toBe('Submitted title');
+    expect(submittedForm?.dirty).toBeTrue();
   });
 
   it('renders the debug panel component when URL debug mode is enabled', async () => {

@@ -5,6 +5,7 @@ import { firstValueFrom, of } from 'rxjs';
 import { Readable } from 'node:stream';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { Datastream } from '../../src/Datastream';
+import type { DatastreamSave } from '../../src/DatastreamService';
 
 async function waitFor(predicate: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -874,19 +875,49 @@ describe('StandardDatastreamService', function () {
           metaMetadata: { form: 'draft', brandId: 'brand-1' },
           metadata: { files: [{ fileId: 'old', type: 'attachment' }] },
         };
-        const removals: Datastream[] = [];
+        const save: DatastreamSave = { additions: [], removals: [] };
         const additions: Datastream[] = [];
+        mockPrimaryDisk.exists.resolves(false);
+        mockPrimaryDisk.getMetaData.onFirstCall().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
         const requests = await firstValueFrom<Promise<unknown>[]>(service.updateDatastream('oid-123', record,
-          { files: [{ fileId: 'new', type: 'attachment' }] }, mockStagingDisk, additions, removals));
+          { files: [{ fileId: 'new', type: 'attachment' }] }, mockStagingDisk, additions, save));
         await Promise.all(requests);
 
         expect(additions.map(row => row.fileId)).to.deep.equal(['new']);
-        expect(removals.map(row => row.fileId)).to.deep.equal(['old']);
+        expect(save.removals.map(row => row.fileId)).to.deep.equal(['old']);
+        expect(save.additions.map(row => row.fileId)).to.deep.equal(['new']);
         sinon.assert.calledOnce(mockPrimaryDisk.putStream);
         sinon.assert.notCalled(mockPrimaryDisk.delete);
+        sinon.assert.notCalled(mockStagingDisk.delete);
+        await save.additions[0].commit?.();
+        sinon.assert.calledOnceWithExactly(mockStagingDisk.delete, 'new');
       } finally {
         Reflect.set(globalThis, 'FormsService', oldForms);
       }
+    });
+
+    it('can discard an uncommitted primary copy and retry from the retained staging bytes', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const file = new Datastream({ fileId: 'retry-upload' });
+      const prepare = async () => {
+        const save: DatastreamSave = { additions: [], removals: [] };
+        await service.addDatastream('oid-123', file, mockStagingDisk, save);
+        return save.additions[0];
+      };
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.onFirstCall().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
+      mockPrimaryDisk.getMetaData.onSecondCall().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
+
+      const rejected = await prepare();
+      await rejected.discard?.();
+      sinon.assert.calledOnceWithExactly(mockPrimaryDisk.delete, 'attachments/oid-123/retry-upload');
+      sinon.assert.notCalled(mockStagingDisk.delete);
+      const retry = await prepare();
+      await retry.commit?.();
+
+      sinon.assert.calledTwice(mockPrimaryDisk.putStream);
+      sinon.assert.calledOnceWithExactly(mockStagingDisk.delete, 'retry-upload');
     });
 
     it('should call FormsService.getFormByName and process attachment diffs', function (done) {

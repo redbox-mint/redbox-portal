@@ -1,5 +1,5 @@
 import { Services as services } from '../CoreService';
-import { DatastreamRequestContext, DatastreamService } from '../DatastreamService';
+import { DatastreamRequestContext, DatastreamSave, DatastreamService } from '../DatastreamService';
 import { DatastreamServiceResponse } from '../DatastreamServiceResponse';
 import { Datastream } from '../Datastream';
 import { Observable, of } from 'rxjs';
@@ -420,7 +420,8 @@ export namespace Services {
       stagingDisk: IDisk,
       primaryDisk: IDisk,
       fileId: string,
-      destKey: string
+      destKey: string,
+      retainStaging = false
     ): Promise<boolean> {
       const partKeys = await this.listTusPartKeys(stagingDisk, fileId);
       if (!partKeys.length) {
@@ -431,17 +432,8 @@ export namespace Services {
       const readable = Readable.from(this.streamDiskObjects(stagingDisk, partKeys));
       try {
         await primaryDisk.putStream(destKey, readable, { contentLength });
-        for (const prefix of this.tusBasePrefixes(fileId)) {
-          await stagingDisk.deleteAll(this.tusPartsPrefix(prefix)).catch((err) => {
-            if (!this.isStorageNotFoundError(err)) {
-              throw err;
-            }
-          });
-          await stagingDisk.delete(this.tusInfoKey(prefix)).catch((err) => {
-            if (!this.isStorageNotFoundError(err)) {
-              throw err;
-            }
-          });
+        if (!retainStaging) {
+          await this.deleteStagedTusParts(stagingDisk, fileId);
         }
       } catch (err) {
         readable.destroy();
@@ -450,6 +442,16 @@ export namespace Services {
 
       this.logger.verbose(`${this.logHeader} promoteTusPartsFromStaging() -> Promoted incomplete TUS upload parts: ${destKey}`);
       return true;
+    }
+
+    private async deleteStagedTusParts(stagingDisk: IDisk, fileId: string): Promise<void> {
+      const ignoreMissing = (err: unknown) => {
+        if (!this.isStorageNotFoundError(err)) throw err;
+      };
+      for (const prefix of this.tusBasePrefixes(fileId)) {
+        await stagingDisk.deleteAll(this.tusPartsPrefix(prefix)).catch(ignoreMissing);
+        await stagingDisk.delete(this.tusInfoKey(prefix)).catch(ignoreMissing);
+      }
     }
 
     private async listTusPartKeys(stagingDisk: IDisk, fileId: string): Promise<string[]> {
@@ -596,7 +598,7 @@ export namespace Services {
       newMetadata: unknown,
       stagingDisk: IDisk,
       fileIdsAdded: Datastream[],
-      deferredRemovals?: Datastream[]
+      save?: DatastreamSave
     ): Observable<Promise<unknown>[]> {
       const typedRecord = this.coerceRecord(record);
       const typedNewMetadata = this.coerceMetadata(newMetadata);
@@ -643,9 +645,15 @@ export namespace Services {
 
                 fileIdsAdded.push(...perFieldFileIdsAdded);
 
-                deferredRemovals?.push(...removeIds);
-                reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, deferredRemovals ? [] : removeIds, stagingDisk));
+                if (save) {
+                  save.removals.push(...removeIds);
+                } else {
+                  reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
+                }
               }
+            }
+            if (save && fileIdsAdded.length) {
+              reqs.push(this.addAndRemoveDatastreams(oid, _.uniqBy(fileIdsAdded, 'fileId'), [], stagingDisk, save));
             }
             return of(reqs);
           })
@@ -699,13 +707,30 @@ export namespace Services {
     /**
      * Add a single datastream: read from staging disk, write to primary disk.
      */
-    public async addDatastream(oid: string, datastream: Datastream, stagingDisk?: IDisk): Promise<unknown> {
+    public async addDatastream(oid: string, datastream: Datastream, stagingDisk?: IDisk, save?: DatastreamSave): Promise<unknown> {
       const fileId = datastream.fileId;
       this.logger.verbose(`${this.logHeader} addDatastream() -> fileId: ${fileId}`);
 
       const effectiveStagingDisk = stagingDisk ?? StorageManagerService.stagingDisk();
       const primaryDisk = StorageManagerService.primaryDisk();
       const destKey = this.storageKey(oid, fileId);
+      const complete = async (deleteStagedUpload?: () => Promise<void>) => {
+        const commit = async () => {
+          await deleteStagedUpload?.();
+          await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+        };
+        if (save) {
+          save.additions.push({ fileId, commit, discard: deleteStagedUpload ? () => primaryDisk.delete(destKey) : undefined });
+        } else {
+          await commit();
+        }
+        return { success: true, key: destKey };
+      };
+
+      // A previously promoted blob may already belong to a committed save.
+      if (save && (await this.checkPrimaryObject(primaryDisk, destKey)).available) {
+        return complete();
+      }
 
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
@@ -716,10 +741,9 @@ export namespace Services {
           // made the file durable. Recording upload access again is intentional:
           // downstream audit can see both the physical promotion and the later
           // metadata-update acceptance that completed the retried workflow.
-          await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
-          return { success: true, key: destKey };
+          return complete();
         }
-        const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey);
+        const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey, !!save);
         if (!promotedTusParts) {
           // Re-check primary: a concurrent request may have promoted the file
           // after the initial check but before/while the TUS attempt ran.
@@ -728,8 +752,7 @@ export namespace Services {
             this.logger.verbose(
               `${this.logHeader} addDatastream() -> Promoted concurrently: ${destKey} via ${primaryCheck.via}`
             );
-            await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
-            return { success: true, key: destKey };
+            return complete();
           }
           throw new Error(
             `Attachment not found in staging: ${fileId}. Checked staged object '${fileId}' and TUS part prefixes: ${this
@@ -739,9 +762,8 @@ export namespace Services {
             }`
           );
         }
-        await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
         this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
-        return { success: true, key: destKey };
+        return complete(save ? () => this.deleteStagedTusParts(effectiveStagingDisk, fileId) : undefined);
       }
 
       const metadata = await effectiveStagingDisk.getMetaData(fileId);
@@ -752,12 +774,8 @@ export namespace Services {
         readable.destroy();
         throw err;
       }
-      await effectiveStagingDisk.delete(fileId);
-
-      await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
-
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
-      return { success: true, key: destKey };
+      return complete(() => effectiveStagingDisk.delete(fileId));
     }
 
     private async putStagedObject(
@@ -848,10 +866,11 @@ export namespace Services {
       oid: string,
       addDatastreams: Datastream[],
       removeDatastreams: Datastream[],
-      stagingDisk?: IDisk
+      stagingDisk?: IDisk,
+      save?: DatastreamSave
     ): Promise<unknown> {
       for (const ds of addDatastreams) {
-        await this.addDatastream(oid, ds, stagingDisk);
+        await this.addDatastream(oid, ds, stagingDisk, save);
       }
       for (const ds of removeDatastreams) {
         await this.removeDatastream(oid, ds);

@@ -22,7 +22,7 @@ import { RecordWriteOptions, RecordWriteConflict, assertRecordFieldPaths } from 
 import { of, from, mergeMap as flatMap, firstValueFrom, throwError } from 'rxjs';
 import { concatMap, last, catchError } from 'rxjs/operators';
 
-import { DatastreamService } from '../DatastreamService';
+import { DatastreamSave, DatastreamService } from '../DatastreamService';
 import { Datastream } from '../Datastream';
 import { QueueService } from '../QueueService';
 import { RecordAuditModel, RecordAuditActionType } from '../model/storage/RecordAuditModel';
@@ -816,18 +816,16 @@ export namespace Services {
         JSON.stringify(recordObj.metadata?.dataLocations)
       );
       // Prepare uploads before writing their metadata, but leave existing files intact on a version conflict.
-      const deferredRemovals: Datastream[] | undefined = writeOptions.sourceSave ? [] : undefined;
+      const datastreamSave: DatastreamSave | undefined = writeOptions.sourceSave ? { additions: [], removals: [] } : undefined;
       if (writeOptions.expectedVersion != null && !writeOptions.sourceSave) {
         for (const field of (recordMeta.attachmentFields ?? []) as string[]) {
           if (!_.isEqual(_.get(origRecordObj.metadata, field), _.get(recordObj.metadata, field))) {
             throw new Error('Conditional background workflow cannot change attachments; apply the attachment change in a source save');
           }
         }
-      } else {
-        updateResponse = (await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}, deferredRemovals))) as StorageServiceResponse;
+      } else if (!datastreamSave) {
+        await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}));
       }
-      sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
-
       if (!_.isEmpty(recordMeta.attachmentFields)) {
         const recordMetadata = recordObj.metadata as AnyRecord;
         this.bindPendingAttachmentOids(recordMetadata, recordMeta.attachmentFields as unknown[], oid);
@@ -847,7 +845,18 @@ export namespace Services {
       const initialising = triggerPostSaveTriggers && (this.hasPostSaveSyncHooks(recordType, 'onUpdate') || (transitionApplied && this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')));
       const figshareIntent = prepareSourceIntent({ ...recordObj, redboxOid: oid }, recordType, ['onUpdate', ...(transitionApplied ? ['onTransitionWorkflow'] : [])], userObj, initialising, writeOptions.maintenance);
       if (figshareIntent && !this.storageService.readyFigshareIntent) throw new Error('Storage adapter does not support durable Figshare intents');
-      updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
+      let accepted = false;
+      try {
+        if (datastreamSave) {
+          await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}, datastreamSave));
+        }
+        updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
+        accepted = updateResponse.isSuccessful();
+      } finally {
+        if (datastreamSave) {
+          await this.finishDatastreamSave(oid, datastreamSave, accepted);
+        }
+      }
       // A failed save abandons its initialising intent, so stale recovery only promotes interrupted saves.
       let figshareFinalised = !figshareIntent || !initialising || !updateResponse.isSuccessful();
       try {
@@ -861,9 +870,6 @@ export namespace Services {
         };
         sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
         if (updateResponse.isSuccessful()) {
-          if (deferredRemovals?.length) {
-            await this.removeUnreferencedDatastreams(oid, origRecordObj, deferredRemovals);
-          }
           //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
           //therefore try to set recordType if triggerPostSaveTriggers is true
           if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
@@ -2154,30 +2160,41 @@ export namespace Services {
       return this.storageService.exists(oid);
     }
 
-    private async removeUnreferencedDatastreams(oid: string, previous: RecordWithMeta, removals: Datastream[]): Promise<void> {
-      try {
+    private async finishDatastreamSave(oid: string, save: DatastreamSave, accepted: boolean): Promise<void> {
+      const isReferenced = async (fileId: string) => {
         const stored = await this.getMeta(oid);
-        if (!stored) return;
-        const attachmentFields = new Set([
-          ...(this.asArray(previous.metaMetadata?.attachmentFields) ?? []),
-          ...(stored.metaMetadata?.attachmentFields ?? []),
-        ]);
-        for (const datastream of _.uniqBy(removals, 'fileId')) {
-          const isReferenced = [...attachmentFields].some(field =>
-            Array.isArray(stored.metadata[field]) &&
-            (stored.metadata[field] as AnyRecord[]).some(attachment => attachment?.fileId === datastream.fileId)
-          );
-          if (!isReferenced) await this.datastreamService.removeDatastream(oid, datastream);
+        return Object.values(stored?.metadata ?? {}).some(value =>
+          Array.isArray(value) && value.some((attachment: unknown) => _.get(attachment, 'fileId') === fileId)
+        );
+      };
+      for (const addition of save.additions) {
+        try {
+          if (accepted || await isReferenced(addition.fileId)) {
+            await addition.commit?.();
+          } else {
+            await addition.discard?.();
+          }
+        } catch (error) {
+          this.logger.error(`${this.logHeader} Unable to reconcile upload ${addition.fileId} for ${oid}`, error);
         }
-      } catch (error) {
-        this.logger.error(`${this.logHeader} Unable to remove detached files for ${oid}`, error);
+      }
+      if (accepted) {
+        for (const datastream of _.uniqBy(save.removals, 'fileId')) {
+          try {
+            if (!await isReferenced(datastream.fileId)) {
+              await this.datastreamService.removeDatastream(oid, datastream);
+            }
+          } catch (error) {
+            this.logger.error(`${this.logHeader} Unable to remove detached file ${datastream.fileId} for ${oid}`, error);
+          }
+        }
       }
     }
 
-    public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord, deferredRemovals?: Datastream[]) {
+    public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord, save?: DatastreamSave) {
       const fileIdsAdded: Datastream[] = [];
       const stagingDisk = StorageManagerService.stagingDisk();
-      return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded, deferredRemovals).pipe(
+      return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded, save).pipe(
         concatMap((reqs: Promise<unknown>[]) => {
           if (Array.isArray(reqs) && reqs.length > 0) {
             this.logger.verbose(`Updating data streams...`);
