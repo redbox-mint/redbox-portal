@@ -1806,10 +1806,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const renderedStage = _get(this.formConfigMeta, 'workflow.stage');
             const savedFormName = _get(response.data, 'metaMetadata.form');
             const savedStage = _get(response.data, 'workflow.stage');
+            const fingerprintsKnown = Boolean(savedFingerprint && renderedFingerprint);
+            // A route-authorised form renders under its own name while the
+            // record keeps its stored form, so names are only compared when
+            // there is no fingerprint pair to decide the form contract.
             const formChanged = response.concurrency?.formReloadRequired === true ||
               Boolean(
-                (savedFingerprint && renderedFingerprint && savedFingerprint !== renderedFingerprint) ||
-                (savedFormName && renderedFormName && savedFormName !== renderedFormName) ||
+                (fingerprintsKnown && savedFingerprint !== renderedFingerprint) ||
+                (!fingerprintsKnown && savedFormName && renderedFormName && savedFormName !== renderedFormName) ||
                 (savedStage && renderedStage && savedStage !== renderedStage)
               );
             const hasNewEdits = () => {

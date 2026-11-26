@@ -3157,6 +3157,61 @@ describe('FormComponent', () => {
     });
   }
 
+  for (const editDuringSave of [false, true]) {
+    it(`keeps a route-authorised form open after a same-stage save with editDuringSave=${editDuringSave}`, async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      formComponent.formDefMap!.formConfigMeta = {
+        formName: 'rdmp-finalise',
+        workflow: { stage: 'draft' },
+      };
+      const reload = spyOn<any>(formComponent, 'reloadWindow');
+      const title = formComponent.form!.get('title')!;
+      const response = RecordActionResult.fromResponse({
+        data: { metaMetadata: { form: 'rdmp-draft' }, workflow: { stage: 'draft' } },
+        meta: { oid: 'oid-123', outcome: 'saved', concurrency: { revision: 5, formFingerprint: 'sha256:form_1' } },
+      });
+      const update = spyOn(formComponent.recordService, 'update').and.callFake(async () => {
+        if (editDuringSave && update.calls.count() === 1) {
+          title.setValue('Added during save');
+          title.markAsDirty();
+        }
+        return response;
+      });
+
+      await formComponent.saveForm({ force: true });
+
+      expect(reload).not.toHaveBeenCalled();
+      expect(formComponent.saveNavigationPending()).toBeFalse();
+      expect(formComponent.formReloadRequired()).toBeFalse();
+      expect(formComponent.conflictState()).toBeNull();
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({
+        revision: 5, formFingerprint: 'sha256:form_1',
+      }));
+
+      await formComponent.saveForm({ force: true });
+      expect(update).toHaveBeenCalledTimes(2);
+    });
+  }
+
+  it('reloads a route-authorised form after its save changes stage', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.formDefMap!.formConfigMeta = {
+      formName: 'rdmp-finalise',
+      workflow: { stage: 'draft' },
+    };
+    const reload = spyOn<any>(formComponent, 'reloadWindow');
+    const response = RecordActionResult.fromResponse({
+      data: { metaMetadata: { form: 'rdmp-finalise' }, workflow: { stage: 'finalised' } },
+      meta: { oid: 'oid-123', outcome: 'saved', concurrency: { revision: 5, formFingerprint: 'sha256:finalised_form' } },
+    });
+    spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+
+    await formComponent.saveForm({ force: true, targetStep: 'finalised' });
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(formComponent.saveNavigationPending()).toBeTrue();
+  });
+
   it('leaves an incomplete transition warning visible and blocks mutations on the old form', async () => {
     const { fixture, formComponent } = await createConcurrencyTestForm(true);
     const reload = spyOn<any>(formComponent, 'reloadWindow');
