@@ -903,6 +903,18 @@ describe('MongoStorageService', function () {
     });
   }
 
+  it('fails initialization when the record datastore driver does not expose GridFSBucket', async function () {
+    Record.getDatastore.returns({ manager: mockDb, driver: {} });
+
+    await expectRejects(
+      () => service.performInit(),
+      'The record datastore driver does not expose a MongoDB GridFSBucket.'
+    );
+
+    expect(mockDb.collection.called).to.equal(false);
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
+  });
+
   it('fails initialization when an existing record-schema index has mismatched options', async function () {
     const standardCollection = {
       createIndex: sandbox.stub().resolves(),
