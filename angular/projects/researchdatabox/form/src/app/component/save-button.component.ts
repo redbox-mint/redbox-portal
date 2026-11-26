@@ -34,7 +34,8 @@ export class SaveButtonComponent extends ButtonBaseComponent {
 
   readonly disabled = computed(() => {
     const formComponent = this.getFormComponent;
-    if (!formComponent.editMode() || this.configuredDisabled() || formComponent.saveBlockedByConflict()) return true;
+    if (!formComponent.editMode() || this.configuredDisabled() || formComponent.saveBlockedByConflict() ||
+      formComponent.saveNavigationPending()) return true;
     const dataStatusEvent = this.validationSignal();
     // The event bus does not replay validation broadcasts to newly created buttons.
     // Track the initial snapshot even before the FormGroup exists, so loading

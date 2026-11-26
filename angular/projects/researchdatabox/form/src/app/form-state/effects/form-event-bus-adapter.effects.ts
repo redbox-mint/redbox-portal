@@ -13,7 +13,7 @@
 import { Injectable, inject, InjectionToken } from '@angular/core';
 import { Actions, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { Observable, EMPTY, from } from 'rxjs';
+import { Observable, EMPTY, from, identity } from 'rxjs';
 import { map, mergeMap, throttleTime, tap, filter, catchError, withLatestFrom } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import {
@@ -307,7 +307,8 @@ export class FormEventBusAdapterEffects {
       FormComponentEventType.FORM_SAVE_FAILURE,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
       (event: FormSaveFailureEvent) =>
-        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) })
+        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) }),
+      false
     )
   );
 
@@ -338,7 +339,8 @@ export class FormEventBusAdapterEffects {
       FormComponentEventType.FORM_DELETE_FAILURE,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
       (event: FormDeleteFailureEvent) =>
-        FormActions.deleteRecordFailure({ error: formatErrorsForMessage(event.error) })
+        FormActions.deleteRecordFailure({ error: formatErrorsForMessage(event.error) }),
+      false
     )
   );
 
@@ -379,7 +381,8 @@ export class FormEventBusAdapterEffects {
   private createPromotionStream<T extends keyof any>(
     eventType: string,
     criterion: PromotionCriterion,
-    actionMapper: (event: any) => any
+    actionMapper: (event: any) => any,
+    throttleDuplicates = true
   ): Observable<any> {
     return this.eventBus.select$(eventType as any).pipe(
       // R15.27: Disable promotions if configured
@@ -392,11 +395,11 @@ export class FormEventBusAdapterEffects {
         }
         return true;
       }),
-      // R15.22: Throttle to prevent duplicate dispatches
-      throttleTime(this.config.throttleWindowMs, undefined, {
+      // Request failures must settle every accepted action, including rapid retries.
+      throttleDuplicates ? throttleTime(this.config.throttleWindowMs, undefined, {
         leading: true,
         trailing: false
-      }),
+      }) : identity,
       // R15.23 & R15.26: Map to action and (optionally) log promotion in one step
       mergeMap((event) => {
         const mapped = actionMapper(event);
