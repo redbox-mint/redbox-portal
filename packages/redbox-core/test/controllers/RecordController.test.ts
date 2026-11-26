@@ -400,16 +400,111 @@ describe('RecordController update', () => {
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ name: 'Alpha', notes: [notes[1]] }]);
   });
 
-  it('rejects inner-row changes when two parents could own an omitted child', async () => {
-    const contributors = ['First', 'Second'].map(conditional => ({
-      name: 'Alpha', notes: [{ text: 'Removed' }, { text: 'Retained', conditional }],
-    }));
+  it('rejects a structural edit when an exact nested match and another parent could both own the row', async () => {
+    const contributors = [
+      { name: 'Alpha', internalCode: 'First', notes: [{ text: 'Keep', internalCode: 'First note' }] },
+      { name: 'Alpha', internalCode: 'Second', notes: [
+        { text: 'Drop' }, { text: 'Keep', internalCode: 'Second note' },
+      ] },
+    ];
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
     });
+    const loaded = await loadContributorRows();
+    expect(loaded).to.deep.equal([
+      { name: 'Alpha', notes: [{ text: 'Keep' }] },
+      { name: 'Alpha', notes: [{ text: 'Drop' }, { text: 'Keep' }] },
+    ]);
     const { res, status } = makeResponse();
     await controller.update(makeRequest({
-      contributors: [{ name: 'Alpha', notes: [{ text: 'Retained' }] }],
+      contributors: [{ ...loaded[1], notes: loaded[1].notes!.slice(1) }],
+    }, { formSave: 'true' }), res);
+
+    sinon.assert.calledOnceWithExactly(status, 400);
+    sinon.assert.notCalled(updateMeta);
+  });
+
+  it('replaces a legacy selection without discarding the identified contributor’s private fields', async () => {
+    const contributor = { name: 'Alpha', fundingBody: { label: 'Legacy', value: 'legacy-id' }, internalCode: 'Keep' };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] },
+    });
+    const [loaded] = await loadContributorRows();
+    expect(loaded).to.deep.equal({ name: 'Alpha', fundingBody: contributor.fundingBody });
+    const fundingBody = { dc_title: 'Selected', dc_identifier: 'new-id' };
+    await controller.update(makeRequest({
+      contributors: [{ ...loaded, fundingBody }],
+    }, { formSave: 'true' }), makeResponse().res);
+
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ ...contributor, fundingBody }]);
+  });
+
+  it('ignores empty and auto-initialized nested lists when there are no stored inner rows', async () => {
+    const contributor = { name: 'Alpha', internalCode: 'Keep' };
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] } });
+    const [loaded] = await loadContributorRows();
+    expect(loaded).to.deep.equal({ name: 'Alpha' });
+    for (const notes of [[], [{ text: null }]]) {
+      await controller.update(makeRequest({
+        title: 'Edited', contributors: [{ ...loaded, notes }],
+      }, { formSave: 'true' }), makeResponse().res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([contributor]);
+    }
+
+    const withNotes = { ...contributor, notes: [{ text: 'Remove this note' }] };
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [withNotes] } });
+    await controller.update(makeRequest({
+      contributors: [{ ...loaded, notes: [] }],
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ ...contributor, notes: [] }]);
+
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [{ ...contributor, notes: [] }] } });
+    await controller.update(makeRequest({
+      title: 'Edited again', contributors: [{ ...loaded, notes: [{ text: null }] }],
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ ...contributor, notes: [] }]);
+  });
+
+  it('saves a title edit with unchanged duplicate rows whose disabled and absent fields differ from storage', async () => {
+    const contributors = ['First', 'Second'].map(conditional => ({ name: 'Alpha', conditional }));
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    const loaded = await loadContributorRows();
+    const submitted = loaded.map(({ name }) => ({ name, optionalNote: null }));
+    await controller.update(makeRequest({
+      title: 'Edited', contributors: submitted,
+    }, { formSave: 'true' }), makeResponse().res);
+
+    const saved = updateMeta.firstCall.args[7];
+    expect(saved.title).to.equal('Edited');
+    expect(saved.contributors).to.deep.equal(contributors);
+  });
+
+  it('allows clearing the only visible value in a single retained row', async () => {
+    const contributor = { optionalNote: 'Before', internalCode: 'Keep' };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] },
+    });
+    const [loaded] = await loadContributorRows();
+    expect(loaded).to.deep.equal({ optionalNote: 'Before' });
+    for (const optionalNote of [null, '']) {
+      await controller.update(makeRequest({
+        contributors: [{ ...loaded, name: null, optionalNote }],
+      }, { formSave: 'true' }), makeResponse().res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ ...contributor, optionalNote }]);
+    }
+  });
+
+  it('rejects an unidentifiable clear mixed with an added row', async () => {
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord,
+      metadata: { ...currentRecord.metadata, contributors: [{ optionalNote: 'Before', internalCode: 'Keep' }] },
+    });
+    const { res, status } = makeResponse();
+    await controller.update(makeRequest({
+      contributors: [{ optionalNote: null }, { optionalNote: 'Added' }],
     }, { formSave: 'true' }), res);
 
     sinon.assert.calledOnceWithExactly(status, 400);

@@ -57,7 +57,8 @@ describe('FormComponent', () => {
     }
   };
 
-  const contributorList = (value: unknown[], disabled = false): NonNullable<FormConfigFrame['componentDefinitions']>[number] => ({
+  type Field = NonNullable<FormConfigFrame['componentDefinitions']>[number];
+  const contributorList = (value: unknown[], disabled = false, extraFields: Field[] = []): Field => ({
     name: 'creators',
     model: { class: 'RepeatableModel', config: { value } },
     expressions: [{
@@ -77,6 +78,7 @@ describe('FormComponent', () => {
             config: {
               componentDefinitions: [
                 { name: 'name', model: { class: 'SimpleInputModel', config: {} }, component: { class: 'SimpleInputComponent' } },
+                ...extraFields,
               ],
             },
           },
@@ -997,6 +999,63 @@ describe('FormComponent', () => {
       creators: [{ name: 'Edited creator' }],
       details: { conditional: 'Enabled and edited', sibling: 'Edited sibling', creators: [{ name: 'Nested creator' }] },
     }, '', { formSave: true });
+  });
+
+  it('serializes a title edit with hydrated repeatables and disabled children', async () => {
+    const textField = (name: string, value?: string): Field => ({
+      name,
+      model: { class: 'SimpleInputModel', config: { value } },
+      component: { class: 'SimpleInputComponent' },
+    });
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        textField('title', 'Before'),
+        contributorList([{ name: 'Alpha', conditional: 'First' }, { name: 'Alpha', conditional: 'Second' }], false, [
+          textField('optionalNote'),
+          {
+            name: 'conditional',
+            model: { class: 'SimpleInputModel', config: { disabled: true } },
+            component: { class: 'SimpleInputComponent' },
+            expressions: [{
+              name: 'enable',
+              config: { target: 'model.disabled', template: 'false', condition: '/dataRecord::field.value.changed', runOnFormReady: false },
+            }],
+          },
+          {
+            name: 'notes',
+            model: { class: 'RepeatableModel', config: {} },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: '',
+                  model: { class: 'GroupModel', config: {} },
+                  component: {
+                    class: 'GroupComponent',
+                    config: { componentDefinitions: [textField('text')] },
+                  },
+                },
+              },
+            },
+          },
+        ]),
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Edited');
+    title.markAsDirty();
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+    });
+
+    await formComponent.saveForm();
+
+    const creator = { name: 'Alpha', optionalNote: null, notes: [{ text: null }] };
+    expect(update).toHaveBeenCalledOnceWith('publication', { title: 'Edited', creators: [creator, creator] }, '', { formSave: true });
   });
 
   it('renders the debug panel component when URL debug mode is enabled', async () => {

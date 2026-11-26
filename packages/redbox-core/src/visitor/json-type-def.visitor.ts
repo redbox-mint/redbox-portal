@@ -1,6 +1,6 @@
 import { FormConfigVisitor, isStaticallyDisabledFormField } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
-import { set as _set } from 'lodash';
+import { get as _get, set as _set } from 'lodash';
 import {
   SimpleInputFieldComponentDefinitionOutline,
   SimpleInputFieldModelDefinitionOutline,
@@ -251,6 +251,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition),
         ['elements']
       );
+      const elementsPath = [...this.jsonTypeDefPath, 'elements'];
+      if (this.forFormSave && item.config?.allowZeroRows !== true && _get(this.jsonTypeDef, elementsPath)) {
+        _set(this.jsonTypeDef, [...this.jsonTypeDefPath, 'defaultBlankRow'], true);
+      }
     }
   }
 
