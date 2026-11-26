@@ -53,11 +53,3 @@ export interface RecordPageDto {
   total: number;
   pageNum: number;
 }
-
-export type FormSaveRowOrigin = number | { retain: number } | 'new' | null;
-
-export interface FormSaveState {
-  formName?: string;
-  rowRevisions?: string[];
-  rowOrigins?: Record<string, FormSaveRowOrigin[]>;
-}

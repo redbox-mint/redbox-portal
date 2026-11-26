@@ -21,7 +21,6 @@ import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
 import {FormService} from "../form.service";
-import { prepareUploadForCreate } from "./prepare-upload-for-create";
 
 const pendingOid = "pending-oid";
 
@@ -269,10 +268,6 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         }
     }
 
-    public prepareForCreate(): boolean {
-        return prepareUploadForCreate(this.uppy);
-    }
-
     public openModal(): void {
         if (!this.isUploadEnabled()) {
             return;
@@ -382,7 +377,6 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
         this.uppy.use(deps.DashboardPlugin, {
             inline: false,
-            animateOpenClose: currentOid !== pendingOid,
             hideProgressAfterFinish: true,
             proudlyDisplayPoweredByUppy: false,
             note: this.translateText(this.uppyDashboardNote),

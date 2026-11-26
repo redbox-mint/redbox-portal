@@ -27,7 +27,7 @@ import {
   isUndefined as _isUndefined,
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
-import { RepeatableComponentModel } from './repeatable.component';
+import { RepeatableComponent } from './repeatable.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 
 
@@ -155,29 +155,27 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const elemVals = this.model.initValue ?? {};
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
     for (const key of Object.keys(formGroupMap.completeGroupMap ?? {})) {
-      const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
-      if (!elemFieldEntry) continue;
       // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
-      const elemVal = elemVals?.[key];
-      const childModel = elemFieldEntry.model;
-      const buildsChildControls = childModel instanceof GroupFieldModel || childModel instanceof RepeatableComponentModel;
-      // Child containers need the stored value before they create their controls and row origins.
-      if (childModel instanceof GroupFieldModel && elemVal && typeof elemVal === 'object' && !Array.isArray(elemVal)) {
-        childModel.initValue = elemVal as GroupFieldModelValueType;
-      } else if (childModel instanceof RepeatableComponentModel && Array.isArray(elemVal)) {
-        childModel.initValue = elemVal;
-      }
+      const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
 
       // Populate the component model if it has one.
-      const model = compInstance?.model;
-      if (this.model.formControl && model && !isStaticallyDisabledFormField(elemFieldEntry.compConfigJson)) {
-        if (!buildsChildControls && !_isUndefined(elemVal)) {
-          model.setValue(elemVal as never);
+      const hasModel = this.model?.formControl && compInstance?.model;
+      const includeInFormControlMap = elemFieldEntry && !isStaticallyDisabledFormField(elemFieldEntry.compConfigJson);
+      if (hasModel && includeInFormControlMap) {
+        const elemVal = elemVals?.[key];
+        if (compInstance?.model && !_isUndefined(elemVal)) {
+          if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
+            for (const repeatableValue of elemVal) {
+              await compInstance.appendNewElement(repeatableValue, false);
+            }
+          } else {
+            compInstance.model.setValue(elemVal as never);
+          }
         }
-        this.model.addItem(key, model);
+        this.model.addItem(key, compInstance.model);
         await syncComponentDisplayFromModel(compInstance);
       } else {
         this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
@@ -185,7 +183,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // Set the reference to the wrapper component.
       // TODO: is this needed? See how other components with nested components do this?
-      elemFieldEntry.componentRef = wrapperRef;
+      if (elemFieldEntry) {
+        elemFieldEntry.componentRef = wrapperRef;
+      }
     }
   }
 }

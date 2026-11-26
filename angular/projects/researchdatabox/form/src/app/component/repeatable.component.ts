@@ -202,17 +202,20 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     // By default a repeatable creates one row. Legacy configs can opt into zero-row behavior.
-    const initialRowCount = elemVals.length;
-    if (initialRowCount === 0 && !this.allowZeroRows) {
+    if (elemVals.length === 0 && !this.allowZeroRows) {
       // If we get here, there is no default from the repeatable or an ancestor.
       // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
       // If there is no model value, use undefined.
       // Undefined is not set to control.value, anything else is set, which is what we want.
-      await this.appendNewElement(undefined, false);
+      const elementTemplateValue = this.getElementTemplateDefaultValue();
+      elemVals.push(elementTemplateValue);
+      this.loggerService.warn(
+        `${this.logName}: Created one element for repeatable '${formComponentName}' with no value: ${JSON.stringify(elemVals)}`
+      );
     }
 
-    for (const [index, elementValue] of elemVals.entries()) {
-      await this.appendNewElement(elementValue, false, undefined, index < initialRowCount ? index : undefined);
+    for (const elementValue of elemVals) {
+      await this.appendNewElement(elementValue, false);
     }
 
     this.setupSyncSourceSubscriptions();
@@ -506,7 +509,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
   }
 
-  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions, initialIndex?: number) {
+  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -515,12 +518,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
     await this.createElement(elemEntry, options);
-    const row = elemEntry.defEntry?.model?.formControl;
-    if (row && this.model?.formControl && initialIndex !== undefined) {
-      this.getFormComponent.registerInitialRepeatableRow(this.model.formControl, row, initialIndex);
-    } else if (row && markFormDirty) {
-      this.getFormComponent.markNewRepeatableRow(row);
-    }
     if (markFormDirty && this.shouldEmitComponentEvents(options)) {
       this.requestFormDirty('repeatable.element.appended');
     }
@@ -528,9 +525,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
-    if (_isEqual(this.model?.formControl?.getRawValue(), nextValues)) {
-      return;
-    }
 
     while (this.compDefMapEntries.length > 0) {
       const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
@@ -770,14 +764,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
-    // Also update the child repeatable's elements - both layout and component.
-    // The component will set the model's disabled state if it needs to.
+    // Apply the parent's live state without changing the row's own editable configuration.
     const template = this.elemInitFieldEntry?.compConfigJson;
     for (const entry of this.compDefMapEntries) {
-      entry.defEntry.layout?.setDisabled(disabled || template?.layout?.config?.disabled === true, opts);
-      entry.defEntry.component?.setDisabled(disabled || template?.component?.config?.disabled === true, opts);
+      entry.defEntry?.layout?.setDisabled(disabled || template?.layout?.config?.disabled === true, opts);
+      entry.defEntry?.component?.setDisabled(disabled || template?.component?.config?.disabled === true, opts);
       if (!disabled && template?.model?.config?.disabled === true) {
-        entry.defEntry.model?.setDisabled(true, opts);
+        entry.defEntry?.model?.setDisabled(true, opts);
       }
     }
     this.updateCanSortFlags();

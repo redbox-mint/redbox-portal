@@ -22,7 +22,7 @@ import { RecordWriteOptions, RecordWriteConflict, assertRecordFieldPaths } from 
 import { of, from, mergeMap as flatMap, firstValueFrom, throwError } from 'rxjs';
 import { concatMap, last, catchError } from 'rxjs/operators';
 
-import { DatastreamSave, DatastreamService } from '../DatastreamService';
+import { DatastreamService } from '../DatastreamService';
 import { Datastream } from '../Datastream';
 import { QueueService } from '../QueueService';
 import { RecordAuditModel, RecordAuditActionType } from '../model/storage/RecordAuditModel';
@@ -410,7 +410,7 @@ export namespace Services {
       _.each(attachmentFields, (attFieldName: unknown) => {
         const attFieldKey = String(attFieldName ?? '');
         _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
-          if (typeof _.get(attFieldEntry, 'fileId') !== 'string') {
+          if (_.isEmpty(attFieldEntry)) {
             return;
           }
           _.each(fieldsToCheck, (fldName: unknown) => {
@@ -815,17 +815,17 @@ export namespace Services {
         `RecordService - updateMeta - record.metadata.dataLocations ` +
         JSON.stringify(recordObj.metadata?.dataLocations)
       );
-      // Prepare uploads before writing their metadata, but leave existing files intact on a version conflict.
-      const datastreamSave: DatastreamSave | undefined = writeOptions.sourceSave ? { additions: [], removals: [] } : undefined;
-      if (writeOptions.expectedVersion != null && !writeOptions.sourceSave) {
+      if (writeOptions.expectedVersion != null) {
         for (const field of (recordMeta.attachmentFields ?? []) as string[]) {
           if (!_.isEqual(_.get(origRecordObj.metadata, field), _.get(recordObj.metadata, field))) {
             throw new Error('Conditional background workflow cannot change attachments; apply the attachment change in a source save');
           }
         }
-      } else if (!datastreamSave) {
-        await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}));
+      } else {
+        updateResponse = (await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}))) as StorageServiceResponse;
       }
+      sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
+
       if (!_.isEmpty(recordMeta.attachmentFields)) {
         const recordMetadata = recordObj.metadata as AnyRecord;
         this.bindPendingAttachmentOids(recordMetadata, recordMeta.attachmentFields as unknown[], oid);
@@ -845,22 +845,7 @@ export namespace Services {
       const initialising = triggerPostSaveTriggers && (this.hasPostSaveSyncHooks(recordType, 'onUpdate') || (transitionApplied && this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')));
       const figshareIntent = prepareSourceIntent({ ...recordObj, redboxOid: oid }, recordType, ['onUpdate', ...(transitionApplied ? ['onTransitionWorkflow'] : [])], userObj, initialising, writeOptions.maintenance);
       if (figshareIntent && !this.storageService.readyFigshareIntent) throw new Error('Storage adapter does not support durable Figshare intents');
-      let attachmentWrite: 'rejected' | 'unknown' | 'accepted' = 'rejected';
-      try {
-        if (datastreamSave) {
-          await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}, datastreamSave));
-        }
-        attachmentWrite = 'unknown';
-        updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
-        if (updateResponse.isSuccessful()) attachmentWrite = 'accepted';
-      } catch (error) {
-        if (error instanceof RecordWriteConflict) attachmentWrite = 'rejected';
-        throw error;
-      } finally {
-        if (datastreamSave) {
-          await this.finishDatastreamSave(oid, datastreamSave, attachmentWrite);
-        }
-      }
+      updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
       // A failed save abandons its initialising intent, so stale recovery only promotes interrupted saves.
       let figshareFinalised = !figshareIntent || !initialising || !updateResponse.isSuccessful();
       try {
@@ -2164,41 +2149,10 @@ export namespace Services {
       return this.storageService.exists(oid);
     }
 
-    private async finishDatastreamSave(oid: string, save: DatastreamSave, outcome: 'rejected' | 'unknown' | 'accepted'): Promise<void> {
-      const isReferenced = async (fileId: string) => {
-        const stored = await this.getMeta(oid);
-        return Object.values(stored?.metadata ?? {}).some(value =>
-          Array.isArray(value) && value.some((attachment: unknown) => _.get(attachment, 'fileId') === fileId)
-        );
-      };
-      for (const addition of save.additions) {
-        try {
-          if (outcome === 'accepted' || (outcome === 'unknown' && await isReferenced(addition.fileId))) {
-            await addition.commit?.();
-          } else {
-            await addition.discard?.();
-          }
-        } catch (error) {
-          this.logger.error(`${this.logHeader} Unable to reconcile upload ${addition.fileId} for ${oid}`, error);
-        }
-      }
-      if (outcome === 'accepted') {
-        for (const datastream of _.uniqBy(save.removals, 'fileId')) {
-          try {
-            if (!await isReferenced(datastream.fileId)) {
-              await this.datastreamService.removeDatastream(oid, datastream);
-            }
-          } catch (error) {
-            this.logger.error(`${this.logHeader} Unable to remove detached file ${datastream.fileId} for ${oid}`, error);
-          }
-        }
-      }
-    }
-
-    public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord, save?: DatastreamSave) {
+    public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord) {
       const fileIdsAdded: Datastream[] = [];
       const stagingDisk = StorageManagerService.stagingDisk();
-      return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded, save).pipe(
+      return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded).pipe(
         concatMap((reqs: Promise<unknown>[]) => {
           if (Array.isArray(reqs) && reqs.length > 0) {
             this.logger.verbose(`Updating data streams...`);

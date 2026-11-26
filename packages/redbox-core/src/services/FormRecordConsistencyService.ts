@@ -33,7 +33,7 @@ import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
-import { mergeFormSaveMetadata, type FormSaveRows } from '../utilities/FormSaveMetadata';
+import { mergeFormSaveMetadata } from '../utilities/FormSaveMetadata';
 
 
 
@@ -156,17 +156,17 @@ export namespace Services {
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
             reusableFormDefs?: ReusableFormDefinitions,
-            formSaveRows?: FormSaveRows
+            options?: { partialFormSave?: boolean }
         ): Promise<BasicRedboxRecord> {
             const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs, formSaveRows !== undefined);
+            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs, options?.partialFormSave);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             return {
                 ...original,
                 redboxOid: original?.redboxOid ?? "",
-                metadata: formSaveRows
-                    ? mergeFormSaveMetadata(originalMetadata, changedMetadata, permittedChanges, formSaveRows)
+                metadata: options?.partialFormSave
+                    ? mergeFormSaveMetadata(originalMetadata, changedMetadata, permittedChanges)
                     : this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, this.compareRecords(original, changed)),
             }
         }
@@ -208,12 +208,9 @@ export namespace Services {
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
-            const permittedChangesProps = ('properties' in permittedChangesObj || 'optionalProperties' in permittedChangesObj)
-                ? {
-                    ...(permittedChangesObj['properties'] as Record<string | number, unknown> | undefined),
-                    ...(permittedChangesObj['optionalProperties'] as Record<string | number, unknown> | undefined),
-                }
-                : permittedChangesObj;
+            const permittedChangesProps = (('properties' in permittedChangesObj)
+              ? (permittedChangesObj['properties'] as Record<string | number, unknown>)
+              : permittedChangesObj) as Record<string | number, unknown>;
 
 
             // create a new record instance
@@ -225,20 +222,19 @@ export namespace Services {
             // for each key, evaluate the value
             for (const key of allKeys) {
                 // pre-calculate aspects of the original item
-                const isKeyInOriginal = Object.hasOwn(originalRecord, key);
+                const isKeyInOriginal = key in originalRecord;
                 const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
                 const originalValueType = guessType(originalValue);
 
                 // pre-calculate aspects of the changed item
-                const isKeyInChanged = Object.hasOwn(changedRecord, key);
+                const isKeyInChanged = key in changedRecord;
                 const changedValue = isKeyInChanged ? changedRecord[key] : undefined;
                 const changedValueType = guessType(changedValue);
 
                 // pre-calculate aspects of the permitted changes
-                const isKeyInPermittedChange = Object.hasOwn(permittedChangesProps, key);
+                const isKeyInPermittedChange = key in permittedChangesProps;
                 const permittedChangesValue = permittedChangesProps?.[key] as Record<string, unknown> | undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValue
-                    && ('properties' in permittedChangesValue || 'optionalProperties' in permittedChangesValue);
+                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValue && 'properties' in permittedChangesValue;
                 const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValue && 'elements' in permittedChangesValue;
                 const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValue && 'type' in permittedChangesValue;
                 const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValue && Object.keys(permittedChangesValue).length === 0;
@@ -257,18 +253,21 @@ export namespace Services {
                 // evaluate the combinations of original and changed values
                 if (
                     isPermittedChangeArray
-                    && Array.isArray(changedValue)
+                    && isKeyInOriginal
+                    && isKeyInChanged
+                    && originalValueType === "array"
+                    && changedValueType === "array"
                 ) {
+                    // The change is permitted and an array, original and changed have the key and both are arrays.
                     // For an array, the merge logic is to replace the original array with the changed array.
                     // The whole array is replaced because there is no current way to distinguish what from the original should be kept.
                     // TODO: Consider how to replace each element in the array instead of the whole array.
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
                     const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
-                    const hasElementProperties = 'properties' in newPermittedChanges || 'optionalProperties' in newPermittedChanges;
-                    result[key] = changedValue.map((changedElement: unknown, index: number) => {
+                    result[key] = (changedValue as unknown[]).map((changedElement: unknown, index: number) => {
                         // Evaluate the element in the array.
                         const guessedType = guessType(changedElement);
-                        if (hasElementProperties && guessedType === "object") {
+                        if (guessedType === "object") {
                             // For an object, evaluate it as a component value.
                             // NOTE: The 'original' element does not include elementTemplate default values,
                             //       because that default is for new entries, not existing entries.
@@ -291,14 +290,17 @@ export namespace Services {
 
                 } else if (
                     isPermittedChangeObject
+                    && isKeyInOriginal
+                    && isKeyInChanged
+                    && originalValueType === "object"
                     && changedValueType === "object"
                 ) {
-                    // Evaluate the properties even when the whole object is new.
+                    // The change is permitted and an object, original and changed have the key and both are objects.
+                    // Evaluate the properties of the object.
                     const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
                     const newPath = [...currentPath, key];
                     const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
-                    const originalObject = originalValueType === "object" ? originalValue as object : {};
-                    result[key] = this.mergeRecordMetadataPermitted(originalObject, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
+                    result[key] = this.mergeRecordMetadataPermitted(originalValue as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
 
                 } else if (isKeyInPermittedChange && isKeyInChanged) {
                     // The change is permitted and the key is in the changed.
@@ -348,7 +350,7 @@ export namespace Services {
          * @param reusableFormDefs The reusable form definitions.
          */
         public async buildSchemaForFormConfig(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions, forFormSave?: boolean
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions, forFormSave = false
         ): Promise<Record<string, unknown>> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
             const constructed = await constructor.start({data: item, formMode, reusableFormDefs});

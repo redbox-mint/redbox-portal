@@ -48,9 +48,7 @@ import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import type { FormSaveState } from '@researchdatabox/sails-ng-common';
-import { authorizeNamedEditForm, formAttachmentRevision, FormSaveConflict, formRowRevision, formRowRevisions, verifyNamedEditForm } from '../utilities/FormSaveContext';
-import { RecordWriteConflict } from '../RecordWriteOptions';
+import { FormSaveInputError } from '../utilities/FormSaveMetadata';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -477,7 +475,9 @@ export namespace Controllers {
 
       const renderExistingEditView = () => {
         if (existingRecord && extFormName && extFormName !== existingRecord.metaMetadata.form) {
-          authorizeNamedEditForm(req, existingRecord, extFormName);
+          const key = this.namedEditFormKey(req, existingRecord, extFormName);
+          const forms = (req.session.namedEditForms ?? []).filter(form => form !== key);
+          req.session.namedEditForms = [...forms.slice(-19), key];
         }
         if (!recordType) {
           recordType = String(_.get(existingRecord, 'metaMetadata.type', '') ?? '').trim();
@@ -556,7 +556,7 @@ export namespace Controllers {
       const oid = req.param('oid')?.toString()?.trim() || null;
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
-      const prepareSave = editMode && req.query.formSave === 'true';
+      const namedFormSave = editMode && formParam && req.query.formSave === 'true';
 
       try {
         let form: FormAttributes | null = null;
@@ -603,9 +603,11 @@ export namespace Controllers {
           }
 
           // get the form config
-          form = prepareSave
-            ? await this.getAuthorizedEditForm(req, brand, currentRec, formParam)
-            : await FormsService.getForm(brand, formParam, editMode, '', currentRec);
+          if (namedFormSave && !this.canUseEditForm(req, currentRec, formParam)) {
+            return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
+          }
+          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
+          if (namedFormSave) this.assertNamedEditFormType(formParam, currentRec, form);
           if (_.isEmpty(form)) {
             const msg = `Error, getting form ${formParam} for OID: ${oid}`;
             return this.sendResp(req, res, {
@@ -650,9 +652,6 @@ export namespace Controllers {
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
-          const rowRevisions = prepareSave && recordData && form
-            ? formRowRevisions(req, recordData, recordData.metadata, await this.getFormSaveAttachmentFields(recordData, form))
-            : undefined;
           return this.sendResp(req, res, {
             data: mergedForm,
             meta: {
@@ -660,8 +659,7 @@ export namespace Controllers {
               recordType: recordType,
               oid: oid,
               workflow: recordData?.workflow,
-              contextVariables: contextVariablesMap,
-              ...(rowRevisions ? { rowRevisions } : {}),
+              contextVariables: contextVariablesMap
             },
             prehydrate,
           });
@@ -675,8 +673,8 @@ export namespace Controllers {
         }
 
       } catch (error) {
-        if (error instanceof FormSaveConflict) {
-          return this.sendResp(req, res, { status: 409, displayErrors: [{ detail: error.message }] });
+        if (error instanceof FormSaveInputError) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: error.message }] });
         }
         const msg = (error as { message?: string }).message;
         const displayError: ErrorResponseItemV2 = { title: "Error getting form definition", detail: msg };
@@ -867,7 +865,6 @@ export namespace Controllers {
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       const formSave = req.query?.formSave === 'true';
-      const hasFormState = formSave && req.query?.formSaveState === 'true';
       const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
@@ -889,31 +886,27 @@ export namespace Controllers {
       let response;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
-        let rowRevisions: string[] | undefined;
         if (formSave) {
-          const state = hasFormState ? req.body?.formSaveState as FormSaveState | undefined : undefined;
-          const submitted = hasFormState ? req.body?.metadata : metadata;
-          if (!_.isPlainObject(submitted) || (hasFormState && !_.isPlainObject(state))) {
-            return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid form save payload.' }] });
+          const formName = typeof req.query?.formName === 'string' ? req.query.formName : '';
+          if (!this.canUseEditForm(req, currentRec, formName)) {
+            return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
           }
-          const saved = await this.mergeFormSaveMetadata(req, brand, currentRec, submitted, state);
-          metadata = saved.metadata;
-          // Bind the browser's next set of row origins to the submitted order. If a hook
-          // changes that order, the next save will require a reload before applying origins.
-          rowRevisions = hasFormState ? formRowRevisions(req, currentRec, metadata, saved.attachmentFields) : undefined;
+          if (!_.isPlainObject(metadata)) {
+            throw new FormSaveInputError('Invalid form save payload.');
+          }
+          metadata = await this.mergeFormSaveMetadata(req, brand, currentRec, metadata, formName);
         } else if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
-        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata,
-          formSave ? { expectedVersion: currentRec.recordVersion ?? 0, sourceSave: true } : undefined);
+        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
           return this.sendResp(req, res, {
             // The saved record can contain metadata that was excluded from this user's form.
             data: formSave ? { redboxOid: oid } : await this.recordsService.getMeta(oid),
-            meta: rowRevisions ? { ...response, rowRevisions } : { ...response },
-            v1: rowRevisions ? { ...response, rowRevisions } : response,
+            meta: { ...response },
+            v1: response,
           });
         } else {
           return this.sendResp(req, res, {
@@ -924,11 +917,11 @@ export namespace Controllers {
           });
         }
       } catch (error) {
-        if (formSave && error instanceof RecordWriteConflict) {
-          return this.sendResp(req, res, { status: 409, displayErrors: [{ detail: 'The record changed during the save. Reload the form before saving.' }] });
-        }
-        if (error instanceof FormSaveConflict) {
-          return this.sendResp(req, res, { status: 409, displayErrors: [{ detail: error.message }] });
+        if (error instanceof FormSaveInputError) {
+          return this.sendResp(req, res, {
+            status: 400, displayErrors: [{ detail: error.message }],
+            v1: { success: false, message: error.message },
+          });
         }
         const errorMessage = this.getErrorMessage(error);
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
@@ -941,33 +934,28 @@ export namespace Controllers {
       }
     }
 
-    private async getAuthorizedEditForm(req: Sails.Req, brand: BrandingModel, record: RecordModel, formName: string): Promise<FormAttributes | null> {
-      verifyNamedEditForm(req, record, formName);
+    private namedEditFormKey(req: Sails.Req, record: RecordModel, formName: string): string {
+      return JSON.stringify([record.metaMetadata.brandId, record.redboxOid, req.user?.['username'], formName]);
+    }
+
+    private canUseEditForm(req: Sails.Req, record: RecordModel, formName: string): boolean {
+      return !formName || formName === record.metaMetadata.form ||
+        (req.session.namedEditForms ?? []).includes(this.namedEditFormKey(req, record, formName));
+    }
+
+    private assertNamedEditFormType(formName: string, record: RecordModel, form: FormAttributes | null): void {
+      const type = form?.configuration?.type;
+      if (formName && formName !== record.metaMetadata.form && type && type !== record.metaMetadata.type) {
+        throw new FormSaveInputError('This edit form belongs to a different record type.');
+      }
+    }
+
+    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, formName: string): Promise<AnyRecord> {
       const form = await FormsService.getForm(brand, formName, true, '', record);
-      const formType = form?.configuration?.type;
-      if (formName && formName !== record.metaMetadata.form && formType && formType !== record.metaMetadata.type) {
-        throw new FormSaveConflict('This edit form belongs to a different record type.');
-      }
-      return form;
-    }
-
-    private async getFormSaveAttachmentFields(record: RecordModel, form: FormAttributes): Promise<string[]> {
-      const sourceForm = form.name === record.metaMetadata.form
-        ? form
-        : await firstValueFrom(FormsService.getFormByName(record.metaMetadata.form, true, record.metaMetadata.brandId));
-      return [...new Set([
-        ...(record.metaMetadata.attachmentFields ?? []),
-        ...(form.configuration?.attachmentFields ?? form.attachmentFields ?? []),
-        ...(sourceForm?.configuration?.attachmentFields ?? sourceForm?.attachmentFields ?? []),
-      ])];
-    }
-
-    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, state?: FormSaveState) {
-      const formName = typeof state?.formName === 'string' ? state.formName : '';
-      const form = await this.getAuthorizedEditForm(req, brand, record, formName);
       if (!form?.configuration) {
-        throw new Error(`Form configuration not found for form: ${record.metaMetadata.form}`);
+        throw new Error(`Form configuration not found for record: ${record.redboxOid}`);
       }
+      this.assertNamedEditFormType(formName, record, form);
       const userRoles = ((req.user?.['roles'] ?? []) as RoleModel[]).map(role => role.name);
       const reusableFormDefs = sails.config.reusableFormDefinitions;
       const contextVariables = ContextVariableUtils.evaluateContextVariables(req, record);
@@ -975,22 +963,10 @@ export namespace Controllers {
         form.configuration, 'edit', userRoles, record.metadata, reusableFormDefs, brand.name, contextVariables
       );
       const original = { redboxOid: record.redboxOid, metadata: record.metadata };
-      const revisions = new Set(Array.isArray(state?.rowRevisions) ? state.rowRevisions : []);
       const merged = await FormRecordConsistencyService.mergeRecordClientFormConfig(
-        original, { redboxOid: record.redboxOid, metadata }, clientFormConfig, 'edit', reusableFormDefs, {
-          revisionMatches: (path, values) => revisions.has(formRowRevision(req, record, path, values)),
-          origins: state?.rowOrigins,
-        }
+        original, { redboxOid: record.redboxOid, metadata }, clientFormConfig, 'edit', reusableFormDefs, { partialFormSave: true }
       );
-      const attachmentFields = await this.getFormSaveAttachmentFields(record, form);
-      for (const field of attachmentFields) {
-        const originalValue = record.metadata?.[field];
-        if (!_.isEqual(originalValue, merged.metadata[field]) &&
-          !revisions.has(formAttachmentRevision(req, record, field, originalValue))) {
-          throw new FormSaveConflict('The attachments changed while this form was open. Reload the form before saving.');
-        }
-      }
-      return { metadata: merged.metadata, attachmentFields };
+      return merged.metadata;
     }
 
     //TODO: check if this deprecated?

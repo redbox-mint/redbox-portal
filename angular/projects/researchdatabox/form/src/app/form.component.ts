@@ -88,10 +88,7 @@ import {
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
-import { DataLocationComponent } from './component/data-location.component';
-import { FileUploadComponent } from './component/file-upload.component';
 import { FormComponentsMap, FormService } from './form.service';
-import { FormSaveRows } from './form-save-rows';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import {
   FormComponentFocusRequestCoordinator
@@ -242,7 +239,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
-  protected readonly creatingRecord = signal(false);
   readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
 
@@ -331,8 +327,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private behaviourManager = inject(FormBehaviourManager);
 
   private readonly document = inject(DOCUMENT);
-  private readonly formSaveRows = new FormSaveRows();
-  private rowRevisions?: string[];
   private window: Window & typeof globalThis | null;
 
   protected configObj: Record<string, unknown> = {};
@@ -413,7 +407,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
-    this.componentsLoaded.set(false);
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(
@@ -448,8 +441,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
-    this.formSaveRows.reset();
-    compContainerRef.clear();
     for (const componentDefEntry of this.componentDefArr) {
       const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
@@ -459,8 +450,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
     await this.createFormGroup();
-    const revisions = this.formConfigMeta['rowRevisions'];
-    this.rowRevisions = Array.isArray(revisions) ? revisions.filter((value): value is string => typeof value === 'string') : undefined;
     // Dispatch load success action (R16.2, AC53)
     this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
 
@@ -550,7 +539,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Initialize subscriptions to event bus
    */
   protected initSubscriptions() {
-    Object.values(this.subMaps).forEach(subscription => subscription?.unsubscribe());
     this.focusRequestCoordinator.bind(this);
 
     // Listen for execute save command and invoke saveForm (Task 15)
@@ -757,7 +745,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Create the form group based on the form definition map.
    */
   private async createFormGroup(): Promise<void> {
-    this.form = undefined;
     if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
       // set up the form group
@@ -931,21 +918,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
-    return this.serializeForSave().metadata;
-  }
+    if (!this.form) return {};
+    const excluded = new Set<AbstractControl>();
+    const collectExcluded = (entries: FormFieldCompMapEntry[], parentExcluded = false) => {
+      for (const entry of entries) {
+        const omit = parentExcluded || !this.formService.shouldIncludeInFormControlMap(entry);
+        if (omit && entry.model?.formControl) excluded.add(entry.model.formControl);
+        collectExcluded(entry.component?.formFieldCompMapEntries ?? [], omit);
+      }
+    };
+    collectExcluded(this.componentDefArr);
 
-  private serializeForSave() {
-    return this.formSaveRows.serialize(
-      this.form, this.componentDefArr ?? [], entry => this.formService.shouldIncludeInFormControlMap(entry), !!this.rowRevisions
-    );
-  }
-
-  public markNewRepeatableRow(control: AbstractControl): void {
-    this.formSaveRows.markNew(control);
-  }
-
-  public registerInitialRepeatableRow(parent: FormArray, row: AbstractControl, index: number): void {
-    this.formSaveRows.setInitialIndex(parent, row, index);
+    const isEditable = (control: AbstractControl) => control.enabled && !excluded.has(control);
+    const snapshot = (control: AbstractControl): unknown => {
+      if (control instanceof FormGroup) {
+        return Object.fromEntries(Object.entries(control.controls)
+          .filter(([, child]) => isEditable(child))
+          .map(([name, child]) => [name, snapshot(child)]));
+      }
+      if (control instanceof FormArray) {
+        return control.controls.filter(isEditable).map(snapshot);
+      }
+      return control.value;
+    };
+    return structuredClone(snapshot(this.form) as Record<string, unknown>);
   }
 
   private getComponentDebugInfo(
@@ -1156,19 +1152,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
-  private prepareUploadsForCreate(entries: FormFieldCompMapEntry[]): boolean {
-    return entries.every(({ component }) => {
-      if ((component instanceof DataLocationComponent || component instanceof FileUploadComponent) &&
-          !component.prepareForCreate()) {
-        return false;
-      }
-      return this.prepareUploadsForCreate(component?.formFieldCompMapEntries ?? []);
-    });
-  }
-
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
-    if (this.creatingRecord() || (!this.componentsLoaded() && this.error())) return;
-
     const forceSave = options?.force ?? false;
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
@@ -1211,13 +1195,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
-        const creating = _isEmpty(this.trimmedParams.oid());
-        if (creating && !this.prepareUploadsForCreate(this.componentDefArr)) {
-          this.eventBus.publish(createFormSaveFailureEvent({
-            error: 'Finish or remove pending uploads before creating this record.',
-          }));
-          return;
-        }
         this.saveResponse.set(null); // Indicate save in progress
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
@@ -1226,51 +1203,27 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         try {
           let response: RecordActionResult;
-          const submitted = this.serializeForSave();
-          const currentFormValue = submitted.metadata;
+          const currentFormValue = this.getPersistedFormValue();
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
-          if (creating) {
+          if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
-            this.creatingRecord.set(true);
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
-            const formSaveState = this.rowRevisions ? {
-              formName: this.trimmedParams.formName(),
-              rowRevisions: this.rowRevisions,
-              rowOrigins: submitted.rowOrigins,
-            } : undefined;
+            const formName = this.trimmedParams.formName();
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
               formSave: true,
-              ...(formSaveState ? { formSaveState } : {}),
+              ...(formName ? { formName } : {}),
             });
           }
           if (response?.success) {
-            if (response.rowRevisions) {
-              this.rowRevisions = response.rowRevisions;
-              submitted.markSaved();
-            }
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
-            let loadFailed = false;
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
-              const editPath = this.buildEditRecordPath(createdOid);
-              this.locationService.replaceState(editPath);
-              this.refreshRequestParamsFromUrl(editPath);
-              if (!options?.closeOnSave) {
-                this.formName.set('');
-                this.editMode.set(true);
-                this.form?.disable({ emitEvent: false });
-                try {
-                  await this.downloadAndCreateFormComponents();
-                } catch (error) {
-                  this.loggerService.error(`${this.logName}: Could not reload the saved record`, error);
-                  this.form?.disable({ emitEvent: false });
-                  loadFailed = true;
-                }
-              }
+              this.formName.set('');
+              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             // Emit success event
@@ -1284,13 +1237,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
-            if (loadFailed) {
-              this.store.dispatch(FormActions.loadInitialDataFailure({ error: 'form-load-error' }));
-            }
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
             // Mark form as dirty again since save failed
-            this.form?.markAllAsDirty();
+            this.form.markAllAsDirty();
             // Emit failure event
             this.eventBus.publish(
               createFormSaveFailureEvent({ error: _get(response, 'message')?.toString() ?? 'Unknown error' })
@@ -1301,7 +1251,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
           // Emit an response with the error message object as string
           let errorMsg = 'Unknown error occurred';
-          if (error instanceof HttpErrorResponse && error.status === 409 && typeof error.error?.message === 'string') {
+          if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
             errorMsg = error.error.message;
           } else if (error instanceof Error) {
             errorMsg = error.message;
@@ -1312,11 +1262,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             message: errorMsg,
           } as RecordActionResult);
           // Mark form as dirty again since save failed
-          this.form?.markAllAsDirty();
+          this.form.markAllAsDirty();
           // emit failure event
           this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
-        } finally {
-          this.creatingRecord.set(false);
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response

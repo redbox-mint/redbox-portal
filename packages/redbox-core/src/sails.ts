@@ -13,7 +13,6 @@ declare module 'express-session' {
     redirUrl: string;
     logoutUrl: string;
     lang: string;
-    formSaveKey?: string;
     namedEditForms?: string[];
     authenticated: boolean;
     data: unknown;

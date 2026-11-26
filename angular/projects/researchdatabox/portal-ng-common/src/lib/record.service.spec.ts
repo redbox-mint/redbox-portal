@@ -51,19 +51,15 @@ describe("RecordService", () => {
     await expectAsync(result).toBeResolvedTo({ success: true, oid: 'oid-123' } as Awaited<typeof result>);
   });
 
-  it('sends row origins and the form name separately from metadata', async () => {
-    const metadata = { contributors: [{ name: 'Updated' }] };
-    const formSaveState = {
-      formName: 'named-edit', rowRevisions: ['previous-revision'],
-      rowOrigins: { '["contributors"]': [1] },
-    };
-    const result = recordService.update('oid-123', metadata, 'review', { formSave: true, formSaveState });
+  it('sends the named edit form in the query alongside the raw metadata body', async () => {
+    const metadata = { title: 'Finalise', formName: 'A metadata field' };
+    const result = recordService.update('oid-123', metadata, '', { formSave: true, formName: 'named edit' });
     const request = httpTestingController.expectOne(
-      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&formSaveState=true&targetStep=review`
+      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&formName=named%20edit`
     );
-    expect(request.request.body).toEqual({ metadata, formSaveState });
-    request.flush({ success: true, oid: 'oid-123', rowRevisions: ['next-revision'] });
-    expect((await result).rowRevisions).toEqual(['next-revision']);
+    expect(request.request.body).toEqual(metadata);
+    request.flush({ success: true, oid: 'oid-123' });
+    await result;
   });
 
   it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {

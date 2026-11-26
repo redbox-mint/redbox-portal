@@ -14,7 +14,6 @@ import {
   Services as services,
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
-  DatastreamSave,
   StorageService,
   StorageServiceResponse,
   RBValidationError,
@@ -1231,8 +1230,7 @@ export namespace Services {
       record: StorageRecord,
       newMetadata: JsonMap,
       fileRoot: string | StorageManagerServiceTypes.Services.IDisk | null,
-      fileIdsAdded: Datastream[],
-      save?: DatastreamSave
+      fileIdsAdded: Datastream[]
     ): Observable<Promise<unknown>[]> {
       let stagingDisk: StorageManagerServiceTypes.Services.IDisk;
       if (typeof fileRoot === 'string') {
@@ -1254,11 +1252,10 @@ export namespace Services {
           ) as string[];
           const reqs: Promise<unknown>[] = [];
           record.metaMetadata.attachmentFields = attachmentFields;
-          _.each(attachmentFields, attField => {
+          _.each(attachmentFields, async attField => {
             const oldAttachments = record.metadata[attField] as AttachmentDescriptor[] | undefined;
             const newAttachments = newMetadata[attField] as AttachmentDescriptor[] | undefined;
             const removeIds: Datastream[] = [];
-            const addIds: Datastream[] = [];
             if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
               const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
               _.each(toRemove, removeAtt => {
@@ -1271,20 +1268,12 @@ export namespace Services {
               const toAdd = _.differenceBy(newAttachments, oldAttachments, 'fileId');
               _.each(toAdd, addAtt => {
                 if (addAtt.type == 'attachment') {
-                  addIds.push(new Datastream(addAtt));
+                  fileIdsAdded.push(new Datastream(addAtt));
                 }
               });
             }
-            fileIdsAdded.push(...addIds);
-            if (save) {
-              save.removals.push(...removeIds);
-            } else {
-              reqs.push(this.addAndRemoveDatastreams(oid, addIds, removeIds, stagingDisk));
-            }
+            reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds, stagingDisk));
           });
-          if (save && fileIdsAdded.length) {
-            reqs.push(this.addAndRemoveDatastreams(oid, _.uniqBy(fileIdsAdded, 'fileId'), [], stagingDisk, save));
-          }
           if (_.isEmpty(reqs)) {
             reqs.push(Promise.resolve({ request: 'dummy' }));
           }
@@ -1313,7 +1302,7 @@ export namespace Services {
       }
     }
 
-    public async addDatastream(oid, datastream: Datastream, stagingDisk?: StorageManagerServiceTypes.Services.IDisk, save?: DatastreamSave) {
+    public async addDatastream(oid, datastream: Datastream, stagingDisk?: StorageManagerServiceTypes.Services.IDisk) {
       const fileId = datastream.fileId;
       sails.log.verbose(`${this.logHeader} addDatastream() -> Meta: ${fileId}`);
       sails.log.verbose(JSON.stringify(datastream));
@@ -1322,10 +1311,7 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} addDatastream() -> Adding: ${fileName}`);
       const effectiveStagingDisk = stagingDisk ?? StorageManagerService.stagingDisk();
       const readable = await effectiveStagingDisk.getStream(fileId);
-      const file = await this.streamFileToBucket(readable, fileName, metadata);
-      if (save && file) {
-        save.additions.push({ fileId, discard: () => this.gridFsBucket.delete(file._id) });
-      }
+      await this.streamFileToBucket(readable, fileName, metadata);
       sails.log.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${fileName}`);
     }
 
@@ -1333,7 +1319,7 @@ export namespace Services {
       const uploadStream = this.gridFsBucket.openUploadStream(fileName, { metadata });
       readable.pipe(uploadStream);
 
-      return new Promise<GridFSFile | undefined>((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         uploadStream.on('finish', () => {
           resolve(uploadStream.gridFSFile);
         });
@@ -1356,14 +1342,13 @@ export namespace Services {
       oid,
       addIds: Datastream[],
       removeIds: Datastream[],
-      stagingDisk?: StorageManagerServiceTypes.Services.IDisk,
-      save?: DatastreamSave
+      stagingDisk?: StorageManagerServiceTypes.Services.IDisk
     ) {
       if (!stagingDisk) {
         throw new Error('MongoStorageService.addAndRemoveDatastreams requires a staging disk');
       }
       for (const addId of addIds) {
-        await this.addDatastream(oid, addId, stagingDisk, save);
+        await this.addDatastream(oid, addId, stagingDisk);
       }
       for (const removeId of removeIds) {
         await this.removeDatastream(oid, removeId);

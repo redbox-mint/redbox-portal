@@ -26,8 +26,7 @@ export {
     from "./DatastreamServiceResponse";
 
 export {
-    DatastreamService,
-    DatastreamSave
+    DatastreamService
 }
     from "./DatastreamService";
 export {

@@ -4,8 +4,6 @@ import type { FigshareSourceRequest } from './model/storage/FigshareSyncModel';
 export interface RecordWriteOptions {
   figshareIntent?: { intents: FigshareSourceRequest[]; requestedBy: string; saveToken: string; readiness: 'initialising' | 'ready' };
   expectedVersion?: number;
-  /** Foreground save that can change attachments in coordination with a conditional write. */
-  sourceSave?: boolean;
   maintenance?: boolean;
 }
 export interface RecordFieldWriteResult { updated: boolean; recordVersion?: number }

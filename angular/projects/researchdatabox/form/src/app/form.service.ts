@@ -861,7 +861,7 @@ export class FormService extends HttpClientService {
     if (formName) {
       url.searchParams.set('formName', formName?.toString());
     }
-    if (oid && editable) {
+    if (oid && editable && formName) {
       url.searchParams.set('formSave', 'true');
     }
 

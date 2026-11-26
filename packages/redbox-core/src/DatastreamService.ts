@@ -12,16 +12,6 @@ export type DatastreamRequestContext = {
   username?: string;
 };
 
-export interface DatastreamSave {
-  removals: Datastream[];
-  additions: {
-    fileId: string;
-    commit?: () => Promise<void>;
-    // Delete only the physical object created by this attempt, even if another save references the same fileId.
-    discard?: () => Promise<void>;
-  }[];
-}
-
 export interface DatastreamService {
   addDatastreams(oid: string, datastreams: Datastream[]): Promise<DatastreamServiceResponse>;
   updateDatastream(
@@ -29,8 +19,7 @@ export interface DatastreamService {
     record: unknown,
     newMetadata: unknown,
     stagingDisk: StorageManagerServices.IDisk,
-    fileIdsAdded: Datastream[],
-    save?: DatastreamSave
+    fileIdsAdded: Datastream[]
   ): Observable<Promise<unknown>[]>;
   removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
   addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>;
