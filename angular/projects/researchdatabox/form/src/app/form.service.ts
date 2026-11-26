@@ -218,10 +218,10 @@ export class FormService extends HttpClientService {
     throw new Error('redboxClientScript validator definitions are not available — index.bundle.js must be loaded before the form app.');
   }
 
-  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[], editFormToken?: string): Promise<FormComponentsMap> {
+  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
-    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName, editFormToken);
+    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName);
     const formConfig = formConfigResp?.data;
     const formConfigMeta = formConfigResp?.meta ?? {};
     if (!formConfig) {
@@ -851,7 +851,7 @@ export class FormService extends HttpClientService {
    * @param formName The optional name of the form.
    * @private
    */
-  private async getFormConfig(oid: string | null, recordType: string, editable: boolean, formName: string | null = null, editFormToken?: string) {
+  private async getFormConfig(oid: string | null, recordType: string, editable: boolean, formName: string | null = null) {
     const ts = new Date().getTime().toString();
 
     const remainingPaths = oid ? `auto/${oid}` : `${recordType}`;
@@ -863,9 +863,6 @@ export class FormService extends HttpClientService {
     }
     if (oid && editable) {
       url.searchParams.set('formSave', 'true');
-      if (editFormToken) {
-        url.searchParams.set('editFormToken', editFormToken);
-      }
     }
 
     type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };

@@ -595,7 +595,8 @@ export namespace Services {
       record: unknown,
       newMetadata: unknown,
       stagingDisk: IDisk,
-      fileIdsAdded: Datastream[]
+      fileIdsAdded: Datastream[],
+      deferredRemovals?: Datastream[]
     ): Observable<Promise<unknown>[]> {
       const typedRecord = this.coerceRecord(record);
       const typedNewMetadata = this.coerceMetadata(newMetadata);
@@ -642,7 +643,8 @@ export namespace Services {
 
                 fileIdsAdded.push(...perFieldFileIdsAdded);
 
-                reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
+                deferredRemovals?.push(...removeIds);
+                reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, deferredRemovals ? [] : removeIds, stagingDisk));
               }
             }
             return of(reqs);

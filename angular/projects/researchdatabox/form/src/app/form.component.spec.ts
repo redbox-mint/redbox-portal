@@ -7,6 +7,7 @@ import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
+import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import {
   createFormAndWaitForReady,
   createTestbedModule,
@@ -56,6 +57,44 @@ describe('FormComponent', () => {
     }
   };
 
+  const servePersistedForm = (config: FormConfigFrame, rowRevisions: string[]) => {
+    const service = TestBed.inject(FormService);
+    return spyOn(service, 'downloadFormComponents').and.callFake(() => service.createFormComponentsMap(
+      structuredClone(config),
+      service.buildLineagePaths({ angularComponents: [], dataModel: [], formConfig: ['componentDefinitions'], layout: [] }),
+      { rowRevisions },
+      'edit',
+    ));
+  };
+
+  const contributorList = (value: unknown[], disabled = false): NonNullable<FormConfigFrame['componentDefinitions']>[number] => ({
+    name: 'creators',
+    model: { class: 'RepeatableModel', config: { value } },
+    expressions: [{
+      name: 'enable-from-record',
+      config: { target: 'field.disabled', template: 'false', condition: '/dataRecord::field.value.changed', runOnFormReady: false },
+    }],
+    component: {
+      class: 'RepeatableComponent',
+      config: {
+        allowZeroRows: true,
+        disabled,
+        elementTemplate: {
+          name: '',
+          model: { class: 'GroupModel', config: {} },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                { name: 'name', model: { class: 'SimpleInputModel', config: {} }, component: { class: 'SimpleInputComponent' } },
+              ],
+            },
+          },
+        },
+      },
+    },
+  });
+
   beforeEach(async () => {
     setWindowSearch('');
     setFormDebugUrl('1');
@@ -64,6 +103,8 @@ describe('FormComponent', () => {
         declarations: {
           "SimpleInputComponent": SimpleInputComponent,
           "GroupFieldComponent": GroupFieldComponent,
+          "RepeatableComponent": RepeatableComponent,
+          "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
         }
       });
   });
@@ -889,6 +930,7 @@ describe('FormComponent', () => {
         success: true,
         oid: 'oid-123'
       } as any);
+      servePersistedForm(formConfig, []);
 
       await formComponent.saveForm({force: true});
 
@@ -906,6 +948,99 @@ describe('FormComponent', () => {
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  it('saves an existing creator and a group child after enablement, with origins for nested hydrated rows', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        contributorList([{ name: 'Original creator' }], true),
+        {
+          name: 'details',
+          model: {
+            class: 'GroupModel',
+            config: { value: { conditional: 'Before', sibling: 'Before', creators: [{ name: 'Nested creator' }] } },
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'conditional',
+                  model: { class: 'SimpleInputModel', config: { disabled: true } },
+                  component: { class: 'SimpleInputComponent' },
+                  expressions: [{
+                    name: 'enable',
+                    config: { target: 'model.disabled', template: 'false', condition: '/dataRecord::field.value.changed', runOnFormReady: false },
+                  }],
+                },
+                { name: 'sibling', model: { class: 'SimpleInputModel', config: {} }, component: { class: 'SimpleInputComponent' } },
+                contributorList([]),
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(structuredClone(config), {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    servePersistedForm(config, ['creator-revision', 'nested-revision']);
+    await formComponent.downloadAndCreateFormComponents();
+
+    const form = formComponent.form!;
+    expect(form.get('creators')?.disabled).toBeTrue();
+    expect(form.get('details.conditional')?.disabled).toBeTrue();
+    formComponent.getComponentDefByName('creators')?.component?.setProperty('disabled', false);
+    const details = formComponent.getComponentDefByName('details')?.component as GroupFieldComponent;
+    const conditional = details.formFieldCompMapEntries.find(entry => entry.compConfigJson.name === 'conditional');
+    conditional?.model?.setDisabled(false);
+    form.get(['creators', 0, 'name'])?.setValue('Edited creator');
+    form.get('details.conditional')?.setValue('Enabled and edited');
+    form.get('details.sibling')?.setValue('Edited sibling');
+    form.markAsDirty();
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+    });
+
+    await formComponent.saveForm();
+
+    expect(update).toHaveBeenCalledOnceWith('publication', {
+      creators: [{ name: 'Edited creator' }],
+      details: { conditional: 'Enabled and edited', sibling: 'Edited sibling', creators: [{ name: 'Nested creator' }] },
+    }, '', {
+      formSave: true,
+      formSaveState: {
+        formName: '',
+        rowRevisions: ['creator-revision', 'nested-revision'],
+        rowOrigins: { '["creators"]': [0], '["details","creators"]': [0] },
+      },
+    });
+  });
+
+  it('hydrates the created record before a second save and reuses its stored row origins', async () => {
+    const beforeCreate: FormConfigFrame = { name: 'create', componentDefinitions: [contributorList([{ name: 'Original' }])] };
+    const { formComponent } = await createFormAndWaitForReady(beforeCreate, {
+      oid: '', editMode: true, formName: 'create', recordType: 'rdmp', downloadAndCreateOnInit: false,
+    });
+    spyOn(formComponent.recordService, 'create').and.resolveTo({ success: true, oid: 'created', message: '', data: null });
+    const download = servePersistedForm({
+      name: 'draft', componentDefinitions: [contributorList([{ name: 'Normalized by hook' }])],
+    }, ['stored-creator-revision']);
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true, oid: 'created', message: '', data: null });
+
+    await formComponent.saveForm({ force: true });
+
+    expect(download).toHaveBeenCalledWith('created', 'rdmp', true, '', jasmine.any(Array));
+    const creator = formComponent.form!.get(['creators', 0, 'name'])!;
+    expect(creator.value).toBe('Normalized by hook');
+    creator.setValue('Second save');
+    await formComponent.saveForm({ force: true });
+
+    expect(update).toHaveBeenCalledOnceWith('created', { creators: [{ name: 'Second save' }] }, '', {
+      formSave: true,
+      formSaveState: { formName: '', rowRevisions: ['stored-creator-revision'], rowOrigins: { '["creators"]': [0] } },
+    });
   });
 
   it('renders the debug panel component when URL debug mode is enabled', async () => {

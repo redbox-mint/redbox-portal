@@ -1,7 +1,7 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { Readable } from 'node:stream';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { Datastream } from '../../src/Datastream';
@@ -862,6 +862,33 @@ describe('StandardDatastreamService', function () {
   });
 
   describe('updateDatastream', function () {
+    it('promotes additions while leaving removals for the accepted metadata write', async function () {
+      const oldForms = Reflect.get(globalThis, 'FormsService');
+      Reflect.set(globalThis, 'FormsService', {
+        getFormByName: () => of({ configuration: { attachmentFields: ['files'] } }),
+      });
+      try {
+        const { Services } = require('../../src/services/StandardDatastreamService');
+        const service = new Services.StandardDatastream();
+        const record = {
+          metaMetadata: { form: 'draft', brandId: 'brand-1' },
+          metadata: { files: [{ fileId: 'old', type: 'attachment' }] },
+        };
+        const removals: Datastream[] = [];
+        const additions: Datastream[] = [];
+        const requests = await firstValueFrom<Promise<unknown>[]>(service.updateDatastream('oid-123', record,
+          { files: [{ fileId: 'new', type: 'attachment' }] }, mockStagingDisk, additions, removals));
+        await Promise.all(requests);
+
+        expect(additions.map(row => row.fileId)).to.deep.equal(['new']);
+        expect(removals.map(row => row.fileId)).to.deep.equal(['old']);
+        sinon.assert.calledOnce(mockPrimaryDisk.putStream);
+        sinon.assert.notCalled(mockPrimaryDisk.delete);
+      } finally {
+        Reflect.set(globalThis, 'FormsService', oldForms);
+      }
+    });
+
     it('should call FormsService.getFormByName and process attachment diffs', function (done) {
       // Set up a global FormsService mock
       const mockFormsService = {

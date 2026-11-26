@@ -51,10 +51,10 @@ describe("RecordService", () => {
     await expectAsync(result).toBeResolvedTo({ success: true, oid: 'oid-123' } as Awaited<typeof result>);
   });
 
-  it('sends row origins and named form authorization separately from metadata', async () => {
+  it('sends row origins and the form name separately from metadata', async () => {
     const metadata = { contributors: [{ name: 'Updated' }] };
     const formSaveState = {
-      formName: 'named-edit', editFormToken: 'form-token', rowRevision: 'previous-revision',
+      formName: 'named-edit', rowRevisions: ['previous-revision'],
       rowOrigins: { '["contributors"]': [1] },
     };
     const result = recordService.update('oid-123', metadata, 'review', { formSave: true, formSaveState });
@@ -62,8 +62,8 @@ describe("RecordService", () => {
       `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&formSaveState=true&targetStep=review`
     );
     expect(request.request.body).toEqual({ metadata, formSaveState });
-    request.flush({ success: true, oid: 'oid-123', rowRevision: 'next-revision' });
-    expect((await result).rowRevision).toBe('next-revision');
+    request.flush({ success: true, oid: 'oid-123', rowRevisions: ['next-revision'] });
+    expect((await result).rowRevisions).toEqual(['next-revision']);
   });
 
   it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {

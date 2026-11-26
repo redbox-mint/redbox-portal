@@ -12,7 +12,7 @@ interface FieldSchema {
 }
 
 export interface FormSaveRows {
-  revisionMatches: boolean;
+  revisionMatches: (path: Path, values: unknown[]) => boolean;
   origins?: Record<string, FormSaveRowOrigin[]>;
 }
 
@@ -35,29 +35,30 @@ function hasStoredOnlyValue(value: unknown, schema: FieldSchema): boolean {
 }
 
 export function mergeFormSaveMetadata(original: Metadata, submitted: Metadata, schema: FieldSchema, rows: FormSaveRows): Metadata {
-  function mergeObject(previous: Metadata, changed: Metadata, fieldSchema: FieldSchema, path: Path): Metadata {
+  function mergeObject(previous: Metadata, changed: Metadata, fieldSchema: FieldSchema, path: Path, previousPath: Path): Metadata {
     const permitted = fields(fieldSchema);
     const result = { ...previous };
     for (const [key, value] of Object.entries(changed)) {
       if (Object.hasOwn(permitted, key)) {
-        result[key] = mergeValue(Object.hasOwn(previous, key) ? previous[key] : undefined, value, permitted[key], [...path, key]);
+        result[key] = mergeValue(Object.hasOwn(previous, key) ? previous[key] : undefined, value, permitted[key],
+          [...path, key], [...previousPath, key]);
       }
     }
     return result;
   }
 
-  function mergeRows(previous: unknown[], changed: unknown[], elementSchema: FieldSchema, path: Path): unknown[] {
+  function mergeRows(previous: unknown[], changed: unknown[], elementSchema: FieldSchema, path: Path, previousPath: Path): unknown[] {
     const pathKey = JSON.stringify(path);
     const origins = rows.origins && Object.hasOwn(rows.origins, pathKey) ? rows.origins[pathKey] : undefined;
     const protectedRows = previous.map(row => hasStoredOnlyValue(row, elementSchema));
     const seen = new Set<number>();
     const conflict = () => new FormSaveConflict('Repeatable rows could not be matched to the saved record. Reload the form before saving.');
 
-    if (origins !== undefined && (!Array.isArray(origins) || origins.length !== changed.length
-      || (previous.length > 0 && !rows.revisionMatches))) {
+    if (origins !== undefined && (!Array.isArray(origins) || origins.length !== changed.length)) {
       throw conflict();
     }
-    if (origins === undefined && changed.length > 0 && protectedRows.includes(true)) {
+    if ((origins === undefined && changed.length > 0 && protectedRows.includes(true)) ||
+      (origins !== undefined && previous.length > 0 && !rows.revisionMatches(previousPath, previous))) {
       throw conflict();
     }
 
@@ -67,14 +68,15 @@ export function mergeFormSaveMetadata(original: Metadata, submitted: Metadata, s
       const previousIndex = retain ? origin.retain : origin;
       const rowPath = [...path, index];
       if (origin === null || origin === 'new' || origin === undefined) {
-        return mergeValue(undefined, row, elementSchema, rowPath);
+        return mergeValue(undefined, row, elementSchema, rowPath, []);
       }
-      if (!rows.revisionMatches || typeof previousIndex !== 'number' || !Number.isSafeInteger(previousIndex)
+      if (typeof previousIndex !== 'number' || !Number.isSafeInteger(previousIndex)
         || previousIndex < 0 || previousIndex >= previous.length || seen.has(previousIndex)) {
         throw conflict();
       }
       seen.add(previousIndex);
-      return retain ? previous[previousIndex] : mergeValue(previous[previousIndex], row, elementSchema, rowPath);
+      return retain ? previous[previousIndex]
+        : mergeValue(previous[previousIndex], row, elementSchema, rowPath, [...previousPath, previousIndex]);
     });
     // Rebuilt controls without provenance can represent edited rows or new rows. Only
     // accept this when each stored row with protected data has a known destination.
@@ -84,15 +86,15 @@ export function mergeFormSaveMetadata(original: Metadata, submitted: Metadata, s
     return merged;
   }
 
-  function mergeValue(previous: unknown, changed: unknown, fieldSchema: FieldSchema, path: Path): unknown {
+  function mergeValue(previous: unknown, changed: unknown, fieldSchema: FieldSchema, path: Path, previousPath: Path): unknown {
     if (fieldSchema.elements && Array.isArray(changed)) {
       const element = fieldSchema.elements;
-      return mergeRows(Array.isArray(previous) ? previous : [], changed, element, path);
+      return mergeRows(Array.isArray(previous) ? previous : [], changed, element, path, previousPath);
     }
     if (fieldSchema.properties || fieldSchema.optionalProperties) {
       if (_.isPlainObject(changed)) {
         const existing = !fieldSchema.selection && _.isPlainObject(previous) ? previous as Metadata : {};
-        return mergeObject(existing, changed as Metadata, fieldSchema, path);
+        return mergeObject(existing, changed as Metadata, fieldSchema, path, previousPath);
       }
       if (fieldSchema.selection && typeof changed === 'string') {
         return changed;
@@ -108,5 +110,5 @@ export function mergeFormSaveMetadata(original: Metadata, submitted: Metadata, s
     return changed;
   }
 
-  return mergeObject(original, submitted, schema, []);
+  return mergeObject(original, submitted, schema, [], []);
 }

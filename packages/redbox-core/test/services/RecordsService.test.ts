@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { StorageServiceResponse } from '../../src/StorageServiceResponse';
 import { RecordAuditActionType, RecordAuditModel } from '../../src/model/storage/RecordAuditModel';
 import { RecordWriteConflict } from '../../src/RecordWriteOptions';
+import { Datastream } from '../../src/Datastream';
 import { agendaQueue } from '../../src/config/agendaQueue.config';
 import { PermanentAuditWriteError } from '../../src/services/record-audit/writer';
 import { UserModel } from '../../src/model/storage/UserModel';
@@ -329,6 +330,47 @@ describe('RecordsService', function () {
   describe('constructor', function () {
     it('should set logHeader', function () {
       expect(RecordsService.logHeader).to.equal('RecordsService::');
+    });
+  });
+
+  describe('conditional form saves with attachments', () => {
+    const brand = { id: 'brand-1', name: 'default' };
+    const record = () => ({
+      recordVersion: 7,
+      metaMetadata: { type: 'rdmp', brandId: 'brand-1', attachmentFields: ['files'] },
+      metadata: { files: [{ fileId: 'removed' }] },
+    });
+
+    beforeEach(() => {
+      const prepare = sinon.stub(RecordsService, 'handleUpdateDataStream');
+      prepare.callsFake((_oid, _previous, _metadata, deferred) => {
+        assert.ok(Array.isArray(deferred));
+        deferred.push(new Datastream({ fileId: 'removed' }));
+        return of(null);
+      });
+      sinon.stub(RecordsService, 'auditRecord').resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+    });
+
+    it('keeps existing attachments on a failed conditional write', async () => {
+      mockStorageService.updateMeta.rejects(new RecordWriteConflict());
+
+      await assert.rejects(RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files: [] },
+        { expectedVersion: 7, sourceSave: true }), RecordWriteConflict);
+
+      expect(mockStorageService.updateMeta.firstCall.args[4].expectedVersion).to.equal(7);
+      sinon.assert.notCalled(mockDatastreamService.removeDatastream);
+    });
+
+    it('removes detached files only after the conditional write succeeds', async () => {
+      mockStorageService.getMeta.resolves({ ...record(), recordVersion: 8, metadata: { files: [] } });
+
+      const response = await RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files: [] },
+        { expectedVersion: 7, sourceSave: true });
+
+      expect(response.isSuccessful()).to.be.true;
+      sinon.assert.callOrder(RecordsService.handleUpdateDataStream, mockStorageService.updateMeta, mockDatastreamService.removeDatastream);
+      sinon.assert.calledOnceWithMatch(mockDatastreamService.removeDatastream, 'record-123', { fileId: 'removed' });
     });
   });
 

@@ -329,8 +329,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private readonly document = inject(DOCUMENT);
   private readonly formSaveRows = new FormSaveRows();
-  private readonly editFormToken?: string;
-  private rowRevision?: string;
+  private rowRevisions?: string[];
   private window: Window & typeof globalThis | null;
 
   protected configObj: Record<string, unknown> = {};
@@ -366,7 +365,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (_isEmpty(this.trimmedParams.formName())) {
       this.formName.set(elementRef.nativeElement.getAttribute('formName'));
     }
-    this.editFormToken = elementRef.nativeElement.getAttribute('editFormToken') ?? undefined;
     // HTML attribute overrides the defaults on init, but not when injected via Angular
     if (!_isEmpty(_trim(elementRef.nativeElement.getAttribute('editMode')))) {
       this.editMode.set(elementRef.nativeElement.getAttribute('editMode') === 'true');
@@ -412,7 +410,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
-    this.formSaveRows.reset();
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(
@@ -420,8 +417,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.trimmedParams.recordType(),
         this.editMode(),
         this.trimmedParams.formName(),
-        this.modulePaths,
-        this.editFormToken
+        this.modulePaths
       );
       // Store the form recordType if the recordType was not provided by the page.
       if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
@@ -448,6 +444,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
+    this.componentsLoaded.set(false);
+    this.formSaveRows.reset();
+    compContainerRef.clear();
     for (const componentDefEntry of this.componentDefArr) {
       const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
@@ -457,8 +456,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
     await this.createFormGroup();
-    const rowRevision = this.formConfigMeta['rowRevision'];
-    this.rowRevision = typeof rowRevision === 'string' ? rowRevision : undefined;
+    const revisions = this.formConfigMeta['rowRevisions'];
+    this.rowRevisions = Array.isArray(revisions) ? revisions.filter((value): value is string => typeof value === 'string') : undefined;
     // Dispatch load success action (R16.2, AC53)
     this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
 
@@ -548,6 +547,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Initialize subscriptions to event bus
    */
   protected initSubscriptions() {
+    Object.values(this.subMaps).forEach(subscription => subscription?.unsubscribe());
     this.focusRequestCoordinator.bind(this);
 
     // Listen for execute save command and invoke saveForm (Task 15)
@@ -754,6 +754,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Create the form group based on the form definition map.
    */
   private async createFormGroup(): Promise<void> {
+    this.form = undefined;
     if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
       // set up the form group
@@ -932,7 +933,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private serializeForSave() {
     return this.formSaveRows.serialize(
-      this.form, this.componentDefArr ?? [], entry => this.formService.shouldIncludeInFormControlMap(entry), !!this.rowRevision
+      this.form, this.componentDefArr ?? [], entry => this.formService.shouldIncludeInFormControlMap(entry), !!this.rowRevisions
     );
   }
 
@@ -1212,10 +1213,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
-            const formSaveState = this.rowRevision ? {
+            const formSaveState = this.rowRevisions ? {
               formName: this.trimmedParams.formName(),
-              editFormToken: this.editFormToken,
-              rowRevision: this.rowRevision,
+              rowRevisions: this.rowRevisions,
               rowOrigins: submitted.rowOrigins,
             } : undefined;
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
@@ -1224,15 +1224,28 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             });
           }
           if (response?.success) {
-            if (response.rowRevision) {
-              this.rowRevision = response.rowRevision;
+            if (response.rowRevisions) {
+              this.rowRevisions = response.rowRevisions;
               submitted.markSaved();
             }
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
+            let loadFailed = false;
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              if (!options?.closeOnSave) {
+                this.formName.set('');
+                this.editMode.set(true);
+                this.form?.disable({ emitEvent: false });
+                try {
+                  await this.downloadAndCreateFormComponents();
+                } catch (error) {
+                  this.loggerService.error(`${this.logName}: Could not reload the saved record`, error);
+                  this.form?.disable();
+                  loadFailed = true;
+                }
+              }
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             // Emit success event
@@ -1246,10 +1259,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
+            if (loadFailed) {
+              this.store.dispatch(FormActions.loadInitialDataFailure({ error: 'form-load-error' }));
+            }
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
             // Mark form as dirty again since save failed
-            this.form.markAllAsDirty();
+            this.form?.markAllAsDirty();
             // Emit failure event
             this.eventBus.publish(
               createFormSaveFailureEvent({ error: _get(response, 'message')?.toString() ?? 'Unknown error' })
@@ -1271,7 +1287,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             message: errorMsg,
           } as RecordActionResult);
           // Mark form as dirty again since save failed
-          this.form.markAllAsDirty();
+          this.form?.markAllAsDirty();
           // emit failure event
           this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
         }

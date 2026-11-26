@@ -815,14 +815,16 @@ export namespace Services {
         `RecordService - updateMeta - record.metadata.dataLocations ` +
         JSON.stringify(recordObj.metadata?.dataLocations)
       );
-      if (writeOptions.expectedVersion != null) {
+      // Prepare uploads before writing their metadata, but leave existing files intact on a version conflict.
+      const deferredRemovals: Datastream[] | undefined = writeOptions.sourceSave ? [] : undefined;
+      if (writeOptions.expectedVersion != null && !writeOptions.sourceSave) {
         for (const field of (recordMeta.attachmentFields ?? []) as string[]) {
           if (!_.isEqual(_.get(origRecordObj.metadata, field), _.get(recordObj.metadata, field))) {
             throw new Error('Conditional background workflow cannot change attachments; apply the attachment change in a source save');
           }
         }
       } else {
-        updateResponse = (await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}))) as StorageServiceResponse;
+        updateResponse = (await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}, deferredRemovals))) as StorageServiceResponse;
       }
       sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
@@ -859,6 +861,9 @@ export namespace Services {
         };
         sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
         if (updateResponse.isSuccessful()) {
+          if (deferredRemovals?.length) {
+            await this.removeUnreferencedDatastreams(oid, origRecordObj, deferredRemovals);
+          }
           //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
           //therefore try to set recordType if triggerPostSaveTriggers is true
           if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
@@ -2149,10 +2154,30 @@ export namespace Services {
       return this.storageService.exists(oid);
     }
 
-    public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord) {
+    private async removeUnreferencedDatastreams(oid: string, previous: RecordWithMeta, removals: Datastream[]): Promise<void> {
+      try {
+        const stored = await this.getMeta(oid);
+        if (!stored) return;
+        const attachmentFields = new Set([
+          ...(this.asArray(previous.metaMetadata?.attachmentFields) ?? []),
+          ...(stored.metaMetadata?.attachmentFields ?? []),
+        ]);
+        for (const datastream of _.uniqBy(removals, 'fileId')) {
+          const isReferenced = [...attachmentFields].some(field =>
+            Array.isArray(stored.metadata[field]) &&
+            (stored.metadata[field] as AnyRecord[]).some(attachment => attachment?.fileId === datastream.fileId)
+          );
+          if (!isReferenced) await this.datastreamService.removeDatastream(oid, datastream);
+        }
+      } catch (error) {
+        this.logger.error(`${this.logHeader} Unable to remove detached files for ${oid}`, error);
+      }
+    }
+
+    public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord, deferredRemovals?: Datastream[]) {
       const fileIdsAdded: Datastream[] = [];
       const stagingDisk = StorageManagerService.stagingDisk();
-      return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded).pipe(
+      return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded, deferredRemovals).pipe(
         concatMap((reqs: Promise<unknown>[]) => {
           if (Array.isArray(reqs) && reqs.length > 0) {
             this.logger.verbose(`Updating data streams...`);

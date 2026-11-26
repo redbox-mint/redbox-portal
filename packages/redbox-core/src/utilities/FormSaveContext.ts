@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import type { RecordModel } from '../model/storage/RecordModel';
 
 export class FormSaveConflict extends Error {}
@@ -9,42 +9,50 @@ function sign(req: Sails.Req, value: unknown): string {
   return createHmac('sha256', key).update(JSON.stringify(value)).digest('base64url');
 }
 
-export function namedEditFormToken(req: Sails.Req, record: RecordModel, formName: string): string {
+function namedEditFormGrant(req: Sails.Req, record: RecordModel, formName: string): string {
   return sign(req, ['form', record.redboxOid, record.metaMetadata.brandId, record.metaMetadata.type, record.metaMetadata.form,
     record.workflow?.stage, req.user?.['username'], formName]);
 }
 
-export function verifyNamedEditForm(req: Sails.Req, record: RecordModel, formName: string, token: unknown): void {
+export function authorizeNamedEditForm(req: Sails.Req, record: RecordModel, formName: string): void {
+  const grant = namedEditFormGrant(req, record, formName);
+  const grants = (req.session.namedEditForms ?? []).filter(value => value !== grant);
+  req.session.namedEditForms = [...grants.slice(-19), grant];
+}
+
+export function verifyNamedEditForm(req: Sails.Req, record: RecordModel, formName: string): void {
   if (!formName || formName === record.metaMetadata.form) {
     return;
   }
-  const expected = Buffer.from(namedEditFormToken(req, record, formName));
-  const received = typeof token === 'string' ? Buffer.from(token) : Buffer.alloc(0);
-  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+  if (!req.session.namedEditForms?.includes(namedEditFormGrant(req, record, formName))) {
     throw new FormSaveConflict('The edit form has changed. Reload the form before saving.');
   }
 }
 
-export function formRowRevision(req: Sails.Req, record: RecordModel, metadata: Record<string, unknown>): string {
-  const arrays: [path: (string | number)[], value: unknown[]][] = [];
-  function collect(value: unknown, path: (string | number)[]) {
-    if (Array.isArray(value)) {
-      // The entire array, including nested rows, is covered by the revision.
-      arrays.push([path, value]);
-    } else if (value && typeof value === 'object') {
-      for (const key of Object.keys(value).sort()) {
-        collect((value as Record<string, unknown>)[key], [...path, key]);
-      }
-    }
-  }
-  collect(metadata, []);
+export function formRowRevision(req: Sails.Req, record: RecordModel, path: (string | number)[], rows: unknown[]): string {
   // Ignore property order differences introduced while storing and hydrating object rows.
-  const content = JSON.stringify(arrays, (_key, value: unknown) => {
+  const content = JSON.stringify(rows, (_key, value: unknown) => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       const object = value as Record<string, unknown>;
       return Object.fromEntries(Object.keys(object).sort().map(key => [key, object[key]]));
     }
     return value;
   });
-  return sign(req, ['rows', record.redboxOid, record.metaMetadata.brandId, content]);
+  return sign(req, ['rows', record.redboxOid, record.metaMetadata.brandId, path, content]);
+}
+
+export function formRowRevisions(req: Sails.Req, record: RecordModel, metadata: Record<string, unknown>): string[] {
+  const revisions: string[] = [];
+  function collect(value: unknown, path: (string | number)[]) {
+    if (Array.isArray(value)) {
+      revisions.push(formRowRevision(req, record, path, value));
+      value.forEach((row, index) => collect(row, [...path, index]));
+    } else if (value && typeof value === 'object') {
+      for (const [key, child] of Object.entries(value)) {
+        collect(child, [...path, key]);
+      }
+    }
+  }
+  collect(metadata, []);
+  return revisions;
 }

@@ -693,7 +693,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
-  rowRevision?: string;
+  rowRevisions?: string[];
   success: boolean = false;
   oid: string = '';
   message: string = '';

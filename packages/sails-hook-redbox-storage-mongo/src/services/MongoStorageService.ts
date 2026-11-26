@@ -1230,7 +1230,8 @@ export namespace Services {
       record: StorageRecord,
       newMetadata: JsonMap,
       fileRoot: string | StorageManagerServiceTypes.Services.IDisk | null,
-      fileIdsAdded: Datastream[]
+      fileIdsAdded: Datastream[],
+      deferredRemovals?: Datastream[]
     ): Observable<Promise<unknown>[]> {
       let stagingDisk: StorageManagerServiceTypes.Services.IDisk;
       if (typeof fileRoot === 'string') {
@@ -1252,10 +1253,11 @@ export namespace Services {
           ) as string[];
           const reqs: Promise<unknown>[] = [];
           record.metaMetadata.attachmentFields = attachmentFields;
-          _.each(attachmentFields, async attField => {
+          _.each(attachmentFields, attField => {
             const oldAttachments = record.metadata[attField] as AttachmentDescriptor[] | undefined;
             const newAttachments = newMetadata[attField] as AttachmentDescriptor[] | undefined;
             const removeIds: Datastream[] = [];
+            const addIds: Datastream[] = [];
             if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
               const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
               _.each(toRemove, removeAtt => {
@@ -1268,11 +1270,13 @@ export namespace Services {
               const toAdd = _.differenceBy(newAttachments, oldAttachments, 'fileId');
               _.each(toAdd, addAtt => {
                 if (addAtt.type == 'attachment') {
-                  fileIdsAdded.push(new Datastream(addAtt));
+                  addIds.push(new Datastream(addAtt));
                 }
               });
             }
-            reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds, stagingDisk));
+            fileIdsAdded.push(...addIds);
+            deferredRemovals?.push(...removeIds);
+            reqs.push(this.addAndRemoveDatastreams(oid, addIds, deferredRemovals ? [] : removeIds, stagingDisk));
           });
           if (_.isEmpty(reqs)) {
             reqs.push(Promise.resolve({ request: 'dummy' }));

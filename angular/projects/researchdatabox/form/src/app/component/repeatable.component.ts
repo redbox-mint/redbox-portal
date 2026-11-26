@@ -208,11 +208,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
       // If there is no model value, use undefined.
       // Undefined is not set to control.value, anything else is set, which is what we want.
-      const elementTemplateValue = this.getElementTemplateDefaultValue();
-      elemVals.push(elementTemplateValue);
-      this.loggerService.warn(
-        `${this.logName}: Created one element for repeatable '${formComponentName}' with no value: ${JSON.stringify(elemVals)}`
-      );
+      await this.appendNewElement(undefined, false);
     }
 
     for (const [index, elementValue] of elemVals.entries()) {
@@ -532,6 +528,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
+    if (_isEqual(this.model?.formControl?.getRawValue(), nextValues)) {
+      return;
+    }
 
     while (this.compDefMapEntries.length > 0) {
       const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
@@ -601,28 +600,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.compConfigJson.layout.name = `${baseName}-layout-${localUniqueId}`;
     }
 
-    // Use the disabled state of the repeatable component to set the initial disabled state
-    // of the new element's layout, component, and model.
-    const isDisabled = this.isDisabled;
-    if (elemEntry.compConfigJson?.layout) {
-      if (!elemEntry.compConfigJson.layout.config) {
-        elemEntry.compConfigJson.layout.config = {};
-      }
-      elemEntry.compConfigJson.layout.config.disabled ||= isDisabled;
-    }
-    if (elemEntry.compConfigJson?.component) {
-      if (!elemEntry.compConfigJson.component.config) {
-        elemEntry.compConfigJson.component.config = {};
-      }
-      elemEntry.compConfigJson.component.config.disabled ||= isDisabled;
-    }
-    if (elemEntry.compConfigJson?.model) {
-      if (!elemEntry.compConfigJson.model.config) {
-        elemEntry.compConfigJson.model.config = {};
-      }
-      elemEntry.compConfigJson.model.config.disabled ||= isDisabled;
-    }
-
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(
       elemEntry,
@@ -666,6 +643,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
       elemEntry.wrapperRef = wrapperRef;
       return wrapperRef;
+    }
+    if (this.isDisabled) {
+      layoutInstance.setDisabled(true, options);
+      compInstance?.setDisabled(true, options);
     }
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
@@ -791,12 +772,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     super.setDisabled(disabled, opts);
     // Also update the child repeatable's elements - both layout and component.
     // The component will set the model's disabled state if it needs to.
+    const template = this.elemInitFieldEntry?.compConfigJson;
     for (const entry of this.compDefMapEntries) {
-      if (entry.defEntry?.layout) {
-        entry.defEntry.layout.setDisabled(disabled, opts);
-      }
-      if (entry.defEntry?.component) {
-        entry.defEntry.component.setDisabled(disabled, opts);
+      entry.defEntry.layout?.setDisabled(disabled || template?.layout?.config?.disabled === true, opts);
+      entry.defEntry.component?.setDisabled(disabled || template?.component?.config?.disabled === true, opts);
+      if (!disabled && template?.model?.config?.disabled === true) {
+        entry.defEntry.model?.setDisabled(true, opts);
       }
     }
     this.updateCanSortFlags();
@@ -822,7 +803,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   public addElement(targetModel?: FormFieldModel<unknown>, options?: RepeatableSetValueOptions) {
     const control = targetModel?.getFormControl();
     if (this.formControl && control) {
-      if (this.formControl.disabled && control.enabled) {
+      if (this.fieldConfig.config?.disabled && control.enabled) {
         control.disable();
       }
       this.formControl.push(control, options);

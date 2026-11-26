@@ -19,7 +19,8 @@ export interface DatastreamService {
     record: unknown,
     newMetadata: unknown,
     stagingDisk: StorageManagerServices.IDisk,
-    fileIdsAdded: Datastream[]
+    fileIdsAdded: Datastream[],
+    deferredRemovals?: Datastream[]
   ): Observable<Promise<unknown>[]>;
   removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
   addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>;

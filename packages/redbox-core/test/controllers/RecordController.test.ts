@@ -8,7 +8,8 @@ import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Services as FormServices } from '../../src/services/FormsService';
 import { Services as FormRecordConsistencyServices } from '../../src/services/FormRecordConsistencyService';
 import { createMockSails } from '../services/testHelper';
-import { formRowRevision } from '../../src/utilities/FormSaveContext';
+import { formRowRevisions } from '../../src/utilities/FormSaveContext';
+import { RecordWriteConflict } from '../../src/RecordWriteOptions';
 import type { RecordModel } from '../../src/model/storage/RecordModel';
 
 before(async () => {
@@ -20,6 +21,7 @@ describe('RecordController update', () => {
   let updateMeta: sinon.SinonStub;
   const currentRecord = {
     redboxOid: 'oid-1',
+    recordVersion: 7,
     metaMetadata: { type: 'dataPublication', brandId: 'brand-1', form: 'publication-draft' },
     workflow: { stage: 'draft' },
     metadata: {
@@ -36,8 +38,9 @@ describe('RecordController update', () => {
       contributors: [
         { name: 'First', internalCode: 'first-private' },
         { name: 'Removed', internalCode: 'removed-private' },
-        { name: 'Last', source: 'last-private' },
+        { name: 'Last', source: 'last-private', notes: [{ text: 'Nested', internalCode: 'nested-private' }] },
       ],
+      'dc:subject_anzsrc:for': [{ notation: 'https://example.test/123456' }, { notation: 'incomplete' }],
       option: { label: 'Old', value: 'old', historical: true, sourceType: 'vocabulary' },
     },
   };
@@ -110,7 +113,27 @@ describe('RecordController update', () => {
               model: { class: 'GroupModel', config: {} },
               component: {
                 class: 'GroupComponent',
-                config: { componentDefinitions: [input('name'), adminInput('internalCode')] },
+                config: { componentDefinitions: [
+                  input('name'),
+                  adminInput('internalCode'),
+                  {
+                    name: 'notes',
+                    model: { class: 'RepeatableModel', config: {} },
+                    component: {
+                      class: 'RepeatableComponent',
+                      config: {
+                        elementTemplate: {
+                          name: '',
+                          model: { class: 'GroupModel', config: {} },
+                          component: {
+                            class: 'GroupComponent',
+                            config: { componentDefinitions: [input('text'), adminInput('internalCode')] },
+                          },
+                        },
+                      },
+                    },
+                  },
+                ] },
               },
             },
           },
@@ -237,21 +260,25 @@ describe('RecordController update', () => {
 
   it('keeps stored fields with retained repeatable rows through edits, sorting, deletion and addition', async () => {
     const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
-    const rowRevision = formRowRevision(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
+    const rowRevisions = formRowRevisions(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
     req.body = {
-      metadata: { contributors: [{ name: 'Last edited' }, { name: 'First edited', internalCode: 'forged' }, { name: 'New' }] },
-      formSaveState: { rowRevision, rowOrigins: { '["contributors"]': [2, 0, 'new'] } },
+      metadata: { contributors: [
+        { name: 'Last edited', notes: [{ text: 'Nested edited' }] },
+        { name: 'First edited', internalCode: 'forged' },
+        { name: 'New' },
+      ] },
+      formSaveState: { rowRevisions, rowOrigins: { '["contributors"]': [2, 0, 'new'], '["contributors",0,"notes"]': [0] } },
     };
     const { res, json } = makeResponse();
 
     await controller.update(req, res);
 
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([
-      { name: 'Last edited', source: 'last-private' },
+      { name: 'Last edited', source: 'last-private', notes: [{ text: 'Nested edited', internalCode: 'nested-private' }] },
       { name: 'First edited', internalCode: 'first-private' },
       { name: 'New' },
     ]);
-    expect(json.firstCall.args[0].rowRevision).to.be.a('string').and.not.equal(rowRevision);
+    expect(json.firstCall.args[0].rowRevisions).to.be.an('array').and.not.deep.equal(rowRevisions);
   });
 
   for (const [label, origins, stale] of [
@@ -263,10 +290,10 @@ describe('RecordController update', () => {
   ] as const) {
     it(`rejects ${label} repeatable origins before writing`, async () => {
       const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
-      const rowRevision = formRowRevision(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
+      const rowRevisions = formRowRevisions(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
       req.body = {
         metadata: { contributors: [{ name: 'One' }, { name: 'Two' }] },
-        formSaveState: { rowRevision: stale ? 'stale-revision' : rowRevision, rowOrigins: { '["contributors"]': origins } },
+        formSaveState: { rowRevisions: stale ? ['stale-revision'] : rowRevisions, rowOrigins: { '["contributors"]': origins } },
       };
       const { res, status } = makeResponse();
 
@@ -294,28 +321,77 @@ describe('RecordController update', () => {
     const page = makeRequest({}, { recordType: currentRecord.metaMetadata.type });
     page.options = { ...routes['get /:branding/:portal/record/finalise/:recordType/edit/:oid'] as RouteTargetObject };
     const sendView = sinon.stub(controller, 'sendView');
-    await controller.edit(page, {} as Sails.Res);
-    const { editFormToken } = sendView.firstCall.args[3] as { editFormToken: string };
-    const load = makeRequest({}, { name: 'auto', edit: 'true', formSave: 'true', formName, editFormToken, apiVersion: '2.0' });
+    const load = makeRequest({}, { name: 'auto', edit: 'true', formSave: 'true', formName, apiVersion: '2.0' });
     load.session = page.session;
+    const denied = makeResponse();
+    await controller.getForm(load, denied.res);
+    sinon.assert.calledOnceWithExactly(denied.status, 409);
+
+    await controller.edit(page, {} as Sails.Res);
+    // Hook views already pass formName to the Angular app.
+    expect(sendView.firstCall.args[3]).to.include({ formName });
     const loaded = makeResponse();
     await controller.getForm(load, loaded.res);
-    const rowRevision = loaded.json.firstCall.args[0].meta.rowRevision;
+    const rowRevisions = loaded.json.firstCall.args[0].meta.rowRevisions;
     expect(loaded.json.firstCall.args[0].data.componentDefinitions[0].name).to.equal('finaliseNote');
 
     const save = makeRequest({
       metadata: { finaliseNote: 'Finalised', title: 'Outside alternate form' },
-      formSaveState: { formName, editFormToken, rowRevision, rowOrigins: {} },
+      formSaveState: { formName, rowRevisions, rowOrigins: {} },
     }, { formSave: 'true', formSaveState: 'true' });
     save.session = page.session;
     await controller.update(save, makeResponse().res);
     expect(updateMeta.firstCall.args[7]).to.deep.equal({ ...currentRecord.metadata, finaliseNote: 'Finalised' });
 
-    save.body.formSaveState.editFormToken = 'unverified';
+    save.session = makeRequest({}, {}).session;
     const rejected = makeResponse();
     await controller.update(save, rejected.res);
     sinon.assert.calledOnceWithExactly(rejected.status, 409);
     sinon.assert.calledOnce(updateMeta);
+  });
+
+  it('saves again after a hook normalizes a different metadata array', async () => {
+    const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
+    const rowRevisions = formRowRevisions(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
+    req.body = {
+      metadata: { contributors: [{ name: 'First edited' }] },
+      formSaveState: { rowRevisions, rowOrigins: { '["contributors"]': [0] } },
+    };
+    const first = makeResponse();
+    await controller.update(req, first.res);
+    const persisted = {
+      ...currentRecord,
+      recordVersion: 8,
+      metadata: { ...updateMeta.firstCall.args[7], 'dc:subject_anzsrc:for': [{ notation: '123456' }] },
+    };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves(persisted);
+
+    req.body.metadata.contributors[0].name = 'First edited again';
+    req.body.formSaveState.rowRevisions = first.json.firstCall.args[0].rowRevisions;
+    const second = makeResponse();
+    await controller.update(req, second.res);
+
+    sinon.assert.calledOnceWithExactly(second.status, 200);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([{ name: 'First edited again', internalCode: 'first-private' }]);
+    expect(updateMeta.secondCall.args[7]['dc:subject_anzsrc:for']).to.deep.equal([{ notation: '123456' }]);
+  });
+
+  it('returns a conflict when two attachment saves merge from the same record version', async () => {
+    let version = currentRecord.recordVersion;
+    updateMeta.callsFake(async (...args: unknown[]) => {
+      const options = args[8] as { expectedVersion?: number; sourceSave?: boolean };
+      expect(options.sourceSave).to.be.true;
+      if (options.expectedVersion !== version) throw new RecordWriteConflict();
+      version++;
+      return { isSuccessful: () => true };
+    });
+    const responses = [makeResponse(), makeResponse()];
+    await Promise.all(responses.map(({ res }, index) => controller.update(makeRequest({
+      files: [{ fileId: `file-${index}`, name: 'new.txt' }],
+    }, { formSave: 'true' }), res)));
+
+    expect(responses.map(({ status }) => status.firstCall.args[0]).sort()).to.deep.equal([200, 409]);
+    expect(updateMeta.getCalls().map(call => call.args[8].expectedVersion)).to.deep.equal([7, 7]);
   });
 });
 

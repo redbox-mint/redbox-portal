@@ -14,6 +14,7 @@ import {
 import {
   FormConfigFrame,
   GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  isStaticallyDisabledFormField,
   isTypeFieldDefinitionName,
   isTypeWithComponentDefinitions,
   GroupFieldComponentDefinitionFrame,
@@ -26,7 +27,7 @@ import {
   isUndefined as _isUndefined,
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
-import { RepeatableComponent } from './repeatable.component';
+import { RepeatableComponentModel } from './repeatable.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 
 
@@ -57,7 +58,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
     const control = targetModel?.getFormControl();
     if (this.formControl && name && control) {
-      if (this.formControl.disabled && control.enabled) {
+      if (this.fieldConfig.config?.disabled && control.enabled) {
         control.disable();
       }
       this.formControl.addControl(name, control);
@@ -154,27 +155,29 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const elemVals = this.model.initValue ?? {};
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
     for (const key of Object.keys(formGroupMap.completeGroupMap ?? {})) {
+      const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
+      if (!elemFieldEntry) continue;
       // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
-      const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
+      const elemVal = elemVals?.[key];
+      const childModel = elemFieldEntry.model;
+      const buildsChildControls = childModel instanceof GroupFieldModel || childModel instanceof RepeatableComponentModel;
+      // Child containers need the stored value before they create their controls and row origins.
+      if (childModel instanceof GroupFieldModel && elemVal && typeof elemVal === 'object' && !Array.isArray(elemVal)) {
+        childModel.initValue = elemVal as GroupFieldModelValueType;
+      } else if (childModel instanceof RepeatableComponentModel && Array.isArray(elemVal)) {
+        childModel.initValue = elemVal;
+      }
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
 
       // Populate the component model if it has one.
-      const hasModel = this.model?.formControl && compInstance?.model;
-      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
-      if (hasModel && includeInFormControlMap) {
-        const elemVal = elemVals?.[key];
-        if (compInstance?.model && !_isUndefined(elemVal)) {
-          if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
-            for (const repeatableValue of elemVal) {
-              await compInstance.appendNewElement(repeatableValue, false);
-            }
-          } else {
-            compInstance.model.setValue(elemVal as never);
-          }
+      const model = compInstance?.model;
+      if (this.model.formControl && model && !isStaticallyDisabledFormField(elemFieldEntry.compConfigJson)) {
+        if (!buildsChildControls && !_isUndefined(elemVal)) {
+          model.setValue(elemVal as never);
         }
-        this.model.addItem(key, compInstance.model);
+        this.model.addItem(key, model);
         await syncComponentDisplayFromModel(compInstance);
       } else {
         this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
@@ -182,9 +185,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // Set the reference to the wrapper component.
       // TODO: is this needed? See how other components with nested components do this?
-      if (elemFieldEntry) {
-        elemFieldEntry.componentRef = wrapperRef;
-      }
+      elemFieldEntry.componentRef = wrapperRef;
     }
   }
 }
