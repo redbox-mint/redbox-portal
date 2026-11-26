@@ -9,7 +9,10 @@ declare const Record: {
 };
 
 describe('MongoDB driver identity', () => {
-  it('resolves MongoDB and BSON to the same installed modules across portal packages', () => {
+  // Mounted checkouts keep each package's own install, so only the image layout guarantees one copy.
+  const itInImageLayout = process.env.RBPORTAL_MOCHA_LAYOUT === 'mount' ? it.skip : it;
+
+  itInImageLayout('resolves MongoDB and BSON to the same installed modules across portal packages', () => {
     const mongoPath = require.resolve('mongodb');
     const bsonPath = createRequire(mongoPath).resolve('bson');
 

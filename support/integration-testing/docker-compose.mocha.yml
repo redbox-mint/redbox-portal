@@ -17,6 +17,7 @@ x-rbportal-env: &rbportal-env
   - RUN_LIVE_INTEGRATION_TESTS=${RUN_LIVE_INTEGRATION_TESTS:-false}
   - CI=${CI:-false}
   - RBPORTAL_MOCHA_TEST_PATHS=${RBPORTAL_MOCHA_TEST_PATHS:-}
+  - RBPORTAL_MOCHA_LAYOUT=${RBPORTAL_MOCHA_LAYOUT:-image}
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
   # Keep the schema contract default explicit when tests regenerate runtime config shims.
   - sails_recordSchema__unknownProperties=allow
