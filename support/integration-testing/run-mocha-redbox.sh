@@ -5,6 +5,12 @@ set -o xtrace
 
 cd /opt/redbox-portal
 
+use_portal_mongodb=false
+if [[ "${1:-}" == --use-portal-mongodb ]]; then
+  use_portal_mongodb=true
+  shift
+fi
+
 # Remove the output from any previous tests
 rm -rf /opt/redbox-portal/coverage/mocha/* || true
 rm /opt/redbox-portal/.tmp/junit/backend-mocha/backend-mocha.xml || true
@@ -40,27 +46,18 @@ if [[ ${#test_args[@]} -eq 0 ]]; then
   test_args=(test/integration/**/*.test.ts)
 fi
 
-# Ensure dependencies are available (install if missing)
-if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
-  echo "Test dependencies not found. Running npm install..."
-  npm install
+# Reuse the compiled checkout's portal install. Installing from the lockfile
+# also supplies Redoc when restoring the portal's development dependencies.
+if [[ ! -x node_modules/.bin/mocha || ! -x node_modules/.bin/nyc || ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
+  npm ci --include=dev --ignore-scripts --strict-peer-deps
 fi
-
-if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
-  npm install --no-save --ignore-scripts --strict-peer-deps redoc@3.0.1
-fi
-
-# A mounted checkout can contain standalone installs from the package builds.
-# Use the portal's MongoDB and BSON copies so Waterline and native clients share constructors.
-for package in redbox-core redbox-mcp sails-hook-redbox-storage-mongo; do
-  rm -rf "packages/$package/node_modules/mongodb" "packages/$package/node_modules/bson"
-done
 
 npm run webpack
 
-# Redoc is only needed to build the browser bundle. Remove it and its transitive
-# `should` package before Sails boots so moduleloader does not scan them.
-rm -rf node_modules/redoc node_modules/should
+# Pass the mounted portal's resolution hook to shim generation and nyc's Mocha process.
+if [[ "$use_portal_mongodb" == true ]]; then
+  export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--require=/opt/redbox-portal/support/development/use-portal-mongodb.cjs"
+fi
 
 # Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level

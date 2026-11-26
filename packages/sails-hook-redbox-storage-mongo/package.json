@@ -71,6 +71,9 @@
     "rxjs": "7.8.2"
   },
   "overrides": {
+    "sails-mongo": {
+      "mongodb": "7.9.0"
+    },
     "on-headers": "1.1.0",
     "serialize-javascript": "7.1.4",
     "uuid": "14.0.0",

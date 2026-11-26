@@ -86,6 +86,8 @@ services:
     <<: *rbportal-service
     profiles: [mount]
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    working_dir: /opt/redbox-portal
+    entrypoint: [node, --require, ./support/development/use-portal-mongodb.cjs, --enable-source-maps, --inspect=0.0.0.0:9876, app.js]
     volumes:
       - '../../:/opt/redbox-portal:delegated'
       - './.dev/attachments:/attachments:delegated'
