@@ -125,7 +125,7 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   await title.fill('Synthetic checkbox details acceptance record (amended)');
   const updated = await captureUpdate(page, oid);
   await page.getByRole('button', { name: 'Activate' }).click();
-  const { ok: activated, body: active } = await updated;
+  const { ok: activated, body: active } = await updated.response;
   expect(activated, JSON.stringify(active)).toBeTruthy();
   expect(active.data.workflow.stage).toBe('active');
 
@@ -181,7 +181,8 @@ const captureUpdate = async (page: Page, oid: string) => {
     await route.fulfill({ response });
   };
   await page.route(matches, handler);
-  return captured.finally(() => page.unroute(matches, handler));
+  // Wrap the pending capture so awaiting route registration does not also wait for the save.
+  return { response: captured.finally(() => page.unroute(matches, handler)) };
 };
 const save = async (page: Page, label: string, method: 'POST' | 'PUT', id: string) => {
   const updated = method === 'PUT' ? await captureUpdate(page, id) : undefined;
@@ -191,7 +192,7 @@ const save = async (page: Page, label: string, method: 'POST' | 'PUT', id: strin
     ),
     page.getByRole('button', { name: label, exact: true }).click(),
   ]);
-  const { ok, body } = updated ? await updated : { ok: created!.ok(), body: await created!.json() };
+  const { ok, body } = updated ? await updated.response : { ok: created!.ok(), body: await created!.json() };
   expect(ok, JSON.stringify(body)).toBeTruthy();
   return body.data;
 };
