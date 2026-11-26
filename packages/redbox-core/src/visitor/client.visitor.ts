@@ -1239,7 +1239,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
     const elementTemplateFormConfig = new FormConfig();
     elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
-    const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig});
+    const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig, forEditProjection: this.formMode === 'edit'});
     this.applyRepeatableComponentSchemaOverrides(elementTemplateSchema, elementTemplateCompConfig.componentDefinitions);
 
     // Remove any data model items that are not present in the schema.
@@ -1330,8 +1330,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     schemaPath = schemaPath ?? [];
     valuePath = valuePath ?? [];
 
+    const typeaheadSelection = currentSchema['selection'] === 'typeahead';
+    if (typeaheadSelection && (currentValue === null || typeof currentValue === 'string')) {
+      return currentValue;
+    }
     let result: unknown = structuredClone(currentValue);
-    const schemaKeys = Object.keys(currentSchema);
+    const schemaKeys = Object.keys(currentSchema).filter(key => !typeaheadSelection || key !== 'selection');
     const propKeys = ['properties', 'optionalProperties'];
 
     // For debugging:
@@ -1361,6 +1365,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       const resultObj = (result ?? {}) as Record<string, unknown>;
       const resultKeys = Object.keys(resultObj);
       const propSchemaKeys = [...Object.keys(propertiesSchema), ...Object.keys(optionalPropertiesSchema)];
+      // The typeahead also renders the label/value object stored by older forms.
+      if (typeaheadSelection && typeof resultObj.label === 'string' && typeof resultObj.value === 'string') {
+        propSchemaKeys.push('label', 'value');
+      }
       for (const key of resultKeys) {
         // Remove names missing in the schema.
         if (!propSchemaKeys.includes(key) && Object.hasOwn(resultObj, key)) {

@@ -179,6 +179,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   private typeaheadOptionObjectFieldsByJsonPath: Map<string, Record<string, string>>;
   private formPathHelper: FormPathHelper;
   private forFormSave = false;
+  private forEditProjection = false;
 
   constructor(logger: ILogger) {
     super(logger);
@@ -194,8 +195,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
    * @param options Configure the visitor.
    * @param options.form The constructed form.
    */
-  async start(options: { form: FormConfigOutline; forFormSave?: boolean }): Promise<Record<string, unknown>> {
+  async start(options: { form: FormConfigOutline; forFormSave?: boolean; forEditProjection?: boolean }): Promise<Record<string, unknown>> {
     this.forFormSave = options.forFormSave ?? false;
+    this.forEditProjection = options.forEditProjection ?? false;
     this.jsonTypeDefPath = [];
     this.jsonTypeDef = {};
     this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
@@ -514,7 +516,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         };
 
       _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-        ...(this.forFormSave ? { selection: 'typeahead' } : {}),
+        ...(this.forFormSave || this.forEditProjection ? { selection: 'typeahead' } : {}),
         properties,
         optionalProperties: {
           sourceType: { type: 'string' },

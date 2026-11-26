@@ -133,6 +133,7 @@ describe('RecordController update', () => {
                 class: 'GroupComponent',
                 config: { componentDefinitions: [
                   input('name'),
+                  input('optionalNote'),
                   adminInput('internalCode'),
                   conditionalInput,
                   { name: 'fundingBody', ...fundingSelection },
@@ -147,7 +148,7 @@ describe('RecordController update', () => {
                           model: { class: 'GroupModel', config: {} },
                           component: {
                             class: 'GroupComponent',
-                            config: { componentDefinitions: [input('text'), adminInput('internalCode')] },
+                            config: { componentDefinitions: [input('text'), conditionalInput, adminInput('internalCode')] },
                           },
                         },
                       },
@@ -225,6 +226,20 @@ describe('RecordController update', () => {
     const status = sinon.stub();
     const res = { json, set: sinon.stub(), status } as unknown as Sails.Res;
     return { res, json, status };
+  }
+
+  async function loadContributorRows() {
+    const request = makeRequest({}, { name: 'auto', edit: 'true', apiVersion: '2.0' });
+    const response = makeResponse();
+    await controller.getForm(request, response.res);
+    const config = response.json.firstCall.args[0].data as FormConfigFrame;
+    const contributors = config.componentDefinitions?.find(field => field.name === 'contributors');
+    return contributors?.model?.config?.value as {
+      name: string;
+      fundingBody?: unknown;
+      optionalNote?: string | null;
+      notes?: { text: string; conditional?: string }[];
+    }[];
   }
 
   it('preserves omitted metadata and applies editable changes on a form save with a transition', async () => {
@@ -319,7 +334,8 @@ describe('RecordController update', () => {
   it('preserves legacy lookup selections and applies replacements and explicit clears', async () => {
     const legacy = { label: 'Legacy funding body', value: 'legacy-id' };
     const selected = { dc_title: 'New funding body', dc_identifier: 'new-id' };
-    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({
       ...currentRecord,
       metadata: {
         ...currentRecord.metadata, [fundingField]: [legacy],
@@ -327,17 +343,29 @@ describe('RecordController update', () => {
       },
     });
 
+    const [loaded] = await loadContributorRows();
+    expect(loaded.fundingBody).to.deep.equal(legacy);
     await controller.update(makeRequest({
-      title: 'Edited', [fundingField]: [{ ...legacy }], contributors: [{ name: 'After', fundingBody: { ...legacy } }],
+      title: 'Edited', [fundingField]: [{ ...legacy }], contributors: [{ ...loaded, name: 'After' }],
     }, { formSave: 'true' }), makeResponse().res);
     expect(updateMeta.firstCall.args[7][fundingField]).to.deep.equal([legacy]);
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ name: 'After', fundingBody: legacy }]);
 
-    await controller.update(makeRequest({ [fundingField]: [selected] }, { formSave: 'true' }), makeResponse().res);
+    await controller.update(makeRequest({
+      [fundingField]: [selected], contributors: [{ ...loaded, fundingBody: selected }],
+    }, { formSave: 'true' }), makeResponse().res);
     expect(updateMeta.secondCall.args[7][fundingField]).to.deep.equal([selected]);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([{ name: 'Before', fundingBody: selected }]);
 
-    await controller.update(makeRequest({ [fundingField]: [null] }, { formSave: 'true' }), makeResponse().res);
+    await controller.update(makeRequest({
+      [fundingField]: [null], contributors: [{ ...loaded, fundingBody: null }],
+    }, { formSave: 'true' }), makeResponse().res);
     expect(updateMeta.thirdCall.args[7][fundingField]).to.deep.equal([null]);
+    const cleared = updateMeta.thirdCall.args[7];
+    expect(cleared.contributors).to.deep.equal([{ name: 'Before', fundingBody: null }]);
+    read.resolves({ ...currentRecord, metadata: cleared });
+    const [reloaded] = await loadContributorRows();
+    expect(reloaded.fundingBody).to.be.null;
   });
 
   it('keeps an omitted conditional child with a retained repeatable row and allows an explicit clear', async () => {
@@ -353,6 +381,59 @@ describe('RecordController update', () => {
     const cleared = [{ name: 'Alpha', conditional: null }, { name: 'Beta' }];
     await controller.update(makeRequest({ contributors: cleared }, { formSave: 'true' }), makeResponse().res);
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal(cleared);
+  });
+
+  it('preserves a retained inner row’s omitted child when the preceding inner row is removed', async () => {
+    const notes = [{ text: 'Removed' }, { text: 'Retained', conditional: 'Stored' }];
+    const contributors = [{ name: 'Alpha', notes }];
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    const [loaded] = await loadContributorRows();
+    expect(loaded.notes).to.deep.equal(notes);
+    const visibleNotes = loaded.notes!.slice(1).map(({ text }) => ({ text }));
+
+    await controller.update(makeRequest({
+      contributors: [{ ...loaded, notes: visibleNotes }],
+    }, { formSave: 'true' }), makeResponse().res);
+
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ name: 'Alpha', notes: [notes[1]] }]);
+  });
+
+  it('rejects inner-row changes when two parents could own an omitted child', async () => {
+    const contributors = ['First', 'Second'].map(conditional => ({
+      name: 'Alpha', notes: [{ text: 'Removed' }, { text: 'Retained', conditional }],
+    }));
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    const { res, status } = makeResponse();
+    await controller.update(makeRequest({
+      contributors: [{ name: 'Alpha', notes: [{ text: 'Retained' }] }],
+    }, { formSave: 'true' }), res);
+
+    sinon.assert.calledOnceWithExactly(status, 400);
+    sinon.assert.notCalled(updateMeta);
+  });
+
+  it('treats a missing optional control as empty and still applies an explicit clear to a stored value', async () => {
+    const contributor = { name: 'Alpha', internalCode: 'Keep' };
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] } });
+    const [loaded] = await loadContributorRows();
+    expect(loaded).to.deep.equal({ name: 'Alpha' });
+
+    const submitted = { ...loaded, optionalNote: null };
+    await controller.update(makeRequest({
+      title: 'Edited', contributors: [submitted],
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([contributor]);
+
+    read.resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [{ ...contributor, optionalNote: 'Before' }] },
+    });
+    await controller.update(makeRequest({ contributors: [submitted] }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([{ ...contributor, optionalNote: null }]);
   });
 
   it('rejects a repeatable edit when an omitted child cannot be assigned to a submitted row', async () => {
