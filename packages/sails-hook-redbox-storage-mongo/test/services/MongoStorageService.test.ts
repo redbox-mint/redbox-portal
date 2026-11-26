@@ -114,7 +114,10 @@ describe('MongoStorageService', function () {
 
     Record = {
       tableName: 'record',
-      getDatastore: sandbox.stub().returns({ manager: mockDb }),
+      getDatastore: sandbox.stub().returns({
+        manager: mockDb,
+        driver: { mongodb: { GridFSBucket: sandbox.stub().callsFake(() => mockBucket) } },
+      }),
       create: sandbox.stub().resolves({}),
       destroyOne: sandbox.stub().resolves({}),
       updateOne: sandbox.stub(),
@@ -175,10 +178,6 @@ describe('MongoStorageService', function () {
       stagingDisk: sandbox.stub(),
       disk: sandbox.stub(),
     };
-
-    sandbox.stub(mongodb, 'GridFSBucket').callsFake(function () {
-      return mockBucket as any;
-    });
 
     delete require.cache[require.resolve('../../src/services/MongoStorageService')];
     const { Services } = require('../../src/services/MongoStorageService');
