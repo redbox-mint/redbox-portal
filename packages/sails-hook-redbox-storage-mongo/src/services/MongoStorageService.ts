@@ -134,9 +134,11 @@ type JsonMap = Record<string, unknown>;
 type StorageRecord = RecordModel;
 type MongoRecordDocument = Document;
 type WaterlineModel = Model;
-type MongoDatastore = ReturnType<WaterlineModel['getDatastore']> & {
-  driver?: { mongodb?: Pick<typeof mongodb, 'GridFSBucket'> };
-};
+/** The parts of the Sails Mongo datastore that GridFS needs. */
+interface MongoDatastore {
+  manager: unknown;
+  driver?: { mongodb?: { GridFSBucket?: typeof mongodb.GridFSBucket } };
+}
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
 type StorageInitializationErrorClassification =
@@ -979,7 +981,7 @@ export namespace Services {
       ) {
         return;
       }
-      const datastore: MongoDatastore = Record.getDatastore();
+      const datastore = Record.getDatastore() as MongoDatastore;
       // A GridFS upload creates BSON values that the datastore's driver must serialize.
       const GridFSBucket = datastore.driver?.mongodb?.GridFSBucket;
       if (!GridFSBucket) {
