@@ -50,6 +50,12 @@ if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
   npm install --no-save --ignore-scripts --strict-peer-deps redoc@3.0.1
 fi
 
+# A mounted checkout can contain standalone installs from the package builds.
+# Use the portal's MongoDB and BSON copies so Waterline and native clients share constructors.
+for package in redbox-core redbox-mcp sails-hook-redbox-storage-mongo; do
+  rm -rf "packages/$package/node_modules/mongodb" "packages/$package/node_modules/bson"
+done
+
 npm run webpack
 
 # Redoc is only needed to build the browser bundle. Remove it and its transitive

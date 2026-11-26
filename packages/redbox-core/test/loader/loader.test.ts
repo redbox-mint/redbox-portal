@@ -816,7 +816,7 @@ describe('redbox-loader', function () {
             expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
         });
 
-        function loadBootstrapShim(content: string, migrationsRequire: () => unknown): () => unknown {
+        function loadBootstrapShim(content: string, shimModules: Record<string, () => unknown>): () => unknown {
             let capturedMigrations: unknown;
             const fakeCore = {
                 coreBootstrap: async () => undefined,
@@ -835,8 +835,8 @@ describe('redbox-loader', function () {
                 if (id === '@researchdatabox/redbox-core') {
                     return fakeCore;
                 }
-                if (id === './migrations') {
-                    return migrationsRequire();
+                if (Object.hasOwn(shimModules, id)) {
+                    return shimModules[id]();
                 }
                 throw new Error(`Unexpected require: ${id}`);
             };
@@ -857,18 +857,41 @@ describe('redbox-loader', function () {
             };
         }
 
-        it('loads migrations after Sails invokes bootstrap', async function () {
-            await redboxLoader.generateBootstrapShim(configDir, []);
+        it('registers migrations before hook bootstraps after Sails invokes bootstrap', async function () {
+            const hook = { name: 'test-hook', module: 'test-hook' };
+            await redboxLoader.generateBootstrapShim(configDir, [hook]);
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, [hook]);
             const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
-            let migrationsLoaded = false;
-            const bootstrap = loadBootstrapShim(content, () => {
-                migrationsLoaded = true;
-                return { migrations: [] };
+            const migrationContent = await fsPromises.readFile(path.join(configDir, 'migrations.js'), 'utf8');
+            const registrations: string[] = [];
+            const hookModule = {
+                registerRedboxMigrations() {
+                    registrations.push('migrations');
+                    return [];
+                },
+                registerRedboxBootstrap() {
+                    registrations.push('bootstrap');
+                    return async () => undefined;
+                },
+            };
+            const bootstrap = loadBootstrapShim(content, {
+                [hook.module]: () => hookModule,
+                './migrations': () => {
+                    const migrationShim = { exports: {} };
+                    vm.runInNewContext(migrationContent, {
+                        require: (id: string) => {
+                            expect(id).to.equal(hook.module);
+                            return hookModule;
+                        },
+                        module: migrationShim,
+                    });
+                    return migrationShim.exports;
+                },
             });
 
-            expect(migrationsLoaded).to.be.false;
+            expect(registrations).to.deep.equal([]);
             bootstrap();
-            expect(migrationsLoaded).to.be.true;
+            expect(registrations).to.deep.equal(['migrations', 'bootstrap']);
         });
 
         it('should tolerate a missing config/migrations.js and default to no migrations', async function () {
@@ -881,7 +904,7 @@ describe('redbox-loader', function () {
                 throw error;
             };
 
-            expect(loadBootstrapShim(content, missingShim)()).to.deep.equal([]);
+            expect(loadBootstrapShim(content, { './migrations': missingShim })()).to.deep.equal([]);
         });
 
         it('should rethrow MODULE_NOT_FOUND raised inside config/migrations.js', async function () {
@@ -894,7 +917,7 @@ describe('redbox-loader', function () {
                 throw error;
             };
 
-            expect(loadBootstrapShim(content, missingHookInsideShim)).to.throw("Cannot find module 'some-uninstalled-hook'");
+            expect(loadBootstrapShim(content, { './migrations': missingHookInsideShim })).to.throw("Cannot find module 'some-uninstalled-hook'");
         });
     });
 

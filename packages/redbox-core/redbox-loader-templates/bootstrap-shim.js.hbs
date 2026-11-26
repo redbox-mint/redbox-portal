@@ -10,11 +10,6 @@
  */
 const { coreBootstrap, preLiftSetup, createGeneratedBootstrap } = require('@researchdatabox/redbox-core');
 
-{{{hookImports}}}
-
-const hookBootstraps = [
-{{{hookCalls}}}];
-
 module.exports.bootstrap = function bootstrap(cb) {
   let migrations = [];
   // Wait for Sails to load its config. Requiring the sibling shim while scanning
@@ -27,6 +22,10 @@ module.exports.bootstrap = function bootstrap(cb) {
     if (!isMigrationsShimMissing) return cb(error);
     console.warn('[redbox-loader] config/migrations.js not found – skipping data migrations. Regenerate shims to resolve.');
   }
+
+{{{hookImports}}}
+  const hookBootstraps = [
+{{{hookCalls}}}  ];
 
   return createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps, migrations)(cb);
 };
