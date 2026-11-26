@@ -62,6 +62,19 @@ describe("RecordService", () => {
     await result;
   });
 
+  it('sends retained row positions separately from the editable values', async () => {
+    const metadata = { creators: [null, { name: 'Editable' }] };
+    const rowEdits = { '["creators"]': [{ retain: 0 }, 1] };
+    const result = recordService.update('oid-123', metadata, '', { formSave: true, rowEdits });
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&rowEdits=true`
+    );
+    expect(request.request.body).toEqual({ metadata, rowEdits });
+    const savedRowCounts = { '["creators"]': 2 };
+    request.flush({ success: true, oid: 'oid-123', savedRowCounts });
+    expect((await result).savedRowCounts).toEqual(savedRowCounts);
+  });
+
   it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {
     const attachments = recordService.getAttachments("failed");
     const attachmentAssertion = expectAsync(attachments).toBeRejected();

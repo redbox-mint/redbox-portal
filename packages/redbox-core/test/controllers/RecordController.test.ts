@@ -133,6 +133,8 @@ describe('RecordController update', () => {
                 class: 'GroupComponent',
                 config: { componentDefinitions: [
                   input('name'),
+                  input('orcid'),
+                  input('email'),
                   input('optionalNote'),
                   adminInput('internalCode'),
                   conditionalInput,
@@ -368,6 +370,119 @@ describe('RecordController update', () => {
     expect(reloaded.fundingBody).to.be.null;
   });
 
+  it('preserves a disabled loaded row without sending its metadata, and removes it when omitted from the row edits', async () => {
+    const contributors = [{ name: 'Disabled', internalCode: 'Private' }, { name: 'Editable' }];
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors } });
+    const loaded = await loadContributorRows();
+    expect(loaded).to.deep.equal([{ name: 'Disabled' }, { name: 'Editable' }]);
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+
+    const response = makeResponse();
+    await controller.update(makeRequest({
+      metadata: { title: 'Edited', contributors: [null, loaded[1]] },
+      rowEdits: { '["contributors"]': [{ retain: 0 }, 1] },
+    }, { formSave: 'true', rowEdits: 'true', apiVersion: '2.0' }), response.res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
+    expect(response.json.firstCall.args[0].meta.savedRowCounts).to.deep.equal({ '["contributors"]': 2 });
+    expect(response.json.firstCall.args[0].data).to.deep.equal({ redboxOid: 'oid-1' });
+
+    await controller.update(makeRequest({
+      metadata: { contributors: [loaded[1]] }, rowEdits: { '["contributors"]': [1] },
+    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([contributors[1]]);
+  });
+
+  it('confirms only the submitted lists whose positions survive save hooks', async () => {
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    updateMeta.callsFake(async (...args) => {
+      const metadata = { ...args[7], keywords: ['Hook changed this'] };
+      read.resolves({ ...currentRecord, metadata });
+      return { success: true, isSuccessful: () => true };
+    });
+    const response = makeResponse();
+    await controller.update(makeRequest({
+      metadata: { contributors: [{ name: 'First' }], keywords: ['keep', 'remove'], concealed: ['Private'] },
+      rowEdits: { '["contributors"]': [0], '["keywords"]': [0, 1], '["concealed"]': [0] },
+    }, { formSave: 'true', rowEdits: 'true', apiVersion: '2.0' }), response.res);
+
+    expect(response.json.firstCall.args[0].meta.savedRowCounts).to.deep.equal({ '["contributors"]': 1 });
+  });
+
+  it('rejects out-of-range and reused row positions before writing', async () => {
+    for (const positions of [[{ retain: 99 }, 1], [{ retain: 1 }, 1]]) {
+      const { res, status } = makeResponse();
+      await controller.update(makeRequest({
+        metadata: { contributors: [null, { name: 'Removed' }] },
+        rowEdits: { '["contributors"]': positions },
+      }, { formSave: 'true', rowEdits: 'true' }), res);
+      sinon.assert.calledOnceWithExactly(status, 400);
+    }
+    sinon.assert.notCalled(updateMeta);
+  });
+
+  it('retains private lookup properties when the edit projection is unchanged for visibly identical rows', async () => {
+    const visible = { dc_title: 'Funding', dc_identifier: 'funding-id' };
+    const contributors = [1, 2].map(number => ({
+      name: 'Alpha',
+      internalCode: `Private ${number}`,
+      fundingBody: { ...visible, externalTag: `Legacy ${number}` },
+    }));
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    const loaded = await loadContributorRows();
+    expect(loaded).to.deep.equal(Array.from({ length: 2 }, () => ({ name: 'Alpha', fundingBody: visible })));
+    await controller.update(makeRequest({
+      title: 'Edited', contributors: loaded,
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
+
+    const fundingBody = { dc_title: 'Replacement', dc_identifier: 'different-id' };
+    await controller.update(makeRequest({
+      metadata: { contributors: [{ ...loaded[0], fundingBody }, loaded[1]] },
+      rowEdits: { '["contributors"]': [0, 1] },
+    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([{ ...contributors[0], fundingBody }, contributors[1]]);
+  });
+
+  it('keeps the stored value field when the edit projection hydrates it as name', async () => {
+    const contributors = [{ value: 'Older label', internalCode: 'Keep' }];
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    const loaded = await loadContributorRows();
+    expect(loaded).to.deep.equal([{ name: 'Older label' }]);
+    await controller.update(makeRequest({
+      title: 'Edited', contributors: loaded,
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
+
+    await controller.update(makeRequest({
+      metadata: { title: 'Edited', contributors: loaded },
+      rowEdits: { '["contributors"]': [0] },
+    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal(contributors);
+  });
+
+  it('updates the email on the retained ORCID contributor and keeps its stored-only fields', async () => {
+    const contributor = { name: 'Creator', orcid: '0000-0002-1825-0097', email: 'old@example.test', internalCode: 'Keep' };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] },
+    });
+    const [loaded] = await loadContributorRows();
+    expect(loaded).not.to.have.property('internalCode');
+    const email = 'corrected@example.test';
+    await controller.update(makeRequest({
+      metadata: { contributors: [{ ...loaded, email }] },
+      rowEdits: { '["contributors"]': [0] },
+    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ ...contributor, email }]);
+  });
+
   it('keeps an omitted conditional child with a retained repeatable row and allows an explicit clear', async () => {
     const contributors = [{ name: 'Alpha', conditional: 'Stored' }, { name: 'Beta' }];
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
@@ -422,6 +537,14 @@ describe('RecordController update', () => {
 
     sinon.assert.calledOnceWithExactly(status, 400);
     sinon.assert.notCalled(updateMeta);
+
+    await controller.update(makeRequest({
+      metadata: { contributors: [{ ...loaded[1], notes: loaded[1].notes!.slice(1) }] },
+      rowEdits: { '["contributors"]': [1], '["contributors",0,"notes"]': [1] },
+    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{
+      ...contributors[1], notes: [contributors[1].notes[1]],
+    }]);
   });
 
   it('replaces a legacy selection without discarding the identified contributor’s private fields', async () => {

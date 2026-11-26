@@ -1,3 +1,5 @@
+import { hydratedName, selectionPropertyNames } from './FormEditProjection';
+
 type Metadata = Record<string, unknown>;
 
 interface FieldSchema {
@@ -10,13 +12,65 @@ interface FieldSchema {
 
 export class FormSaveInputError extends Error {}
 
+type Path = (string | number)[];
+
+export class FormRowSave {
+  private readonly applied = new Map<string, Path>();
+
+  constructor(private readonly rowEdits: Record<string, unknown>) {}
+
+  getEdits(path: Path, previous: unknown[], submitted: unknown[]) {
+    const key = JSON.stringify(path);
+    if (!Object.hasOwn(this.rowEdits, key)) return undefined;
+    const edits = this.rowEdits[key];
+    const invalid = () => new FormSaveInputError('A repeatable row no longer corresponds to its loaded position. Reload the form and retry.');
+    if (!Array.isArray(edits) || edits.length !== submitted.length) throw invalid();
+    const used = new Set<number>();
+    const result = edits.map((edit: unknown, index) => {
+      if (edit === null) return { source: null, retain: false };
+      const retain = _.isPlainObject(edit) && Object.hasOwn(edit as object, 'retain');
+      const source = retain ? (edit as { retain: unknown }).retain : edit;
+      if (typeof source !== 'number' || !Number.isSafeInteger(source) || source < 0 ||
+          source >= previous.length || used.has(source) || (retain && submitted[index] !== null)) {
+        throw invalid();
+      }
+      used.add(source);
+      return { source, retain };
+    });
+    this.applied.set(key, path);
+    return result;
+  }
+
+  savedRowCounts(expected: Metadata, saved: Metadata): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const [key, path] of this.applied) {
+      // A hook which changes a parent list can also invalidate its children's positions.
+      const lists = path.flatMap((part, index) => typeof part === 'number' ? [path.slice(0, index)] : []);
+      if ([...lists, path].every(list => _.isEqual(_.get(expected, list), _.get(saved, list)))) {
+        const rows = _.get(saved, path) as unknown;
+        counts[key] = Array.isArray(rows) ? rows.length : 0;
+      }
+    }
+    return counts;
+  }
+}
+
 function fields(schema: FieldSchema) {
   return { ...schema.properties, ...schema.optionalProperties };
 }
 
+function selectionIsUnchanged(previous: unknown, submitted: unknown, schema: FieldSchema): boolean {
+  if (_.isEqual(previous, submitted)) return true;
+  if (!_.isPlainObject(previous) || !_.isPlainObject(submitted)) return false;
+  const stored = previous as Metadata;
+  const fieldsInForm = Object.keys(fields(schema));
+  const permitted = schema.selection === 'typeahead' ? selectionPropertyNames(stored, fieldsInForm) : fieldsInForm;
+  return _.isEqual(Object.fromEntries(permitted.filter(key => Object.hasOwn(stored, key)).map(key => [key, stored[key]])), submitted);
+}
+
 function hasStoredOnlyValue(value: unknown, schema: FieldSchema, submitted?: unknown): boolean {
   if (schema.selection) {
-    return submitted !== undefined && _.isEqual(value, submitted) && !_.isEqual(value, mergeValue(undefined, submitted, schema));
+    return submitted !== undefined && selectionIsUnchanged(value, submitted, schema) && !_.isEqual(value, mergeValue(undefined, submitted, schema));
   }
   if (schema.elements && Array.isArray(value)) {
     const element = schema.elements;
@@ -55,7 +109,7 @@ function matchesSubmittedFields(previous: unknown, submitted: unknown, schema: F
   // A replacement selection, an inner list edit, or an explicit clear can belong to any matching row.
   if (identityOnly && (submitted === null || submitted === '' || (schema.elements && Array.isArray(submitted)))) return true;
   if (previous === undefined && isBlankInput(submitted, schema)) return true;
-  if (schema.selection) return identityOnly || _.isEqual(previous, submitted);
+  if (schema.selection) return identityOnly || selectionIsUnchanged(previous, submitted, schema);
   if (schema.elements && Array.isArray(previous) && Array.isArray(submitted)) {
     const element = schema.elements;
     return (!previous.length && isBlankInput(submitted, schema)) || (previous.length === submitted.length &&
@@ -66,7 +120,7 @@ function matchesSubmittedFields(previous: unknown, submitted: unknown, schema: F
     const stored = previous as Metadata;
     return Object.entries(submitted as Metadata).every(([key, value]) =>
       !Object.hasOwn(permitted, key) ||
-      matchesSubmittedFields(Object.hasOwn(stored, key) ? stored[key] : undefined, value, permitted[key], identityOnly)
+      matchesSubmittedFields(key === 'name' ? hydratedName(stored) : (Object.hasOwn(stored, key) ? stored[key] : undefined), value, permitted[key], identityOnly)
     );
   }
   return _.isEqual(previous, submitted);
@@ -130,11 +184,19 @@ function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema
   return merged;
 }
 
-function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema): unknown {
+function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema, rows?: FormRowSave, path: Path = []): unknown {
   if (schema.elements) {
     if (Array.isArray(changed)) {
+      const stored = Array.isArray(previous) ? previous : [];
+      const edits = rows?.getEdits(path, stored, changed);
       if (Array.isArray(previous) && !previous.length && isBlankInput(changed, schema)) return previous;
-      return mergeRows(Array.isArray(previous) ? previous : [], changed, schema.elements);
+      if (edits) {
+        return edits.map(({ source, retain }, index) => {
+          const value = source === null ? undefined : stored[source];
+          return retain ? value : mergeValue(value, changed[index], schema.elements!, rows, [...path, index]);
+        });
+      }
+      return mergeRows(stored, changed, schema.elements);
     }
     if (changed === null && !hasStoredOnlyValue(previous, schema)) {
       return null;
@@ -142,11 +204,11 @@ function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema): u
     throw new FormSaveInputError('Use an empty list to remove repeatable rows.');
   }
   if (schema.properties || schema.optionalProperties) {
-    if (schema.selection && _.isEqual(previous, changed)) return previous;
+    if (schema.selection && selectionIsUnchanged(previous, changed, schema)) return previous;
     if (_.isPlainObject(changed)) {
       const input = changed as Metadata;
       const existing = !schema.selection && _.isPlainObject(previous) ? previous as Metadata : undefined;
-      const merged = mergeFormSaveMetadata(existing, input, schema);
+      const merged = mergeFormSaveMetadata(existing, input, schema, schema.selection ? undefined : rows, path);
       // Option-object fields can also hold the label/value shape written by earlier forms.
       if (schema.selection === 'typeahead' && typeof input.label === 'string' && typeof input.value === 'string') {
         return { label: input.label, value: input.value, ...merged };
@@ -164,15 +226,20 @@ function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema): u
   return changed;
 }
 
-export function mergeFormSaveMetadata(previous: Metadata | undefined, submitted: Metadata, schema: FieldSchema): Metadata {
+export function mergeFormSaveMetadata(previous: Metadata | undefined, submitted: Metadata, schema: FieldSchema, rows?: FormRowSave, path: Path = []): Metadata {
   const permitted = fields(schema);
   const merged = { ...previous };
   for (const [key, value] of Object.entries(submitted)) {
     if (!Object.hasOwn(permitted, key)) continue;
     const stored = previous && Object.hasOwn(previous, key);
     // A missing value can appear as an empty control or a default blank row in the form.
-    if (previous && !stored && isBlankInput(value, permitted[key])) continue;
-    merged[key] = mergeValue(stored ? previous[key] : undefined, value, permitted[key]);
+    const childPath = [...path, key];
+    if (previous && !stored && isBlankInput(value, permitted[key])) {
+      if (rows) mergeValue(undefined, value, permitted[key], rows, childPath);
+      continue;
+    }
+    if (previous && path.some(part => typeof part === 'number') && key === 'name' && !_.isEqual(previous.name, hydratedName(previous)) && value === hydratedName(previous)) continue;
+    merged[key] = mergeValue(stored ? previous[key] : undefined, value, permitted[key], rows, childPath);
   }
   return merged;
 }

@@ -89,6 +89,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormComponentsMap, FormService } from './form.service';
+import { FormSaveRows } from './form-save-rows';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import {
   FormComponentFocusRequestCoordinator
@@ -917,8 +918,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.safePlainObjectSnapshot((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
   }
 
+  private readonly formSaveRows = new FormSaveRows();
+
+  public rememberLoadedRow(array: FormArray, row: AbstractControl, index: number): void {
+    this.formSaveRows.remember(array, row, index);
+  }
+
+  public forgetLoadedRows(array: FormArray): void {
+    this.formSaveRows.forget(array);
+  }
+
   private getPersistedFormValue(): Record<string, unknown> {
-    if (!this.form) return {};
+    return this.snapshotForSave(false).metadata;
+  }
+
+  private snapshotForSave(trackRows: boolean, updating = trackRows) {
     const excluded = new Set<AbstractControl>();
     const collectExcluded = (entries: FormFieldCompMapEntry[], parentExcluded = false) => {
       for (const entry of entries) {
@@ -929,19 +943,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     };
     collectExcluded(this.componentDefArr);
 
-    const isEditable = (control: AbstractControl) => control.enabled && !excluded.has(control);
-    const snapshot = (control: AbstractControl): unknown => {
-      if (control instanceof FormGroup) {
-        return Object.fromEntries(Object.entries(control.controls)
-          .filter(([, child]) => isEditable(child))
-          .map(([name, child]) => [name, snapshot(child)]));
-      }
-      if (control instanceof FormArray) {
-        return control.controls.filter(isEditable).map(snapshot);
-      }
-      return control.value;
-    };
-    return structuredClone(snapshot(this.form) as Record<string, unknown>);
+    return this.formSaveRows.snapshot(this.form, control => control.enabled && !excluded.has(control), trackRows, updating);
   }
 
   private getComponentDebugInfo(
@@ -1203,7 +1205,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         try {
           let response: RecordActionResult;
-          const currentFormValue = this.getPersistedFormValue();
+          const oid = this.trimmedParams.oid();
+          const trackRows = !!oid && this.formConfigMeta['oid'] === oid;
+          const submitted = this.snapshotForSave(trackRows, !!oid);
+          const currentFormValue = submitted.metadata;
+          const hasRetainedRows = Object.values(submitted.rowEdits).some(edits => edits.some(edit => typeof edit === 'object' && edit !== null));
+          const savedData = hasRetainedRows ? this.getPersistedFormValue() : currentFormValue;
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
@@ -1215,9 +1222,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
               formSave: true,
               ...(formName ? { formName } : {}),
+              ...(!Object.keys(submitted.rowEdits).length ? {} : { rowEdits: submitted.rowEdits }),
             });
           }
           if (response?.success) {
+            submitted.markSaved(response.savedRowCounts);
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
@@ -1229,7 +1238,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
-                savedData: currentFormValue,
+                savedData,
                 oid: oid,
                 response,
                 closeOnSave: options?.closeOnSave,

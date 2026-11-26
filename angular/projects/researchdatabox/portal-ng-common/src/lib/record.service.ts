@@ -27,7 +27,7 @@ import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
-import { RecordAttachment } from '@researchdatabox/sails-ng-common';
+import { FormRowEdits, RecordAttachment } from '@researchdatabox/sails-ng-common';
 
 export interface RecordTypeConf {
   name: string;
@@ -675,14 +675,15 @@ export class RecordService extends HttpClientService {
     return result as RecordActionResult;
   }
 
-  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean; formName?: string }) {
+  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean; formName?: string; rowEdits?: FormRowEdits }) {
     const httpOptions = this.getHttpOptions();
+    const rowEdits = options?.formSave ? options.rowEdits : undefined;
     const formSaveParam = options?.formSave
-      ? `?formSave=true${options.formName ? `&formName=${encodeURIComponent(options.formName)}` : ''}`
+      ? `?formSave=true${options.formName ? `&formName=${encodeURIComponent(options.formName)}` : ''}${rowEdits ? '&rowEdits=true' : ''}`
       : '';
     const targetStepParam = this.getTargetStepParam(targetStep, formSaveParam ? '&' : '?');
     const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${formSaveParam}${targetStepParam}`;
-    const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
+    const result$ = this.http.put(url, rowEdits ? { metadata: record, rowEdits } : record, httpOptions).pipe(map(res => res));
     let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;
   }
@@ -693,6 +694,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
+  savedRowCounts?: Record<string, number>;
   success: boolean = false;
   oid: string = '';
   message: string = '';

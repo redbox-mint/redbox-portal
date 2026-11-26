@@ -1001,6 +1001,38 @@ describe('FormComponent', () => {
     }, '', { formSave: true });
   });
 
+  it('sends a retained row position instead of the value of a disabled row', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [contributorList([{ name: 'Disabled' }, { name: 'Editable' }])],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    formComponent.formDefMap!.formConfigMeta = { oid: 'publication' };
+    formComponent.form!.get(['creators', 0])!.disable();
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowCounts: { '["creators"]': 2 },
+    });
+
+    await formComponent.saveForm({ force: true });
+
+    expect(update).toHaveBeenCalledOnceWith('publication', {
+      creators: [null, { name: 'Editable' }],
+    }, '', { formSave: true, rowEdits: { '["creators"]': [{ retain: 0 }, 1] } });
+
+    const rows = formComponent.getComponentDefByName('creators')?.component as RepeatableComponent;
+    const layout = rows.formFieldCompMapEntries[0].layout as RepeatableElementLayoutComponent<unknown>;
+    layout.removeFn!();
+    update.and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowCounts: { '["creators"]': 1 },
+    });
+    await formComponent.saveForm({ force: true });
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(1)[3]).toEqual({ formSave: true, rowEdits: { '["creators"]': [1] } });
+    expect(update.calls.argsFor(2)[3]).toEqual({ formSave: true, rowEdits: { '["creators"]': [0] } });
+  });
+
   it('serializes a title edit with hydrated repeatables and disabled children', async () => {
     const textField = (name: string, value?: string): Field => ({
       name,

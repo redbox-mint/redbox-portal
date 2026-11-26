@@ -48,7 +48,7 @@ import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import { FormSaveInputError } from '../utilities/FormSaveMetadata';
+import { FormRowSave, FormSaveInputError } from '../utilities/FormSaveMetadata';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -884,6 +884,7 @@ export namespace Controllers {
       }
 
       let response;
+      let rows: FormRowSave | undefined;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
         if (formSave) {
@@ -891,22 +892,38 @@ export namespace Controllers {
           if (!this.canUseEditForm(req, currentRec, formName)) {
             return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
           }
+          if (req.query.rowEdits === 'true') {
+            if (!_.isPlainObject(req.body?.rowEdits)) throw new FormSaveInputError('Invalid repeatable row edits.');
+            rows = new FormRowSave(req.body.rowEdits);
+            metadata = req.body.metadata;
+          }
           if (!_.isPlainObject(metadata)) {
             throw new FormSaveInputError('Invalid form save payload.');
           }
-          metadata = await this.mergeFormSaveMetadata(req, brand, currentRec, metadata, formName);
+          metadata = await this.mergeFormSaveMetadata(req, brand, currentRec, metadata, formName, rows);
         } else if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
+        const expected = rows ? _.cloneDeep(metadata) : undefined;
         response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
+          let savedRowCounts: ReturnType<FormRowSave['savedRowCounts']> | undefined;
+          if (rows) {
+            try {
+              const saved = await this.recordsService.getMeta(oid);
+              savedRowCounts = rows.savedRowCounts(expected!, saved?.metadata ?? {});
+            } catch (error) {
+              sails.log.warn('RecordController - Could not confirm repeatable rows after save', error);
+              savedRowCounts = {};
+            }
+          }
           return this.sendResp(req, res, {
             // The saved record can contain metadata that was excluded from this user's form.
             data: formSave ? { redboxOid: oid } : await this.recordsService.getMeta(oid),
-            meta: { ...response },
-            v1: response,
+            meta: { ...response, ...(savedRowCounts ? { savedRowCounts } : {}) },
+            v1: savedRowCounts ? { ...response, savedRowCounts } : response,
           });
         } else {
           return this.sendResp(req, res, {
@@ -950,7 +967,7 @@ export namespace Controllers {
       }
     }
 
-    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, formName: string): Promise<AnyRecord> {
+    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, formName: string, rows?: FormRowSave): Promise<AnyRecord> {
       const form = await FormsService.getForm(brand, formName, true, '', record);
       if (!form?.configuration) {
         throw new Error(`Form configuration not found for record: ${record.redboxOid}`);
@@ -964,7 +981,7 @@ export namespace Controllers {
       );
       const original = { redboxOid: record.redboxOid, metadata: record.metadata };
       const merged = await FormRecordConsistencyService.mergeRecordClientFormConfig(
-        original, { redboxOid: record.redboxOid, metadata }, clientFormConfig, 'edit', reusableFormDefs, { partialFormSave: true }
+        original, { redboxOid: record.redboxOid, metadata }, clientFormConfig, 'edit', reusableFormDefs, { partialFormSave: true, rows }
       );
       return merged.metadata;
     }

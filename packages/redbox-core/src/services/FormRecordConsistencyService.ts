@@ -33,7 +33,7 @@ import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
-import { mergeFormSaveMetadata } from '../utilities/FormSaveMetadata';
+import { mergeFormSaveMetadata, type FormRowSave } from '../utilities/FormSaveMetadata';
 
 
 
@@ -156,7 +156,7 @@ export namespace Services {
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
             reusableFormDefs?: ReusableFormDefinitions,
-            options?: { partialFormSave?: boolean }
+            options?: { partialFormSave?: boolean; rows?: FormRowSave }
         ): Promise<BasicRedboxRecord> {
             const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
             const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs, options?.partialFormSave);
@@ -166,7 +166,7 @@ export namespace Services {
                 ...original,
                 redboxOid: original?.redboxOid ?? "",
                 metadata: options?.partialFormSave
-                    ? mergeFormSaveMetadata(originalMetadata, changedMetadata, permittedChanges)
+                    ? mergeFormSaveMetadata(originalMetadata, changedMetadata, permittedChanges, options.rows)
                     : this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, this.compareRecords(original, changed)),
             }
         }

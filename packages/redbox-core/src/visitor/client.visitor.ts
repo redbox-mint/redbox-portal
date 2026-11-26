@@ -1,3 +1,4 @@
+import { hydratedName, selectionPropertyNames } from '../utilities/FormEditProjection';
 import { cloneDeep as _cloneDeep } from 'lodash';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
@@ -1364,11 +1365,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       // Remove properties not in the schema.
       const resultObj = (result ?? {}) as Record<string, unknown>;
       const resultKeys = Object.keys(resultObj);
-      const propSchemaKeys = [...Object.keys(propertiesSchema), ...Object.keys(optionalPropertiesSchema)];
-      // The typeahead also renders the label/value object stored by older forms.
-      if (typeaheadSelection && typeof resultObj.label === 'string' && typeof resultObj.value === 'string') {
-        propSchemaKeys.push('label', 'value');
-      }
+      const properties = [...Object.keys(propertiesSchema), ...Object.keys(optionalPropertiesSchema)];
+      const propSchemaKeys = typeaheadSelection ? selectionPropertyNames(resultObj, properties) : properties;
       for (const key of resultKeys) {
         // Remove names missing in the schema.
         if (!propSchemaKeys.includes(key) && Object.hasOwn(resultObj, key)) {
@@ -1426,10 +1424,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     // Legacy schema has value instead of name.
     // Add the value as the name if name is missing.
-    const isObjPropNameString = typeof result.name === 'string' && result.name.length > 0;
-    const isObjPropValueString = typeof result.value === 'string' && result.value.length > 0;
-    if (hasSchemaPropName && !isObjPropNameString && isObjPropValueString) {
-      result.name = result.value;
+    if (hasSchemaPropName) {
+      const name = hydratedName(result);
+      if (name !== undefined) result.name = name;
     }
 
     // Build each of the current value's properties matching the schema.

@@ -203,19 +203,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     // By default a repeatable creates one row. Legacy configs can opt into zero-row behavior.
     if (elemVals.length === 0 && !this.allowZeroRows) {
-      // If we get here, there is no default from the repeatable or an ancestor.
-      // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
-      // If there is no model value, use undefined.
-      // Undefined is not set to control.value, anything else is set, which is what we want.
-      const elementTemplateValue = this.getElementTemplateDefaultValue();
-      elemVals.push(elementTemplateValue);
-      this.loggerService.warn(
-        `${this.logName}: Created one element for repeatable '${formComponentName}' with no value: ${JSON.stringify(elemVals)}`
-      );
+      await this.appendNewElement(undefined, false);
     }
-
-    for (const elementValue of elemVals) {
-      await this.appendNewElement(elementValue, false);
+    for (const [index, elementValue] of elemVals.entries()) {
+      await this.appendNewElement(elementValue, false, undefined, index);
     }
 
     this.setupSyncSourceSubscriptions();
@@ -509,7 +500,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
   }
 
-  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
+  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions, initialIndex?: number) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -518,6 +509,11 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
     await this.createElement(elemEntry, options);
+    const row = elemEntry.defEntry.model?.formControl;
+    const array = this.model?.formControl;
+    if (initialIndex !== undefined && row && array) {
+      this.getFormComponent.rememberLoadedRow(array, row, initialIndex);
+    }
     if (markFormDirty && this.shouldEmitComponentEvents(options)) {
       this.requestFormDirty('repeatable.element.appended');
     }
@@ -525,6 +521,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
+    const array = this.model?.formControl;
+    if (array && _isEqual(array.getRawValue(), nextValues)) return;
+    if (array) this.getFormComponent.forgetLoadedRows(array);
 
     while (this.compDefMapEntries.length > 0) {
       const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
