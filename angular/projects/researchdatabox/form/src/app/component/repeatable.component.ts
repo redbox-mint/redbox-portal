@@ -13,6 +13,7 @@ import {
   GroupFieldComponentName,
   isTypeFieldDefinitionName,
   RepeatableComponentName,
+  isStaticallyDisabledFormField,
   RepeatableElementLayoutName,
   RepeatableFieldComponentConfig,
   RepeatableFieldComponentDefinitionFrame,
@@ -77,7 +78,7 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
       >
         <ng-container #repeatableContainer></ng-container>
       </div>
-      @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
+      @if (isStatusReady() && isVisible && addButtonShow && !readOnlyRows && canChangeRows && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
         <button
           type="button"
           class="rb-form-repeatable__add btn btn-success"
@@ -101,6 +102,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected allowZeroRows = false;
   protected hideWhenZeroRows = false;
   protected canSort = false;
+  protected readOnlyRows = false;
 
   protected formService = inject(FormService);
   protected elemInitFieldEntry?: FormFieldCompMapEntry;
@@ -124,6 +126,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
+  }
+
+  protected get canChangeRows(): boolean {
+    const array = this.model?.formControl;
+    return !!array && this.getFormComponent.canEditRepeatable(array, this.readOnlyRows) &&
+      (!this.readOnlyRows || this.formService.shouldIncludeInFormControlMap(this.formFieldCompMapEntry, true));
   }
 
   protected override async initData() {
@@ -181,6 +189,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const formControl = this.model.formControl;
     if (formControl instanceof RepeatableFormArray) {
+      this.readOnlyRows = isStaticallyDisabledFormField(elementTemplate);
+      if (this.readOnlyRows) this.getFormComponent.markRowsReadOnly(formControl);
       formControl.customValueSetter = (value, options) =>
         this.replaceAllElements(Array.isArray(value) ? value : [], options);
     }
@@ -641,6 +651,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       layoutInstance.setDisabled(true, options);
       compInstance?.setDisabled(true, options);
     }
+    layoutInstance.canChangeRows = () => this.canChangeRows;
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
     layoutInstance.moveDownFn = this.moveElementFn(elemEntry, 1);
@@ -856,7 +867,7 @@ export interface RepeatableElementEntry {
       <div class="rb-form-repeatable-item__content">
         <ng-container #componentContainer></ng-container>
       </div>
-      @if (isVisible && (canRemove || (canSort && (canMoveUp || canMoveDown)))) {
+      @if (isVisible && canChangeRows() && (canRemove || (canSort && (canMoveUp || canMoveDown)))) {
         <div class="rb-form-repeatable-item__actions">
           @if (canSort && (canMoveUp || canMoveDown)) {
             <div class="rb-form-repeatable-item__sort btn-group-vertical">
@@ -911,6 +922,7 @@ export interface RepeatableElementEntry {
 })
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = RepeatableElementLayoutName;
+  public canChangeRows = () => true;
   public removeFn?: () => void;
   public moveUpFn?: () => void;
   public moveDownFn?: () => void;
@@ -931,14 +943,17 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   }
 
   protected clickedRemove() {
+    if (!this.canChangeRows()) return;
     this.removeFn?.call(this);
   }
 
   protected clickedMoveUp() {
+    if (!this.canChangeRows()) return;
     this.moveUpFn?.call(this);
   }
 
   protected clickedMoveDown() {
+    if (!this.canChangeRows()) return;
     this.moveDownFn?.call(this);
   }
 }

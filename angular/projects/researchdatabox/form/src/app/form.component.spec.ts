@@ -1081,6 +1081,59 @@ describe('FormComponent', () => {
     expect(update.calls.argsFor(1)).toEqual(['publication', { title: 'Draft' }, '', { formSave: true }]);
   });
 
+  it('persists visible move and remove actions for a repeatable with read-only values', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+        ...['orderedReadOnly', 'readOnlyDefaults'].map(name => ({
+          name,
+          model: { class: 'RepeatableModel' as const, config: { value: ['First', 'Second'] } },
+          component: {
+            class: 'RepeatableComponent' as const,
+            config: { allowZeroRows: true, canSort: true, elementTemplate: {
+              name: '',
+              model: { class: 'SimpleInputModel' as const, config: { disabled: true } },
+              component: { class: 'SimpleInputComponent' as const },
+            } },
+          },
+        })),
+      ],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    const path = '["orderedReadOnly"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path, '["readOnlyDefaults"]'], rowProofs: { [path]: ['first', 'second'] },
+    };
+    fixture.detectChanges();
+    const editor: HTMLElement = fixture.nativeElement;
+    expect(editor.querySelector('.rb-form-repeatable__add')).toBeNull();
+    expect(editor.querySelectorAll('.rb-form-repeatable-item__remove').length).toBe(2);
+    const moveDown = editor.querySelector<HTMLButtonElement>('.rb-form-repeatable-item__move-down')!;
+    expect(moveDown.disabled).toBeFalse();
+    moveDown.click();
+    fixture.detectChanges();
+
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['second-now-first', 'first-now-second'] },
+    });
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(0)).toEqual(['publication', { title: 'Draft', orderedReadOnly: [null, null] }, '', {
+      formSave: true, rowEdits: { [path]: [{ source: 1, proof: 'second', retain: true }, { source: 0, proof: 'first', retain: true }] },
+    }]);
+
+    const remove = editor.querySelectorAll<HTMLButtonElement>('.rb-form-repeatable-item__remove')[1];
+    expect(remove.disabled).toBeFalse();
+    remove.click();
+    fixture.detectChanges();
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(1)).toEqual(['publication', { title: 'Draft', orderedReadOnly: [null] }, '', {
+      formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'second-now-first', retain: true }] },
+    }]);
+  });
+
   it('omits a repeatable whose row template is statically disabled', async () => {
     const config: FormConfigFrame = {
       name: 'publication-draft',
@@ -1095,6 +1148,7 @@ describe('FormComponent', () => {
               name: '',
               model: { class: 'SimpleInputModel', config: { disabled: true } },
               component: { class: 'SimpleInputComponent' },
+              layout: { class: 'RepeatableElementLayout', config: { disabled: true } },
             } },
           },
         },
@@ -1138,11 +1192,15 @@ describe('FormComponent', () => {
         },
       ],
     };
-    const { formComponent } = await createFormAndWaitForReady(config, {
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
       oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
     });
     formComponent.formDefMap!.formConfigMeta = { oid: 'publication', rowProofs: {}, editableRowPaths: [] };
     expect(formComponent.form!.get(['displayOnly', 0])).toBeInstanceOf(FormGroup);
+    fixture.detectChanges();
+    const editor: HTMLElement = fixture.nativeElement;
+    expect(editor.querySelector('.rb-form-repeatable__add')).toBeNull();
+    expect(editor.querySelector('.rb-form-repeatable-item__remove')).toBeNull();
     const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
       success: true, oid: 'publication', message: '', data: null,
     });

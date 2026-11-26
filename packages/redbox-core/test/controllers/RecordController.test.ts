@@ -104,7 +104,20 @@ describe('RecordController update', () => {
         model: { class: 'GroupModel', config: {} },
         component: {
           class: 'GroupComponent',
-          config: { componentDefinitions: [input('summary'), adminInput('internalCode')] },
+          config: { componentDefinitions: [
+            input('summary'),
+            adminInput('internalCode'),
+            {
+              ...repeatable('readOnlyRows'),
+              component: {
+                class: 'RepeatableComponent',
+                config: { elementTemplate: {
+                  ...input(''),
+                  model: { class: 'SimpleInputModel', config: { disabled: true } },
+                } },
+              },
+            },
+          ] },
         },
       },
       repeatable('keywords'),
@@ -115,6 +128,7 @@ describe('RecordController update', () => {
           config: { elementTemplate: {
             ...input(''),
             model: { class: 'SimpleInputModel', config: { disabled: true } },
+            layout: { class: 'RepeatableElementLayout', config: { disabled: true } },
           } },
         },
       },
@@ -128,6 +142,30 @@ describe('RecordController update', () => {
             component: { class: 'GroupComponent', config: { componentDefinitions: [
               { ...input('name'), model: { class: 'SimpleInputModel', config: { disabled: true } } },
             ] } },
+          } },
+        },
+      },
+      {
+        ...repeatable('orderedReadOnly'),
+        component: {
+          class: 'RepeatableComponent',
+          config: { allowZeroRows: true, canSort: true, elementTemplate: {
+            name: '',
+            model: { class: 'GroupModel', config: { disabled: true } },
+            component: { class: 'GroupComponent', config: { componentDefinitions: [
+              input('name'), adminInput('internalCode'),
+            ] } },
+          } },
+        },
+      },
+      {
+        ...repeatable('nameAndValue'),
+        component: {
+          class: 'RepeatableComponent',
+          config: { elementTemplate: {
+            name: '',
+            model: { class: 'GroupModel' },
+            component: { class: 'GroupComponent', config: { componentDefinitions: [input('name'), input('value')] } },
           } },
         },
       },
@@ -509,6 +547,54 @@ describe('RecordController update', () => {
     expect(updateMeta.firstCall.args[7].displayOnly).to.deep.equal(['Keep']);
   });
 
+  it('persists remove and reorder actions for read-only rows using proofs', async () => {
+    const path = '["orderedReadOnly"]';
+    const orderedReadOnly = [{ name: 'First', internalCode: 'Keep first' }, { name: 'Second', internalCode: 'Keep second' }];
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, orderedReadOnly } });
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+    const form = await loadFormForRowEdits();
+    expect(form.editableRowPaths).to.include(path);
+    expect(form.proofs[path]).to.have.length(2);
+    const response = makeResponse();
+    await controller.update(await rowSaveRequest(
+      { orderedReadOnly: [null, null] }, { [path]: [{ retain: 1 }, { retain: 0 }] }, form
+    ), response.res);
+    expect(updateMeta.lastCall.args[7].orderedReadOnly).to.deep.equal([orderedReadOnly[1], orderedReadOnly[0]]);
+
+    const proofs = response.json.firstCall.args[0].meta.savedRowProofs;
+    await controller.update(await rowSaveRequest(
+      { orderedReadOnly: [null] }, { [path]: [{ retain: 0 }] }, { ...form, proofs }
+    ), makeResponse().res);
+    expect(updateMeta.lastCall.args[7].orderedReadOnly).to.deep.equal([orderedReadOnly[1]]);
+
+    const reloaded = await loadFormForRowEdits();
+    expect(reloaded.config.componentDefinitions?.find(field => field.name === 'orderedReadOnly')?.model?.config?.value)
+      .to.deep.equal([{ name: 'Second' }]);
+    const invalid = makeResponse();
+    await controller.update(await rowSaveRequest(
+      { orderedReadOnly: [{ name: 'Forged' }] }, { [path]: [0] }, reloaded
+    ), invalid.res);
+    sinon.assert.calledOnceWithExactly(invalid.status, 400);
+    sinon.assert.calledTwice(updateMeta);
+  });
+
+  it('rejects a whole group clear that would remove read-only rows without row edits', async () => {
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, newGroup: { summary: 'Before', readOnlyRows: ['Keep'] } },
+    });
+    const form = await loadFormForRowEdits();
+    expect(form.editableRowPaths).to.include('["newGroup","readOnlyRows"]');
+
+    const response = makeResponse();
+    await controller.update(makeRequest({ newGroup: null }, { formSave: 'true' }), response.res);
+    sinon.assert.calledOnceWithExactly(response.status, 400);
+    sinon.assert.notCalled(updateMeta);
+  });
+
   it('describes editable list paths independently of loaded rows and excludes read-only row groups', async () => {
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       ...currentRecord, metadata: {
@@ -662,12 +748,12 @@ describe('RecordController update', () => {
       });
       expect(await loadContributorRows()).to.deep.equal([{ name: 'Older label' }]);
       await controller.update(await rowSaveRequest({ contributors: [{ name }] }, { '["contributors"]': [0] }), makeResponse().res);
-      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name, internalCode: 'Keep' }]);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name, value: 'Older label', internalCode: 'Keep' }]);
       expect(await loadContributorRows()).to.deep.equal([{ name }]);
     }
   });
 
-  it('retires a legacy name alias on rename so a later clear stays empty after reload', async () => {
+  it('keeps an explicit clear after renaming and reloading a legacy name', async () => {
     const read = controller.recordsService.getMeta as sinon.SinonStub;
     updateMeta.callsFake(async (...args) => {
       read.resolves({ ...currentRecord, metadata: args[7] });
@@ -682,15 +768,47 @@ describe('RecordController update', () => {
       await controller.update(await rowSaveRequest(
         { contributors: [{ name: 'Renamed' }] }, { '["contributors"]': [0] }, form
       ), response.res);
-      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name: 'Renamed', internalCode: 'Keep' }]);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ ...contributor, name: 'Renamed' }]);
       expect(await loadContributorRows()).to.deep.equal([{ name: 'Renamed' }]);
 
       const proofs = response.json.firstCall.args[0].meta.savedRowProofs;
       await controller.update(await rowSaveRequest(
         { contributors: [{ name }] }, { '["contributors"]': [0] }, { ...form, proofs }
       ), makeResponse().res);
-      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name, internalCode: 'Keep' }]);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ ...contributor, name }]);
       expect(await loadContributorRows()).to.deep.equal([{ name }]);
+    }
+  });
+
+  it('distinguishes omission from clearing a name without deleting unrelated or editable values', async () => {
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+    const contributor = { name: 'Current', value: 'Old', internalCode: 'Keep' };
+    const namedValue = { value: 'Independent value' };
+    read.resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor], nameAndValue: [namedValue] },
+    });
+
+    await controller.update(await rowSaveRequest(
+      { title: 'Edited', contributors: [{}], nameAndValue: [{}] },
+      { '["contributors"]': [0], '["nameAndValue"]': [0] }
+    ), makeResponse().res);
+    expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([contributor]);
+    expect(updateMeta.lastCall.args[7].nameAndValue).to.deep.equal([namedValue]);
+
+    for (const name of [null, '']) {
+      await controller.update(await rowSaveRequest(
+        { contributors: [{ name }], nameAndValue: [{ name }] }, { '["contributors"]': [0], '["nameAndValue"]': [0] }
+      ), makeResponse().res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ ...contributor, name }]);
+      expect(updateMeta.lastCall.args[7].nameAndValue).to.deep.equal([{ ...namedValue, name }]);
+      expect(await loadContributorRows()).to.deep.equal([{ name }]);
+      const reloaded = await loadFormForRowEdits();
+      expect(reloaded.config.componentDefinitions?.find(field => field.name === 'nameAndValue')?.model?.config?.value)
+        .to.deep.equal([{ ...namedValue, name }]);
     }
   });
 

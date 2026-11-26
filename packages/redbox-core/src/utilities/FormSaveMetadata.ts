@@ -10,6 +10,7 @@ interface FieldSchema {
   elements?: FieldSchema;
   selection?: 'record' | 'typeahead';
   defaultBlankRow?: boolean;
+  retainExistingRowsOnly?: boolean;
 }
 
 export class FormSaveInputError extends Error {}
@@ -118,6 +119,7 @@ function selectionIsUnchanged(previous: unknown, submitted: unknown, schema: Fie
 }
 
 function hasStoredOnlyValue(value: unknown, schema: FieldSchema, submitted?: unknown): boolean {
+  if (schema.retainExistingRowsOnly) return Array.isArray(value) && value.length > 0;
   if (schema.selection) {
     return submitted !== undefined && selectionIsUnchanged(value, submitted, schema) && !_.isEqual(value, mergeValue(undefined, submitted, schema));
   }
@@ -234,6 +236,18 @@ function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema
 }
 
 function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema, rows?: FormRowSave, path: Path = []): unknown {
+  if (schema.retainExistingRowsOnly) {
+    if (!Array.isArray(changed)) return previous;
+    const stored = Array.isArray(previous) ? previous : [];
+    const edits = rows?.getEdits(path, stored, changed);
+    if (!edits) return previous;
+    return edits.map(({ source, retain }) => {
+      if (!retain || source === null) {
+        throw new FormSaveInputError('Only existing read-only rows may be retained or reordered.');
+      }
+      return stored[source];
+    });
+  }
   if (schema.elements) {
     if (Array.isArray(changed)) {
       const stored = Array.isArray(previous) ? previous : [];
@@ -284,11 +298,9 @@ export function mergeFormSaveMetadata(previous: Metadata | undefined, submitted:
       const legacyName = hydratedName(previous);
       if (legacyName !== previous.name) {
         if (value === legacyName) continue;
-        if (!Object.hasOwn(permitted, 'value')) {
-          delete merged.value;
-          merged.name = value;
-          continue;
-        }
+        // Record an explicit name without changing the legacy value.
+        merged.name = value;
+        continue;
       }
     }
     // A missing value can appear as an empty control or a default blank row in the form.

@@ -245,6 +245,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     const componentDefinition = item.config?.elementTemplate;
+    if (this.forFormSave && componentDefinition && isStaticallyDisabledFormField(componentDefinition)) {
+      _set(this.jsonTypeDef, this.jsonTypeDefPath, { elements: {}, retainExistingRowsOnly: true });
+      return;
+    }
     if (componentDefinition) {
       await this.acceptJsonTypeDefPath(
         componentDefinition,

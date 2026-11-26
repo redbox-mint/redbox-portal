@@ -929,6 +929,35 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formSaveRows.forget(array);
   }
 
+  public markRowsReadOnly(array: FormArray): void {
+    this.formSaveRows.markRowsReadOnly(array);
+  }
+
+  public canEditRepeatable(array: FormArray, requiresProofs: boolean): boolean {
+    const editableRowPaths = this.formConfigMeta['editableRowPaths'] as string[] | undefined;
+    if (!editableRowPaths) return !requiresProofs;
+    const path: (string | null)[] = [];
+    let control: AbstractControl = array;
+    while (control.parent) {
+      const parent = control.parent;
+      if (parent instanceof FormArray) {
+        path.unshift(null);
+      } else {
+        const key = Object.keys(parent.controls).find(key => parent.controls[key] === control);
+        if (key === undefined) return false;
+        path.unshift(key);
+      }
+      control = parent;
+    }
+
+    if (control !== this.form || !editableRowPaths.includes(JSON.stringify(path))) return false;
+    if (!requiresProofs) return true;
+    const oid = this.trimmedParams.oid();
+    const proofs = this.formConfigMeta['rowProofs'] as FormRowProofs | undefined;
+    return !!(this.form.enabled && oid && this.formConfigMeta['oid'] === oid && proofs &&
+      this.formSaveRows.canTrack(array, this.form, proofs));
+  }
+
   private getPersistedFormValue(): Record<string, unknown> {
     return this.snapshotForSave().metadata;
   }

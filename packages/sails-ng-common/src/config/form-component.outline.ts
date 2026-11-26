@@ -407,7 +407,8 @@ export function isStaticallyDisabledFormField(item: FormComponentDefinitionFrame
     }
     if (item.component?.class !== RepeatableComponentName) return false;
     const template = (item.component as RepeatableFieldComponentDefinitionFrame).config?.elementTemplate;
-    return !!template && isStaticallyDisabledFormField(template);
+    // An enabled row layout still allows removal and reordering of read-only values.
+    return !!template && template.layout?.config?.disabled === true && isStaticallyDisabledFormField(template);
 }
 
 export interface FormComponentDefinitionOutline extends FormComponentDefinitionFrame, CanVisit {
