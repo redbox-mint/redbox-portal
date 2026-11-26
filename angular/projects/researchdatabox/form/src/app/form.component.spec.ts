@@ -1082,6 +1082,35 @@ describe('FormComponent', () => {
     expect(submittedForm?.dirty).toBeTrue();
   });
 
+  it('shows a load error at the new record URL if the edit form download fails after create', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'create',
+      componentDefinitions: [{
+        name: 'title',
+        model: { class: 'SimpleInputModel', config: { value: 'Submitted title' } },
+        component: { class: 'SimpleInputComponent' },
+      }],
+    }, { oid: '', editMode: true, formName: '', recordType: 'rdmp', downloadAndCreateOnInit: false });
+    const create = spyOn(formComponent.recordService, 'create').and.resolveTo({ success: true, oid: 'created', message: '', data: null });
+    const replaceUrl = spyOn(fixture.debugElement.injector.get(Location), 'replaceState');
+    const download = spyOn(TestBed.inject(FormService), 'downloadFormComponents').and.rejectWith(new Error('Download failed'));
+
+    await formComponent.saveForm({ force: true });
+    fixture.detectChanges();
+
+    expect(formComponent.oid()).toBe('created');
+    expect(replaceUrl).toHaveBeenCalledOnceWith(jasmine.stringMatching(/(?:^|\/)record\/edit\/created$/));
+    expect(download).toHaveBeenCalledOnceWith('created', 'rdmp', true, '', jasmine.any(Array));
+    const editor: HTMLElement = fixture.nativeElement;
+    expect(editor.querySelector('.rb-form-loading')).toBeNull();
+    expect(editor.querySelector('.rb-form-shell__main [role="alert"]')?.textContent)
+      .toContain(TestBed.inject(TranslationService).t('form-load-error'));
+    expect(editor.querySelector<HTMLElement>('.rb-form-components')?.hidden).toBeTrue();
+
+    await formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the debug panel component when URL debug mode is enabled', async () => {
     const formConfig: FormConfigFrame = {
       name: 'debug-layout',

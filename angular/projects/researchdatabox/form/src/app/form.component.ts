@@ -88,6 +88,8 @@ import {
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
+import { DataLocationComponent } from './component/data-location.component';
+import { FileUploadComponent } from './component/file-upload.component';
 import { FormComponentsMap, FormService } from './form.service';
 import { FormSaveRows } from './form-save-rows';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
@@ -411,6 +413,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
+    this.componentsLoaded.set(false);
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(
@@ -445,7 +448,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
-    this.componentsLoaded.set(false);
     this.formSaveRows.reset();
     compContainerRef.clear();
     for (const componentDefEntry of this.componentDefArr) {
@@ -1154,7 +1156,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
+  private prepareUploadsForCreate(entries: FormFieldCompMapEntry[]): boolean {
+    return entries.every(({ component }) => {
+      if ((component instanceof DataLocationComponent || component instanceof FileUploadComponent) &&
+          !component.prepareForCreate()) {
+        return false;
+      }
+      return this.prepareUploadsForCreate(component?.formFieldCompMapEntries ?? []);
+    });
+  }
+
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
+    if (this.creatingRecord() || (!this.componentsLoaded() && this.error())) return;
+
     const forceSave = options?.force ?? false;
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
@@ -1197,6 +1211,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
+        const creating = _isEmpty(this.trimmedParams.oid());
+        if (creating && !this.prepareUploadsForCreate(this.componentDefArr)) {
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: 'Finish or remove pending uploads before creating this record.',
+          }));
+          return;
+        }
         this.saveResponse.set(null); // Indicate save in progress
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
@@ -1209,7 +1230,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           const currentFormValue = submitted.metadata;
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
-          if (_isEmpty(this.trimmedParams.oid())) {
+          if (creating) {
             // Actual record creation via RecordService call
             this.creatingRecord.set(true);
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
@@ -1246,7 +1267,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                   await this.downloadAndCreateFormComponents();
                 } catch (error) {
                   this.loggerService.error(`${this.logName}: Could not reload the saved record`, error);
-                  this.form?.disable();
+                  this.form?.disable({ emitEvent: false });
                   loadFailed = true;
                 }
               }

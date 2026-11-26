@@ -410,7 +410,7 @@ export namespace Services {
       _.each(attachmentFields, (attFieldName: unknown) => {
         const attFieldKey = String(attFieldName ?? '');
         _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
-          if (_.isEmpty(attFieldEntry)) {
+          if (typeof _.get(attFieldEntry, 'fileId') !== 'string') {
             return;
           }
           _.each(fieldsToCheck, (fldName: unknown) => {
@@ -845,16 +845,20 @@ export namespace Services {
       const initialising = triggerPostSaveTriggers && (this.hasPostSaveSyncHooks(recordType, 'onUpdate') || (transitionApplied && this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')));
       const figshareIntent = prepareSourceIntent({ ...recordObj, redboxOid: oid }, recordType, ['onUpdate', ...(transitionApplied ? ['onTransitionWorkflow'] : [])], userObj, initialising, writeOptions.maintenance);
       if (figshareIntent && !this.storageService.readyFigshareIntent) throw new Error('Storage adapter does not support durable Figshare intents');
-      let accepted = false;
+      let attachmentWrite: 'rejected' | 'unknown' | 'accepted' = 'rejected';
       try {
         if (datastreamSave) {
           await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}, datastreamSave));
         }
+        attachmentWrite = 'unknown';
         updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
-        accepted = updateResponse.isSuccessful();
+        if (updateResponse.isSuccessful()) attachmentWrite = 'accepted';
+      } catch (error) {
+        if (error instanceof RecordWriteConflict) attachmentWrite = 'rejected';
+        throw error;
       } finally {
         if (datastreamSave) {
-          await this.finishDatastreamSave(oid, datastreamSave, accepted);
+          await this.finishDatastreamSave(oid, datastreamSave, attachmentWrite);
         }
       }
       // A failed save abandons its initialising intent, so stale recovery only promotes interrupted saves.
@@ -2160,7 +2164,7 @@ export namespace Services {
       return this.storageService.exists(oid);
     }
 
-    private async finishDatastreamSave(oid: string, save: DatastreamSave, accepted: boolean): Promise<void> {
+    private async finishDatastreamSave(oid: string, save: DatastreamSave, outcome: 'rejected' | 'unknown' | 'accepted'): Promise<void> {
       const isReferenced = async (fileId: string) => {
         const stored = await this.getMeta(oid);
         return Object.values(stored?.metadata ?? {}).some(value =>
@@ -2169,7 +2173,7 @@ export namespace Services {
       };
       for (const addition of save.additions) {
         try {
-          if (accepted || await isReferenced(addition.fileId)) {
+          if (outcome === 'accepted' || (outcome === 'unknown' && await isReferenced(addition.fileId))) {
             await addition.commit?.();
           } else {
             await addition.discard?.();
@@ -2178,7 +2182,7 @@ export namespace Services {
           this.logger.error(`${this.logHeader} Unable to reconcile upload ${addition.fileId} for ${oid}`, error);
         }
       }
-      if (accepted) {
+      if (outcome === 'accepted') {
         for (const datastream of _.uniqBy(save.removals, 'fileId')) {
           try {
             if (!await isReferenced(datastream.fileId)) {

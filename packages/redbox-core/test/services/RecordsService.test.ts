@@ -350,14 +350,17 @@ describe('RecordsService', function () {
       prepare.callsFake((_oid, _previous, _metadata, save) => {
         const prepared = save as import('../../src/DatastreamService').DatastreamSave;
         prepared.removals.push(new Datastream({ fileId: 'removed' }));
-        prepared.additions.push({ fileId: 'upload', commit: commitUpload, discard: discardUpload });
+        prepared.additions.push(
+          { fileId: 'staged-upload', commit: commitUpload },
+          { fileId: 'gridfs-upload', discard: discardUpload },
+        );
         return of(null);
       });
       sinon.stub(RecordsService, 'auditRecord').resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
     });
 
-    it('discards an unreferenced promotion and keeps existing attachments on a failed write', async () => {
+    it('leaves Standard uploads in staging and keeps existing attachments on a conflict', async () => {
       mockStorageService.getMeta.resolves(record());
       mockStorageService.updateMeta.rejects(new RecordWriteConflict());
 
@@ -365,18 +368,33 @@ describe('RecordsService', function () {
         { expectedVersion: 7, sourceSave: true }), RecordWriteConflict);
 
       expect(mockStorageService.updateMeta.firstCall.args[4].expectedVersion).to.equal(7);
-      sinon.assert.callOrder(mockStorageService.updateMeta, mockStorageService.getMeta, discardUpload);
+      sinon.assert.callOrder(mockStorageService.updateMeta, discardUpload);
+      sinon.assert.notCalled(mockStorageService.getMeta);
       sinon.assert.notCalled(mockDatastreamService.removeDatastream);
       sinon.assert.notCalled(commitUpload);
     });
 
-    it('keeps an upload referenced by the winning save', async () => {
-      const files = [{ fileId: 'upload' }];
+    it('discards the rejected GridFS copy when the winner references the same logical upload', async () => {
+      const files = [{ fileId: 'staged-upload' }, { fileId: 'gridfs-upload' }];
       mockStorageService.getMeta.resolves({ ...record(), recordVersion: 8, metadata: { files } });
       mockStorageService.updateMeta.rejects(new RecordWriteConflict());
 
       await assert.rejects(RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files },
         { expectedVersion: 7, sourceSave: true }), RecordWriteConflict);
+
+      sinon.assert.notCalled(commitUpload);
+      sinon.assert.calledOnce(discardUpload);
+      sinon.assert.notCalled(mockDatastreamService.removeDatastream);
+    });
+
+    it('keeps referenced uploads when the storage write outcome is unknown', async () => {
+      const files = [{ fileId: 'staged-upload' }, { fileId: 'gridfs-upload' }];
+      mockStorageService.getMeta.resolves({ ...record(), recordVersion: 8, metadata: { files } });
+      const failure = new Error('Connection closed');
+      mockStorageService.updateMeta.rejects(failure);
+
+      await assert.rejects(RecordsService.updateMeta(brand, 'record-123', record(), {}, false, false, {}, { files },
+        { expectedVersion: 7, sourceSave: true }), error => error === failure);
 
       sinon.assert.calledOnce(commitUpload);
       sinon.assert.notCalled(discardUpload);
@@ -1433,7 +1451,7 @@ describe('RecordsService', function () {
           location: '/record/pending-oid/attach/file-123',
           uploadUrl: 'http://localhost/record/pending-oid/attach/file-123',
           fileId: 'file-123'
-        }]
+        }, { type: 'url', location: 'https://example.test/pending-oid' }]
       };
 
       (RecordsService as any).bindPendingAttachmentOids(metadata, ['attachments'], 'oid-100');
@@ -1443,6 +1461,7 @@ describe('RecordsService', function () {
         location: '/record/oid-100/attach/file-123',
         uploadUrl: 'http://localhost/record/oid-100/attach/file-123'
       });
+      expect(metadata.attachments[1].location).to.equal('https://example.test/pending-oid');
     });
   });
 

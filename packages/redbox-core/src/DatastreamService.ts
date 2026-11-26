@@ -17,6 +17,7 @@ export interface DatastreamSave {
   additions: {
     fileId: string;
     commit?: () => Promise<void>;
+    // Delete only the physical object created by this attempt, even if another save references the same fileId.
     discard?: () => Promise<void>;
   }[];
 }

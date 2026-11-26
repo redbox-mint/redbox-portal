@@ -433,8 +433,47 @@ describe('RecordController update', () => {
     expect(updateMeta.firstCall.args[7].files).to.deep.equal(files);
   });
 
+  it('rejects a stale save that would remove another editor’s manual JCU data location', async () => {
+    (FormsService.getFormByName as sinon.SinonStub).returns(of({
+      id: 'form-1', name: 'publication-draft', branding: 'brand-1',
+      configuration: {
+        ...formConfig,
+        attachmentFields: ['dataLocations'],
+        componentDefinitions: [
+          input('title'),
+          { name: 'dataLocations', model: { class: 'DataLocationModel' }, component: { class: 'DataLocationComponent' } },
+        ],
+      },
+    }));
+    const originalLocations = [{ type: 'physical', location: 'Archive room' }];
+    const latestLocations = [...originalLocations, { type: 'url', location: 'https://example.test/pending-oid' }];
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, dataLocations: originalLocations } });
+    const load = makeRequest({}, { name: 'auto', edit: 'true', formSave: 'true', apiVersion: '2.0' });
+    const loaded = makeResponse();
+    await controller.getForm(load, loaded.res);
+    read.resolves({
+      ...currentRecord, recordVersion: 8,
+      metadata: { ...currentRecord.metadata, dataLocations: latestLocations },
+    });
+
+    const save = makeRequest({
+      metadata: { title: 'Edited title', dataLocations: originalLocations },
+      formSaveState: { rowRevisions: loaded.json.firstCall.args[0].meta.rowRevisions },
+    }, { formSave: 'true', formSaveState: 'true' });
+    save.session = load.session;
+    const result = makeResponse();
+    await controller.update(save, result.res);
+
+    sinon.assert.calledOnceWithExactly(result.status, 409);
+    sinon.assert.notCalled(updateMeta);
+  });
+
   it('accepts an intentional removal after the save rewrites a pending upload URL', async () => {
-    const file = { fileId: 'upload', type: 'attachment', location: '/record/pending-oid/attach/upload' };
+    const file = {
+      fileId: 'upload', type: 'attachment', pending: true, location: '/record/pending-oid/attach/upload',
+      uploadUrl: 'https://example.test/record/pending-oid/attach/upload', notes: 'Uploaded data',
+    };
     const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
     req.body = {
       metadata: { files: [file] },
@@ -445,7 +484,10 @@ describe('RecordController update', () => {
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       ...currentRecord,
       recordVersion: 8,
-      metadata: { ...currentRecord.metadata, files: [{ ...file, location: '/record/oid-1/attach/upload' }] },
+      metadata: { ...currentRecord.metadata, files: [{
+        ...file, pending: false, location: '/record/oid-1/attach/upload',
+        uploadUrl: 'https://example.test/record/oid-1/attach/upload',
+      }] },
     });
     req.body.metadata.files = [];
     req.body.formSaveState.rowRevisions = first.json.firstCall.args[0].rowRevisions;

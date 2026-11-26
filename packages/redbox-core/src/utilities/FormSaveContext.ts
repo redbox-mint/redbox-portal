@@ -29,26 +29,39 @@ export function verifyNamedEditForm(req: Sails.Req, record: RecordModel, formNam
   }
 }
 
-export function formRowRevision(req: Sails.Req, record: RecordModel, path: (string | number)[], rows: unknown[]): string {
+function canonicalRows(rows: unknown[]): string {
   // Ignore property order differences introduced while storing and hydrating object rows.
-  const content = JSON.stringify(rows, (_key, value: unknown) => {
+  return JSON.stringify(rows, (_key, value: unknown) => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       const object = value as Record<string, unknown>;
       return Object.fromEntries(Object.keys(object).sort().map(key => [key, object[key]]));
     }
     return value;
   });
-  return sign(req, ['rows', record.redboxOid, record.metaMetadata.brandId, path, content]);
+}
+
+export function formRowRevision(req: Sails.Req, record: RecordModel, path: (string | number)[], rows: unknown[]): string {
+  return sign(req, ['rows', record.redboxOid, record.metaMetadata.brandId, path, canonicalRows(rows)]);
 }
 
 export function formAttachmentRevision(req: Sails.Req, record: RecordModel, field: string, value: unknown): string {
-  // Upload promotion can rewrite URLs. Use the stored file identities to detect membership changes.
-  const identities = Array.isArray(value) ? value.flatMap((item: unknown) => {
-    if (!item || typeof item !== 'object') return [];
-    const { fileId, type } = item as Record<string, unknown>;
-    return typeof fileId === 'string' ? [JSON.stringify([fileId, type])] : [];
-  }).sort() : [];
-  return sign(req, ['attachments', record.redboxOid, record.metaMetadata.brandId, field, identities]);
+  const rows = Array.isArray(value) ? value.map((item: unknown) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+    const row = item as Record<string, unknown>;
+    if (typeof row.fileId !== 'string') return row;
+
+    // Sign the same upload URLs and pending flag before and after the save binds the OID.
+    const normalized = { ...row };
+    for (const key of ['location', 'uploadUrl']) {
+      const url = row[key];
+      if (typeof url === 'string') {
+        normalized[key] = url.replaceAll('pending-oid', () => record.redboxOid);
+      }
+    }
+    if (normalized.pending === true) normalized.pending = false;
+    return normalized;
+  }) : [];
+  return sign(req, ['attachments', record.redboxOid, record.metaMetadata.brandId, field, canonicalRows(rows)]);
 }
 
 export function formRowRevisions(req: Sails.Req, record: RecordModel, metadata: Record<string, unknown>, attachmentFields: string[] = []): string[] {

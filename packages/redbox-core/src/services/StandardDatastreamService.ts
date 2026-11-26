@@ -420,8 +420,7 @@ export namespace Services {
       stagingDisk: IDisk,
       primaryDisk: IDisk,
       fileId: string,
-      destKey: string,
-      retainStaging = false
+      destKey: string
     ): Promise<boolean> {
       const partKeys = await this.listTusPartKeys(stagingDisk, fileId);
       if (!partKeys.length) {
@@ -432,9 +431,7 @@ export namespace Services {
       const readable = Readable.from(this.streamDiskObjects(stagingDisk, partKeys));
       try {
         await primaryDisk.putStream(destKey, readable, { contentLength });
-        if (!retainStaging) {
-          await this.deleteStagedTusParts(stagingDisk, fileId);
-        }
+        await this.deleteStagedTusParts(stagingDisk, fileId);
       } catch (err) {
         readable.destroy();
         throw err;
@@ -714,23 +711,25 @@ export namespace Services {
       const effectiveStagingDisk = stagingDisk ?? StorageManagerService.stagingDisk();
       const primaryDisk = StorageManagerService.primaryDisk();
       const destKey = this.storageKey(oid, fileId);
-      const complete = async (deleteStagedUpload?: () => Promise<void>) => {
-        const commit = async () => {
-          await deleteStagedUpload?.();
-          await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
-        };
-        if (save) {
-          save.additions.push({ fileId, commit, discard: deleteStagedUpload ? () => primaryDisk.delete(destKey) : undefined });
-        } else {
-          await commit();
+      if (save) {
+        // The primary key is shared by all saves of this record. Leave the bytes in staging
+        // until the metadata write wins, so a losing save never has to delete a shared object.
+        if (!await effectiveStagingDisk.exists(fileId) &&
+            !(await this.listTusPartKeys(effectiveStagingDisk, fileId)).length &&
+            !(await this.checkPrimaryObject(primaryDisk, destKey)).available) {
+          throw new Error(`Attachment not found in staging or primary storage: ${fileId}`);
         }
+        save.additions.push({
+          fileId,
+          commit: async () => { await this.addDatastream(oid, datastream, effectiveStagingDisk); },
+        });
+        return { success: true, key: destKey };
+      }
+
+      const complete = async () => {
+        await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
         return { success: true, key: destKey };
       };
-
-      // A previously promoted blob may already belong to a committed save.
-      if (save && (await this.checkPrimaryObject(primaryDisk, destKey)).available) {
-        return complete();
-      }
 
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
@@ -743,7 +742,7 @@ export namespace Services {
           // metadata-update acceptance that completed the retried workflow.
           return complete();
         }
-        const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey, !!save);
+        const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey);
         if (!promotedTusParts) {
           // Re-check primary: a concurrent request may have promoted the file
           // after the initial check but before/while the TUS attempt ran.
@@ -763,7 +762,7 @@ export namespace Services {
           );
         }
         this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
-        return complete(save ? () => this.deleteStagedTusParts(effectiveStagingDisk, fileId) : undefined);
+        return complete();
       }
 
       const metadata = await effectiveStagingDisk.getMetaData(fileId);
@@ -775,7 +774,8 @@ export namespace Services {
         throw err;
       }
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
-      return complete(() => effectiveStagingDisk.delete(fileId));
+      await effectiveStagingDisk.delete(fileId);
+      return complete();
     }
 
     private async putStagedObject(

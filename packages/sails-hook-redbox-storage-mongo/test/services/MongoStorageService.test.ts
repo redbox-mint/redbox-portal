@@ -1080,6 +1080,29 @@ describe('MongoStorageService', function () {
       .to.be.true;
   });
 
+  it('discards only the losing physical GridFS object for concurrent uploads with the same file name', async function () {
+    const stagingDisk = { getStream: sandbox.stub().callsFake(async () => Readable.from(['hello'])) };
+    const save = (): import('@researchdatabox/redbox-core').DatastreamSave => ({ additions: [], removals: [] });
+    const accepted = save();
+    const rejected = save();
+    const ids = [new mongodb.ObjectId(), new mongodb.ObjectId()];
+    ids.forEach((_id, index) => {
+      const stream = Object.assign(new PassThrough(), { gridFSFile: { _id } });
+      mockBucket.openUploadStream.onCall(index).returns(stream);
+    });
+    const file = { fileId: 'file-1', metadata: {} };
+
+    await Promise.all([
+      service.addDatastream('oid-1', file, stagingDisk, accepted),
+      service.addDatastream('oid-1', file, stagingDisk, rejected),
+    ]);
+    await rejected.additions[0].discard!();
+
+    expect(mockBucket.openUploadStream.calledTwice).to.be.true;
+    expect(mockBucket.openUploadStream.alwaysCalledWith('oid-1/file-1')).to.be.true;
+    expect(mockBucket.delete.calledOnceWithExactly(ids[1])).to.be.true;
+  });
+
   it('uses a named disk and computes attachment add/remove requests in updateDatastream', async function () {
     const disk = { getStream: sandbox.stub() };
     (global as any).StorageManagerService.disk.returns(disk);

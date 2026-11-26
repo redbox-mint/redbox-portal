@@ -1,3 +1,4 @@
+import { strict as assert } from 'node:assert';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -863,7 +864,7 @@ describe('StandardDatastreamService', function () {
   });
 
   describe('updateDatastream', function () {
-    it('promotes additions while leaving removals for the accepted metadata write', async function () {
+    it('leaves Standard additions and removals for the accepted metadata write', async function () {
       const oldForms = Reflect.get(globalThis, 'FormsService');
       Reflect.set(globalThis, 'FormsService', {
         getFormByName: () => of({ configuration: { attachmentFields: ['files'] } }),
@@ -877,8 +878,6 @@ describe('StandardDatastreamService', function () {
         };
         const save: DatastreamSave = { additions: [], removals: [] };
         const additions: Datastream[] = [];
-        mockPrimaryDisk.exists.resolves(false);
-        mockPrimaryDisk.getMetaData.onFirstCall().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
         const requests = await firstValueFrom<Promise<unknown>[]>(service.updateDatastream('oid-123', record,
           { files: [{ fileId: 'new', type: 'attachment' }] }, mockStagingDisk, additions, save));
         await Promise.all(requests);
@@ -886,38 +885,73 @@ describe('StandardDatastreamService', function () {
         expect(additions.map(row => row.fileId)).to.deep.equal(['new']);
         expect(save.removals.map(row => row.fileId)).to.deep.equal(['old']);
         expect(save.additions.map(row => row.fileId)).to.deep.equal(['new']);
-        sinon.assert.calledOnce(mockPrimaryDisk.putStream);
+        sinon.assert.notCalled(mockPrimaryDisk.putStream);
         sinon.assert.notCalled(mockPrimaryDisk.delete);
         sinon.assert.notCalled(mockStagingDisk.delete);
         await save.additions[0].commit?.();
+        sinon.assert.calledOnce(mockPrimaryDisk.putStream);
         sinon.assert.calledOnceWithExactly(mockStagingDisk.delete, 'new');
       } finally {
         Reflect.set(globalThis, 'FormsService', oldForms);
       }
     });
 
-    it('can discard an uncommitted primary copy and retry from the retained staging bytes', async function () {
+    it('prepares two saves sharing staging and promotes only the winner', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
-      const file = new Datastream({ fileId: 'retry-upload' });
-      const prepare = async () => {
-        const save: DatastreamSave = { additions: [], removals: [] };
-        await service.addDatastream('oid-123', file, mockStagingDisk, save);
-        return save.additions[0];
-      };
+      const file = new Datastream({ fileId: 'shared-upload' });
+      const rejected: DatastreamSave = { additions: [], removals: [] };
+      const accepted: DatastreamSave = { additions: [], removals: [] };
+
+      await Promise.all([
+        service.addDatastream('oid-123', file, mockStagingDisk, rejected),
+        service.addDatastream('oid-123', file, mockStagingDisk, accepted),
+      ]);
+
+      expect(rejected.additions[0].discard).to.be.undefined;
+      sinon.assert.notCalled(mockPrimaryDisk.putStream);
+      sinon.assert.notCalled(mockStagingDisk.delete);
+
+      await accepted.additions[0].commit?.();
+      sinon.assert.calledOnceWithMatch(mockPrimaryDisk.putStream, 'attachments/oid-123/shared-upload');
+      sinon.assert.notCalled(mockPrimaryDisk.delete);
+      sinon.assert.calledOnceWithExactly(mockStagingDisk.delete, 'shared-upload');
+    });
+
+    it('can recover a staged upload on download if promotion after the save fails', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const file = new Datastream({ fileId: 'recovery-upload' });
+      const save: DatastreamSave = { additions: [], removals: [] };
       mockPrimaryDisk.exists.resolves(false);
       mockPrimaryDisk.getMetaData.onFirstCall().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
-      mockPrimaryDisk.getMetaData.onSecondCall().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
+      mockPrimaryDisk.putStream.onFirstCall().rejects(new Error('primary storage unavailable'));
+      mockStagingDisk.getStream.callsFake(async () => Readable.from(['staged bytes']));
 
-      const rejected = await prepare();
-      await rejected.discard?.();
-      sinon.assert.calledOnceWithExactly(mockPrimaryDisk.delete, 'attachments/oid-123/retry-upload');
+      await service.addDatastream('oid-123', file, mockStagingDisk, save);
+      await assert.rejects(save.additions[0].commit!(), /primary storage unavailable/);
       sinon.assert.notCalled(mockStagingDisk.delete);
-      const retry = await prepare();
-      await retry.commit?.();
 
+      const attachment = await service.getDatastream('oid-123', file.fileId);
+
+      expect(attachment.readstream).to.exist;
       sinon.assert.calledTwice(mockPrimaryDisk.putStream);
-      sinon.assert.calledOnceWithExactly(mockStagingDisk.delete, 'retry-upload');
+      sinon.assert.calledOnceWithExactly(mockStagingDisk.delete, file.fileId);
+    });
+
+    it('rejects an attachment missing from both staging and primary before scheduling promotion', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const file = new Datastream({ fileId: 'missing-upload' });
+      const save: DatastreamSave = { additions: [], removals: [] };
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('missing'), { code: 'ENOENT' }));
+
+      await assert.rejects(service.addDatastream('oid-123', file, mockStagingDisk, save), /missing-upload/);
+
+      expect(save.additions).to.be.empty;
+      sinon.assert.notCalled(mockPrimaryDisk.putStream);
     });
 
     it('should call FormsService.getFormByName and process attachment diffs', function (done) {
