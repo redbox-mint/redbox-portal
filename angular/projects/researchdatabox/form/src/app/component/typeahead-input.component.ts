@@ -668,11 +668,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
    */
   private buildOptionObjectValue(option: TypeaheadOption): TypeaheadInputModelOptionValue {
     if (!this.hasOptionObjectFields()) {
-      return {
+      const storedValue = {
         label: option.label,
         value: option.value,
         sourceType: option.sourceType,
       };
+      this.preserveVocabularyState(option, storedValue);
+      return storedValue;
     }
 
     const source = option.raw ?? option;

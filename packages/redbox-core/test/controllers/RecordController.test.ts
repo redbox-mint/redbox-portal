@@ -8,6 +8,8 @@ import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Services as FormServices } from '../../src/services/FormsService';
 import { Services as FormRecordConsistencyServices } from '../../src/services/FormRecordConsistencyService';
 import { createMockSails } from '../services/testHelper';
+import { formRowRevision } from '../../src/utilities/FormSaveContext';
+import type { RecordModel } from '../../src/model/storage/RecordModel';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -19,6 +21,7 @@ describe('RecordController update', () => {
   const currentRecord = {
     redboxOid: 'oid-1',
     metaMetadata: { type: 'dataPublication', brandId: 'brand-1', form: 'publication-draft' },
+    workflow: { stage: 'draft' },
     metadata: {
       title: 'Draft',
       description: 'Clear this text',
@@ -26,10 +29,16 @@ describe('RecordController update', () => {
       citation_doi: '10.0000/example',
       adminStatus: 'approved',
       internalNotes: 'Internal',
-      details: { summary: 'Before', internalCode: 'private' },
+      details: { summary: 'Before', internalCode: 'private', locked: 'server', conditional: 'before' },
       keywords: ['keep', 'remove'],
       emptied: ['remove'],
       files: [{ fileId: 'old', name: 'old.txt' }],
+      contributors: [
+        { name: 'First', internalCode: 'first-private' },
+        { name: 'Removed', internalCode: 'removed-private' },
+        { name: 'Last', source: 'last-private' },
+      ],
+      option: { label: 'Old', value: 'old', historical: true, sourceType: 'vocabulary' },
     },
   };
   const nextStep = { name: 'review' };
@@ -63,7 +72,16 @@ describe('RecordController update', () => {
         model: { class: 'GroupModel', config: {} },
         component: {
           class: 'GroupComponent',
-          config: { componentDefinitions: [input('summary'), adminInput('internalCode')] },
+          config: { componentDefinitions: [
+            input('summary'),
+            adminInput('internalCode'),
+            { ...input('locked'), model: { class: 'SimpleInputModel', config: { disabled: true } } },
+            {
+              ...input('conditional'),
+              model: { class: 'SimpleInputModel', config: { disabled: true } },
+              expressions: [{ name: 'toggle', config: { target: 'model.disabled', template: 'false' } }],
+            },
+          ] },
         },
       },
       {
@@ -81,12 +99,34 @@ describe('RecordController update', () => {
         model: { class: 'FileUploadModel', config: {} },
         component: { class: 'FileUploadComponent', config: {} },
       },
+      {
+        name: 'contributors',
+        model: { class: 'RepeatableModel', config: {} },
+        component: {
+          class: 'RepeatableComponent',
+          config: {
+            elementTemplate: {
+              name: '',
+              model: { class: 'GroupModel', config: {} },
+              component: {
+                class: 'GroupComponent',
+                config: { componentDefinitions: [input('name'), adminInput('internalCode')] },
+              },
+            },
+          },
+        },
+      },
+      {
+        name: 'option',
+        model: { class: 'TypeaheadInputModel', config: {} },
+        component: { class: 'TypeaheadInputComponent', config: { valueMode: 'optionObject' } },
+      },
     ],
   };
 
   beforeEach(() => {
     const services = {
-      sails: createMockSails(),
+      sails: createMockSails({ services: { formpayloadprehydrateservice: { build: sinon.stub().resolves({}) } } }),
       _: require('lodash'),
       BrandingService: {
         getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
@@ -96,6 +136,7 @@ describe('RecordController update', () => {
       WorkflowStepsService: { get: sinon.stub().withArgs(sinon.match.object, 'review').returns(of(nextStep)) },
       FormsService: new FormServices.Forms(),
       FormRecordConsistencyService: new FormRecordConsistencyServices.FormRecordConsistency(),
+      TranslationService: { t: (key: string) => key },
     };
     for (const [name, service] of Object.entries(services)) {
       originalGlobals.set(name, testGlobals[name]);
@@ -138,8 +179,9 @@ describe('RecordController update', () => {
 
   function makeResponse() {
     const json = sinon.stub();
-    const res = { json, set: sinon.stub(), status: sinon.stub() } as unknown as Sails.Res;
-    return { res, json };
+    const status = sinon.stub();
+    const res = { json, set: sinon.stub(), status } as unknown as Sails.Res;
+    return { res, json, status };
   }
 
   it('preserves omitted metadata and applies editable changes on a form save with a transition', async () => {
@@ -150,11 +192,12 @@ describe('RecordController update', () => {
       description: '',
       adminStatus: 'overwritten',
       internalNotes: 'overwritten',
-      details: { summary: null, internalCode: 'overwritten' },
+      details: { summary: null, internalCode: 'overwritten', locked: 'overwritten', conditional: 'enabled' },
       newGroup: { summary: 'Added', internalCode: 'forged' },
       keywords: ['keep'],
       emptied: [],
       files,
+      option: { label: 'New', value: 'new' },
     }, { formSave: 'true', targetStep: 'review', formName: 'other-form', apiVersion: '2.0' });
 
     await controller.update(req, res);
@@ -170,11 +213,12 @@ describe('RecordController update', () => {
       ...currentRecord.metadata,
       title: 'Edited',
       description: '',
-      details: { summary: null, internalCode: 'private' },
+      details: { summary: null, internalCode: 'private', locked: 'server', conditional: 'enabled' },
       newGroup: { summary: 'Added' },
       keywords: ['keep'],
       emptied: [],
       files,
+      option: { label: 'New', value: 'new' },
     });
     expect(json.firstCall.args[0].data).to.deep.equal({ redboxOid: 'oid-1' });
   });
@@ -189,6 +233,89 @@ describe('RecordController update', () => {
     sinon.assert.notCalled(FormsService.getFormByName as sinon.SinonStub);
     expect(updateMeta.firstCall.args[7]).to.deep.equal(body);
     expect(updateMeta.secondCall.args[7]).to.deep.equal({ ...currentRecord.metadata, ...body });
+  });
+
+  it('keeps stored fields with retained repeatable rows through edits, sorting, deletion and addition', async () => {
+    const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
+    const rowRevision = formRowRevision(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
+    req.body = {
+      metadata: { contributors: [{ name: 'Last edited' }, { name: 'First edited', internalCode: 'forged' }, { name: 'New' }] },
+      formSaveState: { rowRevision, rowOrigins: { '["contributors"]': [2, 0, 'new'] } },
+    };
+    const { res, json } = makeResponse();
+
+    await controller.update(req, res);
+
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([
+      { name: 'Last edited', source: 'last-private' },
+      { name: 'First edited', internalCode: 'first-private' },
+      { name: 'New' },
+    ]);
+    expect(json.firstCall.args[0].rowRevision).to.be.a('string').and.not.equal(rowRevision);
+  });
+
+  for (const [label, origins, stale] of [
+    ['missing', undefined, false],
+    ['duplicate', [0, 0], false],
+    ['unmatched', [null, null], false],
+    ['out of range', [0, 3], false],
+    ['stale', [0, 1], true],
+  ] as const) {
+    it(`rejects ${label} repeatable origins before writing`, async () => {
+      const req = makeRequest({}, { formSave: 'true', formSaveState: 'true' });
+      const rowRevision = formRowRevision(req, currentRecord as unknown as RecordModel, currentRecord.metadata);
+      req.body = {
+        metadata: { contributors: [{ name: 'One' }, { name: 'Two' }] },
+        formSaveState: { rowRevision: stale ? 'stale-revision' : rowRevision, rowOrigins: { '["contributors"]': origins } },
+      };
+      const { res, status } = makeResponse();
+
+      await controller.update(req, res);
+
+      sinon.assert.calledOnceWithExactly(status, 409);
+      sinon.assert.notCalled(updateMeta);
+    });
+  }
+
+  it('rejects a whole-group clear that would erase restricted descendants', async () => {
+    const { res, status } = makeResponse();
+    await controller.update(makeRequest({ details: null }, { formSave: 'true' }), res);
+    sinon.assert.calledOnceWithExactly(status, 409);
+    sinon.assert.notCalled(updateMeta);
+  });
+
+  it('loads and saves the named form selected by the finalise route', async () => {
+    const formName = 'default-1.0-draft';
+    const formLookup = FormsService.getFormByName as sinon.SinonStub;
+    formLookup.withArgs(formName, true, 'brand-1').returns(of({
+      id: 'form-finalise', name: formName, branding: 'brand-1',
+      configuration: { name: formName, type: 'dataPublication', componentDefinitions: [input('finaliseNote')] },
+    }));
+    const page = makeRequest({}, { recordType: currentRecord.metaMetadata.type });
+    page.options = { ...routes['get /:branding/:portal/record/finalise/:recordType/edit/:oid'] as RouteTargetObject };
+    const sendView = sinon.stub(controller, 'sendView');
+    await controller.edit(page, {} as Sails.Res);
+    const { editFormToken } = sendView.firstCall.args[3] as { editFormToken: string };
+    const load = makeRequest({}, { name: 'auto', edit: 'true', formSave: 'true', formName, editFormToken, apiVersion: '2.0' });
+    load.session = page.session;
+    const loaded = makeResponse();
+    await controller.getForm(load, loaded.res);
+    const rowRevision = loaded.json.firstCall.args[0].meta.rowRevision;
+    expect(loaded.json.firstCall.args[0].data.componentDefinitions[0].name).to.equal('finaliseNote');
+
+    const save = makeRequest({
+      metadata: { finaliseNote: 'Finalised', title: 'Outside alternate form' },
+      formSaveState: { formName, editFormToken, rowRevision, rowOrigins: {} },
+    }, { formSave: 'true', formSaveState: 'true' });
+    save.session = page.session;
+    await controller.update(save, makeResponse().res);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({ ...currentRecord.metadata, finaliseNote: 'Finalised' });
+
+    save.body.formSaveState.editFormToken = 'unverified';
+    const rejected = makeResponse();
+    await controller.update(save, rejected.res);
+    sinon.assert.calledOnceWithExactly(rejected.status, 409);
+    sinon.assert.calledOnce(updateMeta);
   });
 });
 

@@ -202,7 +202,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     // By default a repeatable creates one row. Legacy configs can opt into zero-row behavior.
-    if (elemVals.length === 0 && !this.allowZeroRows) {
+    const initialRowCount = elemVals.length;
+    if (initialRowCount === 0 && !this.allowZeroRows) {
       // If we get here, there is no default from the repeatable or an ancestor.
       // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
       // If there is no model value, use undefined.
@@ -214,8 +215,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       );
     }
 
-    for (const elementValue of elemVals) {
-      await this.appendNewElement(elementValue, false);
+    for (const [index, elementValue] of elemVals.entries()) {
+      await this.appendNewElement(elementValue, false, undefined, index < initialRowCount ? index : undefined);
     }
 
     this.setupSyncSourceSubscriptions();
@@ -509,7 +510,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
   }
 
-  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
+  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions, initialIndex?: number) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -518,6 +519,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
     await this.createElement(elemEntry, options);
+    const row = elemEntry.defEntry?.model?.formControl;
+    if (row && this.model?.formControl && initialIndex !== undefined) {
+      this.getFormComponent.registerInitialRepeatableRow(this.model.formControl, row, initialIndex);
+    } else if (row && markFormDirty) {
+      this.getFormComponent.markNewRepeatableRow(row);
+    }
     if (markFormDirty && this.shouldEmitComponentEvents(options)) {
       this.requestFormDirty('repeatable.element.appended');
     }
@@ -601,19 +608,19 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       if (!elemEntry.compConfigJson.layout.config) {
         elemEntry.compConfigJson.layout.config = {};
       }
-      elemEntry.compConfigJson.layout.config.disabled = isDisabled;
+      elemEntry.compConfigJson.layout.config.disabled ||= isDisabled;
     }
     if (elemEntry.compConfigJson?.component) {
       if (!elemEntry.compConfigJson.component.config) {
         elemEntry.compConfigJson.component.config = {};
       }
-      elemEntry.compConfigJson.component.config.disabled = isDisabled;
+      elemEntry.compConfigJson.component.config.disabled ||= isDisabled;
     }
     if (elemEntry.compConfigJson?.model) {
       if (!elemEntry.compConfigJson.model.config) {
         elemEntry.compConfigJson.model.config = {};
       }
-      elemEntry.compConfigJson.model.config.disabled = isDisabled;
+      elemEntry.compConfigJson.model.config.disabled ||= isDisabled;
     }
 
     // Create new form field.

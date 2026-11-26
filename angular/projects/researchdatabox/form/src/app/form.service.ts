@@ -78,6 +78,7 @@ import {
   isPrefixLineagePaths,
   isMatchingLineagePaths,
   jsonataDecodeCompile,
+  isStaticallyDisabledFormField,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
@@ -217,10 +218,10 @@ export class FormService extends HttpClientService {
     throw new Error('redboxClientScript validator definitions are not available — index.bundle.js must be loaded before the form app.');
   }
 
-  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
+  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[], editFormToken?: string): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
-    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName);
+    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName, editFormToken);
     const formConfig = formConfigResp?.data;
     const formConfigMeta = formConfigResp?.meta ?? {};
     if (!formConfig) {
@@ -518,13 +519,15 @@ export class FormService extends HttpClientService {
   }
 
   public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined): boolean {
-    if (!compEntry) {
+    if (!compEntry || (compEntry.compConfigJson && isStaticallyDisabledFormField(compEntry.compConfigJson))) {
       return false;
     }
 
-    const modelDisabled = compEntry.compConfigJson?.model?.config?.disabled === true;
-    const componentDisabled = compEntry.compConfigJson?.component?.config?.disabled === true;
-    const layoutDisabled = compEntry.compConfigJson?.layout?.config?.disabled === true;
+    const modelDisabled = compEntry.model?.formControl?.disabled ?? compEntry.compConfigJson?.model?.config?.disabled === true;
+    const componentDisabled = compEntry.component?.isDisabled ?? compEntry.compConfigJson?.component?.config?.disabled === true;
+    const layoutDisabled = (compEntry.layout?.componentDefinition
+      ? compEntry.layout.componentDefinition.config?.disabled
+      : compEntry.compConfigJson?.layout?.config?.disabled) === true;
     return !(modelDisabled || componentDisabled || layoutDisabled);
   }
 
@@ -848,7 +851,7 @@ export class FormService extends HttpClientService {
    * @param formName The optional name of the form.
    * @private
    */
-  private async getFormConfig(oid: string | null, recordType: string, editable: boolean, formName: string | null = null) {
+  private async getFormConfig(oid: string | null, recordType: string, editable: boolean, formName: string | null = null, editFormToken?: string) {
     const ts = new Date().getTime().toString();
 
     const remainingPaths = oid ? `auto/${oid}` : `${recordType}`;
@@ -857,6 +860,12 @@ export class FormService extends HttpClientService {
     url.searchParams.set('edit', editable?.toString() ?? 'false');
     if (formName) {
       url.searchParams.set('formName', formName?.toString());
+    }
+    if (oid && editable) {
+      url.searchParams.set('formSave', 'true');
+      if (editFormToken) {
+        url.searchParams.set('editFormToken', editFormToken);
+      }
     }
 
     type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };

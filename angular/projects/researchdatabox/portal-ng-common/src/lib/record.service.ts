@@ -27,7 +27,7 @@ import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
-import { RecordAttachment } from '@researchdatabox/sails-ng-common';
+import { FormSaveState, RecordAttachment } from '@researchdatabox/sails-ng-common';
 
 export interface RecordTypeConf {
   name: string;
@@ -675,12 +675,14 @@ export class RecordService extends HttpClientService {
     return result as RecordActionResult;
   }
 
-  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean }) {
+  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean; formSaveState?: FormSaveState }) {
     const httpOptions = this.getHttpOptions();
-    const formSaveParam = options?.formSave ? '?formSave=true' : '';
+    const state = options?.formSave ? options.formSaveState : undefined;
+    const formSaveParam = options?.formSave ? `?formSave=true${state ? '&formSaveState=true' : ''}` : '';
     const targetStepParam = this.getTargetStepParam(targetStep, formSaveParam ? '&' : '?');
     const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${formSaveParam}${targetStepParam}`;
-    const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
+    const body = state ? { metadata: record, formSaveState: state } : record;
+    const result$ = this.http.put(url, body, httpOptions).pipe(map(res => res));
     let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;
   }
@@ -691,6 +693,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
+  rowRevision?: string;
   success: boolean = false;
   oid: string = '';
   message: string = '';

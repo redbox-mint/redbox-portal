@@ -394,6 +394,16 @@ export interface FormComponentDefinitionFrame {
     overrides?: FormOverrideConfigFrame;
 }
 
+/** A disabled layer stays excluded unless the form defines an expression that can enable it. */
+export function isStaticallyDisabledFormField(item: FormComponentDefinitionFrame): boolean {
+    const targets = (item.expressions ?? []).map(({ config }) => 'target' in config ? config.target : undefined);
+    return !targets.includes('field.disabled') && (
+        (item.model?.config?.disabled === true && !targets.includes('model.disabled')) ||
+        (item.component?.config?.disabled === true && !targets.includes('component.disabled')) ||
+        (item.layout?.config?.disabled === true && !targets.includes('layout.disabled'))
+    );
+}
+
 export interface FormComponentDefinitionOutline extends FormComponentDefinitionFrame, CanVisit {
     model?: FieldModelDefinitionOutline<unknown>;
     component: FieldComponentDefinitionOutline;

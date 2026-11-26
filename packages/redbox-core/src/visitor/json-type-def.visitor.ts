@@ -1,4 +1,4 @@
-import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { FormConfigVisitor, isStaticallyDisabledFormField } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { set as _set } from 'lodash';
 import {
@@ -178,6 +178,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   // Typeahead schema needs component config later when the paired model is visited.
   private typeaheadOptionObjectFieldsByJsonPath: Map<string, Record<string, string>>;
   private formPathHelper: FormPathHelper;
+  private forFormSave = false;
 
   constructor(logger: ILogger) {
     super(logger);
@@ -193,7 +194,8 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
    * @param options Configure the visitor.
    * @param options.form The constructed form.
    */
-  async start(options: { form: FormConfigOutline }): Promise<Record<string, unknown>> {
+  async start(options: { form: FormConfigOutline; forFormSave?: boolean }): Promise<Record<string, unknown>> {
+    this.forFormSave = options.forFormSave ?? false;
     this.jsonTypeDefPath = [];
     this.jsonTypeDef = {};
     this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
@@ -457,6 +459,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   async visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+      ...(this.forFormSave ? { selection: true } : {}),
       properties: {
         oid: { type: 'string' },
       },
@@ -511,6 +514,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         };
 
       _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+        ...(this.forFormSave ? { selection: true } : {}),
         properties,
         optionalProperties: {
           sourceType: { type: 'string' },
@@ -700,6 +704,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected async acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+    if (this.forFormSave && isStaticallyDisabledFormField(item)) {
+      return;
+    }
     const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
 
     await this.acceptJsonTypeDefPath(item.component, {formConfig: ['component']}, jsonTypeDefPathKeys);

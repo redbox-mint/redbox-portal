@@ -33,6 +33,7 @@ import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
+import { mergeFormSaveMetadata, type FormSaveRows } from '../utilities/FormSaveMetadata';
 
 
 
@@ -154,17 +155,19 @@ export namespace Services {
             changed: BasicRedboxRecord,
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
-            reusableFormDefs?: ReusableFormDefinitions
+            reusableFormDefs?: ReusableFormDefinitions,
+            formSaveRows?: FormSaveRows
         ): Promise<BasicRedboxRecord> {
             const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
+            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs, formSaveRows !== undefined);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
-            const changes = this.compareRecords(original, changed);
             return {
                 ...original,
                 redboxOid: original?.redboxOid ?? "",
-                metadata: this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
+                metadata: formSaveRows
+                    ? mergeFormSaveMetadata(originalMetadata, changedMetadata, permittedChanges, formSaveRows)
+                    : this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, this.compareRecords(original, changed)),
             }
         }
 
@@ -345,13 +348,13 @@ export namespace Services {
          * @param reusableFormDefs The reusable form definitions.
          */
         public async buildSchemaForFormConfig(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions, forFormSave?: boolean
         ): Promise<Record<string, unknown>> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
             const constructed = await constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            return await visitor.start({form: constructed});
+            return await visitor.start({form: constructed, forFormSave});
         }
 
         /**

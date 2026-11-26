@@ -48,6 +48,8 @@ import {
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  AbstractControl,
+  FormArray,
   FormControlStatus,
   FormGroup,
   PristineChangeEvent,
@@ -87,6 +89,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormComponentsMap, FormService } from './form.service';
+import { FormSaveRows } from './form-save-rows';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import {
   FormComponentFocusRequestCoordinator
@@ -325,6 +328,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private behaviourManager = inject(FormBehaviourManager);
 
   private readonly document = inject(DOCUMENT);
+  private readonly formSaveRows = new FormSaveRows();
+  private readonly editFormToken?: string;
+  private rowRevision?: string;
   private window: Window & typeof globalThis | null;
 
   protected configObj: Record<string, unknown> = {};
@@ -360,6 +366,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (_isEmpty(this.trimmedParams.formName())) {
       this.formName.set(elementRef.nativeElement.getAttribute('formName'));
     }
+    this.editFormToken = elementRef.nativeElement.getAttribute('editFormToken') ?? undefined;
     // HTML attribute overrides the defaults on init, but not when injected via Angular
     if (!_isEmpty(_trim(elementRef.nativeElement.getAttribute('editMode')))) {
       this.editMode.set(elementRef.nativeElement.getAttribute('editMode') === 'true');
@@ -405,6 +412,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
+    this.formSaveRows.reset();
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(
@@ -412,7 +420,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.trimmedParams.recordType(),
         this.editMode(),
         this.trimmedParams.formName(),
-        this.modulePaths
+        this.modulePaths,
+        this.editFormToken
       );
       // Store the form recordType if the recordType was not provided by the page.
       if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
@@ -448,6 +457,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
     await this.createFormGroup();
+    const rowRevision = this.formConfigMeta['rowRevision'];
+    this.rowRevision = typeof rowRevision === 'string' ? rowRevision : undefined;
     // Dispatch load success action (R16.2, AC53)
     this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
 
@@ -916,15 +927,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
-    const formValue = structuredClone((this.form?.value ?? {}) as Record<string, unknown>);
-    const groupMap = this.formDefMap?.completeGroupMap ?? {};
-    for (const [name, compEntry] of Object.entries(groupMap)) {
-      const includeByConfig = this.formService.shouldIncludeInFormControlMap(compEntry);
-      if (!includeByConfig) {
-        delete formValue[name];
-      }
-    }
-    return formValue;
+    return this.serializeForSave().metadata;
+  }
+
+  private serializeForSave() {
+    return this.formSaveRows.serialize(
+      this.form, this.componentDefArr ?? [], entry => this.formService.shouldIncludeInFormControlMap(entry), !!this.rowRevision
+    );
+  }
+
+  public markNewRepeatableRow(control: AbstractControl): void {
+    this.formSaveRows.markNew(control);
+  }
+
+  public registerInitialRepeatableRow(parent: FormArray, row: AbstractControl, index: number): void {
+    this.formSaveRows.setInitialIndex(parent, row, index);
   }
 
   private getComponentDebugInfo(
@@ -1186,7 +1203,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         try {
           let response: RecordActionResult;
-          const currentFormValue = this.getPersistedFormValue();
+          const submitted = this.serializeForSave();
+          const currentFormValue = submitted.metadata;
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
@@ -1194,9 +1212,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
-            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, { formSave: true });
+            const formSaveState = this.rowRevision ? {
+              formName: this.trimmedParams.formName(),
+              editFormToken: this.editFormToken,
+              rowRevision: this.rowRevision,
+              rowOrigins: submitted.rowOrigins,
+            } : undefined;
+            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
+              formSave: true,
+              ...(formSaveState ? { formSaveState } : {}),
+            });
           }
           if (response?.success) {
+            if (response.rowRevision) {
+              this.rowRevision = response.rowRevision;
+              submitted.markSaved();
+            }
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
@@ -1229,7 +1260,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
           // Emit an response with the error message object as string
           let errorMsg = 'Unknown error occurred';
-          if (error instanceof Error) {
+          if (error instanceof HttpErrorResponse && error.status === 409 && typeof error.error?.message === 'string') {
+            errorMsg = error.error.message;
+          } else if (error instanceof Error) {
             errorMsg = error.message;
           }
           this.saveResponse.set({

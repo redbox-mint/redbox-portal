@@ -9,6 +9,7 @@
     <redbox-form oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>"
                  branding="<%= typeof branding == 'undefined'? data.branding : branding %>"
                  portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>"
+                 <% if (typeof editFormToken !== "undefined" && editFormToken) {%>editFormToken="<%= editFormToken %>"<% } %>
                  <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
     </redbox-form>
