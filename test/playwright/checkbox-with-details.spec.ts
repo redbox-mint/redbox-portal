@@ -1,4 +1,4 @@
-import { chromium, expect, test, type Page } from '@playwright/test';
+import { chromium, expect, test, type Page, type Route } from '@playwright/test';
 import { MongoClient, ObjectId } from 'mongodb';
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -123,13 +123,10 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
 
   await page.getByRole('tab', { name: 'Project' }).click();
   await title.fill('Synthetic checkbox details acceptance record (amended)');
-  const updated = page.waitForResponse(
-    response => response.request().method() === 'PUT' && response.url().includes(`${savePath}${oid}`)
-  );
+  const updated = await captureUpdate(page, oid);
   await page.getByRole('button', { name: 'Activate' }).click();
-  const updatedResponse = await updated;
-  const active = await updatedResponse.json();
-  expect(updatedResponse.ok(), JSON.stringify(active)).toBeTruthy();
+  const { ok: activated, body: active } = await updated;
+  expect(activated, JSON.stringify(active)).toBeTruthy();
   expect(active.data.workflow.stage).toBe('active');
 
   await page.goto(`${prefix}/record/view/${oid}`);
@@ -169,14 +166,35 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
 
 const demoType = 'checkbox-details-demo';
 const openFormats = (page: Page) => page.getByRole('tab', { name: 'Formats' }).click();
-const save = (page: Page, label: string, method: 'POST' | 'PUT', id: string) => Promise.all([
-  page.waitForResponse(response => response.request().method() === method && new URL(response.url()).pathname === savePath + id),
-  page.getByRole('button', { name: label, exact: true }).click(),
-]).then(async ([response]) => {
-  const body = await response.json();
-  expect(response.ok(), JSON.stringify(body)).toBeTruthy();
+// A stage-changing update reloads the page into the current form, which
+// discards the response body before waitForResponse can read it. Capture
+// updates through a route instead. Creates keep waitForResponse so they still
+// pass through any route a test registers to adjust the create request.
+const captureUpdate = async (page: Page, oid: string) => {
+  const matches = (url: URL) => url.pathname === savePath + oid;
+  let resolveCapture!: (value: { ok: boolean; body: any }) => void;
+  const captured = new Promise<{ ok: boolean; body: any }>(resolve => { resolveCapture = resolve; });
+  const handler = async (route: Route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    const response = await route.fetch();
+    resolveCapture({ ok: response.ok(), body: await response.json() });
+    await route.fulfill({ response });
+  };
+  await page.route(matches, handler);
+  return captured.finally(() => page.unroute(matches, handler));
+};
+const save = async (page: Page, label: string, method: 'POST' | 'PUT', id: string) => {
+  const updated = method === 'PUT' ? await captureUpdate(page, id) : undefined;
+  const [created] = await Promise.all([
+    updated ? undefined : page.waitForResponse(
+      response => response.request().method() === method && new URL(response.url()).pathname === savePath + id
+    ),
+    page.getByRole('button', { name: label, exact: true }).click(),
+  ]);
+  const { ok, body } = updated ? await updated : { ok: created!.ok(), body: await created!.json() };
+  expect(ok, JSON.stringify(body)).toBeTruthy();
   return body.data;
-});
+};
 
 test('initializes a newly selected row after reopening a saved record', async ({ page }) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
