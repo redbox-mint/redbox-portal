@@ -275,6 +275,11 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-red
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev/node_modules ./packages/redbox-hook-dev/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/node_modules ./packages/sails-hook-redbox-pdfgen/node_modules
+# The standalone build installs also contain MongoDB and BSON. Use the portal's
+# copies at runtime so the adapter and native clients share constructors.
+RUN for package in redbox-core redbox-mcp sails-hook-redbox-storage-mongo; do \
+      rm -rf "packages/$package/node_modules/mongodb" "packages/$package/node_modules/bson"; \
+    done
 RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
  && chown -h node:node node_modules/redbox-hook-dev
 USER node

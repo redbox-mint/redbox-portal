@@ -3,7 +3,7 @@ const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
 const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
-const sailsMongoMongodb = require(require.resolve('mongodb', { paths: [require.resolve('sails-mongo')] }));
+const { mongodb: sailsMongoMongodb } = require('sails-mongo') as { mongodb: typeof import('mongodb') };
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
   let rejection: unknown;
@@ -406,8 +406,6 @@ describe('MongoStorageService', function () {
       message: 'namespace not found',
       codeName: 'NamespaceNotFound',
     });
-    expect(namespaceNotFoundByCode instanceof mongodb.MongoServerError).to.equal(false);
-    expect(namespaceNotFoundByName instanceof mongodb.MongoServerError).to.equal(false);
     const standardCollection = {
       createIndex: sandbox.stub().resolves(),
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
@@ -607,7 +605,6 @@ describe('MongoStorageService', function () {
       code: 13,
       codeName: 'Unauthorized',
     });
-    expect(failure instanceof mongodb.MongoServerError).to.equal(false);
     const standardCollection = {
       createIndex: sandbox.stub().resolves(),
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
