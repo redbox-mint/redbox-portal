@@ -53,6 +53,24 @@ describe('RecordController update', () => {
     ...input(name),
     constraints: { authorization: { allowRoles: ['Admin'] } },
   });
+  const conditionalInput = {
+    ...input('conditional'),
+    model: { class: 'SimpleInputModel' as const, config: { disabled: true } },
+    expressions: [{ name: 'toggle', config: { target: 'model.disabled' as const, template: 'false' } }],
+  };
+  const fundingField = 'foaf:fundedBy_foaf:Agent';
+  const fundingSelection = {
+    model: { class: 'TypeaheadInputModel' as const },
+    component: {
+      class: 'TypeaheadInputComponent' as const,
+      config: {
+        valueMode: 'optionObject' as const,
+        optionObjectFields: {
+          dc_title: 'dc_title', dc_identifier: 'dc_identifier', dc_description: 'dc_description', ID: 'ID',
+        },
+      },
+    },
+  };
   const repeatable = (name: string) => ({
     name,
     model: { class: 'RepeatableModel' as const, config: {} },
@@ -76,11 +94,7 @@ describe('RecordController update', () => {
             input('summary'),
             adminInput('internalCode'),
             { ...input('locked'), model: { class: 'SimpleInputModel', config: { disabled: true } } },
-            {
-              ...input('conditional'),
-              model: { class: 'SimpleInputModel', config: { disabled: true } },
-              expressions: [{ name: 'toggle', config: { target: 'model.disabled', template: 'false' } }],
-            },
+            conditionalInput,
           ] },
         },
       },
@@ -94,6 +108,13 @@ describe('RecordController update', () => {
       },
       repeatable('keywords'),
       repeatable('emptied'),
+      {
+        ...repeatable(fundingField),
+        component: {
+          class: 'RepeatableComponent',
+          config: { elementTemplate: { name: '', ...fundingSelection } },
+        },
+      },
       {
         name: 'files',
         model: { class: 'FileUploadModel', config: {} },
@@ -113,6 +134,8 @@ describe('RecordController update', () => {
                 config: { componentDefinitions: [
                   input('name'),
                   adminInput('internalCode'),
+                  conditionalInput,
+                  { name: 'fundingBody', ...fundingSelection },
                   {
                     name: 'notes',
                     model: { class: 'RepeatableModel', config: {} },
@@ -291,6 +314,68 @@ describe('RecordController update', () => {
     existing.resolves(currentRecord);
     await controller.update(makeRequest({ contributors: [] }, { formSave: 'true' }), makeResponse().res);
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([]);
+  });
+
+  it('preserves legacy lookup selections and applies replacements and explicit clears', async () => {
+    const legacy = { label: 'Legacy funding body', value: 'legacy-id' };
+    const selected = { dc_title: 'New funding body', dc_identifier: 'new-id' };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord,
+      metadata: {
+        ...currentRecord.metadata, [fundingField]: [legacy],
+        contributors: [{ name: 'Before', fundingBody: legacy }],
+      },
+    });
+
+    await controller.update(makeRequest({
+      title: 'Edited', [fundingField]: [{ ...legacy }], contributors: [{ name: 'After', fundingBody: { ...legacy } }],
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7][fundingField]).to.deep.equal([legacy]);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ name: 'After', fundingBody: legacy }]);
+
+    await controller.update(makeRequest({ [fundingField]: [selected] }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.secondCall.args[7][fundingField]).to.deep.equal([selected]);
+
+    await controller.update(makeRequest({ [fundingField]: [null] }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.thirdCall.args[7][fundingField]).to.deep.equal([null]);
+  });
+
+  it('keeps an omitted conditional child with a retained repeatable row and allows an explicit clear', async () => {
+    const contributors = [{ name: 'Alpha', conditional: 'Stored' }, { name: 'Beta' }];
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    await controller.update(makeRequest({
+      title: 'Edited', contributors: [{ name: 'Beta' }, { name: 'Alpha' }],
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([contributors[1], contributors[0]]);
+
+    const cleared = [{ name: 'Alpha', conditional: null }, { name: 'Beta' }];
+    await controller.update(makeRequest({ contributors: cleared }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal(cleared);
+  });
+
+  it('rejects a repeatable edit when an omitted child cannot be assigned to a submitted row', async () => {
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [{ name: 'Alpha', conditional: 'Stored' }] },
+    });
+    const { res, status } = makeResponse();
+    await controller.update(makeRequest({ contributors: [{ name: 'Renamed' }] }, { formSave: 'true' }), res);
+
+    sinon.assert.calledOnceWithExactly(status, 400);
+    sinon.assert.notCalled(updateMeta);
+  });
+
+  it('appends a row with interchangeable ordinary rows and a uniquely matched protected row', async () => {
+    const contributors = [{ name: 'Protected', internalCode: 'Keep' }, { name: 'Ordinary' }, { name: 'Ordinary' }];
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, contributors },
+    });
+    await controller.update(makeRequest({
+      contributors: [...contributors.map(({ name }) => ({ name })), { name: 'New' }],
+    }, { formSave: 'true' }), makeResponse().res);
+
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([...contributors, { name: 'New' }]);
   });
 
   it('rejects an ambiguous edit to an object row with stored-only data', async () => {

@@ -459,7 +459,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   async visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-      ...(this.forFormSave ? { selection: true } : {}),
+      ...(this.forFormSave ? { selection: 'record' } : {}),
       properties: {
         oid: { type: 'string' },
       },
@@ -514,7 +514,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         };
 
       _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-        ...(this.forFormSave ? { selection: true } : {}),
+        ...(this.forFormSave ? { selection: 'typeahead' } : {}),
         properties,
         optionalProperties: {
           sourceType: { type: 'string' },
