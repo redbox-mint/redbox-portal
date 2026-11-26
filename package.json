@@ -11,7 +11,7 @@
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
     "@tsconfig/node24": "24.0.6",
-    "@uppy/companion": "7.2.2",
+    "@uppy/companion": "7.2.4",
     "bootstrap": "5.3.9",
     "compression": "1.8.2",
     "connect-mongo": "6.0.0",

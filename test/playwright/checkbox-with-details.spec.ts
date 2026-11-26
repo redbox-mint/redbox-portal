@@ -1,4 +1,4 @@
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page, type Route } from '@playwright/test';
 import { expect, test } from './fixtures/test';
 import type { BrowserDiagnostics } from './fixtures/diagnostics';
 import { MongoClient, ObjectId } from 'mongodb';
@@ -123,14 +123,8 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
 
   await page.getByRole('tab', { name: 'Project' }).click();
   await title.fill('Synthetic checkbox details acceptance record (amended)');
-  const updated = page.waitForResponse(
-    response => response.request().method() === 'PUT' && response.url().includes(`${savePath}${oid}`)
-  );
-  await page.getByRole('button', { name: 'Activate' }).click();
-  const updatedResponse = await updated;
-  const active = await updatedResponse.json();
-  expect(updatedResponse.ok(), JSON.stringify(active)).toBeTruthy();
-  expect(active.data.workflow.stage).toBe('active');
+  const active = await save(page, 'Activate', 'PUT', oid, { waitForReload: true });
+  expect(active.workflow.stage).toBe('active');
 
   await page.goto(`${prefix}/record/view/${oid}`);
   const rows = page.locator('.rb-view-checkbox-details > li');
@@ -169,14 +163,48 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
 
 const demoType = 'checkbox-details-demo';
 const openFormats = (page: Page) => page.getByRole('tab', { name: 'Formats' }).click();
-const save = (page: Page, label: string, method: 'POST' | 'PUT', id: string) => Promise.all([
-  page.waitForResponse(response => response.request().method() === method && new URL(response.url()).pathname === savePath + id),
-  page.getByRole('button', { name: label, exact: true }).click(),
-]).then(async ([response]) => {
-  const body = await response.json();
-  expect(response.ok(), JSON.stringify(body)).toBeTruthy();
-  return body.data;
-});
+// A stage-changing update reloads the page into the current form, which
+// discards the response body before waitForResponse can read it. Capture
+// updates through a route instead. Creates keep waitForResponse so they still
+// pass through any route a test registers to adjust the create request.
+const captureUpdate = async (page: Page, oid: string) => {
+  const matches = (url: URL) => url.pathname === savePath + oid;
+  let resolveCapture!: (value: { ok: boolean; body: any }) => void;
+  const captured = new Promise<{ ok: boolean; body: any }>(resolve => { resolveCapture = resolve; });
+  const handler = async (route: Route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    const response = await route.fetch();
+    resolveCapture({ ok: response.ok(), body: await response.json() });
+    await route.fulfill({ response });
+  };
+  await page.route(matches, handler);
+  // Wrap the pending capture so awaiting route registration does not also wait for the save.
+  return { response: captured.finally(() => page.unroute(matches, handler)) };
+};
+const save = async (
+  page: Page,
+  label: string,
+  method: 'POST' | 'PUT',
+  id: string,
+  { waitForReload = false } = {}
+) => {
+  const response = method === 'PUT'
+    ? (await captureUpdate(page, id)).response
+    : page.waitForResponse(
+      response => response.request().method() === method && new URL(response.url()).pathname === savePath + id
+    ).then(async created => ({ ok: created.ok(), body: await created.json() }));
+  // The captured PUT body is available before the browser finishes the form's reload.
+  const reload = waitForReload ? page.waitForEvent('load') : undefined;
+  const [data] = await Promise.all([
+    response.then(({ ok, body }) => {
+      expect(ok, JSON.stringify(body)).toBeTruthy();
+      return body.data;
+    }),
+    reload,
+    page.getByRole('button', { name: label, exact: true }).click(),
+  ]);
+  return data;
+};
 
 test('initializes a newly selected row after reopening a saved record', async ({ adminPage: page }) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
@@ -197,7 +225,7 @@ test('initializes a newly selected row after reopening a saved record', async ({
   await page.getByRole('checkbox', { name: 'Other' }).check();
   await expect(otherVolume).toHaveValue('10 GB');
   await expect(description).toHaveValue('Custom exports');
-  const active = await save(page, 'Activate', 'PUT', draft.redboxOid);
+  const active = await save(page, 'Activate', 'PUT', draft.redboxOid, { waitForReload: true });
   expect(active.workflow.stage).toBe('active');
   expect(active.metadata.digitalFormatEstimates).toEqual([
     { value: 'tabulated', details: { volume: '250 CSV files' } },
@@ -338,7 +366,7 @@ test('saves removals during a pending and failed lookup and validates retained r
   await formats.screenshot({ path: testInfo.outputPath('lookup-recovered-validation.png') });
   await volume.fill('3 TB');
   await waitForSaveThrottle();
-  const active = await save(page, 'Activate', 'PUT', oid);
+  const active = await save(page, 'Activate', 'PUT', oid, { waitForReload: true });
   expect(activationRequests).toBe(1);
   expect(active.workflow.stage).toBe('active');
   expect(active.metadata.digitalFormatEstimates).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);

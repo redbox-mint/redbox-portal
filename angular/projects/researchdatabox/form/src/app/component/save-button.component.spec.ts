@@ -430,6 +430,29 @@ describe('SaveButtonComponent', () => {
     expect(saveButton.textContent).toEqual("@save-button-default");
   });
 
+  it('keeps Save disabled after a committed change requires the current form', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: 'oid-123', editMode: true });
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    const save = fixture.nativeElement.querySelector('redbox-form-save-button button') as HTMLButtonElement;
+    input.value = 'To save';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(save.disabled).toBeFalse();
+    spyOn<any>(formComponent, 'reloadWindow');
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(RecordActionResult.fromResponse({
+      meta: { oid: 'oid-123', outcome: 'saved', concurrency: { formReloadRequired: true } },
+    }));
+
+    await formComponent.saveForm({ force: true });
+    input.value = 'Edited while the page is still open';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(save.disabled).toBeTrue();
+    save.click();
+    await fixture.whenStable();
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
   it('should not publish save requested when disabled', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const store = TestBed.inject(Store);

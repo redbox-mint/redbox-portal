@@ -5,11 +5,13 @@ import { filter, firstValueFrom, timeout } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Store } from '@ngrx/store';
 import { FormComponent } from './form.component';
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, FormStatus } from '@researchdatabox/sails-ng-common';
 import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
+import { DeleteButtonComponent } from './component/delete-button.component';
 import {
   createFormAndWaitForReady,
   createTestbedModule,
@@ -22,6 +24,7 @@ import { GenerationProvenanceStoreService } from './generation/generation-proven
 import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
 import {
   FormComponentEventBus,
+  createFormDeleteRequestedEvent,
   createFormDeleteSuccessEvent,
   createFormSaveExecuteEvent,
   createFormSaveSuccessEvent,
@@ -32,6 +35,8 @@ import {
   FormSaveFailureEvent,
   FormSaveSuccessEvent,
   FormValidationBroadcastEvent,
+  selectPending,
+  selectStatus,
 } from './form-state';
 
 function persistedSaveResponse(overrides: Record<string, unknown> = {}): any {
@@ -120,7 +125,7 @@ function conflictSaveResponse(
   return Object.assign(result, overrides);
 }
 
-async function createConcurrencyTestForm() {
+async function createConcurrencyTestForm(includeDelete = false) {
   const result = await createFormAndWaitForReady(
     {
       name: 'concurrency-rebase',
@@ -136,6 +141,10 @@ async function createConcurrencyTestForm() {
           model: { class: 'SimpleInputModel', config: { value: 'Loaded notes' } },
           component: { class: 'SimpleInputComponent' },
         },
+        ...(includeDelete ? [{
+          name: 'delete',
+          component: { class: 'DeleteButtonComponent' as const, config: { label: 'Delete' } },
+        }] : []),
       ],
     },
     {
@@ -144,7 +153,12 @@ async function createConcurrencyTestForm() {
       editMode: true,
       formName: 'rdmp-draft',
       downloadAndCreateOnInit: false,
-    }
+    },
+    undefined,
+    { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp',
+      callable: key => { throw new Error(`Unexpected compiled form key '${key}'`); },
+    }] },
   );
   result.formComponent.formDefMap?.updateConcurrency({
     entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
@@ -195,6 +209,7 @@ describe('FormComponent', () => {
         declarations: {
           "SimpleInputComponent": SimpleInputComponent,
           "GroupFieldComponent": GroupFieldComponent,
+          DeleteButtonComponent,
         }
       });
     Object.assign(translationService.translationMap, {
@@ -2954,6 +2969,357 @@ describe('FormComponent', () => {
       expect(events[0].closeOnSave).toEqual(undefined);
       expect(events[0].redirectLocation).toEqual(undefined);
       expect(events[0].redirectDelaySeconds).toEqual(undefined);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  for (const closeOnSave of [false, true]) {
+    it(`blocks another mutation after a transition while ${closeOnSave ? 'redirecting' : 'reloading'}`, async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      const reload = spyOn<any>(formComponent, 'reloadWindow');
+      const redirect = spyOn(formComponent, 'doRedirect');
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+        oid: 'oid-123',
+        concurrency: { revision: 5, formFingerprint: 'sha256:destination_form' },
+      }));
+      const remove = spyOn(formComponent.recordService, 'delete');
+
+      await formComponent.saveForm({ force: true, targetStep: 'active', closeOnSave });
+      await formComponent.saveForm({ force: true });
+      await formComponent.deleteRecord();
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(remove).not.toHaveBeenCalled();
+      expect(formComponent.recordBaseline()?.formFingerprint).toBe('sha256:form_1');
+      expect(formComponent.saveNavigationPending()).toBeTrue();
+      expect(reload).toHaveBeenCalledTimes(closeOnSave ? 0 : 1);
+      expect(redirect).toHaveBeenCalledTimes(closeOnSave ? 1 : 0);
+    });
+  }
+
+  for (const closeOnSave of [false, true]) {
+    it(`keeps edits made during a transition available for export with closeOnSave=${closeOnSave}`, async () => {
+      const { fixture, formComponent } = await createConcurrencyTestForm(true);
+      const reload = spyOn<any>(formComponent, 'reloadWindow');
+      const redirect = spyOn(formComponent, 'doRedirect');
+      const remove = spyOn(formComponent.recordService, 'delete');
+      const title = formComponent.form!.get('title')!;
+      const update = spyOn(formComponent.recordService, 'update').and.callFake(async () => {
+        title.setValue('Added during save');
+        title.markAsDirty();
+        return persistedSaveResponse({
+          oid: 'oid-123',
+          concurrency: { revision: 5, formFingerprint: 'sha256:destination_form' },
+        });
+      });
+
+      await formComponent.saveForm({ force: true, targetStep: 'active', closeOnSave });
+      await formComponent.saveForm({ force: true });
+
+      const conflict = formComponent.conflictState();
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('redbox-form-delete-button button') as HTMLButtonElement;
+      expect(button.disabled).toBeTrue();
+      button.click();
+      TestBed.inject(FormComponentEventBus).publish(createFormDeleteRequestedEvent({}));
+      expect(remove).not.toHaveBeenCalled();
+      expect(formComponent.conflictState()).toBe(conflict);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(reload).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
+      expect(conflict).toEqual(jasmine.objectContaining({
+        status: 'form-changed',
+        local: { title: 'Added during save', notes: 'Loaded notes' },
+      }));
+      spyOn(HTMLAnchorElement.prototype, 'click');
+      const exported = JSON.parse(formComponent.exportConflictLocalValues()!);
+      expect(exported.unsavedValues.title).toBe('Added during save');
+      formComponent.reloadCurrentFormAfterConflict();
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('cancels a delayed transition close when an input changes after the save response', fakeAsync(async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    const navigate = spyOn<any>(formComponent, 'changeLocationHref');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+      oid: 'oid-123',
+      concurrency: { revision: 5, formFingerprint: 'sha256:destination_form' },
+    }));
+
+    await formComponent.saveForm({
+      force: true, targetStep: 'active', closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 2,
+    });
+    expect(formComponent.saveNavigationPending()).toBeTrue();
+    tick(1000);
+    const input = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    input.value = 'Added after save';
+    input.dispatchEvent(new Event('input'));
+    tick(1000);
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(formComponent.saveNavigationPending()).toBeFalse();
+    expect(formComponent.formReloadRequired()).toBeTrue();
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    expect(JSON.parse(formComponent.exportConflictLocalValues()!).unsavedValues.title).toBe('Added after save');
+  }));
+
+  it('closes a transitioned form when a late undefined property leaves the saved JSON unchanged', fakeAsync(async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const locations = new FormControl<{ location: string; isc?: string }[]>([{ location: 'Research share' }]);
+    formComponent.form!.addControl('dataLocations', locations);
+    const navigate = spyOn<any>(formComponent, 'changeLocationHref');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+      oid: 'oid-123',
+      concurrency: { revision: 5, formFingerprint: 'sha256:destination_form' },
+    }));
+
+    await formComponent.saveForm({
+      force: true, targetStep: 'archived', closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 2,
+    });
+    tick(1000);
+    locations.setValue([{ location: 'Research share', isc: undefined }]);
+    tick(1000);
+
+    expect(navigate).toHaveBeenCalledOnceWith('/next');
+    expect(formComponent.formReloadRequired()).toBeFalse();
+  }));
+
+  for (const closeOnSave of [false, true]) {
+    it(`clears the old conflict when a transition retry succeeds with closeOnSave=${closeOnSave}`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      const checkUnload = () => {
+        const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+        expect(formComponent.protectUnresolvedConflictNavigation(unload)).toBeUndefined();
+        expect(unload.defaultPrevented).toBeFalse();
+      };
+      const reload = spyOn<any>(formComponent, 'reloadWindow').and.callFake(checkUnload);
+      const navigate = spyOn<any>(formComponent, 'changeLocationHref').and.callFake(checkUnload);
+      const update = spyOn(formComponent.recordService, 'update').and.returnValues(
+        Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
+        Promise.resolve(persistedSaveResponse({
+          oid: 'oid-123',
+          concurrency: { revision: 6, formFingerprint: 'sha256:destination_form' },
+        }))
+      );
+
+      const options = {
+        force: true, targetStep: 'active', closeOnSave, redirectLocation: '/next', redirectDelaySeconds: 1,
+      };
+      await formComponent.saveForm(options);
+      expect(formComponent.conflictState()?.status).toBe('stale');
+      await formComponent.saveForm(options);
+      tick(1000);
+
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(update.calls.argsFor(1)[4]?.revision).toBe(5);
+      expect(formComponent.conflictState()).toBeNull();
+      expect(reload).toHaveBeenCalledTimes(closeOnSave ? 0 : 1);
+      expect(navigate).toHaveBeenCalledTimes(closeOnSave ? 1 : 0);
+    }));
+  }
+
+  for (const transition of [false, true]) {
+    it(`closes to the record view when this is the first history entry with transition=${transition}`, fakeAsync(async () => {
+      const { fixture, formComponent } = await createConcurrencyTestForm();
+      (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
+      spyOnProperty(window.history, 'length', 'get').and.returnValue(1);
+      const back = spyOn(fixture.debugElement.injector.get(Location), 'historyGo');
+      const navigate = spyOn<any>(formComponent, 'changeLocationHref');
+      spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+        oid: 'oid-123',
+        concurrency: { revision: 5, formFingerprint: transition ? 'sha256:destination_form' : 'sha256:form_1' },
+      }));
+
+      await formComponent.saveForm({
+        force: true, targetStep: transition ? 'active' : '', closeOnSave: true, redirectDelaySeconds: 0,
+      });
+      tick(0);
+
+      expect(back).not.toHaveBeenCalled();
+      expect(navigate).toHaveBeenCalledOnceWith('/default/rdmp/record/view/oid-123');
+    }));
+  }
+
+  for (const testCase of [
+    {
+      reason: 'a different stage with the same form and no fingerprint',
+      data: { metaMetadata: { form: 'rdmp-draft' }, workflow: { stage: 'active' } },
+      concurrency: { revision: 5 },
+    },
+    {
+      reason: 'a different form with no fingerprint',
+      data: { metaMetadata: { form: 'rdmp-active' }, workflow: { stage: 'draft' } },
+      concurrency: { revision: 5 },
+    },
+    {
+      reason: 'a different stage with a repeated source fingerprint',
+      data: { metaMetadata: { form: 'rdmp-draft' }, workflow: { stage: 'active' } },
+      concurrency: { revision: 5, formFingerprint: 'sha256:form_1' },
+    },
+    {
+      reason: 'an explicit reload flag without a committed representation',
+      data: null,
+      concurrency: { revision: 5, formReloadRequired: true },
+    },
+  ]) {
+    it(`locks the old form on ${testCase.reason}`, async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      formComponent.formDefMap!.formConfigMeta = {
+        formName: 'rdmp-draft',
+        workflow: { stage: 'draft' },
+      };
+      const reload = spyOn<any>(formComponent, 'reloadWindow');
+      const response = RecordActionResult.fromResponse({
+        data: testCase.data,
+        meta: { oid: 'oid-123', outcome: 'saved', concurrency: testCase.concurrency },
+      });
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+      const remove = spyOn(formComponent.recordService, 'delete');
+
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true });
+      await formComponent.deleteRecord();
+
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(formComponent.saveNavigationPending()).toBeTrue();
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({
+        revision: 4, formFingerprint: 'sha256:form_1',
+      }));
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(remove).not.toHaveBeenCalled();
+    });
+  }
+
+  for (const editDuringSave of [false, true]) {
+    it(`keeps a route-authorised form open after a same-stage save with editDuringSave=${editDuringSave}`, async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      formComponent.formDefMap!.formConfigMeta = {
+        formName: 'rdmp-finalise',
+        workflow: { stage: 'draft' },
+      };
+      const reload = spyOn<any>(formComponent, 'reloadWindow');
+      const title = formComponent.form!.get('title')!;
+      const response = RecordActionResult.fromResponse({
+        data: { metaMetadata: { form: 'rdmp-draft' }, workflow: { stage: 'draft' } },
+        meta: { oid: 'oid-123', outcome: 'saved', concurrency: { revision: 5, formFingerprint: 'sha256:form_1' } },
+      });
+      const update = spyOn(formComponent.recordService, 'update').and.callFake(async () => {
+        if (editDuringSave && update.calls.count() === 1) {
+          title.setValue('Added during save');
+          title.markAsDirty();
+        }
+        return response;
+      });
+
+      await formComponent.saveForm({ force: true });
+
+      expect(reload).not.toHaveBeenCalled();
+      expect(formComponent.saveNavigationPending()).toBeFalse();
+      expect(formComponent.formReloadRequired()).toBeFalse();
+      expect(formComponent.conflictState()).toBeNull();
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({
+        revision: 5, formFingerprint: 'sha256:form_1',
+      }));
+
+      await formComponent.saveForm({ force: true });
+      expect(update).toHaveBeenCalledTimes(2);
+    });
+  }
+
+  it('reloads a route-authorised form after its save changes stage', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.formDefMap!.formConfigMeta = {
+      formName: 'rdmp-finalise',
+      workflow: { stage: 'draft' },
+    };
+    const reload = spyOn<any>(formComponent, 'reloadWindow');
+    const response = RecordActionResult.fromResponse({
+      data: { metaMetadata: { form: 'rdmp-finalise' }, workflow: { stage: 'finalised' } },
+      meta: { oid: 'oid-123', outcome: 'saved', concurrency: { revision: 5, formFingerprint: 'sha256:finalised_form' } },
+    });
+    spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+
+    await formComponent.saveForm({ force: true, targetStep: 'finalised' });
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(formComponent.saveNavigationPending()).toBeTrue();
+  });
+
+  it('leaves an incomplete transition warning visible and blocks mutations on the old form', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm(true);
+    const reload = spyOn<any>(formComponent, 'reloadWindow');
+    const warning = persistedSaveResponse({
+      oid: 'oid-123',
+      outcome: 'saved-with-warnings',
+      isComplete: () => false,
+      concurrency: { revision: 5, formFingerprint: 'sha256:destination_form' },
+    });
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(warning);
+    const remove = spyOn(formComponent.recordService, 'delete');
+    const bus = TestBed.inject(FormComponentEventBus);
+    const failureEvents: FormSaveFailureEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm({ force: true, targetStep: 'active' });
+      const conflict = formComponent.conflictState();
+      await formComponent.saveForm({ force: true });
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('redbox-form-delete-button button') as HTMLButtonElement;
+      expect(button.disabled).toBeTrue();
+      button.click();
+      bus.publish(createFormDeleteRequestedEvent({}));
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(remove).not.toHaveBeenCalled();
+      expect(reload).not.toHaveBeenCalled();
+      expect(formComponent.saveResponse()).toBe(warning);
+      expect(conflict?.status).toBe('form-changed');
+      expect(formComponent.conflictState()).toBe(conflict);
+      expect(failureEvents.map(event => event.error)).toEqual(['@record-form-reload-required']);
+      const store = TestBed.inject(Store);
+      expect(store.selectSignal(selectStatus)()).toBe(FormStatus.READY);
+      expect(store.selectSignal(selectPending)()).not.toContain('deleteRecord');
+
+      const staleDelete = staleSaveResponse({ concurrency: { revision: 5 } });
+      (formComponent as any).captureConflictResponse(staleDelete);
+      expect(formComponent.conflictState()).toBe(conflict);
+      spyOn(HTMLAnchorElement.prototype, 'click');
+      expect(formComponent.exportConflictLocalValues()).toContain('Loaded title');
+      formComponent.reloadCurrentFormAfterConflict();
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('keeps confirmed non-save wording for a genuine form-definition 409', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const response = RecordActionResult.fromResponse({
+      meta: {
+        oid: 'oid-123',
+        outcome: 'not-saved',
+        problems: conflictSaveResponse('form-changed').problems,
+      },
+    }, 409);
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const failureEvents: FormSaveFailureEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true });
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(formComponent.formReloadRequired()).toBeFalse();
+      expect(formComponent.conflictState()?.status).toBe('form-changed');
+      expect(failureEvents.map(event => event.error)).toEqual([
+        '@record-save-form-definition-changed',
+        '@record-save-form-definition-changed',
+      ]);
     } finally {
       sub.unsubscribe();
     }

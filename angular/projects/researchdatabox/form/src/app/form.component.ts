@@ -339,9 +339,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public readonly recordBaseline = this.recordBaselineState.asReadonly();
   private readonly formConflictState = signal<FormConflictState | null>(null);
   public readonly conflictState = this.formConflictState.asReadonly();
+  public readonly saveNavigationPending = signal(false);
+  private canCompleteSaveRedirect?: () => boolean;
+  public readonly formReloadRequired = computed(() =>
+    this.formConflictState()?.status === 'form-changed' && this.saveResponse()?.wasPersisted() === true
+  );
   public readonly saveBlockedByConflict = computed(() => {
     const status = this.formConflictState()?.status;
-    return status === 'permission-lost' || status === 'deleted';
+    return status === 'permission-lost' || status === 'deleted' || status === 'form-changed';
   });
   private readonly conflictReviewService = inject(FormConflictReviewService);
   private readonly formConflictReviewState = signal<FormConflictReviewProjection | null>(null);
@@ -672,6 +677,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formConflictReviewState.set(null);
     this.manualConflictResolutionPending.set(false);
     this.saveResponse.set(undefined);
+    this.saveNavigationPending.set(false);
+    this.canCompleteSaveRedirect = undefined;
     this.allowConflictNavigationOnce = false;
     this.conflictExportCompleted = false;
   }
@@ -790,11 +797,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe(evt => {
         if (evt.closeOnSave) {
+          const navigation = (this.window as (Window & { navigation?: { canGoBack: boolean } }) | null)?.navigation;
+          const goBack = !evt.redirectLocation && (this.window?.history.length ?? 0) > 1 &&
+            navigation?.canGoBack !== false;
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
-              // if closeOnSave is true, but no redirect is specified, go to the previous page.
-              historyDelta: evt?.redirectLocation ? undefined : -1,
-              redirectLocation: evt?.redirectLocation,
+              historyDelta: goBack ? -1 : undefined,
+              redirectLocation: goBack ? undefined : evt.redirectLocation ||
+                this.buildRecordPath('view', evt.oid || this.trimmedParams.oid()),
               redirectDelaySeconds: evt?.redirectDelaySeconds,
               formScopeId: this.eventScopeId,
             })
@@ -1617,19 +1627,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.trimmedParams.oid() === saveOid &&
       this.trimmedParams.recordType() === recordType &&
       this.trimmedParams.formName() === formName;
-    if (!ownsSave() || this.saveValidationScope || _isNull(this.saveResponse())) return;
+    if (!ownsSave()) return;
     const conflict = this.formConflictState();
-    if (conflict && this.saveBlockedByConflict()) {
-      this.eventBus.publish(
-        createFormSaveFailureEvent({
-          error:
-            conflict.status === 'deleted' ? '@form-conflict-deleted-message' : '@form-conflict-permission-lost-message',
-          formScopeId: this.eventScopeId,
-          requestId: conflict.requestId,
-        })
-      );
+    if (this.saveNavigationPending() || this.saveBlockedByConflict()) {
+      this.eventBus.publish(createFormSaveFailureEvent({
+        error: this.saveNavigationPending() || this.formReloadRequired()
+          ? '@record-form-reload-required'
+          : conflict?.status === 'form-changed' ? '@record-save-form-definition-changed'
+          : conflict?.status === 'deleted' ? '@form-conflict-deleted-message' : '@form-conflict-permission-lost-message',
+        formScopeId: this.eventScopeId,
+        requestId: conflict?.requestId,
+      }));
       return;
     }
+    if (this.saveValidationScope || _isNull(this.saveResponse())) return;
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
@@ -1895,15 +1906,56 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
               saveOid = createdOid;
-              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              this.locationService.replaceState(this.buildRecordPath('edit', createdOid));
               this.setupQuerySource();
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             const redirectLocation = isComplete
               ? this.resolveRedirectLocation(options?.redirectLocation ?? '', oid)
               : '';
+            const savedFingerprint = response.concurrency?.formFingerprint;
+            const renderedFingerprint = requestBaseline?.formFingerprint;
+            const renderedFormName = this.formConfigMeta['formName'] ?? requestBaseline?.formName;
+            const renderedStage = _get(this.formConfigMeta, 'workflow.stage');
+            const savedFormName = _get(response.data, 'metaMetadata.form');
+            const savedStage = _get(response.data, 'workflow.stage');
+            const fingerprintsKnown = Boolean(savedFingerprint && renderedFingerprint);
+            // A route-authorised form renders under its own name while the
+            // record keeps its stored form, so names are only compared when
+            // there is no fingerprint pair to decide the form contract.
+            const formChanged = response.concurrency?.formReloadRequired === true ||
+              Boolean(
+                (fingerprintsKnown && savedFingerprint !== renderedFingerprint) ||
+                (!fingerprintsKnown && savedFormName && renderedFormName && savedFormName !== renderedFormName) ||
+                (savedStage && renderedStage && savedStage !== renderedStage)
+              );
+            const hasNewEdits = () => {
+              const latestValue = this.getPersistedFormValue();
+              // A control can add an undefined property that the JSON save omits.
+              return !_isEqual(currentFormValue, latestValue) && !_isEqual(
+                JSON.parse(JSON.stringify(currentFormValue)),
+                JSON.parse(JSON.stringify(latestValue))
+              );
+            };
+            const keepChangedFormOpen = formChanged && (!isComplete || hasNewEdits());
+            const closing = isComplete && Boolean(options?.closeOnSave) && !keepChangedFormOpen;
+            const reloadChangedForm = formChanged && !keepChangedFormOpen && !closing;
+            const requireReload = () => this.requireSavedFormReload(
+              oid, response, currentFormValue, renderedFingerprint
+            );
+            if (closing) {
+              this.canCompleteSaveRedirect = () => {
+                if (!ownsSave() || !this.saveNavigationPending()) return false;
+                if (!formChanged || !hasNewEdits()) return true;
+                requireReload();
+                return false;
+              };
+            }
+            if (closing || reloadChangedForm) {
+              this.saveNavigationPending.set(true);
+            }
             let modelSnapshot: Record<string, unknown> | undefined;
-            if (!options?.closeOnSave && !redirectLocation && this.form) {
+            if (!formChanged && !options?.closeOnSave && !redirectLocation && this.form) {
               modelSnapshot = this.getPersistedFormValue();
               if (
                 response.metadata !== null &&
@@ -1946,7 +1998,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 this.broadcastFormStatus();
               }
             }
-            this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+            if (keepChangedFormOpen) {
+              requireReload();
+            } else if (formChanged) {
+              this.formConflictState.set(null);
+              this.formConflictReviewState.set(null);
+            } else {
+              this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+            }
+            this.saveResponse.set(response);
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
@@ -1957,11 +2017,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 formScopeId: this.eventScopeId,
                 requestId: response.requestId,
                 modelSnapshot,
-                closeOnSave: isComplete ? options?.closeOnSave : undefined,
-                redirectLocation: redirectLocation || undefined,
+                closeOnSave: isComplete && !keepChangedFormOpen ? options?.closeOnSave : undefined,
+                redirectLocation: keepChangedFormOpen ? undefined : redirectLocation || undefined,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
+            if (reloadChangedForm) {
+              this.reloadSavedRecordForm(oid);
+            }
+            return;
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
             this.captureConflictResponse(response, requestBaseline);
@@ -1982,7 +2046,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               : undefined;
             // Retained conflict review state must not mask a different retry failure.
             let failureMessage = '@record-save-failed';
-            if (this.formConflictState() && this.isRecordRevisionStaleConflict(response)) {
+            if (response.concurrencyOutcome === 'form-changed') {
+              failureMessage = '@record-save-form-definition-changed';
+            } else if (this.formConflictState() && this.isRecordRevisionStaleConflict(response)) {
               failureMessage = '@form-conflict-stale-title';
             } else if (response.outcome === 'unknown') {
               failureMessage = unknownMessageKey;
@@ -2407,9 +2473,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.loggerService.warn(`${this.logName}: ignored a conflict response without the current record identity.`);
       return;
     }
+    const previousConflict = this.formConflictState();
+    if (previousConflict?.status === 'form-changed' &&
+      (response.concurrencyOutcome === 'stale' || response.concurrencyOutcome === 'precondition-required')) {
+      return;
+    }
     const local = immutableFormMetadata(this.getPersistedFormValue());
     const current = response.concurrency;
-    const previousConflict = this.formConflictState();
     const revisionStale = this.isRecordRevisionStaleConflict(response);
     const responseFingerprint = current?.formFingerprint;
     const renderedFingerprint = this.formDefMap?.formFingerprint;
@@ -2644,6 +2714,36 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       return;
     }
     this.allowConflictNavigationOnce = true;
+    this.reloadWindow();
+  }
+
+  private requireSavedFormReload(
+    oid: string,
+    response: RecordActionResult,
+    sentValue: Record<string, unknown>,
+    renderedFingerprint?: string
+  ): void {
+    // Keep later edits and incomplete save work visible on the old form.
+    this.locationService.replaceState(this.buildRecordPath('edit', oid));
+    this.formConflictState.set({
+      cause: 'form-changed',
+      status: 'form-changed',
+      requestId: response.requestId,
+      base: immutableFormMetadata(this.projectLocalMetadata(sentValue)),
+      local: immutableFormMetadata(this.getPersistedFormValue()),
+      latest: null,
+      baseFormFingerprint: renderedFingerprint,
+      latestFormFingerprint: response.concurrency?.formFingerprint,
+      autoRetryAttempted: false,
+    });
+    this.formConflictReviewState.set(null);
+    this.saveNavigationPending.set(false);
+    this.canCompleteSaveRedirect = undefined;
+  }
+
+  private reloadSavedRecordForm(oid: string): void {
+    // The old URL may select a workflow-specific form that has lost its grant.
+    this.locationService.replaceState(this.buildRecordPath('edit', oid));
     this.reloadWindow();
   }
 
@@ -3040,6 +3140,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async deleteRecord(options?: DeleteEventConfig) {
+    if (this.saveNavigationPending() || this.formReloadRequired()) {
+      this.eventBus.publish(createFormDeleteFailureEvent({
+        error: '@record-form-reload-required',
+        formScopeId: this.eventScopeId,
+      }));
+      return;
+    }
     const oid = this.trimmedParams.oid();
     if (_isEmpty(oid)) {
       this.eventBus.publish(
@@ -3124,16 +3231,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       );
     }
 
-    const that = this;
-    if (historyDelta) {
-      this.window?.setTimeout(() => {
-        that.locationService.historyGo(historyDelta);
-      }, redirectDelayMs);
-    } else if (redirectLocation) {
-      this.window?.setTimeout(() => {
-        that.changeLocationHref(redirectLocation);
-      }, redirectDelayMs);
-    }
+    const canCompleteSaveRedirect = this.canCompleteSaveRedirect;
+    this.window?.setTimeout(() => {
+      if (this.isDestroyed || canCompleteSaveRedirect?.() === false) return;
+      if (historyDelta) {
+        this.locationService.historyGo(historyDelta);
+      } else if (redirectLocation) {
+        this.changeLocationHref(redirectLocation);
+      }
+    }, redirectDelayMs);
   }
 
   protected changeLocationHref(redirectLocation: string): void {
@@ -3314,24 +3420,24 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return mergedValues.length > 0 ? mergedValues : true;
   }
 
-  private buildEditRecordPath(oid: string): string {
+  private buildRecordPath(mode: 'edit' | 'view', oid: string): string {
     const createdOid = String(oid ?? '').trim();
     if (_isEmpty(createdOid)) {
-      return 'record/edit';
+      return `record/${mode}`;
     }
     const brandingAndPortalUrl = String(this.recordService.brandingAndPortalUrl ?? '').trim();
     if (!_isEmpty(brandingAndPortalUrl)) {
       try {
         const parsedUrl = new URL(brandingAndPortalUrl);
         const basePath = parsedUrl.pathname.replace(/\/+$/, '');
-        return `${basePath}/record/edit/${createdOid}`;
+        return `${basePath}/record/${mode}/${createdOid}`;
       } catch {
         this.loggerService.warn(
           `${this.logName}: Invalid brandingAndPortalUrl '${brandingAndPortalUrl}', falling back to relative path.`
         );
       }
     }
-    return `record/edit/${createdOid}`;
+    return `record/${mode}/${createdOid}`;
   }
 
   public resolveRedirectLocation(template: string, oid: string): string {

@@ -1,9 +1,14 @@
-import { TestBed } from '@angular/core/testing';
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
+import { Store } from '@ngrx/store';
+import { RecordActionResult } from '@researchdatabox/portal-ng-common';
+import { FormConfigFrame, FormStatus } from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from '../helpers.spec';
 import { ConfirmationDialogService } from '../confirmation-dialog.service';
-import { FormComponentEventBus } from '../form-state';
+import {
+  deleteRecord, FormComponentEventBus, FormComponentEventType, selectPending, selectStatus, submitForm,
+} from '../form-state';
 import { DeleteButtonComponent } from './delete-button.component';
+import { SimpleInputComponent } from './simple-input.component';
 
 let formConfig: FormConfigFrame;
 
@@ -12,6 +17,7 @@ describe('DeleteButtonComponent', () => {
     await createTestbedModule({
       declarations: {
         DeleteButtonComponent,
+        SimpleInputComponent,
       },
       providers: {
         ConfirmationDialogService,
@@ -116,4 +122,66 @@ describe('DeleteButtonComponent', () => {
       sub.unsubscribe();
     }
   });
+
+  it('drops a delete waiting on its redirect template when a save starts closing the form', fakeAsync(async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      ...formConfig,
+      componentDefinitions: [
+        ...formConfig.componentDefinitions,
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Draft title' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    }, { oid: 'oid-123', editMode: true });
+    const button = formComponent.componentDefArr[0].component as DeleteButtonComponent;
+    spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.resolveTo(true);
+    let resolveRedirect!: (redirect: string) => void;
+    const lookup = spyOn<any>(button, 'resolveRedirectLocation').and.returnValue(
+      new Promise<string>(resolve => resolveRedirect = resolve)
+    );
+    const bus = TestBed.inject(FormComponentEventBus);
+    const publish = spyOn(bus, 'publish').and.callThrough();
+    const remove = spyOn(formComponent.recordService, 'delete');
+    const navigate = spyOn<any>(formComponent, 'changeLocationHref');
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(RecordActionResult.fromResponse({
+      meta: { oid: 'oid-123', outcome: 'saved', concurrency: { formReloadRequired: true } },
+    }));
+    const store = TestBed.inject(Store);
+    const status = store.selectSignal(selectStatus);
+    const pendingActions = store.selectSignal(selectPending);
+
+    (fixture.nativeElement.querySelector('redbox-form-delete-button button') as HTMLButtonElement).click();
+    flushMicrotasks();
+    expect(lookup).toHaveBeenCalledTimes(1);
+
+    store.dispatch(submitForm({
+      force: true, targetStep: 'active', enabledValidationGroups: [],
+      closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 2,
+    }));
+    flushMicrotasks();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(formComponent.saveNavigationPending()).toBeTrue();
+    expect(status()).toBe(FormStatus.READY);
+
+    resolveRedirect('/after-delete');
+    flushMicrotasks();
+    expect(publish).not.toHaveBeenCalledWith(jasmine.objectContaining({ type: FormComponentEventType.FORM_DELETE_REQUESTED }));
+    expect(remove).not.toHaveBeenCalled();
+    expect(pendingActions()).not.toContain('deleteRecord');
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      store.dispatch(submitForm({ force: true, enabledValidationGroups: [] }));
+      expect(status()).toBe(FormStatus.READY);
+      expect(pendingActions()).not.toContain('submitForm');
+      store.dispatch(deleteRecord({}));
+      expect(status()).toBe(FormStatus.READY);
+      expect(pendingActions()).not.toContain('deleteRecord');
+    }
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(remove).not.toHaveBeenCalled();
+    tick(2000);
+    expect(navigate).toHaveBeenCalledOnceWith('/next');
+  }));
 });

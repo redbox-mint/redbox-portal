@@ -3848,18 +3848,20 @@ describe('RecordsService', function () {
         routeForm = grant,
         routeFamily = 'browser',
         targetStep = 'finalised',
-        metadata: Record<string, unknown> = { title: 'Finalised title' }
+        metadata: Record<string, unknown> = { title: 'Finalised title' },
+        options: { recordToSave?: ReturnType<typeof record>; saveRequestId?: string } = {}
       ) =>
         RecordsService.updateMeta(
           { id: 'brand-1' },
-          'record-123',
-          _.cloneDeep(stored),
+          options.recordToSave?.redboxOid ?? stored.redboxOid,
+          _.cloneDeep(options.recordToSave ?? stored),
           { username: 'user-1', roles: [] },
           true,
           false,
           steps.find(step => step.name === targetStep),
           { metadata, mode: 'replace' },
           createRecordSaveContext({
+            requestId: options.saveRequestId,
             routeFamily,
             operation: 'transition',
             targetStep,
@@ -3909,7 +3911,9 @@ describe('RecordsService', function () {
         expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
         expect(stored.metadata.title).to.equal('Finalised title');
         expect(stored.revision).to.equal(5);
-        const fingerprint = await RecordsService.getRecordFormFingerprint(stored, recordType);
+        const fingerprint = result.concurrency?.formFingerprint;
+        expect(fingerprint).not.to.equal(issued);
+        expect(fingerprint).to.equal(await RecordsService.getRecordFormFingerprint(stored, recordType));
         const normal = await RecordsService.updateMeta(
           { id: 'brand-1' },
           'record-123',
@@ -3927,6 +3931,123 @@ describe('RecordsService', function () {
         );
         expect(normal.outcome, JSON.stringify(normal)).to.equal('saved');
         expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
+      });
+
+      describe('transitions between stages with the same form', () => {
+        beforeEach(async () => {
+          steps[2].config.form = stored.metaMetadata.form;
+          issued = await RecordsService.getRecordFormFingerprint(stored, recordType);
+        });
+
+        for (const scenario of ['lookup throws', 'lookup returns undefined', 'lookup returns the source fingerprint']) {
+          it(`requires reload for a committed stage transition when the destination ${scenario}`, async () => {
+            const fingerprintLookup = sinon.stub(RecordsService, 'getRecordFormFingerprint').callThrough();
+            const destination = fingerprintLookup.withArgs(sinon.match({ workflow: { stage: 'finalised' } }));
+            if (scenario === 'lookup throws') {
+              destination.rejects(new Error('committed form unavailable'));
+            } else {
+              destination.resolves(scenario === 'lookup returns undefined' ? undefined : issued);
+            }
+
+            const result = await save(4, issued, null);
+
+            expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+            expect(result.wasPersisted()).to.equal(true);
+            expect(result.concurrency).to.include({
+              revision: 5,
+              entityTag: formatRecordEntityTag(stored.redboxOid, 5),
+              formReloadRequired: true,
+            });
+            expect(result.concurrency).not.to.have.property('formFingerprint');
+            expect(destination.calledOnce).to.equal(true);
+            expect(writes).to.have.length(1);
+            expect(stored.workflow.stage).to.equal('finalised');
+            expect(stored.metaMetadata.form).to.equal('default-form');
+          });
+        }
+
+        it('requires reload when the committed snapshot is unavailable and only the source fingerprint is known', async () => {
+          mockStorageService.getMeta.callsFake(async () => {
+            if (writes.length > 0) throw new Error('committed snapshot unavailable');
+            return _.cloneDeep(stored);
+          });
+
+          const result = await save(4, issued, null);
+
+          expect(result.outcome, JSON.stringify(result)).to.equal('saved-with-warnings');
+          expect(result.wasPersisted()).to.equal(true);
+          expect(result.problems[0].issues[0].code).to.equal('record-post-commit-reconciliation-deferred');
+          expect(result.concurrency).to.include({
+            revision: 5,
+            entityTag: formatRecordEntityTag(stored.redboxOid, 5),
+            formReloadRequired: true,
+          });
+          expect(result.concurrency).not.to.have.property('formFingerprint');
+          expect(writes).to.have.length(1);
+          expect(stored.workflow.stage).to.equal('finalised');
+        });
+
+        it('keeps form contracts separate for interleaved saves sharing a request id', async () => {
+          const second = { ...record(8), redboxOid: 'record-456', workflow: { stage: 'finalised' } };
+          const secondIssued = await RecordsService.getRecordFormFingerprint(second, recordType);
+          expect(secondIssued).not.to.equal(issued);
+
+          const records = new Map<string, ReturnType<typeof record>>([
+            [stored.redboxOid, stored],
+            [second.redboxOid, second],
+          ]);
+          mockStorageService.getMeta.callsFake(async (oid: string) => _.cloneDeep(records.get(oid)));
+          const firstWriteReached = Promise.withResolvers<void>();
+          const releaseFirstWrite = Promise.withResolvers<void>();
+          mockStorageService.updateMeta.callsFake(async (_brand, oid: string, candidate, _user, options) => {
+            if (oid === stored.redboxOid) {
+              firstWriteReached.resolve();
+              await releaseFirstWrite.promise;
+            }
+            const current = records.get(oid);
+            assert(current);
+            expect(options.precondition.expectedRevision).to.equal(current.revision);
+            const committed = { ..._.cloneDeep(candidate), redboxOid: oid, revision: current.revision + 1 };
+            records.set(oid, committed);
+            return {
+              success: true,
+              oid,
+              applicationState: 'applied',
+              committedRevision: committed.revision,
+              committedRecord: _.cloneDeep(committed),
+            };
+          });
+
+          const firstSave = save(4, issued, null, 'browser', 'finalised', { title: 'First' }, {
+            recordToSave: stored,
+            saveRequestId: requestId,
+          });
+          let secondResult;
+          try {
+            await Promise.race([
+              firstWriteReached.promise,
+              firstSave.then(result => assert.fail(`First save completed before the write barrier: ${result.outcome}`)),
+            ]);
+            secondResult = await save(8, secondIssued, null, 'browser', 'draft', { title: 'Second' }, {
+              recordToSave: second,
+              saveRequestId: requestId,
+            });
+          } finally {
+            releaseFirstWrite.resolve();
+          }
+          const firstResult = await firstSave;
+
+          expect(firstResult.outcome, JSON.stringify(firstResult)).to.equal('saved');
+          expect(secondResult.outcome, JSON.stringify(secondResult)).to.equal('saved');
+          expect(firstResult.requestId).to.equal(requestId);
+          expect(secondResult.requestId).to.equal(requestId);
+          expect(firstResult.concurrency).to.include({ revision: 5, formFingerprint: secondIssued });
+          expect(secondResult.concurrency).to.include({ revision: 9, formFingerprint: issued });
+          expect(firstResult.concurrency).not.to.have.property('formReloadRequired');
+          expect(secondResult.concurrency).not.to.have.property('formReloadRequired');
+          expect(records.get(stored.redboxOid)?.workflow.stage).to.equal('finalised');
+          expect(records.get(second.redboxOid)?.workflow.stage).to.equal('draft');
+        });
       });
 
       it('preserves stale revision rejection through the finalise route', async () => {
@@ -4197,7 +4318,7 @@ describe('RecordsService', function () {
       expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
     });
 
-    it('binds centralized opted-in relations and preserves exact legacy fingerprint composition', async function () {
+    it('binds centralized opted-in relations only for forms that declare them', async function () {
       const stored = record();
       const deliveredForm = { id: 'default-form-id', name: 'default-form', branding: 'brand-1',
         configuration: { name: 'default-form', componentDefinitions: [] as any[] } };
@@ -4205,7 +4326,7 @@ describe('RecordsService', function () {
         foreignField: 'redboxOid', resolution: { metadataFields: ['/title'] } }];
       const recordType = { name: 'rdmp', relatedTo };
       const legacy = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
-      // Capture the pre-feature composition verbatim, including workflow sorting.
+      // Forms without related display declarations hash the configuration contract directly.
       const { formatRecordFormFingerprint } = require('../../src/RecordFormFingerprint');
       const steps = await (await import('rxjs')).firstValueFrom((global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType)) as any[];
       const expected = formatRecordFormFingerprint({
@@ -4213,7 +4334,7 @@ describe('RecordsService', function () {
         currentWorkflow: { stage: stored.workflow.stage, form: 'default-form' },
         workflowFormContract: steps.map(step => ({ name: String(step.name ?? '').trim(), starting: step.starting === true,
           hidden: step.hidden === true, config: step.config ?? {} })).sort((a, b) => a.name.localeCompare(b.name)),
-        form: { id: deliveredForm.id, name: deliveredForm.name, branding: deliveredForm.branding,
+        form: { name: deliveredForm.name, branding: deliveredForm.branding,
           configuration: { ...deliveredForm.configuration, type: String(stored.metaMetadata.type ?? recordType.name).trim() } },
         reusableFormDefinitions: mockSails.config.reusableFormDefinitions ?? {},
         validatorDefinitions: mockSails.config.validators?.definitions ?? [],
@@ -4258,6 +4379,28 @@ describe('RecordsService', function () {
       );
       const drifted = await RecordsService.getRecordFormFingerprint(stored, recordType);
       expect(drifted).not.to.equal(current);
+    });
+
+    it('rejects validator-only drift before writing a record', async function () {
+      installMode('strict');
+      const stored = record();
+      const recordType = { name: 'rdmp', hooks: {}, searchable: false };
+      const deployedValidator = { ...formValidatorsSharedDefinitions[0] };
+      mockSails.config.validators = { definitions: [deployedValidator] };
+      mockStorageService.getMeta.resolves(stored);
+      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType);
+      expect(issued).to.match(/^sha256:[0-9a-f]{64}$/);
+
+      deployedValidator.message = '@validator-error-min-changed';
+      const result = await update(record(4, 'Edited'), { expectedRevision: 4, formFingerprint: issued });
+
+      expect(recordSaveFailureStatus(result)).to.equal(409);
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.include({ kind: 'conflict', phase: 'pre-save' });
+      expect(result.problems[0].issues[0].code).to.equal('form-definition-changed');
+      expect(result.concurrency?.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
+      expect(result.concurrency?.formFingerprint).not.to.equal(issued);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
     it('uses the loaded revision at a deterministic final-CAS race and runs no post-persistence work', async function () {
@@ -5005,6 +5148,19 @@ describe('RecordsService', function () {
         searchable: false,
         concurrentModification: { mode: 'strict' },
       };
+      (global as any).RecordTypesService.get.returns(of(recordType));
+      let stored: any;
+      mockStorageService.getMeta.callsFake(async () => structuredClone(stored));
+      mockStorageService.create.callsFake(async (_brand, candidate) => {
+        stored = { ...structuredClone(candidate), revision: 0 };
+        return { oid: stored.redboxOid, applicationState: 'applied', committedRevision: 0 };
+      });
+      const draftForm = {
+        id: 'original-draft-row',
+        name: 'default-form', branding: 'brand-1',
+        configuration: { name: 'default-form', componentDefinitions: [] },
+      };
+      mockFormsService.getFormByName.withArgs('default-form').returns(of(draftForm));
       const issued = await RecordsService.getRecordFormFingerprint(
         {
           metaMetadata: { brandId: 'brand-1', type: 'rdmp', form: 'default-form' },
@@ -5012,9 +5168,11 @@ describe('RecordsService', function () {
         },
         recordType
       );
+      const reseededDraftForm = { ...structuredClone(draftForm), id: 'reseeded-draft-row' };
+      mockFormsService.getFormByName.withArgs('default-form').returns(of(reseededDraftForm));
       const context = createRecordSaveContext({
         routeFamily: 'browser',
-        operation: 'create',
+        operation: 'transition',
         targetStep: 'published',
         concurrency: { entityTagSupplied: false, formFingerprint: issued },
       });
@@ -5037,7 +5195,24 @@ describe('RecordsService', function () {
       expect(result.problems.flatMap((problem: any) => problem.issues).map((issue: any) => issue.code)).not.to.include(
         'form-definition-changed'
       );
-      expect(result.concurrency?.formFingerprint).to.equal(issued);
+      expect(stored.workflow.stage).to.equal('published');
+      expect(stored.metaMetadata.form).to.equal('published-form');
+      expect(result.concurrency?.formFingerprint).not.to.equal(issued);
+      expect(result.concurrency?.formFingerprint).to.equal(await RecordsService.getRecordFormFingerprint(stored, recordType));
+
+      reseededDraftForm.configuration.name = 'Updated draft configuration';
+      const stale = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Another project' }, authorization: { edit: ['user-1'], view: ['user-1'] } },
+        recordType,
+        { username: 'user-1' },
+        true,
+        false,
+        'published',
+        context
+      );
+      expect(recordSaveFailureStatus(stale)).to.equal(409);
+      expect(stale.problems[0].issues[0].code).to.equal('form-definition-changed');
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
 
@@ -5074,7 +5249,7 @@ describe('RecordsService', function () {
       );
 
       expect(result.wasPersisted()).to.equal(true);
-      expect(getFingerprint.calledOnce).to.equal(true);
+      expect(getFingerprint.called).to.equal(true);
       expect(getFingerprint.firstCall.args[0]).to.deep.include({
         metaMetadata: { brandId: '', form: 'default-form' },
         workflow: { stage: 'draft' },

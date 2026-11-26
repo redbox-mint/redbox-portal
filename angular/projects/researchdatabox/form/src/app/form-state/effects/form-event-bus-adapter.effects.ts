@@ -338,7 +338,8 @@ export class FormEventBusAdapterEffects {
       FormComponentEventType.FORM_DELETE_FAILURE,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
       (event: FormDeleteFailureEvent) =>
-        FormActions.deleteRecordFailure({ error: formatErrorsForMessage(event.error) })
+        FormActions.deleteRecordFailure({ error: formatErrorsForMessage(event.error) }),
+      false
     )
   );
 
