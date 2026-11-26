@@ -1,4 +1,4 @@
-import {Component, computed} from '@angular/core';
+import {Component, computed, DestroyRef, inject} from '@angular/core';
 import {DeleteButtonComponentName, DeleteButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {createFormDeleteRequestedEvent} from '../form-state';
 import {ButtonBaseComponent} from "./button-base.component";
@@ -25,12 +25,14 @@ import {ButtonBaseComponent} from "./button-base.component";
 export class DeleteButtonComponent extends ButtonBaseComponent {
   public override logName = DeleteButtonComponentName;
   public override componentDefinition?: DeleteButtonFieldComponentDefinitionOutline;
+  private readonly destroyRef = inject(DestroyRef);
 
   protected override fallbackVariantClass: string = 'btn-danger';
 
   protected readonly disabled = computed(() => {
     const hasOid = !!this.getFormComponent.oid()?.trim();
-    return this.isDisabled || this.formStateFacade.isDeleting() || this.formStateFacade.isSaving() || !hasOid;
+    return this.isDisabled || this.formStateFacade.isDeleting() || this.formStateFacade.isSaving() ||
+      this.getFormComponent.saveNavigationPending() || this.getFormComponent.formReloadRequired() || !hasOid;
   });
 
   get displayLabel(): string {
@@ -39,20 +41,22 @@ export class DeleteButtonComponent extends ButtonBaseComponent {
   }
 
   async delete(): Promise<void> {
-    if (this.disabled()) {
-      return;
-    }
+    const form = this.getFormComponent.form;
+    const oid = this.getFormComponent.trimmedParams.oid();
+    const canDelete = () => !this.destroyRef.destroyed && this.getFormComponent.form === form &&
+      this.getFormComponent.trimmedParams.oid() === oid && !this.isDisabled && !this.disabled();
 
-    const confirmed = await this.confirmDelete();
-    if (!confirmed) {
+    if (!canDelete() || !await this.confirmDelete() || !canDelete()) {
       return;
     }
 
     const redirectLocation = String(this.componentDefinition?.config?.redirectLocation ?? '').trim();
+    const resolvedRedirectLocation = await this.resolveRedirectLocation(redirectLocation);
+    if (!canDelete()) return;
     this.eventBus.publish(
       createFormDeleteRequestedEvent({
         closeOnDelete: this.componentDefinition?.config?.closeOnDelete,
-        redirectLocation: await this.resolveRedirectLocation(redirectLocation),
+        redirectLocation: resolvedRedirectLocation,
         redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
         sourceId: this.name ?? undefined,
       })
