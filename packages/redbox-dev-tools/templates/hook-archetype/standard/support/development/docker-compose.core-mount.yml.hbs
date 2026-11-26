@@ -8,6 +8,7 @@ services:
     volumes:
       - "../../:/opt/redbox-portal/node_modules/{{packageName}}"
       - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/app.js:/opt/redbox-portal/app.js:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/register-portal-mongodb.cjs:/opt/redbox-portal/register-portal-mongodb.cjs:delegated"
       - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/agenda-sqs-backend:/opt/redbox-portal/packages/agenda-sqs-backend:delegated"
       - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/raido:/opt/redbox-portal/packages/raido:delegated"
       - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-core:/opt/redbox-portal/packages/redbox-core:delegated"

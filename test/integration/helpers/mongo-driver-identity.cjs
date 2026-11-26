@@ -3,7 +3,7 @@ const { createRequire } = require('node:module');
 
 /** @typedef {typeof import('mongodb')} MongoDriver */
 
-function assertMongoDriverIdentity() {
+async function assertMongoDriverIdentity() {
   const fromPortal = createRequire(__filename);
   const portalDriver = require('mongodb');
   /** @type {{ mongodb: MongoDriver }} */
@@ -26,7 +26,17 @@ function assertMongoDriverIdentity() {
     assert.strictEqual(fromConsumer('bson'), bson, `${dependency} must use the portal BSON module`);
   }
 
+  const [esmMongo, esmBson, esmDb] = await Promise.all([
+    import('mongodb'),
+    import('bson'),
+    import('mongodb/lib/db.js'),
+  ]);
+  assert.strictEqual(esmMongo.default, portalDriver);
+  assert.strictEqual(esmBson.ObjectId, portalDriver.ObjectId);
+  assert.strictEqual(esmDb.Db, portalDriver.Db);
+
   const fromCore = createRequire(require.resolve('@researchdatabox/redbox-core'));
+  assert.strictEqual(fromCore('mongodb/lib/db.js'), fromPortal('mongodb/lib/db.js'));
   /** @type {{ mongodb: MongoDriver }} */
   const coreAdapter = fromCore('sails-mongo');
   assert.strictEqual(coreAdapter.mongodb, portalDriver, 'the core adapter must use the portal MongoDB module');

@@ -5,12 +5,6 @@ set -o xtrace
 
 cd /opt/redbox-portal
 
-use_portal_mongodb=false
-if [[ "${1:-}" == --use-portal-mongodb ]]; then
-  use_portal_mongodb=true
-  shift
-fi
-
 # Remove the output from any previous tests
 rm -rf /opt/redbox-portal/coverage/mocha/* || true
 rm /opt/redbox-portal/.tmp/junit/backend-mocha/backend-mocha.xml || true
@@ -54,15 +48,11 @@ fi
 
 npm run webpack
 
-# Pass the mounted portal's resolution hook to shim generation and nyc's Mocha process.
-if [[ "$use_portal_mongodb" == true ]]; then
-  export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--require=/opt/redbox-portal/support/development/use-portal-mongodb.cjs"
-fi
-
 # Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level
 echo "Generating shims via redbox-core loader..."
 node -e "
+  require('./register-portal-mongodb.cjs');
   const { generateAllShims } = require('@researchdatabox/redbox-core');
   generateAllShims(process.cwd(), {
     forceRegenerate: true,

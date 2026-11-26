@@ -1,3 +1,4 @@
+import '../register-portal-mongodb.cjs';
 import sails from 'sails';
 import _ from 'lodash';
 import { DateTime } from 'luxon';

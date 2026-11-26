@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 type MongoDriver = typeof import('mongodb');
 const portalDriver = require('mongodb') as MongoDriver;
 const { assertMongoDriverIdentity } = require('../helpers/mongo-driver-identity.cjs') as {
-  assertMongoDriverIdentity(): void;
+  assertMongoDriverIdentity(): Promise<void>;
 };
 
 declare const Record: {

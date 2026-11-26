@@ -68,10 +68,6 @@ services:
     <<: *rbportal-service
     profiles: [mount]
     ports: []
-    entrypoint:
-      - bash
-      - /opt/redbox-portal/support/integration-testing/run-mocha-redbox.sh
-      - --use-portal-mongodb
     volumes:
       - '../../:/opt/redbox-portal:delegated'
       - '../../.tmp/attachments:/attachments'
