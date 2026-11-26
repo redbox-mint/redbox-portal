@@ -547,7 +547,7 @@ export namespace Services {
                     return;
                 }
 
-                const nestedArrays = ['componentDefinitions', 'tabs', 'panels'];
+                const nestedArrays = ['componentDefinitions', 'tabs', 'panels', 'headerActions'];
                 nestedArrays.forEach(key => {
                     const nested = componentConfig[key];
                     if (Array.isArray(nested)) {

@@ -306,6 +306,32 @@ describe('RecordController update', () => {
     }[];
   }
 
+  it('loads an edit form with a hydrated publish-data-location header action', async () => {
+    const location = { type: 'url', location: 'https://example.test/data' };
+    const configuration: FormConfigFrame = {
+      ...formConfig,
+      componentDefinitions: [{
+        name: 'dataLocations',
+        model: { class: 'PublishDataLocationSelectorModel' },
+        component: {
+          class: 'PublishDataLocationSelectorComponent',
+          config: { headerActions: [input('refreshLabel')] },
+        },
+      }],
+    };
+    (FormsService.getFormByName as sinon.SinonStub).returns(of({
+      id: 'form-1', name: 'publication-draft', branding: 'brand-1', configuration,
+    }));
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord,
+      metadata: { dataLocations: [location], refreshLabel: 'Refresh' },
+    });
+
+    const { config } = await loadFormForRowEdits();
+    const selector = config.componentDefinitions?.find(field => field.name === 'dataLocations');
+    expect(selector?.model?.config?.value).to.deep.equal([location]);
+  });
+
   it('preserves omitted metadata and applies editable changes on a form save with a transition', async () => {
     const { res, json } = makeResponse();
     const files = [{ fileId: 'new', name: 'new.txt' }];
