@@ -86,7 +86,6 @@ services:
     <<: *rbportal-service
     profiles: [mount]
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
-    working_dir: /opt/redbox-portal
     volumes:
       - '../../:/opt/redbox-portal:delegated'
       - './.dev/attachments:/attachments:delegated'

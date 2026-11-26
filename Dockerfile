@@ -161,7 +161,7 @@ RUN apt-get update \
  && echo $TZ > /etc/timezone
 
 COPY --from=builder --chown=node:node /opt/redbox-portal/package*.json ./
-COPY --from=builder --chown=node:node /opt/redbox-portal/app.js /opt/redbox-portal/register-portal-mongodb.cjs ./
+COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
 COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public

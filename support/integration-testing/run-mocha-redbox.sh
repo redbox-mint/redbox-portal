@@ -40,19 +40,26 @@ if [[ ${#test_args[@]} -eq 0 ]]; then
   test_args=(test/integration/**/*.test.ts)
 fi
 
-# Reuse the compiled checkout's portal install. Installing from the lockfile
-# also supplies Redoc when restoring the portal's development dependencies.
-if [[ ! -x node_modules/.bin/mocha || ! -x node_modules/.bin/nyc || ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
-  npm ci --include=dev --ignore-scripts --strict-peer-deps
+# Ensure dependencies are available (install if missing)
+if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
+  echo "Test dependencies not found. Running npm install..."
+  npm install
+fi
+
+if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
+  npm install --no-save --ignore-scripts --strict-peer-deps redoc@3.0.1
 fi
 
 npm run webpack
+
+# Redoc is only needed to build the browser bundle. Remove it and its transitive
+# `should` package before Sails boots so moduleloader does not scan them.
+rm -rf node_modules/redoc node_modules/should
 
 # Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level
 echo "Generating shims via redbox-core loader..."
 node -e "
-  require('./register-portal-mongodb.cjs');
   const { generateAllShims } = require('@researchdatabox/redbox-core');
   generateAllShims(process.cwd(), {
     forceRegenerate: true,
