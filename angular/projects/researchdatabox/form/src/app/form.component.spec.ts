@@ -1115,6 +1115,98 @@ describe('FormComponent', () => {
     expect(update).toHaveBeenCalledOnceWith('publication', { title: 'Edited' }, '', { formSave: true });
   });
 
+  it('omits an enabled repeatable with no editable row fields on successive saves', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+        {
+          name: 'displayOnly',
+          model: { class: 'RepeatableModel', config: { value: [{ name: 'Keep' }] } },
+          component: {
+            class: 'RepeatableComponent',
+            config: { elementTemplate: {
+              name: '',
+              model: { class: 'GroupModel', config: {} },
+              component: { class: 'GroupComponent', config: { componentDefinitions: [{
+                name: 'name',
+                model: { class: 'SimpleInputModel', config: { disabled: true } },
+                component: { class: 'SimpleInputComponent' },
+              }] } },
+            } },
+          },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    formComponent.formDefMap!.formConfigMeta = { oid: 'publication', rowProofs: {}, editableRowPaths: [] };
+    expect(formComponent.form!.get(['displayOnly', 0])).toBeInstanceOf(FormGroup);
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+    });
+    const title = formComponent.form!.get('title')!;
+    for (const value of ['First edit', 'Second edit']) {
+      title.setValue(value);
+      await formComponent.saveForm({ force: true });
+    }
+
+    expect(update.calls.allArgs()).toEqual([
+      ['publication', { title: 'First edit' }, '', { formSave: true }],
+      ['publication', { title: 'Second edit' }, '', { formSave: true }],
+    ]);
+  });
+
+  it('keeps replacement and descendant lists in the same tracking mode across saves', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+        contributorList([{ name: 'Old creator', notes: [{ name: 'Old note' }] }], false, [
+          { ...contributorList([]), name: 'notes' },
+        ]),
+        { ...contributorList([{ name: 'Reviewer' }]), name: 'reviewers' },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    const rowProofs = { '["creators"]': ['creator'], '["creators",0,"notes"]': ['note'], '["reviewers"]': ['reviewer'] };
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', rowProofs, editableRowPaths: ['["creators"]', '["creators",null,"notes"]', '["reviewers"]'],
+    };
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: rowProofs,
+    });
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(0)[3]).toEqual({ formSave: true, rowEdits: {
+      '["creators"]': [{ source: 0, proof: 'creator' }],
+      '["creators",0,"notes"]': [{ source: 0, proof: 'note' }],
+      '["reviewers"]': [{ source: 0, proof: 'reviewer' }],
+    } });
+    update.calls.reset();
+
+    const parent = formComponent.getComponentDefByName('creators')?.component as RepeatableComponent;
+    const creators = [{ name: 'New creator', notes: [{ name: 'New note' }] }];
+    await parent.replaceAllElements(creators);
+    expect(formComponent.form!.get('creators')?.value).toEqual(creators);
+    update.and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { '["reviewers"]': ['reviewer'] },
+    });
+    const title = formComponent.form!.get('title')!;
+    for (const value of ['First edit', 'Second edit']) {
+      title.setValue(value);
+      await formComponent.saveForm({ force: true });
+    }
+    const options = { formSave: true, rowEdits: { '["reviewers"]': [{ source: 0, proof: 'reviewer' }] } };
+    const reviewers = [{ name: 'Reviewer' }];
+    expect(update.calls.allArgs()).toEqual([
+      ['publication', { title: 'First edit', creators, reviewers }, '', options],
+      ['publication', { title: 'Second edit', creators, reviewers }, '', options],
+    ]);
+  });
+
   it('serializes a title edit with hydrated repeatables and disabled children', async () => {
     const textField = (name: string, value?: string): Field => ({
       name,

@@ -118,6 +118,19 @@ describe('RecordController update', () => {
           } },
         },
       },
+      {
+        ...repeatable('displayOnlyGroups'),
+        component: {
+          class: 'RepeatableComponent',
+          config: { elementTemplate: {
+            name: '',
+            model: { class: 'GroupModel', config: {} },
+            component: { class: 'GroupComponent', config: { componentDefinitions: [
+              { ...input('name'), model: { class: 'SimpleInputModel', config: { disabled: true } } },
+            ] } },
+          } },
+        },
+      },
       repeatable('emptied'),
       {
         ...repeatable(fundingField),
@@ -247,7 +260,10 @@ describe('RecordController update', () => {
     await controller.getForm(request, response.res);
     const payload = response.json.firstCall.args[0];
     if (!payload.data) throw new Error(JSON.stringify(payload));
-    return { config: payload.data as FormConfigFrame, proofs: payload.meta.rowProofs as FormRowProofs, session: request.session };
+    return {
+      config: payload.data as FormConfigFrame, proofs: payload.meta.rowProofs as FormRowProofs,
+      editableRowPaths: payload.meta.editableRowPaths as string[], session: request.session,
+    };
   }
 
   type LoadedForm = Awaited<ReturnType<typeof loadFormForRowEdits>>;
@@ -465,6 +481,25 @@ describe('RecordController update', () => {
       { title: 'Edited', displayOnly: [] }, { '["displayOnly"]': [] }, form
     ), makeResponse().res);
     expect(updateMeta.firstCall.args[7].displayOnly).to.deep.equal(['Keep']);
+  });
+
+  it('describes editable list paths independently of loaded rows and excludes read-only row groups', async () => {
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: {
+        ...currentRecord.metadata, contributors: [], displayOnlyGroups: [{ name: 'Keep' }],
+      },
+    });
+    const form = await loadFormForRowEdits();
+    expect(form.editableRowPaths).to.include.members([
+      '["contributors"]', '["contributors",null,"notes"]', '["contributors",null,"notes",null,"details"]',
+    ]);
+    expect(form.editableRowPaths).not.to.include('["displayOnlyGroups"]');
+    expect(form.proofs).not.to.have.property('["contributors",0,"notes"]');
+    expect(form.proofs).not.to.have.property('["displayOnlyGroups"]');
+
+    await controller.update(makeRequest({ title: 'Edited', displayOnlyGroups: [] }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7]).to.include({ title: 'Edited' });
+    expect(updateMeta.firstCall.args[7].displayOnlyGroups).to.deep.equal([{ name: 'Keep' }]);
   });
 
   it('rejects stale row positions before writing and accepts the same proofs after an unrelated edit', async () => {

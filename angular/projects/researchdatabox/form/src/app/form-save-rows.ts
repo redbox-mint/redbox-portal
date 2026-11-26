@@ -36,21 +36,25 @@ export class FormSaveRows {
     this.rebuilt.add(array);
   }
 
-  snapshot(form: FormGroup | undefined, included: (control: AbstractControl) => boolean, proofs?: FormRowProofs, updating = !!proofs) {
+  snapshot(
+    form: FormGroup | undefined, included: (control: AbstractControl) => boolean,
+    proofs?: FormRowProofs, updating = !!proofs, editableRowPaths?: string[]
+  ) {
     const trackRows = !!proofs;
+    const allowedLists = editableRowPaths && new Set(editableRowPaths);
     if (form && proofs) this.bindProofs(form, proofs);
     const rowEdits: FormRowEdits = {};
     const arrays: { key: string; array: FormArray; rows: AbstractControl[] }[] = [];
 
     const omitted = Symbol();
-    const visit = (control: AbstractControl, path: Path, fromStorage: boolean, root = false): unknown => {
+    const visit = (control: AbstractControl, path: Path, fromStorage: boolean, trackBranch: boolean, root = false): unknown => {
       if (!root && (!included(control) || (control.disabled && !(trackRows &&
         (control instanceof FormGroup || control instanceof FormArray))))) {
         return omitted;
       }
       if (control instanceof FormGroup) {
         const children = Object.entries(control.controls).flatMap(([key, child]) => {
-          const value = visit(child, [...path, key], fromStorage);
+          const value = visit(child, [...path, key], fromStorage, trackBranch);
           return value === omitted ? [] : [[key, value]];
         });
         // A container can be disabled because its children are disabled. Keep any
@@ -58,23 +62,26 @@ export class FormSaveRows {
         return control.disabled && !children.length && !root ? omitted : Object.fromEntries(children);
       }
       if (!(control instanceof FormArray)) return control.value;
+      const schemaPath = JSON.stringify(path.map(part => typeof part === 'number' ? null : part));
+      if (allowedLists && !allowedLists.has(schemaPath)) return omitted;
 
       const changedByHook = this.needsReload.has(control);
       const unavailable = changedByHook || this.rebuilt.has(control);
       const structured = control.controls.some(row => row instanceof FormGroup || row instanceof FormArray);
-      if (updating && changedByHook && structured) {
+      if (trackBranch && updating && changedByHook && structured) {
         throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
       }
-      const trackArray = trackRows && !unavailable;
+      // The server uses the ordinary merge below a list without row edits.
+      const trackArray = trackBranch && !unavailable;
       const edits: FormRowEdit[] = [];
       const values: unknown[] = [];
       const rows: AbstractControl[] = [];
       for (const row of control.controls) {
         const source = this.origins.get(row);
         const origin = trackArray && fromStorage && source?.array === control ? source : undefined;
-        const value = visit(row, [...path, values.length], !!origin);
+        const value = visit(row, [...path, values.length], !!origin, trackArray);
         const retain = value === omitted;
-        if (retain && updating && (!trackRows || unavailable)) {
+        if (retain && updating && !trackArray) {
           throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
         }
         if (retain && !origin) continue;
@@ -94,7 +101,7 @@ export class FormSaveRows {
       return values;
     };
 
-    const metadata = form ? structuredClone(visit(form, [], true, true) as Record<string, unknown>) : {};
+    const metadata = form ? structuredClone(visit(form, [], true, trackRows, true) as Record<string, unknown>) : {};
     return {
       metadata,
       rowEdits,

@@ -30,6 +30,21 @@ export function formRowSigner(req: Sails.Req, oid: string) {
 
 type SignRow = ReturnType<typeof formRowSigner>;
 
+/** A null path segment represents any row of the containing list. */
+export function editableFormRowPaths(schema: FieldSchema): string[] {
+  const paths: string[] = [];
+  const collect = (shape: FieldSchema, path: (string | null)[]): void => {
+    if (shape.elements) {
+      paths.push(JSON.stringify(path));
+      collect(shape.elements, [...path, null]);
+    } else if (!shape.selection) {
+      for (const [key, child] of Object.entries(fields(shape))) collect(child, [...path, key]);
+    }
+  };
+  collect(schema, []);
+  return paths;
+}
+
 export function loadedFormRowProofs(metadata: Metadata, schema: FieldSchema, sign: SignRow): FormRowProofs {
   const proofs: FormRowProofs = {};
   const collect = (value: unknown, shape: FieldSchema, path: Path): void => {

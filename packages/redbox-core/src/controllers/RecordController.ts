@@ -48,7 +48,7 @@ import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import { formRowSigner, loadedFormRowProofs, FormRowSave, FormSaveInputError } from '../utilities/FormSaveMetadata';
+import { editableFormRowPaths, formRowSigner, loadedFormRowProofs, FormRowSave, FormSaveInputError } from '../utilities/FormSaveMetadata';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -652,9 +652,14 @@ export namespace Controllers {
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
-          const rowProofs = recordData && editMode && req.query.rowEdits === 'true'
-            ? loadedFormRowProofs(recordData.metadata, await FormRecordConsistencyService.buildEditSaveSchema(mergedForm, reusableFormDefs), formRowSigner(req, recordData.redboxOid))
-            : undefined;
+          let rowMetadata;
+          if (recordData && editMode && req.query.rowEdits === 'true') {
+            const schema = await FormRecordConsistencyService.buildEditSaveSchema(mergedForm, reusableFormDefs);
+            rowMetadata = {
+              editableRowPaths: editableFormRowPaths(schema),
+              rowProofs: loadedFormRowProofs(recordData.metadata, schema, formRowSigner(req, recordData.redboxOid)),
+            };
+          }
           return this.sendResp(req, res, {
             data: mergedForm,
             meta: {
@@ -663,7 +668,7 @@ export namespace Controllers {
               oid: oid,
               workflow: recordData?.workflow,
               contextVariables: contextVariablesMap,
-              ...(rowProofs ? { rowProofs } : {}),
+              ...rowMetadata,
             },
             prehydrate,
           });

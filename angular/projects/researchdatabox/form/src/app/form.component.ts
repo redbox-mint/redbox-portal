@@ -946,7 +946,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     };
     collectExcluded(this.componentDefArr);
 
-    return this.formSaveRows.snapshot(this.form, control => !excluded.has(control), proofs, updating);
+    const editableRowPaths = this.formConfigMeta['editableRowPaths'] as string[] | undefined;
+    return this.formSaveRows.snapshot(this.form, control => !excluded.has(control), proofs, updating, editableRowPaths);
   }
 
   private getComponentDebugInfo(
