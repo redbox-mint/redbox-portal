@@ -518,12 +518,13 @@ export class FormService extends HttpClientService {
     return compMap;
   }
 
-  public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined): boolean {
+  public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined, ignoreAggregateDisabled = false): boolean {
     if (!compEntry || (compEntry.compConfigJson && isStaticallyDisabledFormField(compEntry.compConfigJson))) {
       return false;
     }
 
-    const modelDisabled = compEntry.model?.formControl?.disabled ?? compEntry.compConfigJson?.model?.config?.disabled === true;
+    const configuredDisabled = compEntry.model?.fieldConfig?.config?.disabled ?? compEntry.compConfigJson?.model?.config?.disabled === true;
+    const modelDisabled = ignoreAggregateDisabled ? configuredDisabled : (compEntry.model?.formControl?.disabled ?? configuredDisabled);
     const componentDisabled = compEntry.component?.isDisabled ?? compEntry.compConfigJson?.component?.config?.disabled === true;
     const layoutDisabled = (compEntry.layout?.componentDefinition
       ? compEntry.layout.componentDefinition.config?.disabled
@@ -861,8 +862,9 @@ export class FormService extends HttpClientService {
     if (formName) {
       url.searchParams.set('formName', formName?.toString());
     }
-    if (oid && editable && formName) {
+    if (oid && editable) {
       url.searchParams.set('formSave', 'true');
+      url.searchParams.set('rowEdits', 'true');
     }
 
     type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };

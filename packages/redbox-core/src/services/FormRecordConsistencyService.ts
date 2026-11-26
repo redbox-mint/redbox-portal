@@ -158,8 +158,9 @@ export namespace Services {
             reusableFormDefs?: ReusableFormDefinitions,
             options?: { partialFormSave?: boolean; rows?: FormRowSave }
         ): Promise<BasicRedboxRecord> {
-            const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs, options?.partialFormSave);
+            const permittedChanges = options?.partialFormSave
+                ? await this.buildEditSaveSchema(clientFormConfig, reusableFormDefs)
+                : await this.buildSchemaForFormConfig(this.stripModelValuesFromFormConfig(clientFormConfig), formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             return {
@@ -357,6 +358,10 @@ export namespace Services {
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
             return await visitor.start({form: constructed, forFormSave});
+        }
+
+        public buildEditSaveSchema(item: FormConfigFrame, reusableFormDefs?: ReusableFormDefinitions): Promise<Record<string, unknown>> {
+            return this.buildSchemaForFormConfig(this.stripModelValuesFromFormConfig(item), 'edit', reusableFormDefs, true);
         }
 
         /**

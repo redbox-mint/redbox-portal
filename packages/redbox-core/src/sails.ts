@@ -14,6 +14,7 @@ declare module 'express-session' {
     logoutUrl: string;
     lang: string;
     namedEditForms?: string[];
+    formRowProofKey?: string;
     authenticated: boolean;
     data: unknown;
   }

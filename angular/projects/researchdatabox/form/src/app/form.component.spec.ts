@@ -1004,33 +1004,41 @@ describe('FormComponent', () => {
   it('sends a retained row position instead of the value of a disabled row', async () => {
     const config: FormConfigFrame = {
       name: 'publication-draft',
-      componentDefinitions: [contributorList([{ name: 'Disabled' }, { name: 'Editable' }])],
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+        contributorList([{ name: 'Disabled' }, { name: 'Editable' }]),
+      ],
     };
     const { formComponent } = await createFormAndWaitForReady(config, {
       oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
     });
-    formComponent.formDefMap!.formConfigMeta = { oid: 'publication' };
+    const rowProofs = { '["creators"]': ['first', 'second'] };
+    formComponent.formDefMap!.formConfigMeta = { oid: 'publication', rowProofs };
     formComponent.form!.get(['creators', 0])!.disable();
     const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
-      success: true, oid: 'publication', message: '', data: null, savedRowCounts: { '["creators"]': 2 },
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: rowProofs,
     });
 
     await formComponent.saveForm({ force: true });
 
     expect(update).toHaveBeenCalledOnceWith('publication', {
-      creators: [null, { name: 'Editable' }],
-    }, '', { formSave: true, rowEdits: { '["creators"]': [{ retain: 0 }, 1] } });
+      title: 'Draft', creators: [null, { name: 'Editable' }],
+    }, '', { formSave: true, rowEdits: { '["creators"]': [
+      { source: 0, proof: 'first', retain: true }, { source: 1, proof: 'second' },
+    ] } });
 
     const rows = formComponent.getComponentDefByName('creators')?.component as RepeatableComponent;
-    const layout = rows.formFieldCompMapEntries[0].layout as RepeatableElementLayoutComponent<unknown>;
+    const layout = rows.formFieldCompMapEntries[1].layout as RepeatableElementLayoutComponent<unknown>;
     layout.removeFn!();
+    expect(formComponent.form!.get('creators')?.disabled).toBeTrue();
     update.and.resolveTo({
-      success: true, oid: 'publication', message: '', data: null, savedRowCounts: { '["creators"]': 1 },
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { '["creators"]': ['first'] },
     });
     await formComponent.saveForm({ force: true });
     await formComponent.saveForm({ force: true });
-    expect(update.calls.argsFor(1)[3]).toEqual({ formSave: true, rowEdits: { '["creators"]': [1] } });
-    expect(update.calls.argsFor(2)[3]).toEqual({ formSave: true, rowEdits: { '["creators"]': [0] } });
+    const retained = { formSave: true, rowEdits: { '["creators"]': [{ source: 0, proof: 'first', retain: true }] } };
+    expect(update.calls.argsFor(1)).toEqual(['publication', { title: 'Draft', creators: [null] }, '', retained]);
+    expect(update.calls.argsFor(2)).toEqual(['publication', { title: 'Draft', creators: [null] }, '', retained]);
   });
 
   it('serializes a title edit with hydrated repeatables and disabled children', async () => {
@@ -1043,7 +1051,7 @@ describe('FormComponent', () => {
       name: 'publication-draft',
       componentDefinitions: [
         textField('title', 'Before'),
-        contributorList([{ name: 'Alpha', conditional: 'First' }, { name: 'Alpha', conditional: 'Second' }], false, [
+        contributorList([{ name: 'Alpha', conditional: 'First', notes: [] }, { name: 'Alpha', conditional: 'Second', notes: [] }], false, [
           textField('optionalNote'),
           {
             name: 'conditional',
@@ -1065,7 +1073,14 @@ describe('FormComponent', () => {
                   model: { class: 'GroupModel', config: {} },
                   component: {
                     class: 'GroupComponent',
-                    config: { componentDefinitions: [textField('text')] },
+                    config: { componentDefinitions: [
+                      textField('text'),
+                      {
+                        name: 'details',
+                        model: { class: 'RepeatableModel', config: {} },
+                        component: { class: 'RepeatableComponent', config: { elementTemplate: textField('') } },
+                      },
+                    ] },
                   },
                 },
               },
@@ -1077,17 +1092,35 @@ describe('FormComponent', () => {
     const { formComponent } = await createFormAndWaitForReady(config, {
       oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
     });
+    const rowProofs = {
+      '["creators"]': ['first', 'second'],
+      '["creators",0,"notes"]': [],
+      '["creators",1,"notes"]': [],
+    };
+    formComponent.formDefMap!.formConfigMeta = { oid: 'publication', rowProofs };
+    const savedRowProofs = { ...rowProofs, '["creators",0,"notes",0,"details"]': [], '["creators",1,"notes",0,"details"]': [] };
     const title = formComponent.form!.get('title')!;
     title.setValue('Edited');
     title.markAsDirty();
     const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
-      success: true, oid: 'publication', message: '', data: null,
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs,
     });
 
     await formComponent.saveForm();
+    await formComponent.saveForm({ force: true });
 
-    const creator = { name: 'Alpha', optionalNote: null, notes: [{ text: null }] };
-    expect(update).toHaveBeenCalledOnceWith('publication', { title: 'Edited', creators: [creator, creator] }, '', { formSave: true });
+    const creator = { name: 'Alpha', optionalNote: null, notes: [{ text: null, details: [null] }] };
+    const options = {
+      formSave: true, rowEdits: {
+        '["creators"]': [{ source: 0, proof: 'first' }, { source: 1, proof: 'second' }],
+        '["creators",0,"notes"]': [null],
+        '["creators",0,"notes",0,"details"]': [null],
+        '["creators",1,"notes"]': [null],
+        '["creators",1,"notes",0,"details"]': [null],
+      },
+    };
+    const expected: Parameters<typeof formComponent.recordService.update> = ['publication', { title: 'Edited', creators: [creator, creator] }, '', options];
+    expect(update.calls.allArgs()).toEqual([expected, expected]);
   });
 
   it('renders the debug panel component when URL debug mode is enabled', async () => {

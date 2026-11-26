@@ -27,7 +27,7 @@ import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
-import { FormRowEdits, RecordAttachment } from '@researchdatabox/sails-ng-common';
+import { FormRowEdits, FormRowProofs, RecordAttachment } from '@researchdatabox/sails-ng-common';
 
 export interface RecordTypeConf {
   name: string;
@@ -694,7 +694,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
-  savedRowCounts?: Record<string, number>;
+  savedRowProofs?: FormRowProofs;
   success: boolean = false;
   oid: string = '';
   message: string = '';

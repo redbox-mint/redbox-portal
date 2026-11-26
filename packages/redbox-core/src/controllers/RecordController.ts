@@ -48,7 +48,7 @@ import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import { FormRowSave, FormSaveInputError } from '../utilities/FormSaveMetadata';
+import { formRowSigner, loadedFormRowProofs, FormRowSave, FormSaveInputError } from '../utilities/FormSaveMetadata';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -652,6 +652,9 @@ export namespace Controllers {
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
+          const rowProofs = recordData && editMode && req.query.rowEdits === 'true'
+            ? loadedFormRowProofs(recordData.metadata, await FormRecordConsistencyService.buildEditSaveSchema(mergedForm, reusableFormDefs), formRowSigner(req, recordData.redboxOid))
+            : undefined;
           return this.sendResp(req, res, {
             data: mergedForm,
             meta: {
@@ -659,7 +662,8 @@ export namespace Controllers {
               recordType: recordType,
               oid: oid,
               workflow: recordData?.workflow,
-              contextVariables: contextVariablesMap
+              contextVariables: contextVariablesMap,
+              ...(rowProofs ? { rowProofs } : {}),
             },
             prehydrate,
           });
@@ -894,7 +898,7 @@ export namespace Controllers {
           }
           if (req.query.rowEdits === 'true') {
             if (!_.isPlainObject(req.body?.rowEdits)) throw new FormSaveInputError('Invalid repeatable row edits.');
-            rows = new FormRowSave(req.body.rowEdits);
+            rows = new FormRowSave(req.body.rowEdits, formRowSigner(req, oid));
             metadata = req.body.metadata;
           }
           if (!_.isPlainObject(metadata)) {
@@ -909,21 +913,21 @@ export namespace Controllers {
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
-          let savedRowCounts: ReturnType<FormRowSave['savedRowCounts']> | undefined;
+          let savedRowProofs: ReturnType<FormRowSave['savedRowProofs']> | undefined;
           if (rows) {
             try {
               const saved = await this.recordsService.getMeta(oid);
-              savedRowCounts = rows.savedRowCounts(expected!, saved?.metadata ?? {});
+              savedRowProofs = rows.savedRowProofs(expected!, saved?.metadata ?? {});
             } catch (error) {
               sails.log.warn('RecordController - Could not confirm repeatable rows after save', error);
-              savedRowCounts = {};
+              savedRowProofs = {};
             }
           }
           return this.sendResp(req, res, {
             // The saved record can contain metadata that was excluded from this user's form.
             data: formSave ? { redboxOid: oid } : await this.recordsService.getMeta(oid),
-            meta: { ...response, ...(savedRowCounts ? { savedRowCounts } : {}) },
-            v1: savedRowCounts ? { ...response, savedRowCounts } : response,
+            meta: { ...response, ...(savedRowProofs ? { savedRowProofs } : {}) },
+            v1: savedRowProofs ? { ...response, savedRowProofs } : response,
           });
         } else {
           return this.sendResp(req, res, {

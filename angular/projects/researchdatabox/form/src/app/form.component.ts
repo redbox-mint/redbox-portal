@@ -77,6 +77,7 @@ import {
 import {
   DynamicScriptResponse,
   FormConfigFrame,
+  type FormRowProofs,
   FormRequestParamsMap,
   FormRequestParamValue,
   FormStatus,
@@ -929,21 +930,23 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
-    return this.snapshotForSave(false).metadata;
+    return this.snapshotForSave().metadata;
   }
 
-  private snapshotForSave(trackRows: boolean, updating = trackRows) {
+  private snapshotForSave(proofs?: FormRowProofs, updating = !!proofs) {
     const excluded = new Set<AbstractControl>();
     const collectExcluded = (entries: FormFieldCompMapEntry[], parentExcluded = false) => {
       for (const entry of entries) {
-        const omit = parentExcluded || !this.formService.shouldIncludeInFormControlMap(entry);
+        const aggregateDisabled = !!proofs && entry.model?.formControl instanceof FormArray;
+        const omit = parentExcluded || !this.formService.shouldIncludeInFormControlMap(entry, aggregateDisabled);
         if (omit && entry.model?.formControl) excluded.add(entry.model.formControl);
         collectExcluded(entry.component?.formFieldCompMapEntries ?? [], omit);
       }
     };
     collectExcluded(this.componentDefArr);
 
-    return this.formSaveRows.snapshot(this.form, control => control.enabled && !excluded.has(control), trackRows, updating);
+    return this.formSaveRows.snapshot(this.form,
+      control => !excluded.has(control) && (control.enabled || (!!proofs && control instanceof FormArray)), proofs, updating);
   }
 
   private getComponentDebugInfo(
@@ -1206,8 +1209,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         try {
           let response: RecordActionResult;
           const oid = this.trimmedParams.oid();
-          const trackRows = !!oid && this.formConfigMeta['oid'] === oid;
-          const submitted = this.snapshotForSave(trackRows, !!oid);
+          const proofs = oid && this.formConfigMeta['oid'] === oid ? this.formConfigMeta['rowProofs'] as FormRowProofs | undefined : undefined;
+          const submitted = this.snapshotForSave(proofs, !!oid);
           const currentFormValue = submitted.metadata;
           const hasRetainedRows = Object.values(submitted.rowEdits).some(edits => edits.some(edit => typeof edit === 'object' && edit !== null));
           const savedData = hasRetainedRows ? this.getPersistedFormValue() : currentFormValue;
@@ -1226,7 +1229,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             });
           }
           if (response?.success) {
-            submitted.markSaved(response.savedRowCounts);
+            submitted.markSaved(response.savedRowProofs);
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);

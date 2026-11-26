@@ -4,7 +4,7 @@ import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordController';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
 import { routes, RouteTargetObject } from '../../src/config/routes.config';
-import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import type { FormConfigFrame, FormRowEdit, FormRowProofs } from '@researchdatabox/sails-ng-common';
 import { Services as FormServices } from '../../src/services/FormsService';
 import { Services as FormRecordConsistencyServices } from '../../src/services/FormRecordConsistencyService';
 import { createMockSails } from '../services/testHelper';
@@ -150,7 +150,7 @@ describe('RecordController update', () => {
                           model: { class: 'GroupModel', config: {} },
                           component: {
                             class: 'GroupComponent',
-                            config: { componentDefinitions: [input('text'), conditionalInput, adminInput('internalCode')] },
+                            config: { componentDefinitions: [input('text'), conditionalInput, adminInput('internalCode'), repeatable('details')] },
                           },
                         },
                       },
@@ -230,11 +230,46 @@ describe('RecordController update', () => {
     return { res, json, status };
   }
 
-  async function loadContributorRows() {
-    const request = makeRequest({}, { name: 'auto', edit: 'true', apiVersion: '2.0' });
+  async function loadFormForRowEdits() {
+    const request = makeRequest({}, { name: 'auto', edit: 'true', rowEdits: 'true', apiVersion: '2.0' });
     const response = makeResponse();
     await controller.getForm(request, response.res);
-    const config = response.json.firstCall.args[0].data as FormConfigFrame;
+    const payload = response.json.firstCall.args[0];
+    if (!payload.data) throw new Error(JSON.stringify(payload));
+    return { config: payload.data as FormConfigFrame, proofs: payload.meta.rowProofs as FormRowProofs, session: request.session };
+  }
+
+  type LoadedForm = Awaited<ReturnType<typeof loadFormForRowEdits>>;
+
+  async function rowSaveRequest(
+    metadata: Record<string, unknown>,
+    positions: Record<string, (number | { retain: number } | null)[]>,
+    loaded?: LoadedForm
+  ) {
+    const form = loaded ?? await loadFormForRowEdits();
+    const rowEdits = Object.fromEntries(Object.entries(positions).map(([path, entries]) => {
+      const sourcePath: (string | number)[] = [];
+      const submittedPath: (string | number)[] = [];
+      for (const part of JSON.parse(path) as (string | number)[]) {
+        const parentPositions = positions[JSON.stringify(submittedPath)];
+        const previous = typeof part === 'number' ? parentPositions?.[part] : undefined;
+        sourcePath.push(typeof previous === 'number' ? previous : part);
+        submittedPath.push(part);
+      }
+      const proofs = form.proofs[JSON.stringify(sourcePath)];
+      return [path, entries.map((entry): FormRowEdit => {
+        if (entry === null) return null;
+        const source = typeof entry === 'number' ? entry : entry.retain;
+        return { source, proof: proofs?.[source] ?? 'invalid', ...(typeof entry === 'object' ? { retain: true } : {}) };
+      })];
+    }));
+    const request = makeRequest({ metadata, rowEdits }, { formSave: 'true', rowEdits: 'true', apiVersion: '2.0' });
+    request.session = form.session;
+    return request;
+  }
+
+  async function loadContributorRows() {
+    const { config } = await loadFormForRowEdits();
     const contributors = config.componentDefinitions?.find(field => field.name === 'contributors');
     return contributors?.model?.config?.value as {
       name: string;
@@ -382,18 +417,69 @@ describe('RecordController update', () => {
     });
 
     const response = makeResponse();
-    await controller.update(makeRequest({
-      metadata: { title: 'Edited', contributors: [null, loaded[1]] },
-      rowEdits: { '["contributors"]': [{ retain: 0 }, 1] },
-    }, { formSave: 'true', rowEdits: 'true', apiVersion: '2.0' }), response.res);
+    const form = await loadFormForRowEdits();
+    await controller.update(await rowSaveRequest(
+      { title: 'Edited', contributors: [null, loaded[1]] }, { '["contributors"]': [{ retain: 0 }, 1] }, form
+    ), response.res);
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
-    expect(response.json.firstCall.args[0].meta.savedRowCounts).to.deep.equal({ '["contributors"]': 2 });
+    expect(response.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({ '["contributors"]': form.proofs['["contributors"]'] });
     expect(response.json.firstCall.args[0].data).to.deep.equal({ redboxOid: 'oid-1' });
 
-    await controller.update(makeRequest({
-      metadata: { contributors: [loaded[1]] }, rowEdits: { '["contributors"]': [1] },
-    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
-    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([contributors[1]]);
+    await controller.update(await rowSaveRequest(
+      { contributors: [null] }, { '["contributors"]': [{ retain: 0 }] }, form
+    ), makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([contributors[0]]);
+  });
+
+  it('rejects stale row positions before writing and accepts the same proofs after an unrelated edit', async () => {
+    const contributors = [
+      { name: 'Alice', internalCode: 'private-A' }, { name: 'Bob', internalCode: 'private-B' },
+    ];
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    const record = { ...currentRecord, metadata: { ...currentRecord.metadata, contributors } };
+    read.resolves(record);
+    const form = await loadFormForRowEdits();
+    expect(JSON.stringify(form.proofs)).not.to.include('private-A');
+    expect(JSON.stringify(form.proofs)).not.to.include('private-B');
+    const request = await rowSaveRequest(
+      { title: 'Edited', contributors: [{ name: 'Alice' }, { name: 'Bob' }] },
+      { '["contributors"]': [0, 1] }, form
+    );
+
+    read.resolves({ ...record, metadata: { ...record.metadata, contributors: [contributors[1], contributors[0]] } });
+    const stale = makeResponse();
+    await controller.update(request, stale.res);
+    sinon.assert.calledOnceWithExactly(stale.status, 400);
+    sinon.assert.notCalled(updateMeta);
+
+    read.resolves({ ...record, metadata: { ...record.metadata, description: 'An unrelated edit' } });
+    await controller.update(request, makeResponse().res);
+    expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
+    expect(updateMeta.firstCall.args[7].description).to.equal('An unrelated edit');
+  });
+
+  it('confirms empty placeholders at both levels across repeated saves', async () => {
+    const contributor = { name: 'Alpha', notes: [], internalCode: 'Keep' };
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] } });
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+    let form = await loadFormForRowEdits();
+    for (const title of ['First save', 'Second save']) {
+      const response = makeResponse();
+      await controller.update(await rowSaveRequest(
+        { title, contributors: [{ name: 'Alpha', notes: [{ text: null, details: [null] }] }] },
+        { '["contributors"]': [0], '["contributors",0,"notes"]': [null], '["contributors",0,"notes",0,"details"]': [null] },
+        form
+      ), response.res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([contributor]);
+      const proofs = response.json.firstCall.args[0].meta.savedRowProofs;
+      expect(proofs['["contributors",0,"notes"]']).to.deep.equal([]);
+      expect(proofs['["contributors",0,"notes",0,"details"]']).to.deep.equal([]);
+      form = { ...form, proofs };
+    }
   });
 
   it('confirms only the submitted lists whose positions survive save hooks', async () => {
@@ -404,21 +490,21 @@ describe('RecordController update', () => {
       return { success: true, isSuccessful: () => true };
     });
     const response = makeResponse();
-    await controller.update(makeRequest({
-      metadata: { contributors: [{ name: 'First' }], keywords: ['keep', 'remove'], concealed: ['Private'] },
-      rowEdits: { '["contributors"]': [0], '["keywords"]': [0, 1], '["concealed"]': [0] },
-    }, { formSave: 'true', rowEdits: 'true', apiVersion: '2.0' }), response.res);
+    const form = await loadFormForRowEdits();
+    await controller.update(await rowSaveRequest(
+      { contributors: [{ name: 'First' }], keywords: ['keep', 'remove'], concealed: ['Private'] },
+      { '["contributors"]': [0], '["keywords"]': [0, 1], '["concealed"]': [0] }, form
+    ), response.res);
 
-    expect(response.json.firstCall.args[0].meta.savedRowCounts).to.deep.equal({ '["contributors"]': 1 });
+    expect(response.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({ '["contributors"]': [form.proofs['["contributors"]'][0]] });
   });
 
   it('rejects out-of-range and reused row positions before writing', async () => {
     for (const positions of [[{ retain: 99 }, 1], [{ retain: 1 }, 1]]) {
       const { res, status } = makeResponse();
-      await controller.update(makeRequest({
-        metadata: { contributors: [null, { name: 'Removed' }] },
-        rowEdits: { '["contributors"]': positions },
-      }, { formSave: 'true', rowEdits: 'true' }), res);
+      await controller.update(await rowSaveRequest(
+        { contributors: [null, { name: 'Removed' }] }, { '["contributors"]': positions }
+      ), res);
       sinon.assert.calledOnceWithExactly(status, 400);
     }
     sinon.assert.notCalled(updateMeta);
@@ -442,10 +528,9 @@ describe('RecordController update', () => {
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
 
     const fundingBody = { dc_title: 'Replacement', dc_identifier: 'different-id' };
-    await controller.update(makeRequest({
-      metadata: { contributors: [{ ...loaded[0], fundingBody }, loaded[1]] },
-      rowEdits: { '["contributors"]': [0, 1] },
-    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    await controller.update(await rowSaveRequest(
+      { contributors: [{ ...loaded[0], fundingBody }, loaded[1]] }, { '["contributors"]': [0, 1] }
+    ), makeResponse().res);
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([{ ...contributors[0], fundingBody }, contributors[1]]);
   });
 
@@ -461,11 +546,28 @@ describe('RecordController update', () => {
     }, { formSave: 'true' }), makeResponse().res);
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal(contributors);
 
-    await controller.update(makeRequest({
-      metadata: { title: 'Edited', contributors: loaded },
-      rowEdits: { '["contributors"]': [0] },
-    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    await controller.update(await rowSaveRequest(
+      { title: 'Edited', contributors: loaded }, { '["contributors"]': [0] }
+    ), makeResponse().res);
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal(contributors);
+  });
+
+  it('keeps a cleared legacy name empty after reloading the edit form', async () => {
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+    for (const name of ['', null]) {
+      read.resolves({
+        ...currentRecord,
+        metadata: { ...currentRecord.metadata, contributors: [{ value: 'Older label', internalCode: 'Keep' }] },
+      });
+      expect(await loadContributorRows()).to.deep.equal([{ name: 'Older label' }]);
+      await controller.update(await rowSaveRequest({ contributors: [{ name }] }, { '["contributors"]': [0] }), makeResponse().res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name, internalCode: 'Keep' }]);
+      expect(await loadContributorRows()).to.deep.equal([{ name }]);
+    }
   });
 
   it('updates the email on the retained ORCID contributor and keeps its stored-only fields', async () => {
@@ -476,10 +578,9 @@ describe('RecordController update', () => {
     const [loaded] = await loadContributorRows();
     expect(loaded).not.to.have.property('internalCode');
     const email = 'corrected@example.test';
-    await controller.update(makeRequest({
-      metadata: { contributors: [{ ...loaded, email }] },
-      rowEdits: { '["contributors"]': [0] },
-    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    await controller.update(await rowSaveRequest(
+      { contributors: [{ ...loaded, email }] }, { '["contributors"]': [0] }
+    ), makeResponse().res);
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{ ...contributor, email }]);
   });
 
@@ -538,10 +639,10 @@ describe('RecordController update', () => {
     sinon.assert.calledOnceWithExactly(status, 400);
     sinon.assert.notCalled(updateMeta);
 
-    await controller.update(makeRequest({
-      metadata: { contributors: [{ ...loaded[1], notes: loaded[1].notes!.slice(1) }] },
-      rowEdits: { '["contributors"]': [1], '["contributors",0,"notes"]': [1] },
-    }, { formSave: 'true', rowEdits: 'true' }), makeResponse().res);
+    await controller.update(await rowSaveRequest(
+      { contributors: [{ ...loaded[1], notes: loaded[1].notes!.slice(1) }] },
+      { '["contributors"]': [1], '["contributors",0,"notes"]': [1] }
+    ), makeResponse().res);
     expect(updateMeta.firstCall.args[7].contributors).to.deep.equal([{
       ...contributors[1], notes: [contributors[1].notes[1]],
     }]);

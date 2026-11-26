@@ -1,3 +1,5 @@
+import { createHmac, randomBytes } from 'node:crypto';
+import type { FormRowProofs } from '@researchdatabox/sails-ng-common';
 import { hydratedName, selectionPropertyNames } from './FormEditProjection';
 
 type Metadata = Record<string, unknown>;
@@ -14,10 +16,41 @@ export class FormSaveInputError extends Error {}
 
 type Path = (string | number)[];
 
+// The proof binds a row position to its stored contents without disclosing them.
+export function formRowSigner(req: Sails.Req, oid: string) {
+  const key = req.session.formRowProofKey ??= randomBytes(32).toString('hex');
+  return (path: Path, index: number, row: unknown) => createHmac('sha256', key)
+    .update(JSON.stringify([oid, path.filter(part => typeof part === 'string'), index, row], (_key, value: unknown) =>
+      _.isPlainObject(value)
+        ? Object.fromEntries(Object.entries(value as Metadata).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0))
+        : value
+    ))
+    .digest('base64url');
+}
+
+type SignRow = ReturnType<typeof formRowSigner>;
+
+export function loadedFormRowProofs(metadata: Metadata, schema: FieldSchema, sign: SignRow): FormRowProofs {
+  const proofs: FormRowProofs = {};
+  const collect = (value: unknown, shape: FieldSchema, path: Path): void => {
+    if (shape.elements && Array.isArray(value)) {
+      const element = shape.elements;
+      proofs[JSON.stringify(path)] = value.map((row, index) => sign(path, index, row));
+      value.forEach((row, index) => collect(row, element, [...path, index]));
+    } else if (!shape.selection && _.isPlainObject(value)) {
+      for (const [key, child] of Object.entries(fields(shape))) {
+        collect((value as Metadata)[key], child, [...path, key]);
+      }
+    }
+  };
+  collect(metadata, schema, []);
+  return proofs;
+}
+
 export class FormRowSave {
   private readonly applied = new Map<string, Path>();
 
-  constructor(private readonly rowEdits: Record<string, unknown>) {}
+  constructor(private readonly rowEdits: Record<string, unknown>, private readonly sign: SignRow) {}
 
   getEdits(path: Path, previous: unknown[], submitted: unknown[]) {
     const key = JSON.stringify(path);
@@ -28,30 +61,31 @@ export class FormRowSave {
     const used = new Set<number>();
     const result = edits.map((edit: unknown, index) => {
       if (edit === null) return { source: null, retain: false };
-      const retain = _.isPlainObject(edit) && Object.hasOwn(edit as object, 'retain');
-      const source = retain ? (edit as { retain: unknown }).retain : edit;
+      if (!_.isPlainObject(edit)) throw invalid();
+      const { source, proof, retain } = edit as Metadata;
       if (typeof source !== 'number' || !Number.isSafeInteger(source) || source < 0 ||
-          source >= previous.length || used.has(source) || (retain && submitted[index] !== null)) {
+          source >= previous.length || used.has(source) || (retain === true && submitted[index] !== null) ||
+          proof !== this.sign(path, source, previous[source])) {
         throw invalid();
       }
       used.add(source);
-      return { source, retain };
+      return { source, retain: retain === true };
     });
     this.applied.set(key, path);
     return result;
   }
 
-  savedRowCounts(expected: Metadata, saved: Metadata): Record<string, number> {
-    const counts: Record<string, number> = {};
+  savedRowProofs(expected: Metadata, saved: Metadata): FormRowProofs {
+    const proofs: FormRowProofs = {};
     for (const [key, path] of this.applied) {
       // A hook which changes a parent list can also invalidate its children's positions.
       const lists = path.flatMap((part, index) => typeof part === 'number' ? [path.slice(0, index)] : []);
       if ([...lists, path].every(list => _.isEqual(_.get(expected, list), _.get(saved, list)))) {
         const rows = _.get(saved, path) as unknown;
-        counts[key] = Array.isArray(rows) ? rows.length : 0;
+        proofs[key] = Array.isArray(rows) ? rows.map((row, index) => this.sign(path, index, row)) : [];
       }
     }
-    return counts;
+    return proofs;
   }
 }
 
@@ -136,7 +170,7 @@ function hasIdentityField(value: unknown, schema: FieldSchema): boolean {
   return typeof value === 'number' || typeof value === 'boolean' || (typeof value === 'string' && !!value.trim());
 }
 
-function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema): unknown[] {
+function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema, path: Path): unknown[] {
   const submitted = changed.map(row => mergeValue(undefined, row, element));
   if (!submitted.length || !previous.length || !(element.properties || element.optionalProperties || element.elements)) {
     return submitted;
@@ -175,7 +209,7 @@ function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema
       return submitted[index];
     }
     used.add(match);
-    return matches.length === 1 ? mergeValue(previous[match], row, element) : submitted[index];
+    return matches.length === 1 ? mergeValue(previous[match], row, element, undefined, [...path, index]) : submitted[index];
   });
 
   if (unmatched.some(row => previous.some((value, index) => !used.has(index) && hasStoredOnlyValue(value, element, row)))) {
@@ -189,14 +223,13 @@ function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema, ro
     if (Array.isArray(changed)) {
       const stored = Array.isArray(previous) ? previous : [];
       const edits = rows?.getEdits(path, stored, changed);
+      const element = schema.elements;
+      const merged = edits?.map(({ source, retain }, index) => {
+        const value = source === null ? undefined : stored[source];
+        return retain ? value : mergeValue(value, changed[index], element, rows, [...path, index]);
+      });
       if (Array.isArray(previous) && !previous.length && isBlankInput(changed, schema)) return previous;
-      if (edits) {
-        return edits.map(({ source, retain }, index) => {
-          const value = source === null ? undefined : stored[source];
-          return retain ? value : mergeValue(value, changed[index], schema.elements!, rows, [...path, index]);
-        });
-      }
-      return mergeRows(stored, changed, schema.elements);
+      return merged ?? mergeRows(stored, changed, element, path);
     }
     if (changed === null && !hasStoredOnlyValue(previous, schema)) {
       return null;
@@ -232,13 +265,23 @@ export function mergeFormSaveMetadata(previous: Metadata | undefined, submitted:
   for (const [key, value] of Object.entries(submitted)) {
     if (!Object.hasOwn(permitted, key)) continue;
     const stored = previous && Object.hasOwn(previous, key);
+    if (previous && path.some(part => typeof part === 'number') && key === 'name') {
+      const legacyName = hydratedName(previous);
+      if (legacyName !== previous.name) {
+        if (value === legacyName) continue;
+        if (!Object.hasOwn(permitted, 'value') && (value === null || value === '')) {
+          delete merged.value;
+          merged.name = value;
+          continue;
+        }
+      }
+    }
     // A missing value can appear as an empty control or a default blank row in the form.
     const childPath = [...path, key];
     if (previous && !stored && isBlankInput(value, permitted[key])) {
       if (rows) mergeValue(undefined, value, permitted[key], rows, childPath);
       continue;
     }
-    if (previous && path.some(part => typeof part === 'number') && key === 'name' && !_.isEqual(previous.name, hydratedName(previous)) && value === hydratedName(previous)) continue;
     merged[key] = mergeValue(stored ? previous[key] : undefined, value, permitted[key], rows, childPath);
   }
   return merged;
