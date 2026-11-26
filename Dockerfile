@@ -269,9 +269,11 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-bac
 COPY --from=angular-builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-mcp/node_modules ./packages/redbox-mcp/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
+# Keep standalone build dependencies wherever the test image needs them, with
+# MongoDB and BSON supplied by the portal's root install.
+COPY --from=builder --chown=node:node --exclude=mongodb --exclude=bson /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
+COPY --from=builder --chown=node:node --exclude=mongodb --exclude=bson /opt/redbox-portal/packages/redbox-mcp/node_modules ./packages/redbox-mcp/node_modules
+COPY --from=builder --chown=node:node --exclude=mongodb --exclude=bson /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev/node_modules ./packages/redbox-hook-dev/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/node_modules ./packages/sails-hook-redbox-pdfgen/node_modules
