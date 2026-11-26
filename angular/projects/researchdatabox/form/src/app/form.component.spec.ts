@@ -443,7 +443,7 @@ describe('FormComponent', () => {
     resolveValidation?.();
     await savePromise;
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', { formSave: true });
     expect(saveCompleted).toBeTrue();
     expect(validatorRuns).toBe(1);
   });
@@ -473,7 +473,7 @@ describe('FormComponent', () => {
     resolveValidation?.();
     await savePromise;
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', { formSave: true });
   });
 
   it('saves without delay when validation is already settled', async () => {
@@ -488,7 +488,7 @@ describe('FormComponent', () => {
 
     await formComponent.saveForm();
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '');
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '', { formSave: true });
   });
 
   it('does not save invalid forms when forced', async () => {

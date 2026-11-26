@@ -843,13 +843,14 @@ export namespace Controllers {
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
-      this.updateInternal(req, res).then(() => { });
+      return this.updateInternal(req, res);
     }
 
     private async updateInternal(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
+      const formSave = req.query?.formSave === 'true';
       const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
@@ -871,7 +872,9 @@ export namespace Controllers {
       let response;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
-        if (shouldMerge) {
+        if (formSave) {
+          metadata = await this.mergeFormSaveMetadata(req, brand, currentRec, metadata);
+        } else if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
         response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
@@ -879,7 +882,8 @@ export namespace Controllers {
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
           return this.sendResp(req, res, {
-            data: await this.recordsService.getMeta(oid),
+            // The saved record can contain metadata that was excluded from this user's form.
+            data: formSave ? { redboxOid: oid } : await this.recordsService.getMeta(oid),
             meta: response ? { ...response } : undefined,
             v1: response,
           });
@@ -901,6 +905,24 @@ export namespace Controllers {
           v1: errorMessage,
         });
       }
+    }
+
+    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord): Promise<AnyRecord> {
+      const form = await FormsService.getForm(brand, '', true, '', record);
+      if (!form?.configuration) {
+        throw new Error(`Form configuration not found for form: ${record.metaMetadata.form}`);
+      }
+      const userRoles = ((req.user?.['roles'] ?? []) as RoleModel[]).map(role => role.name);
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
+      const contextVariables = ContextVariableUtils.evaluateContextVariables(req, record);
+      const clientFormConfig = await FormsService.buildClientFormConfig(
+        form.configuration, 'edit', userRoles, record.metadata, reusableFormDefs, brand.name, contextVariables
+      );
+      const original = { redboxOid: record.redboxOid, metadata: record.metadata };
+      const merged = await FormRecordConsistencyService.mergeRecordClientFormConfig(
+        original, { redboxOid: record.redboxOid, metadata }, clientFormConfig, 'edit', reusableFormDefs
+      );
+      return merged.metadata;
     }
 
     //TODO: check if this deprecated?

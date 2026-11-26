@@ -4,9 +4,192 @@ import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordController';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
 import { routes, RouteTargetObject } from '../../src/config/routes.config';
+import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { Services as FormServices } from '../../src/services/FormsService';
+import { Services as FormRecordConsistencyServices } from '../../src/services/FormRecordConsistencyService';
+import { createMockSails } from '../services/testHelper';
 
 before(async () => {
   expect = (await import('chai')).expect;
+});
+
+describe('RecordController update', () => {
+  let controller: Controllers.Record;
+  let updateMeta: sinon.SinonStub;
+  const currentRecord = {
+    redboxOid: 'oid-1',
+    metaMetadata: { type: 'dataPublication', brandId: 'brand-1', form: 'publication-draft' },
+    metadata: {
+      title: 'Draft',
+      description: 'Clear this text',
+      datatype: 'dataset',
+      citation_doi: '10.0000/example',
+      adminStatus: 'approved',
+      internalNotes: 'Internal',
+      details: { summary: 'Before', internalCode: 'private' },
+      keywords: ['keep', 'remove'],
+      emptied: ['remove'],
+      files: [{ fileId: 'old', name: 'old.txt' }],
+    },
+  };
+  const nextStep = { name: 'review' };
+  const testGlobals = globalThis as typeof globalThis & Record<string, unknown>;
+  const originalGlobals = new Map<string, unknown>();
+
+  const input = (name: string) => ({
+    name,
+    model: { class: 'SimpleInputModel' as const, config: {} },
+    component: { class: 'SimpleInputComponent' as const },
+  });
+  const adminInput = (name: string) => ({
+    ...input(name),
+    constraints: { authorization: { allowRoles: ['Admin'] } },
+  });
+  const repeatable = (name: string) => ({
+    name,
+    model: { class: 'RepeatableModel' as const, config: {} },
+    component: { class: 'RepeatableComponent' as const, config: { elementTemplate: input('') } },
+  });
+  const formConfig: FormConfigFrame = {
+    name: 'publication-draft',
+    type: 'dataPublication',
+    componentDefinitions: [
+      input('title'),
+      input('description'),
+      adminInput('adminStatus'),
+      { ...input('internalNotes'), constraints: { allowModes: ['view'] } },
+      {
+        name: 'details',
+        model: { class: 'GroupModel', config: {} },
+        component: {
+          class: 'GroupComponent',
+          config: { componentDefinitions: [input('summary'), adminInput('internalCode')] },
+        },
+      },
+      {
+        name: 'newGroup',
+        model: { class: 'GroupModel', config: {} },
+        component: {
+          class: 'GroupComponent',
+          config: { componentDefinitions: [input('summary'), adminInput('internalCode')] },
+        },
+      },
+      repeatable('keywords'),
+      repeatable('emptied'),
+      {
+        name: 'files',
+        model: { class: 'FileUploadModel', config: {} },
+        component: { class: 'FileUploadComponent', config: {} },
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    const services = {
+      sails: createMockSails(),
+      _: require('lodash'),
+      BrandingService: {
+        getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+        getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      },
+      RecordTypesService: { get: sinon.stub().returns(of({ name: 'dataPublication' })) },
+      WorkflowStepsService: { get: sinon.stub().withArgs(sinon.match.object, 'review').returns(of(nextStep)) },
+      FormsService: new FormServices.Forms(),
+      FormRecordConsistencyService: new FormRecordConsistencyServices.FormRecordConsistency(),
+    };
+    for (const [name, service] of Object.entries(services)) {
+      originalGlobals.set(name, testGlobals[name]);
+      testGlobals[name] = service;
+    }
+    sinon.stub(FormsService, 'getFormByName').returns(of({
+      id: 'form-1', name: 'publication-draft', branding: 'brand-1', configuration: formConfig,
+    }));
+
+    controller = new Controllers.Record();
+    updateMeta = sinon.stub().resolves({ isSuccessful: () => true });
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves(currentRecord),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta,
+    } as unknown as typeof controller.recordsService;
+  });
+
+  afterEach(() => {
+    sinon.restore();
+    for (const [name, original] of originalGlobals) {
+      if (original === undefined) {
+        delete testGlobals[name];
+      } else {
+        testGlobals[name] = original;
+      }
+    }
+    originalGlobals.clear();
+  });
+
+  function makeRequest(body: Record<string, unknown>, query: Record<string, string>): Sails.Req {
+    return {
+      body,
+      query,
+      param: (key: string, fallback?: string) => key === 'oid' ? currentRecord.redboxOid : query[key] ?? fallback,
+      session: { branding: 'default' },
+      user: { username: 'researcher', roles: [{ name: 'Researcher' }] },
+    } as unknown as Sails.Req;
+  }
+
+  function makeResponse() {
+    const json = sinon.stub();
+    const res = { json, set: sinon.stub(), status: sinon.stub() } as unknown as Sails.Res;
+    return { res, json };
+  }
+
+  it('preserves omitted metadata and applies editable changes on a form save with a transition', async () => {
+    const { res, json } = makeResponse();
+    const files = [{ fileId: 'new', name: 'new.txt' }];
+    const req = makeRequest({
+      title: 'Edited',
+      description: '',
+      adminStatus: 'overwritten',
+      internalNotes: 'overwritten',
+      details: { summary: null, internalCode: 'overwritten' },
+      newGroup: { summary: 'Added', internalCode: 'forged' },
+      keywords: ['keep'],
+      emptied: [],
+      files,
+    }, { formSave: 'true', targetStep: 'review', formName: 'other-form', apiVersion: '2.0' });
+
+    await controller.update(req, res);
+
+    sinon.assert.calledOnceWithExactly(FormsService.getFormByName as sinon.SinonStub, 'publication-draft', true, 'brand-1');
+    sinon.assert.calledOnce(updateMeta);
+    const [, , record, , preSave, postSave, step, metadata] = updateMeta.firstCall.args;
+    expect(record).to.equal(currentRecord);
+    expect(preSave).to.be.true;
+    expect(postSave).to.be.true;
+    expect(step).to.equal(nextStep);
+    expect(metadata).to.deep.equal({
+      ...currentRecord.metadata,
+      title: 'Edited',
+      description: '',
+      details: { summary: null, internalCode: 'private' },
+      newGroup: { summary: 'Added' },
+      keywords: ['keep'],
+      emptied: [],
+      files,
+    });
+    expect(json.firstCall.args[0].data).to.deep.equal({ redboxOid: 'oid-1' });
+  });
+
+  it('keeps replacement and explicit merge semantics for other callers', async () => {
+    const { res } = makeResponse();
+    const body = { title: 'Replacement', keywords: [] };
+
+    await controller.update(makeRequest(body, {}), res);
+    await controller.update(makeRequest(body, { merge: 'true' }), res);
+
+    sinon.assert.notCalled(FormsService.getFormByName as sinon.SinonStub);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal(body);
+    expect(updateMeta.secondCall.args[7]).to.deep.equal({ ...currentRecord.metadata, ...body });
+  });
 });
 
 describe('RecordController getWorkflowSteps', () => {

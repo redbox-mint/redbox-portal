@@ -1194,7 +1194,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
-            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep);
+            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, { formSave: true });
           }
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);

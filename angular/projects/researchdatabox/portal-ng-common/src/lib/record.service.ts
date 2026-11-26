@@ -675,9 +675,11 @@ export class RecordService extends HttpClientService {
     return result as RecordActionResult;
   }
 
-  public async update(oid: string, record: any, targetStep: string = '') {
+  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean }) {
     const httpOptions = this.getHttpOptions();
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${this.getTargetStepParam(targetStep, '?')}`;
+    const formSaveParam = options?.formSave ? '?formSave=true' : '';
+    const targetStepParam = this.getTargetStepParam(targetStep, formSaveParam ? '&' : '?');
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${formSaveParam}${targetStepParam}`;
     const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
     let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;

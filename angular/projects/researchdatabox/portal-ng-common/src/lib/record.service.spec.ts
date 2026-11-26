@@ -39,6 +39,18 @@ describe("RecordService", () => {
     httpTestingController.verify();
   });
 
+  it('opts form saves into metadata preservation and passes through the workflow target', async () => {
+    const metadata = { title: 'Draft', keywords: [] };
+    const result = recordService.update('oid-123', metadata, 'review', { formSave: true });
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&targetStep=review`
+    );
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(metadata);
+    request.flush({ success: true, oid: 'oid-123' });
+    await expectAsync(result).toBeResolvedTo({ success: true, oid: 'oid-123' } as Awaited<typeof result>);
+  });
+
   it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {
     const attachments = recordService.getAttachments("failed");
     const attachmentAssertion = expectAsync(attachments).toBeRejected();
