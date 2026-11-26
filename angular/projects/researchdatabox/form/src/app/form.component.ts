@@ -937,16 +937,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const excluded = new Set<AbstractControl>();
     const collectExcluded = (entries: FormFieldCompMapEntry[], parentExcluded = false) => {
       for (const entry of entries) {
-        const aggregateDisabled = !!proofs && entry.model?.formControl instanceof FormArray;
-        const omit = parentExcluded || !this.formService.shouldIncludeInFormControlMap(entry, aggregateDisabled);
+        const control = entry.model?.formControl;
+        const allowAggregateDisabled = !!proofs && (control instanceof FormGroup || control instanceof FormArray);
+        const omit = parentExcluded || !this.formService.shouldIncludeInFormControlMap(entry, allowAggregateDisabled);
         if (omit && entry.model?.formControl) excluded.add(entry.model.formControl);
         collectExcluded(entry.component?.formFieldCompMapEntries ?? [], omit);
       }
     };
     collectExcluded(this.componentDefArr);
 
-    return this.formSaveRows.snapshot(this.form,
-      control => !excluded.has(control) && (control.enabled || (!!proofs && control instanceof FormArray)), proofs, updating);
+    return this.formSaveRows.snapshot(this.form, control => !excluded.has(control), proofs, updating);
   }
 
   private getComponentDebugInfo(

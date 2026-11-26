@@ -4,6 +4,7 @@ import {FieldComponentDefinitionFrame, FieldComponentDefinitionOutline} from "./
 import {FormModesConfig} from "./shared.outline";
 import {FieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline} from "./field-layout.outline";
 import {ComponentClassNamesType, LayoutClassNamesType, ModelClassNamesType} from "./dictionary.model";
+import {RepeatableComponentName, type RepeatableFieldComponentDefinitionFrame} from "./component/repeatable.outline";
 
 
 /**
@@ -397,11 +398,16 @@ export interface FormComponentDefinitionFrame {
 /** A disabled layer stays excluded unless the form defines an expression that can enable it. */
 export function isStaticallyDisabledFormField(item: FormComponentDefinitionFrame): boolean {
     const targets = (item.expressions ?? []).map(({ config }) => 'target' in config ? config.target : undefined);
-    return !targets.includes('field.disabled') && (
+    if (!targets.includes('field.disabled') && (
         (item.model?.config?.disabled === true && !targets.includes('model.disabled')) ||
         (item.component?.config?.disabled === true && !targets.includes('component.disabled')) ||
         (item.layout?.config?.disabled === true && !targets.includes('layout.disabled'))
-    );
+    )) {
+        return true;
+    }
+    if (item.component?.class !== RepeatableComponentName) return false;
+    const template = (item.component as RepeatableFieldComponentDefinitionFrame).config?.elementTemplate;
+    return !!template && isStaticallyDisabledFormField(template);
 }
 
 export interface FormComponentDefinitionOutline extends FormComponentDefinitionFrame, CanVisit {

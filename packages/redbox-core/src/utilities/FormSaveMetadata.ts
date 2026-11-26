@@ -269,7 +269,7 @@ export function mergeFormSaveMetadata(previous: Metadata | undefined, submitted:
       const legacyName = hydratedName(previous);
       if (legacyName !== previous.name) {
         if (value === legacyName) continue;
-        if (!Object.hasOwn(permitted, 'value') && (value === null || value === '')) {
+        if (!Object.hasOwn(permitted, 'value')) {
           delete merged.value;
           merged.name = value;
           continue;

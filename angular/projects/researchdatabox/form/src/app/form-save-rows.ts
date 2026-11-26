@@ -36,25 +36,33 @@ export class FormSaveRows {
     this.rebuilt.add(array);
   }
 
-  snapshot(form: FormGroup | undefined, editable: (control: AbstractControl) => boolean, proofs?: FormRowProofs, updating = !!proofs) {
+  snapshot(form: FormGroup | undefined, included: (control: AbstractControl) => boolean, proofs?: FormRowProofs, updating = !!proofs) {
     const trackRows = !!proofs;
     if (form && proofs) this.bindProofs(form, proofs);
     const rowEdits: FormRowEdits = {};
     const arrays: { key: string; array: FormArray; rows: AbstractControl[] }[] = [];
 
-    const visit = (control: AbstractControl, path: Path, fromStorage: boolean): unknown => {
+    const omitted = Symbol();
+    const visit = (control: AbstractControl, path: Path, fromStorage: boolean, root = false): unknown => {
+      if (!root && (!included(control) || (control.disabled && !(trackRows &&
+        (control instanceof FormGroup || control instanceof FormArray))))) {
+        return omitted;
+      }
       if (control instanceof FormGroup) {
-        return Object.fromEntries(Object.entries(control.controls)
-          .filter(([, child]) => editable(child))
-          .map(([key, child]) => [key, visit(child, [...path, key], fromStorage)]));
+        const children = Object.entries(control.controls).flatMap(([key, child]) => {
+          const value = visit(child, [...path, key], fromStorage);
+          return value === omitted ? [] : [[key, value]];
+        });
+        // A container can be disabled because its children are disabled. Keep any
+        // repeatable edits below it, but omit a disabled group with no edits to send.
+        return control.disabled && !children.length && !root ? omitted : Object.fromEntries(children);
       }
       if (!(control instanceof FormArray)) return control.value;
 
-      const disabledRows = control.controls.some(row => !editable(row));
       const changedByHook = this.needsReload.has(control);
       const unavailable = changedByHook || this.rebuilt.has(control);
       const structured = control.controls.some(row => row instanceof FormGroup || row instanceof FormArray);
-      if (updating && ((disabledRows && (!trackRows || unavailable)) || (changedByHook && structured))) {
+      if (updating && changedByHook && structured) {
         throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
       }
       const trackArray = trackRows && !unavailable;
@@ -64,16 +72,19 @@ export class FormSaveRows {
       for (const row of control.controls) {
         const source = this.origins.get(row);
         const origin = trackArray && fromStorage && source?.array === control ? source : undefined;
-        const enabled = editable(row);
-        if (!enabled && !origin) continue;
+        const value = visit(row, [...path, values.length], !!origin);
+        const retain = value === omitted;
+        if (retain && updating && (!trackRows || unavailable)) {
+          throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
+        }
+        if (retain && !origin) continue;
         if (origin && !origin.proof) {
           throw new Error('A repeatable row no longer corresponds to its loaded position. Reload the form and retry.');
         }
 
-        const position = values.length;
         rows.push(row);
-        edits.push(origin?.proof ? { source: origin.index, proof: origin.proof, ...(!enabled ? { retain: true } : {}) } : null);
-        values.push(enabled ? visit(row, [...path, position], !!origin) : null);
+        edits.push(origin?.proof ? { source: origin.index, proof: origin.proof, ...(retain ? { retain: true } : {}) } : null);
+        values.push(retain ? null : value);
       }
       if (trackArray) {
         const key = JSON.stringify(path);
@@ -83,7 +94,7 @@ export class FormSaveRows {
       return values;
     };
 
-    const metadata = form ? structuredClone(visit(form, [], true) as Record<string, unknown>) : {};
+    const metadata = form ? structuredClone(visit(form, [], true, true) as Record<string, unknown>) : {};
     return {
       metadata,
       rowEdits,

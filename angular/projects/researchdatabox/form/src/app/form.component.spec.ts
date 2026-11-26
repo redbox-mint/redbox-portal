@@ -1041,6 +1041,80 @@ describe('FormComponent', () => {
     expect(update.calls.argsFor(2)).toEqual(['publication', { title: 'Draft', creators: [null] }, '', retained]);
   });
 
+  it('saves removal of the last enabled row through an aggregate-disabled group', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+        {
+          name: 'details',
+          model: { class: 'GroupModel', config: { value: { creators: [{ name: 'Disabled' }, { name: 'Remove' }] } } },
+          component: { class: 'GroupComponent', config: { componentDefinitions: [contributorList([])] } },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    const path = '["details","creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', rowProofs: { [path]: ['first', 'second'] },
+    };
+    const details = formComponent.getComponentDefByName('details')?.component as GroupFieldComponent;
+    const rows = details.formFieldCompMapEntries.find(entry => entry.compConfigJson.name === 'creators')?.component as RepeatableComponent;
+    formComponent.form!.get(['details', 'creators', 0])!.disable();
+    const layout = rows.formFieldCompMapEntries[1].layout as RepeatableElementLayoutComponent<unknown>;
+    layout.removeFn!();
+    expect(formComponent.form!.get('details.creators')?.disabled).toBeTrue();
+    expect(formComponent.form!.get('details')?.disabled).toBeTrue();
+
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['first'] },
+    });
+    await formComponent.saveForm({ force: true });
+    expect(update).toHaveBeenCalledOnceWith('publication', { title: 'Draft', details: { creators: [null] } }, '', {
+      formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'first', retain: true }] },
+    });
+
+    details.setDisabled(true);
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(1)).toEqual(['publication', { title: 'Draft' }, '', { formSave: true }]);
+  });
+
+  it('omits a repeatable whose row template is statically disabled', async () => {
+    const config: FormConfigFrame = {
+      name: 'publication-draft',
+      componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+        {
+          name: 'displayOnly',
+          model: { class: 'RepeatableModel', config: { value: ['Keep'] } },
+          component: {
+            class: 'RepeatableComponent',
+            config: { elementTemplate: {
+              name: '',
+              model: { class: 'SimpleInputModel', config: { disabled: true } },
+              component: { class: 'SimpleInputComponent' },
+            } },
+          },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    });
+    formComponent.formDefMap!.formConfigMeta = { oid: 'publication', rowProofs: {} };
+    expect(formComponent.form!.get(['displayOnly', 0])?.value).toBe('Keep');
+    expect(formComponent.form!.get(['displayOnly', 0])?.disabled).toBeTrue();
+    formComponent.form!.get('title')!.setValue('Edited');
+
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+    });
+    await formComponent.saveForm({ force: true });
+    expect(update).toHaveBeenCalledOnceWith('publication', { title: 'Edited' }, '', { formSave: true });
+  });
+
   it('serializes a title edit with hydrated repeatables and disabled children', async () => {
     const textField = (name: string, value?: string): Field => ({
       name,

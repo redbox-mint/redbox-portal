@@ -94,6 +94,7 @@ describe('RecordController update', () => {
             input('summary'),
             adminInput('internalCode'),
             { ...input('locked'), model: { class: 'SimpleInputModel', config: { disabled: true } } },
+            repeatable('members'),
             conditionalInput,
           ] },
         },
@@ -107,6 +108,16 @@ describe('RecordController update', () => {
         },
       },
       repeatable('keywords'),
+      {
+        ...repeatable('displayOnly'),
+        component: {
+          class: 'RepeatableComponent',
+          config: { elementTemplate: {
+            ...input(''),
+            model: { class: 'SimpleInputModel', config: { disabled: true } },
+          } },
+        },
+      },
       repeatable('emptied'),
       {
         ...repeatable(fundingField),
@@ -431,6 +442,31 @@ describe('RecordController update', () => {
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([contributors[0]]);
   });
 
+  it('retains only the submitted disabled row when the last enabled row in a group is removed', async () => {
+    const details = { ...currentRecord.metadata.details, members: ['Disabled', 'Remove'] };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, details },
+    });
+    await controller.update(await rowSaveRequest(
+      { title: 'Edited', details: { members: [null] } }, { '["details","members"]': [{ retain: 0 }] }
+    ), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].details).to.deep.equal({ ...details, members: ['Disabled'] });
+  });
+
+  it('preserves a statically uneditable repeatable and issues no row positions for it', async () => {
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { ...currentRecord.metadata, displayOnly: ['Keep'] },
+    });
+    const form = await loadFormForRowEdits();
+    expect(form.proofs).not.to.have.property('["displayOnly"]');
+    const field = form.config.componentDefinitions?.find(component => component.name === 'displayOnly');
+    expect(field?.model?.config?.value).to.deep.equal(['Keep']);
+    await controller.update(await rowSaveRequest(
+      { title: 'Edited', displayOnly: [] }, { '["displayOnly"]': [] }, form
+    ), makeResponse().res);
+    expect(updateMeta.firstCall.args[7].displayOnly).to.deep.equal(['Keep']);
+  });
+
   it('rejects stale row positions before writing and accepts the same proofs after an unrelated edit', async () => {
     const contributors = [
       { name: 'Alice', internalCode: 'private-A' }, { name: 'Bob', internalCode: 'private-B' },
@@ -565,6 +601,33 @@ describe('RecordController update', () => {
       });
       expect(await loadContributorRows()).to.deep.equal([{ name: 'Older label' }]);
       await controller.update(await rowSaveRequest({ contributors: [{ name }] }, { '["contributors"]': [0] }), makeResponse().res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name, internalCode: 'Keep' }]);
+      expect(await loadContributorRows()).to.deep.equal([{ name }]);
+    }
+  });
+
+  it('retires a legacy name alias on rename so a later clear stays empty after reload', async () => {
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+    for (const name of ['', null]) {
+      const contributor = { value: 'Original', internalCode: 'Keep' };
+      read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [contributor] } });
+      expect(await loadContributorRows()).to.deep.equal([{ name: 'Original' }]);
+      const form = await loadFormForRowEdits();
+      const response = makeResponse();
+      await controller.update(await rowSaveRequest(
+        { contributors: [{ name: 'Renamed' }] }, { '["contributors"]': [0] }, form
+      ), response.res);
+      expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name: 'Renamed', internalCode: 'Keep' }]);
+      expect(await loadContributorRows()).to.deep.equal([{ name: 'Renamed' }]);
+
+      const proofs = response.json.firstCall.args[0].meta.savedRowProofs;
+      await controller.update(await rowSaveRequest(
+        { contributors: [{ name }] }, { '["contributors"]': [0] }, { ...form, proofs }
+      ), makeResponse().res);
       expect(updateMeta.lastCall.args[7].contributors).to.deep.equal([{ name, internalCode: 'Keep' }]);
       expect(await loadContributorRows()).to.deep.equal([{ name }]);
     }
