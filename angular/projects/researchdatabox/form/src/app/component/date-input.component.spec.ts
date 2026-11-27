@@ -9,7 +9,9 @@ import { TabComponent, TabContentComponent } from './tab.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TestBed } from '@angular/core/testing';
+import { ValidationErrors } from '@angular/forms';
 import { By } from '@angular/platform-browser';
+import { Subject } from 'rxjs';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
 
 describe('parseFreeTextDate', () => {
@@ -105,7 +107,7 @@ describe('DateInputComponent', () => {
             component: { class: 'TabContentComponent', config: { componentDefinitions: [timeDateField()] } },
           }] } },
         },
-        { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true } } },
+        { name: 'save', component: { class: 'SaveButtonComponent' } },
       ],
     }, { editMode: true, oid: 'oid-123' });
   }
@@ -214,7 +216,7 @@ describe('DateInputComponent', () => {
     });
   }
 
-  it('keeps Save disabled after a time-only edit to an active related display date in a tab', async () => {
+  it('keeps the default Save button disabled after a time-only edit to an active related display date in a tab', async () => {
     const { fixture, formComponent } = await createTabbedTimeForm('date');
     const root = fixture.nativeElement as HTMLElement;
     const date = formComponent.form!.get('date')!;
@@ -260,21 +262,57 @@ describe('DateInputComponent', () => {
     expect(saveButton.disabled).toBeTrue();
   });
 
-  it('keeps another form with the same date field pristine after a time-only edit', async () => {
+  it('enables only the edited form’s Save button after a time-only edit', async () => {
+    const save = { name: 'save', component: { class: 'SaveButtonComponent' as const } };
     const edited = await createFormAndWaitForReady({
-      name: 'edited-time-form', componentDefinitions: [timeDateField()],
+      name: 'edited-time-form', componentDefinitions: [timeDateField(), save],
     }, { editMode: true, oid: 'edited-oid' });
     const other = await createFormAndWaitForReady({
-      name: 'other-time-form', componentDefinitions: [timeDateField()],
+      name: 'other-time-form', componentDefinitions: [timeDateField(), save],
     }, { editMode: true, oid: 'other-oid' });
     const otherDate = other.formComponent.form!.get('date')!;
+    const editedRoot = edited.fixture.nativeElement as HTMLElement;
+    const otherRoot = other.fixture.nativeElement as HTMLElement;
+    const editedSave = editedRoot.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
+    const otherSave = otherRoot.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
     expect(otherDate.pristine).toBeTrue();
+    expect(editedSave.disabled).toBeTrue();
+    expect(otherSave.disabled).toBeTrue();
 
-    setTime(edited.fixture.nativeElement);
+    setTime(editedRoot);
+    edited.fixture.detectChanges();
+    other.fixture.detectChanges();
 
     expect(edited.formComponent.form!.get('date')!.dirty).toBeTrue();
     expect(otherDate.pristine).toBeTrue();
     expect(other.formComponent.form!.pristine).toBeTrue();
+    expect(editedSave.disabled).toBeFalse();
+    expect(otherSave.disabled).toBeTrue();
+  });
+
+  it('enables Save when async validation succeeds after a time-only edit', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'async-time-form',
+      componentDefinitions: [timeDateField(), { name: 'save', component: { class: 'SaveButtonComponent' } }],
+    }, { editMode: true, oid: 'async-oid' });
+    const form = formComponent.form!;
+    const validation = new Subject<ValidationErrors | null>();
+    form.get('date')!.setAsyncValidators(() => validation);
+    const root = fixture.nativeElement as HTMLElement;
+    const saveButton = root.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
+
+    setTime(root);
+    fixture.detectChanges();
+    expect(form.pending).toBeTrue();
+    expect(saveButton.disabled).toBeTrue();
+
+    validation.next(null);
+    validation.complete();
+    fixture.detectChanges();
+
+    expect(form.valid).toBeTrue();
+    expect(formComponent.hasChangesToSave()).toBeTrue();
+    expect(saveButton.disabled).toBeFalse();
   });
 
   it('should render Date input component from default value', async () => {

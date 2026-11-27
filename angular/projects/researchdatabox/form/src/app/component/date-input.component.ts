@@ -314,20 +314,16 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   }
 
   public setTimeValue(timeValue: string): void {
-    if (this.enableTimePicker) {
-      //TODO: Implementation of time input requires more work to handle timezones properly and this will be done in a later PR if/when required
-      let isoDts: string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
-      let jsDate = DateTime.fromISO(isoDts).toJSDate();
-      this.setValue(jsDate, { emitEvent: false });
-    }
-  }
+    const control = this.formControl;
+    if (!this.enableTimePicker || !(control instanceof DateInputFormControl) || !(control.value instanceof Date)) return;
 
-  private stripTimeFromJSDate(date: Date): string {
-    if (!_isUndefined(date) && !_isNull(date)) {
-      let formatted = DateTime.fromJSDate(date).toFormat('yyyy-MM-dd');
-      return formatted;
-    }
-    return '';
+    const day = DateTime.fromJSDate(control.value).toFormat('yyyy-MM-dd');
+    const date = DateTime.fromISO(`${day}T${timeValue}:00.000Z`);
+    if (!date.isValid || date.toMillis() === control.value.getTime()) return;
+
+    control.markAsDirty();
+    // Emit the value and validation changes without writing the time back through the datepicker.
+    control.setValue(date.toJSDate(), { emitModelToViewChange: false });
   }
 }
 
@@ -584,12 +580,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   onTimeChange(event: Event) {
     let timeValue = (event.target as HTMLInputElement).value as string;
     this.loggerService.info(`timeValue ${timeValue}`, '');
-    const previousValue = this.formControl?.value;
     this.model?.setTimeValue(timeValue);
-    if (this.formControl && !areDateInputValuesEqual(previousValue, this.formControl.value)) {
-      this.requestFormDirty('time.change');
-      this.formControl.markAsDirty();
-    }
   }
 
   onInputBlur(event: FocusEvent): void {

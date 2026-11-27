@@ -1,7 +1,8 @@
 import {Component, computed, DestroyRef, effect, inject, signal} from '@angular/core';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {FormFieldCompMapEntry, ModifyOptions} from '@researchdatabox/portal-ng-common';
-import {FormComponentEventType, createFormSaveRequestedEvent} from '../form-state';
+import {FormComponent} from '../form.component';
+import {createFormSaveRequestedEvent} from '../form-state';
 import {ButtonBaseComponent} from "./button-base.component";
 
 @Component({
@@ -30,29 +31,26 @@ export class SaveButtonComponent extends ButtonBaseComponent {
   protected hasTargetStep = signal<boolean>(false);
   private readonly configuredDisabled = signal(false);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly validationSignal = this.eventBus.selectSignal(FormComponentEventType.FORM_VALIDATION_BROADCAST);
+  private readonly owningForm = inject(FormComponent, {optional: true, skipSelf: true});
+
+  protected override get formComponent(): FormComponent {
+    return this.owningForm ?? super.formComponent;
+  }
 
   readonly disabled = computed(() => {
     const formComponent = this.getFormComponent;
     if (!formComponent.editMode() || this.configuredDisabled() || formComponent.saveBlockedByConflict() ||
       formComponent.saveNavigationPending()) return true;
-    const dataStatusEvent = this.validationSignal();
-    // The event bus does not replay validation broadcasts to newly created buttons.
-    // Track the initial snapshot even before the FormGroup exists, so loading
-    // later fields invalidates the workflow button's cached fallback.
-    const initialStatus = formComponent.formGroupStatus();
-    const dataStatus = dataStatusEvent?.status ?? (formComponent.form ? initialStatus : undefined);
+    const formStatus = formComponent.formGroupStatus();
+    const dataStatus = formComponent.form ? formStatus : undefined;
     if (this.formStateFacade.isSaving() || this.formStateFacade.isValidationPending() || dataStatus?.pending) return true;
 
     const config = this.componentDefinition?.config;
     const needsChanges = config?.disableWhenPristine ?? !this.hasTargetStep();
     if (!dataStatus) return needsChanges;
 
-    this.loggerService.debug(`SaveButtonComponent computed: validation or pristine signal event: `, dataStatus);
-    if (needsChanges) {
-      const dirty = config?.disableWhenPristine === true ? formComponent.hasChangesToSave() : dataStatus.dirty;
-      if (!dirty) return true;
-    }
+    this.loggerService.debug('SaveButtonComponent form status:', dataStatus);
+    if (needsChanges && !formComponent.hasChangesToSave()) return true;
 
     // Form-level server failures can depend on the requested action (for
     // example activation versus saving a draft). Submission clears these
