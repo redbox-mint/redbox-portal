@@ -409,6 +409,27 @@ describe('RecordController update', () => {
     expect(json.firstCall.args[0].data).to.deep.equal({ redboxOid: 'oid-1' });
   });
 
+  it('rejects saves from a stale workflow form and asks a transitioning editor to reload', async () => {
+    const stale = makeResponse();
+    await controller.update(makeRequest({ title: 'Discarded' }, {
+      formSave: 'true', loadedWorkflowForm: 'previous-form',
+    }), stale.res);
+    sinon.assert.calledOnceWithExactly(stale.status, 400);
+    sinon.assert.notCalled(updateMeta);
+
+    const response = makeResponse();
+    const getMeta = controller.recordsService.getMeta as sinon.SinonStub;
+    updateMeta.callsFake(async () => {
+      getMeta.resolves({ ...currentRecord, metaMetadata: { ...currentRecord.metaMetadata, form: 'review-form' } });
+      return { success: true, isSuccessful: () => true };
+    });
+    await controller.update(makeRequest({ title: 'Ready' }, {
+      formSave: 'true', loadedWorkflowForm: currentRecord.metaMetadata.form, targetStep: 'review', apiVersion: '2.0',
+    }), response.res);
+    expect(response.json.firstCall.args[0].meta.reloadEditForm).to.equal(true);
+    sinon.assert.calledOnce(updateMeta);
+  });
+
   it('saves newly imported contributors and proof-backed retained rows before a workflow transition', async () => {
     const path = '["contributors"]';
     const outgoing = { name: 'Legacy creator', known_ids: ['old-identifier'] };
@@ -750,7 +771,7 @@ describe('RecordController update', () => {
     await controller.update(await rowSaveRequest({ dataLocations: [], keywords: ['Rebuilt'] }, {}), response.res);
     expect(updateMeta.lastCall.args[7].dataLocations).to.deep.equal([]);
     expect(response.json.firstCall.args[0].meta.confirmedListPaths).to.deep.equal(['["keywords"]']);
-    expect(response.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({});
+    expect(response.json.firstCall.args[0].meta.savedRowProofs['["keywords"]']).to.have.length(1);
 
     runHook = false;
     await controller.update(makeRequest({ title: 'New title' }, { formSave: 'true', apiVersion: '2.0' }), makeResponse().res);
@@ -762,7 +783,7 @@ describe('RecordController update', () => {
     await controller.update(await rowSaveRequest({ dataLocations: [] }, {}), cleared.res);
     expect(updateMeta.lastCall.args[7].dataLocations).to.deep.equal([]);
     expect(cleared.json.firstCall.args[0].meta.confirmedListPaths).to.deep.equal(['["dataLocations"]']);
-    expect(cleared.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({});
+    expect(cleared.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({ '["dataLocations"]': [] });
   });
 
   it('rejects out-of-range and reused row positions before writing', async () => {

@@ -278,6 +278,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       }
       return;
     }
+    // A stored string may be a legacy option-object selection.
+    if (this.valueMode === 'optionObject' && text === this.model?.getValue()) return;
     this.setModelFromFreeText(text);
   }
 
@@ -450,7 +452,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.setDisplayValue(this.getOptionObjectLabel(value));
       return;
     }
-    if (this.valueMode === 'value' && typeof value === 'string') {
+    if (typeof value === 'string') {
       this.setHistoricalLookupState(this.sourceType === 'vocabulary' && value.trim().length > 0);
       this.setDisplayValue(value);
       return;

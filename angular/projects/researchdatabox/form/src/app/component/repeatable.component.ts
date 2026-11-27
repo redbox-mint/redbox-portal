@@ -12,7 +12,6 @@ import {
   FormConfigFrame,
   GroupFieldComponentName,
   isTypeFieldDefinitionName,
-  LineagePaths,
   RepeatableComponentName,
   isStaticallyDisabledFormField,
   RepeatableElementLayoutName,
@@ -111,6 +110,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
   private syncSourcesUpdatePromise: Promise<void> = Promise.resolve();
   private rowReplacement: Promise<void> = Promise.resolve();
+  private readonly importedEntries = new WeakSet<RepeatableElementEntry>();
 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
@@ -538,7 +538,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.staged = true;
       stagedRows.push(elemEntry);
     }
-    await this.createElement(elemEntry, options);
+    try {
+      await this.createElement(elemEntry, options);
+    } catch (error) {
+      if (!stagedRows && this.compDefMapEntries.includes(elemEntry)) {
+        this.removeElementFn(elemEntry, { ...options, emitEvent: false, replaceImportedRows: true })();
+      }
+      throw error;
+    }
     const row = elemEntry.defEntry.model?.formControl;
     const array = this.model?.formControl;
     if (initialIndex !== undefined && row && array) {
@@ -570,11 +577,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     const remove = this.compDefMapEntries.filter(entry => {
+      if (options?.onlyImportedRows && !this.importedEntries.has(entry)) return false;
       const row = entry.defEntry.model?.formControl;
       // Keep omitted rows and their source proofs when replacing the editable rows.
       return !(importing && array && row && this.getFormComponent.isLoadedRow(array, row) &&
         (this.model?.isRowDisabled(row) || !this.formService.shouldIncludeInFormControlMap(entry.defEntry, true)));
     }).reverse();
+    if (options?.onlyImportedRows && !remove.length) return;
     const needsBlankRow = this.compDefMapEntries.length === remove.length && !nextValues.length && !this.allowZeroRows;
     const stagedRows: RepeatableElementEntry[] | undefined = stage ? [] : undefined;
     let complete = false;
@@ -603,6 +612,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         for (const entry of stagedRows) {
           this.insertRowControl(entry, commitOptions);
           entry.staged = false;
+          if (importing && !needsBlankRow) this.importedEntries.add(entry);
+          entry.wrapperRef?.location.nativeElement.removeAttribute('inert');
         }
         if (array && !importing) this.getFormComponent.forgetLoadedRows(array);
         complete = true;
@@ -635,7 +646,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       const previous = entry.lineagePaths;
       entry.lineagePaths = lineagePath;
       if (previous && previous.angularComponentsJsonPointer !== lineagePath.angularComponentsJsonPointer) {
-        this.rebaseDescendantPaths(entry, previous, lineagePath);
+        this.formService.rebaseFieldPaths(entry.component?.formFieldCompMapEntries ?? [], previous, lineagePath);
       }
     }
     if (!this.shouldEmitComponentEvents(options)) {
@@ -647,22 +658,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         sourceId: this.formFieldConfigName() || undefined,
       })
     );
-  }
-
-  private rebaseDescendantPaths(entry: FormFieldCompMapEntry, previous: LineagePaths, current: LineagePaths): void {
-    for (const child of entry.component?.formFieldCompMapEntries ?? []) {
-      const paths = child.lineagePaths;
-      if (paths) {
-        // Compiled expressions still use the same template path after a row moves.
-        child.lineagePaths = this.formService.buildLineagePaths({
-          ...paths,
-          angularComponents: [...current.angularComponents, ...paths.angularComponents.slice(previous.angularComponents.length)],
-          dataModel: [...current.dataModel, ...paths.dataModel.slice(previous.dataModel.length)],
-          layout: [...current.layout, ...paths.layout.slice(previous.layout.length)],
-        });
-      }
-      this.rebaseDescendantPaths(child, previous, current);
-    }
   }
 
   protected createFieldNewMapEntry(
@@ -732,6 +727,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
     elemEntry.wrapperRef = wrapperRef;
+    if (elemEntry.staged) wrapperRef.location.nativeElement.setAttribute('inert', '');
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);

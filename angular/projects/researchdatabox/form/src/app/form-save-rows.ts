@@ -60,7 +60,12 @@ export class FormSaveRows {
         for (const child of control.controls) {
           const source = this.origins.get(child);
           if (source?.array !== control) continue;
-          source.proof = loadedProofs?.[source.index];
+          if (!loadedProofs) {
+            // The editor can initialize a list from configuration when storage omitted it.
+            this.origins.delete(child);
+            continue;
+          }
+          source.proof = loadedProofs[source.index];
           bind(child, [...path, source.index]);
         }
         const rows = this.readOnlyRows.get(control);
@@ -72,6 +77,20 @@ export class FormSaveRows {
       }
     };
     bind(form, []);
+  }
+
+  private bindSavedReplacement(control: AbstractControl, path: Path, proofs: FormRowProofs): void {
+    if (control instanceof FormGroup) {
+      for (const [key, child] of Object.entries(control.controls)) this.bindSavedReplacement(child, [...path, key], proofs);
+    } else if (control instanceof FormArray) {
+      const listProofs = proofs[JSON.stringify(path)];
+      if (!listProofs || listProofs.length !== control.length) return;
+      this.rebuilt.delete(control);
+      control.controls.forEach((row, index) => {
+        this.origins.set(row, { array: control, index, proof: listProofs[index] });
+        this.bindSavedReplacement(row, [...path, index], proofs);
+      });
+    }
   }
 
   forget(array: FormArray): void {
@@ -211,7 +230,15 @@ export class FormSaveRows {
             this.unconfirmed.set(control, submitted);
             continue;
           }
-          if (!(control instanceof FormArray) || !rows || !proofs) continue;
+          if (!(control instanceof FormArray) || !proofs) continue;
+          if (!rows) {
+            const savedControls = submitted.controls;
+            if (savedProofs && savedControls?.length === control.length &&
+                savedControls.every((row, index) => control.at(index) === row)) {
+              this.bindSavedReplacement(control, JSON.parse(key) as Path, savedProofs);
+            }
+            continue;
+          }
           const array = control;
           const readOnly = this.readOnlyRows.get(array);
           if (readOnly && !rows.length && !proofs.length) readOnly.loaded = false;

@@ -476,8 +476,8 @@ export namespace Controllers {
       const renderExistingEditView = () => {
         if (existingRecord && extFormName && extFormName !== existingRecord.metaMetadata.form) {
           const key = this.namedEditFormKey(req, existingRecord, extFormName);
-          const forms = (req.session.namedEditForms ?? []).filter(form => form !== key);
-          req.session.namedEditForms = [...forms.slice(-19), key];
+          const forms = req.session.namedEditForms ?? [];
+          if (!forms.includes(key)) req.session.namedEditForms = [...forms, key];
         }
         if (!recordType) {
           recordType = String(_.get(existingRecord, 'metaMetadata.type', '') ?? '').trim();
@@ -664,6 +664,7 @@ export namespace Controllers {
             data: mergedForm,
             meta: {
               formName: formParam,
+              ...(editMode && recordData ? { loadedWorkflowForm: recordData.metaMetadata.form ?? '' } : {}),
               recordType: recordType,
               oid: oid,
               workflow: recordData?.workflow,
@@ -882,6 +883,7 @@ export namespace Controllers {
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
       const currentRec = await firstValueFrom(this.getRecord(oid));
+      const workflowForm = currentRec.metaMetadata.form ?? '';
       const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
         return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
@@ -898,6 +900,9 @@ export namespace Controllers {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
         if (formSave) {
           const formName = typeof req.query?.formName === 'string' ? req.query.formName : '';
+          if (typeof req.query.loadedWorkflowForm === 'string' && req.query.loadedWorkflowForm !== workflowForm) {
+            throw new FormSaveInputError('The workflow form has changed. Reload the editor before saving.');
+          }
           if (!this.canUseEditForm(req, currentRec, formName)) {
             return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
           }
@@ -919,20 +924,24 @@ export namespace Controllers {
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
           let confirmation: ReturnType<FormRowSave['savedConfirmation']> | undefined;
-          if (rows) {
+          let reloadEditForm = false;
+          if (rows || (formSave && nextStepResp)) {
             try {
               const saved = await this.recordsService.getMeta(oid);
-              confirmation = rows.savedConfirmation(expected!, saved?.metadata ?? {});
+              if (rows) confirmation = rows.savedConfirmation(expected!, saved?.metadata ?? {});
+              reloadEditForm = !!(nextStepResp && saved && (saved.metaMetadata.form ?? '') !== workflowForm);
             } catch (error) {
-              sails.log.warn('RecordController - Could not confirm repeatable rows after save', error);
-              confirmation = { confirmedListPaths: [], savedRowProofs: {} };
+              sails.log.warn('RecordController - Could not confirm the saved form', error);
+              if (rows) confirmation = { confirmedListPaths: [], savedRowProofs: {} };
+              reloadEditForm = !!nextStepResp;
             }
           }
+          const formSaveResult = { ...confirmation, ...(reloadEditForm ? { reloadEditForm } : {}) };
           return this.sendResp(req, res, {
             // The saved record can contain metadata that was excluded from this user's form.
             data: formSave ? { redboxOid: oid } : await this.recordsService.getMeta(oid),
-            meta: { ...response, ...confirmation },
-            v1: confirmation ? { ...response, ...confirmation } : response,
+            meta: { ...response, ...formSaveResult },
+            v1: formSave ? { ...response, ...formSaveResult } : response,
           });
         } else {
           return this.sendResp(req, res, {

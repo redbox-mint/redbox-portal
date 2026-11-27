@@ -5,7 +5,9 @@ import { HttpTestingController } from '@angular/common/http/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TypeaheadModule, type TypeaheadMatch } from 'ngx-bootstrap/typeahead';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
+import { asyncScheduler } from 'rxjs';
+import { FormSaveRows } from './form-save-rows';
 import { FormComponent } from './form.component';
 import { FormConfigFrame, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -1578,14 +1580,15 @@ describe('FormComponent', () => {
       { formSave: true, rowEdits: { [path]: [{ source: 1, proof: 'disabled', retain: true }, null, null] } },
     ]);
 
+    await repeatable.appendNewElement({ name: 'Manual' });
     await select('data-missing-creators');
-    formComponent.form!.get(['creators', 1, 'name'])!.setValue('Edited Alpha');
+    update.and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['disabled-rebased', 'manual'] },
+    });
     await formComponent.saveForm();
     expect(update.calls.argsFor(1)).toEqual([
-      'publication', { creators: [null, { name: 'Edited Alpha' }, { name: 'Beta' }] }, '',
-      { formSave: true, rowEdits: { [path]: [
-        { source: 0, proof: 'disabled-rebased', retain: true }, { source: 1, proof: 'alpha' }, { source: 2, proof: 'beta' },
-      ] } },
+      'publication', { creators: [null, { name: 'Manual' }] }, '',
+      { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'disabled-rebased', retain: true }, null] } },
     ]);
 
     await select('data-2');
@@ -1597,6 +1600,64 @@ describe('FormComponent', () => {
       'publication', { creators: [null, { name: 'Next import' }] }, 'review',
       { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'disabled-rebased', retain: true }, null] } },
     ]);
+  });
+
+  it('saves a nested default row without a loaded proof', () => {
+    const note = new FormControl('Default note');
+    const notes = new FormArray([note]);
+    const creator = new FormGroup({ notes });
+    const creators = new FormArray([creator]);
+    const form = new FormGroup({ creators, title: new FormControl('Edited') });
+    const tracker = new FormSaveRows();
+    tracker.remember(creators, creator, 0);
+    tracker.remember(notes, note, 0);
+
+    const snapshot = tracker.snapshot(form, () => true, { '["creators"]': ['stored'] });
+    expect(snapshot.metadata).toEqual({ creators: [{ notes: ['Default note'] }], title: 'Edited' });
+    expect(snapshot.rowEdits).toEqual({
+      '["creators"]': [{ source: 0, proof: 'stored' }],
+      '["creators",0,"notes"]': [null],
+    });
+  });
+
+  it('retains rows that become disabled after a confirmed replacement', () => {
+    const row = new FormControl('Replacement');
+    const entries = new FormArray([row]);
+    const form = new FormGroup({ entries, title: new FormControl('Edited') });
+    const tracker = new FormSaveRows();
+    tracker.forget(entries);
+    const path = '["entries"]';
+
+    const replaced = tracker.snapshot(form, () => true, {});
+    expect(replaced.rowEdits).toEqual({});
+    replaced.markSaved({ [path]: ['replacement'] }, [path]);
+    row.disable();
+
+    const saved = tracker.snapshot(form, () => true, {});
+    expect(saved.rowEdits).toEqual({ [path]: [{ source: 0, proof: 'replacement', retain: true }] });
+  });
+
+  it('clears creators imported in this editor when the next record has no contributors', async () => {
+    const { fixture, formComponent, fetch, select } = await createCreatorImportForm([{ name: 'Original' }]);
+    const path = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['original'] },
+    };
+    fetch.withArgs('with-creators').and.resolveTo({ contributor_ci: [{ family_name: 'Imported' }] });
+    fetch.withArgs('empty-record').and.resolveTo({});
+    await select('with-creators');
+    const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+    await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual' }));
+    await select('empty-record');
+
+    expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Manual' }]);
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['manual'] },
+    });
+    await formComponent.saveForm({ force: true, targetStep: 'review' });
+    expect(update).toHaveBeenCalledOnceWith(
+      'publication', { creators: [{ name: 'Manual' }] }, 'review', { formSave: true, rowEdits: { [path]: [null] } },
+    );
   });
 
   it('sends an explicit replacement for a changed linked record with identical visible creators', async () => {
@@ -1741,7 +1802,7 @@ describe('FormComponent', () => {
     ]);
   });
 
-  it('clears omitted funding bodies on review while retaining disabled funders and creators', async () => {
+  it('clears omitted imported funders and creators on review while retaining disabled funders', async () => {
     const { config, assets } = creatorImportConfig([]);
     const fundingField = 'foaf:fundedBy_foaf:Agent';
     const fundingTemplate = 'event.value.`foaf:fundedBy_foaf:Agent`';
@@ -1818,14 +1879,14 @@ describe('FormComponent', () => {
 
     update.and.resolveTo({
       success: true, oid: 'publication', message: '', data: null,
-      savedRowProofs: { [funderPath]: ['disabled'], [creatorPath]: ['creator-from-a'] },
+      savedRowProofs: { [funderPath]: ['disabled'], [creatorPath]: [] },
     });
     await select('data-b');
     await formComponent.saveForm({ force: true, targetStep: 'review' });
     expect(update.calls.argsFor(1)).toEqual([
-      'publication', { creators: [{ name: 'Creator from A' }], [fundingField]: [null], dataRecord: { oid: 'data-b' } },
+      'publication', { creators: [], [fundingField]: [null], dataRecord: { oid: 'data-b' } },
       'review', { formSave: true, rowEdits: {
-        [funderPath]: [{ source: 0, proof: 'disabled', retain: true }], [creatorPath]: [{ source: 0, proof: 'creator-from-a' }],
+        [funderPath]: [{ source: 0, proof: 'disabled', retain: true }], [creatorPath]: [],
       } },
     ]);
   });
@@ -2104,8 +2165,6 @@ describe('FormComponent', () => {
       }
       const evaluate = assets.entries[0].callable;
       const conditionOutcomes = new Map<string, 'throw' | 'skip'>();
-      let conditionAStarted!: () => void;
-      const conditionA = new Promise<void>(resolve => { conditionAStarted = resolve; });
       assets.entries[0].callable = async (key, path, context) => {
         if (path[0] === 'componentDefinitions' && path[1] === 2) {
           return jsonataCompileAndEvaluate(citationTemplate, context);
@@ -2113,7 +2172,6 @@ describe('FormComponent', () => {
         if (path.at(-1) !== 'condition') return evaluate(key, path, context);
         if (context.event.fieldId === '/dataRecord') {
           const oid = context.event.value?.oid;
-          if (oid === 'source-a') conditionAStarted();
           if (conditionOutcomes.get(oid) === 'throw') throw new Error('Condition failed');
           if (conditionOutcomes.get(oid) === 'skip') return false;
         }
@@ -2138,11 +2196,11 @@ describe('FormComponent', () => {
       const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
         success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['saved'] },
       });
-      return { conditionA, conditionOutcomes, fixture, formComponent, path, select, fetch, update };
+      return { conditionOutcomes, fixture, formComponent, path, select, fetch, update };
     };
 
     it(`keeps a newer failed condition pending when older work is queued or fetching with debounceMs=${debounceMs}`, async () => {
-      const { conditionA, conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
+      const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
       conditionOutcomes.set('source-b', 'throw');
       let respondA!: (metadata: Record<string, unknown>) => void;
       let startFetchA!: () => void;
@@ -2152,14 +2210,18 @@ describe('FormComponent', () => {
         return new Promise(resolve => { respondA = resolve; });
       });
 
-      select('source-a');
+      let queued!: () => void;
+      const queuedA = new Promise<void>(resolve => { queued = resolve; });
       if (debounceMs) {
-        await conditionA;
-        // Let the matched event reach the debounce timer before selecting B.
-        await new Promise<void>(resolve => { setTimeout(resolve, 0); });
-      } else {
-        await fetchingA;
+        const schedule = asyncScheduler.schedule.bind(asyncScheduler);
+        spyOn(asyncScheduler, 'schedule').and.callFake((work, delay, state) => {
+          const action = schedule(work, delay, state);
+          if (delay === debounceMs) queued();
+          return action;
+        });
       }
+      select('source-a');
+      await (debounceMs ? queuedA : fetchingA);
       select('source-b');
       if (respondA) fixture.ngZone!.run(() => respondA({ contributor_ci: [{ family_name: 'Creator from A' }] }));
       await fixture.whenStable();
@@ -2480,15 +2542,19 @@ describe('FormComponent', () => {
     finishFetch({ contributor_ci: [{ family_name: 'Imported before create' }] });
     await createEditor.fixture.whenStable();
 
-    // A successful fetch with no creators settles the import without replacing the current list.
+    // A successful fetch with no creators clears the earlier import and keeps manual input.
+    const creators = createEditor.formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+    await createEditor.fixture.ngZone!.run(() => creators.appendNewElement({ name: 'Manual before create' }));
+    await createEditor.fixture.whenStable();
     fetch.and.resolveTo({});
     createEditor.fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
       fieldId: '/dataRecord', sourceId: '*', value: { oid: 'source-without-creators' }, previousValue: { oid: 'old-source' },
     })));
     await createEditor.fixture.whenStable();
     expect(fetch).toHaveBeenCalledWith('source-without-creators');
+    expect(createEditor.formComponent.form!.get('creators')?.value).toEqual([{ name: 'Manual before create' }]);
     await createEditor.formComponent.saveForm({ force: true });
-    expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Imported before create' }] }, 'dataPublication', '');
+    expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Manual before create' }] }, 'dataPublication', '');
     expect(navigate).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/record\/edit\/persisted-draft$/), true);
     const editUrl = new URL(navigate.calls.first().args[0], window.location.origin);
     expect(editUrl.searchParams.has('dataRecordOid')).toBeFalse();
@@ -2501,7 +2567,7 @@ describe('FormComponent', () => {
     setWindowSearch(editUrl.search);
 
     // The persisted edit form can include rows or metadata added by save hooks.
-    const { config, assets } = creatorImportConfig([{ name: 'Imported before create' }, { name: 'Disabled creator' }]);
+    const { config, assets } = creatorImportConfig([{ name: 'Manual before create' }, { name: 'Disabled creator' }]);
     const loadCondition = '$exists(runtimeContext.requestParams.dataRecordOid)';
     const loadOid = 'runtimeContext.requestParams.dataRecordOid';
     config.behaviours!.push({

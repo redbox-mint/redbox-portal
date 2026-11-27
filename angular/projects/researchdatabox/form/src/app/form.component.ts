@@ -1227,6 +1227,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private prepareFieldsForCreate(entries: FormFieldCompMapEntry[]): string | undefined {
     for (const { component } of entries) {
+      if (!component?.isVisible) continue;
       if (component instanceof DataLocationComponent || component instanceof FileUploadComponent ||
           component instanceof PublishDataLocationSelectorComponent) {
         const problem = component.prepareForCreate();
@@ -1326,9 +1327,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           } else {
             // Actual record update via RecordService call
             const formName = this.trimmedParams.formName();
+            const loadedWorkflowForm = this.formConfigMeta['loadedWorkflowForm'];
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
               formSave: true,
               ...(formName ? { formName } : {}),
+              ...(typeof loadedWorkflowForm === 'string' ? { loadedWorkflowForm } : {}),
               ...(submitted.hasLists ? { rowEdits: submitted.rowEdits } : {}),
             });
           }
@@ -1361,6 +1364,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             );
             if (createdEditPath) {
               this.finishCreateNavigation(createdEditPath, closeOnSave);
+            } else if (response.reloadEditForm && !closeOnSave && !redirectLocation) {
+              this.finishCreateNavigation(this.buildEditRecordPath(oid));
             }
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
@@ -1525,7 +1530,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   protected canNavigateBack(): boolean {
     const browser = this.window as (Window & { navigation?: { canGoBack: boolean } }) | null;
-    return browser?.navigation?.canGoBack ?? ((browser?.history.length ?? 0) > 1);
+    return browser?.navigation?.canGoBack ?? false;
   }
 
   @HostListener('window:pageshow', ['$event'])

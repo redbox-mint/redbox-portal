@@ -143,6 +143,10 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
     this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
+    const currentPaths = this.formFieldCompMapEntry?.lineagePaths;
+    if (currentPaths && currentPaths.angularComponentsJsonPointer !== parentLineagePaths.angularComponentsJsonPointer) {
+      this.formService.rebaseFieldPaths(this.formFieldCompMapEntries, parentLineagePaths, currentPaths);
+    }
 
     if (_isEmpty(this.formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);

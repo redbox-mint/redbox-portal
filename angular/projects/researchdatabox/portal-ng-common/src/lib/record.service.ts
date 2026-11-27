@@ -675,11 +675,11 @@ export class RecordService extends HttpClientService {
     return result as RecordActionResult;
   }
 
-  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean; formName?: string; rowEdits?: FormRowEdits }) {
+  public async update(oid: string, record: any, targetStep: string = '', options?: { formSave?: boolean; formName?: string; loadedWorkflowForm?: string; rowEdits?: FormRowEdits }) {
     const httpOptions = this.getHttpOptions();
     const rowEdits = options?.formSave ? options.rowEdits : undefined;
     const formSaveParam = options?.formSave
-      ? `?formSave=true${options.formName ? `&formName=${encodeURIComponent(options.formName)}` : ''}${rowEdits ? '&rowEdits=true' : ''}`
+      ? `?formSave=true${options.formName ? `&formName=${encodeURIComponent(options.formName)}` : ''}${options.loadedWorkflowForm !== undefined ? `&loadedWorkflowForm=${encodeURIComponent(options.loadedWorkflowForm)}` : ''}${rowEdits ? '&rowEdits=true' : ''}`
       : '';
     const targetStepParam = this.getTargetStepParam(targetStep, formSaveParam ? '&' : '?');
     const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${formSaveParam}${targetStepParam}`;
@@ -694,6 +694,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
+  reloadEditForm?: boolean;
   confirmedListPaths?: string[];
   savedRowProofs?: FormRowProofs;
   success: boolean = false;

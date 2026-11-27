@@ -46,7 +46,7 @@ export function editableFormRowPaths(schema: FieldSchema): string[] {
   return paths;
 }
 
-export function loadedFormRowProofs(metadata: Metadata, schema: FieldSchema, sign: SignRow): FormRowProofs {
+export function loadedFormRowProofs(metadata: unknown, schema: FieldSchema, sign: SignRow, path: Path = []): FormRowProofs {
   const proofs: FormRowProofs = {};
   const collect = (value: unknown, shape: FieldSchema, path: Path): void => {
     if (shape.elements && Array.isArray(value)) {
@@ -59,13 +59,12 @@ export function loadedFormRowProofs(metadata: Metadata, schema: FieldSchema, sig
       }
     }
   };
-  collect(metadata, schema, []);
+  collect(metadata, schema, path);
   return proofs;
 }
 
 export class FormRowSave {
-  private readonly applied = new Set<string>();
-  private readonly lists = new Map<string, Path>();
+  private readonly lists = new Map<string, { path: Path; schema: FieldSchema }>();
 
   constructor(private readonly rowEdits: Record<string, unknown>, private readonly sign: SignRow) {}
 
@@ -88,25 +87,24 @@ export class FormRowSave {
       used.add(source);
       return { source, retain: retain === true };
     });
-    this.applied.add(key);
     return result;
   }
 
-  confirmList(path: Path): void {
-    this.lists.set(JSON.stringify(path), path);
+  confirmList(path: Path, schema: FieldSchema): void {
+    this.lists.set(JSON.stringify(path), { path, schema });
   }
 
   savedConfirmation(expected: Metadata, saved: Metadata) {
     const confirmedListPaths: string[] = [];
     const savedRowProofs: FormRowProofs = {};
-    for (const [key, path] of this.lists) {
+    for (const [key, { path, schema }] of this.lists) {
       // A hook which changes a parent list can also invalidate its children's positions.
       const ancestors = path.flatMap((part, index) => typeof part === 'number' ? [path.slice(0, index)] : []);
       if (![...ancestors, path].every(list => _.isEqual(_.get(expected, list), _.get(saved, list)))) continue;
       confirmedListPaths.push(key);
-      if (this.applied.has(key)) {
+      if (schema.elements) {
         const rows = _.get(saved, path) as unknown;
-        savedRowProofs[key] = Array.isArray(rows) ? rows.map((row, index) => this.sign(path, index, row)) : [];
+        Object.assign(savedRowProofs, loadedFormRowProofs(Array.isArray(rows) ? rows : [], schema, this.sign, path));
       }
     }
     return { confirmedListPaths, savedRowProofs };
@@ -123,7 +121,12 @@ function selectionIsUnchanged(previous: unknown, submitted: unknown, schema: Fie
   const stored = previous as Metadata;
   const fieldsInForm = Object.keys(fields(schema));
   const permitted = schema.selection === 'typeahead' ? selectionPropertyNames(stored, fieldsInForm) : fieldsInForm;
-  return _.isEqual(Object.fromEntries(permitted.filter(key => Object.hasOwn(stored, key)).map(key => [key, stored[key]])), submitted);
+  const projected = Object.fromEntries(permitted.filter(key => Object.hasOwn(stored, key)).map(key => [key, stored[key]]));
+  if (permitted.includes('name')) {
+    const name = hydratedName(stored);
+    if (name !== undefined) projected.name = name;
+  }
+  return _.isEqual(projected, submitted);
 }
 
 function hasStoredOnlyValue(value: unknown, schema: FieldSchema, submitted?: unknown): boolean {
@@ -244,7 +247,7 @@ function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema
 }
 
 function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema, rows?: FormRowSave, path: Path = []): unknown {
-  if (Array.isArray(changed) || (schema.elements && changed === null)) rows?.confirmList(path);
+  if (Array.isArray(changed) || (schema.elements && changed === null)) rows?.confirmList(path, schema);
   if (schema.retainExistingRowsOnly) {
     if (!Array.isArray(changed)) return previous;
     const stored = Array.isArray(previous) ? previous : [];
