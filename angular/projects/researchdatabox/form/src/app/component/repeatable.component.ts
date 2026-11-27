@@ -130,8 +130,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected get canChangeRows(): boolean {
     const array = this.model?.formControl;
-    return !!array && this.getFormComponent.canEditRepeatable(array, this.readOnlyRows) &&
-      (!this.readOnlyRows || this.formService.shouldIncludeInFormControlMap(this.formFieldCompMapEntry, true));
+    return !!array && this.getFormComponent.canEditRepeatable(array, this.readOnlyRows);
   }
 
   protected override async initData() {
@@ -190,7 +189,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const formControl = this.model.formControl;
     if (formControl instanceof RepeatableFormArray) {
       this.readOnlyRows = isStaticallyDisabledFormField(elementTemplate);
-      if (this.readOnlyRows) this.getFormComponent.markRowsReadOnly(formControl);
+      if (this.readOnlyRows) {
+        this.getFormComponent.markRowsReadOnly(formControl, () => this.compDefMapEntries.length);
+      }
       formControl.customValueSetter = (value, options) =>
         this.replaceAllElements(Array.isArray(value) ? value : [], options);
     }

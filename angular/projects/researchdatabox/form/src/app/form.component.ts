@@ -920,6 +920,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private readonly formSaveRows = new FormSaveRows();
+  private readonly repeatableEntryPaths = new WeakMap<FormArray, FormFieldCompMapEntry[]>();
 
   public rememberLoadedRow(array: FormArray, row: AbstractControl, index: number): void {
     this.formSaveRows.remember(array, row, index);
@@ -929,8 +930,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formSaveRows.forget(array);
   }
 
-  public markRowsReadOnly(array: FormArray): void {
-    this.formSaveRows.markRowsReadOnly(array);
+  public markRowsReadOnly(array: FormArray, renderedCount: () => number): void {
+    this.formSaveRows.markRowsReadOnly(array, renderedCount);
   }
 
   public canEditRepeatable(array: FormArray, requiresProofs: boolean): boolean {
@@ -955,7 +956,31 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const oid = this.trimmedParams.oid();
     const proofs = this.formConfigMeta['rowProofs'] as FormRowProofs | undefined;
     return !!(this.form.enabled && oid && this.formConfigMeta['oid'] === oid && proofs &&
+      this.repeatableEntryPath(array)?.every(entry => this.includesSaveEntry(entry, true)) &&
       this.formSaveRows.canTrack(array, this.form, proofs));
+  }
+
+  private repeatableEntryPath(array: FormArray): FormFieldCompMapEntry[] | undefined {
+    const cached = this.repeatableEntryPaths.get(array);
+    if (cached) return cached;
+
+    const find = (entries: FormFieldCompMapEntry[]): FormFieldCompMapEntry[] | undefined => {
+      for (const entry of entries) {
+        if (entry.model?.formControl === array) return [entry];
+        const childPath = find(entry.component?.formFieldCompMapEntries ?? []);
+        if (childPath) return [entry, ...childPath];
+      }
+      return undefined;
+    };
+    const path = find(this.componentDefArr);
+    if (path) this.repeatableEntryPaths.set(array, path);
+    return path;
+  }
+
+  private includesSaveEntry(entry: FormFieldCompMapEntry, trackRows: boolean): boolean {
+    const control = entry.model?.formControl;
+    const allowAggregateDisabled = trackRows && (control instanceof FormGroup || control instanceof FormArray);
+    return this.formService.shouldIncludeInFormControlMap(entry, allowAggregateDisabled);
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
@@ -967,9 +992,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const collectExcluded = (entries: FormFieldCompMapEntry[], parentExcluded = false) => {
       for (const entry of entries) {
         const control = entry.model?.formControl;
-        const allowAggregateDisabled = !!proofs && (control instanceof FormGroup || control instanceof FormArray);
-        const omit = parentExcluded || !this.formService.shouldIncludeInFormControlMap(entry, allowAggregateDisabled);
-        if (omit && entry.model?.formControl) excluded.add(entry.model.formControl);
+        const omit = parentExcluded || !this.includesSaveEntry(entry, !!proofs);
+        if (omit && control) excluded.add(control);
         collectExcluded(entry.component?.formFieldCompMapEntries ?? [], omit);
       }
     };

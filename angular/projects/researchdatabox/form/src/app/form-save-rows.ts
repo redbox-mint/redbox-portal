@@ -3,16 +3,17 @@ import type { FormRowEdit, FormRowEdits, FormRowProofs } from '@researchdatabox/
 
 type Path = (string | number)[];
 type RowSource = { array: FormArray; index: number; proof?: string };
+type ReadOnlyRows = { renderedCount: () => number; loaded: boolean };
 
 export class FormSaveRows {
   private readonly bound = new WeakSet<FormGroup>();
   private readonly origins = new WeakMap<AbstractControl, RowSource>();
   private readonly needsReload = new WeakSet<FormArray>();
   private readonly rebuilt = new WeakSet<FormArray>();
-  private readonly readOnlyRows = new WeakSet<FormArray>();
+  private readonly readOnlyRows = new WeakMap<FormArray, ReadOnlyRows>();
 
-  markRowsReadOnly(array: FormArray): void {
-    this.readOnlyRows.add(array);
+  markRowsReadOnly(array: FormArray, renderedCount: () => number): void {
+    this.readOnlyRows.set(array, { renderedCount, loaded: false });
   }
 
   canTrack(array: FormArray, form: FormGroup, proofs: FormRowProofs): boolean {
@@ -24,16 +25,21 @@ export class FormSaveRows {
       if (parent instanceof FormArray && !this.hasProof(parent, control)) return false;
       control = parent;
     }
-    return this.hasProofs(array);
+    return this.hasTrackedReadOnlyRows(array);
+  }
+
+  private hasTrackedReadOnlyRows(array: FormArray): boolean {
+    const rows = this.readOnlyRows.get(array);
+    return !!rows?.loaded && this.matchesRenderedRows(array, rows);
+  }
+
+  private matchesRenderedRows(array: FormArray, rows: ReadOnlyRows): boolean {
+    return rows.renderedCount() === array.length && array.controls.every(row => this.hasProof(array, row));
   }
 
   private hasProof(array: FormArray, row: AbstractControl): boolean {
     const source = this.origins.get(row);
     return source?.array === array && !!source.proof;
-  }
-
-  private hasProofs(array: FormArray): boolean {
-    return array.controls.every(row => this.hasProof(array, row));
   }
 
   remember(array: FormArray, row: AbstractControl, index: number): void {
@@ -47,11 +53,18 @@ export class FormSaveRows {
       if (control instanceof FormGroup) {
         for (const [key, child] of Object.entries(control.controls)) bind(child, [...path, key]);
       } else if (control instanceof FormArray) {
+        const loadedProofs = proofs[JSON.stringify(path)];
         for (const child of control.controls) {
           const source = this.origins.get(child);
           if (source?.array !== control) continue;
-          source.proof = proofs[JSON.stringify(path)]?.[source.index];
+          source.proof = loadedProofs?.[source.index];
           bind(child, [...path, source.index]);
+        }
+        const rows = this.readOnlyRows.get(control);
+        if (rows) {
+          // Only a list initialized with tracked rows can later submit an intentional empty list.
+          rows.loaded = control.length > 0 && control.length === loadedProofs?.length &&
+            this.matchesRenderedRows(control, rows);
         }
       }
     };
@@ -96,7 +109,7 @@ export class FormSaveRows {
       // The server uses the ordinary merge below a list without row edits.
       const trackArray = trackBranch && !unavailable;
       const readOnlyRows = this.readOnlyRows.has(control);
-      if (readOnlyRows && (!trackArray || !fromStorage || !this.hasProofs(control))) return omitted;
+      if (readOnlyRows && (!trackArray || !fromStorage || !this.hasTrackedReadOnlyRows(control))) return omitted;
       const structured = control.controls.some(row => row instanceof FormGroup || row instanceof FormArray);
       if (trackBranch && updating && changedByHook && structured) {
         throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
@@ -141,6 +154,8 @@ export class FormSaveRows {
             this.needsReload.add(array);
             continue;
           }
+          const readOnly = this.readOnlyRows.get(array);
+          if (readOnly && !rows.length && !proofs.length) readOnly.loaded = false;
           rows.forEach((row, index) => {
             if (index < proofs.length) this.origins.set(row, { array, index, proof: proofs[index] });
             else this.origins.delete(row);
