@@ -173,6 +173,7 @@ export interface FormValidationGroupsChangeRequestEvent extends FormComponentEve
 export interface FormStatusDirtyRequestEvent extends FormComponentEventBase {
   readonly type: 'form.status.dirty.request';
   readonly fieldId?: string;
+  readonly controlPath?: readonly (string | number)[];
   readonly reason?: string;
 }
 

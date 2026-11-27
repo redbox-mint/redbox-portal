@@ -2,6 +2,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { setControlValue } from '../form-state/custom-set-value.control';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { DateInputComponent, parseFreeTextDate } from './date-input.component';
+import { GroupFieldComponent } from './group.component';
 import { SaveButtonComponent } from './save-button.component';
 import { SimpleInputComponent } from './simple-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
@@ -63,7 +64,7 @@ describe('parseFreeTextDate', () => {
 describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
-      declarations: [DateInputComponent, SaveButtonComponent, SimpleInputComponent],
+      declarations: [DateInputComponent, GroupFieldComponent, SaveButtonComponent, SimpleInputComponent],
       imports: [BsDatepickerModule.forRoot(), NoopAnimationsModule],
     });
   });
@@ -132,42 +133,53 @@ describe('DateInputComponent', () => {
     expect(unload.defaultPrevented).toBeTrue();
   });
 
-  it('enables Save after a time-only edit when a related display control is already dirty', async () => {
-    const { fixture, formComponent } = await createFormAndWaitForReady({
-      name: 'date-time-with-related-display',
-      relatedRecords: {
-        displayTargets: [{ metadataPointer: '/relatedTitle', relationId: 'activity' }],
-        relations: [{ relationId: 'activity', referenceTokens: ['reference'] }],
-        sources: [],
-      },
-      componentDefinitions: [
-        { name: 'reference', component: { class: 'SimpleInputComponent' },
-          model: { class: 'SimpleInputModel', config: { value: 'activity-oid' } } },
-        { name: 'relatedTitle', component: { class: 'SimpleInputComponent' },
-          model: { class: 'SimpleInputModel', config: { value: 'Related title' } } },
-        { name: 'date', component: { class: 'DateInputComponent', config: { enableTimePicker: true } },
-          model: { class: 'DateInputModel', config: { value: new Date(2026, 9, 4, 12) } } },
-        { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true } } },
-      ],
-    }, { editMode: true, oid: 'oid-123' });
-    const form = formComponent.form!;
-    const root = fixture.nativeElement as HTMLElement;
-    const saveButton = root.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
-    form.get('relatedTitle')!.markAsDirty();
-    fixture.detectChanges();
+  for (const datePath of ['date', 'schedule.date']) {
+    it(`enables Save after a time-only edit to ${datePath} when a related display control is already dirty`, async () => {
+      const displayName = datePath === 'date' ? 'relatedTitle' : 'date';
+      const dateField = {
+        name: 'date',
+        component: { class: 'DateInputComponent' as const, config: { enableTimePicker: true } },
+        model: { class: 'DateInputModel' as const, config: { value: new Date(2026, 9, 4, 12) } },
+      };
+      const { fixture, formComponent } = await createFormAndWaitForReady({
+        name: 'date-time-with-related-display',
+        relatedRecords: {
+          displayTargets: [{ metadataPointer: `/${displayName}`, relationId: 'activity' }],
+          relations: [{ relationId: 'activity', referenceTokens: ['reference'] }],
+          sources: [],
+        },
+        componentDefinitions: [
+          { name: 'reference', component: { class: 'SimpleInputComponent' },
+            model: { class: 'SimpleInputModel', config: { value: 'activity-oid' } } },
+          { name: displayName, component: { class: 'SimpleInputComponent' },
+            model: { class: 'SimpleInputModel', config: { value: 'Related title' } } },
+          datePath === 'date' ? dateField : {
+            name: 'schedule', model: { class: 'GroupModel' },
+            component: { class: 'GroupComponent', config: { componentDefinitions: [dateField] } },
+          },
+          { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true } } },
+        ],
+      }, { editMode: true, oid: 'oid-123' });
+      const form = formComponent.form!;
+      const date = form.get(datePath)!;
+      const root = fixture.nativeElement as HTMLElement;
+      const saveButton = root.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
+      form.get(displayName)!.markAsDirty();
+      fixture.detectChanges();
 
-    expect(form.dirty).toBeTrue();
-    expect(form.get('date')!.pristine).toBeTrue();
-    expect(saveButton.disabled).toBeTrue();
+      expect(form.dirty).toBeTrue();
+      expect(date.pristine).toBeTrue();
+      expect(saveButton.disabled).toBeTrue();
 
-    const timeInput = root.querySelector<HTMLInputElement>('input[type="time"]')!;
-    timeInput.value = '18:45';
-    timeInput.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+      const timeInput = root.querySelector<HTMLInputElement>('input[type="time"]')!;
+      timeInput.value = '18:45';
+      timeInput.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
 
-    expect(form.get('date')!.dirty).toBeTrue();
-    expect(saveButton.disabled).toBeFalse();
-  });
+      expect(date.dirty).toBeTrue();
+      expect(saveButton.disabled).toBeFalse();
+    });
+  }
 
   it('should render Date input component from default value', async () => {
     const formConfig: FormConfigFrame = {

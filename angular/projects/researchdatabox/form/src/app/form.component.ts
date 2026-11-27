@@ -811,7 +811,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         if (!this.form) {
           return;
         }
-        const targetControl = evt.fieldId ? this.form.get(evt.fieldId) : null;
+        const controlPath = evt.controlPath ?? evt.fieldId;
+        const targetControl = controlPath ? this.form.get(controlPath) : null;
         if (targetControl && this.isActiveRelatedDisplayControl(targetControl)) return;
         const trackLocalChanges = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
         const wasDirty = this.form.dirty;

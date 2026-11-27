@@ -1883,11 +1883,18 @@ describe('FormComponent', () => {
     const { fixture, formComponent } = await createFormAndWaitForReady({
       name: 'new-strict-record',
       serverSyncOnSave: 'never',
-      componentDefinitions: [{
-        name: 'title',
-        model: { class: 'SimpleInputModel', config: { value: 'Draft' } },
-        component: { class: 'SimpleInputComponent' },
-      }],
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Draft' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+        {
+          name: 'notes',
+          model: { class: 'SimpleInputModel', config: { value: 'Submitted notes' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
     }, { oid: '', editMode: true });
     const location = fixture.debugElement.injector.get(Location);
     const replaceState = spyOn(location, 'replaceState');
@@ -1895,6 +1902,7 @@ describe('FormComponent', () => {
     const http = TestBed.inject(HttpTestingController);
     const url = formComponent.recordService.brandingAndPortalUrl;
     const title = formComponent.form!.get('title')!;
+    const notes = formComponent.form!.get('notes')!;
     const createdTag = `"rb-record-v1.1.${'a'.repeat(43)}"`;
     const updatedTag = `"rb-record-v1.2.${'b'.repeat(43)}"`;
     const formFingerprint = 'sha256:form_1';
@@ -1905,8 +1913,9 @@ describe('FormComponent', () => {
     });
     const createRequest = http.expectOne({ method: 'POST', url: `${url}/recordmeta/rdmp` });
     expect(createRequest.request.headers.has('If-Match')).toBeFalse();
+    expect(createRequest.request.body).toEqual({ title: 'Draft', notes: 'Submitted notes' });
     createRequest.flush({ meta: {
-      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Normalised draft' },
+      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Normalised draft', notes: 'Normalised notes' },
       concurrency: { mode: 'strict', revision: 1, entityTag: createdTag, formFingerprint },
     } });
     await creating;
@@ -1919,6 +1928,7 @@ describe('FormComponent', () => {
     expect(formComponent.saveNavigationPending()).toBeFalse();
     expect(title.value).toBe('Edited after create');
     expect(title.dirty).toBeTrue();
+    expect(notes.value).toBe('Submitted notes');
     expect(formComponent.oid()).toBe('oid-created');
     expect(replaceState).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-created');
     expect(formComponent.recordBaseline()?.entityTag).toBe(createdTag);
@@ -1928,9 +1938,9 @@ describe('FormComponent', () => {
     const updateRequest = http.expectOne({ method: 'PUT', url: `${url}/recordmeta/oid-created` });
     expect(updateRequest.request.headers.get('If-Match')).toBe(createdTag);
     expect(updateRequest.request.headers.get('X-ReDBox-Form-Fingerprint')).toBe(formFingerprint);
-    expect(updateRequest.request.body).toEqual({ title: 'Edited after create' });
+    expect(updateRequest.request.body).toEqual({ title: 'Edited after create', notes: 'Submitted notes' });
     updateRequest.flush({ meta: {
-      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Edited after create' },
+      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Edited after create', notes: 'Submitted notes' },
       concurrency: { mode: 'strict', revision: 2, entityTag: updatedTag, formFingerprint },
     } });
     await saving;
