@@ -399,6 +399,77 @@ describe('RecordController update', () => {
     expect(selector?.model?.config?.value).to.deep.equal([location]);
   });
 
+  it('loads and saves an edit form with hydrated shared and option-specific checkbox details', async () => {
+    const stored = [{ value: 'other', details: { volume: '20 GB', description: 'Archive' } }];
+    const detail = (name: string, defaultValue: string) => ({
+      ...input(name),
+      model: { class: 'SimpleInputModel' as const, config: { defaultValue } },
+    });
+    const configuration: FormConfigFrame = {
+      ...formConfig,
+      componentDefinitions: [{
+        name: 'formats',
+        model: { class: 'CheckboxWithDetailsModel' },
+        component: {
+          class: 'CheckboxWithDetailsComponent',
+          config: {
+            options: [{ value: 'other', label: 'Other' }],
+            detailFields: [detail('volume', '10 GB')],
+            detailFieldsByValue: { other: [detail('description', 'Custom exports')] },
+          },
+        },
+      }],
+    };
+    (FormsService.getFormByName as sinon.SinonStub).returns(of({
+      id: 'form-1', name: 'publication-draft', branding: 'brand-1', configuration,
+    }));
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { formats: stored },
+    });
+
+    const { config } = await loadFormForRowEdits();
+    expect(config.componentDefinitions?.find(field => field.name === 'formats')?.model?.config?.value)
+      .to.deep.equal(stored);
+
+    const edited = [{ value: 'other', details: { volume: '40 GB', description: 'Archive' } }];
+    const { res } = makeResponse();
+    await controller.update(makeRequest({ formats: edited }, { formSave: 'true', apiVersion: '2.0' }), res);
+    sinon.assert.calledOnce(updateMeta);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({ formats: edited });
+  });
+
+  it('saves local metadata on a form with a related-record display', async () => {
+    const configuration: FormConfigFrame = {
+      ...formConfig,
+      type: 'dataPublication',
+      componentDefinitions: [
+        input('title'),
+        input('primaryActivity'),
+        {
+          name: 'activitySource',
+          component: { class: 'RelatedObjectDataComponent', config: { relationId: 'primaryActivity' } },
+        },
+        { ...input('activityTitle'), relatedDisplay: { relationId: 'primaryActivity' } },
+      ],
+    };
+    (FormsService.getFormByName as sinon.SinonStub).returns(of({
+      id: 'form-1', name: 'publication-draft', branding: 'brand-1', configuration,
+    }));
+    (RecordTypesService.get as sinon.SinonStub).returns(of({
+      name: 'dataPublication',
+      relatedTo: [{
+        id: 'primaryActivity', recordType: 'related-activity',
+        localField: 'metadata.primaryActivity', foreignField: 'redboxOid',
+        cardinality: 'one', direction: 'outbound', resolution: { metadataFields: ['/title'] },
+      }],
+    }));
+
+    const { res } = makeResponse();
+    await controller.update(makeRequest({ title: 'Updated' }, { formSave: 'true', apiVersion: '2.0' }), res);
+    sinon.assert.calledOnce(updateMeta);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({ ...currentRecord.metadata, title: 'Updated' });
+  });
+
   it('preserves omitted metadata and applies editable changes on a form save with a transition', async () => {
     const { res, json } = makeResponse();
     const files = [{ fileId: 'new', name: 'new.txt' }];
