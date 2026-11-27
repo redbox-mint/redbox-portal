@@ -3,9 +3,19 @@ import {
   FormComponentEventType,
   FieldValueChangedEvent,
   FormComponentEventTypeValue,
+  recordImportApplications,
 } from './form-component-event.types';
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
-import {  FormExpressionsConfigFrame} from '@researchdatabox/sails-ng-common';
+import {
+  FormExpressionsConfigFrame,
+  FormExpressionsTargetModelValue,
+  PublishDataLocationSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import { FormArray, FormControl } from '@angular/forms';
+import { isPlainObject } from 'lodash-es';
+import { isCustomSetValueControl } from '../custom-set-value.control';
+
+const failedImport = Symbol('failedImport');
 
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
@@ -24,16 +34,47 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
     event: FieldValueChangedEvent,
     expression: FormExpressionsConfigFrame
   ): Promise<void> {
-    // Compute the expression result
+    if (!('target' in expression.config)) return;
+    const target = expression.config.target || '';
+    const isModelUpdate = target === FormExpressionsTargetModelValue;
+    const recordImport = isModelUpdate ? event.recordImport : undefined;
+    if (recordImport === 'no-import') return;
+    const application = isModelUpdate ? event[recordImportApplications] : undefined;
+
+    const control = this.model?.formControl;
+    const importsRows = recordImport && expression.config.hasTemplate &&
+      control instanceof FormArray && isCustomSetValueControl(control);
+    // Reselecting the linked record leaves the current rows and their save proofs intact.
+    if (importsRows && recordImport === 'same-selection') return;
+
     let targetValue: unknown = event.value;
     if (expression.config.hasTemplate) {
-      // Evaluate the pre-compiled JSONata expression template (CSP-safe)
-      targetValue = await this.evaluateExpressionJSONata(expression, event, 'template');
+      targetValue = application
+        ? await this.evaluateExpressionJSONata(expression, event, 'template', {}, failedImport)
+        : await this.evaluateExpressionJSONata(expression, event, 'template');
     }
-    // Set the target based on the expression config
-    if ('target' in expression.config) {
-      const exprTarget = expression.config.target || '';
-      await this.setTarget(targetValue, exprTarget, event, expression);
+    if (targetValue === failedImport) throw new Error('Could not evaluate the linked record import.');
+
+    if (recordImport && this.model?.fieldConfig.class === PublishDataLocationSelectorModelName) {
+      // JSONata's $map collapses one result to an object and zero results to undefined.
+      if (targetValue == null) targetValue = [];
+      else if (Array.isArray(targetValue)) targetValue = [...targetValue];
+      else if (isPlainObject(targetValue)) targetValue = [targetValue];
+      else throw new Error('Expected a list of publication data locations.');
+    } else if (importsRows && recordImport === 'changed-selection') {
+      if (targetValue == null) targetValue = [];
+      // Keep manual and previously stored creators when no replacement contributors are supplied.
+      const onlyImportedRows = Array.isArray(targetValue) && !targetValue.length &&
+        expression.name === 'dataPublication-creators-from-dataRecord';
+      if (isPlainObject(targetValue)) targetValue = [targetValue];
+      if (!Array.isArray(targetValue)) throw new Error('Expected a list of linked record rows.');
+      await this.setTarget(targetValue, target, event, expression, { emitEvent: false, replaceImportedRows: true, ...(onlyImportedRows ? { onlyImportedRows } : {}) });
+      return;
+    } else if (application && targetValue === undefined) {
+      if (!application.changedSelection || !(control instanceof FormControl)) return;
+      // Serialize a clear explicitly so a form save removes the previous selection's value.
+      targetValue = null;
     }
+    await this.setTarget(targetValue, target, event, expression);
   }
 }

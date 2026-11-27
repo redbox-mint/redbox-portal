@@ -1,3 +1,4 @@
+import { hydratedName, selectionPropertyNames } from '../utilities/FormEditProjection';
 import { cloneDeep as _cloneDeep } from 'lodash';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
@@ -1239,7 +1240,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
     const elementTemplateFormConfig = new FormConfig();
     elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
-    const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig});
+    const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig, forEditProjection: this.formMode === 'edit'});
     this.applyRepeatableComponentSchemaOverrides(elementTemplateSchema, elementTemplateCompConfig.componentDefinitions);
 
     // Remove any data model items that are not present in the schema.
@@ -1330,8 +1331,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     schemaPath = schemaPath ?? [];
     valuePath = valuePath ?? [];
 
+    const typeaheadSelection = currentSchema['selection'] === 'typeahead';
+    if (typeaheadSelection && (currentValue === null || typeof currentValue === 'string')) {
+      return currentValue;
+    }
     let result: unknown = structuredClone(currentValue);
-    const schemaKeys = Object.keys(currentSchema);
+    const schemaKeys = Object.keys(currentSchema).filter(key => !typeaheadSelection || key !== 'selection');
     const propKeys = ['properties', 'optionalProperties'];
 
     // For debugging:
@@ -1360,7 +1365,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       // Remove properties not in the schema.
       const resultObj = (result ?? {}) as Record<string, unknown>;
       const resultKeys = Object.keys(resultObj);
-      const propSchemaKeys = [...Object.keys(propertiesSchema), ...Object.keys(optionalPropertiesSchema)];
+      const properties = [...Object.keys(propertiesSchema), ...Object.keys(optionalPropertiesSchema)];
+      const propSchemaKeys = typeaheadSelection ? selectionPropertyNames(resultObj, properties) : properties;
       for (const key of resultKeys) {
         // Remove names missing in the schema.
         if (!propSchemaKeys.includes(key) && Object.hasOwn(resultObj, key)) {
@@ -1418,10 +1424,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     // Legacy schema has value instead of name.
     // Add the value as the name if name is missing.
-    const isObjPropNameString = typeof result.name === 'string' && result.name.length > 0;
-    const isObjPropValueString = typeof result.value === 'string' && result.value.length > 0;
-    if (hasSchemaPropName && !isObjPropNameString && isObjPropValueString) {
-      result.name = result.value;
+    if (hasSchemaPropName) {
+      const name = hydratedName(result);
+      if (name !== undefined) result.name = name;
     }
 
     // Build each of the current value's properties matching the schema.

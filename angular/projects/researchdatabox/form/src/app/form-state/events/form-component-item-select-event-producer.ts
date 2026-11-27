@@ -45,8 +45,6 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
       return;
     }
 
-    this.fieldId = fieldId;
-
     const sub = toObservable(component.selectedItem, { injector: options.injector })
       .pipe(skipWhile(v => v === null))
       .subscribe(selectedItem => {
@@ -60,14 +58,15 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
    * Publishes item selected events to the general event bus.
    */
   private publishItemSelected(selectedItem: unknown | null): void {
-    if (!this.fieldId) {
+    const fieldId = this.options?.definition?.lineagePaths?.angularComponentsJsonPointer;
+    if (!fieldId) {
       return;
     }
 
     const baseEvent = createFieldItemSelectedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       selectedItem,
-      sourceId: this.fieldId,
+      sourceId: fieldId,
     });
 
     this.eventBus.publish(baseEvent);

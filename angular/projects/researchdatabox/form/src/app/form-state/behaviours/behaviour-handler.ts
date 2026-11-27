@@ -1,14 +1,16 @@
-import { debounceTime, Observable, Subscription } from 'rxjs';
+import { concatMap, debounceTime, filter, groupBy, map, mergeMap, Observable, Subscription, tap } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
   FormBehaviourActionConfig,
   FormBehaviourConfigFrame,
+  FormBehaviourProcessorType,
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService, RecordService } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../../form.component';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import {
+  FieldValueChangedEvent,
   FormComponentEvent,
   FormComponentEventMap,
   FormComponentEventType,
@@ -18,10 +20,25 @@ import {
   BehaviourCompiledTemplateEvaluator,
 } from './behaviour-compiled-template-evaluator';
 import { isRepeatableFieldEntry, resolveFieldByPointer } from './behaviour-field-resolver';
-import { matchBehaviourCondition } from './behaviour-condition-matcher';
+import { canMatchJSONataEvent, matchBehaviourCondition, matchJSONPointerCondition } from './behaviour-condition-matcher';
 import { BehaviourPipelineContext, executeBehaviourProcessor } from './behaviour-processors';
 import { executeBehaviourAction } from './behaviour-actions';
 import { getEventJSONPointerCondition } from '../events/form-component-base-event-producer-consumer';
+
+function selectedRecordOid(selection: unknown): string {
+  let id = selection;
+  if (selection && typeof selection === 'object') {
+    const reference = selection as { oid?: unknown; redboxOid?: unknown };
+    id = reference.oid ?? reference.redboxOid;
+  }
+  return typeof id === 'string' ? id.trim() : '';
+}
+
+type RecordSelection = { oid: string; needsImport: boolean };
+type BehaviourWork = {
+  event: FormComponentEvent;
+  selection?: RecordSelection;
+};
 
 /**
  * Services and runtime references shared by behaviour handlers.
@@ -39,7 +56,12 @@ export class BehaviourHandler {
   private readonly permanentlySkippedActions = new Set<string>();
   private readonly metadataCache = new Map<string, unknown>();
   private isProcessingFormReadyExecution = false;
+  private readonly selections = new Map<string | undefined, RecordSelection>();
+  private readonly pendingMetadataLoads = new Set<BehaviourWork>();
+  private readonly queuedMetadataLoads = new Map<string | undefined, BehaviourWork>();
   private hasExecutedFormReady = false;
+  private failedInitialImport?: BehaviourWork;
+  private destroyed = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
 
@@ -66,18 +88,48 @@ export class BehaviourHandler {
     this.validateLogicalActions('onError', this.behaviour.onError ?? []);
 
     const observable = this.getEventObservable();
+    const fetchesMetadata = this.fetchesMetadata();
+    const candidates = (fetchesMetadata ? observable.pipe(filter(event => this.canHandleMetadataEvent(event))) : observable)
+      .pipe(map(event => ({ event, selection: fetchesMetadata ? this.selectRecord(event) : undefined })));
     const debounceMs = this.behaviour.debounceMs ?? 0;
-    const source$ = debounceMs > 0 ? observable.pipe(debounceTime(debounceMs)) : observable;
+    const matchesBeforeDebounce = debounceMs > 0 && fetchesMetadata;
+    const eligibleWork = matchesBeforeDebounce ? candidates.pipe(
+      tap(work => this.pendingMetadataLoads.add(work)),
+      concatMap(async work => {
+        try {
+          if (!await this.matches(work)) return null;
+          this.queuedMetadataLoads.set(this.metadataDebounceKey(work), work);
+          return work;
+        } catch (error) {
+          await this.handleExecutionError(error, work);
+          return null;
+        } finally {
+          this.pendingMetadataLoads.delete(work);
+        }
+      }),
+      filter(work => work !== null)
+    ) : candidates;
+    const source$ = matchesBeforeDebounce ? eligibleWork.pipe(
+      groupBy(work => this.metadataDebounceKey(work)),
+      mergeMap(group => group.pipe(debounceTime(debounceMs)))
+    ) : debounceMs > 0 ? eligibleWork.pipe(debounceTime(debounceMs)) : eligibleWork;
     this.subscriptions.push(
-      source$.subscribe(event => {
-        void this.execute(event);
+      source$.subscribe(work => {
+        const key = this.metadataDebounceKey(work);
+        if (this.queuedMetadataLoads.get(key) === work) this.queuedMetadataLoads.delete(key);
+        void this.execute(work, matchesBeforeDebounce);
       })
     );
   }
 
   destroy(): void {
+    this.destroyed = true;
+    this.failedInitialImport = undefined;
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.length = 0;
+    this.queuedMetadataLoads.clear();
+    this.selections.clear();
+    this.pendingMetadataLoads.clear();
     this.logicalFieldEntries.clear();
   }
 
@@ -99,6 +151,61 @@ export class BehaviourHandler {
     return this.ctx.eventBus.selectAll$();
   }
 
+  private fetchesMetadata(): boolean {
+    return this.behaviour.processors?.some(processor => processor.type === FormBehaviourProcessorType.FetchMetadata) ?? false;
+  }
+
+  private canHandleMetadataEvent(event: FormComponentEvent): boolean {
+    if (this.hasExecutedFormReady || this.failedInitialImport ||
+        (this.isProcessingFormReadyExecution && event.sourceId === '*')) return false;
+    const kind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
+    return kind === ExpressionsConditionKind.JSONPointer
+      ? matchJSONPointerCondition(this.behaviour.condition, event, this.behaviour, this.getEventQuerySource(event))
+      : canMatchJSONataEvent(event, this.behaviour);
+  }
+
+  private selectRecord(event: FormComponentEvent): RecordSelection | undefined {
+    if (event.type !== FormComponentEventType.FIELD_VALUE_CHANGED) return undefined;
+    const oid = selectedRecordOid(event.value);
+    const previousOid = selectedRecordOid(event.previousValue);
+    const previous = this.selections.get(event.fieldId);
+    if (!oid && !previousOid && !previous) return undefined;
+
+    const selection = {
+      oid,
+      // A same-OID retry or reselection during debounce carries the original import intent.
+      needsImport: !!oid && (oid !== previousOid || (previous?.oid === oid && previous.needsImport)),
+    };
+    this.selections.set(event.fieldId, selection);
+    return selection;
+  }
+
+  private metadataDebounceKey(work: BehaviourWork): string | undefined {
+    return work.selection ? work.event.fieldId : undefined;
+  }
+
+  private isCurrent(work: BehaviourWork): boolean {
+    return !this.destroyed && (!work.selection || this.selections.get(work.event.fieldId) === work.selection);
+  }
+
+  private async matches(work: BehaviourWork): Promise<boolean> {
+    if (!this.isCurrent(work)) return false;
+    const { event, selection } = work;
+    const matched = await matchBehaviourCondition(
+      this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
+        behaviourIndex: this.behaviourIndex,
+        getCompiledTemplateEvaluator: () => this.getCompiledTemplateEvaluator(),
+        formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
+        requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
+        querySource: this.getEventQuerySource(event),
+      }
+    );
+    if (!this.isCurrent(work)) return false;
+    // A false condition settles the selection. An exception leaves it available for retry.
+    if (!matched && selection) selection.needsImport = false;
+    return matched;
+  }
+
   /**
    * Execute one behaviour pipeline for a matching event.
    *
@@ -108,13 +215,15 @@ export class BehaviourHandler {
    * 3. run actions in order
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
-  private async execute(event: FormComponentEvent): Promise<void> {
+  private async execute(work: BehaviourWork, conditionMatched: boolean): Promise<void> {
+    if (!this.isCurrent(work)) return;
+    const { event, selection } = work;
     const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
     // Once a runOnFormReady behaviour has completed its initial load pipeline,
     // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
     // Without this, a broadcast event (sourceId="*") emitted by the action
     // passes the JSONata guard and restarts the pipeline indefinitely.
-    if (this.hasExecutedFormReady) {
+    if (this.hasExecutedFormReady || (this.failedInitialImport && this.failedInitialImport !== work)) {
       return;
     }
 
@@ -129,26 +238,25 @@ export class BehaviourHandler {
     if (isFormReadyEvent) {
       this.isProcessingFormReadyExecution = true;
     }
+    const fetchesMetadata = this.fetchesMetadata();
+    if (fetchesMetadata) this.pendingMetadataLoads.add(work);
     try {
-      const condition = this.behaviour.condition;
-      const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
-      const compiledTemplateEvaluator = await this.getCompiledTemplateEvaluator();
-      const requestParams = (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>;
-
-      const matches = await matchBehaviourCondition(condition, conditionKind, event, this.behaviour, {
-        behaviourIndex: this.behaviourIndex,
-        compiledTemplateEvaluator,
-        formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
-        requestParams,
-        querySource: this.getEventQuerySource(event),
-      });
-
-      if (!matches) {
+      if (!conditionMatched && !await this.matches(work)) {
+        if (this.failedInitialImport === work) this.failedInitialImport = undefined;
         return;
       }
 
+      await this.getCompiledTemplateEvaluator();
+      const selectedOid = selection?.oid;
       let value = (event as { value?: unknown }).value;
+      let recordImport: FieldValueChangedEvent['recordImport'] = fetchesMetadata ? 'no-import' : undefined;
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
+        if (!this.isCurrent(work)) return;
+        if (processor.type === FormBehaviourProcessorType.FetchMetadata && typeof value === 'string' && value.trim()) {
+          recordImport = isFormReadyEvent ? 'changed-selection' : selectedOid === value.trim()
+            ? (selection?.needsImport ? 'changed-selection' : 'same-selection')
+            : 'metadata-refresh';
+        }
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
           behaviourIndex: this.behaviourIndex,
           processorIndex,
@@ -159,23 +267,53 @@ export class BehaviourHandler {
         });
       }
 
-      await this.executeActions('actions', this.behaviour.actions ?? [], value, event);
+      if (!this.isCurrent(work)) return;
+      await this.executeActions('actions', this.behaviour.actions ?? [], value, work, recordImport);
+      if (!this.isCurrent(work)) return;
+      if (selection) selection.needsImport = false;
       if (isFormReadyEvent) {
+        this.failedInitialImport = undefined;
         this.hasExecutedFormReady = true;
       }
     } catch (error) {
-      this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
-        error,
-        behaviour: this.behaviour.name,
-      });
-      await this.executeActions('onError', this.behaviour.onError ?? [], (event as { value?: unknown }).value, event);
-      if (isFormReadyEvent) {
-        this.hasExecutedFormReady = true;
-      }
+      if (isFormReadyEvent && !fetchesMetadata) this.hasExecutedFormReady = true;
+      await this.handleExecutionError(error, work);
     } finally {
+      if (fetchesMetadata) this.pendingMetadataLoads.delete(work);
       if (isFormReadyEvent) {
         this.isProcessingFormReadyExecution = false;
       }
+    }
+  }
+
+  private async handleExecutionError(error: unknown, work: BehaviourWork): Promise<void> {
+    if (!this.isCurrent(work)) return;
+    if (this.fetchesMetadata() && work.event.type === FormComponentEventType.FORM_DEFINITION_READY) {
+      this.failedInitialImport = work;
+    }
+    this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
+      error,
+      behaviour: this.behaviour.name,
+    });
+    await this.executeActions('onError', this.behaviour.onError ?? [], (work.event as { value?: unknown }).value, work);
+  }
+
+  get isLoadingMetadata(): boolean {
+    return Array.from(this.queuedMetadataLoads.values()).some(work => this.isCurrent(work)) ||
+      Array.from(this.pendingMetadataLoads).some(work => this.isCurrent(work));
+  }
+
+  get hasFailedInitialImport(): boolean {
+    return this.failedInitialImport !== undefined;
+  }
+
+  get hasPendingRecordImport(): boolean {
+    return this.hasFailedInitialImport || Array.from(this.selections.values()).some(selection => selection.needsImport);
+  }
+
+  async retryInitialImport(): Promise<void> {
+    if (this.failedInitialImport && !this.isLoadingMetadata) {
+      await this.execute(this.failedInitialImport, false);
     }
   }
 
@@ -186,18 +324,24 @@ export class BehaviourHandler {
     listName: 'actions' | 'onError',
     actions: FormBehaviourActionConfig[],
     value: unknown,
-    event: FormComponentEvent
+    work: BehaviourWork,
+    recordImport?: FieldValueChangedEvent['recordImport']
   ): Promise<void> {
     for (const [actionIndex, action] of actions.entries()) {
+      if (!this.isCurrent(work)) return;
       const actionKey = this.buildActionKey(listName, actionIndex);
       if (this.permanentlySkippedActions.has(actionKey)) {
         continue;
       }
-      await executeBehaviourAction(action, this.buildPipelineContext(value, event), {
+      await executeBehaviourAction(action, this.buildPipelineContext(value, work.event), {
         behaviourIndex: this.behaviourIndex,
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,
+        recordImport,
+        isCurrent: work.selection || (recordImport && work.event.type === FormComponentEventType.FORM_DEFINITION_READY)
+          ? () => this.isCurrent(work)
+          : undefined,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
         broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),

@@ -1,6 +1,6 @@
-import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { FormConfigVisitor, isStaticallyDisabledFormField } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
-import { set as _set } from 'lodash';
+import { get as _get, set as _set } from 'lodash';
 import {
   SimpleInputFieldComponentDefinitionOutline,
   SimpleInputFieldModelDefinitionOutline,
@@ -178,6 +178,8 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   // Typeahead schema needs component config later when the paired model is visited.
   private typeaheadOptionObjectFieldsByJsonPath: Map<string, Record<string, string>>;
   private formPathHelper: FormPathHelper;
+  private forFormSave = false;
+  private forEditProjection = false;
 
   constructor(logger: ILogger) {
     super(logger);
@@ -193,7 +195,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
    * @param options Configure the visitor.
    * @param options.form The constructed form.
    */
-  async start(options: { form: FormConfigOutline }): Promise<Record<string, unknown>> {
+  async start(options: { form: FormConfigOutline; forFormSave?: boolean; forEditProjection?: boolean }): Promise<Record<string, unknown>> {
+    this.forFormSave = options.forFormSave ?? false;
+    this.forEditProjection = options.forEditProjection ?? false;
     this.jsonTypeDefPath = [];
     this.jsonTypeDef = {};
     this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
@@ -241,12 +245,20 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     const componentDefinition = item.config?.elementTemplate;
+    if (this.forFormSave && componentDefinition && isStaticallyDisabledFormField(componentDefinition)) {
+      _set(this.jsonTypeDef, this.jsonTypeDefPath, { elements: {}, retainExistingRowsOnly: true });
+      return;
+    }
     if (componentDefinition) {
       await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition),
         ['elements']
       );
+      const elementsPath = [...this.jsonTypeDefPath, 'elements'];
+      if (this.forFormSave && item.config?.allowZeroRows !== true && _get(this.jsonTypeDef, elementsPath)) {
+        _set(this.jsonTypeDef, [...this.jsonTypeDefPath, 'defaultBlankRow'], true);
+      }
     }
   }
 
@@ -457,6 +469,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   async visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+      ...(this.forFormSave ? { selection: 'record' } : {}),
       properties: {
         oid: { type: 'string' },
       },
@@ -511,6 +524,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         };
 
       _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+        ...(this.forFormSave || this.forEditProjection ? { selection: 'typeahead' } : {}),
         properties,
         optionalProperties: {
           sourceType: { type: 'string' },
@@ -700,6 +714,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected async acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+    if (this.forFormSave && isStaticallyDisabledFormField(item)) {
+      return;
+    }
     const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
 
     await this.acceptJsonTypeDefPath(item.component, {formConfig: ['component']}, jsonTypeDefPathKeys);

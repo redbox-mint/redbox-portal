@@ -14,6 +14,7 @@ import {
 import {
   FormConfigFrame,
   GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  isStaticallyDisabledFormField,
   isTypeFieldDefinitionName,
   isTypeWithComponentDefinitions,
   GroupFieldComponentDefinitionFrame,
@@ -26,7 +27,7 @@ import {
   isUndefined as _isUndefined,
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
-import { RepeatableComponent } from './repeatable.component';
+import { RepeatableComponentModel } from './repeatable.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 
 
@@ -57,7 +58,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
     const control = targetModel?.getFormControl();
     if (this.formControl && name && control) {
-      if (this.formControl.disabled && control.enabled) {
+      if (this.fieldConfig.config?.disabled && control.enabled) {
         control.disable();
       }
       this.formControl.addControl(name, control);
@@ -142,6 +143,10 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
     this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
+    const currentPaths = this.formFieldCompMapEntry?.lineagePaths;
+    if (currentPaths && currentPaths.angularComponentsJsonPointer !== parentLineagePaths.angularComponentsJsonPointer) {
+      this.formService.rebaseFieldPaths(this.formFieldCompMapEntries, parentLineagePaths, currentPaths);
+    }
 
     if (_isEmpty(this.formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
@@ -158,21 +163,22 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
+      const childModel = elemFieldEntry?.model;
+      const elemVal = elemVals?.[key];
+      const childContainer = childModel instanceof GroupFieldModel || childModel instanceof RepeatableComponentModel;
+      if (childModel instanceof GroupFieldModel && elemVal && typeof elemVal === 'object' && !Array.isArray(elemVal)) {
+        childModel.initValue = elemVal as GroupFieldModelValueType;
+      } else if (childModel instanceof RepeatableComponentModel && Array.isArray(elemVal)) {
+        childModel.initValue = elemVal;
+      }
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
 
-      // Populate the component model if it has one.
+      // Populate leaf controls after their component has initialized.
       const hasModel = this.model?.formControl && compInstance?.model;
-      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      const includeInFormControlMap = elemFieldEntry && !isStaticallyDisabledFormField(elemFieldEntry.compConfigJson);
       if (hasModel && includeInFormControlMap) {
-        const elemVal = elemVals?.[key];
-        if (compInstance?.model && !_isUndefined(elemVal)) {
-          if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
-            for (const repeatableValue of elemVal) {
-              await compInstance.appendNewElement(repeatableValue, false);
-            }
-          } else {
-            compInstance.model.setValue(elemVal as never);
-          }
+        if (!childContainer && compInstance?.model && !_isUndefined(elemVal)) {
+          compInstance.model.setValue(elemVal as never);
         }
         this.model.addItem(key, compInstance.model);
         await syncComponentDisplayFromModel(compInstance);

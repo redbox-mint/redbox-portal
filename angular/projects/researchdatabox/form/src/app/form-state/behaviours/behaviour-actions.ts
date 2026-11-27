@@ -1,7 +1,7 @@
 import { FieldPathKind, FormBehaviourActionConfig, FormBehaviourActionType } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FieldValueChangedEvent, recordImportApplications } from '../events/form-component-event.types';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
 import { BehaviourFieldResolverContext, resolveFieldByPointer } from './behaviour-field-resolver';
@@ -17,6 +17,8 @@ export interface BehaviourActionExecutionContext {
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
+  recordImport?: FieldValueChangedEvent['recordImport'];
+  isCurrent?: () => boolean;
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -70,6 +72,7 @@ async function executeSetValueAction(
   }
 
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  if (ctx.isCurrent?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
   resolved.control.markAsDirty();
   ctx.broadcastFormStatus?.();
@@ -87,13 +90,30 @@ async function executeEmitEventAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  if (ctx.isCurrent?.() === false) return;
+  // A value template may emit unrelated data, so leave row-import intent on direct emissions only.
+  const recordImport = action.config.hasValueTemplate ? undefined : ctx.recordImport;
+  const fetchedMetadata = ctx.recordImport && ctx.recordImport !== 'no-import';
+  const applications: Promise<void>[] = [];
   ctx.eventBus.publish(
     createFieldValueChangedEvent({
       fieldId: action.config.fieldId,
       sourceId: action.config.sourceId,
       value,
+      ...(recordImport ? { recordImport } : {}),
+      ...(fetchedMetadata ? {
+        [recordImportApplications]: {
+          changedSelection: ctx.recordImport === 'changed-selection',
+          pending: applications,
+          isCurrent: ctx.isCurrent,
+        },
+      } : {}),
     })
   );
+  // The event bus delivers synchronously, and expression consumers register before awaiting anything.
+  const results = await Promise.allSettled(applications);
+  const failure = results.find(result => result.status === 'rejected');
+  if (failure) throw failure.reason;
 }
 
 /**

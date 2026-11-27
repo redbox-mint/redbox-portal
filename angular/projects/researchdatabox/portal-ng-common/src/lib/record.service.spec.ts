@@ -39,6 +39,42 @@ describe("RecordService", () => {
     httpTestingController.verify();
   });
 
+  it('opts form saves into metadata preservation and passes through the workflow target', async () => {
+    const metadata = { title: 'Draft', keywords: [] };
+    const result = recordService.update('oid-123', metadata, 'review', { formSave: true });
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&targetStep=review`
+    );
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(metadata);
+    request.flush({ success: true, oid: 'oid-123' });
+    await expectAsync(result).toBeResolvedTo({ success: true, oid: 'oid-123' } as Awaited<typeof result>);
+  });
+
+  it('sends the named edit form in the query alongside the raw metadata body', async () => {
+    const metadata = { title: 'Finalise', formName: 'A metadata field' };
+    const result = recordService.update('oid-123', metadata, '', { formSave: true, formName: 'named edit' });
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&formName=named%20edit`
+    );
+    expect(request.request.body).toEqual(metadata);
+    request.flush({ success: true, oid: 'oid-123' });
+    await result;
+  });
+
+  it('sends retained row positions separately from the editable values', async () => {
+    const metadata = { creators: [null, { name: 'Editable' }] };
+    const rowEdits = { '["creators"]': [{ source: 0, proof: 'first', retain: true as const }, { source: 1, proof: 'second' }] };
+    const result = recordService.update('oid-123', metadata, '', { formSave: true, rowEdits });
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/recordmeta/oid-123?formSave=true&rowEdits=true`
+    );
+    expect(request.request.body).toEqual({ metadata, rowEdits });
+    const savedRowProofs = { '["creators"]': ['first', 'second'] };
+    request.flush({ success: true, oid: 'oid-123', savedRowProofs });
+    expect((await result).savedRowProofs).toEqual(savedRowProofs);
+  });
+
   it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {
     const attachments = recordService.getAttachments("failed");
     const attachmentAssertion = expectAsync(attachments).toBeRejected();

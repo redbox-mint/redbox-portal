@@ -4,6 +4,7 @@ import {
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
+  recordImportApplications,
 } from './form-component-event.types';
 import {
   FormComponentEventBaseProducerConsumer,
@@ -26,7 +27,7 @@ import {
   FormExpressionsTargetFieldDisabled,
 } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
+import { ControlSetValueOptions, isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
 import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
 /**
@@ -145,9 +146,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   /**
    * Evaluate the JSONata expression template with the provided context.
    *
-   * Design note: when compiled templates are unavailable, fall back to the raw
-   * event value. That preserves historical behaviour for partially constructed
-   * forms instead of failing closed and clearing dependent fields.
+   * Ordinary expressions use the fallback value when evaluation is unavailable.
+   * A tracked import condition must succeed before its update can be applied.
    *
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
@@ -162,13 +162,12 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     additionalData: object = {},
     fallbackValue: unknown = (event as { value?: unknown }).value
   ): Promise<unknown> {
+    const trackedCondition = propertyName === 'condition' &&
+      event.type === FormComponentEventType.FIELD_VALUE_CHANGED && !!event[recordImportApplications];
     const compiledItems = await this.getCompiledItems();
-    if (!compiledItems) {
-      return fallbackValue;
-    }
-
-    const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
-    if (!templateKey) {
+    const templateKey = compiledItems && this.buildExpressionPropertyKey(expression, propertyName);
+    if (!compiledItems || !templateKey) {
+      if (trackedCondition) throw new Error('Could not load the linked record import condition.');
       return fallbackValue;
     }
 
@@ -208,6 +207,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return await compiledItems.evaluate(templateKey, context, { libraries: {jsonata: jsonataDecodeCompile} });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
+      if (trackedCondition) throw error;
       return fallbackValue;
     }
   }
@@ -349,13 +349,15 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
     this.setupQuerySourceUpdateListener();
 
+    const applyExpressions = async (event: FormComponentEvent) => {
+      const matched = await this.getMatchedExpressions(event, expressions);
+      for (const expression of matched ?? []) await this.consumeEvent(event, expression);
+    };
     const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
-      const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
-      if (hasConditionMatches) {
-        for (const expr of hasConditionMatches) {
-          await this.consumeEvent(event, expr);
-        }
-      }
+      const application = applyExpressions(event);
+      const imports = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? event[recordImportApplications] : undefined;
+      if (imports) imports.pending.push(application);
+      else await application;
     });
     this.subscriptions.set(eventType, sub);
   }
@@ -486,12 +488,17 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     targetValue: unknown,
     exprTarget: string,
     event: FormComponentEvent,
-    expression: FormExpressionsConfigFrame
+    expression: FormExpressionsConfigFrame,
+    options: ControlSetValueOptions = { emitEvent: false }
   ) {
+    const isCurrent = event.type === FormComponentEventType.FIELD_VALUE_CHANGED
+      ? event[recordImportApplications]?.isCurrent : undefined;
+    if (isCurrent?.() === false) return;
     if (exprTarget === FormExpressionsTargetModelValue) {
       // The model.value property must be handled specially.
       if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
-        await setControlValue(this.model.formControl, targetValue, { emitEvent: false });
+        await setControlValue(this.model.formControl, targetValue, isCurrent ? { ...options, isCurrent } : options);
+        if (isCurrent?.() === false) return;
         await syncComponentDisplayFromModel(this.options?.component);
         // setControlValue with emitEvent:false suppresses Angular's
         // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,

@@ -21,6 +21,7 @@ import {
   effect,
   ElementRef,
   HostBinding,
+  HostListener,
   Inject,
   inject,
   model,
@@ -48,6 +49,8 @@ import {
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  AbstractControl,
+  FormArray,
   FormControlStatus,
   FormGroup,
   PristineChangeEvent,
@@ -75,6 +78,7 @@ import {
 import {
   DynamicScriptResponse,
   FormConfigFrame,
+  type FormRowProofs,
   FormRequestParamsMap,
   FormRequestParamValue,
   FormStatus,
@@ -86,7 +90,11 @@ import {
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
+import { DataLocationComponent } from './component/data-location.component';
+import { PublishDataLocationSelectorComponent } from './component/publish-data-location-selector.component';
+import { FileUploadComponent } from './component/file-upload.component';
 import { FormComponentsMap, FormService } from './form.service';
+import { FormSaveRows } from './form-save-rows';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import {
   FormComponentFocusRequestCoordinator
@@ -237,6 +245,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
+  protected readonly creatingRecord = signal(false);
   readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
 
@@ -915,16 +924,97 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.safePlainObjectSnapshot((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
   }
 
-  private getPersistedFormValue(): Record<string, unknown> {
-    const formValue = structuredClone((this.form?.value ?? {}) as Record<string, unknown>);
-    const groupMap = this.formDefMap?.completeGroupMap ?? {};
-    for (const [name, compEntry] of Object.entries(groupMap)) {
-      const includeByConfig = this.formService.shouldIncludeInFormControlMap(compEntry);
-      if (!includeByConfig) {
-        delete formValue[name];
+  private readonly formSaveRows = new FormSaveRows();
+  private readonly repeatableEntryPaths = new WeakMap<FormArray, FormFieldCompMapEntry[]>();
+
+  public rememberLoadedRow(array: FormArray, row: AbstractControl, index: number): void {
+    this.formSaveRows.remember(array, row, index);
+  }
+
+  public forgetLoadedRows(array: FormArray): void {
+    this.formSaveRows.forget(array);
+  }
+
+  public importRows(array: FormArray, isComplete: () => boolean): () => void {
+    return this.formSaveRows.importRows(array, isComplete);
+  }
+
+  public isLoadedRow(array: FormArray, row: AbstractControl): boolean {
+    const oid = this.trimmedParams.oid();
+    return !!oid && this.formConfigMeta['oid'] === oid && this.formSaveRows.isLoadedRow(array, row);
+  }
+
+  public markRowsReadOnly(array: FormArray, renderedCount: () => number): void {
+    this.formSaveRows.markRowsReadOnly(array, renderedCount);
+  }
+
+  public canEditRepeatable(array: FormArray, requiresProofs: boolean): boolean {
+    const editableRowPaths = this.formConfigMeta['editableRowPaths'] as string[] | undefined;
+    if (!editableRowPaths) return !requiresProofs;
+    const path: (string | null)[] = [];
+    let control: AbstractControl = array;
+    while (control.parent) {
+      const parent = control.parent;
+      if (parent instanceof FormArray) {
+        path.unshift(null);
+      } else {
+        const key = Object.keys(parent.controls).find(key => parent.controls[key] === control);
+        if (key === undefined) return false;
+        path.unshift(key);
       }
+      control = parent;
     }
-    return formValue;
+
+    if (control !== this.form || !editableRowPaths.includes(JSON.stringify(path))) return false;
+    if (!requiresProofs) return true;
+    const oid = this.trimmedParams.oid();
+    const proofs = this.formConfigMeta['rowProofs'] as FormRowProofs | undefined;
+    return !!(this.form.enabled && oid && this.formConfigMeta['oid'] === oid && proofs &&
+      this.repeatableEntryPath(array)?.every(entry => this.includesSaveEntry(entry, true)) &&
+      this.formSaveRows.canTrack(array, this.form, proofs));
+  }
+
+  private repeatableEntryPath(array: FormArray): FormFieldCompMapEntry[] | undefined {
+    const cached = this.repeatableEntryPaths.get(array);
+    if (cached) return cached;
+
+    const find = (entries: FormFieldCompMapEntry[]): FormFieldCompMapEntry[] | undefined => {
+      for (const entry of entries) {
+        if (entry.model?.formControl === array) return [entry];
+        const childPath = find(entry.component?.formFieldCompMapEntries ?? []);
+        if (childPath) return [entry, ...childPath];
+      }
+      return undefined;
+    };
+    const path = find(this.componentDefArr);
+    if (path) this.repeatableEntryPaths.set(array, path);
+    return path;
+  }
+
+  private includesSaveEntry(entry: FormFieldCompMapEntry, trackRows: boolean): boolean {
+    const control = entry.model?.formControl;
+    const allowAggregateDisabled = trackRows && (control instanceof FormGroup || control instanceof FormArray);
+    return this.formService.shouldIncludeInFormControlMap(entry, allowAggregateDisabled);
+  }
+
+  private getPersistedFormValue(): Record<string, unknown> {
+    return this.snapshotForSave().metadata;
+  }
+
+  private snapshotForSave(proofs?: FormRowProofs, updating = !!proofs) {
+    const excluded = new Set<AbstractControl>();
+    const collectExcluded = (entries: FormFieldCompMapEntry[], parentExcluded = false) => {
+      for (const entry of entries) {
+        const control = entry.model?.formControl;
+        const omit = parentExcluded || !this.includesSaveEntry(entry, !!proofs);
+        if (omit && control) excluded.add(control);
+        collectExcluded(entry.component?.formFieldCompMapEntries ?? [], omit);
+      }
+    };
+    collectExcluded(this.componentDefArr);
+
+    const editableRowPaths = this.formConfigMeta['editableRowPaths'] as string[] | undefined;
+    return this.formSaveRows.snapshot(this.form, control => !excluded.has(control), proofs, updating, editableRowPaths);
   }
 
   private getComponentDebugInfo(
@@ -1135,7 +1225,35 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
+  private prepareFieldsForCreate(entries: FormFieldCompMapEntry[]): string | undefined {
+    for (const { component } of entries) {
+      if (!component?.isVisible) continue;
+      if (component instanceof DataLocationComponent || component instanceof FileUploadComponent ||
+          component instanceof PublishDataLocationSelectorComponent) {
+        const problem = component.prepareForCreate();
+        if (problem) return problem;
+      }
+      const problem = this.prepareFieldsForCreate(component?.formFieldCompMapEntries ?? []);
+      if (problem) return problem;
+    }
+    return undefined;
+  }
+
+  protected get hasFailedInitialImport(): boolean {
+    return this.behaviourManager.hasFailedInitialImport;
+  }
+
+  protected get isLoadingRecordMetadata(): boolean {
+    return this.behaviourManager.isLoadingMetadata;
+  }
+
+  protected retryInitialImports(): Promise<void> {
+    return this.behaviourManager.retryInitialImports();
+  }
+
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
+    if (this.creatingRecord() || (!this.componentsLoaded() && this.error())) return;
+
     const forceSave = options?.force ?? false;
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
@@ -1178,6 +1296,29 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
+        const creating = !this.trimmedParams.oid();
+        if (this.behaviourManager.isLoadingMetadata || this.formSaveRows.hasPendingImport(this.form)) {
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: 'Wait for the linked record to finish loading before saving.',
+          }));
+          return;
+        }
+        if (this.behaviourManager.hasPendingRecordImport) {
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: this.hasFailedInitialImport
+              ? 'Retry the initial linked record import before saving.'
+              : 'Retry or change the linked record before saving.',
+          }));
+          return;
+        }
+        const pendingInput = creating ? this.prepareFieldsForCreate(this.componentDefArr) : undefined;
+        if (pendingInput) {
+          this.eventBus.publish(createFormSaveFailureEvent({ error: pendingInput }));
+          return;
+        }
+
+        let leavingCreatedRecord = false;
+        if (creating) this.creatingRecord.set(true);
         this.saveResponse.set(null); // Indicate save in progress
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
@@ -1186,35 +1327,60 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         try {
           let response: RecordActionResult;
-          const currentFormValue = this.getPersistedFormValue();
+          const oid = this.trimmedParams.oid();
+          const proofs = oid && this.formConfigMeta['oid'] === oid ? this.formConfigMeta['rowProofs'] as FormRowProofs | undefined : undefined;
+          const submitted = this.snapshotForSave(proofs, !!oid);
+          const currentFormValue = submitted.metadata;
+          const hasRetainedRows = Object.values(submitted.rowEdits).some(edits => edits.some(edit => typeof edit === 'object' && edit !== null));
+          const savedData = hasRetainedRows ? this.getPersistedFormValue() : currentFormValue;
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
-          if (_isEmpty(this.trimmedParams.oid())) {
+          if (creating) {
             // Actual record creation via RecordService call
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
-            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep);
+            const formName = this.trimmedParams.formName();
+            const loadedWorkflowForm = this.formConfigMeta['loadedWorkflowForm'];
+            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
+              formSave: true,
+              ...(formName ? { formName } : {}),
+              ...(typeof loadedWorkflowForm === 'string' ? { loadedWorkflowForm } : {}),
+              ...(submitted.hasLists ? { rowEdits: submitted.rowEdits } : {}),
+            });
           }
           if (response?.success) {
+            submitted.markSaved(response.savedRowProofs, response.confirmedListPaths);
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
-            if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
-              const createdOid = String(response?.oid);
+            let createdEditPath: string | undefined;
+            if (creating && response.oid) {
+              const createdOid = String(response.oid);
               this.oid.set(createdOid);
-              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              this.formName.set('');
+              createdEditPath = this.buildEditRecordPath(createdOid);
+              leavingCreatedRecord = true;
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
+            const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined;
+            // Without a close destination, open the persisted form just as for a draft save.
+            const closeOnSave = createdEditPath && options?.closeOnSave && !redirectLocation && !this.canNavigateBack()
+              ? false : options?.closeOnSave;
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
-                savedData: currentFormValue,
+                savedData,
                 oid: oid,
                 response,
-                closeOnSave: options?.closeOnSave,
-                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined,
+                closeOnSave,
+                redirectLocation,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
+            if (createdEditPath) {
+              this.finishCreateNavigation(createdEditPath, closeOnSave);
+            } else if (response.reloadEditForm && !closeOnSave && !redirectLocation) {
+              this.finishCreateNavigation(this.buildEditRecordPath(oid));
+            }
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
             // Mark form as dirty again since save failed
@@ -1229,7 +1395,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
           // Emit an response with the error message object as string
           let errorMsg = 'Unknown error occurred';
-          if (error instanceof Error) {
+          if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
+            errorMsg = error.error.message;
+          } else if (error instanceof Error) {
             errorMsg = error.message;
           }
           this.saveResponse.set({
@@ -1241,6 +1409,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form.markAllAsDirty();
           // emit failure event
           this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
+        } finally {
+          if (!leavingCreatedRecord) this.creatingRecord.set(false);
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -1372,8 +1542,38 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  protected changeLocationHref(redirectLocation: string): void {
-    if (this.window?.location) {
+  protected canNavigateBack(): boolean {
+    const browser = this.window as (Window & { navigation?: { canGoBack: boolean } }) | null;
+    return browser?.navigation?.canGoBack ?? false;
+  }
+
+  @HostListener('window:pageshow', ['$event'])
+  protected restoreCreatedRecord(event: PageTransitionEvent): void {
+    const oid = this.trimmedParams.oid();
+    if (event.persisted && this.creatingRecord() && oid) {
+      this.finishCreateNavigation(this.buildEditRecordPath(oid));
+    }
+  }
+
+  private finishCreateNavigation(path: string, closeOnSave = false): void {
+    try {
+      this.locationService.replaceState(path);
+      this.refreshRequestParamsFromUrl(path);
+      if (!closeOnSave) {
+        this.componentsLoaded.set(false);
+        this.changeLocationHref(path, true);
+      }
+    } catch (error) {
+      this.loggerService.error(`${this.logName}: Could not open the saved record`, error);
+      this.componentsLoaded.set(false);
+      this.store.dispatch(FormActions.loadInitialDataFailure({ error: 'form-load-error' }));
+    }
+  }
+
+  protected changeLocationHref(redirectLocation: string, replace = false): void {
+    if (replace) {
+      this.window?.location.replace(redirectLocation);
+    } else if (this.window?.location) {
       this.window.location.href = redirectLocation;
     }
   }

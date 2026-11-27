@@ -42,7 +42,7 @@ describe('matchBehaviourCondition', () => {
       },
       {
         behaviourIndex: 0,
-        compiledTemplateEvaluator: evaluator,
+        getCompiledTemplateEvaluator: async () => evaluator,
         formValue: {},
         requestParams: {},
         querySource: {
@@ -77,7 +77,7 @@ describe('matchBehaviourCondition', () => {
       },
       {
         behaviourIndex: 0,
-        compiledTemplateEvaluator: evaluator,
+        getCompiledTemplateEvaluator: async () => evaluator,
         formValue: {},
         requestParams: {},
         querySource: undefined,
@@ -107,7 +107,7 @@ describe('matchBehaviourCondition', () => {
       },
       {
         behaviourIndex: 2,
-        compiledTemplateEvaluator: evaluator,
+        getCompiledTemplateEvaluator: async () => evaluator,
         formValue: { title: 'x' },
         requestParams: { rdmpOid: 'oid-1' },
         querySource: {

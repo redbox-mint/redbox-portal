@@ -33,6 +33,7 @@ import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
+import { mergeFormSaveMetadata, type FormRowSave } from '../utilities/FormSaveMetadata';
 
 
 
@@ -154,17 +155,20 @@ export namespace Services {
             changed: BasicRedboxRecord,
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
-            reusableFormDefs?: ReusableFormDefinitions
+            reusableFormDefs?: ReusableFormDefinitions,
+            options?: { partialFormSave?: boolean; rows?: FormRowSave }
         ): Promise<BasicRedboxRecord> {
-            const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
+            const permittedChanges = options?.partialFormSave
+                ? await this.buildEditSaveSchema(clientFormConfig, reusableFormDefs)
+                : await this.buildSchemaForFormConfig(this.stripModelValuesFromFormConfig(clientFormConfig), formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
-            const changes = this.compareRecords(original, changed);
             return {
                 ...original,
                 redboxOid: original?.redboxOid ?? "",
-                metadata: this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
+                metadata: options?.partialFormSave
+                    ? mergeFormSaveMetadata(originalMetadata, changedMetadata, permittedChanges, options.rows)
+                    : this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, this.compareRecords(original, changed)),
             }
         }
 
@@ -347,13 +351,17 @@ export namespace Services {
          * @param reusableFormDefs The reusable form definitions.
          */
         public async buildSchemaForFormConfig(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions, forFormSave = false
         ): Promise<Record<string, unknown>> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
             const constructed = await constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            return await visitor.start({form: constructed});
+            return await visitor.start({form: constructed, forFormSave});
+        }
+
+        public buildEditSaveSchema(item: FormConfigFrame, reusableFormDefs?: ReusableFormDefinitions): Promise<Record<string, unknown>> {
+            return this.buildSchemaForFormConfig(this.stripModelValuesFromFormConfig(item), 'edit', reusableFormDefs, true);
         }
 
         /**
@@ -539,7 +547,7 @@ export namespace Services {
                     return;
                 }
 
-                const nestedArrays = ['componentDefinitions', 'tabs', 'panels'];
+                const nestedArrays = ['componentDefinitions', 'tabs', 'panels', 'headerActions'];
                 nestedArrays.forEach(key => {
                     const nested = componentConfig[key];
                     if (Array.isArray(nested)) {

@@ -3,7 +3,7 @@ import {FormValidationGroupsChangeRequestEvent} from "./events";
 import {ModifyOptions} from "@researchdatabox/portal-ng-common";
 import {guessType} from "@researchdatabox/sails-ng-common";
 
-export type ControlSetValueOptions = ModifyOptions;
+export type ControlSetValueOptions = ModifyOptions & { replaceImportedRows?: true; onlyImportedRows?: boolean; isCurrent?: () => boolean };
 
 export interface CustomSetValueControl<ValueType = unknown> {
   setCustomValue(value: ValueType, options?: ControlSetValueOptions): Promise<void> | void;
