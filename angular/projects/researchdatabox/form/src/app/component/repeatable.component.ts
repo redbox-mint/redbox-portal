@@ -167,7 +167,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected get rowsDisabled(): boolean {
+    this.rowStructureVersion();
     return this.isDisabled || this.model?.fieldConfig.config?.disabled === true;
+  }
+
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    this.rowStructureVersion.update(version => version + 1);
   }
 
   private get rowControlsAligned(): boolean {
@@ -1059,11 +1065,19 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
       return;
     }
 
-    const toRestore = Array.from(this.rowControls(array.controls)).filter(control => this.remainsDisabled(control));
+    const descendants = Array.from(this.rowControls(array.controls));
+    const toRestore = descendants.filter(control => this.remainsDisabled(control));
     this.disabledBeforeParent = new WeakSet();
     array.enable({ ...opts, onlySelf: true, emitEvent: false });
     for (const control of toRestore) {
       if (control.enabled) control.disable({ emitEvent: false });
+    }
+    // Display controls such as typeahead subscribe to their own model status.
+    // Publish the final enabled state after restoring independently disabled rows.
+    if (opts?.emitEvent !== false) {
+      for (const control of descendants) {
+        if (control.enabled) control.updateValueAndValidity({ onlySelf: true });
+      }
     }
     array.updateValueAndValidity(opts);
   }
