@@ -194,6 +194,9 @@ export class FormDebugStateService implements OnDestroy {
       if (key === 'type' || key === 'timestamp' || key === 'sourceId' || key === 'fieldId') {
         continue;
       }
+      if (event.type === FormComponentEventType.FORM_STATUS_DIRTY_REQUEST && key === 'control') {
+        continue;
+      }
       payload[key] = value;
     }
     return this.safePlainObjectSnapshot(payload);

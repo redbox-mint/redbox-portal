@@ -4,7 +4,7 @@ import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
 import { FormControl, FormGroup } from '@angular/forms';
 import { EMPTY } from 'rxjs';
-import { RecordService } from '@researchdatabox/portal-ng-common';
+import { RecordActionResult, RecordService } from '@researchdatabox/portal-ng-common';
 import { RelatedMetadata, RelatedMetadataEntry } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { fakeAsync, flushMicrotasks, tick, TestBed } from '@angular/core/testing';
@@ -14,6 +14,7 @@ import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } f
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { RelatedObjectDataComponent } from './related-object-data.component';
 import { ContentComponent } from './content.component';
+import { SaveButtonComponent } from './save-button.component';
 
 describe('RelatedObjectDataComponent', () => {
   let utilityService: UtilityService;
@@ -22,7 +23,7 @@ describe('RelatedObjectDataComponent', () => {
   beforeEach(async () => {
     recordService = jasmine.createSpyObj('RecordService', ['resolveRelatedMetadata', 'update', 'create']);
     await createTestbedModule({
-      declarations: { ContentComponent, RelatedObjectDataComponent, SimpleInputComponent, GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent },
+      declarations: { ContentComponent, RelatedObjectDataComponent, SimpleInputComponent, GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent, SaveButtonComponent },
       providers: { RecordService: { provide: RecordService, useValue: recordService }, UtilityService: null, HandlebarsTemplateService: { provide: HandlebarsTemplateService, useValue: {} } },
     });
     utilityService = TestBed.inject(UtilityService);
@@ -374,6 +375,84 @@ describe('RelatedObjectDataComponent', () => {
     expect(recordService.update).not.toHaveBeenCalled();
     expect(recordService.create).not.toHaveBeenCalled();
     sub.unsubscribe();
+  }));
+
+  it('marks linked prefill and its metadata transfer dirty and enables saving the new draft', fakeAsync(() => {
+    recordService.resolveRelatedMetadata.and.callFake(async request => {
+      const oid = String(request.references?.['activities']);
+      return { activities: { status: 'resolved', issues: [], records: [{
+        redboxOid: oid, metadata: { title: `Activity ${oid}` }, metaMetadata: { type: 'activity', brandId: 'default' },
+      }] } };
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: 'linked-prefill',
+      relatedRecords: { displayTargets: [], relations: [], sources: [{
+        relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
+      }] },
+      componentDefinitions: [
+        { name: 'selection', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } } },
+        { name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: 'notes', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true } } },
+        { name: 'save-close', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true, closeOnSave: true } } },
+      ],
+      behaviours: [
+        {
+          name: 'select-linked-record', condition: '::form.definition.ready', runOnFormReady: true,
+          actions: [
+            { type: 'setValue', config: { fieldPath: '/selection', hasValueTemplate: true, valueTemplate: '"A"' } },
+            { type: 'emitEvent', config: { eventType: 'field.value.changed', fieldId: '/selection', sourceId: '*' } },
+          ],
+        },
+        {
+          name: 'copy-related-metadata', condition: '/source::field.value.changed', runOnFormReady: false,
+          actions: [
+            { type: 'setValue', config: {
+              fieldPath: '/title', hasValueTemplate: true, valueTemplate: 'event.value.records[0].metadata.title ?? ""',
+            } },
+            { type: 'runTemplate', config: {
+              hasTemplate: true, applyResults: true,
+              template: 'event.value.status = "resolved" ? [{"fieldPath": "/notes", "target": "model.value", "value": formData.title}] : []',
+            } },
+          ],
+        },
+      ],
+    };
+    const assets: DynamicAssetOptions = { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp',
+      callable: (_key, path, context) => {
+        const template = path.reduce<unknown>((value, token) => (value as Record<string, unknown>)[token], formConfig);
+        return jsonataCompileAndEvaluate(String(template), context);
+      },
+    }] };
+    let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady(formConfig, { editMode: true, oid: '' }, undefined, assets).then(value => { result = value; });
+    flushMicrotasks();
+    tick();
+    const { fixture, formComponent } = result;
+    fixture.detectChanges();
+    const form = formComponent.form!;
+    const prefill = { selection: 'A', title: 'Activity A', notes: 'Activity A' };
+    expect(form.getRawValue()).toEqual(prefill);
+    for (const name of Object.keys(prefill)) expect(form.get(name)?.dirty).toBeTrue();
+    const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('redbox-form-save-button button');
+    expect(Array.from(buttons).map(button => button.disabled)).toEqual([false, false]);
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBeTrue();
+
+    recordService.create.and.resolveTo(RecordActionResult.fromResponse({ meta: { oid: 'saved-draft', outcome: 'saved' } }));
+    buttons[0].click();
+    flushMicrotasks();
+    tick();
+
+    expect(recordService.create).toHaveBeenCalledTimes(1);
+    expect(recordService.create.calls.mostRecent().args[0]).toEqual(prefill);
+    const saved = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(saved);
+    expect(saved.defaultPrevented).toBeFalse();
   }));
 
   it('terminates an A-to-B-to-A reference expression loop and permits a fresh explicit refresh', fakeAsync(() => {

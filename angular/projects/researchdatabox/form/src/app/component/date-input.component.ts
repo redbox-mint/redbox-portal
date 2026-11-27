@@ -314,20 +314,16 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   }
 
   public setTimeValue(timeValue: string): void {
-    if (this.enableTimePicker) {
-      //TODO: Implementation of time input requires more work to handle timezones properly and this will be done in a later PR if/when required
-      let isoDts: string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
-      let jsDate = DateTime.fromISO(isoDts).toJSDate();
-      this.setValue(jsDate, { emitEvent: false });
-    }
-  }
+    const control = this.formControl;
+    if (!this.enableTimePicker || !(control instanceof DateInputFormControl) || !(control.value instanceof Date)) return;
 
-  private stripTimeFromJSDate(date: Date): string {
-    if (!_isUndefined(date) && !_isNull(date)) {
-      let formatted = DateTime.fromJSDate(date).toFormat('yyyy-MM-dd');
-      return formatted;
-    }
-    return '';
+    const day = DateTime.fromJSDate(control.value).toISODate();
+    const date = DateTime.fromISO(`${day}T${timeValue}:00.000`);
+    if (!date.isValid || date.toISODate() !== day || date.toMillis() === control.value.getTime()) return;
+
+    control.markAsDirty();
+    // The datepicker already displays this local day. Emit the change for validation and Save.
+    control.setValue(date.toJSDate(), { emitModelToViewChange: false });
   }
 }
 
@@ -533,10 +529,13 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   private requestFormDirty(reason: string): void {
+    const control = this.formControl;
+    if (!control) return;
     this.eventBus.publish(
       createFormStatusDirtyRequestEvent({
         fieldId: this.formFieldConfigName() || undefined,
         sourceId: this.formFieldConfigName() || undefined,
+        control,
         reason,
       })
     );

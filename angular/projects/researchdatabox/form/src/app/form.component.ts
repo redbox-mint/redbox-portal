@@ -433,6 +433,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private window: Window & typeof globalThis | null;
   private allowConflictNavigationOnce = false;
+  private deleteNavigationStarted = false;
+  private hasUnconfirmedSaveEdits = false;
   private conflictExportCompleted = false;
   private formValueGeneration = 0;
 
@@ -632,6 +634,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.saveNavigationPending.set(false);
     this.canCompleteSaveRedirect = undefined;
     this.allowConflictNavigationOnce = false;
+    this.deleteNavigationStarted = false;
+    this.hasUnconfirmedSaveEdits = false;
     this.conflictExportCompleted = false;
   }
 
@@ -774,8 +778,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         if (evt.closeOnDelete) {
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
-              // if closeOnDelete is true, but no redirect is specified, go to the previous page.
-              historyDelta: evt?.redirectLocation ? undefined : -1,
+              afterDelete: true,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
               formScopeId: this.eventScopeId,
@@ -811,10 +814,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['formStatusDirtyRequestSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST)
       .subscribe((evt: FormStatusDirtyRequestEvent) => {
-        if (!this.form) {
+        if (!this.form || (evt.control && evt.control.root !== this.form)) {
           return;
         }
-        const targetControl = evt.fieldId ? this.form.get(evt.fieldId) : null;
+        const targetControl = evt.control ?? (evt.fieldId ? this.form.get(evt.fieldId) : null);
         if (targetControl && this.isActiveRelatedDisplayControl(targetControl)) return;
         const trackLocalChanges = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
         const wasDirty = this.form.dirty;
@@ -863,6 +866,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           historyDelta: evt?.historyDelta,
           redirectLocation: evt?.redirectLocation,
           redirectDelaySeconds: evt?.redirectDelaySeconds,
+          afterDelete: evt.afterDelete,
         };
         try {
           this.doRedirect(redirectOptions);
@@ -1808,6 +1812,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
           // edits made after this save payload was sent.
+          this.hasUnconfirmedSaveEdits ||= this.hasChangesToSave();
           this.localDirtyRequestControls = new WeakSet<AbstractControl>();
           const proofs = !creating && this.formConfigMeta['oid'] === saveOid
             ? this.formConfigMeta['rowProofs'] as FormRowProofs | undefined : undefined;
@@ -1880,6 +1885,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               if (response.concurrency) {
                 response.concurrency = { ...response.concurrency, resolution: 'already-current' };
               }
+              this.hasUnconfirmedSaveEdits = false;
               this.saveResponse.set(response);
               const adoptedValue = this.getPersistedFormValue();
               this.eventBus.publish(
@@ -1941,6 +1947,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           // open only when required save work remains incomplete.
           const isComplete = response.isComplete();
           if (response.wasPersisted()) {
+            this.hasUnconfirmedSaveEdits = false;
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (!resolutionRetryAttempted) submitted?.markSaved(response.savedRowProofs, response.confirmedListPaths);
             if (creating && response.oid) {
@@ -1973,6 +1980,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 (savedStage && renderedStage && savedStage !== renderedStage)
               );
             const hasNewEdits = () => {
+              if (this.hasChangesToSave()) return true;
               const latestValue = this.getPersistedFormValue();
               // A control can add an undefined property that the JSON save omits.
               return !_isEqual(currentFormValue, latestValue) && !_isEqual(
@@ -1989,11 +1997,67 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const requireReload = () => this.requireSavedFormReload(
               oid, response, currentFormValue, renderedFingerprint
             );
+            const metadata = response.metadata;
+            const formDefMap = this.formDefMap;
+            const syncMode = formDefMap?.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
+            const canSyncMetadata = metadata !== null && typeof metadata === 'object' &&
+              !Array.isArray(metadata) && formDefMap && form;
+            const finishOpenSave = async (syncMetadata: boolean, metadataSyncMode = syncMode): Promise<boolean> => {
+              if (syncMetadata && canSyncMetadata) {
+                if (metadataSyncMode !== 'never') {
+                  const syncResult = await this.serverSyncService.applyServerMetadata(
+                    currentFormValue, metadata, formDefMap, form, metadataSyncMode
+                  );
+                  if (!ownsSave()) return false;
+                  if (this.serverSyncRequiresReview(syncResult)) {
+                    const conflict = this.formConflictState();
+                    if (conflict) {
+                      this.parkConflictForReview(conflict);
+                    } else {
+                      form.markAsDirty();
+                      this.broadcastFormStatus(false);
+                    }
+                    this.saveResponse.set(response);
+                    this.eventBus.publish(createFormSaveFailureEvent({
+                      error: '@form-server-sync-review-message',
+                      response,
+                      operation: saveOperation,
+                      formScopeId: this.eventScopeId,
+                      requestId: response.requestId,
+                    }));
+                    return false;
+                  }
+                }
+                this.broadcastFormStatus();
+              }
+              if (!ownsSave()) return false;
+              this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+              return true;
+            };
             if (closing) {
               this.canCompleteSaveRedirect = () => {
                 if (!ownsSave() || !this.saveNavigationPending()) return false;
-                if (!formChanged || !hasNewEdits()) return true;
-                requireReload();
+                if (formChanged) {
+                  if (!hasNewEdits()) return true;
+                  requireReload();
+                  return false;
+                }
+                if (!this.hasChangesToSave()) {
+                  this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+                  return true;
+                }
+                // Success was already announced to start the redirect delay.
+                // Preserve the edits that cancelled navigation and refresh the model snapshot.
+                void finishOpenSave(true, syncMode === 'never' ? 'never' : 'preserveLocalEdits').then(finished => {
+                  if (finished && ownsSave()) this.facade.syncModelSnapshot(this.getPersistedFormValue());
+                }).catch((error: unknown) => {
+                  this.loggerService.error(`${this.logName}: Error completing save with the form open:`, error);
+                }).finally(() => {
+                  if (ownsSave()) {
+                    this.saveNavigationPending.set(false);
+                    this.canCompleteSaveRedirect = undefined;
+                  }
+                });
                 return false;
               };
             }
@@ -2001,56 +2065,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.saveNavigationPending.set(true);
             }
             let modelSnapshot: Record<string, unknown> | undefined;
-            if (!formChanged && !options?.closeOnSave && !redirectLocation && this.form) {
-              modelSnapshot = this.getPersistedFormValue();
-              if (
-                response.metadata !== null &&
-                typeof response.metadata === 'object' &&
-                !Array.isArray(response.metadata) &&
-                this.formDefMap
-              ) {
-                const syncMode = this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
-                if (syncMode !== 'never') {
-                  const syncResult = await this.serverSyncService.applyServerMetadata(
-                    currentFormValue,
-                    response.metadata,
-                    this.formDefMap,
-                    this.form,
-                    syncMode
-                  );
-                  if (!ownsSave()) return;
-                  if (this.serverSyncRequiresReview(syncResult)) {
-                    const conflict = this.formConflictState();
-                    if (conflict) {
-                      this.parkConflictForReview(conflict);
-                    } else {
-                      this.form.markAsDirty();
-                      this.broadcastFormStatus(false);
-                    }
-                    this.saveResponse.set(response);
-                    this.eventBus.publish(
-                      createFormSaveFailureEvent({
-                        error: '@form-server-sync-review-message',
-                        response,
-                        operation: saveOperation,
-                        formScopeId: this.eventScopeId,
-                        requestId: response.requestId,
-                      })
-                    );
-                    return;
-                  }
-                  modelSnapshot = this.getPersistedFormValue();
-                }
-                this.broadcastFormStatus();
-              }
-            }
             if (keepChangedFormOpen) {
               requireReload();
-            } else if (formChanged) {
+            } else if (formChanged || closing) {
               this.formConflictState.set(null);
               this.formConflictReviewState.set(null);
             } else {
-              this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+              const syncMetadata = !options?.closeOnSave && !redirectLocation && !!form;
+              if (!await finishOpenSave(syncMetadata) || !ownsSave()) return;
+              if (syncMetadata) modelSnapshot = this.getPersistedFormValue();
             }
             this.saveResponse.set(response);
             // Emit success event
@@ -2790,14 +2813,24 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
   }
 
-  /** Native navigation warning for unresolved memory-only conflict work. */
+  @HostListener('window:hashchange')
+  @HostListener('window:popstate')
+  public clearDeleteNavigationBypass(): void {
+    this.deleteNavigationStarted = false;
+  }
+
+  /** Native navigation warning for unsaved edits and unresolved conflict work. */
   @HostListener('window:beforeunload', ['$event'])
   public protectUnresolvedConflictNavigation(event: BeforeUnloadEvent): string | undefined {
     if (this.allowConflictNavigationOnce) {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (!this.formConflictState()) {
+    if (this.deleteNavigationStarted) {
+      this.clearDeleteNavigationBypass();
+      return undefined;
+    }
+    if (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave()) {
       return undefined;
     }
     const warning = this.conflictNavigationWarning();
@@ -2903,6 +2936,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formDefMap.updateConcurrency(next);
     this.clearServerSaveProblems();
     if (resolution === 'discard') {
+      this.hasUnconfirmedSaveEdits = false;
       this.localDirtyRequestControls = new WeakSet<AbstractControl>();
       this.form.markAsPristine();
     }
@@ -2931,15 +2965,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   /**
-   * Apply only field-addressable server problems to controls.  Form-level and
-   * uncertain problems still make the form dirty, but never mark every field
-   * dirty as though each one had failed validation.
+   * Attach server validation errors without creating dirty state on a clean
+   * form. Preserve the dirty state needed to retry edits or review a conflict.
    */
   private applyServerSaveProblems(response: Partial<RecordSaveResult> | null | undefined): void {
     if (!this.form) {
       return;
     }
 
+    const keepDirty = this.hasUnconfirmedSaveEdits || this.hasChangesToSave() || !!this.formConflictState();
     const problems = Array.isArray(response?.problems) ? response.problems : [];
     let firstMappedCandidate: ServerControlCandidate | null = null;
     const formLevelErrors: Record<string, unknown> = {};
@@ -2965,12 +2999,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           ...existingErrors,
           [`server#${issueIndex}`]: this.serverIssueError(issue),
         });
-        resolved.control.markAsDirty();
+        if (keepDirty) resolved.control.markAsDirty();
         resolved.control.markAsTouched();
         issueIndex++;
       }
     }
-    this.form.markAsDirty();
+    // The submitted controls are pristine. Keep a retry available even
+    // when the only dirty child is a related display control.
+    if (this.hasUnconfirmedSaveEdits) this.localDirtyRequestControls.add(this.form);
+    if (keepDirty) this.form.markAsDirty();
     if (Object.keys(formLevelErrors).length > 0) {
       this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
     }
@@ -3233,6 +3270,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     historyDelta?: number,
     redirectLocation?: string,
     redirectDelaySeconds?: number,
+    afterDelete?: boolean,
   }) {
     const historyDelta = options?.historyDelta;
     const redirectLocation = options?.redirectLocation;
@@ -3243,13 +3281,44 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!!historyDelta && !!redirectLocation) {
       throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
     }
-    if (!historyDelta && !redirectLocation) {
+    const afterDelete = options?.afterDelete;
+    if (!historyDelta && !redirectLocation && !afterDelete) {
       throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
     }
 
+    const loadRevision = this.formLoadRevision;
     const canCompleteSaveRedirect = this.canCompleteSaveRedirect;
     this.window?.setTimeout(() => {
-      if (this.isDestroyed || canCompleteSaveRedirect?.() === false) return;
+      if (this.isDestroyed) return;
+      if (afterDelete) {
+        if (this.formLoadRevision !== loadRevision) return;
+        const navigation = (this.window as (Window & {
+          navigation?: {
+            canGoBack: boolean;
+            currentEntry: Pick<NavigationHistoryEntry, 'index'> | null;
+            entries(): ReadonlyArray<Pick<NavigationHistoryEntry, 'sameDocument'>>;
+          };
+        }) | null)?.navigation;
+        const currentEntry = navigation?.currentEntry;
+        const previousEntry = currentEntry && navigation?.entries()[currentEntry.index - 1];
+        const goBack = !redirectLocation && navigation?.canGoBack && previousEntry?.sameDocument === false;
+        if (goBack) {
+          this.deleteNavigationStarted = true;
+          this.locationService.historyGo(-1);
+        } else {
+          const currentUrl = this.window?.location.href;
+          const sameDocument = redirectLocation?.startsWith('#') || (
+            redirectLocation?.includes('#') && currentUrl &&
+            new URL(redirectLocation, this.document.baseURI).href.split('#')[0] === currentUrl.split('#')[0]
+          );
+          const recordType = encodeURIComponent(this.trimmedParams.recordType());
+          const dashboard = `${this.recordService.brandingAndPortalUrl}/dashboard/${recordType}`;
+          this.deleteNavigationStarted = true;
+          this.changeLocationHref(redirectLocation && !sameDocument ? redirectLocation : dashboard);
+        }
+        return;
+      }
+      if (canCompleteSaveRedirect?.() === false) return;
       if (historyDelta) {
         this.locationService.historyGo(historyDelta);
       } else if (redirectLocation) {

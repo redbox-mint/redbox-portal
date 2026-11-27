@@ -5,6 +5,7 @@
  * Per R15.1–R15.17, naming convention: namespace.domain.action
  */
 
+import type { AbstractControl } from '@angular/forms';
 import { FormGroupStatus } from '../../form.component';
 import {
   FormFieldValidationGroup,
@@ -182,6 +183,8 @@ export interface FormValidationGroupsChangeRequestEvent extends FormComponentEve
 export interface FormStatusDirtyRequestEvent extends FormComponentEventBase {
   readonly type: 'form.status.dirty.request';
   readonly fieldId?: string;
+  /** Registered control that identifies both the edited field and its owning form. */
+  readonly control?: AbstractControl;
   readonly reason?: string;
 }
 
@@ -284,6 +287,7 @@ export interface FieldItemSelectedEvent extends FieldScopedEventBase {
  */
 export interface FormRedirectRequestedEvent extends FormComponentEventBase, RedirectLocationEventBase {
   readonly type: 'form.redirect.requested';
+  readonly afterDelete?: boolean;
   /**
    * Allows using the History.go interface to move forward and backward in the browser's session history.
    */
