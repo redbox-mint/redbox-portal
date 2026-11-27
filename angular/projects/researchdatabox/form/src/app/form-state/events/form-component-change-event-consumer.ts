@@ -62,7 +62,11 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
       else if (isPlainObject(targetValue)) targetValue = [targetValue];
       else throw new Error('Expected a list of publication data locations.');
     } else if (importsRows && recordImport === 'changed-selection') {
-      if (targetValue == null) return;
+      if (targetValue == null) {
+        // JCU keeps manually entered creators when there are no source contributors.
+        if (expression.name === 'dataPublication-creators-from-dataRecord') return;
+        targetValue = [];
+      }
       if (isPlainObject(targetValue)) targetValue = [targetValue];
       if (!Array.isArray(targetValue)) throw new Error('Expected a list of linked record rows.');
       await this.setTarget(targetValue, target, event, expression, { emitEvent: false, replaceImportedRows: true });

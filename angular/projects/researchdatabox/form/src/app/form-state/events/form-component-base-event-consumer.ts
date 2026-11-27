@@ -146,9 +146,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   /**
    * Evaluate the JSONata expression template with the provided context.
    *
-   * Design note: when compiled templates are unavailable, fall back to the raw
-   * event value. That preserves historical behaviour for partially constructed
-   * forms instead of failing closed and clearing dependent fields.
+   * Ordinary expressions use the fallback value when evaluation is unavailable.
+   * A tracked import condition must succeed before its update can be applied.
    *
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
@@ -163,13 +162,12 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     additionalData: object = {},
     fallbackValue: unknown = (event as { value?: unknown }).value
   ): Promise<unknown> {
+    const trackedCondition = propertyName === 'condition' &&
+      event.type === FormComponentEventType.FIELD_VALUE_CHANGED && !!event[recordImportApplications];
     const compiledItems = await this.getCompiledItems();
-    if (!compiledItems) {
-      return fallbackValue;
-    }
-
-    const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
-    if (!templateKey) {
+    const templateKey = compiledItems && this.buildExpressionPropertyKey(expression, propertyName);
+    if (!compiledItems || !templateKey) {
+      if (trackedCondition) throw new Error('Could not load the linked record import condition.');
       return fallbackValue;
     }
 
@@ -209,6 +207,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return await compiledItems.evaluate(templateKey, context, { libraries: {jsonata: jsonataDecodeCompile} });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
+      if (trackedCondition) throw error;
       return fallbackValue;
     }
   }

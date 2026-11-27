@@ -3,11 +3,13 @@ import { Location } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { HttpErrorResponse } from '@angular/common/http';
+import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
+import { TypeaheadInputComponent } from './component/typeahead-input.component';
 import { ContentComponent } from './component/content.component';
 import { GroupFieldComponent } from './component/group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
@@ -100,7 +102,9 @@ describe('FormComponent', () => {
           "GroupFieldComponent": GroupFieldComponent,
           "RepeatableComponent": RepeatableComponent,
           "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
-        }
+          "TypeaheadInputComponent": TypeaheadInputComponent,
+        },
+        imports: { TypeaheadModule: TypeaheadModule.forRoot() },
       });
   });
 
@@ -1465,7 +1469,7 @@ describe('FormComponent', () => {
         target: 'field.disabled', hasTemplate: true, template: enableTemplate,
       },
     }, {
-      name: 'creators-from-data-record',
+      name: 'dataPublication-creators-from-dataRecord',
       config: {
         conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
         target: 'model.value', hasTemplate: true, template,
@@ -1645,6 +1649,95 @@ describe('FormComponent', () => {
     ]);
   });
 
+  it('clears omitted funding bodies on review while retaining disabled funders and creators', async () => {
+    const { config, assets } = creatorImportConfig([]);
+    const fundingField = 'foaf:fundedBy_foaf:Agent';
+    const fundingTemplate = 'event.value.`foaf:fundedBy_foaf:Agent`';
+    const disabledFunder = { label: 'Disabled funder', value: 'disabled' };
+    const funderFromA = { label: 'Funder from A', value: 'data-a-funder' };
+    config.componentDefinitions!.push({
+      name: fundingField,
+      model: { class: 'RepeatableModel', config: { value: [disabledFunder] } },
+      component: {
+        class: 'RepeatableComponent',
+        config: {
+          allowZeroRows: false,
+          disabled: true,
+          elementTemplate: {
+            name: '',
+            component: { class: 'TypeaheadInputComponent', config: { sourceType: 'static', valueMode: 'optionObject' } },
+            model: { class: 'TypeaheadInputModel', config: {} },
+            layout: { class: 'RepeatableElementLayout' },
+          },
+        },
+      },
+      expressions: [config.componentDefinitions![0].expressions![0], {
+        name: `dataRecordGetter-${fundingField}-${fundingField}`,
+        config: {
+          conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
+          target: 'model.value', hasTemplate: true, template: fundingTemplate,
+        },
+      }],
+    }, {
+      name: 'dataRecord',
+      component: { class: 'SimpleInputComponent' },
+      model: { class: 'SimpleInputModel' },
+    });
+    const evaluate = assets.entries[0].callable;
+    assets.entries[0].callable = (key, path, context) =>
+      path[0] === 'componentDefinitions' && path[1] === 1 && path[path.length - 3] === 1
+        ? jsonataCompileAndEvaluate(fundingTemplate, context) : evaluate(key, path, context);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, assets);
+    const funderPath = JSON.stringify([fundingField]);
+    const creatorPath = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [funderPath, creatorPath],
+      rowProofs: { [funderPath]: ['disabled'], [creatorPath]: [] },
+    };
+    const funders = formComponent.getComponentDefByName(fundingField)!.component as RepeatableComponent;
+    funders.formFieldCompMapEntries[0].model!.setDisabled(true);
+    const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
+    fetch.withArgs('data-a').and.resolveTo({
+      [fundingField]: [funderFromA], contributor_ci: [{ family_name: 'Creator from A' }],
+    });
+    fetch.withArgs('data-b').and.resolveTo({ title: 'No funding bodies or creators' });
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+      savedRowProofs: { [funderPath]: ['disabled', 'from-a'], [creatorPath]: ['creator-from-a'] },
+    });
+    const bus = TestBed.inject(FormComponentEventBus);
+    const select = async (oid: string) => {
+      const field = formComponent.form!.get('dataRecord')!;
+      const previousValue = field.value;
+      fixture.ngZone!.run(() => {
+        field.setValue({ oid }, { emitEvent: false });
+        bus.publish(createFieldValueChangedEvent({ fieldId: '/dataRecord', sourceId: '*', value: { oid }, previousValue }));
+      });
+      await fixture.whenStable();
+    };
+    await select('data-a');
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(0)).toEqual([
+      'publication', { creators: [{ name: 'Creator from A' }], [fundingField]: [null, funderFromA], dataRecord: { oid: 'data-a' } },
+      '', { formSave: true, rowEdits: { [funderPath]: [{ source: 0, proof: 'disabled', retain: true }, null], [creatorPath]: [null] } },
+    ]);
+
+    update.and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+      savedRowProofs: { [funderPath]: ['disabled'], [creatorPath]: ['creator-from-a'] },
+    });
+    await select('data-b');
+    await formComponent.saveForm({ force: true, targetStep: 'review' });
+    expect(update.calls.argsFor(1)).toEqual([
+      'publication', { creators: [{ name: 'Creator from A' }], [fundingField]: [null], dataRecord: { oid: 'data-b' } },
+      'review', { formSave: true, rowEdits: {
+        [funderPath]: [{ source: 0, proof: 'disabled', retain: true }], [creatorPath]: [{ source: 0, proof: 'creator-from-a' }],
+      } },
+    ]);
+  });
+
   it('clears the previous data manager when the newly selected record omits it', async () => {
     const { config, assets } = creatorImportConfig([]);
     const managerTemplate = 'event.value.`contributor_data_manager`';
@@ -1702,13 +1795,17 @@ describe('FormComponent', () => {
 
   for (const failure of [
     'compiled-template load', 'debounced compiled-template load', 'OID transform', 'HTTP fetch',
-    'creator expression', 'description expression', 'templated description expression', 'row application',
+    'creator expression', 'description expression', 'templated description expression',
+    'jsonata', 'jsonata_query', 'row application',
   ] as const) {
     it(`blocks first save after a failed ${failure} and applies the same-OID retry`, async () => {
       const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);
       const descriptionTemplate = 'event.value.description ?: ""';
-      const templatedEmission = failure === 'templated description expression';
-      const descriptionFailure = failure === 'description expression' || templatedEmission;
+      const conditionKind = failure === 'jsonata' || failure === 'jsonata_query' ? failure : 'jsonpointer';
+      const conditionFailure = conditionKind !== 'jsonpointer';
+      const templatedEmission = failure === 'templated description expression' || conditionFailure;
+      const descriptionFailure = failure === 'description expression' || failure === 'templated description expression';
+      const condition = conditionFailure ? 'event.fieldId = "/dataRecordGetter"' : '/dataRecordGetter::field.value.changed';
       const compiledLoadFailure = failure === 'compiled-template load' || failure === 'debounced compiled-template load';
       if (failure === 'debounced compiled-template load') config.behaviours![0].debounceMs = 25;
       const valueTemplate = '{"description": value.description & " (formatted)", "contributor_ci": value.contributor_ci}';
@@ -1724,7 +1821,7 @@ describe('FormComponent', () => {
         expressions: [{
           name: 'description-from-data-record',
           config: {
-            conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
+            conditionKind, condition, runOnFormReady: false,
             target: 'model.value', hasTemplate: true, template: descriptionTemplate,
           },
         }],
@@ -1738,15 +1835,17 @@ describe('FormComponent', () => {
       let templateFailed = false;
       assets.entries[0].callable = async (key, path, context) => {
         const description = path[0] === 'componentDefinitions' && path[1] === 1;
+        const descriptionCondition = description && path.at(-1) === 'condition';
         if (!templateFailed && (
           (failure === 'OID transform' && path.includes('processors')) ||
           (failure === 'creator expression' && path.includes('expressions') && !description && path[path.length - 3] === 1) ||
-          (descriptionFailure && description)
+          (descriptionFailure && description) ||
+          (conditionFailure && descriptionCondition && context.event.fieldId === '/dataRecordGetter')
         )) {
           templateFailed = true;
           throw new Error(`Temporary ${failure} failure`);
         }
-        if (description) return jsonataCompileAndEvaluate(descriptionTemplate, context);
+        if (description) return jsonataCompileAndEvaluate(descriptionCondition ? condition : descriptionTemplate, context);
         if (templatedEmission && path.includes('actions')) return jsonataCompileAndEvaluate(valueTemplate, context);
         if (templatedEmission && path.includes('expressions') && path[path.length - 3] === 1) {
           return jsonataCompileAndEvaluate(creatorTemplate, context);
@@ -1798,10 +1897,10 @@ describe('FormComponent', () => {
         await fixture.whenStable();
       };
       await select('old-link');
-      if (!descriptionFailure) {
+      if (!descriptionFailure && !conditionFailure) {
         expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Previous creator' }]);
       }
-      if (descriptionFailure) {
+      if (descriptionFailure || conditionFailure) {
         expect(formComponent.form!.get('description')?.value).toBe('Previous description');
       }
       await formComponent.saveForm({ force: true });
