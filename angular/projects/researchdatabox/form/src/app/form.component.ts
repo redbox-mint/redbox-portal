@@ -935,8 +935,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formSaveRows.forget(array);
   }
 
-  public importRows(array: FormArray, isComplete: () => boolean): void {
-    this.formSaveRows.importRows(array, isComplete);
+  public importRows(array: FormArray, isComplete: () => boolean): () => void {
+    return this.formSaveRows.importRows(array, isComplete);
   }
 
   public isLoadedRow(array: FormArray, row: AbstractControl): boolean {

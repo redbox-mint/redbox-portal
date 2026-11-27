@@ -491,12 +491,14 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     expression: FormExpressionsConfigFrame,
     options: ControlSetValueOptions = { emitEvent: false }
   ) {
-    if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED &&
-      event[recordImportApplications]?.isCurrent?.() === false) return;
+    const isCurrent = event.type === FormComponentEventType.FIELD_VALUE_CHANGED
+      ? event[recordImportApplications]?.isCurrent : undefined;
+    if (isCurrent?.() === false) return;
     if (exprTarget === FormExpressionsTargetModelValue) {
       // The model.value property must be handled specially.
       if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
-        await setControlValue(this.model.formControl, targetValue, options);
+        await setControlValue(this.model.formControl, targetValue, isCurrent ? { ...options, isCurrent } : options);
+        if (isCurrent?.() === false) return;
         await syncComponentDisplayFromModel(this.options?.component);
         // setControlValue with emitEvent:false suppresses Angular's
         // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,

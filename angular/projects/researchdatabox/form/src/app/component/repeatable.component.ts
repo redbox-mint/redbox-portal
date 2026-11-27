@@ -109,6 +109,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
   private syncSourcesUpdatePromise: Promise<void> = Promise.resolve();
+  private rowReplacement: Promise<void> = Promise.resolve();
 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
@@ -515,7 +516,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
   }
 
-  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions, initialIndex?: number) {
+  public async appendNewElement(
+    value?: any, markFormDirty = true, options?: RepeatableSetValueOptions, initialIndex?: number,
+    stagedRows?: RepeatableElementEntry[]
+  ) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -523,6 +527,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       value = this.getElementTemplateDefaultValue();
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
+    stagedRows?.push(elemEntry);
     await this.createElement(elemEntry, options);
     const row = elemEntry.defEntry.model?.formControl;
     const array = this.model?.formControl;
@@ -534,54 +539,68 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-  public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+  public replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+    // Finish staging or cleaning up the previous replacement before the next one reads the rows.
+    const replacement = this.rowReplacement.then(() => this.replaceRows(values, options));
+    this.rowReplacement = replacement.catch(() => undefined);
+    return replacement;
+  }
+
+  private async replaceRows(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+    const isCurrent = options?.isCurrent;
+    if (isCurrent?.() === false) return;
     const nextValues = Array.isArray(values) ? values : [];
     const array = this.model?.formControl;
     const importing = options?.replaceImportedRows === true;
+    const stage = importing || !!isCurrent;
     if (!importing && array && _isEqual(array.getRawValue(), nextValues)) return;
     if (importing && this.readOnlyRows) return;
-    if (importing && array?.length !== this.compDefMapEntries.length) {
+    if (stage && array?.length !== this.compDefMapEntries.length) {
       throw new Error('The linked record rows could not be prepared.');
     }
-    let complete = false;
-    if (array) {
-      if (importing) this.getFormComponent.importRows(array, () => complete && array.length === this.compDefMapEntries.length);
-      else this.getFormComponent.forgetLoadedRows(array);
-    }
 
-    const previousRows = [...this.compDefMapEntries];
-    const remove = previousRows.filter(entry => {
+    const remove = this.compDefMapEntries.filter(entry => {
       const row = entry.defEntry.model?.formControl;
       // Keep omitted rows and their source proofs when replacing the editable rows.
       return !(importing && array && row && this.getFormComponent.isLoadedRow(array, row) &&
         (this.model?.isRowDisabled(row) || !this.formService.shouldIncludeInFormControlMap(entry.defEntry, true)));
     }).reverse();
-    if (!importing) {
+    const needsBlankRow = this.compDefMapEntries.length === remove.length && !nextValues.length && !this.allowZeroRows;
+    const stagedRows = stage ? [] as RepeatableElementEntry[] : undefined;
+    let complete = false;
+    const discardImport = stage && array
+      ? this.getFormComponent.importRows(array, () => complete && array.length === this.compDefMapEntries.length)
+      : undefined;
+    if (!stage) {
+      if (array) this.getFormComponent.forgetLoadedRows(array);
       for (const entry of remove) this.removeElementFn(entry, options)();
     }
 
-    const needsBlankRow = previousRows.length === remove.length && !nextValues.length && !this.allowZeroRows;
     try {
       for (const value of needsBlankRow ? [undefined] : nextValues) {
-        await this.appendNewElement(value, false, options);
+        if (isCurrent?.() === false) return;
+        await this.appendNewElement(value, false, options, undefined, stagedRows);
       }
-      if (importing && array?.length !== this.compDefMapEntries.length) {
+      if (isCurrent?.() === false) return;
+      if (stage && array?.length !== this.compDefMapEntries.length) {
         throw new Error('The linked record rows could not be applied.');
       }
-    } catch (error) {
-      if (importing) {
-        // Only discard the new rows. The loaded rows and their identities are still present.
-        for (const entry of this.compDefMapEntries.slice(previousRows.length).reverse()) {
-          this.removeElementFn(entry, options)();
+      if (stage) {
+        for (const entry of remove) {
+          if (this.compDefMapEntries.includes(entry)) this.removeElementFn(entry, options)();
         }
-        complete = true;
+        if (array && !importing) this.getFormComponent.forgetLoadedRows(array);
       }
-      throw error;
+      complete = true;
+    } finally {
+      if (!complete && stagedRows) {
+        const cleanupOptions = { ...options, replaceImportedRows: true } as const;
+        for (const entry of stagedRows.reverse()) {
+          if (this.compDefMapEntries.includes(entry)) this.removeElementFn(entry, cleanupOptions)();
+        }
+        discardImport?.();
+      }
     }
-    if (importing) {
-      for (const entry of remove) this.removeElementFn(entry, options)();
-    }
-    complete = true;
   }
 
   protected rebuildLineagePaths(options?: RepeatableSetValueOptions) {

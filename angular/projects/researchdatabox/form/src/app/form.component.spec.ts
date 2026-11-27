@@ -10,6 +10,7 @@ import { FormComponent } from './form.component';
 import { FormConfigFrame, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { TypeaheadInputComponent } from './component/typeahead-input.component';
+import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { ContentComponent } from './component/content.component';
 import { GroupFieldComponent } from './component/group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
@@ -2089,6 +2090,60 @@ describe('FormComponent', () => {
         { formSave: true, rowEdits: { [path]: [null] } },
       );
     });
+
+    for (const importB of [false, true]) {
+      it(`discards only stale rows when the next selection ${importB ? 'imports rows' : 'needs no import'} with debounceMs=${debounceMs}`, async () => {
+        const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
+        if (!importB) conditionOutcomes.set('source-b', 'skip');
+        fetch.withArgs('source-a').and.resolveTo({
+          contributor_ci: [{ family_name: 'Staged from A' }, { family_name: 'Held from A' }],
+        });
+        fetch.withArgs('source-b').and.resolveTo({ contributor_ci: [{ family_name: 'Creator from B' }] });
+        const original = formComponent.form!.get(['creators', 0]);
+        const initialize = FormBaseWrapperComponent.prototype.initWrapperComponent;
+        let finishA!: () => void;
+        let notifyHeld!: () => void;
+        const resumeA = new Promise<void>(resolve => { finishA = resolve; });
+        const rowHeld = new Promise<void>(resolve => { notifyHeld = resolve; });
+        let holding = false;
+        spyOn(FormBaseWrapperComponent.prototype, 'initWrapperComponent').and.callFake(async function (
+          this: FormBaseWrapperComponent<unknown>, entry, omitLayout
+        ) {
+          const holdThisRow = !holding && (entry?.model?.initValue as { name?: string })?.name === 'Held from A';
+          if (holdThisRow) holding = true;
+          const component = await initialize.call(this, entry, omitLayout);
+          if (holdThisRow) {
+            notifyHeld();
+            await resumeA;
+          }
+          return component;
+        });
+
+        select('source-a');
+        await rowHeld;
+        expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Original creator' }, { name: 'Staged from A' }]);
+        select('source-b');
+        await fixture.whenStable();
+        expect(fetch.calls.allArgs()).toEqual(importB ? [['source-a'], ['source-b']] : [['source-a']]);
+        await formComponent.saveForm({ force: true });
+        await formComponent.saveForm({ force: true, targetStep: 'review' });
+        expect(update).not.toHaveBeenCalled();
+
+        fixture.ngZone!.run(finishA);
+        await fixture.whenStable();
+        if (!importB) expect(formComponent.form!.get(['creators', 0])).toBe(original);
+        const creators = [{ name: importB ? 'Creator from B' : 'Original creator' }];
+        expect(formComponent.form!.get('creators')?.value).toEqual(creators);
+        const metadata = { creators, dataRecord: { oid: 'source-b' } };
+        const draftRow = importB ? null : { source: 0, proof: 'original' };
+        await formComponent.saveForm({ force: true });
+        await formComponent.saveForm({ force: true, targetStep: 'review' });
+        expect(update.calls.allArgs()).toEqual([
+          ['publication', metadata, '', { formSave: true, rowEdits: { [path]: [draftRow] } }],
+          ['publication', metadata, 'review', { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'saved' }] } }],
+        ]);
+      });
+    }
 
     it(`allows saving a newer selection that needs no import after a failed fetch with debounceMs=${debounceMs}`, async () => {
       const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();

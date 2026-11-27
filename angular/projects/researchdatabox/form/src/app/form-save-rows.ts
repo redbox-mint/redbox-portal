@@ -79,8 +79,14 @@ export class FormSaveRows {
     this.imported.delete(array);
   }
 
-  importRows(array: FormArray, isComplete: () => boolean): void {
+  importRows(array: FormArray, isComplete: () => boolean): () => void {
+    const previous = this.imported.get(array);
     this.imported.set(array, isComplete);
+    return () => {
+      if (this.imported.get(array) !== isComplete) return;
+      if (previous) this.imported.set(array, previous);
+      else this.imported.delete(array);
+    };
   }
 
   isLoadedRow(array: FormArray, row: AbstractControl): boolean {
