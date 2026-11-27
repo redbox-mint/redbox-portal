@@ -1,4 +1,4 @@
-import { concatMap, debounceTime, filter, Observable, Subscription, tap } from 'rxjs';
+import { concatMap, debounceTime, filter, map, Observable, Subscription, tap } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
@@ -34,6 +34,12 @@ function selectedRecordOid(selection: unknown): string {
   return typeof id === 'string' ? id.trim() : '';
 }
 
+type RecordSelection = { oid: string; needsImport: boolean };
+type BehaviourWork = {
+  event: FormComponentEvent;
+  selection?: RecordSelection;
+};
+
 /**
  * Services and runtime references shared by behaviour handlers.
  */
@@ -50,9 +56,9 @@ export class BehaviourHandler {
   private readonly permanentlySkippedActions = new Set<string>();
   private readonly metadataCache = new Map<string, unknown>();
   private isProcessingFormReadyExecution = false;
-  private pendingMetadataLoads = 0;
-  private queuedMetadataLoad = false;
-  private pendingSelection?: { oid: string; fieldId?: string; conditionFailed: boolean };
+  private readonly selections = new Map<string | undefined, RecordSelection>();
+  private readonly pendingMetadataLoads = new Set<BehaviourWork>();
+  private queuedMetadataLoad?: BehaviourWork;
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
@@ -81,32 +87,31 @@ export class BehaviourHandler {
 
     const observable = this.getEventObservable();
     const fetchesMetadata = this.fetchesMetadata();
-    const candidates = fetchesMetadata ? observable.pipe(filter(event => this.canHandleMetadataEvent(event))) : observable;
+    const candidates = (fetchesMetadata ? observable.pipe(filter(event => this.canHandleMetadataEvent(event))) : observable)
+      .pipe(map(event => ({ event, selection: fetchesMetadata ? this.selectRecord(event) : undefined })));
     const debounceMs = this.behaviour.debounceMs ?? 0;
     const matchesBeforeDebounce = debounceMs > 0 && fetchesMetadata;
-    const eligibleEvents = matchesBeforeDebounce ? candidates.pipe(
-      tap(() => this.pendingMetadataLoads++),
-      concatMap(async event => {
+    const eligibleWork = matchesBeforeDebounce ? candidates.pipe(
+      tap(work => this.pendingMetadataLoads.add(work)),
+      concatMap(async work => {
         try {
-          if (!await this.matches(event)) return null;
-          this.queuedMetadataLoad = true;
-          // Preserve a changed selection when a same-OID event replaces it during the debounce.
-          this.trackSelection(event);
-          return event;
+          if (!await this.matches(work)) return null;
+          this.queuedMetadataLoad = work;
+          return work;
         } catch (error) {
-          await this.handleExecutionError(error, event);
+          await this.handleExecutionError(error, work);
           return null;
         } finally {
-          this.pendingMetadataLoads--;
+          this.pendingMetadataLoads.delete(work);
         }
       }),
-      filter(event => event !== null)
+      filter(work => work !== null)
     ) : candidates;
-    const source$ = debounceMs > 0 ? eligibleEvents.pipe(debounceTime(debounceMs)) : eligibleEvents;
+    const source$ = debounceMs > 0 ? eligibleWork.pipe(debounceTime(debounceMs)) : eligibleWork;
     this.subscriptions.push(
-      source$.subscribe(event => {
-        this.queuedMetadataLoad = false;
-        void this.execute(event, matchesBeforeDebounce);
+      source$.subscribe(work => {
+        if (this.queuedMetadataLoad === work) this.queuedMetadataLoad = undefined;
+        void this.execute(work, matchesBeforeDebounce);
       })
     );
   }
@@ -114,7 +119,9 @@ export class BehaviourHandler {
   destroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.length = 0;
-    this.queuedMetadataLoad = false;
+    this.queuedMetadataLoad = undefined;
+    this.selections.clear();
+    this.pendingMetadataLoads.clear();
     this.logicalFieldEntries.clear();
   }
 
@@ -148,45 +155,42 @@ export class BehaviourHandler {
       : canMatchJSONataEvent(event, this.behaviour);
   }
 
-  private trackSelection(event: FormComponentEvent, conditionFailed = false): typeof this.pendingSelection {
+  private selectRecord(event: FormComponentEvent): RecordSelection | undefined {
     if (event.type !== FormComponentEventType.FIELD_VALUE_CHANGED) return undefined;
     const oid = selectedRecordOid(event.value);
-    const pending = this.pendingSelection;
-    const sameField = pending !== undefined && pending.fieldId === event.fieldId;
-    if (!oid) {
-      if (sameField) this.pendingSelection = undefined;
-      return undefined;
-    }
-    if (sameField && pending.oid === oid) {
-      if (!conditionFailed) pending.conditionFailed = false;
-      return pending;
-    }
-    if (oid !== selectedRecordOid(event.previousValue)) {
-      return this.pendingSelection = { oid, fieldId: event.fieldId, conditionFailed };
-    }
-    return undefined;
+    const previousOid = selectedRecordOid(event.previousValue);
+    const previous = this.selections.get(event.fieldId);
+    if (!oid && !previousOid && !previous) return undefined;
+
+    const selection = {
+      oid,
+      // A same-OID retry or reselection during debounce carries the original import intent.
+      needsImport: !!oid && (oid !== previousOid || (previous?.oid === oid && previous.needsImport)),
+    };
+    this.selections.set(event.fieldId, selection);
+    return selection;
   }
 
-  private async matches(event: FormComponentEvent): Promise<boolean> {
-    try {
-      const matched = await matchBehaviourCondition(
-        this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
-          behaviourIndex: this.behaviourIndex,
-          getCompiledTemplateEvaluator: () => this.getCompiledTemplateEvaluator(),
-          formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
-          requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
-          querySource: this.getEventQuerySource(event),
-        }
-      );
-      if (!matched && event.type === FormComponentEventType.FIELD_VALUE_CHANGED &&
-          this.pendingSelection?.conditionFailed && this.pendingSelection.fieldId === event.fieldId) {
-        this.pendingSelection = undefined;
+  private isCurrent(work: BehaviourWork): boolean {
+    return !work.selection || this.selections.get(work.event.fieldId) === work.selection;
+  }
+
+  private async matches(work: BehaviourWork): Promise<boolean> {
+    if (!this.isCurrent(work)) return false;
+    const { event, selection } = work;
+    const matched = await matchBehaviourCondition(
+      this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
+        behaviourIndex: this.behaviourIndex,
+        getCompiledTemplateEvaluator: () => this.getCompiledTemplateEvaluator(),
+        formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
+        requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
+        querySource: this.getEventQuerySource(event),
       }
-      return matched;
-    } catch (error) {
-      if (this.fetchesMetadata()) this.trackSelection(event, true);
-      throw error;
-    }
+    );
+    if (!this.isCurrent(work)) return false;
+    // A false condition settles the selection. An exception leaves it available for retry.
+    if (!matched && selection) selection.needsImport = false;
+    return matched;
   }
 
   /**
@@ -198,7 +202,9 @@ export class BehaviourHandler {
    * 3. run actions in order
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
-  private async execute(event: FormComponentEvent, conditionMatched: boolean): Promise<void> {
+  private async execute(work: BehaviourWork, conditionMatched: boolean): Promise<void> {
+    if (!this.isCurrent(work)) return;
+    const { event, selection } = work;
     const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
     // Once a runOnFormReady behaviour has completed its initial load pipeline,
     // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
@@ -220,19 +226,19 @@ export class BehaviourHandler {
       this.isProcessingFormReadyExecution = true;
     }
     const fetchesMetadata = this.fetchesMetadata();
-    if (fetchesMetadata) this.pendingMetadataLoads++;
+    if (fetchesMetadata) this.pendingMetadataLoads.add(work);
     try {
-      if (!conditionMatched && !await this.matches(event)) return;
+      if (!conditionMatched && !await this.matches(work)) return;
 
-      const selection = fetchesMetadata ? this.trackSelection(event) : undefined;
       await this.getCompiledTemplateEvaluator();
-      const selectedOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.value) : '';
+      const selectedOid = selection?.oid;
       let value = (event as { value?: unknown }).value;
       let recordImport: FieldValueChangedEvent['recordImport'] = fetchesMetadata ? 'no-import' : undefined;
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
+        if (!this.isCurrent(work)) return;
         if (processor.type === FormBehaviourProcessorType.FetchMetadata && typeof value === 'string' && value.trim()) {
           recordImport = selectedOid === value.trim()
-            ? (selection ? 'changed-selection' : 'same-selection')
+            ? (selection?.needsImport ? 'changed-selection' : 'same-selection')
             : 'metadata-refresh';
         }
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
@@ -245,41 +251,41 @@ export class BehaviourHandler {
         });
       }
 
-      if (selection && selection !== this.pendingSelection) return;
-      await this.executeActions('actions', this.behaviour.actions ?? [], value, event, recordImport);
-      if (selection && selection === this.pendingSelection) {
-        this.pendingSelection = undefined;
-      }
+      if (!this.isCurrent(work)) return;
+      await this.executeActions('actions', this.behaviour.actions ?? [], value, work, recordImport);
+      if (selection && this.isCurrent(work)) selection.needsImport = false;
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
       }
     } catch (error) {
-      await this.handleExecutionError(error, event);
+      await this.handleExecutionError(error, work);
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
       }
     } finally {
-      if (fetchesMetadata) this.pendingMetadataLoads--;
+      if (fetchesMetadata) this.pendingMetadataLoads.delete(work);
       if (isFormReadyEvent) {
         this.isProcessingFormReadyExecution = false;
       }
     }
   }
 
-  private async handleExecutionError(error: unknown, event: FormComponentEvent): Promise<void> {
+  private async handleExecutionError(error: unknown, work: BehaviourWork): Promise<void> {
+    if (!this.isCurrent(work)) return;
     this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
       error,
       behaviour: this.behaviour.name,
     });
-    await this.executeActions('onError', this.behaviour.onError ?? [], (event as { value?: unknown }).value, event);
+    await this.executeActions('onError', this.behaviour.onError ?? [], (work.event as { value?: unknown }).value, work);
   }
 
   get isLoadingMetadata(): boolean {
-    return this.queuedMetadataLoad || this.pendingMetadataLoads > 0;
+    return (!!this.queuedMetadataLoad && this.isCurrent(this.queuedMetadataLoad)) ||
+      Array.from(this.pendingMetadataLoads).some(work => this.isCurrent(work));
   }
 
   get hasPendingRecordImport(): boolean {
-    return this.pendingSelection !== undefined;
+    return Array.from(this.selections.values()).some(selection => selection.needsImport);
   }
 
   /**
@@ -289,20 +295,22 @@ export class BehaviourHandler {
     listName: 'actions' | 'onError',
     actions: FormBehaviourActionConfig[],
     value: unknown,
-    event: FormComponentEvent,
+    work: BehaviourWork,
     recordImport?: FieldValueChangedEvent['recordImport']
   ): Promise<void> {
     for (const [actionIndex, action] of actions.entries()) {
+      if (!this.isCurrent(work)) return;
       const actionKey = this.buildActionKey(listName, actionIndex);
       if (this.permanentlySkippedActions.has(actionKey)) {
         continue;
       }
-      await executeBehaviourAction(action, this.buildPipelineContext(value, event), {
+      await executeBehaviourAction(action, this.buildPipelineContext(value, work.event), {
         behaviourIndex: this.behaviourIndex,
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,
         recordImport,
+        isCurrent: work.selection ? () => this.isCurrent(work) : undefined,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
         broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),

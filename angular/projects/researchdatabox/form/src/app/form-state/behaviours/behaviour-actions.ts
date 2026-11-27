@@ -18,6 +18,7 @@ export interface BehaviourActionExecutionContext {
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
   recordImport?: FieldValueChangedEvent['recordImport'];
+  isCurrent?: () => boolean;
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -71,6 +72,7 @@ async function executeSetValueAction(
   }
 
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  if (ctx.isCurrent?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
   resolved.control.markAsDirty();
   ctx.broadcastFormStatus?.();
@@ -88,6 +90,7 @@ async function executeEmitEventAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  if (ctx.isCurrent?.() === false) return;
   // A value template may emit unrelated data, so leave row-import intent on direct emissions only.
   const recordImport = action.config.hasValueTemplate ? undefined : ctx.recordImport;
   const fetchedMetadata = ctx.recordImport && ctx.recordImport !== 'no-import';
@@ -99,7 +102,11 @@ async function executeEmitEventAction(
       value,
       ...(recordImport ? { recordImport } : {}),
       ...(fetchedMetadata ? {
-        [recordImportApplications]: { changedSelection: ctx.recordImport === 'changed-selection', pending: applications },
+        [recordImportApplications]: {
+          changedSelection: ctx.recordImport === 'changed-selection',
+          pending: applications,
+          isCurrent: ctx.isCurrent,
+        },
       } : {}),
     })
   );

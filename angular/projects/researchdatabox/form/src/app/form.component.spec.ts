@@ -2004,6 +2004,115 @@ describe('FormComponent', () => {
     });
   }
 
+  for (const debounceMs of [0, 50]) {
+    const setupSelectionRace = async () => {
+      const { config, assets } = creatorImportConfig([{ name: 'Original creator' }]);
+      const condition = "event.fieldId = '/dataRecord'";
+      Object.assign(config.behaviours![0], { conditionKind: 'jsonata', condition, debounceMs });
+      config.componentDefinitions!.push({
+        name: 'dataRecord',
+        component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel', config: { value: 'original' } },
+      });
+      const evaluate = assets.entries[0].callable;
+      const conditionOutcomes = new Map<string, 'throw' | 'skip'>();
+      let conditionAStarted!: () => void;
+      const conditionA = new Promise<void>(resolve => { conditionAStarted = resolve; });
+      assets.entries[0].callable = async (key, path, context) => {
+        if (path.at(-1) !== 'condition') return evaluate(key, path, context);
+        if (context.event.fieldId === '/dataRecord') {
+          const oid = context.event.value?.oid;
+          if (oid === 'source-a') conditionAStarted();
+          if (conditionOutcomes.get(oid) === 'throw') throw new Error('Condition failed');
+          if (conditionOutcomes.get(oid) === 'skip') return false;
+        }
+        return jsonataCompileAndEvaluate(condition, context);
+      };
+
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+        oid: 'publication', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+      }, undefined, assets);
+      const path = '["creators"]';
+      formComponent.formDefMap!.formConfigMeta = {
+        oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['original'] },
+      };
+      const bus = TestBed.inject(FormComponentEventBus);
+      const select = (oid: string) => fixture.ngZone!.run(() => {
+        const field = formComponent.form!.get('dataRecord')!;
+        const previousValue = field.value;
+        field.setValue({ oid }, { emitEvent: false });
+        bus.publish(createFieldValueChangedEvent({ fieldId: '/dataRecord', sourceId: '*', value: { oid }, previousValue }));
+      });
+      const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['saved'] },
+      });
+      return { conditionA, conditionOutcomes, fixture, formComponent, path, select, fetch, update };
+    };
+
+    it(`keeps a newer failed condition pending when older work is queued or fetching with debounceMs=${debounceMs}`, async () => {
+      const { conditionA, conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
+      conditionOutcomes.set('source-b', 'throw');
+      let respondA!: (metadata: Record<string, unknown>) => void;
+      let startFetchA!: () => void;
+      const fetchingA = new Promise<void>(resolve => { startFetchA = resolve; });
+      fetch.withArgs('source-a').and.callFake(() => {
+        startFetchA();
+        return new Promise(resolve => { respondA = resolve; });
+      });
+
+      select('source-a');
+      if (debounceMs) {
+        await conditionA;
+        // Let the matched event reach the debounce timer before selecting B.
+        await new Promise<void>(resolve => { setTimeout(resolve, 0); });
+      } else {
+        await fetchingA;
+      }
+      select('source-b');
+      if (respondA) fixture.ngZone!.run(() => respondA({ contributor_ci: [{ family_name: 'Creator from A' }] }));
+      await fixture.whenStable();
+
+      if (debounceMs) expect(fetch).not.toHaveBeenCalled();
+      expect(formComponent.form!.get(['creators', 0, 'name'])?.value).toBe('Original creator');
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update).not.toHaveBeenCalled();
+
+      conditionOutcomes.delete('source-b');
+      fetch.withArgs('source-b').and.resolveTo({ contributor_ci: [{ family_name: 'Creator from B' }] });
+      select('source-b');
+      await fixture.whenStable();
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update).toHaveBeenCalledOnceWith(
+        'publication', { creators: [{ name: 'Creator from B' }], dataRecord: { oid: 'source-b' } }, 'review',
+        { formSave: true, rowEdits: { [path]: [null] } },
+      );
+    });
+
+    it(`allows saving a newer selection that needs no import after a failed fetch with debounceMs=${debounceMs}`, async () => {
+      const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
+      conditionOutcomes.set('source-b', 'skip');
+      fetch.withArgs('source-a').and.rejectWith(new Error('Fetch failed'));
+
+      select('source-a');
+      await fixture.whenStable();
+      await formComponent.saveForm({ force: true });
+      expect(update).not.toHaveBeenCalled();
+
+      select('source-b');
+      await fixture.whenStable();
+      const metadata = { creators: [{ name: 'Original creator' }], dataRecord: { oid: 'source-b' } };
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(fetch).toHaveBeenCalledOnceWith('source-a');
+      expect(update.calls.allArgs()).toEqual([
+        ['publication', metadata, '', { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'original' }] } }],
+        ['publication', metadata, 'review', { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'saved' }] } }],
+      ]);
+    });
+  }
+
   it('releases a rejected debounced metadata condition without creating a pending import', async () => {
     const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);
     const condition = "event.fieldId = '/dataRecord'";

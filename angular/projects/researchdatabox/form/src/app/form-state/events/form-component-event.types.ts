@@ -54,6 +54,7 @@ export interface FieldValueChangedEvent extends FieldScopedEventBase {
   readonly [recordImportApplications]?: {
     readonly changedSelection: boolean;
     readonly pending: Promise<void>[];
+    readonly isCurrent?: () => boolean;
   };
 }
 

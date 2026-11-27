@@ -491,6 +491,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     expression: FormExpressionsConfigFrame,
     options: ControlSetValueOptions = { emitEvent: false }
   ) {
+    if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED &&
+      event[recordImportApplications]?.isCurrent?.() === false) return;
     if (exprTarget === FormExpressionsTargetModelValue) {
       // The model.value property must be handled specially.
       if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
