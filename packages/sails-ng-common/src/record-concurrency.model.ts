@@ -105,6 +105,8 @@ export interface RecordConcurrencyMetadata {
   currentRevision?: number;
   entityTag?: string;
   formFingerprint?: string;
+  /** The save committed, but the current form contract could not be confirmed. */
+  formReloadRequired?: true;
   /** Diagnostic only; the server repeats all authoritative checks. */
   resolution?: RecordConcurrencyResolution;
   /** Bounded diagnostic linkage to the prior request; not an idempotency key. */
@@ -228,6 +230,7 @@ export function isRecordConcurrencyMetadata(value: unknown): value is RecordConc
     (value.currentRevision === undefined || isRecordRevision(value.currentRevision)) &&
     (value.entityTag === undefined || isRecordEntityTag(value.entityTag)) &&
     (value.formFingerprint === undefined || isRecordFormFingerprint(value.formFingerprint)) &&
+    (value.formReloadRequired === undefined || value.formReloadRequired === true) &&
     (value.resolution === undefined || isRecordConcurrencyResolution(value.resolution)) &&
     (value.resolutionOfRequestId === undefined || isRecordConcurrencyRequestId(value.resolutionOfRequestId))
   );
@@ -249,6 +252,7 @@ export function sanitizeRecordConcurrencyMetadata(value: unknown): RecordConcurr
   if (isRecordRevision(value.currentRevision)) result.currentRevision = value.currentRevision;
   if (isRecordEntityTag(value.entityTag)) result.entityTag = value.entityTag;
   if (isRecordFormFingerprint(value.formFingerprint)) result.formFingerprint = value.formFingerprint;
+  if (value.formReloadRequired === true) result.formReloadRequired = true;
   if (isRecordConcurrencyResolution(value.resolution)) result.resolution = value.resolution;
   if (isRecordConcurrencyRequestId(value.resolutionOfRequestId)) {
     result.resolutionOfRequestId = value.resolutionOfRequestId;

@@ -155,6 +155,30 @@ describe('RecordService', () => {
     await updatePromise;
   });
 
+  it('sends version preconditions with repeatable row proofs and reads save confirmation', async () => {
+    const rowEdits = { '/creators': [{ source: 1, proof: 'loaded-row' }] };
+    const metadata = { title: 'Edited record', creators: [{ name: 'Author' }] };
+    const save = recordService.update('oid-123', metadata, 'review', undefined, {
+      entityTag: entityTag(4),
+      formFingerprint: 'sha256:form_1',
+    }, { formName: 'draft', rowEdits });
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/recordmeta/oid-123'));
+
+    expect(request.request.headers.get('If-Match')).toBe(entityTag(4));
+    expect(request.request.headers.get('X-ReDBox-Form-Fingerprint')).toBe('sha256:form_1');
+    expect(request.request.params.get('targetStep')).toBe('review');
+    expect(request.request.params.get('formName')).toBe('draft');
+    expect(request.request.params.get('formSave')).toBe('true');
+    expect(request.request.params.get('rowEdits')).toBe('true');
+    expect(request.request.body).toEqual({ metadata, rowEdits });
+
+    const savedRowProofs = { '/creators': ['saved-row'] };
+    request.flush({ meta: {
+      outcome: 'saved', success: true, oid: 'oid-123', confirmedListPaths: ['/creators'], savedRowProofs,
+    } });
+    expect(await save).toEqual(jasmine.objectContaining({ savedRowProofs, confirmedListPaths: ['/creators'] }));
+  });
+
   it('keeps create precondition-free while sending its generated-form fingerprint', async () => {
     const createPromise = recordService.create({ title: 'Test record' }, 'rdmp', '', undefined, {
       formFingerprint: 'sha256:create_form',
@@ -368,6 +392,7 @@ describe('RecordService', () => {
           revision: 9,
           entityTag: `"rb-record-v1.9.${'a'.repeat(43)}"`,
           formFingerprint: 'sha256:form_1',
+          formReloadRequired: 'true',
           resolution: 'direct',
           resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
           rawRequest: { authorization: 'secret' },
@@ -386,6 +411,24 @@ describe('RecordService', () => {
       resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
     });
     expect(JSON.stringify(result.concurrency)).not.toContain('secret');
+  });
+
+  it('exposes the reload requirement on a committed save with no destination fingerprint', async () => {
+    const update = recordService.update('oid-123', { title: 'Local' });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+    request.flush({
+      data: { metaMetadata: { form: 'shared-form' }, workflow: { stage: 'published' } },
+      meta: {
+        oid: 'oid-123',
+        outcome: 'saved',
+        concurrency: { revision: 5, formReloadRequired: true },
+      },
+    }, { headers: { ETag: entityTag(5) } });
+
+    const result = await update;
+    expect(result.wasPersisted()).toBeTrue();
+    expect(result.outcome).toBe('saved');
+    expect(result.concurrency).toEqual({ revision: 5, entityTag: entityTag(5), formReloadRequired: true });
   });
 
   it('keeps untyped precondition rejections unknown', async () => {
@@ -489,6 +532,74 @@ describe('RecordService', () => {
       );
     }
   });
+
+  const createFormConflict = {
+    outcome: 'not-saved',
+    oid: '',
+    concurrency: { mode: 'last-write-wins', formFingerprint: 'sha256:current' },
+    problems: [{
+      kind: 'conflict',
+      phase: 'pre-save',
+      issues: [{ code: 'form-definition-changed', message: '@record-save-form-definition-changed' }],
+    }],
+  };
+  const weakTagConflict = {
+    status: 409,
+    statusText: 'Conflict',
+    headers: { ETag: 'W/"3de-BVbngDg5lu/amGXkI26F8NH+OtE"' },
+  };
+
+  it('accepts the unversioned pre-save conflict with a weak ETag only for POST', async () => {
+    const create = recordService.create({ title: 'Estuary survey' }, 'rdmp', 'active');
+    const post = httpTestingController.expectOne({
+      method: 'POST',
+      url: `${recordService.brandingAndPortalUrl}/recordmeta/rdmp?targetStep=active`,
+    });
+    const update = recordService.update('oid-123', { title: 'Estuary survey' });
+    const put = httpTestingController.expectOne({
+      method: 'PUT',
+      url: `${recordService.brandingAndPortalUrl}/recordmeta/oid-123`,
+    });
+    const body = { meta: createFormConflict };
+    post.flush(body, weakTagConflict);
+    put.flush(body, weakTagConflict);
+
+    const result = await create;
+    expect(result.outcome).toBe('not-saved');
+    expect(result.concurrencyOutcome).toBe('form-changed');
+    expect(result.concurrency?.formFingerprint).toBe('sha256:current');
+    expect(result.concurrency?.entityTag).toBeUndefined();
+    const updated = await update;
+    expect(updated.outcome).toBe('unknown');
+    expect(updated.concurrencyOutcome).toBe('unknown');
+    expect(updated.concurrency).toBeUndefined();
+  });
+
+  for (const [description, fields] of [
+    ['an OID', { oid: 'oid-123' }],
+    ['an entity tag', { concurrency: { entityTag: entityTag(5) } }],
+    ['a revision', { concurrency: { revision: 5 } }],
+    ['a current revision', { concurrency: { currentRevision: 5 } }],
+    ['an expected revision', { concurrency: { expectedRevision: 5 } }],
+    ['a contradictory success flag', { success: true }],
+    ['a persistence-phase problem', {
+      problems: [{ ...createFormConflict.problems[0], phase: 'persistence' }],
+    }],
+  ] as const) {
+    it(`rejects the weak ETag on a create conflict with ${description}`, async () => {
+      const create = recordService.create({ title: 'Estuary survey' }, 'rdmp');
+      const request = httpTestingController.expectOne({
+        method: 'POST',
+        url: `${recordService.brandingAndPortalUrl}/recordmeta/rdmp`,
+      });
+      request.flush({ meta: { ...createFormConflict, ...fields } }, weakTagConflict);
+
+      const result = await create;
+      expect(result.outcome).toBe('unknown');
+      expect(result.concurrencyOutcome).toBe('unknown');
+      expect(result.concurrency).toBeUndefined();
+    });
+  }
 
   it('keeps nominally typed but status-inconsistent precondition failures unknown', async () => {
     const updatePromise = recordService.update('oid-123', { title: 'Local' });

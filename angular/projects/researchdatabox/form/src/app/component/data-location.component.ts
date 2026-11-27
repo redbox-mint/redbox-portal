@@ -19,6 +19,7 @@ import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
 import {FormService} from "../form.service";
 import type { UppyDependencies } from "./file-upload.component";
+import { prepareUploadForCreate } from "./prepare-upload-for-create";
 
 const pendingOid = "pending-oid";
 
@@ -265,6 +266,23 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         }
     }
 
+    public prepareForCreate(): string | undefined {
+        const editedLocation = this.dataLocations[this.editingNotesIndex];
+        if (editedLocation && this.optionalString(this.editingNotesValue) !== editedLocation.notes) {
+            return "Use Apply or Cancel to finish editing the data location notes before creating the record.";
+        }
+
+        const { type, location, notes, isc } = this.draftLocation;
+        const hasDraftNotes = this.notesEnabled && !this.isNotesHiddenForLocationType(type) && notes.trim();
+        const hasDraftClassification = this.iscEnabled && this.optionalString(isc) !== this.optionalString(this.defaultSelect);
+        if (location.trim() || hasDraftNotes || hasDraftClassification) {
+            return type === "attachment"
+                ? "Upload the pending attachment or clear its input before creating the record."
+                : "Complete the pending data location and use Add, or clear its input before creating the record.";
+        }
+        return prepareUploadForCreate(this.uppy);
+    }
+
     public async openModal(): Promise<void> {
         if (!this.isUploadEnabled() || this.destroyed) {
             return;
@@ -394,6 +412,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
         this.uppy.use(deps.DashboardPlugin, {
             inline: false,
+            animateOpenClose: currentOid !== pendingOid,
             hideProgressAfterFinish: true,
             proudlyDisplayPoweredByUppy: false,
             note: this.translateText(this.uppyDashboardNote),

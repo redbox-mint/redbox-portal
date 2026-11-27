@@ -120,6 +120,7 @@ import {
   resolveStorageMutationState,
 } from '../RecordSaveResponse';
 import {
+  isRecordFormFingerprint,
   isRecordSaveRequestId,
   isRecordRevision,
   resolveRecordConcurrentModificationConfig,
@@ -617,6 +618,11 @@ export namespace Services {
       { expression: string; fn: (...args: unknown[]) => unknown }
     >();
     private readonly saveHookOperations = new WeakMap<RecordSaveTracker, ActionExecutionOperation>();
+    private readonly submittedFormContracts = new WeakMap<RecordSaveTracker, {
+      recordType: RecordTypeLike;
+      formName: string;
+      stage: string | undefined;
+    }>();
     private readonly deferredSavePostHookDispatches = new WeakMap<
       ActionExecutionOperation,
       DeferredSavePostHookDispatch[]
@@ -1945,8 +1951,8 @@ export namespace Services {
      * loaded; save recomputation resolves that same identity again. The
      * fingerprint binds the source form delivered to the browser plus the
      * authoritative workflow-form contract. Binding the sorted workflow map
-     * keeps one fingerprint stable across a later transition while still
-     * detecting administrator changes to current or target form selection.
+     * detects changes to workflow form selection, even when the source form
+     * itself has not changed.
      *
      * The fingerprint describes configuration only: no record values, actor
      * identity, or generated defaults enter it.
@@ -1989,7 +1995,7 @@ export namespace Services {
         },
         workflowFormContract,
         form: {
-          id: form.id,
+          // Bootstrap can replace this row with identical configuration.
           name: form.name,
           branding: form.branding,
           configuration: form.configuration
@@ -3179,6 +3185,8 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      const concurrency = tracker.result.concurrency;
+      const submittedForm = this.submittedFormContracts.get(tracker);
       let persistedRecord: AnyRecord;
       try {
         const reloaded = await this.getMeta(oid);
@@ -3188,6 +3196,10 @@ export namespace Services {
         persistedRecord = withoutRuntimeRecordProperties(reloaded) as unknown as AnyRecord;
       } catch (error) {
         const handedOff = await this.enqueuePostCommitReconciliation(oid, searchable, action, user, tracker);
+        // The submitted fingerprint cannot identify the committed form without a snapshot.
+        if (submittedForm) {
+          tracker.setConcurrencyMetadata({ ...concurrency, formFingerprint: undefined, formReloadRequired: true });
+        }
         // None of the adapter or hook projections can be trusted without the
         // authoritative reload. Retain only the confirmed persistence and
         // concurrency coordinates used for deferred reconciliation.
@@ -3227,13 +3239,39 @@ export namespace Services {
       }
 
       const finalRevision = this.recordRevision(persistedRecord);
-      const concurrency = tracker.result.concurrency;
-      if (concurrency?.mode && finalRevision !== undefined) {
+      let formFingerprint = concurrency?.formFingerprint;
+      let formReloadRequired = false;
+      if (submittedForm && (
+        submittedForm.formName !== _.get(persistedRecord, 'metaMetadata.form') ||
+        submittedForm.stage !== this.candidateWorkflowStep(persistedRecord)
+      )) {
+        let committedFingerprint: string | undefined;
+        try {
+          committedFingerprint = await this.getRecordFormFingerprint(persistedRecord, submittedForm.recordType);
+        } catch (error) {
+          sails.log.warn(`${this.logHeader} unable to fingerprint the saved record form`, {
+            error_type: safeExceptionType(error),
+          });
+        }
+        if (isRecordFormFingerprint(committedFingerprint) && committedFingerprint !== formFingerprint) {
+          formFingerprint = committedFingerprint;
+        } else {
+          formFingerprint = undefined;
+          formReloadRequired = true;
+        }
+      }
+      if (concurrency || submittedForm) {
         tracker.setConcurrencyMetadata({
           ...concurrency,
-          revision: finalRevision,
-          currentRevision: finalRevision,
-          entityTag: formatRecordEntityTag(oid, finalRevision),
+          formFingerprint,
+          ...(formReloadRequired ? { formReloadRequired: true } : {}),
+          ...(concurrency?.mode && finalRevision !== undefined
+            ? {
+                revision: finalRevision,
+                currentRevision: finalRevision,
+                entityTag: formatRecordEntityTag(oid, finalRevision),
+              }
+            : {}),
         });
       }
 
@@ -4676,6 +4714,11 @@ export namespace Services {
           return tracker.toResponse();
         }
         this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined, currentFormFingerprint);
+        this.submittedFormContracts.set(tracker, {
+          recordType: recordTypeObj,
+          formName: String(_.get(createFormFingerprintRecord, 'metaMetadata.form', '')),
+          stage: this.candidateWorkflowStep(createFormFingerprintRecord),
+        });
       }
 
       // Validate every configured synchronous hook before a transition hook
@@ -5744,6 +5787,13 @@ export namespace Services {
         );
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
+      }
+      if (currentFormFingerprint) {
+        this.submittedFormContracts.set(tracker, {
+          recordType: recordType as RecordTypeLike,
+          formName: String(_.get(originalRecord, 'metaMetadata.form', '')),
+          stage: this.candidateWorkflowStep(originalRecord as AnyRecord),
+        });
       }
       // The checked browser source adds protections without weakening the stored form.
       if (routeForm) displayContext.routeSourceForm = routeForm.formName;

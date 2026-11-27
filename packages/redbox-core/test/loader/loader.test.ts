@@ -816,7 +816,7 @@ describe('redbox-loader', function () {
             expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
         });
 
-        function runBootstrapShim(content: string, migrationsRequire: () => unknown): { exports: Record<string, unknown>; capturedMigrations: unknown } {
+        function loadBootstrapShim(content: string, shimModules: Record<string, () => unknown>): () => unknown {
             let capturedMigrations: unknown;
             const fakeCore = {
                 coreBootstrap: async () => undefined,
@@ -835,8 +835,8 @@ describe('redbox-loader', function () {
                 if (id === '@researchdatabox/redbox-core') {
                     return fakeCore;
                 }
-                if (id === './migrations') {
-                    return migrationsRequire();
+                if (Object.hasOwn(shimModules, id)) {
+                    return shimModules[id]();
                 }
                 throw new Error(`Unexpected require: ${id}`);
             };
@@ -847,8 +847,52 @@ describe('redbox-loader', function () {
                 exports: moduleStub.exports,
                 console: { warn: () => undefined },
             });
-            return { exports: moduleStub.exports, capturedMigrations };
+            const bootstrap = moduleStub.exports.bootstrap as (cb: (error?: Error) => void) => void;
+            expect(bootstrap).to.be.a('function');
+            return () => {
+                bootstrap(error => {
+                    if (error) throw error;
+                });
+                return capturedMigrations;
+            };
         }
+
+        it('registers migrations before hook bootstraps after Sails invokes bootstrap', async function () {
+            const hook = { name: 'test-hook', module: 'test-hook' };
+            await redboxLoader.generateBootstrapShim(configDir, [hook]);
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, [hook]);
+            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
+            const migrationContent = await fsPromises.readFile(path.join(configDir, 'migrations.js'), 'utf8');
+            const registrations: string[] = [];
+            const hookModule = {
+                registerRedboxMigrations() {
+                    registrations.push('migrations');
+                    return [];
+                },
+                registerRedboxBootstrap() {
+                    registrations.push('bootstrap');
+                    return async () => undefined;
+                },
+            };
+            const bootstrap = loadBootstrapShim(content, {
+                [hook.module]: () => hookModule,
+                './migrations': () => {
+                    const migrationShim = { exports: {} };
+                    vm.runInNewContext(migrationContent, {
+                        require: (id: string) => {
+                            expect(id).to.equal(hook.module);
+                            return hookModule;
+                        },
+                        module: migrationShim,
+                    });
+                    return migrationShim.exports;
+                },
+            });
+
+            expect(registrations).to.deep.equal([]);
+            bootstrap();
+            expect(registrations).to.deep.equal(['migrations', 'bootstrap']);
+        });
 
         it('should tolerate a missing config/migrations.js and default to no migrations', async function () {
             await redboxLoader.generateBootstrapShim(configDir, []);
@@ -860,9 +904,7 @@ describe('redbox-loader', function () {
                 throw error;
             };
 
-            const { exports: shimExports, capturedMigrations } = runBootstrapShim(content, missingShim);
-            expect(shimExports.bootstrap).to.be.a('function');
-            expect(capturedMigrations).to.deep.equal([]);
+            expect(loadBootstrapShim(content, { './migrations': missingShim })()).to.deep.equal([]);
         });
 
         it('should rethrow MODULE_NOT_FOUND raised inside config/migrations.js', async function () {
@@ -875,7 +917,7 @@ describe('redbox-loader', function () {
                 throw error;
             };
 
-            expect(() => runBootstrapShim(content, missingHookInsideShim)).to.throw("Cannot find module 'some-uninstalled-hook'");
+            expect(loadBootstrapShim(content, { './migrations': missingHookInsideShim })).to.throw("Cannot find module 'some-uninstalled-hook'");
         });
     });
 

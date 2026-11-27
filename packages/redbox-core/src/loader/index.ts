@@ -1263,7 +1263,7 @@ export async function generateBootstrapShim(
     const hookImports = hookBootstraps
         .map(
             hook =>
-                `const ${sanitizePackageNameForVar(hook.name, 'bootstrap')} = require('${hook.module}').registerRedboxBootstrap();`
+                `  const ${sanitizePackageNameForVar(hook.name, 'bootstrap')} = require('${hook.module}').registerRedboxBootstrap();`
         )
         .join('\n');
 
@@ -1275,7 +1275,7 @@ export async function generateBootstrapShim(
         .join('\n');
 
     const content = await renderLoaderTemplate('bootstrap-shim.js.hbs', {
-        hookImports: hookImports ? `${hookImports}\n\n` : '',
+        hookImports: hookImports ? `${hookImports}\n` : '',
         hookCalls: hookCalls ? `${hookCalls}\n` : '',
     });
 

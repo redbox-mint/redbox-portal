@@ -134,6 +134,11 @@ type JsonMap = Record<string, unknown>;
 type StorageRecord = RecordModel;
 type MongoRecordDocument = Document;
 type WaterlineModel = Model;
+/** The parts of the Sails Mongo datastore that GridFS needs. */
+interface MongoDatastore {
+  manager: unknown;
+  driver?: { mongodb?: { GridFSBucket?: typeof mongodb.GridFSBucket } };
+}
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
 type StorageInitializationErrorClassification =
@@ -976,7 +981,13 @@ export namespace Services {
       ) {
         return;
       }
-      this.db = Record.getDatastore().manager as Db;
+      const datastore = Record.getDatastore() as MongoDatastore;
+      // A GridFS upload creates BSON values that the datastore's driver must serialize.
+      const GridFSBucket = datastore.driver?.mongodb?.GridFSBucket;
+      if (!GridFSBucket) {
+        throw new Error('The record datastore driver does not expose a MongoDB GridFSBucket.');
+      }
+      this.db = datastore.manager as Db;
       if (!(await this.collectionExists(Record.tableName))) {
         sails.log.verbose(`Collection doesn't exist, creating: ${Record.tableName}`);
         const uuid = this.getUuid();
@@ -994,7 +1005,7 @@ export namespace Services {
         indexBuildOptions
       );
       await this.createIndices(this.db);
-      this.gridFsBucket = new mongodb.GridFSBucket(this.db);
+      this.gridFsBucket = new GridFSBucket(this.db);
       this.recordCol = recordCol;
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);

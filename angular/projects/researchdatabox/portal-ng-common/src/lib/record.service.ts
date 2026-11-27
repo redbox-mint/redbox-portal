@@ -32,6 +32,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
+import type { FormRowEdits, FormRowProofs } from '@researchdatabox/sails-ng-common/dist/src/record.model';
 import {
   merge as _merge,
   isUndefined as _isUndefined,
@@ -898,9 +899,9 @@ export class RecordService extends HttpClientService {
     try {
       const httpOptions = this.getSaveHttpOptions(requestId, targetStep, operation, concurrency, false);
       const response = await firstValueFrom(this.http.post<unknown>(url, record, httpOptions));
-      return RecordActionResult.fromHttpResponse(response, requestId);
+      return RecordActionResult.fromHttpResponse(response, requestId, 'create');
     } catch (error) {
-      return RecordActionResult.fromHttpError(error, requestId);
+      return RecordActionResult.fromHttpError(error, requestId, 'create');
     }
   }
 
@@ -909,16 +910,24 @@ export class RecordService extends HttpClientService {
     record: any,
     targetStep: string = '',
     operation?: string,
-    concurrency: RecordMutationConcurrencyOptions = {}
+    concurrency: RecordMutationConcurrencyOptions = {},
+    formSave?: { formName?: string; rowEdits?: FormRowEdits }
   ): Promise<RecordActionResult> {
     const requestId = createSaveRequestId();
     const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}`;
     try {
       const httpOptions = this.getSaveHttpOptions(requestId, targetStep, operation, concurrency, true);
-      const response = await firstValueFrom(this.http.put<unknown>(url, record, httpOptions));
-      return RecordActionResult.fromHttpResponse(response, requestId);
+      if (formSave) {
+        let params = (httpOptions.params ?? new HttpParams()).set('formSave', 'true');
+        if (formSave.formName) params = params.set('formName', formSave.formName);
+        if (formSave.rowEdits) params = params.set('rowEdits', 'true');
+        httpOptions.params = params;
+      }
+      const body = formSave?.rowEdits ? { metadata: record, rowEdits: formSave.rowEdits } : record;
+      const response = await firstValueFrom(this.http.put<unknown>(url, body, httpOptions));
+      return RecordActionResult.fromHttpResponse(response, requestId, 'update');
     } catch (error) {
-      return RecordActionResult.fromHttpError(error, requestId);
+      return RecordActionResult.fromHttpError(error, requestId, 'update');
     }
   }
 
@@ -1101,6 +1110,9 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult implements RecordSaveResult {
+  reloadEditForm?: boolean;
+  confirmedListPaths?: string[];
+  savedRowProofs?: FormRowProofs;
   success: boolean = false;
   oid: string = '';
   message: string = '';
@@ -1138,21 +1150,29 @@ export class RecordActionResult implements RecordSaveResult {
     return this.outcome === 'unknown' || this.concurrencyOutcome === 'unknown';
   }
 
-  public static fromHttpResponse(response: HttpResponse<unknown>, requestId: string): RecordActionResult {
-    return RecordActionResult.fromResponse(response.body, response.status, requestId, response.headers);
+  public static fromHttpResponse(
+    response: HttpResponse<unknown>,
+    requestId: string,
+    intent?: 'create' | 'update'
+  ): RecordActionResult {
+    return RecordActionResult.fromResponse(response.body, response.status, requestId, response.headers, intent);
   }
 
   public static fromResponse(
     payload: unknown,
     status = 200,
     requestId = '',
-    headers?: HttpHeaders
+    headers?: HttpHeaders,
+    intent?: 'create' | 'update'
   ): RecordActionResult {
     type SaveMeta = Partial<RecordSaveResult> & {
       success?: boolean;
       oid?: string;
       message?: string;
       metadata?: Record<string, unknown> | null;
+      reloadEditForm?: boolean;
+      confirmedListPaths?: string[];
+      savedRowProofs?: FormRowProofs;
     };
     type SaveEnvelope = { meta?: SaveMeta; data?: unknown; errors?: unknown[] } & SaveMeta;
     const body = (payload && typeof payload === 'object' ? payload : {}) as SaveEnvelope;
@@ -1166,13 +1186,14 @@ export class RecordActionResult implements RecordSaveResult {
     result.oid = typeof meta.oid === 'string' ? meta.oid : '';
     result.message = typeof meta.message === 'string' ? meta.message : '';
     result.data = body.data ?? null;
+    result.reloadEditForm = meta.reloadEditForm === true;
+    result.confirmedListPaths = meta.confirmedListPaths;
+    result.savedRowProofs = meta.savedRowProofs;
     const typedProblems = Array.isArray(meta.problems)
       ? meta.problems
           .map(RecordActionResult.toSafeProblem)
           .filter((problem): problem is RecordSaveProblem => problem !== null)
       : [];
-    const concurrencyResult = RecordActionResult.mergeResponseConcurrency(meta.concurrency, headers);
-    const concurrency = concurrencyResult.value;
     const issues = (Array.isArray(body.errors) ? body.errors : []).map(RecordActionResult.toSafeIssue);
 
     // Status zero proves only a transport failure. Even a body that resembles a
@@ -1184,6 +1205,18 @@ export class RecordActionResult implements RecordSaveResult {
 
     if (isRecordSaveOutcome(meta.outcome)) {
       const concurrencyOutcome = RecordActionResult.classifyTypedOutcome(status, meta.outcome, typedProblems);
+      const [problem] = typedProblems;
+      const unversionedCreateFormConflict =
+        intent === 'create' && concurrencyOutcome === 'form-changed' &&
+        (meta.oid === undefined || meta.oid === '') &&
+        (meta.success === undefined || meta.success === false) &&
+        meta.problems?.length === 1 && problem?.kind === 'conflict' && problem.phase === 'pre-save' &&
+        problem.issues.length === 1 && problem.issues[0].code === 'form-definition-changed';
+      const concurrencyResult = RecordActionResult.mergeResponseConcurrency(
+        meta.concurrency,
+        headers,
+        unversionedCreateFormConflict
+      );
       if (concurrencyOutcome === null || (concurrencyOutcome !== 'none' && concurrencyResult.malformed)) {
         // 409/412/428 are actionable only when the typed problem kind/code
         // proves the certified non-write. Malformed lookalikes remain unknown.
@@ -1193,7 +1226,7 @@ export class RecordActionResult implements RecordSaveResult {
       result.success = result.wasPersisted();
       result.problems = typedProblems;
       result.metadata = meta.outcome === 'unknown' ? null : RecordActionResult.safeProjectedMetadata(meta.metadata);
-      result.concurrency = meta.outcome === 'unknown' ? undefined : concurrency;
+      result.concurrency = meta.outcome === 'unknown' ? undefined : concurrencyResult.value;
       result.concurrencyOutcome = concurrencyOutcome;
       if (meta.completion !== undefined) {
         const completion = RecordActionResult.plainRecord(meta.completion);
@@ -1237,7 +1270,7 @@ export class RecordActionResult implements RecordSaveResult {
         attachments: { status: hasLegacyWarning ? 'unknown' : 'completed', items: [] },
       };
       result.metadata = RecordActionResult.safeProjectedMetadata(meta.metadata);
-      result.concurrency = concurrency;
+      result.concurrency = RecordActionResult.mergeResponseConcurrency(meta.concurrency, headers).value;
       return result;
     }
 
@@ -1247,11 +1280,11 @@ export class RecordActionResult implements RecordSaveResult {
     return RecordActionResult.asUnknown(result, 'system', issues);
   }
 
-  public static fromHttpError(error: unknown, requestId: string): RecordActionResult {
+  public static fromHttpError(error: unknown, requestId: string, intent?: 'create' | 'update'): RecordActionResult {
     if (!(error instanceof HttpErrorResponse)) {
       return RecordActionResult.notDispatched('The record request could not be dispatched.', '', requestId);
     }
-    return RecordActionResult.fromResponse(error.error, error.status, requestId, error.headers);
+    return RecordActionResult.fromResponse(error.error, error.status, requestId, error.headers, intent);
   }
 
   public static readConcurrency(payload: unknown, headers?: HttpHeaders): RecordConcurrencyMetadata {
@@ -1431,12 +1464,20 @@ export class RecordActionResult implements RecordSaveResult {
 
   private static mergeResponseConcurrency(
     value: unknown,
-    headers?: HttpHeaders
+    headers?: HttpHeaders,
+    unversionedFormConflict = false
   ): { value?: RecordConcurrencyMetadata; malformed: boolean } {
     const metadata = sanitizeRecordConcurrencyMetadata(value) ?? {};
     const headerTag = headers?.get('ETag');
     const headerSupplied = headers?.has('ETag') === true;
-    let malformed = headerSupplied && !isRecordEntityTag(headerTag);
+    // A rejected create has no record version. Express can still attach its
+    // own weak ETag to the JSON error document.
+    const rawMetadata = RecordActionResult.plainRecord(value) ?? {};
+    const hasRecordVersion = ['entityTag', 'revision', 'currentRevision', 'expectedRevision']
+      .some(key => Object.prototype.hasOwnProperty.call(rawMetadata, key));
+    const representationTag = unversionedFormConflict && !hasRecordVersion &&
+      typeof headerTag === 'string' && /^W\/"[a-f0-9]+-[A-Za-z0-9+/]+"$/.test(headerTag);
+    let malformed = headerSupplied && !isRecordEntityTag(headerTag) && !representationTag;
     if (isRecordEntityTag(headerTag) && metadata.entityTag && metadata.entityTag !== headerTag) {
       malformed = true;
     }

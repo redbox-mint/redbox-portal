@@ -4,6 +4,7 @@ import {FieldComponentDefinitionFrame, FieldComponentDefinitionOutline} from "./
 import {FormModesConfig} from "./shared.outline";
 import {FieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline} from "./field-layout.outline";
 import {ComponentClassNamesType, LayoutClassNamesType, ModelClassNamesType} from "./dictionary.model";
+import {RepeatableComponentName, type RepeatableFieldComponentDefinitionFrame} from "./component/repeatable.outline";
 
 
 /**
@@ -437,6 +438,24 @@ export interface FormComponentDefinitionFrame {
      * Optional ways to extend or replace parts of the form config.
      */
     overrides?: FormOverrideConfigFrame;
+}
+
+/** A disabled layer stays excluded unless the form defines an expression that can enable it. */
+export function isStaticallyDisabledFormField(item: FormComponentDefinitionFrame): boolean {
+    const targets = (item.expressions ?? []).map(({ config }) => 'target' in config ? config.target : undefined);
+    // Angular's component setter updates the component and its model.
+    const componentCanEnable = targets.includes('component.disabled');
+    if (!targets.includes('field.disabled') && (
+        (item.model?.config?.disabled === true && !componentCanEnable && !targets.includes('model.disabled')) ||
+        (item.component?.config?.disabled === true && !componentCanEnable) ||
+        (item.layout?.config?.disabled === true && !targets.includes('layout.disabled'))
+    )) {
+        return true;
+    }
+    if (item.component?.class !== RepeatableComponentName) return false;
+    const template = (item.component as RepeatableFieldComponentDefinitionFrame).config?.elementTemplate;
+    // An enabled row layout still allows removal and reordering of read-only values.
+    return !!template && template.layout?.config?.disabled === true && isStaticallyDisabledFormField(template);
 }
 
 export interface FormComponentDefinitionOutline extends FormComponentDefinitionFrame, CanVisit {

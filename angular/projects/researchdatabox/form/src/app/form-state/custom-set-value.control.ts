@@ -4,6 +4,8 @@ import {ModifyOptions} from "@researchdatabox/portal-ng-common";
 import {guessType} from "@researchdatabox/sails-ng-common";
 
 export type ControlSetValueOptions = ModifyOptions & {
+  replaceImportedRows?: true;
+  onlyImportedRows?: boolean;
   /** An asynchronous setter must stop applying a superseded source value. */
   isCurrent?: () => boolean;
 };

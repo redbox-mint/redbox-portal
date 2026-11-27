@@ -1,4 +1,4 @@
-import { chromium, type Page } from '@playwright/test';
+import { chromium, type Page, type Request, type Route } from '@playwright/test';
 import { expect, test } from './fixtures/test';
 import type { BrowserDiagnostics } from './fixtures/diagnostics';
 import { MongoClient, ObjectId } from 'mongodb';
@@ -47,20 +47,16 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   await description.fill('Instrument export bundles');
 
   const saveDraft = () => page.getByRole('button', { name: 'Save draft' }).click();
-  const created = page.waitForResponse(
-    response => response.request().method() === 'POST' && response.url().includes(`${savePath}checkbox-details-demo`)
-  );
-  await saveDraft();
-  const createdResponse = await created;
-  const saved = await createdResponse.json();
-  expect(createdResponse.ok(), JSON.stringify(saved)).toBeTruthy();
-  const oid = saved.data.redboxOid as string;
+  const created = await captureSave(page, 'POST', demoType);
+  const [createdResponse] = await Promise.all([created.response, page.waitForEvent('load'), saveDraft()]);
+  const { body: saved, request: createRequest } = createdResponse;
+  expect(createdResponse.ok, JSON.stringify(saved)).toBeTruthy();
+  const oid = saved.data.redboxOid;
   expect(saved.data.workflow.stage).toBe('draft');
   expect(saved.data.metadata.digitalFormatEstimates).toEqual([
     { value: 'tabulated', details: { volume: 'About 200 CSV files' } },
     { value: 'other', details: { volume: '', description: 'Instrument export bundles' } },
   ]);
-  const createRequest = createdResponse.request();
   const csrf = await createRequest.headerValue('x-csrf-token');
   const rejected = await page.request.put(`${savePath}${oid}?targetStep=active&operation=activate`, {
     data: createRequest.postDataJSON(),
@@ -123,14 +119,8 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
 
   await page.getByRole('tab', { name: 'Project' }).click();
   await title.fill('Synthetic checkbox details acceptance record (amended)');
-  const updated = page.waitForResponse(
-    response => response.request().method() === 'PUT' && response.url().includes(`${savePath}${oid}`)
-  );
-  await page.getByRole('button', { name: 'Activate' }).click();
-  const updatedResponse = await updated;
-  const active = await updatedResponse.json();
-  expect(updatedResponse.ok(), JSON.stringify(active)).toBeTruthy();
-  expect(active.data.workflow.stage).toBe('active');
+  const active = await save(page, 'Activate', 'PUT', oid, { waitForReload: true });
+  expect(active.workflow.stage).toBe('active');
 
   await page.goto(`${prefix}/record/view/${oid}`);
   const rows = page.locator('.rb-view-checkbox-details > li');
@@ -156,7 +146,7 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   await saveDraft();
   const removedResponse = await removed;
   expect(removedResponse.ok()).toBeTruthy();
-  expect((await removedResponse.json()).data.metadata.digitalFormatEstimates).toEqual([
+  expect(await persistedFormats(oid)).toEqual([
     { value: 'other', details: { volume: '3 TB', description: 'Instrument export bundles' } },
   ]);
   await page.reload();
@@ -167,16 +157,89 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   expect(browserErrors).toEqual([]);
 });
 
+async function persistedFormats(oid: string): Promise<unknown> {
+  // Form-save responses omit raw metadata. Check the database for legacy
+  // details, including fields deliberately hidden from the form.
+  const mongo = await new MongoClient(process.env.CHECKBOX_DETAILS_MONGO_URL ?? 'mongodb://mongodb:27017', {
+    serverSelectionTimeoutMS: 5000,
+  }).connect();
+  try {
+    const record = await mongo.db('redbox-storage').collection('record').findOne({ redboxOid: oid });
+    return record?.metadata?.digitalFormatEstimates;
+  } finally {
+    await mongo.close();
+  }
+}
+
 const demoType = 'checkbox-details-demo';
 const openFormats = (page: Page) => page.getByRole('tab', { name: 'Formats' }).click();
-const save = (page: Page, label: string, method: 'POST' | 'PUT', id: string) => Promise.all([
-  page.waitForResponse(response => response.request().method() === method && new URL(response.url()).pathname === savePath + id),
-  page.getByRole('button', { name: label, exact: true }).click(),
-]).then(async ([response]) => {
-  const body = await response.json();
-  expect(response.ok(), JSON.stringify(body)).toBeTruthy();
-  return body.data;
-});
+type SaveCapture = {
+  ok: boolean;
+  body: { data: {
+    redboxOid: string;
+    workflow: { stage: string };
+    metaMetadata: { form: string };
+    metadata: { digitalFormatEstimates: unknown };
+  } };
+  request: Request;
+};
+type SavePayload = Record<string, unknown>;
+
+// A create or stage-changing update can reload the editor before Chromium
+// exposes the response body. Read it before fulfilling the browser request.
+const captureSave = async (
+  page: Page,
+  method: 'POST' | 'PUT',
+  id: string,
+  transformPayload?: (payload: SavePayload) => SavePayload
+) => {
+  const matches = (url: URL) => url.pathname === savePath + id;
+  let complete!: (value: SaveCapture) => void;
+  let fail!: (error: unknown) => void;
+  const captured = new Promise<SaveCapture>((resolve, reject) => {
+    complete = resolve;
+    fail = reject;
+  });
+  const handler = async (route: Route) => {
+    const request = route.request();
+    if (request.method() !== method) return route.fallback();
+    try {
+      const response = transformPayload
+        ? await route.fetch({ postData: transformPayload(request.postDataJSON()) })
+        : await route.fetch();
+      const body = await response.json();
+      await route.fulfill({ response });
+      complete({ ok: response.ok(), body, request });
+    } catch (error) {
+      fail(error);
+      throw error;
+    }
+  };
+  await page.route(matches, handler);
+  return { response: captured.finally(() => page.unroute(matches, handler)) };
+};
+const save = async (
+  page: Page,
+  label: string,
+  method: 'POST' | 'PUT',
+  id: string,
+  { waitForReload = method === 'POST', transformPayload }: {
+    waitForReload?: boolean;
+    transformPayload?: (payload: SavePayload) => SavePayload;
+  } = {}
+) => {
+  const { response } = await captureSave(page, method, id, transformPayload);
+  const reload = waitForReload ? page.waitForEvent('load') : undefined;
+  const [data] = await Promise.all([
+    response.then(({ ok, body }) => {
+      expect(ok, JSON.stringify(body)).toBeTruthy();
+      return body.data;
+    }),
+    reload,
+    page.getByRole('button', { name: label, exact: true }).click(),
+  ]);
+  return data;
+};
 
 test('initializes a newly selected row after reopening a saved record', async ({ adminPage: page }) => {
   const title = page.getByRole('textbox', { name: 'Project title' });
@@ -197,9 +260,9 @@ test('initializes a newly selected row after reopening a saved record', async ({
   await page.getByRole('checkbox', { name: 'Other' }).check();
   await expect(otherVolume).toHaveValue('10 GB');
   await expect(description).toHaveValue('Custom exports');
-  const active = await save(page, 'Activate', 'PUT', draft.redboxOid);
+  const active = await save(page, 'Activate', 'PUT', draft.redboxOid, { waitForReload: true });
   expect(active.workflow.stage).toBe('active');
-  expect(active.metadata.digitalFormatEstimates).toEqual([
+  expect(await persistedFormats(draft.redboxOid)).toEqual([
     { value: 'tabulated', details: { volume: '250 CSV files' } },
     { value: 'other', details: { volume: '10 GB', description: 'Custom exports' } },
   ]);
@@ -241,19 +304,20 @@ test('saves removals during a pending and failed lookup and validates retained r
   const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
   const activate = page.getByRole('button', { name: 'Activate', exact: true });
   const invalid = page.getByRole('alert').filter({ hasText: 'The form is invalid.' });
-  // Seed an older/incomplete draft with a missing property through the real write endpoint.
-  await page.route(url => url.pathname === savePath + demoType, async route => {
-    const payload = route.request().postDataJSON();
-    delete payload.digitalFormatEstimates[0].details.volume;
-    await route.continue({ postData: payload });
-  }, { times: 1 });
   await page.goto(newRecord);
   await title.fill('Synthetic deferred checkbox details');
   await openFormats(page);
   await page.getByRole('checkbox', { name: 'Tabulated files' }).check();
   await page.getByRole('checkbox', { name: 'Image files' }).check();
   await page.getByRole('checkbox', { name: 'Other' }).check();
-  const draft = await save(page, 'Save draft', 'POST', demoType);
+  // Seed an older incomplete draft through the real write endpoint.
+  const draft = await save(page, 'Save draft', 'POST', demoType, {
+    transformPayload(payload) {
+      const estimates = payload.digitalFormatEstimates as { details: SavePayload }[];
+      delete estimates[0].details.volume;
+      return payload;
+    },
+  });
   const oid: string = draft.redboxOid;
   const incomplete = [{ value: 'tabulated', details: {} }];
   const otherRow = { value: 'other', details: { volume: '10 GB', description: 'Custom exports' } };
@@ -303,7 +367,7 @@ test('saves removals during a pending and failed lookup and validates retained r
     await waitForSaveThrottle();
     const pendingDraft = await save(page, 'Save draft', 'PUT', oid);
     expect(pendingDraft.workflow.stage).toBe('draft');
-    expect(pendingDraft.metadata.digitalFormatEstimates).toEqual([...incomplete, otherRow]);
+    expect(await persistedFormats(oid)).toEqual([...incomplete, otherRow]);
   } finally {
     failLookup();
   }
@@ -318,8 +382,8 @@ test('saves removals during a pending and failed lookup and validates retained r
   await expect(invalid).toBeVisible();
   expect(activationRequests).toBe(0);
   await waitForSaveThrottle();
-  const failedDraft = await save(page, 'Save draft', 'PUT', oid);
-  expect(failedDraft.metadata.digitalFormatEstimates).toEqual(incomplete);
+  await save(page, 'Save draft', 'PUT', oid);
+  expect(await persistedFormats(oid)).toEqual(incomplete);
   await waitForSaveThrottle();
 
   await formats.getByRole('button', { name: 'Try again' }).click();
@@ -338,10 +402,10 @@ test('saves removals during a pending and failed lookup and validates retained r
   await formats.screenshot({ path: testInfo.outputPath('lookup-recovered-validation.png') });
   await volume.fill('3 TB');
   await waitForSaveThrottle();
-  const active = await save(page, 'Activate', 'PUT', oid);
+  const active = await save(page, 'Activate', 'PUT', oid, { waitForReload: true });
   expect(activationRequests).toBe(1);
   expect(active.workflow.stage).toBe('active');
-  expect(active.metadata.digitalFormatEstimates).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);
+  expect(await persistedFormats(oid)).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);
   await page.goto(`${prefix}/record/edit/${oid}`);
   await openFormats(page);
   await expect(formats.getByRole('checkbox', { name: 'Tabulated files' })).toBeChecked();
@@ -396,8 +460,8 @@ test('shows obsolete answers for current and historical choices and saves remova
   await historical.screenshot({ path: testInfo.outputPath('historical-details.png') });
   await page.getByRole('tab', { name: 'Project' }).click();
   await title.fill('Synthetic archived details (updated)');
-  const updated = await save(page, 'Save draft', 'PUT', oid);
-  expect(updated.metadata.digitalFormatEstimates).toEqual([current, retired]);
+  await save(page, 'Save draft', 'PUT', oid);
+  expect(await persistedFormats(oid)).toEqual([current, retired]);
   await openFormats(page);
   await expect(removed.and(page.locator(':enabled'))).toHaveCount(0);
   await page.reload();

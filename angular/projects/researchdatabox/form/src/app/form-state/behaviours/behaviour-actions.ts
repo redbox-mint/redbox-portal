@@ -11,7 +11,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent, FormComponentEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FieldValueChangedEvent, FormComponentEvent, recordImportApplications } from '../events/form-component-event.types';
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from '../apply-expression-target';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
@@ -37,6 +37,8 @@ export interface BehaviourActionExecutionContext {
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
+  recordImport?: FieldValueChangedEvent['recordImport'];
+  isCurrent?: () => boolean;
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -167,6 +169,10 @@ async function executeEmitEventAction(
 ): Promise<void> {
   const value = await resolveActionValue(action.config, ACTION_CONFIG_KEY_PATH, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
+  // A value template may emit unrelated data, so leave row-import intent on direct emissions only.
+  const recordImport = action.config.hasValueTemplate ? undefined : ctx.recordImport;
+  const fetchedMetadata = ctx.recordImport && ctx.recordImport !== 'no-import';
+  const applications: Promise<void>[] = [];
   ctx.eventBus.publish(
     createFieldValueChangedEvent({
       fieldId: action.config.fieldId,
@@ -176,8 +182,20 @@ async function executeEmitEventAction(
       behaviourChain: ctx.behaviourChain,
       ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
+      ...(recordImport ? { recordImport } : {}),
+      ...(fetchedMetadata ? {
+        [recordImportApplications]: {
+          changedSelection: ctx.recordImport === 'changed-selection',
+          pending: applications,
+          isCurrent: ctx.isActive,
+        },
+      } : {}),
     })
   );
+  // The event bus delivers synchronously, and expression consumers register before awaiting anything.
+  const results = await Promise.allSettled(applications);
+  const failure = results.find(result => result.status === 'rejected');
+  if (failure) throw failure.reason;
 }
 
 /**

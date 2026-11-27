@@ -21,10 +21,17 @@ import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-templat
  */
 export interface BehaviourConditionMatchContext {
   querySource: FormComponentEventQuerySource | undefined;
-  compiledTemplateEvaluator: BehaviourCompiledTemplateEvaluator;
+  getCompiledTemplateEvaluator?: () => Promise<BehaviourCompiledTemplateEvaluator>;
+  compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   behaviourIndex: number;
   formValue: Record<string, unknown>;
   requestParams: Record<string, unknown>;
+}
+
+function isFormReady(event: FormComponentEvent, behaviour: FormBehaviourConfigFrame): boolean {
+  return (event.sourceId === FormComponentEventType.FORM_DEFINITION_READY && behaviour.runOnFormReady !== false) ||
+    (event.type === FormComponentEventType.FORM_DEFINITION_READY && event.sourceId === undefined &&
+      event.fieldId === undefined && behaviour.runOnFormReady === true);
 }
 
 export async function matchBehaviourCondition(
@@ -54,7 +61,7 @@ export async function matchBehaviourCondition(
  * - broadcast events can match descendants by pointer prefix
  * - `runOnFormReady === false` suppresses ready-time execution
  */
-function matchJSONPointerCondition(
+export function matchJSONPointerCondition(
   condition: string,
   event: FormComponentEvent,
   behaviourConfig: FormBehaviourConfigFrame,
@@ -75,7 +82,8 @@ function matchJSONPointerCondition(
   const hasMatchedTargetEvent = pointerCondition.event === '*' || pointerCondition.event === querySource.event.type;
   const hasScopedMatch = ref !== undefined && pointerCondition.jsonPointer === event.sourceId;
   const eventFieldId = event.fieldId || '';
-  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  const isRunOnFormReady = event.sourceId === FormComponentEventType.FORM_DEFINITION_READY &&
+    behaviourConfig.runOnFormReady !== false;
   const hasPointerMatch =
     pointerCondition.jsonPointer === '' ||
     eventFieldId === pointerCondition.jsonPointer ||
@@ -106,14 +114,25 @@ async function matchJSONataCondition(
   ctx: BehaviourConditionMatchContext,
   includeQuerySource: boolean
 ): Promise<boolean> {
-  // Native readiness is an explicit opt-in. Unset behaviours retain their
-  // existing field-ready/broadcast triggers, avoiding a second initialization.
-  const isRunOnFormReady =
-    (event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false) ||
-    (event.type === FormComponentEventType.FORM_DEFINITION_READY &&
-      event.sourceId === undefined &&
-      event.fieldId === undefined &&
-      behaviourConfig.runOnFormReady === true);
+  if (!canMatchJSONataEvent(event, behaviourConfig)) return false;
+
+  const requestParams = ctx.requestParams;
+  const runtimeContext = ctx.querySource?.runtimeContext ?? { requestParams };
+  const evaluator = ctx.compiledTemplateEvaluator ?? await ctx.getCompiledTemplateEvaluator?.();
+  if (!evaluator) throw new Error('Compiled behaviour condition is unavailable.');
+  const result = await evaluator.evaluate(ctx.behaviourIndex, ['condition'], {
+    value: (event as { value?: unknown }).value,
+    event,
+    formData: ctx.formValue,
+    requestParams,
+    runtimeContext,
+    ...(includeQuerySource ? { querySource: ctx.querySource?.querySource } : {}),
+  });
+  return !!result;
+}
+
+export function canMatchJSONataEvent(event: FormComponentEvent, behaviourConfig: FormBehaviourConfigFrame): boolean {
+  const isRunOnFormReady = isFormReady(event, behaviourConfig);
   // A runOnFormReady behaviour must only fire for the form-ready event itself.
   // Without this guard, any later broadcast event (sourceId="*") would also
   // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.
@@ -123,16 +142,5 @@ async function matchJSONataCondition(
   if (event.sourceId !== '*' && !isRunOnFormReady) {
     return false;
   }
-
-  const requestParams = ctx.requestParams;
-  const runtimeContext = ctx.querySource?.runtimeContext ?? { requestParams };
-  const result = await ctx.compiledTemplateEvaluator.evaluate(ctx.behaviourIndex, ['condition'], {
-    value: (event as { value?: unknown }).value,
-    event,
-    formData: ctx.formValue,
-    requestParams,
-    runtimeContext,
-    ...(includeQuerySource ? { querySource: ctx.querySource?.querySource } : {}),
-  });
-  return !!result;
+  return true;
 }

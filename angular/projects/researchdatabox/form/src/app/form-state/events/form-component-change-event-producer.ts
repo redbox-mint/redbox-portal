@@ -43,8 +43,6 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 			return;
 		}
 
-		this.fieldId = fieldId;
-		this.scopedBus = this.eventBus.scoped(fieldId);
 		this.previousValue = control.value;
 
 		const sub = control.valueChanges.subscribe(value => {
@@ -63,11 +61,12 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	}
 
 	private publishInitialValue(value: unknown): void {
-		if (!this.fieldId) {
+		const fieldId = this.fieldId;
+		if (!fieldId) {
 			return;
 		}
 		const baseEvent = createFieldValueChangedEvent({
-			fieldId: this.fieldId,
+			fieldId,
 			formScopeId: (this.options?.formComponent ?? this.formComponent)?.eventScopeId,
 			value,
 			sourceId: FormComponentEventType.FORM_DEFINITION_READY
@@ -91,15 +90,8 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	 * @returns 
 	 */
 	private publishValueChanged(value: unknown, cause: ValueNotificationCause = {}): void {
-
-    // Repeatable descendants keep their controls when earlier rows are removed.
-    // Resolve the current lineage instead of continuing to publish the old index.
-    const currentFieldId = this.options ? this.resolveFieldId(this.options) : undefined;
-    if (currentFieldId && currentFieldId !== this.fieldId) {
-      this.fieldId = currentFieldId;
-      this.scopedBus = this.eventBus.scoped(currentFieldId);
-    }
-		if (!this.fieldId) {
+		const fieldId = this.fieldId;
+		if (!fieldId) {
 			return;
 		}
 
@@ -114,7 +106,7 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 
     // The general channel uses sourceId="*" to indicate broadcast
     const baseEvent = createFieldValueChangedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       formScopeId: (this.options?.formComponent ?? this.formComponent)?.eventScopeId,
       value: valueClone,
       previousValue: previousValueClone,
@@ -125,15 +117,15 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.eventBus.publish(baseEvent);
 
     const scopedEvent = createFieldValueChangedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       formScopeId: (this.options?.formComponent ?? this.formComponent)?.eventScopeId,
       value: valueClone,
       previousValue: previousValueClone,
-      sourceId: this.fieldId,
+      sourceId: fieldId,
       ...cause
     });
 
-    this.scopedBus?.publish(scopedEvent);
+    this.eventBus.scoped(fieldId)?.publish(scopedEvent);
     this.previousValue = valueClone;
   }
 }

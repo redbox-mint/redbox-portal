@@ -9,22 +9,23 @@
  * This gives you an opportunity to set up your data model, run jobs, or perform some special logic.
  */
 const { coreBootstrap, preLiftSetup, createGeneratedBootstrap } = require('@researchdatabox/redbox-core');
-let migrations = [];
-// skip migrations if there are none specified
-try {
-  migrations = require('./migrations').migrations || [];
-} catch (e) {
-  // Only tolerate config/migrations.js itself being absent (e.g. shims not yet
-  // regenerated). A MODULE_NOT_FOUND raised by a require() inside migrations.js
-  // (such as an uninstalled hook) must still fail the lift.
-  const isMigrationsShimMissing = e.code === 'MODULE_NOT_FOUND' && typeof e.message === 'string' && e.message.includes("'./migrations'");
-  if (!isMigrationsShimMissing) throw e;
-  console.warn('[redbox-loader] config/migrations.js not found – skipping data migrations. Regenerate shims to resolve.');
-}
+
+module.exports.bootstrap = function bootstrap(cb) {
+  let migrations = [];
+  // Wait for Sails to load its config. Requiring the sibling shim while scanning
+  // config would make include-all evict it and its dependencies from the cache.
+  try {
+    migrations = require('./migrations').migrations || [];
+  } catch (error) {
+    // A missing dependency inside the migrations shim must still fail the lift.
+    const isMigrationsShimMissing = error.code === 'MODULE_NOT_FOUND' && typeof error.message === 'string' && error.message.includes("'./migrations'");
+    if (!isMigrationsShimMissing) return cb(error);
+    console.warn('[redbox-loader] config/migrations.js not found – skipping data migrations. Regenerate shims to resolve.');
+  }
 
 {{{hookImports}}}
+  const hookBootstraps = [
+{{{hookCalls}}}  ];
 
-const hookBootstraps = [
-{{{hookCalls}}}];
-
-module.exports.bootstrap = createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps, migrations);
+  return createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps, migrations)(cb);
+};

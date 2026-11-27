@@ -93,6 +93,7 @@ import {
 } from '../RecordHttpConcurrency';
 import { GenerationActorContext, GenerationError } from '../model/generation';
 import { requireService } from '../services/generation/require-service';
+import { editableFormRowPaths, formRowSigner, loadedFormRowProofs, FormRowSave, FormSaveInputError } from '../utilities/FormSaveMetadata';
 
 type AnyRecord = Record<string, unknown>;
 type ControllerRecord = AnyRecord & {
@@ -1319,6 +1320,14 @@ export namespace Controllers {
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
+          let rowMetadata;
+          if (editMode && req.query.rowEdits === 'true') {
+            const schema = await FormRecordConsistencyService.buildEditSaveSchema(mergedForm, reusableFormDefs);
+            rowMetadata = {
+              editableRowPaths: editableFormRowPaths(schema),
+              rowProofs: recordData ? loadedFormRowProofs(recordData.metadata, schema, formRowSigner(req, recordData.redboxOid)) : {},
+            };
+          }
           return this.sendResp(req, res, {
             data: mergedForm,
             meta: {
@@ -1335,6 +1344,7 @@ export namespace Controllers {
               formFingerprint,
               ...(representation?.metadata ?? {}),
               ...runtimeMeta,
+              ...rowMetadata,
             },
             prehydrate,
             headers: representation?.headers,
@@ -1348,6 +1358,9 @@ export namespace Controllers {
           });
         }
       } catch (error) {
+        if (error instanceof FormSaveInputError) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: error.message }] });
+        }
         if (error instanceof GenerationError) {
           return this.sendResp(req, res, {
             status: error.status,
@@ -1657,7 +1670,7 @@ export namespace Controllers {
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
-      void this.updateInternal(req, res).catch(error => {
+      return this.updateInternal(req, res).catch(error => {
         this.sendUnexpectedSaveFailure(req, res, 'update', error);
       });
     }
@@ -1673,6 +1686,7 @@ export namespace Controllers {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = this.requestString(req.params, 'oid') ?? '';
       const targetStep = this.requestString(req.query, 'targetStep');
+      const formSave = this.requestString(req.query, 'formSave') === 'true';
       const shouldMerge = this.requestString(req.query, 'merge') === 'true';
       const saveRequest = await this.mutationSaveContext(
         req,
@@ -1688,7 +1702,7 @@ export namespace Controllers {
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
-      const metadata = req.body;
+      let metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
       let currentRec: RecordModel;
@@ -1700,6 +1714,7 @@ export namespace Controllers {
       if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
       }
+      const workflowForm = currentRec.metaMetadata.form ?? '';
       const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
         return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
@@ -1714,8 +1729,21 @@ export namespace Controllers {
       }
 
       let response;
+      let rows: FormRowSave | undefined;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
+        if (formSave) {
+          if (this.requestString(req.query, 'rowEdits') === 'true') {
+            if (!_.isPlainObject(req.body?.rowEdits)) throw new FormSaveInputError('Invalid repeatable row edits.');
+            rows = new FormRowSave(req.body.rowEdits, formRowSigner(req, oid));
+            metadata = req.body.metadata;
+          }
+          if (!_.isPlainObject(metadata)) throw new FormSaveInputError('Invalid form save payload.');
+          metadata = await this.mergeFormSaveMetadata(
+            req, brand, currentRec, metadata, saveRequest.context.routeForm?.formName ?? workflowForm, rows
+          );
+        }
+        const expected = rows ? _.cloneDeep(metadata) : undefined;
         response = await this.recordsService.updateMeta(
           brand,
           oid,
@@ -1724,7 +1752,7 @@ export namespace Controllers {
           true,
           true,
           nextStepResp,
-          shouldMerge ? { metadata, mode: 'merge', arrayMergeMode: 'replace' } : { metadata, mode: 'replace' },
+          shouldMerge && !formSave ? { metadata, mode: 'merge', arrayMergeMode: 'replace' } : { metadata, mode: 'replace' },
           saveRequest.context
         );
         sails.log.verbose(JSON.stringify(response));
@@ -1754,10 +1782,19 @@ export namespace Controllers {
               )
             );
           }
+          const confirmation = rows && savedRecord
+            ? rows.savedConfirmation(expected!, savedRecord.metadata)
+            : undefined;
+          const reloadEditForm = !!(formSave && nextStepResp && (savedRecord?.metaMetadata.form ?? '') !== workflowForm);
+          const formSaveResult = { ...confirmation, ...(reloadEditForm ? { reloadEditForm } : {}) };
           return this.sendResp(req, res, {
-            data: savedRecord,
-            meta: { ...response },
-            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
+            data: formSave ? {
+              redboxOid: oid,
+              metaMetadata: { form: savedRecord?.metaMetadata.form },
+              workflow: { stage: savedRecord?.workflow?.stage },
+            } : savedRecord,
+            meta: { ...response, ...formSaveResult },
+            ...(this.getApiVersion(req) === '1.0' ? { v1: { ...this.legacySaveBody(response), ...formSaveResult } } : {}),
             headers: recordSaveResultHeaders(response),
           });
         } else {
@@ -1767,8 +1804,44 @@ export namespace Controllers {
           return this.sendSaveFailure(req, res, response, 'Failed to get record data');
         }
       } catch (error) {
+        if (error instanceof FormSaveInputError) {
+          return this.sendResp(req, res, {
+            status: 400, displayErrors: [{ detail: error.message }],
+            v1: { success: false, message: error.message },
+          });
+        }
         return this.sendUnexpectedSaveFailure(req, res, 'update', error, response);
       }
+    }
+
+    private assertNamedEditFormType(formName: string, record: RecordModel, form: FormAttributes | null): void {
+      const type = form?.configuration?.type;
+      if (formName && formName !== record.metaMetadata.form && type && type !== record.metaMetadata.type) {
+        throw new FormSaveInputError('This edit form belongs to a different record type.');
+      }
+    }
+
+    private async mergeFormSaveMetadata(req: Sails.Req, brand: BrandingModel, record: RecordModel, metadata: AnyRecord, formName: string, rows?: FormRowSave): Promise<AnyRecord> {
+      const form = await FormsService.getForm(brand, formName, true, '', record);
+      if (!form?.configuration) {
+        throw new Error(`Form configuration not found for record: ${record.redboxOid}`);
+      }
+      this.assertNamedEditFormType(formName, record, form);
+      const userRoles = ((req.user?.['roles'] ?? []) as RoleModel[]).map(role => role.name);
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
+      const contextVariables = ContextVariableUtils.evaluateContextVariables(req, record);
+      const clientFormConfig = await FormsService.buildClientFormConfig(
+        form.configuration, 'edit', userRoles, record.metadata, reusableFormDefs, brand.name, contextVariables,
+        { user: req.user as UserModel, brand, record, ...(typeof req.session?.portal === 'string' ? { portal: req.session.portal } : {}) },
+        false,
+        true,
+        { hydrateVocabulary: false }
+      );
+      const original = { redboxOid: record.redboxOid, metadata: record.metadata };
+      const merged = await FormRecordConsistencyService.mergeRecordClientFormConfig(
+        original, { redboxOid: record.redboxOid, metadata }, clientFormConfig, 'edit', reusableFormDefs, { partialFormSave: true, rows }
+      );
+      return merged.metadata;
     }
 
     //TODO: check if this deprecated?
