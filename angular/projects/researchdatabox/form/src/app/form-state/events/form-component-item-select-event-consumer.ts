@@ -30,7 +30,9 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     FormComponentEventType.FIELD_ITEM_SELECTED;
 
   private onItemSelect?: { rawPath: string; clearValue?: unknown };
-  private ownPointer?: string;
+  private get ownPointer(): string | undefined {
+    return this.options?.definition?.lineagePaths?.angularComponentsJsonPointer;
+  }
 
   constructor(eventBus: FormComponentEventBus) {
     super(eventBus);
@@ -51,7 +53,6 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       return;
     }
 
-    this.ownPointer = options.definition?.lineagePaths?.angularComponentsJsonPointer;
     if (!this.ownPointer) {
       this.logDebug(
         'FormComponentItemSelectEventConsumer: No JSON pointer available. Item select events will not be consumed.'
@@ -177,15 +178,16 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
    * form configs that rely on item selection only affecting adjacent fields.
    */
   private isSiblingEvent(event: FieldItemSelectedEvent): boolean {
-    if (!this.ownPointer || !event.fieldId) {
+    const ownPointer = this.ownPointer;
+    if (!ownPointer || !event.fieldId) {
       return false;
     }
     // Don't consume events from self
-    if (event.fieldId === this.ownPointer) {
+    if (event.fieldId === ownPointer) {
       return false;
     }
     const eventParent = this.getParentPointer(event.fieldId);
-    const ownParent = this.getParentPointer(this.ownPointer);
+    const ownParent = this.getParentPointer(ownPointer);
     if (eventParent === null || ownParent === null) {
       return false;
     }

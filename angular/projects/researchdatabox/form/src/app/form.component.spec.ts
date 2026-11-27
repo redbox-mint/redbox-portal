@@ -3,7 +3,7 @@ import { Location } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
+import { TypeaheadModule, type TypeaheadMatch } from 'ngx-bootstrap/typeahead';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
@@ -1666,6 +1666,80 @@ describe('FormComponent', () => {
       ]);
     });
   }
+
+  it('keeps creator lookup events scoped to their committed rows after importing and adding a creator', async () => {
+    const { config, assets } = creatorImportConfig([]);
+    const creatorTemplate = '$map(event.value.contributor_ci, function($creator) {{"family_name": $creator.family_name, "given_name": $creator.given_name}})';
+    config.componentDefinitions = [{
+      name: 'creators',
+      expressions: config.componentDefinitions![0].expressions,
+      model: { class: 'RepeatableModel', config: { value: [{ family_name: 'Original', given_name: 'Pat' }] } },
+      component: { class: 'RepeatableComponent', config: { elementTemplate: {
+        name: '',
+        model: { class: 'GroupModel', config: {} },
+        component: { class: 'GroupComponent', config: { componentDefinitions: [{
+          name: 'family_name',
+          component: { class: 'TypeaheadInputComponent', config: { sourceType: 'static', valueMode: 'value' } },
+          model: { class: 'TypeaheadInputModel', config: {} },
+        }, {
+          name: 'given_name',
+          component: { class: 'SimpleInputComponent', config: { onItemSelect: { rawPath: 'given_name' } } },
+          model: { class: 'SimpleInputModel', config: {} },
+        }] } },
+      } } },
+    }];
+    const evaluate = assets.entries[0].callable;
+    assets.entries[0].callable = (key, path, context) =>
+      path[0] === 'componentDefinitions' && path[path.length - 3] === 1
+        ? jsonataCompileAndEvaluate(creatorTemplate, context) : evaluate(key, path, context);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, assets);
+    const path = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['original'] },
+    };
+    spyOn(formComponent.recordService, 'getRecordMeta').and.resolveTo({
+      contributor_ci: [{ family_name: 'Imported', given_name: 'Sam' }],
+    });
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['imported', 'manual'] },
+    });
+    const bus = TestBed.inject(FormComponentEventBus);
+    fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
+      fieldId: '/dataRecord', sourceId: '*', value: { oid: 'source' }, previousValue: { oid: 'old-source' },
+    })));
+    await fixture.whenStable();
+    expect(formComponent.form!.get('creators')?.value).toEqual([{ family_name: 'Imported', given_name: 'Sam' }]);
+
+    const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+    await fixture.ngZone!.run(() => repeatable.appendNewElement());
+    const selectFamily = (row: number, family: string, given: string) => {
+      const entry = repeatable.formFieldCompMapEntries[row].component!.formFieldCompMapEntries[0];
+      const typeahead = entry.component as TypeaheadInputComponent;
+      fixture.ngZone!.run(() => typeahead.onSelect({
+        item: { value: family, label: family, raw: { given_name: given } },
+      } as TypeaheadMatch));
+    };
+    selectFamily(1, 'Manual', 'Alex');
+    await fixture.whenStable();
+    expect(formComponent.form!.get(['creators', 0, 'given_name'])?.value).toBe('Sam');
+    selectFamily(0, 'Edited import', 'Jordan');
+    await fixture.whenStable();
+
+    const metadata = { creators: [
+      { family_name: 'Edited import', given_name: 'Jordan' },
+      { family_name: 'Manual', given_name: 'Alex' },
+    ] };
+    await formComponent.saveForm();
+    await formComponent.saveForm({ force: true, targetStep: 'review' });
+    expect(update.calls.allArgs()).toEqual([
+      ['publication', metadata, '', { formSave: true, rowEdits: { [path]: [null, null] } }],
+      ['publication', metadata, 'review', { formSave: true, rowEdits: { [path]: [
+        { source: 0, proof: 'imported' }, { source: 1, proof: 'manual' },
+      ] } }],
+    ]);
+  });
 
   it('clears omitted funding bodies on review while retaining disabled funders and creators', async () => {
     const { config, assets } = creatorImportConfig([]);

@@ -12,6 +12,7 @@ import {
   FormConfigFrame,
   GroupFieldComponentName,
   isTypeFieldDefinitionName,
+  LineagePaths,
   RepeatableComponentName,
   isStaticallyDisabledFormField,
   RepeatableElementLayoutName,
@@ -624,7 +625,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         dataModel: [indexStr],
         formConfig: ['component', 'config', 'elementTemplate'],
       });
-      this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
+      const entry = this.compDefMapEntries[index].defEntry;
+      const previous = entry.lineagePaths;
+      entry.lineagePaths = lineagePath;
+      if (previous && previous.angularComponentsJsonPointer !== lineagePath.angularComponentsJsonPointer) {
+        this.rebaseDescendantPaths(entry, previous, lineagePath);
+      }
     }
     if (!this.shouldEmitComponentEvents(options)) {
       return;
@@ -635,6 +641,22 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         sourceId: this.formFieldConfigName() || undefined,
       })
     );
+  }
+
+  private rebaseDescendantPaths(entry: FormFieldCompMapEntry, previous: LineagePaths, current: LineagePaths): void {
+    for (const child of entry.component?.formFieldCompMapEntries ?? []) {
+      const paths = child.lineagePaths;
+      if (paths) {
+        // Compiled expressions still use the same template path after a row moves.
+        child.lineagePaths = this.formService.buildLineagePaths({
+          ...paths,
+          angularComponents: [...current.angularComponents, ...paths.angularComponents.slice(previous.angularComponents.length)],
+          dataModel: [...current.dataModel, ...paths.dataModel.slice(previous.dataModel.length)],
+          layout: [...current.layout, ...paths.layout.slice(previous.layout.length)],
+        });
+      }
+      this.rebaseDescendantPaths(child, previous, current);
+    }
   }
 
   protected createFieldNewMapEntry(
