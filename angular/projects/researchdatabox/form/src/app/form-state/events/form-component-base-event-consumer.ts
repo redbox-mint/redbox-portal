@@ -357,7 +357,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
       const application = applyExpressions(event);
       const imports = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? event[recordImportApplications] : undefined;
-      if (imports) imports.push(application);
+      if (imports) imports.pending.push(application);
       else await application;
     });
     this.subscriptions.set(eventType, sub);

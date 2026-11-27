@@ -21,7 +21,7 @@ import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-templat
  */
 export interface BehaviourConditionMatchContext {
   querySource: FormComponentEventQuerySource | undefined;
-  compiledTemplateEvaluator: BehaviourCompiledTemplateEvaluator;
+  getCompiledTemplateEvaluator: () => Promise<BehaviourCompiledTemplateEvaluator>;
   behaviourIndex: number;
   formValue: Record<string, unknown>;
   requestParams: Record<string, unknown>;
@@ -101,7 +101,8 @@ async function matchJSONataCondition(
 
   const requestParams = ctx.requestParams;
   const runtimeContext = ctx.querySource?.runtimeContext ?? { requestParams };
-  const result = await ctx.compiledTemplateEvaluator.evaluate(ctx.behaviourIndex, ['condition'], {
+  const evaluator = await ctx.getCompiledTemplateEvaluator();
+  const result = await evaluator.evaluate(ctx.behaviourIndex, ['condition'], {
     value: (event as { value?: unknown }).value,
     event,
     formData: ctx.formValue,

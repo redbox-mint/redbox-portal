@@ -1645,10 +1645,78 @@ describe('FormComponent', () => {
     ]);
   });
 
-  for (const failure of ['OID transform', 'HTTP fetch', 'creator expression', 'description expression', 'row application'] as const) {
+  it('clears the previous data manager when the newly selected record omits it', async () => {
+    const { config, assets } = creatorImportConfig([]);
+    const managerTemplate = 'event.value.`contributor_data_manager`';
+    config.componentDefinitions!.push({
+      name: 'contributor_data_manager',
+      component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+      model: { class: 'SimpleInputModel' },
+      expressions: [{
+        name: 'data-manager-from-data-record',
+        config: {
+          conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
+          target: 'model.value', hasTemplate: true, template: managerTemplate,
+        },
+      }],
+    }, {
+      name: 'dataRecord',
+      component: { class: 'SimpleInputComponent' },
+      model: { class: 'SimpleInputModel' },
+    });
+    const evaluate = assets.entries[0].callable;
+    assets.entries[0].callable = (key, path, context) =>
+      path[0] === 'componentDefinitions' && path[1] === 1
+        ? jsonataCompileAndEvaluate(managerTemplate, context) : evaluate(key, path, context);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, assets);
+    const manager = [{ family_name: 'Manager from A' }];
+    const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
+    fetch.withArgs('data-a').and.resolveTo({ contributor_data_manager: manager });
+    fetch.withArgs('data-b').and.resolveTo({ contributor_ci: [{ family_name: 'Creator from B' }] });
+    const create = spyOn(formComponent.recordService, 'create').and.resolveTo({
+      success: true, oid: 'new-draft', message: '', data: null,
+    });
+    spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+    spyOn(fixture.debugElement.injector.get(Location), 'replaceState').and.stub();
+    const bus = TestBed.inject(FormComponentEventBus);
+    const select = async (oid: string) => {
+      const field = formComponent.form!.get('dataRecord')!;
+      const previousValue = field.value;
+      fixture.ngZone!.run(() => {
+        field.setValue({ oid }, { emitEvent: false });
+        bus.publish(createFieldValueChangedEvent({ fieldId: '/dataRecord', sourceId: '*', value: { oid }, previousValue }));
+      });
+      await fixture.whenStable();
+    };
+
+    await select('data-a');
+    expect(formComponent.form!.get('contributor_data_manager')?.value).toEqual(manager);
+    await select('data-b');
+    await formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledOnceWith({
+      creators: [{ name: 'Creator from B' }], contributor_data_manager: null, dataRecord: { oid: 'data-b' },
+    }, 'dataPublication', '');
+  });
+
+  for (const failure of [
+    'compiled-template load', 'debounced compiled-template load', 'OID transform', 'HTTP fetch',
+    'creator expression', 'description expression', 'templated description expression', 'row application',
+  ] as const) {
     it(`blocks first save after a failed ${failure} and applies the same-OID retry`, async () => {
       const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);
       const descriptionTemplate = 'event.value.description ?: ""';
+      const templatedEmission = failure === 'templated description expression';
+      const descriptionFailure = failure === 'description expression' || templatedEmission;
+      const compiledLoadFailure = failure === 'compiled-template load' || failure === 'debounced compiled-template load';
+      if (failure === 'debounced compiled-template load') config.behaviours![0].debounceMs = 25;
+      const valueTemplate = '{"description": value.description & " (formatted)", "contributor_ci": value.contributor_ci}';
+      const creatorTemplate = '[{"name": event.value.contributor_ci[0].family_name}]';
+      if (templatedEmission) {
+        Object.assign(config.behaviours![0].actions![0].config, { hasValueTemplate: true, valueTemplate });
+        Object.assign(config.componentDefinitions![0].expressions![1].config, { template: creatorTemplate });
+      }
       config.componentDefinitions!.push({
         name: 'description',
         component: { class: 'SimpleInputComponent' },
@@ -1673,17 +1741,27 @@ describe('FormComponent', () => {
         if (!templateFailed && (
           (failure === 'OID transform' && path.includes('processors')) ||
           (failure === 'creator expression' && path.includes('expressions') && !description && path[path.length - 3] === 1) ||
-          (failure === 'description expression' && description)
+          (descriptionFailure && description)
         )) {
           templateFailed = true;
           throw new Error(`Temporary ${failure} failure`);
         }
-        return description ? jsonataCompileAndEvaluate(descriptionTemplate, context) : evaluate(key, path, context);
+        if (description) return jsonataCompileAndEvaluate(descriptionTemplate, context);
+        if (templatedEmission && path.includes('actions')) return jsonataCompileAndEvaluate(valueTemplate, context);
+        if (templatedEmission && path.includes('expressions') && path[path.length - 3] === 1) {
+          return jsonataCompileAndEvaluate(creatorTemplate, context);
+        }
+        return evaluate(key, path, context);
       };
       const { fixture, formComponent } = await createFormAndWaitForReady(config, {
         oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
       }, undefined, assets);
       const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+      const loadedRow = formComponent.form!.get(['creators', 0]);
+      const loadCompiledItems = spyOn(formComponent, 'getRecordCompiledItems').and.callThrough();
+      if (compiledLoadFailure) {
+        loadCompiledItems.and.rejectWith(new Error('Temporary compiled-template load failure'));
+      }
       if (failure === 'row application') {
         let failApplication = true;
         const append = repeatable.appendNewElement.bind(repeatable);
@@ -1696,12 +1774,13 @@ describe('FormComponent', () => {
         });
       }
       let failFetch = failure === 'HTTP fetch';
+      const creatorName = templatedEmission ? 'Previous creator' : 'Imported creator';
       const fetch = spyOn(formComponent.recordService, 'getRecordMeta').and.callFake(async () => {
         if (failFetch) {
           failFetch = false;
           throw new Error('Temporary HTTP failure');
         }
-        return { contributor_ci: [{ family_name: 'Imported creator' }], description: 'Imported description' };
+        return { contributor_ci: [{ family_name: creatorName }], description: 'Imported description' };
       });
       const create = spyOn(formComponent.recordService, 'create').and.resolveTo({
         success: true, oid: 'new-draft', message: '', data: null,
@@ -1719,20 +1798,27 @@ describe('FormComponent', () => {
         await fixture.whenStable();
       };
       await select('old-link');
-      if (failure !== 'description expression') {
+      if (!descriptionFailure) {
         expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Previous creator' }]);
       }
-      if (failure === 'description expression') {
+      if (descriptionFailure) {
         expect(formComponent.form!.get('description')?.value).toBe('Previous description');
       }
       await formComponent.saveForm({ force: true });
       expect(create).not.toHaveBeenCalled();
 
+      loadCompiledItems.and.callThrough();
       await select('new-link');
-      expect(fetch.calls.allArgs()).toEqual(failure === 'OID transform' ? [['new-link']] : [['new-link'], ['new-link']]);
+      const fetchFailedBeforeRequest = compiledLoadFailure || failure === 'OID transform';
+      expect(fetch.calls.allArgs()).toEqual(fetchFailedBeforeRequest ? [['new-link']] : [['new-link'], ['new-link']]);
+      if (templatedEmission) expect(formComponent.form!.get(['creators', 0])).toBe(loadedRow);
       await formComponent.saveForm({ force: true });
       expect(create).toHaveBeenCalledOnceWith(
-        { creators: [{ name: 'Imported creator' }], description: 'Imported description', dataRecord: { oid: 'new-link' } },
+        {
+          creators: [{ name: creatorName }],
+          description: templatedEmission ? 'Imported description (formatted)' : 'Imported description',
+          dataRecord: { oid: 'new-link' },
+        },
         'dataPublication', '',
       );
     });

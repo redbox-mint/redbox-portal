@@ -88,7 +88,9 @@ async function executeEmitEventAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  // A value template may emit unrelated data, so leave row-import intent on direct emissions only.
   const recordImport = action.config.hasValueTemplate ? undefined : ctx.recordImport;
+  const fetchedMetadata = ctx.recordImport && ctx.recordImport !== 'no-import';
   const applications: Promise<void>[] = [];
   ctx.eventBus.publish(
     createFieldValueChangedEvent({
@@ -96,7 +98,9 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       ...(recordImport ? { recordImport } : {}),
-      ...(recordImport && recordImport !== 'no-import' ? { [recordImportApplications]: applications } : {}),
+      ...(fetchedMetadata ? {
+        [recordImportApplications]: { changedSelection: ctx.recordImport === 'changed-selection', pending: applications },
+      } : {}),
     })
   );
   // The event bus delivers synchronously, and expression consumers register before awaiting anything.

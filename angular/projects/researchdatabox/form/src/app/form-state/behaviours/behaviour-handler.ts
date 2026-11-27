@@ -87,7 +87,7 @@ export class BehaviourHandler {
       tap(() => this.pendingMetadataLoads++),
       concatMap(async event => {
         try {
-          if (!await this.matches(event, await this.getCompiledTemplateEvaluator())) return null;
+          if (!await this.matches(event)) return null;
           this.queuedMetadataLoad = true;
           // Preserve a changed selection when a same-OID event replaces it during the debounce.
           this.trackSelection(event);
@@ -163,11 +163,11 @@ export class BehaviourHandler {
     return undefined;
   }
 
-  private matches(event: FormComponentEvent, evaluator: BehaviourCompiledTemplateEvaluator): Promise<boolean> {
+  private matches(event: FormComponentEvent): Promise<boolean> {
     return matchBehaviourCondition(
       this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
         behaviourIndex: this.behaviourIndex,
-        compiledTemplateEvaluator: evaluator,
+        getCompiledTemplateEvaluator: () => this.getCompiledTemplateEvaluator(),
         formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
         requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
         querySource: this.getEventQuerySource(event),
@@ -208,10 +208,10 @@ export class BehaviourHandler {
     const fetchesMetadata = this.fetchesMetadata();
     if (fetchesMetadata) this.pendingMetadataLoads++;
     try {
-      const evaluator = await this.getCompiledTemplateEvaluator();
-      if (!conditionMatched && !await this.matches(event, evaluator)) return;
+      if (!conditionMatched && !await this.matches(event)) return;
 
       const selection = fetchesMetadata ? this.trackSelection(event) : undefined;
+      await this.getCompiledTemplateEvaluator();
       const selectedOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.value) : '';
       let value = (event as { value?: unknown }).value;
       let recordImport: FieldValueChangedEvent['recordImport'] = fetchesMetadata ? 'no-import' : undefined;
