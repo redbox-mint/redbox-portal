@@ -2253,38 +2253,60 @@ describe('FormComponent', () => {
       });
       const initialize = FormBaseWrapperComponent.prototype.initWrapperComponent;
       let finishImport!: () => void;
-      let notifyHeld!: () => void;
+      let notifyImportHeld!: () => void;
       const resumeImport = new Promise<void>(resolve => { finishImport = resolve; });
-      const rowHeld = new Promise<void>(resolve => { notifyHeld = resolve; });
+      const importHeld = new Promise<void>(resolve => { notifyImportHeld = resolve; });
+      let finishManual!: () => void;
+      let notifyManualHeld!: () => void;
+      const resumeManual = new Promise<void>(resolve => { finishManual = resolve; });
+      const manualHeld = new Promise<void>(resolve => { notifyManualHeld = resolve; });
       spyOn(FormBaseWrapperComponent.prototype, 'initWrapperComponent').and.callFake(async function (
         this: FormBaseWrapperComponent<unknown>, entry, omitLayout
       ) {
         const component = await initialize.call(this, entry, omitLayout);
-        if ((entry?.model?.initValue as { name?: string })?.name === 'Imported B') {
-          notifyHeld();
+        const name = (entry?.model?.initValue as { name?: string })?.name;
+        if (name === 'Imported B') {
+          notifyImportHeld();
           await resumeImport;
+        }
+        if (name === 'Manual B') {
+          notifyManualHeld();
+          await resumeManual;
         }
         return component;
       });
 
       select('source-a');
-      await rowHeld;
+      await importHeld;
       const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
       const rowButtons = (action: string): HTMLButtonElement[] =>
         Array.from(fixture.nativeElement.querySelectorAll(`.rb-form-repeatable-item__${action}`));
+      const creatorControl = formComponent.form!.get('creators')!;
+      let manualAdd: Promise<void> | undefined;
       try {
         await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual A' }));
-        await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual B' }));
+        manualAdd = fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual B' }));
+        await manualHeld;
         fixture.detectChanges();
         expect(rowButtons('remove').length).toBeGreaterThan(0);
         expect(rowButtons('move-down').length).toBeGreaterThan(0);
         expect([...rowButtons('remove'), ...rowButtons('move-down')].every(button => button.disabled)).toBeTrue();
-        expect(formComponent.form!.get('creators')?.value).toEqual(
-          ['Original creator', 'Manual A', 'Manual B'].map(name => ({ name }))
-        );
+        expect(creatorControl.value).toEqual(['Original creator', 'Manual A'].map(name => ({ name })));
+
+        fixture.ngZone!.run(finishImport);
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(creatorControl.value).toEqual(['Imported A', 'Imported B', 'Manual A'].map(name => ({ name })));
+        expect(rowButtons('move-down').length).toBeGreaterThan(0);
+        expect(rowButtons('move-down').every(button => button.disabled)).toBeTrue();
+        await formComponent.saveForm({ force: true });
+        await formComponent.saveForm({ force: true, targetStep: 'review' });
+        expect(update).not.toHaveBeenCalled();
       } finally {
         fixture.ngZone!.run(finishImport);
+        fixture.ngZone!.run(finishManual);
       }
+      await manualAdd;
       await fixture.whenStable();
       fixture.detectChanges();
 

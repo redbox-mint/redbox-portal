@@ -134,6 +134,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return this.isDisabled || this.model?.fieldConfig.config?.disabled === true;
   }
 
+  private get rowControlsAligned(): boolean {
+    const controls = this.model?.formControl?.controls;
+    return !!controls && controls.length === this.compDefMapEntries.length &&
+      this.compDefMapEntries.every((entry, index) => entry.defEntry.model?.formControl === controls[index]);
+  }
+
   protected get canChangeRows(): boolean {
     const array = this.model?.formControl;
     return !!array && this.getFormComponent.canEditRepeatable(array, this.readOnlyRows);
@@ -573,7 +579,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const stagedRows: RepeatableElementEntry[] | undefined = stage ? [] : undefined;
     let complete = false;
     const discardImport = stage && array
-      ? this.getFormComponent.importRows(array, () => complete && array.length === this.compDefMapEntries.length)
+      ? this.getFormComponent.importRows(array, () => complete && this.rowControlsAligned)
       : undefined;
     if (!stage) {
       if (array) this.getFormComponent.forgetLoadedRows(array);
@@ -734,8 +740,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
       return wrapperRef;
     }
-    // Staged rows have display indexes but no corresponding form-array positions yet.
-    layoutInstance.parentDisabled = () => this.rowsDisabled || this.compDefMapEntries.some(entry => entry.staged);
+    layoutInstance.parentDisabled = () => this.rowsDisabled || !this.rowControlsAligned;
     layoutInstance.canChangeRows = () => this.canChangeRows;
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
@@ -817,7 +822,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public moveElementFn(elemEntry: RepeatableElementEntry, delta: -1 | 1, options?: RepeatableSetValueOptions) {
     const that = this;
     return function () {
-      if (!that.canSort || that.rowsDisabled) {
+      if (!that.canSort || that.rowsDisabled || !that.rowControlsAligned) {
         return;
       }
       const fromIndex = that.compDefMapEntries.findIndex(entry => entry.localUniqueId === elemEntry.localUniqueId);
