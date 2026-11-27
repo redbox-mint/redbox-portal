@@ -17,8 +17,8 @@ async function waitForRender(mount, expected) {
 test('served ReDoc bundle includes patched DOMPurify and renders untrusted API descriptions safely', async () => {
   const { JSDOM } = core('jsdom');
   const bundle = fs.readFileSync(path.resolve(__dirname, '../../.tmp/public/default/default/js/redoc.standalone.js'), 'utf8');
-  assert.match(bundle, /3\.4\.17/);
-  assert.doesNotMatch(bundle, /version=["']3\.4\.(?:6|13|16)["']/);
+  assert.match(bundle, /3\.4\.18/);
+  assert.doesNotMatch(bundle, /version=["']3\.4\.(?:6|13|16|17)["']/);
   const dom = new JSDOM('<div id="redoc"></div>', { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
   const { window } = dom;
   const stringCompilation = [];
