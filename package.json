@@ -285,7 +285,7 @@
     "sinon": "22.1.0",
     "supertest": "7.3.2",
     "svgo": "4.1.0",
-    "ts-json-schema-generator": "2.9.0",
+    "ts-json-schema-generator": "2.10.0",
     "typedoc": "0.28.20"
   },
   "nyc": {
