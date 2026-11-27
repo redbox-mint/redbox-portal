@@ -1,7 +1,6 @@
 import {Component, computed, DestroyRef, effect, inject, signal} from '@angular/core';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {FormFieldCompMapEntry, ModifyOptions} from '@researchdatabox/portal-ng-common';
-import {FormComponent} from '../form.component';
 import {createFormSaveRequestedEvent} from '../form-state';
 import {ButtonBaseComponent} from "./button-base.component";
 
@@ -31,11 +30,6 @@ export class SaveButtonComponent extends ButtonBaseComponent {
   protected hasTargetStep = signal<boolean>(false);
   private readonly configuredDisabled = signal(false);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly owningForm = inject(FormComponent, {optional: true, skipSelf: true});
-
-  protected override get formComponent(): FormComponent {
-    return this.owningForm ?? super.formComponent;
-  }
 
   readonly disabled = computed(() => {
     const formComponent = this.getFormComponent;

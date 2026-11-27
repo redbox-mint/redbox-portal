@@ -317,12 +317,12 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
     const control = this.formControl;
     if (!this.enableTimePicker || !(control instanceof DateInputFormControl) || !(control.value instanceof Date)) return;
 
-    const day = DateTime.fromJSDate(control.value).toFormat('yyyy-MM-dd');
-    const date = DateTime.fromISO(`${day}T${timeValue}:00.000Z`);
-    if (!date.isValid || date.toMillis() === control.value.getTime()) return;
+    const day = DateTime.fromJSDate(control.value).toISODate();
+    const date = DateTime.fromISO(`${day}T${timeValue}:00.000`);
+    if (!date.isValid || date.toISODate() !== day || date.toMillis() === control.value.getTime()) return;
 
     control.markAsDirty();
-    // Emit the value and validation changes without writing the time back through the datepicker.
+    // The datepicker already displays this local day. Emit the change for validation and Save.
     control.setValue(date.toJSDate(), { emitModelToViewChange: false });
   }
 }

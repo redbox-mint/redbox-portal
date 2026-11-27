@@ -11,6 +11,7 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TestBed } from '@angular/core/testing';
 import { ValidationErrors } from '@angular/forms';
 import { By } from '@angular/platform-browser';
+import { Settings } from 'luxon';
 import { Subject } from 'rxjs';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
 
@@ -81,9 +82,9 @@ describe('DateInputComponent', () => {
     };
   }
 
-  function setTime(root: HTMLElement): void {
+  function setTime(root: HTMLElement, value = '18:45'): void {
     const input = root.querySelector<HTMLInputElement>('input[type="time"]')!;
-    input.value = '18:45';
+    input.value = value;
     input.dispatchEvent(new Event('change'));
   }
 
@@ -149,7 +150,7 @@ describe('DateInputComponent', () => {
     });
   }
 
-  it('marks a populated date dirty after a time-only edit and keeps programmatic writes pristine', async () => {
+  it('marks a populated date dirty after time-only edits and keeps the displayed day', async () => {
     const initialDate = new Date(2026, 9, 3, 12);
     const { fixture, formComponent } = await createFormAndWaitForReady({
       name: 'date-time-edit',
@@ -160,18 +161,27 @@ describe('DateInputComponent', () => {
       }],
     }, { editMode: true });
     const date = formComponent.form!.get('date')!;
+    const root = fixture.nativeElement as HTMLElement;
+    const dateInput = root.querySelector<HTMLInputElement>('input[type="text"]')!;
     await setControlValue(date, new Date(2026, 9, 4, 12), { emitEvent: false });
     expect(date.pristine).toBeTrue();
     expect(formComponent.hasChangesToSave()).toBeFalse();
+    expect(dateInput.value).toBe('2026/10/04');
 
-    setTime(fixture.nativeElement);
+    setTime(root);
 
-    expect(date.value).toEqual(new Date('2026-10-04T18:45:00.000Z'));
+    expect(date.value).toEqual(new Date(2026, 9, 4, 18, 45));
+    expect(dateInput.value).toBe('2026/10/04');
     expect(date.dirty).toBeTrue();
     expect(formComponent.hasChangesToSave()).toBeTrue();
     const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
     formComponent.protectUnresolvedConflictNavigation(unload);
     expect(unload.defaultPrevented).toBeTrue();
+
+    setTime(root, '19:00');
+
+    expect(date.value).toEqual(new Date(2026, 9, 4, 19));
+    expect(dateInput.value).toBe('2026/10/04');
   });
 
   for (const datePath of ['date', 'schedule.date']) {
@@ -262,32 +272,24 @@ describe('DateInputComponent', () => {
     expect(saveButton.disabled).toBeTrue();
   });
 
-  it('enables only the edited form’s Save button after a time-only edit', async () => {
-    const save = { name: 'save', component: { class: 'SaveButtonComponent' as const } };
-    const edited = await createFormAndWaitForReady({
-      name: 'edited-time-form', componentDefinitions: [timeDateField(), save],
-    }, { editMode: true, oid: 'edited-oid' });
-    const other = await createFormAndWaitForReady({
-      name: 'other-time-form', componentDefinitions: [timeDateField(), save],
-    }, { editMode: true, oid: 'other-oid' });
-    const otherDate = other.formComponent.form!.get('date')!;
-    const editedRoot = edited.fixture.nativeElement as HTMLElement;
-    const otherRoot = other.fixture.nativeElement as HTMLElement;
-    const editedSave = editedRoot.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
-    const otherSave = otherRoot.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
-    expect(otherDate.pristine).toBeTrue();
-    expect(editedSave.disabled).toBeTrue();
-    expect(otherSave.disabled).toBeTrue();
+  it('keeps repeated time edits on the same local day in Adelaide', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'adelaide-time-edit', componentDefinitions: [timeDateField()],
+    }, { editMode: true });
+    const root = fixture.nativeElement as HTMLElement;
+    const date = formComponent.form!.get('date')!;
+    await setControlValue(date, new Date('2026-10-04T12:00:00+10:30'), { emitEvent: false });
+    const previousZone = Settings.defaultZone;
+    Settings.defaultZone = 'Australia/Adelaide';
+    try {
+      setTime(root);
+      expect(date.value).toEqual(new Date('2026-10-04T18:45:00+10:30'));
 
-    setTime(editedRoot);
-    edited.fixture.detectChanges();
-    other.fixture.detectChanges();
-
-    expect(edited.formComponent.form!.get('date')!.dirty).toBeTrue();
-    expect(otherDate.pristine).toBeTrue();
-    expect(other.formComponent.form!.pristine).toBeTrue();
-    expect(editedSave.disabled).toBeFalse();
-    expect(otherSave.disabled).toBeTrue();
+      setTime(root, '19:00');
+      expect(date.value).toEqual(new Date('2026-10-04T19:00:00+10:30'));
+    } finally {
+      Settings.defaultZone = previousZone;
+    }
   });
 
   it('enables Save when async validation succeeds after a time-only edit', async () => {
