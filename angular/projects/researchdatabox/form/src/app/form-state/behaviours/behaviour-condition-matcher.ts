@@ -4,7 +4,7 @@ import {
   FormBehaviourConfigFrame,
   getObjectWithJsonPointer,
 } from '@researchdatabox/sails-ng-common';
-import { FormComponentEvent } from '../events/form-component-event.types';
+import { FormComponentEvent, FormComponentEventType } from '../events/form-component-event.types';
 import {
   FormComponentEventQuerySource,
   getEventJSONPointerCondition,
@@ -25,6 +25,11 @@ export interface BehaviourConditionMatchContext {
   behaviourIndex: number;
   formValue: Record<string, unknown>;
   requestParams: Record<string, unknown>;
+}
+
+function isFormReady(event: FormComponentEvent, behaviour: FormBehaviourConfigFrame): boolean {
+  return (event.sourceId === FormComponentEventType.FORM_DEFINITION_READY && behaviour.runOnFormReady !== false) ||
+    (event.type === FormComponentEventType.FORM_DEFINITION_READY && behaviour.runOnFormReady === true);
 }
 
 export async function matchBehaviourCondition(
@@ -72,7 +77,7 @@ export function matchJSONPointerCondition(
   const hasMatchedTargetEvent = pointerCondition.event === '*' || pointerCondition.event === querySource.event.type;
   const hasScopedMatch = ref !== undefined && pointerCondition.jsonPointer === event.sourceId;
   const eventFieldId = event.fieldId || '';
-  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  const isRunOnFormReady = isFormReady(event, behaviourConfig);
   const hasPointerMatch =
     pointerCondition.jsonPointer === '' ||
     eventFieldId === pointerCondition.jsonPointer ||
@@ -114,7 +119,7 @@ async function matchJSONataCondition(
 }
 
 export function canMatchJSONataEvent(event: FormComponentEvent, behaviourConfig: FormBehaviourConfigFrame): boolean {
-  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  const isRunOnFormReady = isFormReady(event, behaviourConfig);
   // A runOnFormReady behaviour must only fire for the form-ready event itself.
   // Without this guard, any later broadcast event (sourceId="*") would also
   // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.

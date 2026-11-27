@@ -7,6 +7,14 @@
         <img class="center-block rb-form-loading__spinner" src="/images/loading.svg" [attr.alt]="'loading-alt-text' | i18next" />
       </div>
     }
+    @if (componentsLoaded() && hasFailedInitialImport) {
+      <div class="alert alert-danger" role="alert">
+        The linked record could not be imported.
+        <button type="button" class="btn btn-default" (click)="retryInitialImports()" [disabled]="isLoadingRecordMetadata">
+          Retry import
+        </button>
+      </div>
+    }
     <div class="rb-form-components"
       [hidden]="!componentsLoaded() && !!error()"
       [attr.inert]="creatingRecord() ? '' : null"

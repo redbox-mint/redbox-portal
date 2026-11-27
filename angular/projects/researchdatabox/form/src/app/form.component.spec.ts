@@ -4,7 +4,7 @@ import { ApplicationRef } from '@angular/core';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TypeaheadModule, type TypeaheadMatch } from 'ngx-bootstrap/typeahead';
-import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { RecordService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { asyncScheduler } from 'rxjs';
 import { FormSaveRows } from './form-save-rows';
@@ -2495,6 +2495,73 @@ describe('FormComponent', () => {
     await formComponent.saveForm({ force: true });
     expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Previous creator' }] }, 'dataPublication', '');
   });
+
+  for (const failure of ['fetch', 'expression']) {
+    it(`blocks draft and review and allows retry after a failed form-ready ${failure}`, async () => {
+      const { config, assets } = creatorImportConfig([{ name: 'Before import' }]);
+      const condition = 'event.type = "form.definition.ready"';
+      const oidTemplate = '"initial-source"';
+      const behaviour = config.behaviours![0];
+      Object.assign(behaviour, { condition, conditionKind: 'jsonata_query', runOnFormReady: true });
+      Object.assign(behaviour.processors![0].config!, { template: oidTemplate });
+      const evaluate = assets.entries[0].callable;
+      let failExpression = failure === 'expression';
+      assets.entries[0].callable = (key, path, context) => {
+        if (path[0] === 'behaviours') {
+          return path.at(-1) === 'condition'
+            ? context.event.type === FormComponentEventType.FORM_DEFINITION_READY
+            : 'initial-source';
+        }
+        if (failExpression && path[0] === 'componentDefinitions' && path.at(-1) === 'template') {
+          throw new Error('Linked-record expression failed');
+        }
+        return evaluate(key, path, context);
+      };
+      const recordService = TestBed.inject(RecordService);
+      const contributors = [{ family_name: 'Restored' }];
+      const fetch = spyOn(recordService, 'getRecordMeta').and.resolveTo({ contributor_ci: contributors });
+      if (failure === 'fetch') fetch.and.rejectWith(new Error('Linked-record request failed'));
+      const update = spyOn(recordService, 'update').and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null,
+      });
+
+      setUpDynamicAssets(assets);
+      const fixture = TestBed.createComponent(FormComponent);
+      ensureApplicationRefFormComponent(fixture.componentRef);
+      const formComponent = fixture.componentInstance;
+      formComponent.oid.set('publication');
+      formComponent.formName.set('');
+      formComponent.recordType.set('dataPublication');
+      formComponent.editMode.set(true);
+      formComponent.downloadAndCreateOnInit.set(false);
+      fixture.autoDetectChanges();
+      await fixture.whenStable();
+      await fixture.ngZone!.run(() => formComponent.downloadAndCreateFormComponents(config));
+      await fixture.whenStable();
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledOnceWith('initial-source');
+
+      failExpression = false;
+      fetch.and.resolveTo({ contributor_ci: contributors });
+      const editor = fixture.nativeElement as HTMLElement;
+      const retry = editor.querySelector<HTMLButtonElement>('.rb-form-shell__main > [role="alert"] button')!;
+      expect(retry.textContent?.trim()).toBe('Retry import');
+      retry.click();
+      await fixture.whenStable();
+      expect(fetch.calls.allArgs()).toEqual([['initial-source'], ['initial-source']]);
+      expect(editor.querySelector('.rb-form-shell__main > [role="alert"] button')).toBeNull();
+
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      const metadata = { creators: [{ name: 'Restored' }] };
+      expect(update.calls.allArgs()).toEqual([
+        ['publication', metadata, '', { formSave: true }],
+        ['publication', metadata, 'review', { formSave: true }],
+      ]);
+    });
+  }
 
   it('loads persisted row proofs after create before a linked record import and review save', async () => {
     setWindowSearch('?dataRecordOid=old-source');

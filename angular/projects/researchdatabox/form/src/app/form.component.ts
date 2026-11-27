@@ -1239,6 +1239,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return undefined;
   }
 
+  protected get hasFailedInitialImport(): boolean {
+    return this.behaviourManager.hasFailedInitialImport;
+  }
+
+  protected get isLoadingRecordMetadata(): boolean {
+    return this.behaviourManager.isLoadingMetadata;
+  }
+
+  protected retryInitialImports(): Promise<void> {
+    return this.behaviourManager.retryInitialImports();
+  }
+
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
     if (this.creatingRecord() || (!this.componentsLoaded() && this.error())) return;
 
@@ -1293,7 +1305,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
         if (this.behaviourManager.hasPendingRecordImport) {
           this.eventBus.publish(createFormSaveFailureEvent({
-            error: 'Retry or change the linked record before saving.',
+            error: this.hasFailedInitialImport
+              ? 'Retry the initial linked record import before saving.'
+              : 'Retry or change the linked record before saving.',
           }));
           return;
         }

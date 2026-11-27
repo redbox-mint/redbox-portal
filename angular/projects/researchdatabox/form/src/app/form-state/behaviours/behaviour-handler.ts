@@ -60,6 +60,8 @@ export class BehaviourHandler {
   private readonly pendingMetadataLoads = new Set<BehaviourWork>();
   private readonly queuedMetadataLoads = new Map<string | undefined, BehaviourWork>();
   private hasExecutedFormReady = false;
+  private failedInitialImport?: BehaviourWork;
+  private destroyed = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
 
@@ -121,6 +123,8 @@ export class BehaviourHandler {
   }
 
   destroy(): void {
+    this.destroyed = true;
+    this.failedInitialImport = undefined;
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.length = 0;
     this.queuedMetadataLoads.clear();
@@ -152,7 +156,8 @@ export class BehaviourHandler {
   }
 
   private canHandleMetadataEvent(event: FormComponentEvent): boolean {
-    if (this.hasExecutedFormReady || (this.isProcessingFormReadyExecution && event.sourceId === '*')) return false;
+    if (this.hasExecutedFormReady || this.failedInitialImport ||
+        (this.isProcessingFormReadyExecution && event.sourceId === '*')) return false;
     const kind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
     return kind === ExpressionsConditionKind.JSONPointer
       ? matchJSONPointerCondition(this.behaviour.condition, event, this.behaviour, this.getEventQuerySource(event))
@@ -180,7 +185,7 @@ export class BehaviourHandler {
   }
 
   private isCurrent(work: BehaviourWork): boolean {
-    return !work.selection || this.selections.get(work.event.fieldId) === work.selection;
+    return !this.destroyed && (!work.selection || this.selections.get(work.event.fieldId) === work.selection);
   }
 
   private async matches(work: BehaviourWork): Promise<boolean> {
@@ -218,7 +223,7 @@ export class BehaviourHandler {
     // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
     // Without this, a broadcast event (sourceId="*") emitted by the action
     // passes the JSONata guard and restarts the pipeline indefinitely.
-    if (this.hasExecutedFormReady) {
+    if (this.hasExecutedFormReady || (this.failedInitialImport && this.failedInitialImport !== work)) {
       return;
     }
 
@@ -236,7 +241,10 @@ export class BehaviourHandler {
     const fetchesMetadata = this.fetchesMetadata();
     if (fetchesMetadata) this.pendingMetadataLoads.add(work);
     try {
-      if (!conditionMatched && !await this.matches(work)) return;
+      if (!conditionMatched && !await this.matches(work)) {
+        if (this.failedInitialImport === work) this.failedInitialImport = undefined;
+        return;
+      }
 
       await this.getCompiledTemplateEvaluator();
       const selectedOid = selection?.oid;
@@ -245,7 +253,7 @@ export class BehaviourHandler {
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
         if (!this.isCurrent(work)) return;
         if (processor.type === FormBehaviourProcessorType.FetchMetadata && typeof value === 'string' && value.trim()) {
-          recordImport = selectedOid === value.trim()
+          recordImport = isFormReadyEvent ? 'changed-selection' : selectedOid === value.trim()
             ? (selection?.needsImport ? 'changed-selection' : 'same-selection')
             : 'metadata-refresh';
         }
@@ -261,15 +269,15 @@ export class BehaviourHandler {
 
       if (!this.isCurrent(work)) return;
       await this.executeActions('actions', this.behaviour.actions ?? [], value, work, recordImport);
-      if (selection && this.isCurrent(work)) selection.needsImport = false;
+      if (!this.isCurrent(work)) return;
+      if (selection) selection.needsImport = false;
       if (isFormReadyEvent) {
+        this.failedInitialImport = undefined;
         this.hasExecutedFormReady = true;
       }
     } catch (error) {
+      if (isFormReadyEvent && !fetchesMetadata) this.hasExecutedFormReady = true;
       await this.handleExecutionError(error, work);
-      if (isFormReadyEvent) {
-        this.hasExecutedFormReady = true;
-      }
     } finally {
       if (fetchesMetadata) this.pendingMetadataLoads.delete(work);
       if (isFormReadyEvent) {
@@ -280,6 +288,9 @@ export class BehaviourHandler {
 
   private async handleExecutionError(error: unknown, work: BehaviourWork): Promise<void> {
     if (!this.isCurrent(work)) return;
+    if (this.fetchesMetadata() && work.event.type === FormComponentEventType.FORM_DEFINITION_READY) {
+      this.failedInitialImport = work;
+    }
     this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
       error,
       behaviour: this.behaviour.name,
@@ -292,8 +303,18 @@ export class BehaviourHandler {
       Array.from(this.pendingMetadataLoads).some(work => this.isCurrent(work));
   }
 
+  get hasFailedInitialImport(): boolean {
+    return this.failedInitialImport !== undefined;
+  }
+
   get hasPendingRecordImport(): boolean {
-    return Array.from(this.selections.values()).some(selection => selection.needsImport);
+    return this.hasFailedInitialImport || Array.from(this.selections.values()).some(selection => selection.needsImport);
+  }
+
+  async retryInitialImport(): Promise<void> {
+    if (this.failedInitialImport && !this.isLoadingMetadata) {
+      await this.execute(this.failedInitialImport, false);
+    }
   }
 
   /**
@@ -318,7 +339,9 @@ export class BehaviourHandler {
         listName,
         eventBus: this.ctx.eventBus,
         recordImport,
-        isCurrent: work.selection ? () => this.isCurrent(work) : undefined,
+        isCurrent: work.selection || (recordImport && work.event.type === FormComponentEventType.FORM_DEFINITION_READY)
+          ? () => this.isCurrent(work)
+          : undefined,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
         broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),
