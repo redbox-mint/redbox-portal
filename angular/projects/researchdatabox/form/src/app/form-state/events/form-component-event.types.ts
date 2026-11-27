@@ -5,6 +5,7 @@
  * Per R15.1–R15.17, naming convention: namespace.domain.action
  */
 
+import type { AbstractControl } from '@angular/forms';
 import { FormGroupStatus } from '../../form.component';
 import {
   FormFieldValidationGroup,
@@ -173,7 +174,8 @@ export interface FormValidationGroupsChangeRequestEvent extends FormComponentEve
 export interface FormStatusDirtyRequestEvent extends FormComponentEventBase {
   readonly type: 'form.status.dirty.request';
   readonly fieldId?: string;
-  readonly controlPath?: readonly (string | number)[];
+  /** Registered control that identifies both the edited field and its owning form. */
+  readonly control?: AbstractControl;
   readonly reason?: string;
 }
 

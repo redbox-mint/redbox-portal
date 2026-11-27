@@ -533,11 +533,13 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   private requestFormDirty(reason: string): void {
+    const control = this.formControl;
+    if (!control) return;
     this.eventBus.publish(
       createFormStatusDirtyRequestEvent({
         fieldId: this.formFieldConfigName() || undefined,
         sourceId: this.formFieldConfigName() || undefined,
-        controlPath: this.formFieldCompMapEntry?.lineagePaths?.angularComponents,
+        control,
         reason,
       })
     );

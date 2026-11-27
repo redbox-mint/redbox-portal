@@ -5,6 +5,7 @@ import { DateInputComponent, parseFreeTextDate } from './date-input.component';
 import { GroupFieldComponent } from './group.component';
 import { SaveButtonComponent } from './save-button.component';
 import { SimpleInputComponent } from './simple-input.component';
+import { TabComponent, TabContentComponent } from './tab.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TestBed } from '@angular/core/testing';
@@ -64,10 +65,50 @@ describe('parseFreeTextDate', () => {
 describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
-      declarations: [DateInputComponent, GroupFieldComponent, SaveButtonComponent, SimpleInputComponent],
+      declarations: [DateInputComponent, GroupFieldComponent, SaveButtonComponent, SimpleInputComponent,
+        TabComponent, TabContentComponent],
       imports: [BsDatepickerModule.forRoot(), NoopAnimationsModule],
     });
   });
+
+  function timeDateField() {
+    return {
+      name: 'date',
+      component: { class: 'DateInputComponent' as const, config: { enableTimePicker: true } },
+      model: { class: 'DateInputModel' as const, config: { value: new Date(2026, 9, 4, 12) } },
+    };
+  }
+
+  function setTime(root: HTMLElement): void {
+    const input = root.querySelector<HTMLInputElement>('input[type="time"]')!;
+    input.value = '18:45';
+    input.dispatchEvent(new Event('change'));
+  }
+
+  function createTabbedTimeForm(displayName: 'date' | 'relatedTitle') {
+    return createFormAndWaitForReady({
+      name: 'tabbed-date',
+      relatedRecords: {
+        displayTargets: [{ metadataPointer: `/${displayName}`, relationId: 'activity' }],
+        relations: [{ relationId: 'activity', referenceTokens: ['reference'] }],
+        sources: [],
+      },
+      componentDefinitions: [
+        { name: 'reference', component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { value: 'activity-oid' } } },
+        { name: 'relatedTitle', component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { value: 'Related title' } } },
+        {
+          name: 'main_tab',
+          component: { class: 'TabComponent', config: { tabs: [{
+            name: 'tab2',
+            component: { class: 'TabContentComponent', config: { componentDefinitions: [timeDateField()] } },
+          }] } },
+        },
+        { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true } } },
+      ],
+    }, { editMode: true, oid: 'oid-123' });
+  }
 
   it('should create component', () => {
     const fixture = TestBed.createComponent(DateInputComponent);
@@ -121,9 +162,7 @@ describe('DateInputComponent', () => {
     expect(date.pristine).toBeTrue();
     expect(formComponent.hasChangesToSave()).toBeFalse();
 
-    const timeInput = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input[type="time"]')!;
-    timeInput.value = '18:45';
-    timeInput.dispatchEvent(new Event('change'));
+    setTime(fixture.nativeElement);
 
     expect(date.value).toEqual(new Date('2026-10-04T18:45:00.000Z'));
     expect(date.dirty).toBeTrue();
@@ -136,11 +175,7 @@ describe('DateInputComponent', () => {
   for (const datePath of ['date', 'schedule.date']) {
     it(`enables Save after a time-only edit to ${datePath} when a related display control is already dirty`, async () => {
       const displayName = datePath === 'date' ? 'relatedTitle' : 'date';
-      const dateField = {
-        name: 'date',
-        component: { class: 'DateInputComponent' as const, config: { enableTimePicker: true } },
-        model: { class: 'DateInputModel' as const, config: { value: new Date(2026, 9, 4, 12) } },
-      };
+      const dateField = timeDateField();
       const { fixture, formComponent } = await createFormAndWaitForReady({
         name: 'date-time-with-related-display',
         relatedRecords: {
@@ -171,15 +206,76 @@ describe('DateInputComponent', () => {
       expect(date.pristine).toBeTrue();
       expect(saveButton.disabled).toBeTrue();
 
-      const timeInput = root.querySelector<HTMLInputElement>('input[type="time"]')!;
-      timeInput.value = '18:45';
-      timeInput.dispatchEvent(new Event('change'));
+      setTime(root);
       fixture.detectChanges();
 
       expect(date.dirty).toBeTrue();
       expect(saveButton.disabled).toBeFalse();
     });
   }
+
+  it('keeps Save disabled after a time-only edit to an active related display date in a tab', async () => {
+    const { fixture, formComponent } = await createTabbedTimeForm('date');
+    const root = fixture.nativeElement as HTMLElement;
+    const date = formComponent.form!.get('date')!;
+    const originalValue = date.value;
+    const saveButton = root.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
+    expect(saveButton.disabled).toBeTrue();
+
+    setTime(root);
+    fixture.detectChanges();
+
+    expect(date.value).not.toEqual(originalValue);
+    expect(formComponent.hasChangesToSave()).toBeFalse();
+    expect(saveButton.disabled).toBeTrue();
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBeFalse();
+  });
+
+  it('enables Save for a time-only persisted date edit in a tab while a related display control is dirty', async () => {
+    const { fixture, formComponent } = await createTabbedTimeForm('relatedTitle');
+    const form = formComponent.form!;
+    const date = form.get('date')!;
+    const originalValue = date.value;
+    const root = fixture.nativeElement as HTMLElement;
+    const saveButton = root.querySelector<HTMLButtonElement>('redbox-form-save-button button')!;
+    form.get('relatedTitle')!.markAsDirty();
+    fixture.detectChanges();
+    expect(form.dirty).toBeTrue();
+    expect(date.pristine).toBeTrue();
+    expect(saveButton.disabled).toBeTrue();
+
+    setTime(root);
+    fixture.detectChanges();
+
+    expect(date.dirty).toBeTrue();
+    expect(saveButton.disabled).toBeFalse();
+
+    date.markAsPristine();
+    date.setValue(originalValue);
+    fixture.detectChanges();
+
+    expect(form.dirty).toBeTrue();
+    expect(saveButton.disabled).toBeTrue();
+  });
+
+  it('keeps another form with the same date field pristine after a time-only edit', async () => {
+    const edited = await createFormAndWaitForReady({
+      name: 'edited-time-form', componentDefinitions: [timeDateField()],
+    }, { editMode: true, oid: 'edited-oid' });
+    const other = await createFormAndWaitForReady({
+      name: 'other-time-form', componentDefinitions: [timeDateField()],
+    }, { editMode: true, oid: 'other-oid' });
+    const otherDate = other.formComponent.form!.get('date')!;
+    expect(otherDate.pristine).toBeTrue();
+
+    setTime(edited.fixture.nativeElement);
+
+    expect(edited.formComponent.form!.get('date')!.dirty).toBeTrue();
+    expect(otherDate.pristine).toBeTrue();
+    expect(other.formComponent.form!.pristine).toBeTrue();
+  });
 
   it('should render Date input component from default value', async () => {
     const formConfig: FormConfigFrame = {

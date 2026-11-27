@@ -808,11 +808,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['formStatusDirtyRequestSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST)
       .subscribe((evt: FormStatusDirtyRequestEvent) => {
-        if (!this.form) {
+        if (!this.form || (evt.control && evt.control.root !== this.form)) {
           return;
         }
-        const controlPath = evt.controlPath ?? evt.fieldId;
-        const targetControl = controlPath ? this.form.get(controlPath) : null;
+        const targetControl = evt.control ?? (evt.fieldId ? this.form.get(evt.fieldId) : null);
         if (targetControl && this.isActiveRelatedDisplayControl(targetControl)) return;
         const trackLocalChanges = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
         const wasDirty = this.form.dirty;
