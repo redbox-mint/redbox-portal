@@ -595,7 +595,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
           if (this.compDefMapEntries.includes(entry)) this.removeElementFn(entry, commitOptions)();
         }
         for (const entry of stagedRows) {
-          this.model?.addElement(entry.defEntry.model, commitOptions);
+          this.insertRowControl(entry, commitOptions);
           entry.staged = false;
         }
         if (array && !importing) this.getFormComponent.forgetLoadedRows(array);
@@ -747,13 +747,27 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Imported rows stay outside the form until the replacement commits.
     if (elemEntry.staged) return wrapperRef;
     if (this.model?.formControl && compInstance?.model) {
-      this.model.addElement(compInstance.model, options);
+      this.insertRowControl(elemEntry, options);
     } else {
       this.loggerService.warn(
         `${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`
       );
     }
     return wrapperRef;
+  }
+
+  private insertRowControl(entry: RepeatableElementEntry, options?: RepeatableSetValueOptions): void {
+    const model = this.model;
+    const array = model?.formControl;
+    if (!model || !array) return;
+    // Initialization can finish out of order. Insert before the next row already in the array.
+    const displayIndex = this.compDefMapEntries.lastIndexOf(entry);
+    const following = this.compDefMapEntries.slice(displayIndex + 1).find(candidate => {
+      const control = candidate.defEntry.model?.formControl;
+      return control && array.controls.includes(control);
+    });
+    const control = following?.defEntry.model?.formControl;
+    model.addElement(entry.defEntry.model, options, control ? array.controls.indexOf(control) : array.length);
   }
 
   public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
@@ -926,7 +940,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     return formControl;
   }
 
-  public addElement(targetModel?: FormFieldModel<unknown>, options?: RepeatableSetValueOptions) {
+  public addElement(targetModel?: FormFieldModel<unknown>, options?: RepeatableSetValueOptions, index?: number) {
     const control = targetModel?.getFormControl();
     if (this.formControl && control && targetModel) {
       this.rowModels.set(control, targetModel);
@@ -934,7 +948,11 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
         this.rememberDisabled([control]);
         control.disable({ emitEvent: false, onlySelf: true });
       }
-      this.formControl.push(control, options);
+      if (index === undefined || index === this.formControl.length) {
+        this.formControl.push(control, options);
+      } else {
+        this.formControl.insert(index, control, options);
+      }
     } else {
       throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
     }

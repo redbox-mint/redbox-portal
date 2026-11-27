@@ -2240,6 +2240,53 @@ describe('FormComponent', () => {
       });
     }
 
+    it(`saves creators in displayed order when a manual row finishes before an import with debounceMs=${debounceMs}`, async () => {
+      const { fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
+      fetch.withArgs('source-a').and.resolveTo({ contributor_ci: [{ family_name: 'Imported' }] });
+      update.and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null,
+        savedRowProofs: { [path]: ['imported', 'manual'] },
+      });
+      const initialize = FormBaseWrapperComponent.prototype.initWrapperComponent;
+      let finishImport!: () => void;
+      let notifyHeld!: () => void;
+      const resumeImport = new Promise<void>(resolve => { finishImport = resolve; });
+      const rowHeld = new Promise<void>(resolve => { notifyHeld = resolve; });
+      spyOn(FormBaseWrapperComponent.prototype, 'initWrapperComponent').and.callFake(async function (
+        this: FormBaseWrapperComponent<unknown>, entry, omitLayout
+      ) {
+        const component = await initialize.call(this, entry, omitLayout);
+        if ((entry?.model?.initValue as { name?: string })?.name === 'Imported') {
+          notifyHeld();
+          await resumeImport;
+        }
+        return component;
+      });
+
+      select('source-a');
+      await rowHeld;
+      const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+      try {
+        await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual' }));
+        expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Original creator' }, { name: 'Manual' }]);
+      } finally {
+        fixture.ngZone!.run(finishImport);
+      }
+      await fixture.whenStable();
+
+      const creators = [{ name: 'Imported' }, { name: 'Manual' }];
+      expect(repeatable.formFieldCompMapEntries.map(entry => entry.model?.formControl?.value)).toEqual(creators);
+      const metadata = { creators, dataRecord: { oid: 'source-a' } };
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update.calls.allArgs()).toEqual([
+        ['publication', metadata, '', { formSave: true, rowEdits: { [path]: [null, null] } }],
+        ['publication', metadata, 'review', { formSave: true, rowEdits: { [path]: [
+          { source: 0, proof: 'imported' }, { source: 1, proof: 'manual' },
+        ] } }],
+      ]);
+    });
+
     it(`allows saving a newer selection that needs no import after a failed fetch with debounceMs=${debounceMs}`, async () => {
       const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
       conditionOutcomes.set('source-b', 'skip');
