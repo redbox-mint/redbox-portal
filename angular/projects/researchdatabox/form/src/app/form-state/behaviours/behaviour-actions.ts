@@ -17,6 +17,7 @@ export interface BehaviourActionExecutionContext {
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
+  fetchedNewSelection?: boolean;
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -92,6 +93,7 @@ async function executeEmitEventAction(
       fieldId: action.config.fieldId,
       sourceId: action.config.sourceId,
       value,
+      ...(ctx.fetchedNewSelection && !action.config.hasValueTemplate ? { fromRecordImport: true } : {}),
     })
   );
 }

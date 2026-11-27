@@ -35,11 +35,11 @@ import {
   createFormStatusDirtyRequestEvent,
   FormComponentEventBus,
 } from '../form-state';
-import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+import { ControlSetValueOptions, CustomSetValueControl } from '../form-state/custom-set-value.control';
 import { FormComponent } from '../form.component';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
-type RepeatableSetValueOptions = ModifyOptions;
+type RepeatableSetValueOptions = ControlSetValueOptions;
 
 class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements CustomSetValueControl<Array<unknown>> {
   public customValueSetter?: (value: Array<unknown>, options?: RepeatableSetValueOptions) => Promise<void> | void;
@@ -534,21 +534,29 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const nextValues = Array.isArray(values) ? values : [];
     const array = this.model?.formControl;
     if (array && _isEqual(array.getRawValue(), nextValues)) return;
-    if (array) this.getFormComponent.forgetLoadedRows(array);
-
-    while (this.compDefMapEntries.length > 0) {
-      const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
-      this.removeElementFn(lastEntry, options)();
+    const importing = options?.replaceImportedRows === true;
+    if (importing && (this.readOnlyRows || array?.length !== this.compDefMapEntries.length)) return;
+    let complete = false;
+    if (array) {
+      if (importing) this.getFormComponent.importRows(array, () => complete && array.length === this.compDefMapEntries.length);
+      else this.getFormComponent.forgetLoadedRows(array);
     }
 
-    if (nextValues.length === 0 && !this.allowZeroRows) {
+    for (const entry of [...this.compDefMapEntries].reverse()) {
+      // An imported list replaces editable rows. Keep disabled rows and their source proofs.
+      const row = entry.defEntry.model?.formControl;
+      if (importing && array && row?.disabled && this.getFormComponent.isLoadedRow(array, row)) continue;
+      this.removeElementFn(entry, options)();
+    }
+
+    if (this.compDefMapEntries.length === 0 && nextValues.length === 0 && !this.allowZeroRows) {
       await this.appendNewElement(undefined, false, options);
-      return;
+    } else {
+      for (const value of nextValues) {
+        await this.appendNewElement(value, false, options);
+      }
     }
-
-    for (const value of nextValues) {
-      await this.appendNewElement(value, false, options);
-    }
+    complete = true;
   }
 
   protected rebuildLineagePaths(options?: RepeatableSetValueOptions) {

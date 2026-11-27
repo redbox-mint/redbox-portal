@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { ContentComponent } from './component/content.component';
 import { GroupFieldComponent } from './component/group.component';
@@ -1327,6 +1327,95 @@ describe('FormComponent', () => {
     expect(update.calls.allArgs()).toEqual([
       ['publication', { title: 'First edit' }, '', { formSave: true }],
       ['publication', { title: 'Second edit' }, '', { formSave: true }],
+    ]);
+  });
+
+  it('saves and submits the creator list populated by a linked record import expression', async () => {
+    const oidTemplate = 'event.value.oid';
+    const template = '$map(event.value.contributor_ci, function($creator) {{"name": $creator.family_name}})';
+    const creators = contributorList([{ name: 'Old creator' }, { name: 'Disabled creator' }]);
+    creators.expressions = [{
+      name: 'creators-from-data-record',
+      config: {
+        conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
+        target: 'model.value', hasTemplate: true, template,
+      },
+    }];
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'publication-draft',
+      componentDefinitions: [creators],
+      behaviours: [{
+        name: 'fetch-selected-data-record',
+        conditionKind: 'jsonpointer', condition: '/dataRecord::field.value.changed', runOnFormReady: false,
+        processors: [
+          { type: 'jsonataTransform', config: { hasTemplate: true, template: oidTemplate } },
+          { type: 'fetchMetadata' },
+        ],
+        actions: [{
+          type: 'emitEvent',
+          config: { eventType: 'field.value.changed', fieldId: '/dataRecordGetter', sourceId: '*' },
+        }],
+      }],
+    }, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    }, undefined, {
+      entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/',
+        callable: (_key, path, context) => jsonataCompileAndEvaluate(
+          path.includes('processors') ? oidTemplate : template, context
+        ),
+      }],
+    });
+    const path = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['old', 'disabled'] },
+    };
+    formComponent.form!.get(['creators', 1])!.disable();
+    const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
+    fetch.withArgs('data-1').and.resolveTo({ contributor_ci: [{ family_name: 'Alpha' }, { family_name: 'Beta' }] });
+    fetch.withArgs('data-2').and.resolveTo({ contributor_ci: [{ family_name: 'Next import' }] });
+    fetch.withArgs('data-missing-creators').and.resolveTo({ title: 'No supplied creator list' });
+    const bus = TestBed.inject(FormComponentEventBus);
+    let selectedOid = 'data-original';
+    const select = async (oid: string) => {
+      fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
+        fieldId: '/dataRecord', sourceId: '*', value: { oid }, previousValue: { oid: selectedOid },
+      })));
+      selectedOid = oid;
+      formComponent.form!.markAsDirty();
+      await fixture.whenStable();
+    };
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+      savedRowProofs: { [path]: ['disabled-rebased', 'alpha', 'beta'] },
+    });
+
+    await select('data-1');
+    expect(fetch).toHaveBeenCalledWith('data-1');
+    await formComponent.saveForm();
+    expect(update.calls.argsFor(0)).toEqual([
+      'publication', { creators: [null, { name: 'Alpha' }, { name: 'Beta' }] }, '',
+      { formSave: true, rowEdits: { [path]: [{ source: 1, proof: 'disabled', retain: true }, null, null] } },
+    ]);
+
+    await select('data-missing-creators');
+    formComponent.form!.get(['creators', 1, 'name'])!.setValue('Edited Alpha');
+    await formComponent.saveForm();
+    expect(update.calls.argsFor(1)).toEqual([
+      'publication', { creators: [null, { name: 'Edited Alpha' }, { name: 'Beta' }] }, '',
+      { formSave: true, rowEdits: { [path]: [
+        { source: 0, proof: 'disabled-rebased', retain: true }, { source: 1, proof: 'alpha' }, { source: 2, proof: 'beta' },
+      ] } },
+    ]);
+
+    await select('data-2');
+    update.and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['retained', 'next'] },
+    });
+    await formComponent.saveForm({ targetStep: 'review' });
+    expect(update.calls.argsFor(2)).toEqual([
+      'publication', { creators: [null, { name: 'Next import' }] }, 'review',
+      { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'disabled-rebased', retain: true }, null] } },
     ]);
   });
 

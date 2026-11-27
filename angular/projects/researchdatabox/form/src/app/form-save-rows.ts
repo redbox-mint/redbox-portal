@@ -10,6 +10,7 @@ export class FormSaveRows {
   private readonly origins = new WeakMap<AbstractControl, RowSource>();
   private readonly needsReload = new WeakSet<FormArray>();
   private readonly rebuilt = new WeakSet<FormArray>();
+  private readonly imported = new WeakMap<FormArray, () => boolean>();
   private readonly readOnlyRows = new WeakMap<FormArray, ReadOnlyRows>();
 
   markRowsReadOnly(array: FormArray, renderedCount: () => number): void {
@@ -73,6 +74,15 @@ export class FormSaveRows {
 
   forget(array: FormArray): void {
     this.rebuilt.add(array);
+    this.imported.delete(array);
+  }
+
+  importRows(array: FormArray, isComplete: () => boolean): void {
+    this.imported.set(array, isComplete);
+  }
+
+  isLoadedRow(array: FormArray, row: AbstractControl): boolean {
+    return this.origins.get(row)?.array === array;
   }
 
   snapshot(
@@ -83,7 +93,7 @@ export class FormSaveRows {
     const allowedLists = editableRowPaths && new Set(editableRowPaths);
     if (form && proofs) this.bindProofs(form, proofs);
     const rowEdits: FormRowEdits = {};
-    const arrays: { key: string; array: FormArray; rows: AbstractControl[] }[] = [];
+    const arrays: { key: string; array: FormArray; rows: AbstractControl[]; imported?: () => boolean }[] = [];
 
     const omitted = Symbol();
     const visit = (control: AbstractControl, path: Path, fromStorage: boolean, trackBranch: boolean, root = false): unknown => {
@@ -114,6 +124,9 @@ export class FormSaveRows {
       if (trackBranch && updating && changedByHook && structured) {
         throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
       }
+      const imported = this.imported.get(control);
+      const incompleteImport = () => new Error('Some imported repeatable rows cannot be saved. Reload the form and retry.');
+      if (updating && imported && !imported()) throw incompleteImport();
       const edits: FormRowEdit[] = [];
       const values: unknown[] = [];
       const rows: AbstractControl[] = [];
@@ -125,7 +138,10 @@ export class FormSaveRows {
         if (retain && updating && !trackArray) {
           throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
         }
-        if (retain && !origin) continue;
+        if (retain && !origin) {
+          if (trackArray && imported) throw incompleteImport();
+          continue;
+        }
         if (origin && !origin.proof) {
           throw new Error('A repeatable row no longer corresponds to its loaded position. Reload the form and retry.');
         }
@@ -137,7 +153,7 @@ export class FormSaveRows {
       if (trackArray) {
         const key = JSON.stringify(path);
         rowEdits[key] = edits;
-        arrays.push({ key, array: control, rows });
+        arrays.push({ key, array: control, rows, imported });
       }
       return values;
     };
@@ -148,12 +164,13 @@ export class FormSaveRows {
       rowEdits,
       markSaved: (savedProofs?: FormRowProofs) => {
         if (!savedProofs) return;
-        for (const { key, array, rows } of arrays) {
+        for (const { key, array, rows, imported } of arrays) {
           const proofs = savedProofs[key];
           if (proofs === undefined) {
             this.needsReload.add(array);
             continue;
           }
+          if (imported === this.imported.get(array)) this.imported.delete(array);
           const readOnly = this.readOnlyRows.get(array);
           if (readOnly && !rows.length && !proofs.length) readOnly.loaded = false;
           rows.forEach((row, index) => {

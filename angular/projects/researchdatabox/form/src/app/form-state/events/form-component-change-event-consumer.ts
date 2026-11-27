@@ -5,7 +5,10 @@ import {
   FormComponentEventTypeValue,
 } from './form-component-event.types';
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
-import {  FormExpressionsConfigFrame} from '@researchdatabox/sails-ng-common';
+import { FormExpressionsConfigFrame, FormExpressionsTargetModelValue } from '@researchdatabox/sails-ng-common';
+import { FormArray } from '@angular/forms';
+import { isPlainObject } from 'lodash-es';
+import { isCustomSetValueControl } from '../custom-set-value.control';
 
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
@@ -24,16 +27,25 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
     event: FieldValueChangedEvent,
     expression: FormExpressionsConfigFrame
   ): Promise<void> {
-    // Compute the expression result
+    if (!('target' in expression.config)) return;
+    const target = expression.config.target || '';
+    const control = this.model?.formControl;
+    const importsRows = event.fromRecordImport && expression.config.hasTemplate &&
+      target === FormExpressionsTargetModelValue && control instanceof FormArray && isCustomSetValueControl(control);
     let targetValue: unknown = event.value;
     if (expression.config.hasTemplate) {
       // Evaluate the pre-compiled JSONata expression template (CSP-safe)
-      targetValue = await this.evaluateExpressionJSONata(expression, event, 'template');
+      targetValue = importsRows
+        ? await this.evaluateExpressionJSONata(expression, event, 'template', {}, null)
+        : await this.evaluateExpressionJSONata(expression, event, 'template');
     }
-    // Set the target based on the expression config
-    if ('target' in expression.config) {
-      const exprTarget = expression.config.target || '';
-      await this.setTarget(targetValue, exprTarget, event, expression);
+    if (importsRows) {
+      // JSONata may return a lone object for a single row and undefined when there is no result.
+      if (isPlainObject(targetValue)) targetValue = [targetValue];
+      if (!Array.isArray(targetValue)) return;
+      await this.setTarget(targetValue, target, event, expression, { emitEvent: false, replaceImportedRows: true });
+      return;
     }
+    await this.setTarget(targetValue, target, event, expression);
   }
 }

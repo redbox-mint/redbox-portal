@@ -4,6 +4,7 @@ import {
   FieldPathKind,
   FormBehaviourActionConfig,
   FormBehaviourConfigFrame,
+  FormBehaviourProcessorType,
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService, RecordService } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../../form.component';
@@ -22,6 +23,15 @@ import { matchBehaviourCondition } from './behaviour-condition-matcher';
 import { BehaviourPipelineContext, executeBehaviourProcessor } from './behaviour-processors';
 import { executeBehaviourAction } from './behaviour-actions';
 import { getEventJSONPointerCondition } from '../events/form-component-base-event-producer-consumer';
+
+function selectedRecordOid(selection: unknown): string {
+  let id = selection;
+  if (selection && typeof selection === 'object') {
+    const reference = selection as { oid?: unknown; redboxOid?: unknown };
+    id = reference.oid ?? reference.redboxOid;
+  }
+  return typeof id === 'string' ? id.trim() : '';
+}
 
 /**
  * Services and runtime references shared by behaviour handlers.
@@ -148,7 +158,13 @@ export class BehaviourHandler {
       }
 
       let value = (event as { value?: unknown }).value;
+      const selectedOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.value) : '';
+      const previousOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.previousValue) : '';
+      let fetchedNewSelection = false;
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
+        // Only an actual link change expresses intent to replace an imported list.
+        const fetchesNewSelection = processor.type === FormBehaviourProcessorType.FetchMetadata &&
+          typeof value === 'string' && !!selectedOid && value.trim() === selectedOid && selectedOid !== previousOid;
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
           behaviourIndex: this.behaviourIndex,
           processorIndex,
@@ -157,9 +173,10 @@ export class BehaviourHandler {
           logger: this.ctx.logger,
           metadataCache: this.metadataCache,
         });
+        fetchedNewSelection = fetchesNewSelection;
       }
 
-      await this.executeActions('actions', this.behaviour.actions ?? [], value, event);
+      await this.executeActions('actions', this.behaviour.actions ?? [], value, event, fetchedNewSelection);
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
       }
@@ -186,7 +203,8 @@ export class BehaviourHandler {
     listName: 'actions' | 'onError',
     actions: FormBehaviourActionConfig[],
     value: unknown,
-    event: FormComponentEvent
+    event: FormComponentEvent,
+    fetchedNewSelection = false
   ): Promise<void> {
     for (const [actionIndex, action] of actions.entries()) {
       const actionKey = this.buildActionKey(listName, actionIndex);
@@ -198,6 +216,7 @@ export class BehaviourHandler {
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,
+        fetchedNewSelection,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
         broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),

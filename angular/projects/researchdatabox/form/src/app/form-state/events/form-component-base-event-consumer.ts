@@ -26,7 +26,7 @@ import {
   FormExpressionsTargetFieldDisabled,
 } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
+import { ControlSetValueOptions, isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
 import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
 /**
@@ -486,12 +486,13 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     targetValue: unknown,
     exprTarget: string,
     event: FormComponentEvent,
-    expression: FormExpressionsConfigFrame
+    expression: FormExpressionsConfigFrame,
+    options: ControlSetValueOptions = { emitEvent: false }
   ) {
     if (exprTarget === FormExpressionsTargetModelValue) {
       // The model.value property must be handled specially.
       if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
-        await setControlValue(this.model.formControl, targetValue, { emitEvent: false });
+        await setControlValue(this.model.formControl, targetValue, options);
         await syncComponentDisplayFromModel(this.options?.component);
         // setControlValue with emitEvent:false suppresses Angular's
         // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,

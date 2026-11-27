@@ -47,6 +47,7 @@ export interface FieldValueChangedEvent extends FieldScopedEventBase {
   readonly type: 'field.value.changed';
   readonly value: any;
   readonly previousValue?: any;
+  readonly fromRecordImport?: true;
 }
 
 /**

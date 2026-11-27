@@ -930,6 +930,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formSaveRows.forget(array);
   }
 
+  public importRows(array: FormArray, isComplete: () => boolean): void {
+    this.formSaveRows.importRows(array, isComplete);
+  }
+
+  public isLoadedRow(array: FormArray, row: AbstractControl): boolean {
+    const oid = this.trimmedParams.oid();
+    return !!oid && this.formConfigMeta['oid'] === oid && this.formSaveRows.isLoadedRow(array, row);
+  }
+
   public markRowsReadOnly(array: FormArray, renderedCount: () => number): void {
     this.formSaveRows.markRowsReadOnly(array, renderedCount);
   }

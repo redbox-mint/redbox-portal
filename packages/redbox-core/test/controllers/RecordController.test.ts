@@ -409,6 +409,42 @@ describe('RecordController update', () => {
     expect(json.firstCall.args[0].data).to.deep.equal({ redboxOid: 'oid-1' });
   });
 
+  it('saves newly imported contributors and proof-backed retained rows before a workflow transition', async () => {
+    const path = '["contributors"]';
+    const outgoing = { name: 'Legacy creator', known_ids: ['old-identifier'] };
+    const retained = { name: 'Disabled creator', known_ids: ['keep-identifier'], internalCode: 'Keep' };
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [outgoing, retained] } });
+    updateMeta.callsFake(async (...args) => {
+      read.resolves({ ...currentRecord, metadata: args[7] });
+      return { success: true, isSuccessful: () => true };
+    });
+
+    const form = await loadFormForRowEdits();
+    const draft = makeResponse();
+    await controller.update(await rowSaveRequest({
+      contributors: [null, { name: 'Imported', internalCode: 'Forged' }],
+    }, { [path]: [{ retain: 1 }, null] }, form), draft.res);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({
+      ...currentRecord.metadata, contributors: [retained, { name: 'Imported' }],
+    });
+
+    const proofs = draft.json.firstCall.args[0].meta.savedRowProofs;
+    const subsequent = await rowSaveRequest({
+      contributors: [null, { name: 'Edited import' }],
+    }, { [path]: [{ retain: 0 }, 1] }, { ...form, proofs });
+    await controller.update(subsequent, makeResponse().res);
+    expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([retained, { name: 'Edited import' }]);
+
+    const submit = await rowSaveRequest({
+      contributors: [null, { name: 'Replacement for review' }],
+    }, { [path]: [{ retain: 0 }, null] }, await loadFormForRowEdits());
+    submit.query.targetStep = 'review';
+    await controller.update(submit, makeResponse().res);
+    expect(updateMeta.thirdCall.args[6]).to.equal(nextStep);
+    expect(updateMeta.thirdCall.args[7].contributors).to.deep.equal([retained, { name: 'Replacement for review' }]);
+  });
+
   it('keeps replacement and explicit merge semantics for other callers', async () => {
     const { res } = makeResponse();
     const body = { title: 'Replacement', keywords: [] };
